@@ -15,18 +15,22 @@ const paths: RalphPaths = {
   promptDir: '/workspace/.ralph/prompts',
   runDir: '/workspace/.ralph/runs',
   logDir: '/workspace/.ralph/logs',
-  logFilePath: '/workspace/.ralph/logs/extension.log'
+  logFilePath: '/workspace/.ralph/logs/extension.log',
+  artifactDir: '/workspace/.ralph/artifacts'
 };
 
 const summary: WorkspaceScan = {
   workspaceName: 'demo',
   rootPath: '/workspace',
   manifests: ['package.json', 'tsconfig.json'],
+  projectMarkers: ['package.json', 'README.md', 'src'],
   packageManagers: ['npm'],
-  ciFiles: ['.github'],
+  ciFiles: ['.github/workflows/ci.yml'],
+  ciCommands: ['npm test'],
   docs: ['README.md', 'AGENTS.md'],
   sourceRoots: ['src'],
   lifecycleCommands: ['npm run lint', 'npm run test'],
+  validationCommands: ['npm run test', 'npm run lint'],
   testSignals: ['package.json defines a test script.'],
   notes: [],
   packageJson: {
@@ -35,13 +39,14 @@ const summary: WorkspaceScan = {
     hasWorkspaces: false,
     scriptNames: ['lint', 'test'],
     lifecycleCommands: ['npm run lint', 'npm run test'],
+    validationCommands: ['npm run test', 'npm run lint'],
     testSignals: ['package.json defines a test script.']
   }
 };
 
 function state(runHistoryLength: number): RalphWorkspaceState {
   return {
-    version: 1,
+    version: 2,
     objectivePreview: 'Ship v1',
     nextIteration: 1,
     lastPromptKind: null,
@@ -58,6 +63,8 @@ function state(runHistoryLength: number): RalphWorkspaceState {
       promptPath: `/workspace/.ralph/prompts/iteration-${index + 1}.prompt.md`,
       summary: 'Implemented one step.'
     })),
+    lastIteration: null,
+    iterationHistory: [],
     updatedAt: '2026-03-07T00:05:00.000Z'
   };
 }
@@ -83,11 +90,19 @@ test('buildPrompt includes the durable Ralph state and repo facts', () => {
     },
     summary,
     state: state(0),
-    paths
+    paths,
+    selectedTask: {
+      id: 'T1',
+      title: 'Ship the loop',
+      status: 'todo',
+      validation: 'npm run test'
+    },
+    validationCommand: 'npm run test'
   });
 
   assert.match(prompt, /Ralph Codex Bootstrap Prompt/);
   assert.match(prompt, /Workspace Snapshot/);
+  assert.match(prompt, /Selected Ralph Task/);
   assert.match(prompt, /Task Status Summary/);
   assert.match(prompt, /Runtime state path: \.ralph\/state\.json/);
 });

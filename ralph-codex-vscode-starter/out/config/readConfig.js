@@ -88,12 +88,27 @@ function readEnum(config, key, allowed, fallback, legacyKeys = []) {
     }
     return fallback;
 }
+function readEnumArray(config, key, allowed, fallback) {
+    const value = config.get(key);
+    if (!Array.isArray(value)) {
+        return [...fallback];
+    }
+    const normalized = value.filter((item) => typeof item === 'string' && allowed.includes(item));
+    return normalized.length > 0 ? normalized : [...fallback];
+}
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     return {
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
         ralphIterationCap: readNumber(config, 'ralphIterationCap', defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+        verifierModes: readEnumArray(config, 'verifierModes', ['validationCommand', 'gitDiff', 'taskState'], defaults_1.DEFAULT_CONFIG.verifierModes),
+        noProgressThreshold: readNumber(config, 'noProgressThreshold', defaults_1.DEFAULT_CONFIG.noProgressThreshold, 1),
+        repeatedFailureThreshold: readNumber(config, 'repeatedFailureThreshold', defaults_1.DEFAULT_CONFIG.repeatedFailureThreshold, 1),
+        artifactRetentionPath: readString(config, 'artifactRetentionPath', defaults_1.DEFAULT_CONFIG.artifactRetentionPath),
+        gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
+        validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
+        stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
         ralphTaskFilePath: readString(config, 'ralphTaskFilePath', defaults_1.DEFAULT_CONFIG.ralphTaskFilePath),
         prdPath: readString(config, 'prdPath', defaults_1.DEFAULT_CONFIG.prdPath),
         progressPath: readString(config, 'progressPath', defaults_1.DEFAULT_CONFIG.progressPath),

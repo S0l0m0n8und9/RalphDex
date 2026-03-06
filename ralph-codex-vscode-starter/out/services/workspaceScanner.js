@@ -48,19 +48,53 @@ const MANIFEST_FILES = [
     'pom.xml',
     'build.gradle',
     'build.gradle.kts',
-    'global.json'
+    'global.json',
+    'Makefile',
+    'justfile',
+    'docker-compose.yml',
+    'docker-compose.yaml'
 ];
-const CI_FILES = ['.github', '.gitlab-ci.yml', 'azure-pipelines.yml'];
+const CI_FILES = ['.gitlab-ci.yml', 'azure-pipelines.yml'];
 const DOC_FILES = ['README.md', 'README', 'docs', 'AGENTS.md'];
 const SOURCE_ROOTS = ['src', 'app', 'apps', 'packages', 'services', 'backend', 'frontend', 'server', 'client'];
-async function readJsonIfExists(target) {
+async function readTextIfExists(target) {
     try {
-        const raw = await fs.readFile(target, 'utf8');
-        return JSON.parse(raw);
+        return await fs.readFile(target, 'utf8');
     }
     catch {
         return undefined;
     }
+}
+async function readJsonIfExists(target) {
+    const raw = await readTextIfExists(target);
+    if (raw === undefined) {
+        return undefined;
+    }
+    return JSON.parse(raw);
+}
+async function collectGitHubWorkflowFiles(rootPath) {
+    const workflowDir = path.join(rootPath, '.github', 'workflows');
+    try {
+        const entries = await fs.readdir(workflowDir, { withFileTypes: true });
+        return entries
+            .filter((entry) => entry.isFile() && (entry.name.endsWith('.yml') || entry.name.endsWith('.yaml')))
+            .map((entry) => path.posix.join('.github', 'workflows', entry.name))
+            .sort();
+    }
+    catch {
+        return [];
+    }
+}
+async function collectCiCommands(rootPath, ciFiles) {
+    const commands = [];
+    for (const ciFile of ciFiles) {
+        const raw = await readTextIfExists(path.join(rootPath, ciFile));
+        if (!raw) {
+            continue;
+        }
+        commands.push(...(0, workspaceInspection_1.extractCiCommands)(raw));
+    }
+    return Array.from(new Set(commands));
 }
 async function scanWorkspace(rootPath, workspaceName = path.basename(rootPath)) {
     const entries = await fs.readdir(rootPath, { withFileTypes: true });
@@ -68,33 +102,70 @@ async function scanWorkspace(rootPath, workspaceName = path.basename(rootPath)) 
     const fileNames = entries.filter((entry) => entry.isFile()).map((entry) => entry.name);
     const notes = [];
     const manifests = MANIFEST_FILES.filter((candidate) => entryNames.includes(candidate));
-    const solutionFiles = fileNames.filter((name) => name.endsWith('.sln'));
+    const solutionFiles = fileNames.filter((name) => name.endsWith('.sln') || name.endsWith('.csproj'));
     manifests.push(...solutionFiles);
     const docs = DOC_FILES.filter((candidate) => entryNames.includes(candidate));
-    const ciFiles = CI_FILES.filter((candidate) => entryNames.includes(candidate));
+    const ciFiles = [
+        ...CI_FILES.filter((candidate) => entryNames.includes(candidate)),
+        ...(await collectGitHubWorkflowFiles(rootPath))
+    ];
     const sourceRoots = SOURCE_ROOTS.filter((candidate) => entryNames.includes(candidate));
     let packageJsonSummary = null;
     if (entryNames.includes('package.json')) {
-        const raw = await readJsonIfExists(path.join(rootPath, 'package.json'));
-        if (raw === undefined) {
+        try {
+            const raw = await readJsonIfExists(path.join(rootPath, 'package.json'));
+            if (raw === undefined) {
+                notes.push('package.json exists but could not be read.');
+            }
+            else {
+                packageJsonSummary = (0, workspaceInspection_1.summarizePackageJson)(raw);
+            }
+        }
+        catch {
             notes.push('package.json exists but could not be parsed.');
         }
-        else {
-            packageJsonSummary = (0, workspaceInspection_1.summarizePackageJson)(raw);
-        }
     }
+    const makeTargets = entryNames.includes('Makefile')
+        ? (0, workspaceInspection_1.extractNamedTargets)(await readTextIfExists(path.join(rootPath, 'Makefile')) ?? '')
+        : [];
+    const justTargets = entryNames.includes('justfile')
+        ? (0, workspaceInspection_1.extractJustTargets)(await readTextIfExists(path.join(rootPath, 'justfile')) ?? '')
+        : [];
+    const ciCommands = await collectCiCommands(rootPath, ciFiles);
     const packageManagers = (0, workspaceInspection_1.detectPackageManagers)(entryNames, packageJsonSummary);
     const lifecycleCommands = packageJsonSummary?.lifecycleCommands ?? [];
+    const validationCommands = (0, workspaceInspection_1.inferValidationCommands)({
+        manifests,
+        packageJson: packageJsonSummary,
+        makeTargets,
+        justTargets,
+        ciCommands
+    });
     const testSignals = (0, workspaceInspection_1.inferTestSignals)(manifests, docs, packageJsonSummary);
+    const projectMarkers = Array.from(new Set([
+        ...manifests,
+        ...ciFiles,
+        ...docs,
+        ...sourceRoots
+    ]));
+    if (makeTargets.length > 0) {
+        notes.push(`Makefile targets detected: ${makeTargets.join(', ')}`);
+    }
+    if (justTargets.length > 0) {
+        notes.push(`just targets detected: ${justTargets.join(', ')}`);
+    }
     return {
         workspaceName,
         rootPath,
         manifests,
+        projectMarkers,
         packageManagers,
         ciFiles,
+        ciCommands,
         docs,
         sourceRoots,
         lifecycleCommands,
+        validationCommands,
         testSignals,
         notes,
         packageJson: packageJsonSummary

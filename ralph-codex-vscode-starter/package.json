@@ -6,7 +6,8 @@
   "publisher": "starter",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.95.0",
+    "node": ">=20"
   },
   "categories": [
     "AI",
@@ -20,6 +21,13 @@
         "ralphCodex.codexCommandPath",
         "ralphCodex.preferredHandoffMode",
         "ralphCodex.ralphIterationCap",
+        "ralphCodex.verifierModes",
+        "ralphCodex.noProgressThreshold",
+        "ralphCodex.repeatedFailureThreshold",
+        "ralphCodex.artifactRetentionPath",
+        "ralphCodex.gitCheckpointMode",
+        "ralphCodex.validationCommandOverride",
+        "ralphCodex.stopOnHumanReviewNeeded",
         "ralphCodex.ralphTaskFilePath",
         "ralphCodex.prdPath",
         "ralphCodex.progressPath",
@@ -93,6 +101,50 @@
           "maximum": 100,
           "description": "Maximum number of Codex CLI iterations to run for the Ralph loop command."
         },
+        "ralphCodex.verifierModes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["validationCommand", "gitDiff", "taskState"]
+          },
+          "default": ["validationCommand", "gitDiff", "taskState"],
+          "description": "Verifier layers to run after each CLI iteration. validationCommand runs the selected validation command, gitDiff checks for relevant file changes, and taskState compares durable Ralph task/progress state."
+        },
+        "ralphCodex.noProgressThreshold": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of consecutive no-progress Ralph iterations that stop the loop."
+        },
+        "ralphCodex.repeatedFailureThreshold": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of consecutive identical blocked/failed/human-review classifications that stop the loop."
+        },
+        "ralphCodex.artifactRetentionPath": {
+          "type": "string",
+          "default": ".ralph/artifacts",
+          "description": "Workspace-relative or absolute directory used for per-iteration Ralph artifacts."
+        },
+        "ralphCodex.gitCheckpointMode": {
+          "type": "string",
+          "enum": ["off", "snapshot", "snapshotAndDiff"],
+          "default": "snapshotAndDiff",
+          "description": "Controls optional Git safety artifacts. snapshot records pre/post status when Git is available. snapshotAndDiff also records a working-tree diff summary."
+        },
+        "ralphCodex.validationCommandOverride": {
+          "type": "string",
+          "default": "",
+          "description": "Optional shell command to use as the primary post-iteration validator instead of task hints or inferred workspace commands."
+        },
+        "ralphCodex.stopOnHumanReviewNeeded": {
+          "type": "boolean",
+          "default": true,
+          "description": "Stop the Ralph loop immediately when the task-state verifier classifies an iteration as needs_human_review."
+        },
         "ralphCodex.ralphTaskFilePath": {
           "type": "string",
           "default": ".ralph/tasks.json",
@@ -150,13 +202,14 @@
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
     "test": "npm run compile:tests && node --test ./out-test/test",
     "validate": "npm run compile && npm run lint && npm run test",
+    "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
-    "package": "vsce package"
+    "package": "npm run check:runtime && vsce package"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
     "@types/vscode": "^1.95.0",
     "typescript": "^5.8.2",
-    "@vscode/vsce": "2.24.0"
+    "@vscode/vsce": "^3.7.1"
   }
 }

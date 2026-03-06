@@ -46,11 +46,14 @@ function repoFacts(summary) {
         `- Workspace: ${summary.workspaceName}`,
         `- Root path: ${summary.rootPath}`,
         `- Manifests: ${summary.manifests.join(', ') || 'none detected'}`,
+        `- Project markers: ${summary.projectMarkers.join(', ') || 'none detected'}`,
         `- Package managers: ${summary.packageManagers.join(', ') || 'unknown'}`,
         `- CI files: ${summary.ciFiles.join(', ') || 'none detected'}`,
+        `- CI commands: ${summary.ciCommands.join(' | ') || 'none detected'}`,
         `- Docs: ${summary.docs.join(', ') || 'none detected'}`,
         `- Source roots: ${summary.sourceRoots.join(', ') || 'none detected'}`,
         `- Lifecycle commands: ${summary.lifecycleCommands.join(', ') || 'none detected'}`,
+        `- Validation commands: ${summary.validationCommands.join(' | ') || 'none detected'}`,
         `- Test signals: ${summary.testSignals.join(' | ') || 'unknown'}`
     ];
     if (summary.packageJson?.name) {
@@ -78,15 +81,37 @@ function stateSummary(state, paths) {
         `- Last prompt kind: ${state.lastPromptKind ?? 'none yet'}`,
         `- Last prompt path: ${state.lastPromptPath ? path.relative(paths.rootPath, state.lastPromptPath) : 'none yet'}`,
         `- Last run: ${state.lastRun ? `${state.lastRun.status} at iteration ${state.lastRun.iteration}` : 'none yet'}`,
+        `- Last iteration outcome: ${state.lastIteration ? `${state.lastIteration.completionClassification} at iteration ${state.lastIteration.iteration}` : 'none yet'}`,
         `- PRD path: ${path.relative(paths.rootPath, paths.prdPath)}`,
         `- Progress path: ${path.relative(paths.rootPath, paths.progressPath)}`,
         `- Task file path: ${path.relative(paths.rootPath, paths.taskFilePath)}`,
-        `- Runtime state path: ${path.relative(paths.rootPath, paths.stateFilePath)}`
+        `- Runtime state path: ${path.relative(paths.rootPath, paths.stateFilePath)}`,
+        `- Artifact root: ${path.relative(paths.rootPath, paths.artifactDir)}`
     ];
-    if (state.lastRun?.summary) {
+    if (state.lastIteration?.summary) {
+        lines.push(`- Last iteration summary: ${state.lastIteration.summary}`);
+    }
+    else if (state.lastRun?.summary) {
         lines.push(`- Last run summary: ${state.lastRun.summary}`);
     }
     return lines.join('\n');
+}
+function selectedTaskSummary(task, validationCommand) {
+    if (!task) {
+        return [
+            '- No `todo` or `in_progress` Ralph task was found.',
+            '- Do not invent a task. Stop and explain why the loop cannot continue safely.'
+        ].join('\n');
+    }
+    return [
+        `- Task id: ${task.id}`,
+        `- Title: ${task.title}`,
+        `- Status: ${task.status}`,
+        `- Validation hint: ${task.validation ?? 'none'}`,
+        `- Selected validation command: ${validationCommand ?? 'none detected'}`,
+        `- Notes: ${task.notes ?? 'none'}`,
+        `- Blocker: ${task.blocker ?? 'none'}`
+    ].join('\n');
 }
 function choosePromptKind(state) {
     return state.runHistory.length === 0 ? 'bootstrap' : 'iteration';
@@ -113,11 +138,12 @@ function buildPrompt(input) {
         '- Update durable Ralph files when the task state or progress changes.'
     ].join('\n');
     const executionContract = [
-        '1. Summarize what is real, stubbed, or risky before editing when that context matters.',
-        '2. Pick the highest-value executable task.',
-        '3. Implement the smallest coherent improvement.',
-        '4. Run validation and report the concrete result.',
-        '5. End with changed files, validation results, assumptions, limitations, and next steps.'
+        '1. Inspect the workspace facts and the selected Ralph task before editing.',
+        '2. Execute only the selected task or explain deterministically why no safe task is available.',
+        '3. Implement the smallest coherent improvement for that task.',
+        '4. Update durable Ralph files when task state or progress changes.',
+        '5. Run the chosen validation command when available and report the concrete result.',
+        '6. End with changed files, validation results, assumptions, limitations, and next steps.'
     ].join('\n');
     return [
         title,
@@ -127,6 +153,7 @@ function buildPrompt(input) {
         section('Objective / PRD', input.objectiveText),
         section('Workspace Snapshot', repoFacts(input.summary)),
         section('Ralph Runtime State', stateSummary(input.state, input.paths)),
+        section('Selected Ralph Task', selectedTaskSummary(input.selectedTask, input.validationCommand)),
         section('Task Status Summary', taskSummary(input.taskCounts)),
         section('Current Progress Log', input.progressText || 'No progress log found.'),
         section('Current Task File', input.tasksText || 'No task file found.'),

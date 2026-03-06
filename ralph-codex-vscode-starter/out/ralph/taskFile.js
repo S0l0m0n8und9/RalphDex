@@ -4,6 +4,9 @@ exports.createDefaultTaskFile = createDefaultTaskFile;
 exports.parseTaskFile = parseTaskFile;
 exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
+exports.selectNextTask = selectNextTask;
+exports.findTaskById = findTaskById;
+exports.remainingSubtasks = remainingSubtasks;
 const EMPTY_COUNTS = {
     todo: 0,
     in_progress: 0,
@@ -75,5 +78,32 @@ function countTaskStatuses(taskFile) {
         counts[task.status] += 1;
     }
     return counts;
+}
+function selectNextTask(taskFile) {
+    return taskFile.tasks.find((task) => task.status === 'in_progress')
+        ?? taskFile.tasks.find((task) => task.status === 'todo')
+        ?? null;
+}
+function findTaskById(taskFile, taskId) {
+    if (!taskId) {
+        return null;
+    }
+    return taskFile.tasks.find((task) => task.id === taskId) ?? null;
+}
+function subtaskPrefixes(taskId) {
+    return [
+        `${taskId}.`,
+        `${taskId}-`,
+        `${taskId}/`
+    ];
+}
+function remainingSubtasks(taskFile, taskId) {
+    if (!taskId) {
+        return [];
+    }
+    const prefixes = subtaskPrefixes(taskId);
+    return taskFile.tasks.filter((task) => task.id !== taskId
+        && prefixes.some((prefix) => task.id.startsWith(prefix))
+        && task.status !== 'done');
 }
 //# sourceMappingURL=taskFile.js.map

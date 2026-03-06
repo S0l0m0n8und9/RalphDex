@@ -1,6 +1,13 @@
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from './defaults';
-import { CodexApprovalMode, CodexHandoffMode, CodexSandboxMode, RalphCodexConfig } from './types';
+import {
+  CodexApprovalMode,
+  CodexHandoffMode,
+  CodexSandboxMode,
+  RalphCodexConfig,
+  RalphGitCheckpointMode,
+  RalphVerifierMode
+} from './types';
 
 function readString(
   config: vscode.WorkspaceConfiguration,
@@ -88,6 +95,21 @@ function readEnum<T extends string>(
   return fallback;
 }
 
+function readEnumArray<T extends string>(
+  config: vscode.WorkspaceConfiguration,
+  key: string,
+  allowed: readonly T[],
+  fallback: readonly T[]
+): T[] {
+  const value = config.get<unknown>(key);
+  if (!Array.isArray(value)) {
+    return [...fallback];
+  }
+
+  const normalized = value.filter((item): item is T => typeof item === 'string' && allowed.includes(item as T));
+  return normalized.length > 0 ? normalized : [...fallback];
+}
+
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
@@ -100,6 +122,45 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       DEFAULT_CONFIG.preferredHandoffMode
     ),
     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+    verifierModes: readEnumArray<RalphVerifierMode>(
+      config,
+      'verifierModes',
+      ['validationCommand', 'gitDiff', 'taskState'],
+      DEFAULT_CONFIG.verifierModes
+    ),
+    noProgressThreshold: readNumber(
+      config,
+      'noProgressThreshold',
+      DEFAULT_CONFIG.noProgressThreshold,
+      1
+    ),
+    repeatedFailureThreshold: readNumber(
+      config,
+      'repeatedFailureThreshold',
+      DEFAULT_CONFIG.repeatedFailureThreshold,
+      1
+    ),
+    artifactRetentionPath: readString(
+      config,
+      'artifactRetentionPath',
+      DEFAULT_CONFIG.artifactRetentionPath
+    ),
+    gitCheckpointMode: readEnum<RalphGitCheckpointMode>(
+      config,
+      'gitCheckpointMode',
+      ['off', 'snapshot', 'snapshotAndDiff'],
+      DEFAULT_CONFIG.gitCheckpointMode
+    ),
+    validationCommandOverride: readString(
+      config,
+      'validationCommandOverride',
+      DEFAULT_CONFIG.validationCommandOverride
+    ),
+    stopOnHumanReviewNeeded: readBoolean(
+      config,
+      'stopOnHumanReviewNeeded',
+      DEFAULT_CONFIG.stopOnHumanReviewNeeded
+    ),
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
     progressPath: readString(config, 'progressPath', DEFAULT_CONFIG.progressPath),

@@ -38,7 +38,7 @@ const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
 const providerFactory_1 = require("../codex/providerFactory");
-const promptBuilder_1 = require("../prompt/promptBuilder");
+const iterationEngine_1 = require("../ralph/iterationEngine");
 const stateManager_1 = require("../ralph/stateManager");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const workspaceScanner_1 = require("../services/workspaceScanner");
@@ -68,155 +68,14 @@ async function ensureCodexCliReady(config) {
         throw new Error(`Codex CLI path "${config.codexCommandPath}" does not exist. Update ralphCodex.codexCommandPath or install Codex CLI.`);
     }
 }
-async function maybeSeedObjective(stateManager, paths) {
-    const objectiveText = await stateManager.readObjectiveText(paths);
-    if (!stateManager.isDefaultObjective(objectiveText)) {
-        return objectiveText;
-    }
-    const seededObjective = await vscode.window.showInputBox({
-        prompt: 'Seed the PRD with a short objective for this workspace',
-        placeHolder: 'Example: Harden the VS Code extension starter into a reliable v1'
-    });
-    if (!seededObjective?.trim()) {
-        return objectiveText;
-    }
-    const nextText = [
-        '# Product / project brief',
-        '',
-        seededObjective.trim()
-    ].join('\n');
-    await stateManager.writeObjectiveText(paths, nextText);
-    return `${nextText}\n`;
-}
-async function preparePrompt(workspaceFolder, stateManager, logger, progress) {
-    progress.report({ message: 'Ensuring Ralph workspace' });
-    const config = (0, readConfig_1.readConfig)(workspaceFolder);
-    const rootPath = workspaceFolder.uri.fsPath;
-    const snapshot = await stateManager.ensureWorkspace(rootPath, config);
-    await logger.setWorkspaceLogFile(snapshot.paths.logFilePath);
-    if (snapshot.createdPaths.length > 0) {
-        logger.warn('Initialized or repaired Ralph workspace paths.', {
-            rootPath,
-            createdPaths: snapshot.createdPaths
-        });
-    }
-    progress.report({ message: 'Reading Ralph state and workspace summary' });
-    const objectiveText = await maybeSeedObjective(stateManager, snapshot.paths);
-    const progressText = await stateManager.readProgressText(snapshot.paths);
-    const tasksText = await stateManager.readTaskFileText(snapshot.paths);
-    const taskCounts = await stateManager.taskCounts(snapshot.paths);
-    const summary = await (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name);
-    const promptKind = (0, promptBuilder_1.choosePromptKind)(snapshot.state);
-    const iteration = snapshot.state.nextIteration;
-    progress.report({ message: 'Writing prompt artifact' });
-    const prompt = (0, promptBuilder_1.buildPrompt)({
-        kind: promptKind,
-        iteration,
-        objectiveText,
-        progressText,
-        tasksText,
-        taskCounts,
-        summary,
-        state: snapshot.state,
-        paths: snapshot.paths
-    });
-    const promptPath = await stateManager.writePrompt(snapshot.paths, (0, promptBuilder_1.createPromptFileName)(promptKind, iteration), prompt);
-    logger.info('Generated Ralph prompt.', {
-        rootPath,
-        promptKind,
-        iteration,
-        promptPath
-    });
-    return {
-        config,
-        rootPath,
-        state: snapshot.state,
-        paths: snapshot.paths,
-        promptKind,
-        promptPath,
-        prompt,
-        iteration,
-        objectiveText,
-        createdPaths: snapshot.createdPaths
-    };
-}
 async function showWarnings(warnings) {
     if (warnings.length === 0) {
         return;
     }
     await vscode.window.showWarningMessage(warnings.join(' '));
 }
-function runRecordFromExec(mode, prepared, startedAt, execResult) {
-    const summary = execResult.lastMessage
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-        ?? `Exit code ${execResult.exitCode}`;
-    return {
-        iteration: prepared.iteration,
-        mode,
-        promptKind: prepared.promptKind,
-        startedAt,
-        finishedAt: new Date().toISOString(),
-        status: execResult.exitCode === 0 ? 'succeeded' : 'failed',
-        exitCode: execResult.exitCode,
-        promptPath: prepared.promptPath,
-        transcriptPath: execResult.transcriptPath,
-        lastMessagePath: execResult.lastMessagePath,
-        summary
-    };
-}
-async function runExecIteration(workspaceFolder, stateManager, strategies, logger, mode, progress, loopState) {
-    const prepared = await preparePrompt(workspaceFolder, stateManager, logger, progress);
-    const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
-    const runArtifacts = stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
-    const execStrategy = strategies.getCliExecStrategy();
-    if (!execStrategy.runExec) {
-        throw new Error('The configured Codex CLI strategy does not support codex exec.');
-    }
-    const startedAt = new Date().toISOString();
-    logger.show(false);
-    logger.info('Running Ralph iteration.', {
-        iteration: prepared.iteration,
-        mode,
-        loopState,
-        promptPath: prepared.promptPath
-    });
-    progress.report({
-        message: loopState
-            ? `Running Codex CLI iteration ${loopState.index} of ${loopState.total}`
-            : `Running Codex CLI iteration ${prepared.iteration}`
-    });
-    const execResult = await execStrategy.runExec({
-        commandPath: prepared.config.codexCommandPath,
-        workspaceRoot: prepared.rootPath,
-        prompt: prepared.prompt,
-        promptPath: prepared.promptPath,
-        transcriptPath: runArtifacts.transcriptPath,
-        lastMessagePath: runArtifacts.lastMessagePath,
-        model: prepared.config.model,
-        sandboxMode: prepared.config.sandboxMode,
-        approvalMode: prepared.config.approvalMode,
-        onStdoutChunk: (chunk) => logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
-        onStderrChunk: (chunk) => logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
-    });
-    const runRecord = runRecordFromExec(mode, prepared, startedAt, execResult);
-    await stateManager.recordRun(prepared.rootPath, prepared.paths, prepared.state, runRecord, prepared.objectiveText);
-    logger.info('Completed Ralph iteration.', {
-        iteration: prepared.iteration,
-        exitCode: execResult.exitCode,
-        transcriptPath: execResult.transcriptPath,
-        lastMessagePath: execResult.lastMessagePath
-    });
-    if (execResult.exitCode !== 0) {
-        throw new Error(`codex exec failed on iteration ${prepared.iteration} with exit code ${execResult.exitCode}. See ${path.basename(execResult.transcriptPath)} and the Ralph Codex output channel.`);
-    }
-    if (mode === 'singleExec') {
-        const note = createdPathSummary(prepared.rootPath, prepared.createdPaths);
-        void vscode.window.showInformationMessage(note
-            ? `Ralph CLI iteration ${prepared.iteration} completed. ${note}`
-            : `Ralph CLI iteration ${prepared.iteration} completed.`);
-    }
+function iterationFailureMessage(result) {
+    return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
 }
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -247,6 +106,13 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         activationMode: vscode.workspace.isTrusted ? 'full' : 'limited',
         preferredHandoffMode: config.preferredHandoffMode,
         codexCommandPath: config.codexCommandPath,
+        verifierModes: config.verifierModes,
+        noProgressThreshold: config.noProgressThreshold,
+        repeatedFailureThreshold: config.repeatedFailureThreshold,
+        artifactRetentionPath: config.artifactRetentionPath,
+        gitCheckpointMode: config.gitCheckpointMode,
+        validationCommandOverride: config.validationCommandOverride || null,
+        stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
         codexCliSupport,
         ideCommandSupport,
         nextIteration: inspection.state.nextIteration,
@@ -254,15 +120,21 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         lastPromptKind: inspection.state.lastPromptKind,
         lastPromptPath: inspection.state.lastPromptPath,
         lastRun: inspection.state.lastRun,
+        lastIteration: inspection.state.lastIteration,
         taskCounts,
         taskFileError,
         ralphFileStatus: inspection.fileStatus,
         missingRalphPaths,
         manifests: summary.manifests,
+        projectMarkers: summary.projectMarkers,
         lifecycleCommands: summary.lifecycleCommands,
+        validationCommands: summary.validationCommands,
+        ciFiles: summary.ciFiles,
+        ciCommands: summary.ciCommands,
         progressPath: inspection.paths.progressPath,
         taskFilePath: inspection.paths.taskFilePath,
         stateFilePath: inspection.paths.stateFilePath,
+        artifactDir: inspection.paths.artifactDir,
         logFilePath: inspection.paths.logFilePath
     };
 }
@@ -296,12 +168,13 @@ function registerCommand(context, logger, spec) {
 function registerCommands(context, logger) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
+    const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
     registerCommand(context, logger, {
         commandId: 'ralphCodex.generatePrompt',
         label: 'Ralph Codex: Prepare Prompt',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
-            const prepared = await preparePrompt(workspaceFolder, stateManager, logger, progress);
+            const prepared = await engine.preparePrompt(workspaceFolder, progress);
             const recordState = await stateManager.recordPrompt(prepared.rootPath, prepared.paths, prepared.state, prepared.promptKind, prepared.promptPath, prepared.objectiveText);
             if (prepared.config.clipboardAutoCopy) {
                 const clipboardStrategy = strategies.getById('clipboard');
@@ -321,7 +194,9 @@ function registerCommands(context, logger) {
             logger.info('Prompt generated and stored.', {
                 promptPath: prepared.promptPath,
                 nextIteration: recordState.nextIteration,
-                promptKind: prepared.promptKind
+                promptKind: prepared.promptKind,
+                selectedTaskId: prepared.selectedTask?.id ?? null,
+                validationCommand: prepared.validationCommand
             });
             const note = createdPathSummary(prepared.rootPath, prepared.createdPaths);
             void vscode.window.showInformationMessage(note
@@ -334,7 +209,7 @@ function registerCommands(context, logger) {
         label: 'Ralph Codex: Open Codex IDE',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
-            const prepared = await preparePrompt(workspaceFolder, stateManager, logger, progress);
+            const prepared = await engine.preparePrompt(workspaceFolder, progress);
             const strategy = strategies.getPromptHandoffStrategy(prepared.config.preferredHandoffMode);
             const result = await strategy.handoffPrompt?.({
                 prompt: prepared.prompt,
@@ -366,7 +241,17 @@ function registerCommands(context, logger) {
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             await ensureCodexCliReady((0, readConfig_1.readConfig)(workspaceFolder));
-            await runExecIteration(workspaceFolder, stateManager, strategies, logger, 'singleExec', progress);
+            const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false
+            });
+            if (run.result.executionStatus === 'failed') {
+                throw new Error(iterationFailureMessage(run.result));
+            }
+            const note = createdPathSummary(run.prepared.rootPath, run.createdPaths);
+            const baseMessage = run.result.executionStatus === 'skipped'
+                ? `Ralph CLI iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
+                : `Ralph CLI iteration ${run.result.iteration} completed. ${run.result.summary}`;
+            void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
         }
     });
     registerCommand(context, logger, {
@@ -379,19 +264,31 @@ function registerCommands(context, logger) {
             logger.show(false);
             logger.info('Starting Ralph loop.', {
                 rootPath: workspaceFolder.uri.fsPath,
-                iterationCap: config.ralphIterationCap
+                iterationCap: config.ralphIterationCap,
+                verifierModes: config.verifierModes,
+                noProgressThreshold: config.noProgressThreshold,
+                repeatedFailureThreshold: config.repeatedFailureThreshold
             });
+            let lastRun = null;
             for (let index = 0; index < config.ralphIterationCap; index += 1) {
                 progress.report({
-                    message: `Preparing iteration ${index + 1} of ${config.ralphIterationCap}`,
+                    message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
                     increment: 100 / config.ralphIterationCap
                 });
-                await runExecIteration(workspaceFolder, stateManager, strategies, logger, 'loop', progress, {
-                    index: index + 1,
-                    total: config.ralphIterationCap
+                lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
+                    reachedIterationCap: index + 1 >= config.ralphIterationCap
                 });
+                if (lastRun.result.executionStatus === 'failed') {
+                    throw new Error(iterationFailureMessage(lastRun.result));
+                }
+                if (!lastRun.loopDecision.shouldContinue) {
+                    void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
+                    return;
+                }
             }
-            void vscode.window.showInformationMessage(`Ralph CLI loop completed ${config.ralphIterationCap} iteration(s).`);
+            void vscode.window.showInformationMessage(lastRun
+                ? `Ralph CLI loop completed ${config.ralphIterationCap} iteration(s). Last outcome: ${lastRun.result.completionClassification}.`
+                : 'Ralph CLI loop completed with no iterations.');
         }
     });
     registerCommand(context, logger, {
@@ -414,7 +311,7 @@ function registerCommands(context, logger) {
         label: 'Ralph Codex: Reset Runtime State',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
-            const confirmed = await vscode.window.showWarningMessage('Reset Ralph runtime state? This preserves the PRD, progress log, and task file, but deletes .ralph/state.json, generated prompts, run artifacts, and extension logs.', { modal: true }, 'Reset');
+            const confirmed = await vscode.window.showWarningMessage('Reset Ralph runtime state? This preserves the PRD, progress log, and task file, but deletes .ralph/state.json, generated prompts, run artifacts, iteration artifacts, and extension logs.', { modal: true }, 'Reset');
             if (confirmed !== 'Reset') {
                 return;
             }

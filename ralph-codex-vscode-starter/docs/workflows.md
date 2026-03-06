@@ -2,11 +2,10 @@
 
 ## Develop The Extension
 
-1. Run `npm run compile`.
-2. Start the Extension Development Host with `F5`.
-3. Re-run `npm run compile` after TypeScript changes, or use `npm run watch` while iterating.
-
-`scripts/dev-loop.sh` is a convenience wrapper for `npm run compile` followed by `code .`.
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Start the Extension Development Host with `F5`.
+4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch` while iterating.
 
 ## Generate A Prompt For Manual IDE Use
 
@@ -14,34 +13,42 @@
 2. Run `Ralph Codex: Open Codex IDE` if you also want clipboard handoff and best-effort sidebar/new-chat commands.
 3. Continue manually in the Codex IDE.
 
-Use this path when a human needs to inspect or edit the prompt before execution. This path does not create `.ralph/runs/` artifacts.
+Use this path when a human should inspect or edit the prompt before execution. This path does not create iteration-result artifacts because it does not run the full verifier/classification loop.
 
 ## Run One CLI Iteration
 
 1. Run `Ralph Codex: Run CLI Iteration`.
-2. The extension writes the prompt to `.ralph/prompts/`.
-3. The extension runs `codex exec` with the configured model, sandbox, and approval mode.
-4. The extension writes `.ralph/runs/<name>.transcript.md` and `.ralph/runs/<name>.last-message.md`.
-5. The extension records the result in `.ralph/state.json`.
+2. The extension inspects the workspace, selects the next task, writes the prompt, runs `codex exec`, verifies the outcome, and persists the iteration result.
+3. The extension writes prompt artifacts to `.ralph/prompts/`, CLI artifacts to `.ralph/runs/`, and iteration artifacts to `.ralph/artifacts/`.
 
-Use this path when you need repeatable execution and durable artifacts.
+Use this path when you need repeatable execution plus deterministic outcome recording.
 
 ## Run The Ralph Loop
 
 1. Run `Ralph Codex: Run CLI Loop`.
-2. The extension repeats the single-iteration flow up to `ralphCodex.ralphIterationCap`.
-3. The loop stops immediately on the first failed `codex exec`.
+2. The extension repeats the iteration engine up to `ralphCodex.ralphIterationCap`.
+3. The loop may stop earlier when a semantic stop criterion matches.
 
-Each iteration starts from durable files, not chat memory.
+Current stop criteria include:
+
+- selected task marked complete
+- verification passed with no remaining subtasks for the selected task
+- repeated no-progress iterations
+- repeated identical blocked/failed/human-review outcomes
+- explicit human-review-needed outcomes when configured
+- `codex exec` failure
+- no actionable task remaining
 
 ## Inspect Or Reset State
 
 - `Ralph Codex: Show Status` writes the current runtime snapshot to the `Ralph Codex` output channel.
-- `Ralph Codex: Reset Runtime State` keeps PRD, progress, and tasks, but removes `.ralph/state.json`, prompts, run artifacts, and logs.
+- `Ralph Codex: Reset Runtime State` keeps PRD, progress, and tasks, but removes `.ralph/state.json`, prompts, run artifacts, iteration artifacts, and logs.
 - `Show Status` is the only supported command in an untrusted workspace. It inspects state without creating missing Ralph files.
 
-## Choose CLI Vs IDE Handoff
+## Git Safety Artifacts
 
-- Use CLI when the task should be reproducible, logged, or looped.
-- Use IDE handoff when a person should review the prompt or continue interactively.
-- If `preferredHandoffMode` is `cliExec`, the IDE handoff command still only copies the prompt and warns the user to run the CLI command instead.
+- `ralphCodex.gitCheckpointMode = off`: no Git artifacts
+- `ralphCodex.gitCheckpointMode = snapshot`: record pre/post `git status` snapshots when Git is available
+- `ralphCodex.gitCheckpointMode = snapshotAndDiff`: also record a working-tree diff summary and checkpoint naming guidance
+
+The extension does not create Git branches, tags, or worktrees.

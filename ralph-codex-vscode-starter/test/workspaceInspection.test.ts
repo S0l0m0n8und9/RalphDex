@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { detectPackageManagers, inferTestSignals, summarizePackageJson } from '../src/services/workspaceInspection';
+import {
+  detectPackageManagers,
+  inferTestSignals,
+  inferValidationCommands,
+  summarizePackageJson
+} from '../src/services/workspaceInspection';
 
 test('summarizePackageJson infers lifecycle commands from package manager and scripts', () => {
   const summary = summarizePackageJson({
@@ -8,6 +13,7 @@ test('summarizePackageJson infers lifecycle commands from package manager and sc
     packageManager: 'pnpm@9.0.0',
     workspaces: ['packages/*'],
     scripts: {
+      validate: 'npm run lint && npm run test',
       lint: 'eslint .',
       test: 'vitest run',
       build: 'tsc -p .'
@@ -17,10 +23,11 @@ test('summarizePackageJson infers lifecycle commands from package manager and sc
   assert.equal(summary.name, 'ralph-codex-workbench');
   assert.equal(summary.packageManager, 'pnpm');
   assert.equal(summary.hasWorkspaces, true);
-  assert.deepEqual(summary.lifecycleCommands, ['pnpm lint', 'pnpm test', 'pnpm build']);
+  assert.deepEqual(summary.lifecycleCommands, ['pnpm validate', 'pnpm lint', 'pnpm test', 'pnpm build']);
+  assert.deepEqual(summary.validationCommands, ['pnpm validate', 'pnpm lint', 'pnpm test', 'pnpm build']);
 });
 
-test('detectPackageManagers and inferTestSignals combine manifest and package.json signals', () => {
+test('detectPackageManagers, inferTestSignals, and inferValidationCommands combine workspace signals', () => {
   const packageJson = summarizePackageJson({
     scripts: {
       test: 'node --test'
@@ -29,8 +36,15 @@ test('detectPackageManagers and inferTestSignals combine manifest and package.js
 
   const packageManagers = detectPackageManagers(['package.json', 'package-lock.json', 'README.md'], packageJson);
   const signals = inferTestSignals(['package.json'], ['README.md'], packageJson);
+  const commands = inferValidationCommands({
+    manifests: ['package.json', 'Makefile', 'pyproject.toml'],
+    packageJson,
+    makeTargets: ['test', 'lint'],
+    ciCommands: ['pytest']
+  });
 
   assert.deepEqual(packageManagers, ['npm']);
   assert.ok(signals.includes('package.json defines a test script.'));
   assert.ok(signals.includes('README.md may define the canonical build/test commands.'));
+  assert.deepEqual(commands, ['npm run test', 'make lint', 'make test', 'pytest']);
 });

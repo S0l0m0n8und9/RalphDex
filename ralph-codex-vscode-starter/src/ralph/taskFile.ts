@@ -83,3 +83,36 @@ export function countTaskStatuses(taskFile: RalphTaskFile): RalphTaskCounts {
   }
   return counts;
 }
+
+export function selectNextTask(taskFile: RalphTaskFile): RalphTask | null {
+  return taskFile.tasks.find((task) => task.status === 'in_progress')
+    ?? taskFile.tasks.find((task) => task.status === 'todo')
+    ?? null;
+}
+
+export function findTaskById(taskFile: RalphTaskFile, taskId: string | null): RalphTask | null {
+  if (!taskId) {
+    return null;
+  }
+
+  return taskFile.tasks.find((task) => task.id === taskId) ?? null;
+}
+
+function subtaskPrefixes(taskId: string): string[] {
+  return [
+    `${taskId}.`,
+    `${taskId}-`,
+    `${taskId}/`
+  ];
+}
+
+export function remainingSubtasks(taskFile: RalphTaskFile, taskId: string | null): RalphTask[] {
+  if (!taskId) {
+    return [];
+  }
+
+  const prefixes = subtaskPrefixes(taskId);
+  return taskFile.tasks.filter((task) => task.id !== taskId
+    && prefixes.some((prefix) => task.id.startsWith(prefix))
+    && task.status !== 'done');
+}

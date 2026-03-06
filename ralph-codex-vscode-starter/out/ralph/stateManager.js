@@ -38,7 +38,8 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const pathResolver_1 = require("./pathResolver");
 const taskFile_1 = require("./taskFile");
-const STATE_HISTORY_LIMIT = 20;
+const RUN_HISTORY_LIMIT = 20;
+const ITERATION_HISTORY_LIMIT = 30;
 const DEFAULT_PRD = [
     '# Product / project brief',
     '',
@@ -56,13 +57,15 @@ const DEFAULT_PROGRESS = [
 ].join('\n');
 function defaultState() {
     return {
-        version: 1,
+        version: 2,
         objectivePreview: null,
         nextIteration: 1,
         lastPromptKind: null,
         lastPromptPath: null,
         lastRun: null,
         runHistory: [],
+        lastIteration: null,
+        iterationHistory: [],
         updatedAt: new Date().toISOString()
     };
 }
@@ -76,34 +79,238 @@ function summarizeObjective(text) {
         .find((value) => value.length > 0 && !value.startsWith('#') && !value.startsWith('-'));
     return line ? line.slice(0, 160) : null;
 }
+function normalizeRunRecord(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.iteration !== 'number'
+        || typeof record.mode !== 'string'
+        || typeof record.promptKind !== 'string'
+        || typeof record.startedAt !== 'string'
+        || typeof record.finishedAt !== 'string'
+        || typeof record.status !== 'string'
+        || (typeof record.exitCode !== 'number' && record.exitCode !== null)
+        || typeof record.promptPath !== 'string'
+        || typeof record.summary !== 'string') {
+        return null;
+    }
+    return {
+        iteration: Math.max(1, Math.floor(record.iteration)),
+        mode: record.mode,
+        promptKind: record.promptKind,
+        startedAt: record.startedAt,
+        finishedAt: record.finishedAt,
+        status: record.status,
+        exitCode: typeof record.exitCode === 'number' ? record.exitCode : null,
+        promptPath: record.promptPath,
+        transcriptPath: typeof record.transcriptPath === 'string' ? record.transcriptPath : undefined,
+        lastMessagePath: typeof record.lastMessagePath === 'string' ? record.lastMessagePath : undefined,
+        summary: record.summary
+    };
+}
+function normalizeVerificationResult(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.verifier !== 'string' || typeof record.status !== 'string' || typeof record.summary !== 'string') {
+        return null;
+    }
+    return {
+        verifier: record.verifier,
+        status: record.status,
+        summary: record.summary,
+        warnings: Array.isArray(record.warnings) ? record.warnings.filter((item) => typeof item === 'string') : [],
+        errors: Array.isArray(record.errors) ? record.errors.filter((item) => typeof item === 'string') : [],
+        command: typeof record.command === 'string' ? record.command : undefined,
+        artifactPath: typeof record.artifactPath === 'string' ? record.artifactPath : undefined,
+        failureSignature: typeof record.failureSignature === 'string' ? record.failureSignature : null,
+        metadata: typeof record.metadata === 'object' && record.metadata !== null
+            ? record.metadata
+            : undefined
+    };
+}
+function normalizeDiffSummary(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.available !== 'boolean' || typeof record.summary !== 'string') {
+        return null;
+    }
+    return {
+        available: record.available,
+        summary: record.summary,
+        changedFiles: Array.isArray(record.changedFiles) ? record.changedFiles.filter((item) => typeof item === 'string') : [],
+        relevantChangedFiles: Array.isArray(record.relevantChangedFiles)
+            ? record.relevantChangedFiles.filter((item) => typeof item === 'string')
+            : [],
+        statusTransitions: Array.isArray(record.statusTransitions)
+            ? record.statusTransitions.filter((item) => typeof item === 'string')
+            : [],
+        suggestedCheckpointRef: typeof record.suggestedCheckpointRef === 'string' ? record.suggestedCheckpointRef : undefined,
+        beforeStatusPath: typeof record.beforeStatusPath === 'string' ? record.beforeStatusPath : undefined,
+        afterStatusPath: typeof record.afterStatusPath === 'string' ? record.afterStatusPath : undefined
+    };
+}
+function iterationFromRunRecord(run) {
+    return {
+        schemaVersion: 1,
+        iteration: run.iteration,
+        selectedTaskId: null,
+        promptKind: run.promptKind,
+        promptPath: run.promptPath,
+        artifactDir: path.dirname(run.promptPath),
+        adapterUsed: run.mode === 'handoff' ? 'clipboard' : 'cliExec',
+        executionStatus: run.status,
+        verificationStatus: 'skipped',
+        completionClassification: run.status === 'succeeded' ? 'partial_progress' : 'failed',
+        followUpAction: run.status === 'succeeded' ? 'continue_same_task' : 'retry_same_task',
+        startedAt: run.startedAt,
+        finishedAt: run.finishedAt,
+        phaseTimestamps: {
+            inspectStartedAt: run.startedAt,
+            inspectFinishedAt: run.startedAt,
+            taskSelectedAt: run.startedAt,
+            promptGeneratedAt: run.startedAt,
+            executionStartedAt: run.startedAt,
+            executionFinishedAt: run.finishedAt,
+            resultCollectedAt: run.finishedAt,
+            verificationFinishedAt: run.finishedAt,
+            classifiedAt: run.finishedAt
+        },
+        summary: run.summary,
+        warnings: [],
+        errors: [],
+        execution: {
+            exitCode: run.exitCode,
+            transcriptPath: run.transcriptPath,
+            lastMessagePath: run.lastMessagePath
+        },
+        verification: {
+            primaryCommand: null,
+            validationFailureSignature: null,
+            verifiers: []
+        },
+        diffSummary: null,
+        noProgressSignals: [],
+        stopReason: null
+    };
+}
+function normalizeIterationResult(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.iteration !== 'number'
+        || typeof record.promptKind !== 'string'
+        || typeof record.promptPath !== 'string'
+        || typeof record.artifactDir !== 'string'
+        || typeof record.adapterUsed !== 'string'
+        || typeof record.executionStatus !== 'string'
+        || typeof record.verificationStatus !== 'string'
+        || typeof record.completionClassification !== 'string'
+        || typeof record.followUpAction !== 'string'
+        || typeof record.startedAt !== 'string'
+        || typeof record.finishedAt !== 'string'
+        || typeof record.summary !== 'string') {
+        return null;
+    }
+    const phaseTimestamps = typeof record.phaseTimestamps === 'object' && record.phaseTimestamps !== null
+        ? record.phaseTimestamps
+        : {};
+    const execution = typeof record.execution === 'object' && record.execution !== null
+        ? record.execution
+        : {};
+    const verification = typeof record.verification === 'object' && record.verification !== null
+        ? record.verification
+        : {};
+    const verifiers = Array.isArray(verification.verifiers)
+        ? verification.verifiers
+            .map((item) => normalizeVerificationResult(item))
+            .filter((item) => item !== null)
+        : [];
+    return {
+        schemaVersion: 1,
+        iteration: Math.max(1, Math.floor(record.iteration)),
+        selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
+        promptKind: record.promptKind,
+        promptPath: record.promptPath,
+        artifactDir: record.artifactDir,
+        adapterUsed: record.adapterUsed,
+        executionStatus: record.executionStatus,
+        verificationStatus: record.verificationStatus,
+        completionClassification: record.completionClassification,
+        followUpAction: record.followUpAction,
+        startedAt: record.startedAt,
+        finishedAt: record.finishedAt,
+        phaseTimestamps: {
+            inspectStartedAt: typeof phaseTimestamps.inspectStartedAt === 'string' ? phaseTimestamps.inspectStartedAt : record.startedAt,
+            inspectFinishedAt: typeof phaseTimestamps.inspectFinishedAt === 'string' ? phaseTimestamps.inspectFinishedAt : record.startedAt,
+            taskSelectedAt: typeof phaseTimestamps.taskSelectedAt === 'string' ? phaseTimestamps.taskSelectedAt : record.startedAt,
+            promptGeneratedAt: typeof phaseTimestamps.promptGeneratedAt === 'string' ? phaseTimestamps.promptGeneratedAt : record.startedAt,
+            executionStartedAt: typeof phaseTimestamps.executionStartedAt === 'string' ? phaseTimestamps.executionStartedAt : undefined,
+            executionFinishedAt: typeof phaseTimestamps.executionFinishedAt === 'string' ? phaseTimestamps.executionFinishedAt : undefined,
+            resultCollectedAt: typeof phaseTimestamps.resultCollectedAt === 'string' ? phaseTimestamps.resultCollectedAt : record.finishedAt,
+            verificationFinishedAt: typeof phaseTimestamps.verificationFinishedAt === 'string' ? phaseTimestamps.verificationFinishedAt : record.finishedAt,
+            classifiedAt: typeof phaseTimestamps.classifiedAt === 'string' ? phaseTimestamps.classifiedAt : record.finishedAt,
+            persistedAt: typeof phaseTimestamps.persistedAt === 'string' ? phaseTimestamps.persistedAt : undefined
+        },
+        summary: record.summary,
+        warnings: Array.isArray(record.warnings) ? record.warnings.filter((item) => typeof item === 'string') : [],
+        errors: Array.isArray(record.errors) ? record.errors.filter((item) => typeof item === 'string') : [],
+        execution: {
+            exitCode: typeof execution.exitCode === 'number' ? execution.exitCode : null,
+            transcriptPath: typeof execution.transcriptPath === 'string' ? execution.transcriptPath : undefined,
+            lastMessagePath: typeof execution.lastMessagePath === 'string' ? execution.lastMessagePath : undefined,
+            stdoutPath: typeof execution.stdoutPath === 'string' ? execution.stdoutPath : undefined,
+            stderrPath: typeof execution.stderrPath === 'string' ? execution.stderrPath : undefined
+        },
+        verification: {
+            primaryCommand: typeof verification.primaryCommand === 'string' ? verification.primaryCommand : null,
+            validationFailureSignature: typeof verification.validationFailureSignature === 'string'
+                ? verification.validationFailureSignature
+                : null,
+            verifiers
+        },
+        diffSummary: normalizeDiffSummary(record.diffSummary),
+        noProgressSignals: Array.isArray(record.noProgressSignals)
+            ? record.noProgressSignals.filter((item) => typeof item === 'string')
+            : [],
+        stopReason: typeof record.stopReason === 'string' ? record.stopReason : null
+    };
+}
 function normalizeWorkspaceState(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return defaultState();
     }
     const record = candidate;
-    const history = Array.isArray(record.runHistory) ? record.runHistory.filter((item) => {
-        if (typeof item !== 'object' || item === null) {
-            return false;
-        }
-        const run = item;
-        return typeof run.iteration === 'number'
-            && typeof run.mode === 'string'
-            && typeof run.promptKind === 'string'
-            && typeof run.startedAt === 'string'
-            && typeof run.finishedAt === 'string'
-            && typeof run.status === 'string'
-            && (typeof run.exitCode === 'number' || run.exitCode === null)
-            && typeof run.promptPath === 'string'
-            && typeof run.summary === 'string';
-    }) : [];
+    const runHistory = Array.isArray(record.runHistory)
+        ? record.runHistory
+            .map((item) => normalizeRunRecord(item))
+            .filter((item) => item !== null)
+            .slice(-RUN_HISTORY_LIMIT)
+        : [];
+    const iterationHistory = Array.isArray(record.iterationHistory)
+        ? record.iterationHistory
+            .map((item) => normalizeIterationResult(item))
+            .filter((item) => item !== null)
+            .slice(-ITERATION_HISTORY_LIMIT)
+        : runHistory.map((item) => iterationFromRunRecord(item)).slice(-ITERATION_HISTORY_LIMIT);
+    const lastRun = normalizeRunRecord(record.lastRun) ?? (runHistory.length > 0 ? runHistory[runHistory.length - 1] : null);
+    const lastIteration = normalizeIterationResult(record.lastIteration)
+        ?? (iterationHistory.length > 0 ? iterationHistory[iterationHistory.length - 1] : null);
     return {
-        version: 1,
+        version: 2,
         objectivePreview: typeof record.objectivePreview === 'string' ? record.objectivePreview : null,
         nextIteration: typeof record.nextIteration === 'number' && record.nextIteration > 0 ? Math.floor(record.nextIteration) : 1,
         lastPromptKind: record.lastPromptKind === 'bootstrap' || record.lastPromptKind === 'iteration' ? record.lastPromptKind : null,
         lastPromptPath: typeof record.lastPromptPath === 'string' ? record.lastPromptPath : null,
-        lastRun: history.length > 0 ? history[history.length - 1] : null,
-        runHistory: history.slice(-STATE_HISTORY_LIMIT),
+        lastRun,
+        runHistory,
+        lastIteration,
+        iterationHistory,
         updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date().toISOString()
     };
 }
@@ -155,7 +362,7 @@ class RalphStateManager {
     async ensureWorkspace(rootPath, config) {
         const paths = this.resolvePaths(rootPath, config);
         const createdPaths = [];
-        for (const dir of [paths.promptDir, paths.runDir, paths.logDir]) {
+        for (const dir of [paths.promptDir, paths.runDir, paths.logDir, paths.artifactDir]) {
             if (!(await pathExists(dir))) {
                 createdPaths.push(dir);
             }
@@ -207,7 +414,11 @@ class RalphStateManager {
     async saveState(rootPath, paths, state) {
         const normalized = {
             ...state,
+            version: 2,
             lastRun: state.runHistory.length > 0 ? state.runHistory[state.runHistory.length - 1] : state.lastRun,
+            lastIteration: state.iterationHistory.length > 0 ? state.iterationHistory[state.iterationHistory.length - 1] : state.lastIteration,
+            runHistory: state.runHistory.slice(-RUN_HISTORY_LIMIT),
+            iterationHistory: state.iterationHistory.slice(-ITERATION_HISTORY_LIMIT),
             updatedAt: new Date().toISOString()
         };
         await fs.writeFile(paths.stateFilePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
@@ -254,6 +465,9 @@ class RalphStateManager {
             lastMessagePath: path.join(paths.runDir, `${artifactBaseName}.last-message.md`)
         };
     }
+    iterationArtifactDir(paths, iteration) {
+        return path.join(paths.artifactDir, `iteration-${String(iteration).padStart(3, '0')}`);
+    }
     async recordPrompt(rootPath, paths, state, promptKind, promptPath, objectiveText) {
         const nextState = {
             ...state,
@@ -265,8 +479,28 @@ class RalphStateManager {
         await this.saveState(rootPath, paths, nextState);
         return nextState;
     }
+    async recordIteration(rootPath, paths, state, result, objectiveText, runRecord) {
+        const nextRunHistory = runRecord
+            ? [...state.runHistory, runRecord].slice(-RUN_HISTORY_LIMIT)
+            : state.runHistory.slice(-RUN_HISTORY_LIMIT);
+        const nextIterationHistory = [...state.iterationHistory, result].slice(-ITERATION_HISTORY_LIMIT);
+        const nextState = {
+            ...state,
+            objectivePreview: summarizeObjective(objectiveText),
+            nextIteration: result.iteration + 1,
+            lastPromptKind: result.promptKind,
+            lastPromptPath: result.promptPath,
+            lastRun: runRecord ?? state.lastRun,
+            runHistory: nextRunHistory,
+            lastIteration: result,
+            iterationHistory: nextIterationHistory,
+            updatedAt: new Date().toISOString()
+        };
+        await this.saveState(rootPath, paths, nextState);
+        return nextState;
+    }
     async recordRun(rootPath, paths, state, runRecord, objectiveText) {
-        const history = [...state.runHistory, runRecord].slice(-STATE_HISTORY_LIMIT);
+        const history = [...state.runHistory, runRecord].slice(-RUN_HISTORY_LIMIT);
         const nextState = {
             ...state,
             objectivePreview: summarizeObjective(objectiveText),
@@ -285,6 +519,7 @@ class RalphStateManager {
         await fs.rm(paths.promptDir, { recursive: true, force: true });
         await fs.rm(paths.runDir, { recursive: true, force: true });
         await fs.rm(paths.logDir, { recursive: true, force: true });
+        await fs.rm(paths.artifactDir, { recursive: true, force: true });
         await fs.rm(paths.stateFilePath, { force: true });
         await this.workspaceState.update(stateKey(rootPath), undefined);
         return this.ensureWorkspace(rootPath, config);
@@ -293,14 +528,15 @@ class RalphStateManager {
         return text.trim() === DEFAULT_PRD.trim();
     }
     async collectFileStatus(paths) {
-        const [prdPath, progressPath, taskFilePath, stateFilePath, promptDir, runDir, logDir] = await Promise.all([
+        const [prdPath, progressPath, taskFilePath, stateFilePath, promptDir, runDir, logDir, artifactDir] = await Promise.all([
             pathExists(paths.prdPath),
             pathExists(paths.progressPath),
             pathExists(paths.taskFilePath),
             pathExists(paths.stateFilePath),
             pathExists(paths.promptDir),
             pathExists(paths.runDir),
-            pathExists(paths.logDir)
+            pathExists(paths.logDir),
+            pathExists(paths.artifactDir)
         ]);
         return {
             prdPath,
@@ -309,7 +545,8 @@ class RalphStateManager {
             stateFilePath,
             promptDir,
             runDir,
-            logDir
+            logDir,
+            artifactDir
         };
     }
 }
