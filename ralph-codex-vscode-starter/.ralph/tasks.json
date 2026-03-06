@@ -1,0 +1,22 @@
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Replace the naive workspace scanner with manifest-aware parsing",
+      "status": "todo",
+      "validation": "Scanner reports repo facts from actual manifests rather than file existence only."
+    },
+    {
+      "id": "T2",
+      "title": "Add stop criteria and retry policies to the Ralph loop",
+      "status": "todo",
+      "validation": "Loop can stop on completion, repeated no-op, or validation success."
+    },
+    {
+      "id": "T3",
+      "title": "Add verifier pass after each implementation iteration",
+      "status": "todo",
+      "validation": "A second Codex run can inspect changes and record findings."
+    }
+  ]
+}

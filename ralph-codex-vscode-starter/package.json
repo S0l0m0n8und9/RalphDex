@@ -1,0 +1,118 @@
+{
+  "name": "ralph-codex-workbench",
+  "displayName": "Ralph Codex Workbench",
+  "description": "Starter VS Code extension for repo-aware Codex prompt injection and Ralph-style iteration.",
+  "version": "0.1.0",
+  "publisher": "starter",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:ralphCodex.openWorkbench",
+    "onCommand:ralphCodex.copyBootstrapPrompt",
+    "onCommand:ralphCodex.copyIterationPrompt",
+    "onCommand:ralphCodex.runSingleExec",
+    "onCommand:ralphCodex.runLoop",
+    "onCommand:ralphCodex.openCodexSidebar",
+    "onCommand:ralphCodex.newCodexThread",
+    "onCommand:ralphCodex.scanWorkspace"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ralphCodex.openWorkbench",
+        "title": "Ralph Codex: Open Workbench"
+      },
+      {
+        "command": "ralphCodex.copyBootstrapPrompt",
+        "title": "Ralph Codex: Copy Bootstrap Prompt"
+      },
+      {
+        "command": "ralphCodex.copyIterationPrompt",
+        "title": "Ralph Codex: Copy Iteration Prompt"
+      },
+      {
+        "command": "ralphCodex.runSingleExec",
+        "title": "Ralph Codex: Run Single Codex Exec"
+      },
+      {
+        "command": "ralphCodex.runLoop",
+        "title": "Ralph Codex: Run Ralph Loop"
+      },
+      {
+        "command": "ralphCodex.openCodexSidebar",
+        "title": "Ralph Codex: Open Codex Sidebar"
+      },
+      {
+        "command": "ralphCodex.newCodexThread",
+        "title": "Ralph Codex: New Codex Thread"
+      },
+      {
+        "command": "ralphCodex.scanWorkspace",
+        "title": "Ralph Codex: Scan Workspace"
+      }
+    ],
+    "configuration": {
+      "title": "Ralph Codex Workbench",
+      "properties": {
+        "ralphCodex.codexExecutable": {
+          "type": "string",
+          "default": "codex",
+          "description": "Path or command name for the Codex CLI executable."
+        },
+        "ralphCodex.model": {
+          "type": "string",
+          "default": "gpt-5.4",
+          "description": "Default model for codex exec runs."
+        },
+        "ralphCodex.maxIterations": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Default maximum Ralph loop iterations."
+        },
+        "ralphCodex.approvalMode": {
+          "type": "string",
+          "enum": ["never", "on-request", "untrusted"],
+          "default": "on-request",
+          "description": "Approval mode to pass to Codex CLI for scripted runs."
+        },
+        "ralphCodex.sandboxMode": {
+          "type": "string",
+          "enum": ["read-only", "workspace-write", "danger-full-access"],
+          "default": "workspace-write",
+          "description": "Sandbox mode to pass to Codex CLI for scripted runs."
+        },
+        "ralphCodex.autoOpenCodexSidebar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Attempt to open the Codex sidebar after copying a prompt."
+        },
+        "ralphCodex.promptOutputFolder": {
+          "type": "string",
+          "default": ".ralph/out",
+          "description": "Folder relative to the workspace root for generated prompts, logs, and loop artifacts."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc --noEmit -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.8.2",
+    "@vscode/vsce": "^3.2.2"
+  }
+}
