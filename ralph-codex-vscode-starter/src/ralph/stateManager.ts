@@ -96,6 +96,15 @@ async function ensureFile(target: string, content: string): Promise<void> {
   }
 }
 
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function readText(target: string, fallback = ''): Promise<string> {
   try {
     return await fs.readFile(target, 'utf8');
@@ -107,6 +116,18 @@ async function readText(target: string, fallback = ''): Promise<string> {
 export interface RalphWorkspaceSnapshot {
   paths: RalphPaths;
   state: RalphWorkspaceState;
+  createdPaths: string[];
+  fileStatus: RalphWorkspaceFileStatus;
+}
+
+export interface RalphWorkspaceFileStatus {
+  prdPath: boolean;
+  progressPath: boolean;
+  taskFilePath: boolean;
+  stateFilePath: boolean;
+  promptDir: boolean;
+  runDir: boolean;
+  logDir: boolean;
 }
 
 export class RalphStateManager {
@@ -119,25 +140,56 @@ export class RalphStateManager {
     return resolveRalphPaths(rootPath, config);
   }
 
+  public async inspectWorkspace(rootPath: string, config: RalphCodexConfig): Promise<RalphWorkspaceSnapshot> {
+    const paths = this.resolvePaths(rootPath, config);
+    return {
+      paths,
+      state: await this.loadState(rootPath, paths),
+      createdPaths: [],
+      fileStatus: await this.collectFileStatus(paths)
+    };
+  }
+
   public async ensureWorkspace(rootPath: string, config: RalphCodexConfig): Promise<RalphWorkspaceSnapshot> {
     const paths = this.resolvePaths(rootPath, config);
-    await fs.mkdir(paths.promptDir, { recursive: true });
-    await fs.mkdir(paths.runDir, { recursive: true });
-    await fs.mkdir(paths.logDir, { recursive: true });
+    const createdPaths: string[] = [];
 
+    for (const dir of [paths.promptDir, paths.runDir, paths.logDir]) {
+      if (!(await pathExists(dir))) {
+        createdPaths.push(dir);
+      }
+      await fs.mkdir(dir, { recursive: true });
+    }
+
+    if (!(await pathExists(paths.prdPath))) {
+      createdPaths.push(paths.prdPath);
+    }
     await ensureFile(paths.prdPath, DEFAULT_PRD);
+
+    if (!(await pathExists(paths.progressPath))) {
+      createdPaths.push(paths.progressPath);
+    }
     await ensureFile(paths.progressPath, DEFAULT_PROGRESS);
 
-    try {
-      await fs.access(paths.taskFilePath);
-    } catch {
+    if (!(await pathExists(paths.taskFilePath))) {
+      createdPaths.push(paths.taskFilePath);
       await fs.mkdir(path.dirname(paths.taskFilePath), { recursive: true });
       await fs.writeFile(paths.taskFilePath, stringifyTaskFile(createDefaultTaskFile()), 'utf8');
     }
 
+    const stateFileExists = await pathExists(paths.stateFilePath);
     const state = await this.loadState(rootPath, paths);
     await this.saveState(rootPath, paths, state);
-    return { paths, state };
+    if (!stateFileExists) {
+      createdPaths.push(paths.stateFilePath);
+    }
+
+    return {
+      paths,
+      state,
+      createdPaths,
+      fileStatus: await this.collectFileStatus(paths)
+    };
   }
 
   public async loadState(rootPath: string, paths: RalphPaths): Promise<RalphWorkspaceState> {
@@ -189,7 +241,12 @@ export class RalphStateManager {
       return seeded;
     }
 
-    parseTaskFile(raw);
+    try {
+      parseTaskFile(raw);
+    } catch (error) {
+      throw new Error(`Failed to parse Ralph task file at ${paths.taskFilePath}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     return raw;
   }
 
@@ -271,5 +328,35 @@ export class RalphStateManager {
 
   public isDefaultObjective(text: string): boolean {
     return text.trim() === DEFAULT_PRD.trim();
+  }
+
+  private async collectFileStatus(paths: RalphPaths): Promise<RalphWorkspaceFileStatus> {
+    const [
+      prdPath,
+      progressPath,
+      taskFilePath,
+      stateFilePath,
+      promptDir,
+      runDir,
+      logDir
+    ] = await Promise.all([
+      pathExists(paths.prdPath),
+      pathExists(paths.progressPath),
+      pathExists(paths.taskFilePath),
+      pathExists(paths.stateFilePath),
+      pathExists(paths.promptDir),
+      pathExists(paths.runDir),
+      pathExists(paths.logDir)
+    ]);
+
+    return {
+      prdPath,
+      progressPath,
+      taskFilePath,
+      stateFilePath,
+      promptDir,
+      runDir,
+      logDir
+    };
   }
 }

@@ -13,6 +13,21 @@ export interface ProcessRunResult {
   stderr: string;
 }
 
+export class ProcessLaunchError extends Error {
+  public readonly command: string;
+  public readonly args: string[];
+  public readonly code?: string;
+
+  public constructor(command: string, args: string[], error: unknown) {
+    const details = error as NodeJS.ErrnoException;
+    super(details.message || `Failed to start process: ${command}`);
+    this.name = 'ProcessLaunchError';
+    this.command = command;
+    this.args = args;
+    this.code = details.code;
+  }
+}
+
 export async function runProcess(command: string, args: string[], options: ProcessRunOptions): Promise<ProcessRunResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -35,7 +50,7 @@ export async function runProcess(command: string, args: string[], options: Proce
       options.onStderrChunk?.(text);
     });
 
-    child.on('error', reject);
+    child.on('error', (error) => reject(new ProcessLaunchError(command, args, error)));
     child.on('close', (code) => {
       resolve({
         code: code ?? 1,

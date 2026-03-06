@@ -1,7 +1,7 @@
 {
   "name": "ralph-codex-workbench",
   "displayName": "Ralph Codex Workbench",
-  "description": "Starter VS Code extension for repo-aware Codex prompt injection and Ralph-style iteration.",
+  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
   "version": "0.1.0",
   "publisher": "starter",
   "license": "MIT",
@@ -12,6 +12,30 @@
     "AI",
     "Other"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Ralph Codex Workbench supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and Codex CLI execution require workspace trust.",
+      "restrictedConfigurations": [
+        "ralphCodex.codexCommandPath",
+        "ralphCodex.preferredHandoffMode",
+        "ralphCodex.ralphIterationCap",
+        "ralphCodex.ralphTaskFilePath",
+        "ralphCodex.prdPath",
+        "ralphCodex.progressPath",
+        "ralphCodex.clipboardAutoCopy",
+        "ralphCodex.model",
+        "ralphCodex.approvalMode",
+        "ralphCodex.sandboxMode",
+        "ralphCodex.openSidebarCommandId",
+        "ralphCodex.newChatCommandId"
+      ]
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Ralph Codex Workbench requires a real local workspace because it reads and writes Ralph files and can run Codex CLI."
+    }
+  },
   "activationEvents": [
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
@@ -25,27 +49,27 @@
     "commands": [
       {
         "command": "ralphCodex.generatePrompt",
-        "title": "Ralph Codex: Generate Prompt"
+        "title": "Ralph Codex: Prepare Prompt"
       },
       {
         "command": "ralphCodex.openCodexAndCopyPrompt",
-        "title": "Ralph Codex: Open Codex And Copy Prompt"
+        "title": "Ralph Codex: Open Codex IDE"
       },
       {
         "command": "ralphCodex.runRalphIteration",
-        "title": "Ralph Codex: Run One Ralph Iteration"
+        "title": "Ralph Codex: Run CLI Iteration"
       },
       {
         "command": "ralphCodex.runRalphLoop",
-        "title": "Ralph Codex: Run Ralph Loop"
+        "title": "Ralph Codex: Run CLI Loop"
       },
       {
         "command": "ralphCodex.showRalphStatus",
-        "title": "Ralph Codex: Show Ralph Status"
+        "title": "Ralph Codex: Show Status"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
-        "title": "Ralph Codex: Reset Ralph Workspace State"
+        "title": "Ralph Codex: Reset Runtime State"
       }
     ],
     "configuration": {
@@ -87,7 +111,7 @@
         "ralphCodex.clipboardAutoCopy": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically copy generated prompts to the clipboard when using Generate Prompt."
+          "description": "Automatically copy generated prompts to the clipboard when using Prepare Prompt."
         },
         "ralphCodex.model": {
           "type": "string",
@@ -125,7 +149,8 @@
     "watch": "tsc -watch -p ./",
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
     "test": "npm run compile:tests && node --test ./out-test/test",
-    "validate": "npm run lint && npm run test",
+    "validate": "npm run compile && npm run lint && npm run test",
+    "vscode:prepublish": "npm run compile",
     "package": "vsce package"
   },
   "devDependencies": {

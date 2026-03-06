@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Logger } from '../services/logger';
-import { runProcess } from '../services/processRunner';
+import { ProcessLaunchError, runProcess } from '../services/processRunner';
 import { CodexExecRequest, CodexExecResult, CodexStrategy } from './types';
 
 async function hasGitMetadata(rootPath: string): Promise<boolean> {
@@ -13,7 +13,25 @@ async function hasGitMetadata(rootPath: string): Promise<boolean> {
   }
 }
 
-function buildTranscript(result: CodexExecResult, request: CodexExecRequest): string {
+export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepoCheck: boolean): string[] {
+  const args = [
+    'exec',
+    '--model', request.model,
+    '--sandbox', request.sandboxMode,
+    '--ask-for-approval', request.approvalMode,
+    '--cd', request.workspaceRoot,
+    '--output-last-message', request.lastMessagePath
+  ];
+
+  if (includeSkipGitRepoCheck) {
+    args.push('--skip-git-repo-check');
+  }
+
+  args.push('-');
+  return args;
+}
+
+export function buildCodexExecTranscript(result: CodexExecResult, request: CodexExecRequest): string {
   return [
     '# Codex Exec Transcript',
     '',
@@ -36,26 +54,23 @@ function buildTranscript(result: CodexExecResult, request: CodexExecRequest): st
   ].join('\n');
 }
 
+export function describeCodexExecLaunchError(request: CodexExecRequest, error: ProcessLaunchError): string {
+  if (error.code === 'ENOENT') {
+    return `Codex CLI was not found at "${request.commandPath}". Install Codex CLI or update ralphCodex.codexCommandPath.`;
+  }
+
+  return `Failed to start codex exec with "${request.commandPath}": ${error.message}`;
+}
+
 export class CliExecCodexStrategy implements CodexStrategy {
   public readonly id = 'cliExec' as const;
 
   public constructor(private readonly logger: Logger) {}
 
   public async runExec(request: CodexExecRequest): Promise<CodexExecResult> {
-    const args = [
-      'exec',
-      '--model', request.model,
-      '--sandbox', request.sandboxMode,
-      '--ask-for-approval', request.approvalMode,
-      '--cd', request.workspaceRoot,
-      '--output-last-message', request.lastMessagePath
-    ];
-
-    if (!(await hasGitMetadata(request.workspaceRoot))) {
-      args.push('--skip-git-repo-check');
-    }
-
-    args.push('-');
+    await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
+    await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
+    const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.workspaceRoot)));
 
     this.logger.info('Starting codex exec.', {
       commandPath: request.commandPath,
@@ -64,12 +79,21 @@ export class CliExecCodexStrategy implements CodexStrategy {
       args
     });
 
-    const processResult = await runProcess(request.commandPath, args, {
-      cwd: request.workspaceRoot,
-      stdinText: request.prompt,
-      onStdoutChunk: request.onStdoutChunk,
-      onStderrChunk: request.onStderrChunk
-    });
+    let processResult;
+    try {
+      processResult = await runProcess(request.commandPath, args, {
+        cwd: request.workspaceRoot,
+        stdinText: request.prompt,
+        onStdoutChunk: request.onStdoutChunk,
+        onStderrChunk: request.onStderrChunk
+      });
+    } catch (error) {
+      if (error instanceof ProcessLaunchError) {
+        throw new Error(describeCodexExecLaunchError(request, error), { cause: error });
+      }
+
+      throw error;
+    }
 
     const lastMessage = await fs.readFile(request.lastMessagePath, 'utf8').catch(() => '');
     const result: CodexExecResult = {
@@ -85,7 +109,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
       lastMessage
     };
 
-    await fs.writeFile(request.transcriptPath, `${buildTranscript(result, request).trimEnd()}\n`, 'utf8');
+    await fs.writeFile(request.transcriptPath, `${buildCodexExecTranscript(result, request).trimEnd()}\n`, 'utf8');
 
     return result;
   }

@@ -33,21 +33,29 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
+exports.requireTrustedWorkspace = requireTrustedWorkspace;
+exports.inspectIdeCommandSupport = inspectIdeCommandSupport;
 const vscode = __importStar(require("vscode"));
-const registerCommands_1 = require("./commands/registerCommands");
-const logger_1 = require("./services/logger");
-function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
-    context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
-    logger.info('Activated Ralph Codex Workbench extension.', {
-        workspaceTrusted: vscode.workspace.isTrusted,
-        activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
-    });
+function isConfiguredCommand(commandId) {
+    return commandId.trim().length > 0 && commandId !== 'none';
 }
-function deactivate() {
-    // no-op
+function requireTrustedWorkspace(commandLabel) {
+    if (!vscode.workspace.isTrusted) {
+        throw new Error(`${commandLabel} requires a trusted workspace. Trust this workspace to allow Ralph file writes, VS Code command handoff, and Codex CLI execution.`);
+    }
 }
-//# sourceMappingURL=extension.js.map
+async function inspectIdeCommandSupport(config) {
+    const availableCommands = new Set(await vscode.commands.getCommands(true));
+    const openSidebar = {
+        commandId: config.openSidebarCommandId,
+        configured: isConfiguredCommand(config.openSidebarCommandId),
+        available: isConfiguredCommand(config.openSidebarCommandId) && availableCommands.has(config.openSidebarCommandId)
+    };
+    const newChat = {
+        commandId: config.newChatCommandId,
+        configured: isConfiguredCommand(config.newChatCommandId),
+        available: isConfiguredCommand(config.newChatCommandId) && availableCommands.has(config.newChatCommandId)
+    };
+    return { openSidebar, newChat };
+}
+//# sourceMappingURL=workspaceSupport.js.map

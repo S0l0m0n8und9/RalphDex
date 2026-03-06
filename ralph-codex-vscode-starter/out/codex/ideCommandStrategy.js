@@ -36,8 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.IdeCommandCodexStrategy = void 0;
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
-async function runVsCodeCommand(commandId, warnings, warningText) {
+async function runVsCodeCommand(commandId, availableCommands, warnings, warningText) {
     if (!commandId || commandId === 'none') {
+        return;
+    }
+    if (!availableCommands.has(commandId)) {
+        warnings.push(warningText);
         return;
     }
     try {
@@ -51,18 +55,22 @@ class IdeCommandCodexStrategy {
     id = 'ideCommand';
     async handoffPrompt(request) {
         const warnings = [];
+        const availableCommands = new Set(await vscode.commands.getCommands(true));
         if (request.copyToClipboard) {
             await vscode.env.clipboard.writeText(request.prompt);
         }
         else {
             warnings.push('Clipboard auto-copy is disabled, so you will need to paste the generated prompt manually.');
         }
-        await runVsCodeCommand(request.openSidebarCommandId, warnings, `The configured Codex sidebar command (${request.openSidebarCommandId}) was not available.`);
-        await runVsCodeCommand(request.newChatCommandId, warnings, `The configured Codex new-chat command (${request.newChatCommandId}) was not available.`);
+        await runVsCodeCommand(request.openSidebarCommandId, availableCommands, warnings, `The configured Codex sidebar command (${request.openSidebarCommandId}) was not available.`);
+        await runVsCodeCommand(request.newChatCommandId, availableCommands, warnings, `The configured Codex new-chat command (${request.newChatCommandId}) was not available.`);
+        const success = warnings.length === 0;
         return {
             strategy: this.id,
-            success: true,
-            message: `Prompt ready at ${path.basename(request.promptPath)}.`,
+            success,
+            message: success
+                ? `Prompt ready at ${path.basename(request.promptPath)}.`
+                : `Prompt copied to the clipboard from ${path.basename(request.promptPath)}. Open Codex manually and paste it.`,
             warnings
         };
     }

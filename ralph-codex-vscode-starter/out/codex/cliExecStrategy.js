@@ -34,6 +34,9 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CliExecCodexStrategy = void 0;
+exports.buildCodexExecArgs = buildCodexExecArgs;
+exports.buildCodexExecTranscript = buildCodexExecTranscript;
+exports.describeCodexExecLaunchError = describeCodexExecLaunchError;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const processRunner_1 = require("../services/processRunner");
@@ -46,7 +49,22 @@ async function hasGitMetadata(rootPath) {
         return false;
     }
 }
-function buildTranscript(result, request) {
+function buildCodexExecArgs(request, includeSkipGitRepoCheck) {
+    const args = [
+        'exec',
+        '--model', request.model,
+        '--sandbox', request.sandboxMode,
+        '--ask-for-approval', request.approvalMode,
+        '--cd', request.workspaceRoot,
+        '--output-last-message', request.lastMessagePath
+    ];
+    if (includeSkipGitRepoCheck) {
+        args.push('--skip-git-repo-check');
+    }
+    args.push('-');
+    return args;
+}
+function buildCodexExecTranscript(result, request) {
     return [
         '# Codex Exec Transcript',
         '',
@@ -68,6 +86,12 @@ function buildTranscript(result, request) {
         result.lastMessage || '(empty)'
     ].join('\n');
 }
+function describeCodexExecLaunchError(request, error) {
+    if (error.code === 'ENOENT') {
+        return `Codex CLI was not found at "${request.commandPath}". Install Codex CLI or update ralphCodex.codexCommandPath.`;
+    }
+    return `Failed to start codex exec with "${request.commandPath}": ${error.message}`;
+}
 class CliExecCodexStrategy {
     logger;
     id = 'cliExec';
@@ -75,30 +99,30 @@ class CliExecCodexStrategy {
         this.logger = logger;
     }
     async runExec(request) {
-        const args = [
-            'exec',
-            '--model', request.model,
-            '--sandbox', request.sandboxMode,
-            '--ask-for-approval', request.approvalMode,
-            '--cd', request.workspaceRoot,
-            '--output-last-message', request.lastMessagePath
-        ];
-        if (!(await hasGitMetadata(request.workspaceRoot))) {
-            args.push('--skip-git-repo-check');
-        }
-        args.push('-');
+        await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
+        await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
+        const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.workspaceRoot)));
         this.logger.info('Starting codex exec.', {
             commandPath: request.commandPath,
             workspaceRoot: request.workspaceRoot,
             promptPath: request.promptPath,
             args
         });
-        const processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
-            cwd: request.workspaceRoot,
-            stdinText: request.prompt,
-            onStdoutChunk: request.onStdoutChunk,
-            onStderrChunk: request.onStderrChunk
-        });
+        let processResult;
+        try {
+            processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
+                cwd: request.workspaceRoot,
+                stdinText: request.prompt,
+                onStdoutChunk: request.onStdoutChunk,
+                onStderrChunk: request.onStderrChunk
+            });
+        }
+        catch (error) {
+            if (error instanceof processRunner_1.ProcessLaunchError) {
+                throw new Error(describeCodexExecLaunchError(request, error), { cause: error });
+            }
+            throw error;
+        }
         const lastMessage = await fs.readFile(request.lastMessagePath, 'utf8').catch(() => '');
         const result = {
             strategy: this.id,
@@ -112,7 +136,7 @@ class CliExecCodexStrategy {
             lastMessagePath: request.lastMessagePath,
             lastMessage
         };
-        await fs.writeFile(request.transcriptPath, `${buildTranscript(result, request).trimEnd()}\n`, 'utf8');
+        await fs.writeFile(request.transcriptPath, `${buildCodexExecTranscript(result, request).trimEnd()}\n`, 'utf8');
         return result;
     }
 }

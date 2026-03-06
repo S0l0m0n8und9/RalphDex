@@ -6,7 +6,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralph Codex'));
   context.subscriptions.push(logger);
   registerCommands(context, logger);
-  logger.info('Activated Ralph Codex Workbench extension.');
+  logger.info('Activated Ralph Codex Workbench extension.', {
+    workspaceTrusted: vscode.workspace.isTrusted,
+    activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
+  });
 }
 
 export function deactivate(): void {

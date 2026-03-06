@@ -33,21 +33,31 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
-const vscode = __importStar(require("vscode"));
-const registerCommands_1 = require("./commands/registerCommands");
-const logger_1 = require("./services/logger");
-function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
-    context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
-    logger.info('Activated Ralph Codex Workbench extension.', {
-        workspaceTrusted: vscode.workspace.isTrusted,
-        activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
-    });
+exports.inspectCodexCliSupport = inspectCodexCliSupport;
+const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
+function usesExplicitPath(commandPath) {
+    return path.isAbsolute(commandPath) || commandPath.includes(path.sep) || commandPath.includes('/');
 }
-function deactivate() {
-    // no-op
+async function inspectCodexCliSupport(commandPath) {
+    if (!usesExplicitPath(commandPath)) {
+        return {
+            commandPath,
+            check: 'pathLookupUnverified'
+        };
+    }
+    try {
+        await fs.access(commandPath);
+        return {
+            commandPath,
+            check: 'pathExists'
+        };
+    }
+    catch {
+        return {
+            commandPath,
+            check: 'pathMissing'
+        };
+    }
 }
-//# sourceMappingURL=extension.js.map
+//# sourceMappingURL=codexCliSupport.js.map
