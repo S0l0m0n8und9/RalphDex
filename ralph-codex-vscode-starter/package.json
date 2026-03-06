@@ -13,70 +13,86 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:ralphCodex.openWorkbench",
-    "onCommand:ralphCodex.copyBootstrapPrompt",
-    "onCommand:ralphCodex.copyIterationPrompt",
-    "onCommand:ralphCodex.runSingleExec",
-    "onCommand:ralphCodex.runLoop",
-    "onCommand:ralphCodex.openCodexSidebar",
-    "onCommand:ralphCodex.newCodexThread",
-    "onCommand:ralphCodex.scanWorkspace"
+    "onCommand:ralphCodex.generatePrompt",
+    "onCommand:ralphCodex.openCodexAndCopyPrompt",
+    "onCommand:ralphCodex.runRalphIteration",
+    "onCommand:ralphCodex.runRalphLoop",
+    "onCommand:ralphCodex.showRalphStatus",
+    "onCommand:ralphCodex.resetRalphWorkspaceState"
   ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ralphCodex.openWorkbench",
-        "title": "Ralph Codex: Open Workbench"
+        "command": "ralphCodex.generatePrompt",
+        "title": "Ralph Codex: Generate Prompt"
       },
       {
-        "command": "ralphCodex.copyBootstrapPrompt",
-        "title": "Ralph Codex: Copy Bootstrap Prompt"
+        "command": "ralphCodex.openCodexAndCopyPrompt",
+        "title": "Ralph Codex: Open Codex And Copy Prompt"
       },
       {
-        "command": "ralphCodex.copyIterationPrompt",
-        "title": "Ralph Codex: Copy Iteration Prompt"
+        "command": "ralphCodex.runRalphIteration",
+        "title": "Ralph Codex: Run One Ralph Iteration"
       },
       {
-        "command": "ralphCodex.runSingleExec",
-        "title": "Ralph Codex: Run Single Codex Exec"
-      },
-      {
-        "command": "ralphCodex.runLoop",
+        "command": "ralphCodex.runRalphLoop",
         "title": "Ralph Codex: Run Ralph Loop"
       },
       {
-        "command": "ralphCodex.openCodexSidebar",
-        "title": "Ralph Codex: Open Codex Sidebar"
+        "command": "ralphCodex.showRalphStatus",
+        "title": "Ralph Codex: Show Ralph Status"
       },
       {
-        "command": "ralphCodex.newCodexThread",
-        "title": "Ralph Codex: New Codex Thread"
-      },
-      {
-        "command": "ralphCodex.scanWorkspace",
-        "title": "Ralph Codex: Scan Workspace"
+        "command": "ralphCodex.resetRalphWorkspaceState",
+        "title": "Ralph Codex: Reset Ralph Workspace State"
       }
     ],
     "configuration": {
       "title": "Ralph Codex Workbench",
       "properties": {
-        "ralphCodex.codexExecutable": {
+        "ralphCodex.codexCommandPath": {
           "type": "string",
           "default": "codex",
           "description": "Path or command name for the Codex CLI executable."
+        },
+        "ralphCodex.preferredHandoffMode": {
+          "type": "string",
+          "enum": ["ideCommand", "clipboard", "cliExec"],
+          "default": "ideCommand",
+          "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+        },
+        "ralphCodex.ralphIterationCap": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum number of Codex CLI iterations to run for the Ralph loop command."
+        },
+        "ralphCodex.ralphTaskFilePath": {
+          "type": "string",
+          "default": ".ralph/tasks.json",
+          "description": "Workspace-relative path to the durable Ralph task file."
+        },
+        "ralphCodex.prdPath": {
+          "type": "string",
+          "default": ".ralph/prd.md",
+          "description": "Workspace-relative path to the durable Ralph PRD or objective file."
+        },
+        "ralphCodex.progressPath": {
+          "type": "string",
+          "default": ".ralph/progress.md",
+          "description": "Workspace-relative path to the durable Ralph progress log."
+        },
+        "ralphCodex.clipboardAutoCopy": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically copy generated prompts to the clipboard when using Generate Prompt."
         },
         "ralphCodex.model": {
           "type": "string",
           "default": "gpt-5.4",
           "description": "Default model for codex exec runs."
-        },
-        "ralphCodex.maxIterations": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 100,
-          "description": "Default maximum Ralph loop iterations."
         },
         "ralphCodex.approvalMode": {
           "type": "string",
@@ -90,29 +106,32 @@
           "default": "workspace-write",
           "description": "Sandbox mode to pass to Codex CLI for scripted runs."
         },
-        "ralphCodex.autoOpenCodexSidebar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Attempt to open the Codex sidebar after copying a prompt."
-        },
-        "ralphCodex.promptOutputFolder": {
+        "ralphCodex.openSidebarCommandId": {
           "type": "string",
-          "default": ".ralph/out",
-          "description": "Folder relative to the workspace root for generated prompts, logs, and loop artifacts."
+          "default": "chatgpt.openSidebar",
+          "description": "VS Code command id to use when attempting to reveal the Codex sidebar."
+        },
+        "ralphCodex.newChatCommandId": {
+          "type": "string",
+          "default": "chatgpt.newChat",
+          "description": "VS Code command id to use when attempting to start a new Codex chat."
         }
       }
     }
   },
   "scripts": {
     "compile": "tsc -p ./",
+    "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
-    "lint": "tsc --noEmit -p ./",
+    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
+    "test": "npm run compile:tests && node --test ./out-test/test",
+    "validate": "npm run lint && npm run test",
     "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
     "@types/vscode": "^1.95.0",
     "typescript": "^5.8.2",
-    "@vscode/vsce": "^3.2.2"
+    "@vscode/vsce": "2.24.0"
   }
 }

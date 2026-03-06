@@ -3,5 +3,10 @@
 		{
 			"path": "."
 		}
-	]
+	],
+	"settings": {
+		"kiro-codex-ide.codex.promptsPath": ".ralph-codex-vscode-starter/.ralphprompts",
+		"kiro-codex-ide.codex.steeringPath": ".ralph-codex-vscode-starter",
+		"kiro-codex-ide.codex.specsPath": ".ralph"
+	}
 }

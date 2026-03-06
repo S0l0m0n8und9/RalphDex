@@ -2,46 +2,63 @@
 
 ## Purpose
 
-This repository is a starter VS Code extension for orchestrating repo-aware prompts and Ralph-style Codex iterations.
+This repository is a serious v1 of a VS Code extension that supports repo-aware prompt generation, Codex IDE handoff, and Ralph-style `codex exec` loops.
 
-## Working rules
+## Non-Negotiables
 
-- Keep the architecture thin.
-- Prefer public Codex interfaces over reverse-engineering private extension internals.
-- Do not claim direct prompt injection into the Codex IDE extension unless a documented API exists.
-- Preserve the split between the IDE lane and the CLI automation lane unless there is a strong reason to collapse them.
-- Persist loop memory in files under `.ralph/`.
-- Prefer minimal, production-oriented code changes over tutorial scaffolding.
+- Do not invent unsupported Codex IDE APIs.
+- Treat clipboard plus VS Code command execution as the interactive handoff boundary.
+- Treat `codex exec` as the supported automation boundary.
+- Keep the architecture thin and explicit.
+- Keep durable Ralph memory on disk under `.ralph/`.
+- Prefer boring reliability over speculative convenience.
 
-## Project map
+## Module Map
 
-- Extension entrypoint: `src/extension.ts`
-- Prompt generation: `src/promptFactory.ts`
-- Workspace inspection: `src/repoScanner.ts`
-- CLI iteration loop: `src/loopRunner.ts`
-- Config access: `src/config.ts`
-- Durable Ralph state: `.ralph/`
+- Entrypoint: `src/extension.ts`
+- Commands: `src/commands/`
+- Codex integration strategies: `src/codex/`
+- Configuration: `src/config/`
+- Prompt generation: `src/prompt/`
+- Ralph state and schemas: `src/ralph/`
+- Logging, process running, workspace inspection: `src/services/`
+- Pure tests: `test/`
 
-## Conventions
+## Project Conventions
 
-- TypeScript, CommonJS output.
-- No heavy framework unless justified.
-- Any new commands should be contributed via `package.json` and registered in `src/extension.ts`.
-- Keep prompts explicit, file-backed, and reusable.
-- Prefer a stronger schema rather than more prose when evolving Ralph task state.
+- TypeScript, CommonJS output, strict mode.
+- Keep VS Code dependencies at the edge. Pure logic belongs in testable modules.
+- Register commands in `src/commands/registerCommands.ts` and contribute them in `package.json`.
+- Runtime state belongs in `.ralph/state.json` plus VS Code `workspaceState`.
+- Prompt, transcript, last-message, and log artifacts belong under `.ralph/`.
+- The task file schema is versioned and should stay machine-friendly.
+- README and AGENTS.md must stay aligned with real behavior.
 
-## Change expectations
+## Ralph File Expectations
 
-- Update README when behavior changes.
-- Update settings documentation when configuration changes.
-- Keep limitations explicit and honest.
-- When adding automation, default to safer Codex sandbox / approval settings.
+- `prd.md` is the durable objective.
+- `progress.md` is the durable narrative log.
+- `tasks.json` is the structured backlog.
+- `state.json` is extension-managed runtime state.
+- `prompts/`, `runs/`, and `logs/` are generated artifacts and should be reproducible.
 
-## Near-term roadmap
+## Validation Expectations
 
-1. Replace naive repo scanning with real parsers.
-2. Add richer `.ralph/tasks.json` schema.
-3. Add loop stop criteria beyond fixed iteration count.
-4. Add worktree / branch isolation.
-5. Add verifier / reviewer agent flows.
-6. Add MCP integrations where they materially improve repo understanding or validation.
+- Run `npm run compile` after source changes.
+- Run `npm run lint` for type-level validation.
+- Run `npm test` when pure logic changes.
+- If a command path or API limitation is uncertain, document the fallback rather than hiding it.
+
+## Coding Guidance
+
+- Prefer config-backed strategy selection over hard-coded assumptions.
+- When adding new logic, decide whether it belongs in `commands`, `codex`, `prompt`, `ralph`, or `services` before editing.
+- Keep prompts explicit and file-backed.
+- Keep user-visible errors actionable and keep internal logs structured.
+- Avoid adding new dependencies unless they materially simplify the extension.
+
+## Near-Term Follow-Ups
+
+1. Add semantic stop criteria and optional review passes to the Ralph loop.
+2. Improve workspace scanning beyond root-level manifest inspection.
+3. Add optional Git checkpoints or worktree isolation for loop iterations.

@@ -1,193 +1,219 @@
 # Ralph Codex Workbench
 
-A starter VS Code extension that gives you a practical bridge between **repo-aware prompt generation** and **Ralph-style fresh-iteration loops** for Codex.
+Ralph Codex Workbench is a VS Code extension starter for one developer who wants two reliable Codex paths in the same repo:
 
-## What this starter actually does
+1. Generate a durable, repo-aware prompt and hand it to the Codex IDE with clipboard plus documented VS Code commands.
+2. Run a Ralph-style fresh-iteration loop with `codex exec`, file-backed state, and repeatable artifacts under `.ralph/`.
 
-This repo is deliberately honest about the current boundary:
+This repo is now a usable v1, not a tutorial stub.
 
-- The public Codex IDE extension exposes **commands** such as `chatgpt.openSidebar` and `chatgpt.newChat` through the VS Code command palette.
-- The public docs do **not** describe a stable extension API for programmatically injecting an arbitrary prompt directly into the Codex chat composer.
-- Codex also supports **scripted automation** through `codex exec` in non-interactive mode, which is a better fit for Ralph-style loops.
+## What Works Now
 
-So this starter uses a two-lane design:
+- Prompt generation is file-backed and deterministic.
+- Prompt handoff supports `ideCommand`, `clipboard`, and `cliExec`-aware strategy selection.
+- Ralph runtime state is persisted in both VS Code workspace storage and `.ralph/state.json`.
+- Prompt files, last messages, transcripts, and extension logs are written under `.ralph/`.
+- The extension surfaces six focused commands instead of a starter-style workbench panel.
+- Workspace scanning reads actual root manifests and `package.json` scripts rather than only checking for a few filenames.
+- Pure logic modules have Node-based tests.
 
-1. **IDE lane** — generate a repo-aware prompt, copy it to the clipboard, and open the Codex sidebar / a new Codex thread.
-2. **Automation lane** — run `codex exec` repeatedly in a Ralph-style loop, with each iteration using fresh context and persisting memory in files.
+## Audit Summary Of The Original Starter
 
-That is the right architecture right now. Anything claiming direct prompt injection into the Codex IDE extension is either using private internals or making it up.
+The original repo had the right high-level idea, but not a production-ready shape:
 
-## Why this design matches the docs
+- Commands were flat and tightly coupled in `src/extension.ts`.
+- Ralph state existed only as seed files and was not tracked as runtime state.
+- The CLI runner passed the full prompt as a shell argument, which is fragile.
+- IDE handoff assumed command ids but did not model failure modes cleanly.
+- The scanner was mostly presence checks.
+- There were no tests and no durable logging.
 
-OpenAI says the Codex IDE extension runs the same agent as the Codex CLI and shares the same configuration. The extension works directly in VS Code and supports agent mode, approvals, cloud delegation, and command-palette commands.
+## Public Codex API Limits
 
-OpenAI also documents `codex exec` specifically for scripted and CI-style runs, which is exactly what a Ralph loop needs.
+The v1 architecture is intentionally built around what OpenAI publicly documents today.
 
-The Ralph technique itself is basically repeated fresh runs, with memory persisted in repo files like progress logs and task files rather than in one giant chat thread.
+- The Codex IDE exposes command palette commands and slash commands, but there is no documented extension API for injecting arbitrary text directly into the Codex composer.
+- `codex exec` is the documented path for non-interactive automation and supports stdin input, approvals, sandbox selection, and file output.
+- The VS Code extension therefore uses clipboard plus Codex IDE commands for interactive handoff and uses `codex exec` for automation.
 
-## Features in this starter
+Anything stronger than that would require private or undocumented integration points, so this repo does not pretend otherwise.
 
-- Workspace scan to infer rough repo shape.
-- Bootstrap prompt generator.
-- Iteration prompt generator.
-- Clipboard-based handoff into the Codex IDE extension.
-- Commands to open the Codex sidebar and start a new Codex thread.
-- `codex exec` runner for one-off execution.
-- Ralph loop runner for repeated iterations.
-- `.ralph/` state folder for PRD, progress, and tasks.
-- Webview workbench as a basic control panel.
+## Setup
 
-## Recommended setup
-
-### 1. Install dependencies
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-### 2. Compile the extension
+2. Compile the extension:
 
 ```bash
 npm run compile
 ```
 
-### 3. Install Codex CLI
+3. Run lint and tests:
+
+```bash
+npm run validate
+```
+
+4. Install Codex CLI:
 
 ```bash
 npm i -g @openai/codex
 ```
 
-Codex CLI is the official local client and supports `codex exec` for scripted runs.
+5. Install the Codex IDE extension in VS Code if you want interactive handoff.
 
-### 4. Install the Codex IDE extension in VS Code
+6. Press `F5` in VS Code to launch the Extension Development Host.
 
-The workbench can function without it for CLI-driven loops, but the copy/open-sidebar flow assumes the Codex IDE extension is installed. The Codex IDE extension is documented for VS Code and other VS Code-compatible editors.
+## Command Flow
 
-### 5. Run the extension in development
+### Generate Prompt
 
-Press `F5` in VS Code.
+`Ralph Codex: Generate Prompt`
 
-This launches an Extension Development Host.
+- Ensures `.ralph/` files exist.
+- Reads the PRD, progress log, task file, runtime state, and workspace scan.
+- Writes the next prompt to `.ralph/prompts/`.
+- Optionally copies the prompt to the clipboard if `ralphCodex.clipboardAutoCopy` is enabled.
 
-## Commands
+### Open Codex And Copy Prompt
 
-Open the command palette and run:
+`Ralph Codex: Open Codex And Copy Prompt`
 
-- `Ralph Codex: Open Workbench`
-- `Ralph Codex: Copy Bootstrap Prompt`
-- `Ralph Codex: Copy Iteration Prompt`
-- `Ralph Codex: Open Codex Sidebar`
-- `Ralph Codex: New Codex Thread`
-- `Ralph Codex: Run Single Codex Exec`
-- `Ralph Codex: Run Ralph Loop`
-- `Ralph Codex: Scan Workspace`
+- Generates the next prompt.
+- Copies it to the clipboard.
+- Uses the configured handoff strategy.
+- In `ideCommand` mode it attempts the configured sidebar and new-chat command ids.
+- In `clipboard` mode it stops after copying.
+- If `preferredHandoffMode` is `cliExec`, this command falls back to clipboard handoff and tells you to use the iteration command for execution.
 
-## Ralph state files
+### Run One Ralph Iteration
 
-The extension creates these on demand:
+`Ralph Codex: Run One Ralph Iteration`
+
+- Generates the next prompt.
+- Runs `codex exec` with the configured model, sandbox, and approval mode.
+- Sends the prompt over stdin instead of embedding it as one shell argument.
+- Writes the last assistant message and transcript to `.ralph/runs/`.
+- Records the result in `.ralph/state.json`.
+
+### Run Ralph Loop
+
+`Ralph Codex: Run Ralph Loop`
+
+- Repeats the single-iteration flow up to `ralphCodex.ralphIterationCap`.
+- Stops immediately on the first failed `codex exec`.
+- Leaves every iteration as a separate file-backed artifact.
+
+### Show Ralph Status
+
+`Ralph Codex: Show Ralph Status`
+
+- Writes a structured snapshot to the `Ralph Codex` output channel.
+- Includes runtime state, task counts, key file paths, and detected workspace commands.
+
+### Reset Ralph Workspace State
+
+`Ralph Codex: Reset Ralph Workspace State`
+
+- Preserves the PRD, progress log, and task file.
+- Deletes `.ralph/state.json`, generated prompts, run artifacts, and extension logs.
+- Re-seeds the runtime state so the next run is deterministic.
+
+## Expected Ralph Loop Behavior
+
+The extension treats each CLI run as disposable context.
+
+- Durable memory lives in `.ralph/prd.md`, `.ralph/progress.md`, `.ralph/tasks.json`, and `.ralph/state.json`.
+- Prompt generation uses the PRD plus the current task/progress state.
+- Each `codex exec` run starts fresh and should update durable files if work progressed.
+- The extension records machine-visible metadata even when the Codex run fails.
+
+That keeps the Ralph loop recoverable after VS Code restarts, extension reloads, or failed runs.
+
+## Workspace Files
+
+The extension creates and maintains:
 
 ```text
 .ralph/
+  logs/
+    extension.log
+  prompts/
+    bootstrap-001.prompt.md
+    iteration-002.prompt.md
+  runs/
+    bootstrap-001.last-message.md
+    bootstrap-001.transcript.md
   prd.md
   progress.md
+  state.json
   tasks.json
-  prompts/
-  out/
 ```
-
-### Usage model
-
-- `prd.md` = durable objective / brief
-- `progress.md` = durable loop memory
-- `tasks.json` = structured task backlog
-- `out/` = generated prompts and transcripts
-
-This is the key Ralph pattern: **fresh runs, file-backed memory**.
 
 ## Settings
 
-This starter exposes:
+Required v1 settings:
 
-- `ralphCodex.codexExecutable`
+- `ralphCodex.codexCommandPath`
+- `ralphCodex.preferredHandoffMode`
+- `ralphCodex.ralphIterationCap`
+- `ralphCodex.ralphTaskFilePath`
+- `ralphCodex.prdPath`
+- `ralphCodex.progressPath`
+- `ralphCodex.clipboardAutoCopy`
+
+Additional execution settings:
+
 - `ralphCodex.model`
-- `ralphCodex.maxIterations`
 - `ralphCodex.approvalMode`
 - `ralphCodex.sandboxMode`
-- `ralphCodex.autoOpenCodexSidebar`
-- `ralphCodex.promptOutputFolder`
+- `ralphCodex.openSidebarCommandId`
+- `ralphCodex.newChatCommandId`
 
-The official Codex docs note that some Codex behavior is configured in shared CLI config, while editor settings control extension-level behavior.
-
-## Important limitations
-
-### Direct prompt injection into Codex chat
-
-Not implemented because there is no documented public API for it.
-
-This starter uses the safest public mechanism available:
-
-- copy prompt to clipboard
-- optionally open the Codex sidebar
-- optionally open a new Codex thread
-
-That is clunky, but real.
-
-### Full autonomous loops with destructive permissions
-
-Possible, but risky.
-
-OpenAI documents sandbox and approval modes and explicitly warns that bypassing approvals and sandboxing is dangerous.
-
-This starter defaults to:
-
-- `workspace-write`
-- `on-request`
-
-That is the sane default.
-
-## Suggested next steps in Codex
-
-Use Codex to continue from here with this sequence:
-
-1. Replace the naive workspace scanner with real manifest parsing.
-2. Turn `tasks.json` into a stronger schema with statuses, blockers, and validation criteria.
-3. Add branch / worktree support for isolated loop iterations.
-4. Add optional Git commit checkpoints after successful iterations.
-5. Add a review loop that re-runs Codex as a verifier agent.
-6. Add MCP-backed repo context, issue tracker sync, and CI/logs integration.
-7. Replace the clipboard handoff with any future official prompt-submission API if OpenAI exposes one.
-
-## Packaging
-
-To package the extension:
-
-```bash
-npm run package
-```
-
-## Project structure
+## Project Structure
 
 ```text
 src/
+  commands/
+  codex/
+  config/
+  prompt/
+  ralph/
+  services/
   extension.ts
-  config.ts
-  repoScanner.ts
-  promptFactory.ts
-  loopRunner.ts
-  types.ts
+test/
+  *.test.ts
 .ralph/
   prd.md
   progress.md
-  tasks.json
-.vscode/
-  launch.json
+  state.json
   tasks.json
 AGENTS.md
 ```
 
+## Validation
+
+```bash
+npm run compile
+npm run lint
+npm test
+```
+
+## Known Limitations
+
+- There is still no direct, documented Codex IDE composer injection API.
+- The IDE command ids are configurable because they are not guaranteed by this extension itself.
+- The Ralph loop currently stops only on iteration cap or CLI failure; it does not yet infer semantic completion.
+- The scanner is still root-level and intentionally light; it is better than the original stub, but not a full repo indexer.
+- `npm run package` was not validated in this container because the current `vsce` dependency chain trips over a Node 18 runtime; compile, lint, and tests do pass.
+
 ## References
 
-- https://developers.openai.com/codex/ide/
+- https://developers.openai.com/codex/ide/overview/
 - https://developers.openai.com/codex/ide/features/
 - https://developers.openai.com/codex/ide/commands/
 - https://developers.openai.com/codex/ide/settings/

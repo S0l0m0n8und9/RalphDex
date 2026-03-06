@@ -33,18 +33,26 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
+exports.ClipboardCodexStrategy = void 0;
+const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
-const registerCommands_1 = require("./commands/registerCommands");
-const logger_1 = require("./services/logger");
-function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
-    context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
-    logger.info('Activated Ralph Codex Workbench extension.');
+class ClipboardCodexStrategy {
+    id = 'clipboard';
+    async handoffPrompt(request) {
+        const warnings = [];
+        if (request.copyToClipboard) {
+            await vscode.env.clipboard.writeText(request.prompt);
+        }
+        else {
+            warnings.push('Clipboard auto-copy is disabled, so the prompt was only written to disk.');
+        }
+        return {
+            strategy: this.id,
+            success: true,
+            message: `Prompt ready at ${path.basename(request.promptPath)}.`,
+            warnings
+        };
+    }
 }
-function deactivate() {
-    // no-op
-}
-//# sourceMappingURL=extension.js.map
+exports.ClipboardCodexStrategy = ClipboardCodexStrategy;
+//# sourceMappingURL=clipboardStrategy.js.map

@@ -33,18 +33,25 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
-const vscode = __importStar(require("vscode"));
-const registerCommands_1 = require("./commands/registerCommands");
-const logger_1 = require("./services/logger");
-function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
-    context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
-    logger.info('Activated Ralph Codex Workbench extension.');
+exports.resolveRalphPaths = resolveRalphPaths;
+const path = __importStar(require("path"));
+function resolveWorkspacePath(rootPath, configuredPath) {
+    return path.isAbsolute(configuredPath) ? configuredPath : path.join(rootPath, configuredPath);
 }
-function deactivate() {
-    // no-op
+function resolveRalphPaths(rootPath, config) {
+    const ralphDir = path.join(rootPath, '.ralph');
+    const logDir = path.join(ralphDir, 'logs');
+    return {
+        rootPath,
+        ralphDir,
+        prdPath: resolveWorkspacePath(rootPath, config.prdPath),
+        progressPath: resolveWorkspacePath(rootPath, config.progressPath),
+        taskFilePath: resolveWorkspacePath(rootPath, config.ralphTaskFilePath),
+        stateFilePath: path.join(ralphDir, 'state.json'),
+        promptDir: path.join(ralphDir, 'prompts'),
+        runDir: path.join(ralphDir, 'runs'),
+        logDir,
+        logFilePath: path.join(logDir, 'extension.log')
+    };
 }
-//# sourceMappingURL=extension.js.map
+//# sourceMappingURL=pathResolver.js.map

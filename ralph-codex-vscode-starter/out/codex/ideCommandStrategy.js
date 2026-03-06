@@ -33,18 +33,39 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activate = activate;
-exports.deactivate = deactivate;
+exports.IdeCommandCodexStrategy = void 0;
+const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
-const registerCommands_1 = require("./commands/registerCommands");
-const logger_1 = require("./services/logger");
-function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
-    context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
-    logger.info('Activated Ralph Codex Workbench extension.');
+async function runVsCodeCommand(commandId, warnings, warningText) {
+    if (!commandId || commandId === 'none') {
+        return;
+    }
+    try {
+        await vscode.commands.executeCommand(commandId);
+    }
+    catch {
+        warnings.push(warningText);
+    }
 }
-function deactivate() {
-    // no-op
+class IdeCommandCodexStrategy {
+    id = 'ideCommand';
+    async handoffPrompt(request) {
+        const warnings = [];
+        if (request.copyToClipboard) {
+            await vscode.env.clipboard.writeText(request.prompt);
+        }
+        else {
+            warnings.push('Clipboard auto-copy is disabled, so you will need to paste the generated prompt manually.');
+        }
+        await runVsCodeCommand(request.openSidebarCommandId, warnings, `The configured Codex sidebar command (${request.openSidebarCommandId}) was not available.`);
+        await runVsCodeCommand(request.newChatCommandId, warnings, `The configured Codex new-chat command (${request.newChatCommandId}) was not available.`);
+        return {
+            strategy: this.id,
+            success: true,
+            message: `Prompt ready at ${path.basename(request.promptPath)}.`,
+            warnings
+        };
+    }
 }
-//# sourceMappingURL=extension.js.map
+exports.IdeCommandCodexStrategy = IdeCommandCodexStrategy;
+//# sourceMappingURL=ideCommandStrategy.js.map

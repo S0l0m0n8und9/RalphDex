@@ -1,22 +1,35 @@
 {
+  "version": 1,
   "tasks": [
     {
       "id": "T1",
-      "title": "Replace the naive workspace scanner with manifest-aware parsing",
-      "status": "todo",
-      "validation": "Scanner reports repo facts from actual manifests rather than file existence only."
+      "title": "Refactor the extension into explicit command, prompt, state, service, config, and Codex adapter modules",
+      "status": "done",
+      "validation": "The source tree is split by responsibility and the extension entrypoint is thin."
     },
     {
       "id": "T2",
-      "title": "Add stop criteria and retry policies to the Ralph loop",
-      "status": "todo",
-      "validation": "Loop can stop on completion, repeated no-op, or validation success."
+      "title": "Persist Ralph runtime state and artifacts under .ralph with workspace-state sync",
+      "status": "done",
+      "validation": "Prompt, run, state, and log artifacts are written to durable files and synced to VS Code workspace storage."
     },
     {
       "id": "T3",
-      "title": "Add verifier pass after each implementation iteration",
+      "title": "Add pure logic tests and validation scripts",
+      "status": "done",
+      "validation": "npm run compile, npm run lint, and npm test succeed."
+    },
+    {
+      "id": "T4",
+      "title": "Add semantic stop conditions beyond a fixed iteration cap",
       "status": "todo",
-      "validation": "A second Codex run can inspect changes and record findings."
+      "validation": "The Ralph loop can stop when the task is complete or when repeated no-op iterations are detected."
+    },
+    {
+      "id": "T5",
+      "title": "Add optional review or verifier passes after CLI iterations",
+      "status": "todo",
+      "validation": "A second Codex run can inspect the previous iteration and record findings without sharing chat state."
     }
   ]
 }
