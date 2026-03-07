@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Write or refine the project objective in the PRD file",
+      "status": "done",
+      "notes": "The prompt generator reads the PRD file directly."
+    },
+    {
+      "id": "T2",
+      "title": "Replace this seed task list with repo-specific work",
+      "status": "todo",
+      "notes": "Keep statuses current so fresh Codex runs can resume deterministically."
+    }
+  ]
+}

@@ -81,6 +81,8 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
   assert.ok(commands.includes('ralphCodex.openLatestRalphSummary'));
+  assert.ok(commands.includes('ralphCodex.openLatestProvenanceBundle'));
+  assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
 });
 
 test('Show Ralph Status reports preflight details and can open the latest summary artifact', async () => {
@@ -134,4 +136,67 @@ test('Open Latest Ralph Summary falls back to the latest preflight summary artif
   await vscode.commands.executeCommand('ralphCodex.openLatestRalphSummary');
 
   assert.deepEqual(harness.state.shownDocuments, [latestPreflightSummaryPath]);
+});
+
+test('Open Latest Provenance Bundle prefers the human-readable provenance summary', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const latestProvenanceSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-summary.md');
+  await fs.writeFile(latestProvenanceSummaryPath, '# Ralph Provenance run-i001-cli\n\nBundle body.\n', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestProvenanceBundle');
+
+  assert.deepEqual(harness.state.shownDocuments, [latestProvenanceSummaryPath]);
+});
+
+test('Reveal Latest Provenance Bundle Directory reveals the newest bundle directory', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Open Bundle Manifest');
+  const bundleDir = path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i001-cli-20260307T000000Z');
+  await fs.mkdir(bundleDir, { recursive: true });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), JSON.stringify({
+    kind: 'provenanceBundle',
+    provenanceId: 'run-i001-cli-20260307T000000Z',
+    iteration: 1,
+    promptKind: 'bootstrap',
+    promptTarget: 'cliExec',
+    trustLevel: 'verifiedCliExecution',
+    status: 'executed',
+    summary: 'ok',
+    bundleDir
+  }, null, 2), 'utf8');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.revealLatestProvenanceBundleDirectory');
+
+  assert.ok(harness.state.executedCommands.some((entry) =>
+    entry.command === 'revealFileInOS'
+    && typeof entry.args[0] === 'object'
+    && entry.args[0] !== null
+    && (entry.args[0] as { fsPath?: string }).fsPath === bundleDir
+  ));
+  assert.deepEqual(harness.state.shownDocuments, [path.join(bundleDir, 'provenance-bundle.json')]);
+});
+
+test('Reveal Latest Provenance Bundle Directory explains when no bundle exists yet', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.revealLatestProvenanceBundleDirectory');
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /No Ralph provenance bundle exists yet/
+  );
 });

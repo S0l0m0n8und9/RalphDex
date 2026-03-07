@@ -96,6 +96,7 @@ function normalizeRunRecord(candidate) {
         return null;
     }
     return {
+        provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         iteration: Math.max(1, Math.floor(record.iteration)),
         mode: record.mode,
         promptKind: record.promptKind,
@@ -179,9 +180,11 @@ function normalizeExecutionIntegrity(candidate) {
         return null;
     }
     return {
+        provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         promptTarget: record.promptTarget,
         templatePath: record.templatePath,
         executionPlanPath: record.executionPlanPath,
+        executionPlanHash: typeof record.executionPlanHash === 'string' ? record.executionPlanHash : undefined,
         promptArtifactPath: record.promptArtifactPath,
         promptHash: record.promptHash,
         promptByteLength: Math.max(0, Math.floor(record.promptByteLength)),
@@ -194,6 +197,7 @@ function normalizeExecutionIntegrity(candidate) {
 function iterationFromRunRecord(run) {
     return {
         schemaVersion: 1,
+        provenanceId: run.provenanceId,
         iteration: run.iteration,
         selectedTaskId: null,
         selectedTaskTitle: null,
@@ -276,6 +280,7 @@ function normalizeIterationResult(candidate) {
         : [];
     return {
         schemaVersion: 1,
+        provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         iteration: Math.max(1, Math.floor(record.iteration)),
         selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
         selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,

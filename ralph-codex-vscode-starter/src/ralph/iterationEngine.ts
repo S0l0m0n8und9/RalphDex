@@ -1,5 +1,4 @@
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
 import { RalphCodexConfig } from '../config/types';
@@ -9,17 +8,21 @@ import { Logger } from '../services/logger';
 import { scanWorkspace } from '../services/workspaceScanner';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphStateManager } from './stateManager';
-import { hashText, utf8ByteLength } from './integrity';
+import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import {
   RalphCliInvocation,
   RalphDiffSummary,
   RalphExecutionPlan,
+  RalphIntegrityFailure,
   RalphIterationResult,
   RalphLoopDecision,
+  RalphPersistedPreflightReport,
   RalphPreflightReport,
   RalphPromptEvidence,
   RalphPromptKind,
   RalphPromptTarget,
+  RalphProvenanceBundle,
+  RalphProvenanceTrustLevel,
   RalphRunMode,
   RalphRunRecord,
   RalphTask,
@@ -43,9 +46,11 @@ import {
 } from './verifier';
 import {
   resolveIterationArtifactPaths,
+  resolveProvenanceBundlePaths,
   resolvePreflightArtifactPaths,
   writeCliInvocationArtifact,
   writeExecutionPlanArtifact,
+  writeProvenanceBundle,
   writePromptArtifacts,
   writeIterationArtifacts,
   writePreflightArtifacts
@@ -62,6 +67,8 @@ interface PreparedPromptContext {
   rootPath: string;
   state: RalphWorkspaceState;
   paths: ReturnType<RalphStateManager['resolvePaths']>;
+  provenanceId: string;
+  trustLevel: RalphProvenanceTrustLevel;
   promptKind: RalphPromptKind;
   promptTarget: RalphPromptTarget;
   promptSelectionReason: string;
@@ -69,6 +76,7 @@ interface PreparedPromptContext {
   promptTemplatePath: string;
   promptEvidence: RalphPromptEvidence;
   executionPlan: RalphExecutionPlan;
+  executionPlanHash: string;
   executionPlanPath: string;
   prompt: string;
   iteration: number;
@@ -81,13 +89,20 @@ interface PreparedPromptContext {
   selectedTask: RalphTask | null;
   validationCommand: string | null;
   preflightReport: RalphPreflightReport;
+  persistedPreflightReport: RalphPersistedPreflightReport;
+  preflightSummaryText: string;
+  provenanceBundlePaths: ReturnType<typeof resolveProvenanceBundlePaths>;
   createdPaths: string[];
 }
 
-interface PreparedIterationContext extends PreparedPromptContext {
+export interface PreparedIterationContext extends PreparedPromptContext {
   beforeCoreState: RalphCoreStateSnapshot;
   beforeGit: GitStatusSnapshot;
   phaseSeed: Pick<RalphIterationResult['phaseTimestamps'], 'inspectStartedAt' | 'inspectFinishedAt' | 'taskSelectedAt' | 'promptGeneratedAt'>;
+}
+
+export interface RalphIterationEngineHooks {
+  beforeCliExecutionIntegrityCheck?: (prepared: PreparedIterationContext) => Promise<void>;
 }
 
 export interface PreparedPrompt extends PreparedPromptContext {}
@@ -111,21 +126,127 @@ function summarizeLastMessage(lastMessage: string, exitCode: number | null): str
     ?? (exitCode === null ? 'Execution skipped.' : `Exit code ${exitCode}`);
 }
 
+function trustLevelForTarget(promptTarget: RalphPromptTarget): RalphProvenanceTrustLevel {
+  return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
+}
+
+interface IntegrityFailureDetails {
+  stage: RalphIntegrityFailure['stage'];
+  message: string;
+  expectedExecutionPlanHash: string | null;
+  actualExecutionPlanHash: string | null;
+  expectedPromptHash: string | null;
+  actualPromptHash: string | null;
+  expectedPayloadHash: string | null;
+  actualPayloadHash: string | null;
+}
+
+class RalphIntegrityFailureError extends Error {
+  public constructor(public readonly details: IntegrityFailureDetails) {
+    super(details.message);
+    this.name = 'RalphIntegrityFailureError';
+  }
+}
+
+async function readVerifiedExecutionPlanArtifact(
+  executionPlanPath: string,
+  expectedExecutionPlanHash: string
+): Promise<RalphExecutionPlan> {
+  const planText = await fs.readFile(executionPlanPath, 'utf8').catch((error: unknown) => {
+    throw new RalphIntegrityFailureError({
+      stage: 'executionPlanHash',
+      message: `Execution integrity check failed before launch: could not read execution plan ${executionPlanPath}: ${toErrorMessage(error)}`,
+      expectedExecutionPlanHash,
+      actualExecutionPlanHash: null,
+      expectedPromptHash: null,
+      actualPromptHash: null,
+      expectedPayloadHash: null,
+      actualPayloadHash: null
+    });
+  });
+
+  const actualExecutionPlanHash = hashText(planText);
+  if (actualExecutionPlanHash !== expectedExecutionPlanHash) {
+    throw new RalphIntegrityFailureError({
+      stage: 'executionPlanHash',
+      message: `Execution integrity check failed before launch: execution plan hash ${actualExecutionPlanHash} did not match expected plan hash ${expectedExecutionPlanHash}.`,
+      expectedExecutionPlanHash,
+      actualExecutionPlanHash,
+      expectedPromptHash: null,
+      actualPromptHash: null,
+      expectedPayloadHash: null,
+      actualPayloadHash: null
+    });
+  }
+
+  try {
+    return JSON.parse(planText) as RalphExecutionPlan;
+  } catch (error) {
+    throw new RalphIntegrityFailureError({
+      stage: 'executionPlanHash',
+      message: `Execution integrity check failed before launch: could not parse execution plan ${executionPlanPath}: ${toErrorMessage(error)}`,
+      expectedExecutionPlanHash,
+      actualExecutionPlanHash,
+      expectedPromptHash: null,
+      actualPromptHash: null,
+      expectedPayloadHash: null,
+      actualPayloadHash: null
+    });
+  }
+}
+
 async function readVerifiedPromptArtifact(plan: RalphExecutionPlan): Promise<string> {
   const promptArtifactText = await fs.readFile(plan.promptArtifactPath, 'utf8').catch((error: unknown) => {
-    throw new Error(
-      `Execution integrity check failed before launch: could not read prompt artifact ${plan.promptArtifactPath}: ${toErrorMessage(error)}`
-    );
+    throw new RalphIntegrityFailureError({
+      stage: 'promptArtifactHash',
+      message: `Execution integrity check failed before launch: could not read prompt artifact ${plan.promptArtifactPath}: ${toErrorMessage(error)}`,
+      expectedExecutionPlanHash: null,
+      actualExecutionPlanHash: null,
+      expectedPromptHash: plan.promptHash,
+      actualPromptHash: null,
+      expectedPayloadHash: null,
+      actualPayloadHash: null
+    });
   });
 
   const artifactHash = hashText(promptArtifactText);
   if (artifactHash !== plan.promptHash) {
-    throw new Error(
-      `Execution integrity check failed before launch: prompt artifact hash ${artifactHash} did not match planned prompt hash ${plan.promptHash}.`
-    );
+    throw new RalphIntegrityFailureError({
+      stage: 'promptArtifactHash',
+      message: `Execution integrity check failed before launch: prompt artifact hash ${artifactHash} did not match planned prompt hash ${plan.promptHash}.`,
+      expectedExecutionPlanHash: null,
+      actualExecutionPlanHash: null,
+      expectedPromptHash: plan.promptHash,
+      actualPromptHash: artifactHash,
+      expectedPayloadHash: null,
+      actualPayloadHash: null
+    });
   }
 
   return promptArtifactText;
+}
+
+function toIntegrityFailureError(error: unknown, prepared: PreparedIterationContext): RalphIntegrityFailureError | null {
+  if (error instanceof RalphIntegrityFailureError) {
+    return error;
+  }
+
+  const message = toErrorMessage(error);
+  const stdinHashMatch = message.match(/stdin payload hash (\S+) did not match planned prompt hash (\S+)\./);
+  if (stdinHashMatch) {
+    return new RalphIntegrityFailureError({
+      stage: 'stdinPayloadHash',
+      message,
+      expectedExecutionPlanHash: prepared.executionPlanHash,
+      actualExecutionPlanHash: prepared.executionPlanHash,
+      expectedPromptHash: prepared.executionPlan.promptHash,
+      actualPromptHash: prepared.executionPlan.promptHash,
+      expectedPayloadHash: stdinHashMatch[2],
+      actualPayloadHash: stdinHashMatch[1]
+    });
+  }
+
+  return null;
 }
 
 function runRecordFromIteration(
@@ -139,6 +260,7 @@ function runRecordFromIteration(
   }
 
   return {
+    provenanceId: prepared.provenanceId,
     iteration: prepared.iteration,
     mode,
     promptKind: prepared.promptKind,
@@ -157,8 +279,219 @@ export class RalphIterationEngine {
   public constructor(
     private readonly stateManager: RalphStateManager,
     private readonly strategies: CodexStrategyRegistry,
-    private readonly logger: Logger
+    private readonly logger: Logger,
+    private readonly hooks: RalphIterationEngineHooks = {}
   ) {}
+
+  private createProvenanceBundle(input: {
+    prepared: PreparedPromptContext;
+    status: RalphProvenanceBundle['status'];
+    summary: string;
+    executionPayloadHash?: string | null;
+    executionPayloadMatched?: boolean | null;
+    mismatchReason?: string | null;
+    cliInvocationPath?: string | null;
+    iterationResultPath?: string | null;
+    provenanceFailurePath?: string | null;
+    provenanceFailureSummaryPath?: string | null;
+  }): RalphProvenanceBundle {
+    const {
+      prepared,
+      status,
+      summary,
+      executionPayloadHash = null,
+      executionPayloadMatched = null,
+      mismatchReason = null,
+      cliInvocationPath = null,
+      iterationResultPath = null,
+      provenanceFailurePath = null,
+      provenanceFailureSummaryPath = null
+    } = input;
+
+    return {
+      schemaVersion: 1,
+      kind: 'provenanceBundle',
+      provenanceId: prepared.provenanceId,
+      iteration: prepared.iteration,
+      promptKind: prepared.promptKind,
+      promptTarget: prepared.promptTarget,
+      trustLevel: prepared.trustLevel,
+      status,
+      summary,
+      selectedTaskId: prepared.selectedTask?.id ?? null,
+      selectedTaskTitle: prepared.selectedTask?.title ?? null,
+      artifactDir: resolveIterationArtifactPaths(prepared.paths.artifactDir, prepared.iteration).directory,
+      bundleDir: prepared.provenanceBundlePaths.directory,
+      preflightReportPath: prepared.provenanceBundlePaths.preflightReportPath,
+      preflightSummaryPath: prepared.provenanceBundlePaths.preflightSummaryPath,
+      promptArtifactPath: prepared.provenanceBundlePaths.promptPath,
+      promptEvidencePath: prepared.provenanceBundlePaths.promptEvidencePath,
+      executionPlanPath: prepared.provenanceBundlePaths.executionPlanPath,
+      executionPlanHash: prepared.executionPlanHash,
+      cliInvocationPath,
+      iterationResultPath,
+      provenanceFailurePath,
+      provenanceFailureSummaryPath,
+      promptHash: prepared.executionPlan.promptHash,
+      promptByteLength: prepared.executionPlan.promptByteLength,
+      executionPayloadHash,
+      executionPayloadMatched,
+      mismatchReason,
+      createdAt: prepared.executionPlan.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+  }
+
+  private async persistPreparedProvenanceBundle(prepared: PreparedPromptContext): Promise<void> {
+    const bundle = this.createProvenanceBundle({
+      prepared,
+      status: prepared.promptTarget === 'cliExec' ? 'prepared' : 'prepared',
+      summary: prepared.promptTarget === 'cliExec'
+        ? 'Prepared CLI execution provenance bundle.'
+        : 'Prepared prompt provenance bundle for IDE handoff.'
+    });
+
+    const writeResult = await writeProvenanceBundle({
+      artifactRootDir: prepared.paths.artifactDir,
+      paths: prepared.provenanceBundlePaths,
+      bundle,
+      preflightReport: prepared.persistedPreflightReport,
+      preflightSummary: prepared.preflightSummaryText,
+      prompt: prepared.prompt,
+      promptEvidence: prepared.promptEvidence,
+      executionPlan: prepared.executionPlan,
+      retentionCount: prepared.config.provenanceBundleRetentionCount
+    });
+
+    if (writeResult.retention.deletedBundleIds.length > 0) {
+      this.logger.info('Cleaned up old Ralph provenance bundles after prepare.', {
+        deletedBundleIds: writeResult.retention.deletedBundleIds,
+        retentionCount: prepared.config.provenanceBundleRetentionCount
+      });
+    }
+  }
+
+  private async persistBlockedPreflightBundle(input: {
+    paths: ReturnType<RalphStateManager['resolvePaths']>;
+    provenanceId: string;
+    iteration: number;
+    promptKind: RalphPromptKind;
+    promptTarget: RalphPromptTarget;
+    trustLevel: RalphProvenanceTrustLevel;
+    retentionCount: number;
+    selectedTask: RalphTask | null;
+    persistedPreflightReport: RalphPersistedPreflightReport;
+    preflightSummaryText: string;
+  }): Promise<void> {
+    const provenanceBundlePaths = resolveProvenanceBundlePaths(input.paths.artifactDir, input.provenanceId);
+    const bundle: RalphProvenanceBundle = {
+      schemaVersion: 1,
+      kind: 'provenanceBundle',
+      provenanceId: input.provenanceId,
+      iteration: input.iteration,
+      promptKind: input.promptKind,
+      promptTarget: input.promptTarget,
+      trustLevel: input.trustLevel,
+      status: 'blocked',
+      summary: input.persistedPreflightReport.summary,
+      selectedTaskId: input.selectedTask?.id ?? null,
+      selectedTaskTitle: input.selectedTask?.title ?? null,
+      artifactDir: resolveIterationArtifactPaths(input.paths.artifactDir, input.iteration).directory,
+      bundleDir: provenanceBundlePaths.directory,
+      preflightReportPath: provenanceBundlePaths.preflightReportPath,
+      preflightSummaryPath: provenanceBundlePaths.preflightSummaryPath,
+      promptArtifactPath: null,
+      promptEvidencePath: null,
+      executionPlanPath: null,
+      executionPlanHash: null,
+      cliInvocationPath: null,
+      iterationResultPath: null,
+      provenanceFailurePath: null,
+      provenanceFailureSummaryPath: null,
+      promptHash: null,
+      promptByteLength: null,
+      executionPayloadHash: null,
+      executionPayloadMatched: null,
+      mismatchReason: null,
+      createdAt: input.persistedPreflightReport.createdAt,
+      updatedAt: new Date().toISOString()
+    };
+
+    const writeResult = await writeProvenanceBundle({
+      artifactRootDir: input.paths.artifactDir,
+      paths: provenanceBundlePaths,
+      bundle,
+      preflightReport: input.persistedPreflightReport,
+      preflightSummary: input.preflightSummaryText,
+      retentionCount: input.retentionCount
+    });
+
+    if (writeResult.retention.deletedBundleIds.length > 0) {
+      this.logger.info('Cleaned up old Ralph provenance bundles after blocked preflight.', {
+        deletedBundleIds: writeResult.retention.deletedBundleIds
+      });
+    }
+  }
+
+  private async persistIntegrityFailureBundle(
+    prepared: PreparedIterationContext,
+    failureError: RalphIntegrityFailureError
+  ): Promise<void> {
+    const failure: RalphIntegrityFailure = {
+      schemaVersion: 1,
+      kind: 'integrityFailure',
+      provenanceId: prepared.provenanceId,
+      iteration: prepared.iteration,
+      promptKind: prepared.promptKind,
+      promptTarget: prepared.promptTarget,
+      trustLevel: prepared.trustLevel,
+      stage: failureError.details.stage,
+      blocked: true,
+      summary: `Blocked before launch because ${failureError.details.stage} verification failed.`,
+      message: failureError.details.message,
+      artifactDir: resolveIterationArtifactPaths(prepared.paths.artifactDir, prepared.iteration).directory,
+      executionPlanPath: prepared.executionPlanPath,
+      promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+      cliInvocationPath: null,
+      expectedExecutionPlanHash: failureError.details.expectedExecutionPlanHash,
+      actualExecutionPlanHash: failureError.details.actualExecutionPlanHash,
+      expectedPromptHash: failureError.details.expectedPromptHash,
+      actualPromptHash: failureError.details.actualPromptHash,
+      expectedPayloadHash: failureError.details.expectedPayloadHash,
+      actualPayloadHash: failureError.details.actualPayloadHash,
+      createdAt: new Date().toISOString()
+    };
+    const bundle = this.createProvenanceBundle({
+      prepared,
+      status: 'blocked',
+      summary: failure.summary,
+      executionPayloadHash: failure.actualPayloadHash,
+      executionPayloadMatched: false,
+      mismatchReason: failure.message,
+      provenanceFailurePath: prepared.provenanceBundlePaths.provenanceFailurePath,
+      provenanceFailureSummaryPath: prepared.provenanceBundlePaths.provenanceFailureSummaryPath
+    });
+
+    const writeResult = await writeProvenanceBundle({
+      artifactRootDir: prepared.paths.artifactDir,
+      paths: prepared.provenanceBundlePaths,
+      bundle,
+      preflightReport: prepared.persistedPreflightReport,
+      preflightSummary: prepared.preflightSummaryText,
+      prompt: prepared.prompt,
+      promptEvidence: prepared.promptEvidence,
+      executionPlan: prepared.executionPlan,
+      failure,
+      retentionCount: prepared.config.provenanceBundleRetentionCount
+    });
+
+    if (writeResult.retention.deletedBundleIds.length > 0) {
+      this.logger.info('Cleaned up old Ralph provenance bundles after integrity failure.', {
+        deletedBundleIds: writeResult.retention.deletedBundleIds,
+        retentionCount: prepared.config.provenanceBundleRetentionCount
+      });
+    }
+  }
 
   public async preparePrompt(
     workspaceFolder: vscode.WorkspaceFolder,
@@ -211,6 +544,7 @@ export class RalphIterationEngine {
     let transcriptPath: string | undefined;
     let lastMessagePath: string | undefined;
     let lastMessage = '';
+    let invocation: RalphCliInvocation | undefined;
 
     if (prepared.selectedTask) {
       const artifactBaseName = createArtifactBaseName(prepared.promptKind, prepared.iteration);
@@ -226,56 +560,74 @@ export class RalphIterationEngine {
         validationCommand: prepared.validationCommand
       });
 
-      const promptArtifactText = await readVerifiedPromptArtifact(prepared.executionPlan);
-      phaseTimestamps.executionStartedAt = new Date().toISOString();
-      const execResult = await execStrategy.runExec({
-        commandPath: prepared.config.codexCommandPath,
-        workspaceRoot: prepared.rootPath,
-        prompt: promptArtifactText,
-        promptPath: prepared.executionPlan.promptArtifactPath,
-        promptHash: prepared.executionPlan.promptHash,
-        promptByteLength: prepared.executionPlan.promptByteLength,
-        transcriptPath: runArtifacts.transcriptPath,
-        lastMessagePath: runArtifacts.lastMessagePath,
-        model: prepared.config.model,
-        sandboxMode: prepared.config.sandboxMode,
-        approvalMode: prepared.config.approvalMode,
-        onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
-        onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
-      });
-      phaseTimestamps.executionFinishedAt = new Date().toISOString();
+      try {
+        if (this.hooks.beforeCliExecutionIntegrityCheck) {
+          await this.hooks.beforeCliExecutionIntegrityCheck(prepared);
+        }
+        const verifiedPlan = await readVerifiedExecutionPlanArtifact(
+          prepared.executionPlanPath,
+          prepared.executionPlanHash
+        );
+        const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+        phaseTimestamps.executionStartedAt = new Date().toISOString();
+        const execResult = await execStrategy.runExec({
+          commandPath: prepared.config.codexCommandPath,
+          workspaceRoot: prepared.rootPath,
+          prompt: promptArtifactText,
+          promptPath: verifiedPlan.promptArtifactPath,
+          promptHash: verifiedPlan.promptHash,
+          promptByteLength: verifiedPlan.promptByteLength,
+          transcriptPath: runArtifacts.transcriptPath,
+          lastMessagePath: runArtifacts.lastMessagePath,
+          model: prepared.config.model,
+          sandboxMode: prepared.config.sandboxMode,
+          approvalMode: prepared.config.approvalMode,
+          onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
+          onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
+        });
+        phaseTimestamps.executionFinishedAt = new Date().toISOString();
 
-      executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
-      executionWarnings = execResult.warnings;
-      executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
-      execStdout = execResult.stdout;
-      execStderr = execResult.stderr;
-      execExitCode = execResult.exitCode;
-      execStdinHash = execResult.stdinHash;
-      transcriptPath = execResult.transcriptPath;
-      lastMessagePath = execResult.lastMessagePath;
-      lastMessage = execResult.lastMessage;
+        executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
+        executionWarnings = execResult.warnings;
+        executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
+        execStdout = execResult.stdout;
+        execStderr = execResult.stderr;
+        execExitCode = execResult.exitCode;
+        execStdinHash = execResult.stdinHash;
+        transcriptPath = execResult.transcriptPath;
+        lastMessagePath = execResult.lastMessagePath;
+        lastMessage = execResult.lastMessage;
 
-      const invocation: RalphCliInvocation = {
-        schemaVersion: 1,
-        kind: 'cliInvocation',
-        iteration: prepared.iteration,
-        commandPath: prepared.config.codexCommandPath,
-        args: execResult.args,
-        workspaceRoot: prepared.rootPath,
-        promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-        promptHash: prepared.executionPlan.promptHash,
-        promptByteLength: prepared.executionPlan.promptByteLength,
-        stdinHash: execResult.stdinHash,
-        transcriptPath: execResult.transcriptPath,
-        lastMessagePath: execResult.lastMessagePath,
-        createdAt: new Date().toISOString()
-      };
-      await writeCliInvocationArtifact({
-        paths: artifactPaths,
-        artifactRootDir: prepared.paths.artifactDir,
-        invocation
-      });
+        invocation = {
+          schemaVersion: 1,
+          kind: 'cliInvocation',
+          provenanceId: prepared.provenanceId,
+          iteration: prepared.iteration,
+          commandPath: prepared.config.codexCommandPath,
+          args: execResult.args,
+          workspaceRoot: prepared.rootPath,
+          promptArtifactPath: verifiedPlan.promptArtifactPath,
+          promptHash: verifiedPlan.promptHash,
+          promptByteLength: verifiedPlan.promptByteLength,
+          stdinHash: execResult.stdinHash,
+          transcriptPath: execResult.transcriptPath,
+          lastMessagePath: execResult.lastMessagePath,
+          createdAt: new Date().toISOString()
+        };
+        await writeCliInvocationArtifact({
+          paths: artifactPaths,
+          artifactRootDir: prepared.paths.artifactDir,
+          invocation
+        });
+      } catch (error) {
+        const integrityFailure = toIntegrityFailureError(error, prepared);
+        if (integrityFailure) {
+          phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+          phaseTimestamps.executionFinishedAt = new Date().toISOString();
+          await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+        }
+        throw error;
+      }
     } else {
       executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];
       phaseTimestamps.executionStartedAt = new Date().toISOString();
@@ -421,6 +773,7 @@ export class RalphIterationEngine {
 
     const result: RalphIterationResult = {
       schemaVersion: 1,
+      provenanceId: prepared.provenanceId,
       iteration: prepared.iteration,
       selectedTaskId: prepared.selectedTask?.id ?? null,
       selectedTaskTitle: prepared.selectedTask?.title ?? null,
@@ -429,9 +782,11 @@ export class RalphIterationEngine {
       artifactDir: artifactPaths.directory,
       adapterUsed: 'cliExec',
       executionIntegrity: {
+        provenanceId: prepared.provenanceId,
         promptTarget: prepared.executionPlan.promptTarget,
         templatePath: prepared.executionPlan.templatePath,
         executionPlanPath: prepared.executionPlanPath,
+        executionPlanHash: prepared.executionPlanHash,
         promptArtifactPath: prepared.executionPlan.promptArtifactPath,
         promptHash: prepared.executionPlan.promptHash,
         promptByteLength: prepared.executionPlan.promptByteLength,
@@ -442,7 +797,7 @@ export class RalphIterationEngine {
           : execStdinHash === prepared.executionPlan.promptHash
             ? null
             : `Executed stdin hash ${execStdinHash} did not match planned prompt hash ${prepared.executionPlan.promptHash}.`,
-        cliInvocationPath: prepared.selectedTask ? artifactPaths.cliInvocationPath : null
+        cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null
       },
       executionStatus,
       verificationStatus,
@@ -509,11 +864,12 @@ export class RalphIterationEngine {
         promptTarget: prepared.executionPlan.promptTarget,
         templatePath: prepared.executionPlan.templatePath,
         executionPlanPath: prepared.executionPlanPath,
+        executionPlanHash: prepared.executionPlanHash,
         promptArtifactPath: prepared.executionPlan.promptArtifactPath,
         promptHash: prepared.executionPlan.promptHash,
         executionPayloadHash: execStdinHash,
         executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
-        cliInvocationPath: prepared.selectedTask ? artifactPaths.cliInvocationPath : null,
+        cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null,
         executionStatus,
         exitCode: execExitCode,
         transcriptPath,
@@ -526,6 +882,36 @@ export class RalphIterationEngine {
       gitStatusBefore: prepared.beforeGit.available ? prepared.beforeGit.raw : undefined,
       gitStatusAfter: afterGit.available ? afterGit.raw : undefined
     });
+
+    const writeResult = await writeProvenanceBundle({
+      artifactRootDir: prepared.paths.artifactDir,
+      paths: prepared.provenanceBundlePaths,
+      bundle: this.createProvenanceBundle({
+        prepared,
+        status: 'executed',
+        summary: result.summary,
+        executionPayloadHash: execStdinHash,
+        executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
+        mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
+        cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
+        iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath
+      }),
+      preflightReport: prepared.persistedPreflightReport,
+      preflightSummary: prepared.preflightSummaryText,
+      prompt: prepared.prompt,
+      promptEvidence: prepared.promptEvidence,
+      executionPlan: prepared.executionPlan,
+      cliInvocation: invocation,
+      result,
+      retentionCount: prepared.config.provenanceBundleRetentionCount
+    });
+
+    if (writeResult.retention.deletedBundleIds.length > 0) {
+      this.logger.info('Cleaned up old Ralph provenance bundles after execution.', {
+        deletedBundleIds: writeResult.retention.deletedBundleIds,
+        retentionCount: prepared.config.provenanceBundleRetentionCount
+      });
+    }
 
     const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
     await this.stateManager.recordIteration(
@@ -623,9 +1009,15 @@ export class RalphIterationEngine {
       rootPath
     });
     const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
+    const trustLevel = trustLevelForTarget(promptTarget);
     const promptDecision = decidePromptKind(snapshot.state, promptTarget);
     const promptKind = promptDecision.kind;
     const iteration = snapshot.state.nextIteration;
+    const provenanceId = createProvenanceId({
+      iteration,
+      promptTarget,
+      createdAt: taskSelectedAt
+    });
     const [availableCommands, codexCliSupport] = await Promise.all([
       vscode.commands.getCommands(true),
       inspectCodexCliSupport(config.codexCommandPath)
@@ -651,11 +1043,17 @@ export class RalphIterationEngine {
       ideCommandSupport
     });
     const preflightArtifactPaths = resolvePreflightArtifactPaths(snapshot.paths.artifactDir, iteration);
-    await writePreflightArtifacts({
+    const {
+      persistedReport: persistedPreflightReport,
+      humanSummary: preflightSummaryText
+    } = await writePreflightArtifacts({
       paths: preflightArtifactPaths,
       artifactRootDir: snapshot.paths.artifactDir,
+      provenanceId,
       iteration,
       promptKind,
+      promptTarget,
+      trustLevel,
       report: preflightReport,
       selectedTaskId: selectedTask?.id ?? null,
       selectedTaskTitle: selectedTask?.title ?? null,
@@ -672,11 +1070,24 @@ export class RalphIterationEngine {
       diagnostics: preflightReport.diagnostics
     });
     if (includeVerifierContext && !preflightReport.ready) {
+      await this.persistBlockedPreflightBundle({
+        paths: snapshot.paths,
+        provenanceId,
+        iteration,
+        promptKind,
+        promptTarget,
+        trustLevel,
+        retentionCount: config.provenanceBundleRetentionCount,
+        selectedTask,
+        persistedPreflightReport,
+        preflightSummaryText
+      });
       throw new Error(buildBlockingPreflightMessage(preflightReport));
     }
 
     progress.report({ message: 'Generating Ralph prompt' });
     const artifactPaths = resolveIterationArtifactPaths(snapshot.paths.artifactDir, iteration);
+    const provenanceBundlePaths = resolveProvenanceBundlePaths(snapshot.paths.artifactDir, provenanceId);
     const promptRender = await buildPrompt({
       kind: promptKind,
       target: promptTarget,
@@ -695,6 +1106,10 @@ export class RalphIterationEngine {
       config
     });
     const prompt = promptRender.prompt;
+    const promptEvidence: RalphPromptEvidence = {
+      ...promptRender.evidence,
+      provenanceId
+    };
 
     const promptPath = await this.stateManager.writePrompt(
       snapshot.paths,
@@ -705,11 +1120,12 @@ export class RalphIterationEngine {
       paths: artifactPaths,
       artifactRootDir: snapshot.paths.artifactDir,
       prompt,
-      promptEvidence: promptRender.evidence
+      promptEvidence
     });
     const executionPlan: RalphExecutionPlan = {
       schemaVersion: 1,
       kind: 'executionPlan',
+      provenanceId,
       iteration,
       selectedTaskId: selectedTask?.id ?? null,
       selectedTaskTitle: selectedTask?.title ?? null,
@@ -725,6 +1141,7 @@ export class RalphIterationEngine {
       artifactDir: artifactPaths.directory,
       createdAt: new Date().toISOString()
     };
+    const executionPlanHash = hashJson(executionPlan);
     await writeExecutionPlanArtifact({
       paths: artifactPaths,
       artifactRootDir: snapshot.paths.artifactDir,
@@ -747,23 +1164,26 @@ export class RalphIterationEngine {
       promptArtifactPath: executionPlan.promptArtifactPath,
       promptHash: executionPlan.promptHash,
       executionPlanPath: artifactPaths.executionPlanPath,
-      promptEvidence: promptRender.evidence,
+      promptEvidence,
       selectedTaskId: selectedTask?.id ?? null,
       validationCommand
     });
 
-    return {
+    const preparedContext: PreparedIterationContext = {
       config,
       rootPath,
       state: snapshot.state,
       paths: snapshot.paths,
+      provenanceId,
+      trustLevel,
       promptKind,
       promptTarget,
       promptSelectionReason: promptDecision.reason,
       promptPath,
       promptTemplatePath: promptRender.templatePath,
-      promptEvidence: promptRender.evidence,
+      promptEvidence,
       executionPlan,
+      executionPlanHash,
       executionPlanPath: artifactPaths.executionPlanPath,
       prompt,
       iteration,
@@ -776,6 +1196,9 @@ export class RalphIterationEngine {
       selectedTask,
       validationCommand,
       preflightReport,
+      persistedPreflightReport,
+      preflightSummaryText,
+      provenanceBundlePaths,
       createdPaths: snapshot.createdPaths,
       beforeCoreState,
       beforeGit,
@@ -786,5 +1209,8 @@ export class RalphIterationEngine {
         promptGeneratedAt
       }
     };
+    await this.persistPreparedProvenanceBundle(preparedContext);
+
+    return preparedContext;
   }
 }

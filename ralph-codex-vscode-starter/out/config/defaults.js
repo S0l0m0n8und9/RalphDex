@@ -9,6 +9,7 @@ exports.DEFAULT_CONFIG = {
     noProgressThreshold: 2,
     repeatedFailureThreshold: 2,
     artifactRetentionPath: '.ralph/artifacts',
+    provenanceBundleRetentionCount: 25,
     gitCheckpointMode: 'snapshotAndDiff',
     validationCommandOverride: '',
     stopOnHumanReviewNeeded: true,

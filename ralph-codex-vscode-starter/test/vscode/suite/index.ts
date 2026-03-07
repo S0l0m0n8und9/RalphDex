@@ -35,7 +35,9 @@ export async function run(): Promise<void> {
     'ralphCodex.runRalphIteration',
     'ralphCodex.runRalphLoop',
     'ralphCodex.showRalphStatus',
-    'ralphCodex.openLatestRalphSummary'
+    'ralphCodex.openLatestRalphSummary',
+    'ralphCodex.openLatestProvenanceBundle',
+    'ralphCodex.revealLatestProvenanceBundleDirectory'
   ]) {
     assert.ok(commands.includes(commandId), `Expected command ${commandId} to be registered.`);
   }

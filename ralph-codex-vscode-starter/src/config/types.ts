@@ -16,6 +16,7 @@ export interface RalphCodexConfig {
   noProgressThreshold: number;
   repeatedFailureThreshold: number;
   artifactRetentionPath: string;
+  provenanceBundleRetentionCount: number;
   gitCheckpointMode: RalphGitCheckpointMode;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;

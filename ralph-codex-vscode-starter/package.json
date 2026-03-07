@@ -25,6 +25,7 @@
         "ralphCodex.noProgressThreshold",
         "ralphCodex.repeatedFailureThreshold",
         "ralphCodex.artifactRetentionPath",
+        "ralphCodex.provenanceBundleRetentionCount",
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
@@ -54,6 +55,8 @@
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
+    "onCommand:ralphCodex.openLatestProvenanceBundle",
+    "onCommand:ralphCodex.revealLatestProvenanceBundleDirectory",
     "onCommand:ralphCodex.resetRalphWorkspaceState"
   ],
   "main": "./out/extension.js",
@@ -82,6 +85,14 @@
       {
         "command": "ralphCodex.openLatestRalphSummary",
         "title": "Ralph Codex: Open Latest Ralph Summary"
+      },
+      {
+        "command": "ralphCodex.openLatestProvenanceBundle",
+        "title": "Ralph Codex: Open Latest Provenance Bundle"
+      },
+      {
+        "command": "ralphCodex.revealLatestProvenanceBundleDirectory",
+        "title": "Ralph Codex: Reveal Latest Provenance Bundle Directory"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
@@ -136,6 +147,13 @@
           "type": "string",
           "default": ".ralph/artifacts",
           "description": "Workspace-relative or absolute directory used for per-iteration Ralph artifacts."
+        },
+        "ralphCodex.provenanceBundleRetentionCount": {
+          "type": "number",
+          "default": 25,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "How many of the newest provenance bundle directories to keep under .ralph/artifacts/runs/. Cleanup runs after bundle writes, never deletes the newest bundle referenced by latest pointers, and 0 disables automatic cleanup."
         },
         "ralphCodex.gitCheckpointMode": {
           "type": "string",
@@ -225,9 +243,10 @@
     "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
+    "check:docs": "node ./scripts/check-docs.js",
     "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
-    "validate": "npm run compile && npm run lint && npm run test",
+    "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
     "package": "npm run check:runtime && vsce package"

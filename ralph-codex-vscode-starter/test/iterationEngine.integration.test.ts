@@ -9,7 +9,7 @@ import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
-import { RalphIterationEngine } from '../src/ralph/iterationEngine';
+import { RalphIterationEngine, RalphIterationEngineHooks } from '../src/ralph/iterationEngine';
 import { RalphStateManager } from '../src/ralph/stateManager';
 import { RalphTaskFile } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
@@ -149,7 +149,11 @@ class MockStrategyRegistry {
   }
 }
 
-function createEngine(steps: MockExecStep[], workspaceState = new MemoryMemento()): {
+function createEngine(
+  steps: MockExecStep[],
+  workspaceState = new MemoryMemento(),
+  hooks?: RalphIterationEngineHooks
+): {
   engine: RalphIterationEngine;
   stateManager: RalphStateManager;
 } {
@@ -158,7 +162,8 @@ function createEngine(steps: MockExecStep[], workspaceState = new MemoryMemento(
   const engine = new RalphIterationEngine(
     stateManager,
     new MockStrategyRegistry(steps) as never,
-    logger
+    logger,
+    hooks
   );
 
   return { engine, stateManager };
@@ -227,18 +232,27 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-prompt-evidence.json')));
   await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-execution-plan.json')));
   await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-cli-invocation.json')));
+  await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json')));
+  await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-summary.md')));
 
   const executionPlan = JSON.parse(await fs.readFile(path.join(iterationDir, 'execution-plan.json'), 'utf8')) as {
+    provenanceId: string;
     promptKind: string;
     promptHash: string;
     promptArtifactPath: string;
+  };
+  const promptEvidence = JSON.parse(await fs.readFile(path.join(iterationDir, 'prompt-evidence.json'), 'utf8')) as {
+    provenanceId: string;
   };
   const promptArtifact = await fs.readFile(path.join(iterationDir, 'prompt.md'), 'utf8');
   assert.equal(executionPlan.promptKind, 'bootstrap');
   assert.equal(executionPlan.promptHash, hashText(promptArtifact));
   assert.equal(executionPlan.promptArtifactPath, path.join(iterationDir, 'prompt.md'));
+  assert.match(executionPlan.provenanceId, /^run-i001-cli-/);
+  assert.equal(promptEvidence.provenanceId, executionPlan.provenanceId);
 
   const cliInvocation = JSON.parse(await fs.readFile(path.join(iterationDir, 'cli-invocation.json'), 'utf8')) as {
+    provenanceId: string;
     stdinHash: string;
     promptHash: string;
     promptArtifactPath: string;
@@ -246,6 +260,25 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.equal(cliInvocation.stdinHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptArtifactPath, executionPlan.promptArtifactPath);
+  assert.equal(cliInvocation.provenanceId, executionPlan.provenanceId);
+
+  const bundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    provenanceId: string;
+    promptHash: string;
+    executionPlanHash: string;
+    promptArtifactPath: string;
+    executionPlanPath: string;
+    cliInvocationPath: string;
+    iterationResultPath: string;
+    status: string;
+  };
+  assert.equal(bundle.provenanceId, executionPlan.provenanceId);
+  assert.equal(bundle.promptHash, executionPlan.promptHash);
+  assert.equal(bundle.promptArtifactPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'prompt.md'));
+  assert.equal(bundle.executionPlanPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'execution-plan.json'));
+  assert.equal(bundle.cliInvocationPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'cli-invocation.json'));
+  assert.equal(bundle.iterationResultPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'iteration-result.json'));
+  assert.equal(bundle.status, 'executed');
 
   const reloadedState = await first.stateManager.loadState(rootPath, first.stateManager.resolvePaths(rootPath, DEFAULT_CONFIG));
   assert.equal(reloadedState.nextIteration, 2);
@@ -312,11 +345,17 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
 
   const iterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
   const preflightReport = JSON.parse(await fs.readFile(path.join(iterationDir, 'preflight-report.json'), 'utf8')) as {
+    provenanceId: string;
     blocked: boolean;
     ready: boolean;
     diagnostics: Array<{ code: string }>;
   };
   const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    provenanceId: string;
+    status: string;
+    promptArtifactPath: string | null;
+  };
 
   assert.equal(preflightReport.ready, false);
   assert.equal(preflightReport.blocked, true);
@@ -324,6 +363,188 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
   assert.ok(diagnosticCodes.includes('codex_cli_missing'));
   assert.ok(diagnosticCodes.includes('invalid_dependency_reference'));
   assert.match(latestSummary, /Preflight blocked before Codex execution started/);
+  assert.equal(latestBundle.provenanceId, preflightReport.provenanceId);
+  assert.equal(latestBundle.status, 'blocked');
+  assert.equal(latestBundle.promptArtifactPath, null);
+});
+
+test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship it safely', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const plannedPromptHash = hashText('placeholder');
+  const run = createEngine([
+    {
+      run: async () => {
+        throw new Error(
+          `Execution integrity check failed before launch: stdin payload hash sha256:deadbeef did not match planned prompt hash ${plannedPromptHash}.`
+        );
+      }
+    }
+  ]);
+
+  await assert.rejects(
+    () => run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Execution integrity check failed before launch/
+  );
+
+  const latestFailure = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    kind: string;
+    stage: string;
+    provenanceId: string;
+    blocked: boolean;
+  };
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    provenanceId: string;
+    status: string;
+    provenanceFailurePath: string;
+    provenanceFailureSummaryPath: string;
+  };
+  const latestFailurePointer = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-failure.json'), 'utf8')) as {
+    stage: string;
+    provenanceId: string;
+  };
+  const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+
+  assert.equal(latestFailure.kind, 'integrityFailure');
+  assert.equal(latestFailure.stage, 'stdinPayloadHash');
+  assert.equal(latestFailure.blocked, true);
+  assert.equal(latestBundle.provenanceId, latestFailure.provenanceId);
+  assert.equal(latestBundle.status, 'blocked');
+  assert.equal(latestFailurePointer.stage, 'stdinPayloadHash');
+  assert.equal(latestFailurePointer.provenanceId, latestFailure.provenanceId);
+  await assert.doesNotReject(fs.access(latestBundle.provenanceFailurePath));
+  await assert.doesNotReject(fs.access(latestBundle.provenanceFailureSummaryPath));
+  assert.match(latestSummary, /Ralph Provenance Failure/);
+  assert.match(latestSummary, /stdinPayloadHash/);
+});
+
+test('runCliIteration persists blocked provenance artifacts for execution-plan hash mismatch', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship it safely', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    { run: async () => ({ lastMessage: 'Should not execute.' }) }
+  ], new MemoryMemento(), {
+    beforeCliExecutionIntegrityCheck: async (prepared) => {
+      const executionPlan = JSON.parse(await fs.readFile(prepared.executionPlanPath, 'utf8')) as Record<string, unknown>;
+      executionPlan.selectedTaskTitle = 'Tampered after planning';
+      await fs.writeFile(prepared.executionPlanPath, `${JSON.stringify(executionPlan, null, 2)}\n`, 'utf8');
+    }
+  });
+
+  await assert.rejects(
+    () => run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /execution plan hash/
+  );
+
+  const latestFailure = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    kind: string;
+    stage: string;
+    blocked: boolean;
+    expectedExecutionPlanHash: string | null;
+    actualExecutionPlanHash: string | null;
+  };
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    status: string;
+    provenanceFailurePath: string;
+  };
+  const latestFailurePointer = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-failure.json'), 'utf8')) as {
+    stage: string;
+  };
+
+  assert.equal(latestFailure.kind, 'integrityFailure');
+  assert.equal(latestFailure.stage, 'executionPlanHash');
+  assert.equal(latestFailure.blocked, true);
+  assert.notEqual(latestFailure.expectedExecutionPlanHash, null);
+  assert.notEqual(latestFailure.actualExecutionPlanHash, null);
+  assert.notEqual(latestFailure.expectedExecutionPlanHash, latestFailure.actualExecutionPlanHash);
+  assert.equal(latestFailurePointer.stage, 'executionPlanHash');
+  assert.equal(latestBundle.status, 'blocked');
+  await assert.doesNotReject(fs.access(latestBundle.provenanceFailurePath));
+});
+
+test('runCliIteration persists blocked provenance artifacts for prompt-artifact hash mismatch', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship it safely', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    { run: async () => ({ lastMessage: 'Should not execute.' }) }
+  ], new MemoryMemento(), {
+    beforeCliExecutionIntegrityCheck: async (prepared) => {
+      await fs.writeFile(prepared.executionPlan.promptArtifactPath, `${prepared.prompt}\n<!-- tampered -->\n`, 'utf8');
+    }
+  });
+
+  await assert.rejects(
+    () => run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /prompt artifact hash/
+  );
+
+  const latestFailure = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    kind: string;
+    stage: string;
+    blocked: boolean;
+    expectedPromptHash: string | null;
+    actualPromptHash: string | null;
+    promptArtifactPath: string | null;
+  };
+  const latestFailurePointer = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-failure.json'), 'utf8')) as {
+    stage: string;
+  };
+  const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+
+  assert.equal(latestFailure.kind, 'integrityFailure');
+  assert.equal(latestFailure.stage, 'promptArtifactHash');
+  assert.equal(latestFailure.blocked, true);
+  assert.notEqual(latestFailure.expectedPromptHash, null);
+  assert.notEqual(latestFailure.actualPromptHash, null);
+  assert.notEqual(latestFailure.expectedPromptHash, latestFailure.actualPromptHash);
+  assert.equal(latestFailurePointer.stage, 'promptArtifactHash');
+  assert.match(latestSummary, /promptArtifactHash/);
+  await assert.doesNotReject(fs.access(latestFailure.promptArtifactPath!));
 });
 
 test('runCliIteration stops after repeated no-progress iterations', async () => {

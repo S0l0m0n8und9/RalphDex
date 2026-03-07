@@ -145,6 +145,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'artifactRetentionPath',
       DEFAULT_CONFIG.artifactRetentionPath
     ),
+    provenanceBundleRetentionCount: readNumber(
+      config,
+      'provenanceBundleRetentionCount',
+      DEFAULT_CONFIG.provenanceBundleRetentionCount,
+      0
+    ),
     gitCheckpointMode: readEnum<RalphGitCheckpointMode>(
       config,
       'gitCheckpointMode',

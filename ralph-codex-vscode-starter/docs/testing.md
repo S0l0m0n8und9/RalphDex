@@ -1,26 +1,36 @@
 # Testing
 
+Related docs:
+
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md)
+- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md)
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md)
+- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+
 ## Authoritative Commands
 
 - `npm run compile`: build the extension from `src/` to `out/`.
 - `npm run lint`: type-check `src/` and `test/` without emitting files.
+- `npm run check:docs`: run deterministic documentation structure, link, ownership, and lightweight code-doc alignment checks.
 - `npm test`: run `npm run compile:tests` and then execute the Node test suite from `out-test/test/`.
 - `npm run test:activation`: launch a real Extension Development Host smoke test through `@vscode/test-electron`.
-- `npm run validate`: run `compile`, `lint`, and `test`.
+- `npm run validate`: run `compile`, `check:docs`, `lint`, and `test`.
 - `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
 
 ## What Is Covered
 
-- `test/commandShell.smoke.test.ts`: lightweight extension-shell smoke coverage for key command registration plus `Show Status` and `Open Latest Ralph Summary` behavior with mocked Ralph state/artifacts.
+- `test/commandShell.smoke.test.ts`: lightweight extension-shell smoke coverage for key command registration plus `Show Status`, latest-summary/latest-provenance commands, and latest-bundle reveal behavior with mocked Ralph state/artifacts.
+- `test/artifactStore.test.ts`: targeted retention cleanup coverage proving protected bundles survive cleanup when a latest pointer still references them.
 - `test/vscode/runActivationSmoke.ts` and `test/vscode/suite/index.ts`: optional real activation smoke coverage for extension activation, command registration, and one basic command invocation in a real Extension Development Host.
 - `test/promptBuilder.test.ts`: deterministic prompt-kind selection, file-based template rendering, verifier-informed prompt refinement, prior-context trimming, and prompt-output determinism.
 - `test/cliExecStrategy.test.ts`: CLI argument shaping, transcript generation, missing-CLI error wording, and fail-fast prompt-hash mismatch detection before launch.
-- `test/iterationEngine.integration.test.ts`: temp-workspace loop execution with mocked Codex exec covering progress, repeated no-progress, repeated failure classification, verifier-driven completion, human-review-needed stops, execution-plan/CLI-invocation artifact emission, and persisted state across iterations.
+- `test/iterationEngine.integration.test.ts`: temp-workspace loop execution with mocked Codex exec covering progress, repeated no-progress, repeated failure classification, verifier-driven completion, human-review-needed stops, execution-plan/CLI-invocation artifact emission, persisted state across iterations, and blocked integrity evidence for `executionPlanHash`, `promptArtifactHash`, and `stdinPayloadHash`.
 - `test/preflight.test.ts`: targeted preflight coverage for likely task-schema drift diagnostics and validation-command readiness wording.
 - `test/stateManager.test.ts`: non-destructive workspace inspection, workspace seeding, task-file parse diagnostics, and iteration-result serialization.
 - `test/statusReport.test.ts`: readable status rendering for backlog-aware outcomes, surfaced task-graph diagnostics, and execution-integrity metadata.
 - `test/taskFile.test.ts`: task-file parsing, deterministic task selection, explicit parent/dependency behavior, legacy normalization, status counting, and preflight graph diagnostics.
 - `test/verifier.test.ts`: cheap validation-command readiness probing for explicit executables and unresolved PATH commands.
+- `test/docsValidator.test.ts`: deterministic coverage for required doc presence, heading rules, AGENTS.md ownership guardrails, local doc links, and verifier-doc alignment checks.
 - `test/loopLogic.test.ts`: outcome classification, no-progress detection, failure signatures, and stop-decision logic.
 - `test/workspaceInspection.test.ts`: package-manager, lifecycle, and validation-command inference.
 - `test/workspaceScanner.test.ts`: end-to-end workspace inspection heuristics from real temp dirs.

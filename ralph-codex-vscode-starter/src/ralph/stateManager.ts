@@ -91,6 +91,7 @@ function normalizeRunRecord(candidate: unknown): RalphRunRecord | null {
   }
 
   return {
+    provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
     iteration: Math.max(1, Math.floor(record.iteration)),
     mode: record.mode as RalphRunRecord['mode'],
     promptKind: record.promptKind as RalphPromptKind,
@@ -184,9 +185,11 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
   }
 
   return {
+    provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
     promptTarget: record.promptTarget as RalphExecutionIntegritySummary['promptTarget'],
     templatePath: record.templatePath,
     executionPlanPath: record.executionPlanPath,
+    executionPlanHash: typeof record.executionPlanHash === 'string' ? record.executionPlanHash : undefined,
     promptArtifactPath: record.promptArtifactPath,
     promptHash: record.promptHash,
     promptByteLength: Math.max(0, Math.floor(record.promptByteLength)),
@@ -200,6 +203,7 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
 function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
   return {
     schemaVersion: 1,
+    provenanceId: run.provenanceId,
     iteration: run.iteration,
     selectedTaskId: null,
     selectedTaskTitle: null,
@@ -286,6 +290,7 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
 
     return {
       schemaVersion: 1,
+      provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
       iteration: Math.max(1, Math.floor(record.iteration)),
       selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
       selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,

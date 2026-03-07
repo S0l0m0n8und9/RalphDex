@@ -70,8 +70,11 @@ export interface RalphPreflightReport {
 export interface RalphPersistedPreflightReport {
   schemaVersion: 1;
   kind: 'preflight';
+  provenanceId: string;
   iteration: number;
   promptKind: RalphPromptKind;
+  promptTarget: RalphPromptTarget;
+  trustLevel: RalphProvenanceTrustLevel;
   ready: boolean;
   summary: string;
   selectedTaskId: string | null;
@@ -96,6 +99,9 @@ export type RalphRunMode = 'handoff' | 'singleExec' | 'loop';
 export type RalphRunStatus = 'succeeded' | 'failed';
 export type RalphExecutionStatus = 'succeeded' | 'failed' | 'skipped';
 export type RalphVerificationStatus = 'passed' | 'failed' | 'skipped';
+export type RalphProvenanceTrustLevel = 'verifiedCliExecution' | 'preparedPromptOnly';
+export type RalphProvenanceBundleStatus = 'prepared' | 'executed' | 'blocked';
+export type RalphIntegrityFailureStage = 'executionPlanHash' | 'promptArtifactHash' | 'stdinPayloadHash';
 export type RalphCompletionClassification =
   | 'complete'
   | 'partial_progress'
@@ -121,6 +127,7 @@ export type RalphStopReason =
 export type RalphVerifierId = 'validationCommand' | 'gitDiff' | 'taskState';
 
 export interface RalphRunRecord {
+  provenanceId?: string;
   iteration: number;
   mode: RalphRunMode;
   promptKind: RalphPromptKind;
@@ -148,6 +155,7 @@ export interface RalphVerificationResult {
 
 export interface RalphPromptEvidence {
   schemaVersion: 1;
+  provenanceId?: string;
   iteration: number;
   kind: RalphPromptKind;
   target: RalphPromptTarget;
@@ -173,6 +181,7 @@ export interface RalphPromptEvidence {
 export interface RalphExecutionPlan {
   schemaVersion: 1;
   kind: 'executionPlan';
+  provenanceId: string;
   iteration: number;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
@@ -192,6 +201,7 @@ export interface RalphExecutionPlan {
 export interface RalphCliInvocation {
   schemaVersion: 1;
   kind: 'cliInvocation';
+  provenanceId: string;
   iteration: number;
   commandPath: string;
   args: string[];
@@ -206,9 +216,11 @@ export interface RalphCliInvocation {
 }
 
 export interface RalphExecutionIntegritySummary {
+  provenanceId?: string;
   promptTarget: RalphPromptTarget;
   templatePath: string;
   executionPlanPath: string;
+  executionPlanHash?: string;
   promptArtifactPath: string;
   promptHash: string;
   promptByteLength: number;
@@ -266,6 +278,7 @@ export interface RalphIterationBacklogSummary {
 
 export interface RalphIterationResult {
   schemaVersion: 1;
+  provenanceId?: string;
   iteration: number;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
@@ -290,6 +303,64 @@ export interface RalphIterationResult {
   diffSummary: RalphDiffSummary | null;
   noProgressSignals: string[];
   stopReason: RalphStopReason | null;
+}
+
+export interface RalphIntegrityFailure {
+  schemaVersion: 1;
+  kind: 'integrityFailure';
+  provenanceId: string;
+  iteration: number;
+  promptKind: RalphPromptKind;
+  promptTarget: RalphPromptTarget;
+  trustLevel: RalphProvenanceTrustLevel;
+  stage: RalphIntegrityFailureStage;
+  blocked: true;
+  summary: string;
+  message: string;
+  artifactDir: string;
+  executionPlanPath: string | null;
+  promptArtifactPath: string | null;
+  cliInvocationPath: string | null;
+  expectedExecutionPlanHash: string | null;
+  actualExecutionPlanHash: string | null;
+  expectedPromptHash: string | null;
+  actualPromptHash: string | null;
+  expectedPayloadHash: string | null;
+  actualPayloadHash: string | null;
+  createdAt: string;
+}
+
+export interface RalphProvenanceBundle {
+  schemaVersion: 1;
+  kind: 'provenanceBundle';
+  provenanceId: string;
+  iteration: number;
+  promptKind: RalphPromptKind;
+  promptTarget: RalphPromptTarget;
+  trustLevel: RalphProvenanceTrustLevel;
+  status: RalphProvenanceBundleStatus;
+  summary: string;
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  artifactDir: string;
+  bundleDir: string;
+  preflightReportPath: string;
+  preflightSummaryPath: string;
+  promptArtifactPath: string | null;
+  promptEvidencePath: string | null;
+  executionPlanPath: string | null;
+  executionPlanHash: string | null;
+  cliInvocationPath: string | null;
+  iterationResultPath: string | null;
+  provenanceFailurePath: string | null;
+  provenanceFailureSummaryPath: string | null;
+  promptHash: string | null;
+  promptByteLength: number | null;
+  executionPayloadHash: string | null;
+  executionPayloadMatched: boolean | null;
+  mismatchReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface RalphLoopDecision {

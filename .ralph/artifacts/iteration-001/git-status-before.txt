@@ -1,0 +1,68 @@
+ M ralph-codex-vscode-starter/.gitignore
+ M ralph-codex-vscode-starter/AGENTS.md
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/architecture.md
+ M ralph-codex-vscode-starter/docs/testing.md
+ M ralph-codex-vscode-starter/docs/workflows.md
+ M ralph-codex-vscode-starter/out/commands/registerCommands.js
+ M ralph-codex-vscode-starter/out/commands/registerCommands.js.map
+ M ralph-codex-vscode-starter/out/config/defaults.js
+ M ralph-codex-vscode-starter/out/config/defaults.js.map
+ M ralph-codex-vscode-starter/out/config/readConfig.js
+ M ralph-codex-vscode-starter/out/config/readConfig.js.map
+ M ralph-codex-vscode-starter/out/ralph/artifactStore.js
+ M ralph-codex-vscode-starter/out/ralph/artifactStore.js.map
+ M ralph-codex-vscode-starter/out/ralph/integrity.js
+ M ralph-codex-vscode-starter/out/ralph/integrity.js.map
+ M ralph-codex-vscode-starter/out/ralph/iterationEngine.js
+ M ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map
+ M ralph-codex-vscode-starter/out/ralph/stateManager.js
+ M ralph-codex-vscode-starter/out/ralph/stateManager.js.map
+ M ralph-codex-vscode-starter/out/ralph/statusReport.js
+ M ralph-codex-vscode-starter/out/ralph/statusReport.js.map
+ M ralph-codex-vscode-starter/package.json
+ M ralph-codex-vscode-starter/src/commands/registerCommands.ts
+ M ralph-codex-vscode-starter/src/config/defaults.ts
+ M ralph-codex-vscode-starter/src/config/readConfig.ts
+ M ralph-codex-vscode-starter/src/config/types.ts
+ M ralph-codex-vscode-starter/src/ralph/artifactStore.ts
+ M ralph-codex-vscode-starter/src/ralph/integrity.ts
+ M ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+ M ralph-codex-vscode-starter/src/ralph/stateManager.ts
+ M ralph-codex-vscode-starter/src/ralph/statusReport.ts
+ M ralph-codex-vscode-starter/src/ralph/types.ts
+ M ralph-codex-vscode-starter/test/commandShell.smoke.test.ts
+ M ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+ M ralph-codex-vscode-starter/test/statusReport.test.ts
+ M ralph-codex-vscode-starter/test/vscode/suite/index.ts
+?? .ralph/artifacts/iteration-001/execution-plan.json
+?? .ralph/artifacts/iteration-001/preflight-report.json
+?? .ralph/artifacts/iteration-001/preflight-summary.md
+?? .ralph/artifacts/iteration-001/prompt-evidence.json
+?? .ralph/artifacts/iteration-001/prompt.md
+?? .ralph/artifacts/latest-execution-plan.json
+?? .ralph/artifacts/latest-preflight-report.json
+?? .ralph/artifacts/latest-preflight-summary.md
+?? .ralph/artifacts/latest-prompt-evidence.json
+?? .ralph/artifacts/latest-prompt.md
+?? .ralph/artifacts/latest-provenance-bundle.json
+?? .ralph/artifacts/latest-provenance-summary.md
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/execution-plan.json
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/preflight-report.json
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/preflight-summary.md
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/prompt-evidence.json
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/prompt.md
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/provenance-bundle.json
+?? .ralph/artifacts/runs/run-i001-ide-20260307T205555Z/summary.md
+?? .ralph/logs/extension.log
+?? .ralph/prd.md
+?? .ralph/progress.md
+?? .ralph/prompts/bootstrap-001.prompt.md
+?? .ralph/prompts/iteration-001.prompt.md
+?? .ralph/state.json
+?? .ralph/tasks.json
+?? ralph-codex-vscode-starter/docs/boundaries.md
+?? ralph-codex-vscode-starter/docs/invariants.md
+?? ralph-codex-vscode-starter/docs/provenance.md
+?? ralph-codex-vscode-starter/docs/verifier.md
+?? ralph-codex-vscode-starter/test/artifactStore.test.ts

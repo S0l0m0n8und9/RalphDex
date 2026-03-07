@@ -8,7 +8,7 @@ import { buildPreflightReport } from '../ralph/preflight';
 import { buildStatusReport, resolveLatestStatusArtifacts, RalphStatusSnapshot } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
 import { selectNextTask } from '../ralph/taskFile';
-import { RalphCliInvocation, RalphExecutionPlan } from '../ralph/types';
+import { RalphCliInvocation, RalphExecutionPlan, RalphProvenanceBundle } from '../ralph/types';
 import { captureGitStatus, chooseValidationCommand, inspectValidationCommandReadiness } from '../ralph/verifier';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
@@ -109,6 +109,27 @@ function normalizeCliInvocation(candidate: unknown): RalphCliInvocation | null {
   return record as unknown as RalphCliInvocation;
 }
 
+function normalizeProvenanceBundle(candidate: unknown): RalphProvenanceBundle | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'provenanceBundle'
+    || typeof record.provenanceId !== 'string'
+    || typeof record.iteration !== 'number'
+    || typeof record.promptKind !== 'string'
+    || typeof record.promptTarget !== 'string'
+    || typeof record.trustLevel !== 'string'
+    || typeof record.bundleDir !== 'string'
+    || typeof record.status !== 'string'
+    || typeof record.summary !== 'string') {
+    return null;
+  }
+
+  return record as unknown as RalphProvenanceBundle;
+}
+
 function iterationFailureMessage(result: { iteration: number; execution: { transcriptPath?: string } }): string {
   return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
 }
@@ -173,9 +194,10 @@ async function collectStatusSnapshot(
     codexCliSupport,
     ideCommandSupport
   });
-  const [latestExecutionPlan, latestCliInvocation] = await Promise.all([
+  const [latestExecutionPlan, latestCliInvocation, latestProvenanceBundle] = await Promise.all([
     readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
-    readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation)
+    readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
+    readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
   ]);
 
   return {
@@ -195,6 +217,9 @@ async function collectStatusSnapshot(
     latestPromptEvidencePath: latestArtifacts.latestPromptEvidencePath,
     latestExecutionPlanPath: latestArtifacts.latestExecutionPlanPath,
     latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
+    latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
+    latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
+    latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
     artifactDir: inspection.paths.artifactDir,
     stateFilePath: inspection.paths.stateFilePath,
     progressPath: inspection.paths.progressPath,
@@ -202,6 +227,8 @@ async function collectStatusSnapshot(
     promptPath: inspection.state.lastIteration?.promptPath ?? inspection.state.lastPromptPath,
     latestExecutionPlan,
     latestCliInvocation,
+    latestProvenanceBundle,
+    provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
     verifierModes: config.verifierModes,
     gitCheckpointMode: config.gitCheckpointMode,
     validationCommandOverride: config.validationCommandOverride || null,
@@ -237,6 +264,65 @@ async function openLatestRalphSummary(
     `${reason} Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.`
   );
   return false;
+}
+
+async function openLatestProvenanceBundle(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<boolean> {
+  const config = readConfig(workspaceFolder);
+  const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+  await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+  const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
+
+  if (latestArtifacts.latestProvenanceSummaryPath) {
+    await openTextFile(latestArtifacts.latestProvenanceSummaryPath);
+    return true;
+  }
+
+  if (latestArtifacts.latestExecutionPlanPath) {
+    await openTextFile(latestArtifacts.latestExecutionPlanPath);
+    return true;
+  }
+
+  void vscode.window.showInformationMessage(
+    'No Ralph provenance bundle exists yet. Prepare a prompt or run a CLI iteration, then try again.'
+  );
+  return false;
+}
+
+async function revealLatestProvenanceBundleDirectory(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<boolean> {
+  const config = readConfig(workspaceFolder);
+  const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+  await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+  const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
+  const latestBundle = await readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle);
+
+  if (!latestBundle?.bundleDir) {
+    void vscode.window.showInformationMessage(
+      'No Ralph provenance bundle exists yet. Prepare a prompt or run a CLI iteration, then try again.'
+    );
+    return false;
+  }
+
+  await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(latestBundle.bundleDir));
+  const choice = await vscode.window.showInformationMessage(
+    `Revealed the latest Ralph provenance bundle directory: ${latestBundle.bundleDir}`,
+    latestArtifacts.latestProvenanceSummaryPath ? 'Open Bundle Summary' : 'Open Bundle Manifest'
+  );
+
+  if (choice === 'Open Bundle Summary' && latestArtifacts.latestProvenanceSummaryPath) {
+    await openTextFile(latestArtifacts.latestProvenanceSummaryPath);
+  } else if (choice === 'Open Bundle Manifest') {
+    await openTextFile(path.join(latestBundle.bundleDir, 'provenance-bundle.json'));
+  }
+
+  return true;
 }
 
 function registerCommand(
@@ -491,6 +577,28 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       progress.report({ message: 'Resolving latest Ralph summary artifact' });
       const workspaceFolder = await withWorkspaceFolder();
       await openLatestRalphSummary(workspaceFolder, stateManager, logger);
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openLatestProvenanceBundle',
+    label: 'Ralph Codex: Open Latest Provenance Bundle',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Resolving latest Ralph provenance bundle' });
+      const workspaceFolder = await withWorkspaceFolder();
+      await openLatestProvenanceBundle(workspaceFolder, stateManager, logger);
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.revealLatestProvenanceBundleDirectory',
+    label: 'Ralph Codex: Reveal Latest Provenance Bundle Directory',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Revealing latest Ralph provenance bundle directory' });
+      const workspaceFolder = await withWorkspaceFolder();
+      await revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger);
     }
   });
 

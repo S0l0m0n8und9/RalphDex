@@ -59,6 +59,24 @@ function shortHash(hash) {
     }
     return hash.length > 19 ? `${hash.slice(0, 19)}...` : hash;
 }
+function formatProvenanceTrustLevel(trustLevel) {
+    if (trustLevel === 'verifiedCliExecution') {
+        return 'verified CLI execution';
+    }
+    if (trustLevel === 'preparedPromptOnly') {
+        return 'prepared prompt only';
+    }
+    return 'none';
+}
+function describeProvenanceAssurance(bundle) {
+    if (!bundle) {
+        return 'No persisted provenance bundle yet.';
+    }
+    if (bundle.trustLevel === 'verifiedCliExecution') {
+        return 'CLI run with plan, prompt artifact, and stdin payload provenance verification.';
+    }
+    return 'Prepared prompt provenance only; later IDE execution may differ.';
+}
 async function resolveLatestStatusArtifacts(paths) {
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(paths.artifactDir);
     return {
@@ -79,6 +97,15 @@ async function resolveLatestStatusArtifacts(paths) {
             : null,
         latestCliInvocationPath: await pathExists(latestPaths.latestCliInvocationPath)
             ? latestPaths.latestCliInvocationPath
+            : null,
+        latestProvenanceBundlePath: await pathExists(latestPaths.latestProvenanceBundlePath)
+            ? latestPaths.latestProvenanceBundlePath
+            : null,
+        latestProvenanceSummaryPath: await pathExists(latestPaths.latestProvenanceSummaryPath)
+            ? latestPaths.latestProvenanceSummaryPath
+            : null,
+        latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
+            ? latestPaths.latestProvenanceFailurePath
             : null
     };
 }
@@ -95,6 +122,7 @@ function buildStatusReport(snapshot) {
     const preflightAdapter = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'codexAdapter');
     const preflightVerifier = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'validationVerifier');
     const latestPlan = snapshot.latestExecutionPlan;
+    const latestProvenance = snapshot.latestProvenanceBundle;
     const lastIntegrity = lastIteration?.executionIntegrity;
     const lastTaskLabel = lastIteration?.selectedTaskId
         ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}`
@@ -117,6 +145,7 @@ function buildStatusReport(snapshot) {
         `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,
         `- Current prompt artifact: ${relativeFromRoot(snapshot.rootPath, latestPlan?.promptArtifactPath ?? null)}`,
         `- Current prompt hash: ${shortHash(latestPlan?.promptHash)}`,
+        `- Current provenance ID: ${latestProvenance?.provenanceId ?? 'none'}`,
         `- Task counts: ${snapshot.taskCounts
             ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
             : 'unavailable'}`,
@@ -137,6 +166,19 @@ function buildStatusReport(snapshot) {
         '',
         '### Validation/Verifier',
         preflightVerifier.length > 0 ? preflightVerifier.map(renderDiagnostic).join('\n') : '- ok',
+        '',
+        '## Provenance',
+        `- Trust level: ${formatProvenanceTrustLevel(latestProvenance?.trustLevel)}`,
+        `- Assurance: ${describeProvenanceAssurance(latestProvenance)}`,
+        `- Bundle status: ${latestProvenance?.status ?? 'none'}`,
+        `- Bundle summary: ${latestProvenance?.summary ?? 'none'}`,
+        `- Bundle path: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
+        `- Bundle summary path: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
+        `- Bundle directory: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundle?.bundleDir ?? null)}`,
+        `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
+        `- Bundle retention on write: ${snapshot.provenanceBundleRetentionCount <= 0
+            ? 'disabled'
+            : `keep latest ${snapshot.provenanceBundleRetentionCount}`}`,
         '',
         '## Latest Iteration',
         `- Last task: ${lastTaskLabel}`,
@@ -167,7 +209,12 @@ function buildStatusReport(snapshot) {
         `- Latest prompt evidence: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPromptEvidencePath)}`,
         `- Latest execution plan: ${relativeFromRoot(snapshot.rootPath, snapshot.latestExecutionPlanPath)}`,
         `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
+        `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
+        `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
+        `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
         '- Direct command: Ralph Codex: Open Latest Ralph Summary',
+        '- Direct command: Ralph Codex: Open Latest Provenance Bundle',
+        '- Direct command: Ralph Codex: Reveal Latest Provenance Bundle Directory',
         `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
         `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
         `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,

@@ -8,6 +8,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   noProgressThreshold: 2,
   repeatedFailureThreshold: 2,
   artifactRetentionPath: '.ralph/artifacts',
+  provenanceBundleRetentionCount: 25,
   gitCheckpointMode: 'snapshotAndDiff',
   validationCommandOverride: '',
   stopOnHumanReviewNeeded: true,

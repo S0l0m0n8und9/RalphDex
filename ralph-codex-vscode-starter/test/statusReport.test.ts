@@ -72,6 +72,9 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestPromptEvidencePath: '/workspace/.ralph/artifacts/latest-prompt-evidence.json',
     latestExecutionPlanPath: '/workspace/.ralph/artifacts/latest-execution-plan.json',
     latestCliInvocationPath: '/workspace/.ralph/artifacts/latest-cli-invocation.json',
+    latestProvenanceBundlePath: '/workspace/.ralph/artifacts/latest-provenance-bundle.json',
+    latestProvenanceSummaryPath: '/workspace/.ralph/artifacts/latest-provenance-summary.md',
+    latestProvenanceFailurePath: '/workspace/.ralph/artifacts/latest-provenance-failure.json',
     artifactDir: '/workspace/.ralph/artifacts',
     stateFilePath: '/workspace/.ralph/state.json',
     progressPath: '/workspace/.ralph/progress.md',
@@ -80,6 +83,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestExecutionPlan: {
       schemaVersion: 1,
       kind: 'executionPlan',
+      provenanceId: 'run-i003-cli-20260307T000600Z',
       iteration: 3,
       selectedTaskId: 'T2',
       selectedTaskTitle: 'Next task',
@@ -98,6 +102,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestCliInvocation: {
       schemaVersion: 1,
       kind: 'cliInvocation',
+      provenanceId: 'run-i002-cli-20260307T000000Z',
       iteration: 2,
       commandPath: 'codex',
       args: ['exec', '-'],
@@ -110,6 +115,39 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       lastMessagePath: '/workspace/.ralph/runs/iteration-002.last-message.md',
       createdAt: '2026-03-07T00:05:00.000Z'
     },
+    latestProvenanceBundle: {
+      schemaVersion: 1,
+      kind: 'provenanceBundle',
+      provenanceId: 'run-i003-ide-20260307T000600Z',
+      iteration: 3,
+      promptKind: 'fix-failure',
+      promptTarget: 'ideHandoff',
+      trustLevel: 'preparedPromptOnly',
+      status: 'prepared',
+      summary: 'Prepared prompt provenance bundle for IDE handoff.',
+      selectedTaskId: 'T2',
+      selectedTaskTitle: 'Next task',
+      artifactDir: '/workspace/.ralph/artifacts/iteration-003',
+      bundleDir: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z',
+      preflightReportPath: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z/preflight-report.json',
+      preflightSummaryPath: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z/preflight-summary.md',
+      promptArtifactPath: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z/prompt.md',
+      promptEvidencePath: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z/prompt-evidence.json',
+      executionPlanPath: '/workspace/.ralph/artifacts/runs/run-i003-ide-20260307T000600Z/execution-plan.json',
+      executionPlanHash: 'sha256:plan123',
+      cliInvocationPath: null,
+      iterationResultPath: null,
+      provenanceFailurePath: null,
+      provenanceFailureSummaryPath: null,
+      promptHash: 'sha256:def456',
+      promptByteLength: 2345,
+      executionPayloadHash: null,
+      executionPayloadMatched: null,
+      mismatchReason: null,
+      createdAt: '2026-03-07T00:06:00.000Z',
+      updatedAt: '2026-03-07T00:06:00.000Z'
+    },
+    provenanceBundleRetentionCount: 25,
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     gitCheckpointMode: 'off',
     validationCommandOverride: null,
@@ -136,6 +174,10 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Current prompt kind: fix-failure/);
   assert.match(report, /- Last prompt: iteration \(cliExec\)/);
   assert.match(report, /- Payload matched rendered artifact: yes/);
+  assert.match(report, /- Trust level: prepared prompt only/);
+  assert.match(report, /Prepared prompt provenance only; later IDE execution may differ/);
+  assert.match(report, /- Bundle retention on write: keep latest 25/);
+  assert.match(report, /Ralph Codex: Reveal Latest Provenance Bundle Directory/);
 });
 
 test('buildStatusReport shows preflight task-graph diagnostics from schema drift', () => {
@@ -158,4 +200,19 @@ test('buildStatusReport shows preflight task-graph diagnostics from schema drift
 
   assert.match(report, /unsupported_task_field/);
   assert.match(report, /Use "dependsOn" instead/);
+});
+
+test('buildStatusReport distinguishes verified CLI execution provenance from prepared-only handoff', () => {
+  const report = buildStatusReport(snapshot({
+    latestProvenanceBundle: {
+      ...snapshot().latestProvenanceBundle!,
+      promptTarget: 'cliExec',
+      trustLevel: 'verifiedCliExecution',
+      status: 'executed',
+      summary: 'CLI run completed with verified provenance.'
+    }
+  }));
+
+  assert.match(report, /- Trust level: verified CLI execution/);
+  assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
 });

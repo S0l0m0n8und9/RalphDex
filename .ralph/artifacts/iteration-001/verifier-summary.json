@@ -1,0 +1,64 @@
+[
+  {
+    "verifier": "validationCommand",
+    "status": "skipped",
+    "summary": "No validation command was selected for this iteration.",
+    "warnings": [],
+    "errors": []
+  },
+  {
+    "verifier": "gitDiff",
+    "status": "passed",
+    "summary": "Detected 11 relevant changed file(s) out of 22 total changes.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-001/git-diff.json",
+    "metadata": {
+      "changedFiles": [
+        ".ralph/artifacts/iteration-001/cli-invocation.json",
+        ".ralph/artifacts/latest-cli-invocation.json",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/execution-plan.json",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/preflight-report.json",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/preflight-summary.md",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/prompt-evidence.json",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/prompt.md",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/provenance-bundle.json",
+        ".ralph/artifacts/runs/run-i001-cli-20260307T205617Z/summary.md",
+        ".ralph/prd.md",
+        ".ralph/progress.md",
+        ".ralph/runs/iteration-001.last-message.md",
+        ".ralph/runs/iteration-001.transcript.md",
+        ".ralph/tasks.json",
+        "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+        "ralph-codex-vscode-starter/out/validation/checkDocs.js.map",
+        "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+        "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+        "ralph-codex-vscode-starter/scripts/check-docs.js",
+        "ralph-codex-vscode-starter/src/validation/checkDocs.ts",
+        "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+        "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+      ],
+      "relevantChangedFiles": [
+        ".ralph/prd.md",
+        ".ralph/progress.md",
+        ".ralph/tasks.json",
+        "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+        "ralph-codex-vscode-starter/out/validation/checkDocs.js.map",
+        "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+        "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+        "ralph-codex-vscode-starter/scripts/check-docs.js",
+        "ralph-codex-vscode-starter/src/validation/checkDocs.ts",
+        "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+        "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+      ]
+    }
+  },
+  {
+    "verifier": "taskState",
+    "status": "passed",
+    "summary": "Selected task T1 is marked done.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-001/task-state.json"
+  }
+]
