@@ -14,9 +14,12 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   ralphTaskFilePath: '.ralph/tasks.json',
   prdPath: '.ralph/prd.md',
   progressPath: '.ralph/progress.md',
+  promptTemplateDirectory: '',
+  promptIncludeVerifierFeedback: true,
+  promptPriorContextBudget: 8,
   clipboardAutoCopy: true,
   model: 'gpt-5.4',
-  approvalMode: 'on-request',
+  approvalMode: 'never',
   sandboxMode: 'workspace-write',
   openSidebarCommandId: 'chatgpt.openSidebar',
   newChatCommandId: 'chatgpt.newChat'

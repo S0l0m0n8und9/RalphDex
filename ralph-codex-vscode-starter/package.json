@@ -31,6 +31,9 @@
         "ralphCodex.ralphTaskFilePath",
         "ralphCodex.prdPath",
         "ralphCodex.progressPath",
+        "ralphCodex.promptTemplateDirectory",
+        "ralphCodex.promptIncludeVerifierFeedback",
+        "ralphCodex.promptPriorContextBudget",
         "ralphCodex.clipboardAutoCopy",
         "ralphCodex.model",
         "ralphCodex.approvalMode",
@@ -50,6 +53,7 @@
     "onCommand:ralphCodex.runRalphIteration",
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.showRalphStatus",
+    "onCommand:ralphCodex.openLatestRalphSummary",
     "onCommand:ralphCodex.resetRalphWorkspaceState"
   ],
   "main": "./out/extension.js",
@@ -74,6 +78,10 @@
       {
         "command": "ralphCodex.showRalphStatus",
         "title": "Ralph Codex: Show Status"
+      },
+      {
+        "command": "ralphCodex.openLatestRalphSummary",
+        "title": "Ralph Codex: Open Latest Ralph Summary"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
@@ -160,6 +168,23 @@
           "default": ".ralph/progress.md",
           "description": "Workspace-relative path to the durable Ralph progress log."
         },
+        "ralphCodex.promptTemplateDirectory": {
+          "type": "string",
+          "default": "",
+          "description": "Optional workspace-relative or absolute directory containing Ralph prompt templates. Leave empty to use the bundled templates."
+        },
+        "ralphCodex.promptIncludeVerifierFeedback": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include compact prior iteration and verifier feedback when shaping the next prompt."
+        },
+        "ralphCodex.promptPriorContextBudget": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "maximum": 40,
+          "description": "Maximum number of concise prior-iteration bullet lines to carry into the next prompt."
+        },
         "ralphCodex.clipboardAutoCopy": {
           "type": "boolean",
           "default": true,
@@ -173,8 +198,8 @@
         "ralphCodex.approvalMode": {
           "type": "string",
           "enum": ["never", "on-request", "untrusted"],
-          "default": "on-request",
-          "description": "Approval mode to pass to Codex CLI for scripted runs."
+          "default": "never",
+          "description": "Approval mode to pass to Codex CLI for scripted runs. The default favors unattended solo-developer Ralph iterations; raise it only when you explicitly want approval pauses."
         },
         "ralphCodex.sandboxMode": {
           "type": "string",
@@ -200,7 +225,8 @@
     "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
-    "test": "npm run compile:tests && node --test ./out-test/test",
+    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js",
+    "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "validate": "npm run compile && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
@@ -209,6 +235,7 @@
   "devDependencies": {
     "@types/node": "^22.13.10",
     "@types/vscode": "^1.95.0",
+    "@vscode/test-electron": "^2.5.2",
     "typescript": "^5.8.2",
     "@vscode/vsce": "^3.7.1"
   }

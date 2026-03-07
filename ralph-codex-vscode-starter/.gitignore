@@ -1,3 +1,6 @@
 node_modules/
 out-test/
 *.vsix
+out-test/
+.vscode-test/
+

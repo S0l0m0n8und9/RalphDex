@@ -25,6 +25,8 @@ export interface CodexExecRequest {
   workspaceRoot: string;
   prompt: string;
   promptPath: string;
+  promptHash: string;
+  promptByteLength: number;
   transcriptPath: string;
   lastMessagePath: string;
   model: string;
@@ -38,6 +40,8 @@ export interface CodexExecResult extends CodexActionResult {
   exitCode: number;
   stdout: string;
   stderr: string;
+  args: string[];
+  stdinHash: string;
   transcriptPath: string;
   lastMessagePath: string;
   lastMessage: string;

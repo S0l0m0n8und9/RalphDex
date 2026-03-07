@@ -93,10 +93,23 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
     schemaVersion: 1,
     iteration: 1,
     selectedTaskId: 'T1',
+    selectedTaskTitle: 'Seed task',
     promptKind: 'bootstrap',
     promptPath: path.join(rootPath, '.ralph', 'prompts', 'bootstrap-001.prompt.md'),
     artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
     adapterUsed: 'cliExec',
+    executionIntegrity: {
+      promptTarget: 'cliExec',
+      templatePath: path.join(rootPath, 'prompt-templates', 'bootstrap.md'),
+      executionPlanPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'execution-plan.json'),
+      promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt.md'),
+      promptHash: 'sha256:bootstrap001',
+      promptByteLength: 512,
+      executionPayloadHash: 'sha256:bootstrap001',
+      executionPayloadMatched: true,
+      mismatchReason: null,
+      cliInvocationPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'cli-invocation.json')
+    },
     executionStatus: 'succeeded',
     verificationStatus: 'passed',
     completionClassification: 'partial_progress',
@@ -128,6 +141,10 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
       validationFailureSignature: null,
       verifiers: []
     },
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: true
+    },
     diffSummary: null,
     noProgressSignals: [],
     stopReason: null
@@ -138,7 +155,10 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
 
   assert.equal(reloaded.version, 2);
   assert.equal(reloaded.lastIteration?.selectedTaskId, 'T1');
+  assert.equal(reloaded.lastIteration?.selectedTaskTitle, 'Seed task');
+  assert.equal(reloaded.lastIteration?.executionIntegrity?.executionPayloadMatched, true);
   assert.equal(reloaded.lastIteration?.verification.primaryCommand, 'npm test');
+  assert.equal(reloaded.lastIteration?.backlog.remainingTaskCount, 1);
   assert.equal(reloaded.iterationHistory.length, 1);
   assert.equal(reloaded.nextIteration, 2);
 });

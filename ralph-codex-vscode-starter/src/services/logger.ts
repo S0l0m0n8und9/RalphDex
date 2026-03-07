@@ -30,6 +30,10 @@ export class Logger implements vscode.Disposable {
     this.write('INFO', message, meta);
   }
 
+  public appendText(text: string): void {
+    this.channel.appendLine(text);
+  }
+
   public warn(message: string, meta?: Record<string, unknown>): void {
     this.write('WARN', message, meta);
   }

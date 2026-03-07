@@ -14,6 +14,7 @@ export interface RalphOutcomeInput {
   selectedTaskBlocked: boolean;
   humanReviewNeeded: boolean;
   remainingSubtaskCount: number;
+  remainingTaskCount: number;
   executionStatus: RalphExecutionStatus;
   verificationStatus: RalphVerificationStatus;
   validationFailureSignature: string | null;
@@ -33,6 +34,7 @@ export interface RalphStopDecisionInput {
   currentResult: RalphIterationResult;
   selectedTaskCompleted: boolean;
   remainingSubtaskCount: number;
+  remainingTaskCount: number;
   hasActionableTask: boolean;
   noProgressThreshold: number;
   repeatedFailureThreshold: number;
@@ -170,7 +172,11 @@ export function classifyIterationOutcome(input: RalphOutcomeInput): RalphOutcome
   if (finalClassification === 'complete') {
     return {
       classification: finalClassification,
-      followUpAction: input.remainingSubtaskCount > 0 ? 'continue_same_task' : 'stop',
+      followUpAction: input.remainingSubtaskCount > 0
+        ? 'continue_same_task'
+        : input.remainingTaskCount > 0
+          ? 'continue_next_task'
+          : 'stop',
       noProgressSignals
     };
   }
@@ -251,7 +257,7 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     };
   }
 
-  if (input.selectedTaskCompleted) {
+  if (input.selectedTaskCompleted && input.remainingTaskCount === 0) {
     return {
       shouldContinue: false,
       stopReason: 'task_marked_complete',
@@ -261,6 +267,7 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
 
   if (input.currentResult.verificationStatus === 'passed'
     && input.currentResult.selectedTaskId
+    && input.currentResult.completionClassification === 'partial_progress'
     && input.remainingSubtaskCount === 0) {
     return {
       shouldContinue: false,

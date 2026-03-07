@@ -34,12 +34,16 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphIterationEngine = void 0;
+const fs = __importStar(require("fs/promises"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const workspaceScanner_1 = require("../services/workspaceScanner");
+const codexCliSupport_1 = require("../services/codexCliSupport");
+const integrity_1 = require("./integrity");
 const taskFile_1 = require("./taskFile");
 const loopLogic_1 = require("./loopLogic");
+const preflight_1 = require("./preflight");
 const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
 const EMPTY_GIT_STATUS = {
@@ -56,6 +60,16 @@ function summarizeLastMessage(lastMessage, exitCode) {
         .map((line) => line.trim())
         .find((line) => line.length > 0)
         ?? (exitCode === null ? 'Execution skipped.' : `Exit code ${exitCode}`);
+}
+async function readVerifiedPromptArtifact(plan) {
+    const promptArtifactText = await fs.readFile(plan.promptArtifactPath, 'utf8').catch((error) => {
+        throw new Error(`Execution integrity check failed before launch: could not read prompt artifact ${plan.promptArtifactPath}: ${toErrorMessage(error)}`);
+    });
+    const artifactHash = (0, integrity_1.hashText)(promptArtifactText);
+    if (artifactHash !== plan.promptHash) {
+        throw new Error(`Execution integrity check failed before launch: prompt artifact hash ${artifactHash} did not match planned prompt hash ${plan.promptHash}.`);
+    }
+    return promptArtifactText;
 }
 function runRecordFromIteration(mode, prepared, startedAt, result) {
     if (result.executionStatus === 'skipped') {
@@ -116,6 +130,7 @@ class RalphIterationEngine {
         let execStdout = '';
         let execStderr = '';
         let execExitCode = null;
+        let execStdinHash = null;
         let transcriptPath;
         let lastMessagePath;
         let lastMessage = '';
@@ -126,15 +141,20 @@ class RalphIterationEngine {
                 iteration: prepared.iteration,
                 mode,
                 promptPath: prepared.promptPath,
+                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
                 selectedTaskId: prepared.selectedTask.id,
                 validationCommand: prepared.validationCommand
             });
+            const promptArtifactText = await readVerifiedPromptArtifact(prepared.executionPlan);
             phaseTimestamps.executionStartedAt = new Date().toISOString();
             const execResult = await execStrategy.runExec({
                 commandPath: prepared.config.codexCommandPath,
                 workspaceRoot: prepared.rootPath,
-                prompt: prepared.prompt,
-                promptPath: prepared.promptPath,
+                prompt: promptArtifactText,
+                promptPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
+                promptByteLength: prepared.executionPlan.promptByteLength,
                 transcriptPath: runArtifacts.transcriptPath,
                 lastMessagePath: runArtifacts.lastMessagePath,
                 model: prepared.config.model,
@@ -150,9 +170,30 @@ class RalphIterationEngine {
             execStdout = execResult.stdout;
             execStderr = execResult.stderr;
             execExitCode = execResult.exitCode;
+            execStdinHash = execResult.stdinHash;
             transcriptPath = execResult.transcriptPath;
             lastMessagePath = execResult.lastMessagePath;
             lastMessage = execResult.lastMessage;
+            const invocation = {
+                schemaVersion: 1,
+                kind: 'cliInvocation',
+                iteration: prepared.iteration,
+                commandPath: prepared.config.codexCommandPath,
+                args: execResult.args,
+                workspaceRoot: prepared.rootPath,
+                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
+                promptByteLength: prepared.executionPlan.promptByteLength,
+                stdinHash: execResult.stdinHash,
+                transcriptPath: execResult.transcriptPath,
+                lastMessagePath: execResult.lastMessagePath,
+                createdAt: new Date().toISOString()
+            };
+            await (0, artifactStore_1.writeCliInvocationArtifact)({
+                paths: artifactPaths,
+                artifactRootDir: prepared.paths.artifactDir,
+                invocation
+            });
         }
         else {
             executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];
@@ -238,12 +279,16 @@ class RalphIterationEngine {
         const verificationStatus = (0, loopLogic_1.classifyVerificationStatus)(verifierResults.map((item) => item.status));
         const selectedTaskAfter = taskStateVerification.selectedTaskAfter ?? prepared.selectedTask;
         const remainingSubtaskList = (0, taskFile_1.remainingSubtasks)(afterCoreState.taskFile, prepared.selectedTask?.id ?? null);
+        const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(afterCoreState.taskFile);
+        const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
+        const nextActionableTask = (0, taskFile_1.selectNextTask)(afterCoreState.taskFile);
         const outcome = (0, loopLogic_1.classifyIterationOutcome)({
             selectedTaskId: prepared.selectedTask?.id ?? null,
             selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
             selectedTaskBlocked: taskStateVerification.selectedTaskBlocked,
             humanReviewNeeded: taskStateVerification.humanReviewNeeded,
             remainingSubtaskCount: remainingSubtaskList.length,
+            remainingTaskCount,
             executionStatus,
             verificationStatus,
             validationFailureSignature: validationVerification.result.failureSignature ?? null,
@@ -271,7 +316,8 @@ class RalphIterationEngine {
                 : 'No actionable Ralph task selected.',
             `Execution: ${executionStatus}`,
             `Verification: ${verificationStatus}`,
-            `Outcome: ${completionClassification}`
+            `Outcome: ${completionClassification}`,
+            `Backlog remaining: ${remainingTaskCount}`
         ].join(' | ');
         const warnings = [
             ...executionWarnings,
@@ -285,10 +331,27 @@ class RalphIterationEngine {
             schemaVersion: 1,
             iteration: prepared.iteration,
             selectedTaskId: prepared.selectedTask?.id ?? null,
+            selectedTaskTitle: prepared.selectedTask?.title ?? null,
             promptKind: prepared.promptKind,
             promptPath: prepared.promptPath,
             artifactDir: artifactPaths.directory,
             adapterUsed: 'cliExec',
+            executionIntegrity: {
+                promptTarget: prepared.executionPlan.promptTarget,
+                templatePath: prepared.executionPlan.templatePath,
+                executionPlanPath: prepared.executionPlanPath,
+                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
+                promptByteLength: prepared.executionPlan.promptByteLength,
+                executionPayloadHash: execStdinHash,
+                executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
+                mismatchReason: execStdinHash === null
+                    ? null
+                    : execStdinHash === prepared.executionPlan.promptHash
+                        ? null
+                        : `Executed stdin hash ${execStdinHash} did not match planned prompt hash ${prepared.executionPlan.promptHash}.`,
+                cliInvocationPath: prepared.selectedTask ? artifactPaths.cliInvocationPath : null
+            },
             executionStatus,
             verificationStatus,
             completionClassification,
@@ -311,6 +374,10 @@ class RalphIterationEngine {
                 validationFailureSignature: validationVerification.result.failureSignature ?? null,
                 verifiers: verifierResults
             },
+            backlog: {
+                remainingTaskCount,
+                actionableTaskAvailable: Boolean(nextActionableTask)
+            },
             diffSummary: fileChangeVerification.diffSummary,
             noProgressSignals: outcome.noProgressSignals,
             stopReason: null
@@ -319,7 +386,8 @@ class RalphIterationEngine {
             currentResult: result,
             selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
             remainingSubtaskCount: remainingSubtaskList.length,
-            hasActionableTask: Boolean(prepared.selectedTask),
+            remainingTaskCount,
+            hasActionableTask: Boolean(nextActionableTask),
             noProgressThreshold: prepared.config.noProgressThreshold,
             repeatedFailureThreshold: prepared.config.repeatedFailureThreshold,
             stopOnHumanReviewNeeded: prepared.config.stopOnHumanReviewNeeded,
@@ -333,12 +401,23 @@ class RalphIterationEngine {
         phaseTimestamps.persistedAt = new Date().toISOString();
         await (0, artifactStore_1.writeIterationArtifacts)({
             paths: artifactPaths,
+            artifactRootDir: prepared.paths.artifactDir,
             prompt: prepared.prompt,
+            promptEvidence: prepared.promptEvidence,
             stdout: execStdout,
             stderr: execStderr,
             executionSummary: {
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,
+                promptKind: prepared.promptKind,
+                promptTarget: prepared.executionPlan.promptTarget,
+                templatePath: prepared.executionPlan.templatePath,
+                executionPlanPath: prepared.executionPlanPath,
+                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
+                executionPayloadHash: execStdinHash,
+                executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
+                cliInvocationPath: prepared.selectedTask ? artifactPaths.cliInvocationPath : null,
                 executionStatus,
                 exitCode: execExitCode,
                 transcriptPath,
@@ -361,6 +440,9 @@ class RalphIterationEngine {
             completionClassification,
             stopReason: result.stopReason,
             promptPath: prepared.promptPath,
+            promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+            promptHash: prepared.executionPlan.promptHash,
+            executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
             artifactDir: artifactPaths.directory,
             selectedTaskAfterStatus: selectedTaskAfter?.status ?? null
         });
@@ -405,34 +487,125 @@ class RalphIterationEngine {
             });
         }
         const objectiveText = await this.maybeSeedObjective(snapshot.paths);
-        const [progressText, tasksText, taskCounts, summary, beforeCoreState] = await Promise.all([
+        const [progressText, taskInspection, taskCounts, summary, beforeCoreState] = await Promise.all([
             this.stateManager.readProgressText(snapshot.paths),
-            this.stateManager.readTaskFileText(snapshot.paths),
-            this.stateManager.taskCounts(snapshot.paths),
+            this.stateManager.inspectTaskFile(snapshot.paths),
+            this.stateManager.taskCounts(snapshot.paths).catch(() => null),
             (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name),
             (0, verifier_1.captureCoreState)(snapshot.paths)
         ]);
-        const taskFile = beforeCoreState.taskFile;
+        const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+        const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
+        const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
         const selectedTask = (0, taskFile_1.selectNextTask)(taskFile);
         const taskSelectedAt = new Date().toISOString();
         const validationCommand = (0, verifier_1.chooseValidationCommand)(summary, selectedTask, config.validationCommandOverride);
-        const promptKind = (0, promptBuilder_1.choosePromptKind)(snapshot.state);
+        const validationCommandReadiness = await (0, verifier_1.inspectValidationCommandReadiness)({
+            command: validationCommand,
+            rootPath
+        });
+        const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
+        const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget);
+        const promptKind = promptDecision.kind;
         const iteration = snapshot.state.nextIteration;
-        progress.report({ message: 'Generating Ralph prompt' });
-        const prompt = (0, promptBuilder_1.buildPrompt)({
-            kind: promptKind,
+        const [availableCommands, codexCliSupport] = await Promise.all([
+            vscode.commands.getCommands(true),
+            (0, codexCliSupport_1.inspectCodexCliSupport)(config.codexCommandPath)
+        ]);
+        const ideCommandSupport = (0, codexCliSupport_1.inspectIdeCommandSupport)({
+            preferredHandoffMode: config.preferredHandoffMode,
+            openSidebarCommandId: config.openSidebarCommandId,
+            newChatCommandId: config.newChatCommandId,
+            availableCommands
+        });
+        const preflightReport = (0, preflight_1.buildPreflightReport)({
+            rootPath,
+            workspaceTrusted: vscode.workspace.isTrusted,
+            config,
+            taskInspection,
+            taskCounts: effectiveTaskCounts,
+            selectedTask,
+            validationCommand,
+            validationCommandReadiness,
+            fileStatus: snapshot.fileStatus,
+            createdPaths: snapshot.createdPaths,
+            codexCliSupport,
+            ideCommandSupport
+        });
+        const preflightArtifactPaths = (0, artifactStore_1.resolvePreflightArtifactPaths)(snapshot.paths.artifactDir, iteration);
+        await (0, artifactStore_1.writePreflightArtifacts)({
+            paths: preflightArtifactPaths,
+            artifactRootDir: snapshot.paths.artifactDir,
             iteration,
+            promptKind,
+            report: preflightReport,
+            selectedTaskId: selectedTask?.id ?? null,
+            selectedTaskTitle: selectedTask?.title ?? null,
+            validationCommand
+        });
+        progress.report({ message: preflightReport.summary });
+        this.logger.appendText((0, preflight_1.renderPreflightReport)(preflightReport));
+        this.logger.info('Prepared Ralph preflight report.', {
+            rootPath,
+            iteration,
+            ready: preflightReport.ready,
+            preflightReportPath: preflightArtifactPaths.reportPath,
+            preflightSummaryPath: preflightArtifactPaths.summaryPath,
+            diagnostics: preflightReport.diagnostics
+        });
+        if (includeVerifierContext && !preflightReport.ready) {
+            throw new Error((0, preflight_1.buildBlockingPreflightMessage)(preflightReport));
+        }
+        progress.report({ message: 'Generating Ralph prompt' });
+        const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(snapshot.paths.artifactDir, iteration);
+        const promptRender = await (0, promptBuilder_1.buildPrompt)({
+            kind: promptKind,
+            target: promptTarget,
+            iteration,
+            selectionReason: promptDecision.reason,
             objectiveText,
             progressText,
-            tasksText,
-            taskCounts,
+            taskCounts: effectiveTaskCounts,
             summary,
             state: snapshot.state,
             paths: snapshot.paths,
+            taskFile,
             selectedTask,
-            validationCommand
+            validationCommand,
+            preflightReport,
+            config
         });
+        const prompt = promptRender.prompt;
         const promptPath = await this.stateManager.writePrompt(snapshot.paths, (0, promptBuilder_1.createPromptFileName)(promptKind, iteration), prompt);
+        await (0, artifactStore_1.writePromptArtifacts)({
+            paths: artifactPaths,
+            artifactRootDir: snapshot.paths.artifactDir,
+            prompt,
+            promptEvidence: promptRender.evidence
+        });
+        const executionPlan = {
+            schemaVersion: 1,
+            kind: 'executionPlan',
+            iteration,
+            selectedTaskId: selectedTask?.id ?? null,
+            selectedTaskTitle: selectedTask?.title ?? null,
+            promptKind,
+            promptTarget,
+            selectionReason: promptDecision.reason,
+            templatePath: promptRender.templatePath,
+            promptPath,
+            promptArtifactPath: artifactPaths.promptPath,
+            promptEvidencePath: artifactPaths.promptEvidencePath,
+            promptHash: (0, integrity_1.hashText)(prompt),
+            promptByteLength: (0, integrity_1.utf8ByteLength)(prompt),
+            artifactDir: artifactPaths.directory,
+            createdAt: new Date().toISOString()
+        };
+        await (0, artifactStore_1.writeExecutionPlanArtifact)({
+            paths: artifactPaths,
+            artifactRootDir: snapshot.paths.artifactDir,
+            plan: executionPlan
+        });
         const promptGeneratedAt = new Date().toISOString();
         const beforeGit = includeVerifierContext
             && (config.verifierModes.includes('gitDiff') || config.gitCheckpointMode !== 'off')
@@ -441,8 +614,15 @@ class RalphIterationEngine {
         this.logger.info('Prepared Ralph prompt context.', {
             rootPath,
             promptKind,
+            promptTarget,
+            promptSelectionReason: promptDecision.reason,
             iteration,
             promptPath,
+            promptTemplatePath: promptRender.templatePath,
+            promptArtifactPath: executionPlan.promptArtifactPath,
+            promptHash: executionPlan.promptHash,
+            executionPlanPath: artifactPaths.executionPlanPath,
+            promptEvidence: promptRender.evidence,
             selectedTaskId: selectedTask?.id ?? null,
             validationCommand
         });
@@ -452,17 +632,24 @@ class RalphIterationEngine {
             state: snapshot.state,
             paths: snapshot.paths,
             promptKind,
+            promptTarget,
+            promptSelectionReason: promptDecision.reason,
             promptPath,
+            promptTemplatePath: promptRender.templatePath,
+            promptEvidence: promptRender.evidence,
+            executionPlan,
+            executionPlanPath: artifactPaths.executionPlanPath,
             prompt,
             iteration,
             objectiveText,
             progressText,
             tasksText,
             taskFile,
-            taskCounts,
+            taskCounts: effectiveTaskCounts,
             summary,
             selectedTask,
             validationCommand,
+            preflightReport,
             createdPaths: snapshot.createdPaths,
             beforeCoreState,
             beforeGit,

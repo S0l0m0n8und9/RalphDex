@@ -12,10 +12,12 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
     schemaVersion: 1,
     iteration: 1,
     selectedTaskId: 'T1',
+    selectedTaskTitle: 'Task one',
     promptKind: 'iteration',
     promptPath: '/workspace/.ralph/prompts/iteration-001.prompt.md',
     artifactDir: '/workspace/.ralph/artifacts/iteration-001',
     adapterUsed: 'cliExec',
+    executionIntegrity: null,
     executionStatus: 'succeeded',
     verificationStatus: 'failed',
     completionClassification: 'no_progress',
@@ -45,9 +47,16 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
       validationFailureSignature: 'npm test::exit:1::same failure',
       verifiers: []
     },
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: true
+    },
     diffSummary: {
       available: true,
+      gitAvailable: true,
       summary: 'No relevant file changes were detected.',
+      changedFileCount: 0,
+      relevantChangedFileCount: 0,
       changedFiles: [],
       relevantChangedFiles: [],
       statusTransitions: []
@@ -71,6 +80,7 @@ test('classifyIterationOutcome reports complete when the selected task is done',
     selectedTaskBlocked: false,
     humanReviewNeeded: false,
     remainingSubtaskCount: 0,
+    remainingTaskCount: 0,
     executionStatus: 'succeeded',
     verificationStatus: 'passed',
     validationFailureSignature: null,
@@ -84,6 +94,27 @@ test('classifyIterationOutcome reports complete when the selected task is done',
   assert.equal(outcome.followUpAction, 'stop');
 });
 
+test('classifyIterationOutcome keeps task completion distinct when backlog remains', () => {
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: true,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 3,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: null,
+    relevantFileChanges: ['.ralph/tasks.json'],
+    progressChanged: true,
+    taskFileChanged: true,
+    previousIterations: []
+  });
+
+  assert.equal(outcome.classification, 'complete');
+  assert.equal(outcome.followUpAction, 'continue_next_task');
+});
+
 test('classifyIterationOutcome detects conservative no-progress signals', () => {
   const previous = iterationResult();
   const outcome = classifyIterationOutcome({
@@ -92,6 +123,7 @@ test('classifyIterationOutcome detects conservative no-progress signals', () => 
     selectedTaskBlocked: false,
     humanReviewNeeded: false,
     remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
     executionStatus: 'succeeded',
     verificationStatus: 'failed',
     validationFailureSignature: previous.verification.validationFailureSignature,
@@ -113,6 +145,7 @@ test('decideLoopContinuation stops on repeated no-progress iterations', () => {
     currentResult: current,
     selectedTaskCompleted: false,
     remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
     hasActionableTask: true,
     noProgressThreshold: 2,
     repeatedFailureThreshold: 3,
@@ -139,6 +172,7 @@ test('decideLoopContinuation stops on repeated identical failure classifications
     currentResult: current,
     selectedTaskCompleted: false,
     remainingSubtaskCount: 1,
+    remainingTaskCount: 1,
     hasActionableTask: true,
     noProgressThreshold: 5,
     repeatedFailureThreshold: 2,
@@ -149,4 +183,30 @@ test('decideLoopContinuation stops on repeated identical failure classifications
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_identical_failure');
+});
+
+test('decideLoopContinuation continues after task completion when backlog remains', () => {
+  const current = iterationResult({
+    completionClassification: 'complete',
+    followUpAction: 'continue_next_task',
+    backlog: {
+      remainingTaskCount: 2,
+      actionableTaskAvailable: true
+    }
+  });
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: true,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 2,
+    hasActionableTask: true,
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: []
+  });
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
 });

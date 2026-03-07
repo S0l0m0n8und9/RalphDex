@@ -59,6 +59,9 @@ class Logger {
     info(message, meta) {
         this.write('INFO', message, meta);
     }
+    appendText(text) {
+        this.channel.appendLine(text);
+    }
     warn(message, meta) {
         this.write('WARN', message, meta);
     }

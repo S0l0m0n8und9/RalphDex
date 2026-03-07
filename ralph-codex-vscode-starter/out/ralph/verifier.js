@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.captureCoreState = captureCoreState;
 exports.captureGitStatus = captureGitStatus;
 exports.chooseValidationCommand = chooseValidationCommand;
+exports.inspectValidationCommandReadiness = inspectValidationCommandReadiness;
 exports.runValidationCommandVerifier = runValidationCommandVerifier;
 exports.runTaskStateVerifier = runTaskStateVerifier;
 exports.runFileChangeVerifier = runFileChangeVerifier;
@@ -79,6 +80,85 @@ function isRelevantChange(relativePath) {
     }
     return true;
 }
+function tokenizeShellCommand(command) {
+    const tokens = [];
+    let current = '';
+    let quote = null;
+    let escaped = false;
+    for (const char of command) {
+        if (escaped) {
+            current += char;
+            escaped = false;
+            continue;
+        }
+        if (quote === '\'') {
+            if (char === '\'') {
+                quote = null;
+            }
+            else {
+                current += char;
+            }
+            continue;
+        }
+        if (quote === '"') {
+            if (char === '"') {
+                quote = null;
+            }
+            else if (char === '\\') {
+                escaped = true;
+            }
+            else {
+                current += char;
+            }
+            continue;
+        }
+        if (char === '"' || char === '\'') {
+            quote = char;
+            continue;
+        }
+        if (char === '\\') {
+            escaped = true;
+            continue;
+        }
+        if (/\s/.test(char)) {
+            if (current.length > 0) {
+                tokens.push(current);
+                current = '';
+            }
+            continue;
+        }
+        current += char;
+    }
+    if (current.length > 0) {
+        tokens.push(current);
+    }
+    return tokens;
+}
+function extractExecutableToken(command) {
+    const tokens = tokenizeShellCommand(command);
+    for (const token of tokens) {
+        if (/^[A-Za-z_][A-Za-z0-9_]*=.*/.test(token)) {
+            continue;
+        }
+        return token;
+    }
+    return null;
+}
+function usesExplicitExecutablePath(executable) {
+    return path.isAbsolute(executable) || executable.includes(path.sep) || executable.includes('/');
+}
+async function isExecutable(commandPath) {
+    try {
+        await fs.access(commandPath, fs.constants.X_OK);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function shellQuote(value) {
+    return `'${value.replace(/'/g, `'\\''`)}'`;
+}
 async function writeJsonArtifact(target, value) {
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -96,7 +176,7 @@ async function captureCoreState(paths) {
         taskFile = (0, taskFile_1.parseTaskFile)(tasksText);
     }
     catch (error) {
-        taskFile = { version: 1, tasks: [] };
+        taskFile = { version: 2, tasks: [] };
         taskFileError = error instanceof Error ? error.message : String(error);
     }
     return {
@@ -140,6 +220,52 @@ function chooseValidationCommand(workspaceScan, selectedTask, overrideCommand) {
         return selectedTask.validation.trim();
     }
     return workspaceScan.validationCommands[0] ?? null;
+}
+async function inspectValidationCommandReadiness(input) {
+    if (!input.command) {
+        return {
+            command: null,
+            status: 'missing',
+            executable: null
+        };
+    }
+    const executable = extractExecutableToken(input.command);
+    if (!executable) {
+        return {
+            command: input.command,
+            status: 'selected',
+            executable: null
+        };
+    }
+    if (usesExplicitExecutablePath(executable)) {
+        return {
+            command: input.command,
+            status: await isExecutable(executable) ? 'executableConfirmed' : 'executableNotConfirmed',
+            executable
+        };
+    }
+    try {
+        const lookup = process.platform === 'win32'
+            ? await (0, processRunner_1.runProcess)('where', [executable], { cwd: input.rootPath })
+            : await (0, processRunner_1.runProcess)('sh', ['-lc', `command -v ${shellQuote(executable)}`], { cwd: input.rootPath });
+        const resolvedExecutable = lookup.stdout
+            .split('\n')
+            .map((line) => line.trim())
+            .find((line) => line.length > 0)
+            ?? executable;
+        return {
+            command: input.command,
+            status: lookup.code === 0 ? 'executableConfirmed' : 'executableNotConfirmed',
+            executable: resolvedExecutable
+        };
+    }
+    catch {
+        return {
+            command: input.command,
+            status: 'selected',
+            executable
+        };
+    }
 }
 async function runValidationCommandVerifier(input) {
     if (!input.command) {
@@ -305,9 +431,14 @@ async function runFileChangeVerifier(input) {
         : undefined;
     const diffSummary = {
         available: input.beforeGit.available || input.afterGit.available || orderedChangedFiles.length > 0,
+        gitAvailable: input.beforeGit.available || input.afterGit.available,
         summary: relevantChangedFiles.length > 0
-            ? `Detected ${relevantChangedFiles.length} relevant changed file(s).`
-            : 'No relevant file changes were detected.',
+            ? `Detected ${relevantChangedFiles.length} relevant changed file(s) out of ${orderedChangedFiles.length} total changes.`
+            : orderedChangedFiles.length > 0
+                ? `Detected ${orderedChangedFiles.length} change(s), but none outside Ralph-managed files.`
+                : 'No relevant file changes were detected.',
+        changedFileCount: orderedChangedFiles.length,
+        relevantChangedFileCount: relevantChangedFiles.length,
         changedFiles: orderedChangedFiles,
         relevantChangedFiles,
         statusTransitions,

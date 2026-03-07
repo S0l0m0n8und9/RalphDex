@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { hashText } from '../ralph/integrity';
 import { Logger } from '../services/logger';
 import { ProcessLaunchError, runProcess } from '../services/processRunner';
 import { CodexExecRequest, CodexExecResult, CodexStrategy } from './types';
@@ -18,7 +19,7 @@ export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepo
     'exec',
     '--model', request.model,
     '--sandbox', request.sandboxMode,
-    '--ask-for-approval', request.approvalMode,
+    '--config', `approval_policy="${request.approvalMode}"`,
     '--cd', request.workspaceRoot,
     '--output-last-message', request.lastMessagePath
   ];
@@ -32,11 +33,17 @@ export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepo
 }
 
 export function buildCodexExecTranscript(result: CodexExecResult, request: CodexExecRequest): string {
+  const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
+
   return [
     '# Codex Exec Transcript',
     '',
-    `- Command: ${request.commandPath} exec --model ${request.model} --sandbox ${request.sandboxMode} --ask-for-approval ${request.approvalMode}`,
+    `- Command: ${request.commandPath} ${result.args.join(' ')}`,
     `- Prompt path: ${request.promptPath}`,
+    `- Prompt hash: ${request.promptHash}`,
+    `- Prompt bytes: ${request.promptByteLength}`,
+    `- Stdin hash: ${result.stdinHash}`,
+    `- Payload matched prompt artifact: ${payloadMatched}`,
     `- Last message path: ${request.lastMessagePath}`,
     `- Exit code: ${result.exitCode}`,
     '',
@@ -71,6 +78,13 @@ export class CliExecCodexStrategy implements CodexStrategy {
     await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
     await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
     const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.workspaceRoot)));
+    const stdinHash = hashText(request.prompt);
+
+    if (stdinHash !== request.promptHash) {
+      throw new Error(
+        `Execution integrity check failed before launch: stdin payload hash ${stdinHash} did not match planned prompt hash ${request.promptHash}.`
+      );
+    }
 
     this.logger.info('Starting codex exec.', {
       commandPath: request.commandPath,
@@ -104,6 +118,8 @@ export class CliExecCodexStrategy implements CodexStrategy {
       exitCode: processResult.code,
       stdout: processResult.stdout,
       stderr: processResult.stderr,
+      args,
+      stdinHash,
       transcriptPath: request.transcriptPath,
       lastMessagePath: request.lastMessagePath,
       lastMessage

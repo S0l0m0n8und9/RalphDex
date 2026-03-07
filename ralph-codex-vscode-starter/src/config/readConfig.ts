@@ -164,6 +164,22 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
     progressPath: readString(config, 'progressPath', DEFAULT_CONFIG.progressPath),
+    promptTemplateDirectory: readString(
+      config,
+      'promptTemplateDirectory',
+      DEFAULT_CONFIG.promptTemplateDirectory
+    ),
+    promptIncludeVerifierFeedback: readBoolean(
+      config,
+      'promptIncludeVerifierFeedback',
+      DEFAULT_CONFIG.promptIncludeVerifierFeedback
+    ),
+    promptPriorContextBudget: readNumber(
+      config,
+      'promptPriorContextBudget',
+      DEFAULT_CONFIG.promptPriorContextBudget,
+      1
+    ),
     clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', DEFAULT_CONFIG.clipboardAutoCopy),
     model: readString(config, 'model', DEFAULT_CONFIG.model),
     approvalMode: readEnum<CodexApprovalMode>(

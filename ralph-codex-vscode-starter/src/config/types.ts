@@ -22,6 +22,9 @@ export interface RalphCodexConfig {
   ralphTaskFilePath: string;
   prdPath: string;
   progressPath: string;
+  promptTemplateDirectory: string;
+  promptIncludeVerifierFeedback: boolean;
+  promptPriorContextBudget: number;
   clipboardAutoCopy: boolean;
   model: string;
   approvalMode: CodexApprovalMode;

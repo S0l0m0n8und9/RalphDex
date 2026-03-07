@@ -4,9 +4,17 @@ import * as vscode from 'vscode';
 import { RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
 import { resolveRalphPaths, RalphPaths } from './pathResolver';
-import { countTaskStatuses, createDefaultTaskFile, parseTaskFile, stringifyTaskFile } from './taskFile';
+import {
+  countTaskStatuses,
+  createDefaultTaskFile,
+  inspectTaskFileText,
+  parseTaskFile,
+  RalphTaskFileInspection,
+  stringifyTaskFile
+} from './taskFile';
 import {
   RalphDiffSummary,
+  RalphExecutionIntegritySummary,
   RalphIterationResult,
   RalphPromptKind,
   RalphRunRecord,
@@ -132,13 +140,25 @@ function normalizeDiffSummary(candidate: unknown): RalphDiffSummary | null {
     return null;
   }
 
+  const changedFiles = Array.isArray(record.changedFiles)
+    ? record.changedFiles.filter((item): item is string => typeof item === 'string')
+    : [];
+  const relevantChangedFiles = Array.isArray(record.relevantChangedFiles)
+    ? record.relevantChangedFiles.filter((item): item is string => typeof item === 'string')
+    : [];
+
   return {
     available: record.available,
+    gitAvailable: typeof record.gitAvailable === 'boolean' ? record.gitAvailable : record.available,
     summary: record.summary,
-    changedFiles: Array.isArray(record.changedFiles) ? record.changedFiles.filter((item): item is string => typeof item === 'string') : [],
-    relevantChangedFiles: Array.isArray(record.relevantChangedFiles)
-      ? record.relevantChangedFiles.filter((item): item is string => typeof item === 'string')
-      : [],
+    changedFileCount: typeof record.changedFileCount === 'number'
+      ? Math.max(0, Math.floor(record.changedFileCount))
+      : changedFiles.length,
+    relevantChangedFileCount: typeof record.relevantChangedFileCount === 'number'
+      ? Math.max(0, Math.floor(record.relevantChangedFileCount))
+      : relevantChangedFiles.length,
+    changedFiles,
+    relevantChangedFiles,
     statusTransitions: Array.isArray(record.statusTransitions)
       ? record.statusTransitions.filter((item): item is string => typeof item === 'string')
       : [],
@@ -148,15 +168,46 @@ function normalizeDiffSummary(candidate: unknown): RalphDiffSummary | null {
   };
 }
 
+function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegritySummary | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.promptTarget !== 'string'
+    || typeof record.templatePath !== 'string'
+    || typeof record.executionPlanPath !== 'string'
+    || typeof record.promptArtifactPath !== 'string'
+    || typeof record.promptHash !== 'string'
+    || typeof record.promptByteLength !== 'number') {
+    return null;
+  }
+
+  return {
+    promptTarget: record.promptTarget as RalphExecutionIntegritySummary['promptTarget'],
+    templatePath: record.templatePath,
+    executionPlanPath: record.executionPlanPath,
+    promptArtifactPath: record.promptArtifactPath,
+    promptHash: record.promptHash,
+    promptByteLength: Math.max(0, Math.floor(record.promptByteLength)),
+    executionPayloadHash: typeof record.executionPayloadHash === 'string' ? record.executionPayloadHash : null,
+    executionPayloadMatched: typeof record.executionPayloadMatched === 'boolean' ? record.executionPayloadMatched : null,
+    mismatchReason: typeof record.mismatchReason === 'string' ? record.mismatchReason : null,
+    cliInvocationPath: typeof record.cliInvocationPath === 'string' ? record.cliInvocationPath : null
+  };
+}
+
 function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
   return {
     schemaVersion: 1,
     iteration: run.iteration,
     selectedTaskId: null,
+    selectedTaskTitle: null,
     promptKind: run.promptKind,
     promptPath: run.promptPath,
     artifactDir: path.dirname(run.promptPath),
     adapterUsed: run.mode === 'handoff' ? 'clipboard' : 'cliExec',
+    executionIntegrity: null,
     executionStatus: run.status,
     verificationStatus: 'skipped',
     completionClassification: run.status === 'succeeded' ? 'partial_progress' : 'failed',
@@ -186,6 +237,10 @@ function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
       primaryCommand: null,
       validationFailureSignature: null,
       verifiers: []
+    },
+    backlog: {
+      remainingTaskCount: 0,
+      actionableTaskAvailable: false
     },
     diffSummary: null,
     noProgressSignals: [],
@@ -229,14 +284,16 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
       .filter((item): item is RalphVerificationResult => item !== null)
     : [];
 
-  return {
-    schemaVersion: 1,
-    iteration: Math.max(1, Math.floor(record.iteration)),
-    selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
-    promptKind: record.promptKind as RalphPromptKind,
-    promptPath: record.promptPath,
+    return {
+      schemaVersion: 1,
+      iteration: Math.max(1, Math.floor(record.iteration)),
+      selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
+      selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,
+      promptKind: record.promptKind as RalphPromptKind,
+      promptPath: record.promptPath,
     artifactDir: record.artifactDir,
     adapterUsed: record.adapterUsed,
+    executionIntegrity: normalizeExecutionIntegrity(record.executionIntegrity),
     executionStatus: record.executionStatus as RalphIterationResult['executionStatus'],
     verificationStatus: record.verificationStatus as RalphIterationResult['verificationStatus'],
     completionClassification: record.completionClassification as RalphIterationResult['completionClassification'],
@@ -272,6 +329,17 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
         : null,
       verifiers
     },
+    backlog: typeof record.backlog === 'object' && record.backlog !== null
+      ? {
+        remainingTaskCount: typeof (record.backlog as Record<string, unknown>).remainingTaskCount === 'number'
+          ? Math.max(0, Math.floor((record.backlog as Record<string, unknown>).remainingTaskCount as number))
+          : 0,
+        actionableTaskAvailable: Boolean((record.backlog as Record<string, unknown>).actionableTaskAvailable)
+      }
+      : {
+        remainingTaskCount: 0,
+        actionableTaskAvailable: false
+      },
     diffSummary: normalizeDiffSummary(record.diffSummary),
     noProgressSignals: Array.isArray(record.noProgressSignals)
       ? record.noProgressSignals.filter((item): item is string => typeof item === 'string')
@@ -308,7 +376,13 @@ function normalizeWorkspaceState(candidate: unknown): RalphWorkspaceState {
     version: 2,
     objectivePreview: typeof record.objectivePreview === 'string' ? record.objectivePreview : null,
     nextIteration: typeof record.nextIteration === 'number' && record.nextIteration > 0 ? Math.floor(record.nextIteration) : 1,
-    lastPromptKind: record.lastPromptKind === 'bootstrap' || record.lastPromptKind === 'iteration' ? record.lastPromptKind : null,
+    lastPromptKind: record.lastPromptKind === 'bootstrap'
+      || record.lastPromptKind === 'iteration'
+      || record.lastPromptKind === 'fix-failure'
+      || record.lastPromptKind === 'continue-progress'
+      || record.lastPromptKind === 'human-review-handoff'
+      ? record.lastPromptKind
+      : null,
     lastPromptPath: typeof record.lastPromptPath === 'string' ? record.lastPromptPath : null,
     lastRun,
     runHistory,
@@ -470,20 +544,28 @@ export class RalphStateManager {
   }
 
   public async readTaskFileText(paths: RalphPaths): Promise<string> {
+    const inspection = await this.inspectTaskFile(paths);
+    if (inspection.text) {
+      return inspection.text;
+    }
+
+    throw new Error(`Failed to parse Ralph task file at ${paths.taskFilePath}: ${inspection.diagnostics.map((item) => item.message).join(' ')}`);
+  }
+
+  public async inspectTaskFile(paths: RalphPaths): Promise<RalphTaskFileInspection> {
     const raw = await readText(paths.taskFilePath);
     if (!raw.trim()) {
       const seeded = stringifyTaskFile(createDefaultTaskFile());
       await fs.writeFile(paths.taskFilePath, seeded, 'utf8');
-      return seeded;
+      return inspectTaskFileText(seeded);
     }
 
-    try {
-      parseTaskFile(raw);
-    } catch (error) {
-      throw new Error(`Failed to parse Ralph task file at ${paths.taskFilePath}: ${error instanceof Error ? error.message : String(error)}`);
+    const inspection = inspectTaskFileText(raw);
+    if (inspection.taskFile && inspection.text && inspection.migrated) {
+      await fs.writeFile(paths.taskFilePath, inspection.text, 'utf8');
     }
 
-    return raw;
+    return inspection;
   }
 
   public async readTaskFile(paths: RalphPaths): Promise<RalphTaskFile> {

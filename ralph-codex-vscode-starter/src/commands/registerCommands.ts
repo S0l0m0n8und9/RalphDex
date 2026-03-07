@@ -1,14 +1,19 @@
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
-import { RalphCodexConfig } from '../config/types';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { RalphIterationEngine } from '../ralph/iterationEngine';
+import { buildPreflightReport } from '../ralph/preflight';
+import { buildStatusReport, resolveLatestStatusArtifacts, RalphStatusSnapshot } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
-import { inspectCodexCliSupport } from '../services/codexCliSupport';
+import { selectNextTask } from '../ralph/taskFile';
+import { RalphCliInvocation, RalphExecutionPlan } from '../ralph/types';
+import { captureGitStatus, chooseValidationCommand, inspectValidationCommandReadiness } from '../ralph/verifier';
+import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { scanWorkspace } from '../services/workspaceScanner';
-import { inspectIdeCommandSupport, requireTrustedWorkspace } from './workspaceSupport';
+import { requireTrustedWorkspace } from './workspaceSupport';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -42,19 +47,66 @@ async function withWorkspaceFolder(): Promise<vscode.WorkspaceFolder> {
   return folder;
 }
 
-async function ensureCodexCliReady(config: RalphCodexConfig): Promise<void> {
-  const support = await inspectCodexCliSupport(config.codexCommandPath);
-  if (support.check === 'pathMissing') {
-    throw new Error(`Codex CLI path "${config.codexCommandPath}" does not exist. Update ralphCodex.codexCommandPath or install Codex CLI.`);
-  }
-}
-
 async function showWarnings(warnings: string[]): Promise<void> {
   if (warnings.length === 0) {
     return;
   }
 
   await vscode.window.showWarningMessage(warnings.join(' '));
+}
+
+async function openTextFile(target: string): Promise<void> {
+  const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
+  await vscode.window.showTextDocument(document, { preview: false });
+}
+
+async function readJsonArtifact(target: string | null): Promise<unknown | null> {
+  if (!target) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(await fs.readFile(target, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+function normalizeExecutionPlan(candidate: unknown): RalphExecutionPlan | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'executionPlan'
+    || typeof record.iteration !== 'number'
+    || typeof record.promptKind !== 'string'
+    || typeof record.promptTarget !== 'string'
+    || typeof record.templatePath !== 'string'
+    || typeof record.promptArtifactPath !== 'string'
+    || typeof record.promptHash !== 'string') {
+    return null;
+  }
+
+  return record as unknown as RalphExecutionPlan;
+}
+
+function normalizeCliInvocation(candidate: unknown): RalphCliInvocation | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'cliInvocation'
+    || typeof record.iteration !== 'number'
+    || typeof record.commandPath !== 'string'
+    || !Array.isArray(record.args)
+    || typeof record.promptArtifactPath !== 'string'
+    || typeof record.stdinHash !== 'string') {
+    return null;
+  }
+
+  return record as unknown as RalphCliInvocation;
 }
 
 function iterationFailureMessage(result: { iteration: number; execution: { transcriptPath?: string } }): string {
@@ -65,70 +117,126 @@ async function collectStatusSnapshot(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
   logger: Logger
-): Promise<Record<string, unknown>> {
+): Promise<RalphStatusSnapshot> {
   const config = readConfig(workspaceFolder);
   const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
   await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
 
-  const [summary, ideCommandSupport, codexCliSupport] = await Promise.all([
-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name),
-    inspectIdeCommandSupport(config),
-    inspectCodexCliSupport(config.codexCommandPath)
-  ]);
-
-  let taskCounts: Awaited<ReturnType<RalphStateManager['taskCounts']>> | null = null;
+  const taskInspection = inspection.fileStatus.taskFilePath
+    ? await stateManager.inspectTaskFile(inspection.paths)
+    : {
+      taskFile: null,
+      text: null,
+      migrated: false,
+      diagnostics: []
+    };
+  const taskCounts = taskInspection.taskFile
+    ? await stateManager.taskCounts(inspection.paths).catch(() => null)
+    : null;
   let taskFileError: string | null = null;
+  let selectedTask = null;
 
-  if (inspection.fileStatus.taskFilePath) {
-    try {
-      taskCounts = await stateManager.taskCounts(inspection.paths);
-    } catch (error) {
-      taskFileError = toErrorMessage(error);
-    }
+  if (taskInspection.taskFile) {
+    selectedTask = selectNextTask(taskInspection.taskFile);
+  } else if (taskInspection.diagnostics.length > 0) {
+    taskFileError = taskInspection.diagnostics.map((diagnostic) => diagnostic.message).join(' ');
   }
 
-  const missingRalphPaths = Object.entries(inspection.fileStatus)
-    .filter(([, present]) => !present)
-    .map(([label]) => label);
-
-  return {
-    workspace: workspaceFolder.name,
+  const availableCommands = await vscode.commands.getCommands(true);
+  const [workspaceScan, latestArtifacts, gitStatus, codexCliSupport] = await Promise.all([
+    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name),
+    resolveLatestStatusArtifacts(inspection.paths),
+    captureGitStatus(workspaceFolder.uri.fsPath),
+    inspectCodexCliSupport(config.codexCommandPath)
+  ]);
+  const ideCommandSupport = inspectIdeCommandSupport({
+    preferredHandoffMode: config.preferredHandoffMode,
+    openSidebarCommandId: config.openSidebarCommandId,
+    newChatCommandId: config.newChatCommandId,
+    availableCommands
+  });
+  const validationCommand = chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride);
+  const validationCommandReadiness = await inspectValidationCommandReadiness({
+    command: validationCommand,
+    rootPath: workspaceFolder.uri.fsPath
+  });
+  const preflightReport = buildPreflightReport({
     rootPath: workspaceFolder.uri.fsPath,
     workspaceTrusted: vscode.workspace.isTrusted,
-    activationMode: vscode.workspace.isTrusted ? 'full' : 'limited',
-    preferredHandoffMode: config.preferredHandoffMode,
-    codexCommandPath: config.codexCommandPath,
-    verifierModes: config.verifierModes,
-    noProgressThreshold: config.noProgressThreshold,
-    repeatedFailureThreshold: config.repeatedFailureThreshold,
-    artifactRetentionPath: config.artifactRetentionPath,
-    gitCheckpointMode: config.gitCheckpointMode,
-    validationCommandOverride: config.validationCommandOverride || null,
-    stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
+    config,
+    taskInspection,
+    taskCounts,
+    selectedTask,
+    validationCommand,
+    validationCommandReadiness,
+    fileStatus: inspection.fileStatus,
     codexCliSupport,
-    ideCommandSupport,
+    ideCommandSupport
+  });
+  const [latestExecutionPlan, latestCliInvocation] = await Promise.all([
+    readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
+    readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation)
+  ]);
+
+  return {
+    workspaceName: workspaceFolder.name,
+    rootPath: workspaceFolder.uri.fsPath,
+    workspaceTrusted: vscode.workspace.isTrusted,
     nextIteration: inspection.state.nextIteration,
-    objectivePreview: inspection.state.objectivePreview,
-    lastPromptKind: inspection.state.lastPromptKind,
-    lastPromptPath: inspection.state.lastPromptPath,
-    lastRun: inspection.state.lastRun,
     lastIteration: inspection.state.lastIteration,
     taskCounts,
     taskFileError,
-    ralphFileStatus: inspection.fileStatus,
-    missingRalphPaths,
-    manifests: summary.manifests,
-    projectMarkers: summary.projectMarkers,
-    lifecycleCommands: summary.lifecycleCommands,
-    validationCommands: summary.validationCommands,
-    ciFiles: summary.ciFiles,
-    ciCommands: summary.ciCommands,
+    selectedTask,
+    latestSummaryPath: latestArtifacts.latestSummaryPath,
+    latestResultPath: latestArtifacts.latestResultPath,
+    latestPreflightReportPath: latestArtifacts.latestPreflightReportPath,
+    latestPreflightSummaryPath: latestArtifacts.latestPreflightSummaryPath,
+    latestPromptPath: latestArtifacts.latestPromptPath,
+    latestPromptEvidencePath: latestArtifacts.latestPromptEvidencePath,
+    latestExecutionPlanPath: latestArtifacts.latestExecutionPlanPath,
+    latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
+    artifactDir: inspection.paths.artifactDir,
+    stateFilePath: inspection.paths.stateFilePath,
     progressPath: inspection.paths.progressPath,
     taskFilePath: inspection.paths.taskFilePath,
-    stateFilePath: inspection.paths.stateFilePath,
-    artifactDir: inspection.paths.artifactDir,
-    logFilePath: inspection.paths.logFilePath
+    promptPath: inspection.state.lastIteration?.promptPath ?? inspection.state.lastPromptPath,
+    latestExecutionPlan,
+    latestCliInvocation,
+    verifierModes: config.verifierModes,
+    gitCheckpointMode: config.gitCheckpointMode,
+    validationCommandOverride: config.validationCommandOverride || null,
+    gitStatus,
+    preflightReport
   };
+}
+
+async function openLatestRalphSummary(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<boolean> {
+  const config = readConfig(workspaceFolder);
+  const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+  await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+  const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
+
+  if (latestArtifacts.latestSummaryPath) {
+    await openTextFile(latestArtifacts.latestSummaryPath);
+    return true;
+  }
+
+  if (latestArtifacts.latestPreflightSummaryPath) {
+    await openTextFile(latestArtifacts.latestPreflightSummaryPath);
+    return true;
+  }
+
+  const reason = inspection.state.lastIteration
+    ? 'The latest Ralph summary artifact is missing from the artifact directory.'
+    : 'No Ralph summary exists yet because no CLI iteration has completed and no preflight has been persisted.';
+  void vscode.window.showInformationMessage(
+    `${reason} Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.`
+  );
+  return false;
 }
 
 function registerCommand(
@@ -207,8 +315,12 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
 
       logger.info('Prompt generated and stored.', {
         promptPath: prepared.promptPath,
+        promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+        promptHash: prepared.executionPlan.promptHash,
+        executionPlanPath: prepared.executionPlanPath,
         nextIteration: recordState.nextIteration,
         promptKind: prepared.promptKind,
+        promptTarget: prepared.executionPlan.promptTarget,
         selectedTaskId: prepared.selectedTask?.id ?? null,
         validationCommand: prepared.validationCommand
       });
@@ -270,7 +382,6 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
     label: 'Ralph Codex: Run CLI Iteration',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
-      await ensureCodexCliReady(readConfig(workspaceFolder));
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false
       });
@@ -294,7 +405,6 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
-      await ensureCodexCliReady(config);
       logger.show(false);
       logger.info('Starting Ralph loop.', {
         rootPath: workspaceFolder.uri.fsPath,
@@ -343,14 +453,44 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       progress.report({ message: 'Collecting workspace and Ralph status' });
       const workspaceFolder = await withWorkspaceFolder();
       const status = await collectStatusSnapshot(workspaceFolder, stateManager, logger);
+      const report = buildStatusReport(status);
 
       logger.show(false);
-      logger.info('Ralph status snapshot.', status);
-      void vscode.window.showInformationMessage(
+      logger.appendText(report);
+      logger.info('Ralph status snapshot generated.', {
+        workspace: status.workspaceName,
+        latestSummaryPath: status.latestSummaryPath,
+        latestResultPath: status.latestResultPath,
+        latestExecutionPlanPath: status.latestExecutionPlanPath,
+        selectedTaskId: status.selectedTask?.id ?? null,
+        stopReason: status.lastIteration?.stopReason ?? null
+      });
+
+      const primaryAction = status.latestSummaryPath ? 'Open Latest Summary' : 'Show Output';
+      const choice = await vscode.window.showInformationMessage(
         vscode.workspace.isTrusted
-          ? 'Ralph status written to the Ralph Codex output channel.'
-          : 'Ralph status written to the Ralph Codex output channel in limited mode.'
+          ? 'Ralph status summary is available in the Ralph Codex output channel.'
+          : 'Ralph status summary is available in the Ralph Codex output channel in limited mode.',
+        primaryAction,
+        'Show Output'
       );
+
+      if (choice === 'Open Latest Summary' && status.latestSummaryPath) {
+        await openLatestRalphSummary(workspaceFolder, stateManager, logger);
+      } else if (choice === 'Show Output') {
+        logger.show(false);
+      }
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openLatestRalphSummary',
+    label: 'Ralph Codex: Open Latest Ralph Summary',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Resolving latest Ralph summary artifact' });
+      const workspaceFolder = await withWorkspaceFolder();
+      await openLatestRalphSummary(workspaceFolder, stateManager, logger);
     }
   });
 

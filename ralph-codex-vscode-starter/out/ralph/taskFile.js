@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.inspectTaskGraph = inspectTaskGraph;
+exports.inspectTaskFileText = inspectTaskFileText;
 exports.createDefaultTaskFile = createDefaultTaskFile;
 exports.parseTaskFile = parseTaskFile;
+exports.normalizeTaskFileText = normalizeTaskFileText;
 exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
 exports.selectNextTask = selectNextTask;
@@ -13,10 +16,235 @@ const EMPTY_COUNTS = {
     blocked: 0,
     done: 0
 };
+const SUPPORTED_TASK_FIELDS = new Set([
+    'id',
+    'title',
+    'status',
+    'parentId',
+    'dependsOn',
+    'notes',
+    'validation',
+    'blocker'
+]);
+const LIKELY_TASK_FIELD_MISTAKES = new Map([
+    ['dependencies', 'dependsOn'],
+    ['dependency', 'dependsOn'],
+    ['dependson', 'dependsOn'],
+    ['depends_on', 'dependsOn']
+]);
 function isTaskStatus(value) {
     return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
 }
-function normalizeTask(candidate) {
+function normalizeOptionalString(record, key) {
+    return typeof record[key] === 'string' && record[key].trim().length > 0
+        ? record[key].trim()
+        : undefined;
+}
+function normalizeDependencyList(record) {
+    if (!Array.isArray(record.dependsOn)) {
+        return undefined;
+    }
+    const normalized = Array.from(new Set(record.dependsOn
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)));
+    return normalized.length > 0 ? normalized : undefined;
+}
+function locationLabel(location) {
+    return `tasks[${location.arrayIndex}] (line ${location.line}, column ${location.column})`;
+}
+function taskLabel(task) {
+    return task.source
+        ? `Task ${task.id} at ${locationLabel(task.source)}`
+        : `Task ${task.id}`;
+}
+function entryLabel(index, location) {
+    return location ? `Task entry ${index + 1} at ${locationLabel(location)}` : `Task entry ${index + 1}`;
+}
+function normalizedFieldKey(key) {
+    return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+function lineAndColumnAt(text, index) {
+    let line = 1;
+    let lineStart = 0;
+    for (let cursor = 0; cursor < index; cursor += 1) {
+        if (text.charCodeAt(cursor) === 10) {
+            line += 1;
+            lineStart = cursor + 1;
+        }
+    }
+    return {
+        line,
+        column: index - lineStart + 1
+    };
+}
+function parseJsonString(text, startIndex) {
+    let value = '';
+    let index = startIndex + 1;
+    while (index < text.length) {
+        const char = text[index];
+        if (char === '\\') {
+            const next = text[index + 1];
+            if (next === undefined) {
+                throw new Error('Unexpected end of JSON string.');
+            }
+            value += char;
+            value += next;
+            index += 2;
+            continue;
+        }
+        if (char === '"') {
+            return {
+                value: JSON.parse(`"${value}"`),
+                endIndex: index + 1
+            };
+        }
+        value += char;
+        index += 1;
+    }
+    throw new Error('Unexpected end of JSON string.');
+}
+function skipWhitespace(text, startIndex) {
+    let index = startIndex;
+    while (index < text.length && /\s/.test(text[index])) {
+        index += 1;
+    }
+    return index;
+}
+function findTasksArrayStart(text) {
+    let objectDepth = 0;
+    let arrayDepth = 0;
+    let lastToken = null;
+    let index = 0;
+    while (index < text.length) {
+        const char = text[index];
+        if (char === '"') {
+            const parsed = parseJsonString(text, index);
+            const canBeProperty = objectDepth === 1 && arrayDepth === 0 && (lastToken === '{' || lastToken === ',');
+            if (canBeProperty && parsed.value === 'tasks') {
+                const colonIndex = skipWhitespace(text, parsed.endIndex);
+                if (text[colonIndex] === ':') {
+                    const valueIndex = skipWhitespace(text, colonIndex + 1);
+                    if (text[valueIndex] === '[') {
+                        return valueIndex;
+                    }
+                }
+            }
+            lastToken = 'string';
+            index = parsed.endIndex;
+            continue;
+        }
+        if (/\s/.test(char)) {
+            index += 1;
+            continue;
+        }
+        if (char === '{') {
+            objectDepth += 1;
+            lastToken = char;
+            index += 1;
+            continue;
+        }
+        if (char === '}') {
+            objectDepth = Math.max(0, objectDepth - 1);
+            lastToken = char;
+            index += 1;
+            continue;
+        }
+        if (char === '[') {
+            arrayDepth += 1;
+            lastToken = char;
+            index += 1;
+            continue;
+        }
+        if (char === ']') {
+            arrayDepth = Math.max(0, arrayDepth - 1);
+            lastToken = char;
+            index += 1;
+            continue;
+        }
+        lastToken = char;
+        index += 1;
+    }
+    return null;
+}
+function extractTaskEntryLocations(raw) {
+    const arrayStart = findTasksArrayStart(raw);
+    if (arrayStart === null) {
+        return [];
+    }
+    const locations = [];
+    let index = skipWhitespace(raw, arrayStart + 1);
+    let arrayIndex = 0;
+    while (index < raw.length && raw[index] !== ']') {
+        const position = lineAndColumnAt(raw, index);
+        locations.push({
+            arrayIndex,
+            line: position.line,
+            column: position.column
+        });
+        let objectDepth = 0;
+        let arrayDepth = 0;
+        let inString = false;
+        let escaped = false;
+        while (index < raw.length) {
+            const char = raw[index];
+            if (inString) {
+                if (escaped) {
+                    escaped = false;
+                }
+                else if (char === '\\') {
+                    escaped = true;
+                }
+                else if (char === '"') {
+                    inString = false;
+                }
+                index += 1;
+                continue;
+            }
+            if (char === '"') {
+                inString = true;
+                index += 1;
+                continue;
+            }
+            if (char === '{') {
+                objectDepth += 1;
+                index += 1;
+                continue;
+            }
+            if (char === '}') {
+                objectDepth = Math.max(0, objectDepth - 1);
+                index += 1;
+                continue;
+            }
+            if (char === '[') {
+                arrayDepth += 1;
+                index += 1;
+                continue;
+            }
+            if (char === ']') {
+                if (objectDepth === 0 && arrayDepth === 0) {
+                    break;
+                }
+                arrayDepth = Math.max(0, arrayDepth - 1);
+                index += 1;
+                continue;
+            }
+            if (char === ',' && objectDepth === 0 && arrayDepth === 0) {
+                break;
+            }
+            index += 1;
+        }
+        index = skipWhitespace(raw, index);
+        if (raw[index] === ',') {
+            arrayIndex += 1;
+            index = skipWhitespace(raw, index + 1);
+            continue;
+        }
+        break;
+    }
+    return locations;
+}
+function normalizeTask(candidate, source) {
     if (typeof candidate !== 'object' || candidate === null) {
         throw new Error('Task entries must be objects.');
     }
@@ -25,17 +253,353 @@ function normalizeTask(candidate) {
         throw new Error('Each task requires string id/title fields and a valid status.');
     }
     return {
-        id: record.id,
-        title: record.title,
+        id: record.id.trim(),
+        title: record.title.trim(),
         status: record.status,
-        notes: typeof record.notes === 'string' ? record.notes : undefined,
-        validation: typeof record.validation === 'string' ? record.validation : undefined,
-        blocker: typeof record.blocker === 'string' ? record.blocker : undefined
+        parentId: normalizeOptionalString(record, 'parentId'),
+        dependsOn: normalizeDependencyList(record),
+        notes: normalizeOptionalString(record, 'notes'),
+        validation: normalizeOptionalString(record, 'validation'),
+        blocker: normalizeOptionalString(record, 'blocker'),
+        source
     };
+}
+function createTaskGraphDiagnostic(code, message, details = {}) {
+    return {
+        category: 'taskGraph',
+        severity: 'error',
+        code,
+        message,
+        ...details
+    };
+}
+function legacyParentCandidates(taskId) {
+    const candidates = [];
+    for (const separator of ['.', '-', '/']) {
+        const lastIndex = taskId.lastIndexOf(separator);
+        if (lastIndex > 0) {
+            candidates.push(taskId.slice(0, lastIndex));
+        }
+    }
+    return candidates;
+}
+function inferLegacyParentId(taskId, knownIds) {
+    const matches = legacyParentCandidates(taskId)
+        .filter((candidate) => knownIds.has(candidate))
+        .sort((left, right) => right.length - left.length);
+    return matches[0];
+}
+function uniqueDiagnostics(diagnostics) {
+    const seen = new Set();
+    const ordered = [];
+    for (const diagnostic of diagnostics) {
+        const key = [
+            diagnostic.category,
+            diagnostic.severity,
+            diagnostic.code,
+            diagnostic.taskId ?? '',
+            (diagnostic.relatedTaskIds ?? []).join(','),
+            diagnostic.location ? `${diagnostic.location.arrayIndex}:${diagnostic.location.line}:${diagnostic.location.column}` : '',
+            (diagnostic.relatedLocations ?? [])
+                .map((location) => `${location.arrayIndex}:${location.line}:${location.column}`)
+                .join(','),
+            diagnostic.message
+        ].join('::');
+        if (seen.has(key)) {
+            continue;
+        }
+        seen.add(key);
+        ordered.push(diagnostic);
+    }
+    return ordered;
+}
+function buildTaskIndex(taskFile) {
+    const index = new Map();
+    for (const task of taskFile.tasks) {
+        const bucket = index.get(task.id);
+        if (bucket) {
+            bucket.push(task);
+        }
+        else {
+            index.set(task.id, [task]);
+        }
+    }
+    return index;
+}
+function detectGraphCycles(input) {
+    const diagnostics = [];
+    const uniqueTasks = new Map();
+    for (const task of input.tasks) {
+        if (!uniqueTasks.has(task.id)) {
+            uniqueTasks.set(task.id, task);
+        }
+    }
+    const visiting = new Set();
+    const visited = new Set();
+    const reportedCycles = new Set();
+    const visit = (taskId, stack) => {
+        if (visited.has(taskId) || visiting.has(taskId)) {
+            return;
+        }
+        const task = uniqueTasks.get(taskId);
+        if (!task) {
+            return;
+        }
+        visiting.add(taskId);
+        stack.push(taskId);
+        for (const neighborId of input.describe(task)) {
+            if (!uniqueTasks.has(neighborId)) {
+                continue;
+            }
+            if (neighborId === taskId) {
+                diagnostics.push(createTaskGraphDiagnostic(input.code, input.message('self', task, [taskId]), {
+                    taskId,
+                    relatedTaskIds: [taskId],
+                    location: task.source,
+                    relatedLocations: task.source ? [task.source] : undefined
+                }));
+                continue;
+            }
+            if (visiting.has(neighborId)) {
+                const startIndex = stack.indexOf(neighborId);
+                const cyclePath = [...stack.slice(startIndex), neighborId];
+                const cycleKey = cyclePath.join('->');
+                if (!reportedCycles.has(cycleKey)) {
+                    reportedCycles.add(cycleKey);
+                    diagnostics.push(createTaskGraphDiagnostic(input.code, input.message('cycle', task, cyclePath), {
+                        taskId,
+                        relatedTaskIds: cyclePath,
+                        location: task.source,
+                        relatedLocations: cyclePath
+                            .map((cycleTaskId) => uniqueTasks.get(cycleTaskId)?.source)
+                            .filter((location) => Boolean(location))
+                    }));
+                }
+                continue;
+            }
+            if (!visited.has(neighborId)) {
+                visit(neighborId, stack);
+            }
+        }
+        stack.pop();
+        visiting.delete(taskId);
+        visited.add(taskId);
+    };
+    for (const taskId of uniqueTasks.keys()) {
+        visit(taskId, []);
+    }
+    return diagnostics;
+}
+function inspectTaskGraph(taskFile) {
+    const diagnostics = [];
+    const taskIndex = buildTaskIndex(taskFile);
+    for (const [taskId, tasks] of taskIndex.entries()) {
+        if (!taskId.trim()) {
+            diagnostics.push(createTaskGraphDiagnostic('task_id_empty', 'Task ids must be non-empty strings.'));
+            continue;
+        }
+        if (tasks.length > 1) {
+            diagnostics.push(createTaskGraphDiagnostic('duplicate_task_id', `Task id ${taskId} must be unique. Found duplicates at ${tasks
+                .map((task) => task.source ? locationLabel(task.source) : 'unknown location')
+                .join(', ')}.`, {
+                taskId,
+                relatedTaskIds: tasks.map((task) => task.id),
+                location: tasks[0]?.source,
+                relatedLocations: tasks
+                    .map((task) => task.source)
+                    .filter((location) => Boolean(location))
+            }));
+        }
+    }
+    for (const task of taskFile.tasks) {
+        if (task.parentId) {
+            if (task.parentId === task.id) {
+                diagnostics.push(createTaskGraphDiagnostic('self_parent_reference', `${taskLabel(task)} cannot reference itself as parent.`, {
+                    taskId: task.id,
+                    relatedTaskIds: [task.id],
+                    location: task.source,
+                    relatedLocations: task.source ? [task.source] : undefined
+                }));
+            }
+            else if (!taskIndex.has(task.parentId)) {
+                diagnostics.push(createTaskGraphDiagnostic('orphaned_parent_reference', `${taskLabel(task)} references missing parentId ${task.parentId}.`, {
+                    taskId: task.id,
+                    relatedTaskIds: [task.parentId],
+                    location: task.source
+                }));
+            }
+        }
+        for (const dependencyId of task.dependsOn ?? []) {
+            if (dependencyId === task.id) {
+                diagnostics.push(createTaskGraphDiagnostic('self_dependency_reference', `${taskLabel(task)} cannot depend on itself.`, {
+                    taskId: task.id,
+                    relatedTaskIds: [task.id],
+                    location: task.source,
+                    relatedLocations: task.source ? [task.source] : undefined
+                }));
+                continue;
+            }
+            if (!taskIndex.has(dependencyId)) {
+                diagnostics.push(createTaskGraphDiagnostic('invalid_dependency_reference', `${taskLabel(task)} references missing dependency ${dependencyId}.`, {
+                    taskId: task.id,
+                    relatedTaskIds: [dependencyId],
+                    location: task.source
+                }));
+                continue;
+            }
+            const dependencyTask = taskIndex.get(dependencyId)?.[0];
+            if (task.status === 'done' && dependencyTask?.status !== 'done') {
+                diagnostics.push(createTaskGraphDiagnostic('completed_task_with_incomplete_dependencies', `${taskLabel(task)} is marked done but dependency ${dependencyId} is ${dependencyTask?.status ?? 'not done'}.`, {
+                    taskId: task.id,
+                    relatedTaskIds: [dependencyId],
+                    location: task.source,
+                    relatedLocations: dependencyTask?.source ? [dependencyTask.source] : undefined
+                }));
+            }
+        }
+    }
+    diagnostics.push(...detectGraphCycles({
+        tasks: taskFile.tasks,
+        code: 'dependency_cycle',
+        describe: (task) => task.dependsOn ?? [],
+        message: (_kind, task, cyclePath) => `${taskLabel(task)} is part of dependency cycle: ${cyclePath.join(' -> ')}.`
+    }));
+    diagnostics.push(...detectGraphCycles({
+        tasks: taskFile.tasks,
+        code: 'parent_cycle',
+        describe: (task) => task.parentId ? [task.parentId] : [],
+        message: (_kind, task, cyclePath) => `${taskLabel(task)} is part of parent cycle: ${cyclePath.join(' -> ')}.`
+    }));
+    return uniqueDiagnostics(diagnostics);
+}
+function formatTaskGraphDiagnostics(diagnostics) {
+    return diagnostics.map((diagnostic) => diagnostic.message).join(' ');
+}
+function inspectTaskFileText(raw) {
+    if (!raw.trim()) {
+        const taskFile = createDefaultTaskFile();
+        return {
+            taskFile,
+            text: stringifyTaskFile(taskFile),
+            migrated: true,
+            diagnostics: []
+        };
+    }
+    let parsed;
+    try {
+        parsed = JSON.parse(raw);
+    }
+    catch (error) {
+        return {
+            taskFile: null,
+            text: null,
+            migrated: false,
+            diagnostics: [
+                createTaskGraphDiagnostic('task_file_json_invalid', `Task file must be valid JSON: ${error instanceof Error ? error.message : String(error)}.`)
+            ]
+        };
+    }
+    if (typeof parsed !== 'object' || parsed === null) {
+        return {
+            taskFile: null,
+            text: null,
+            migrated: false,
+            diagnostics: [createTaskGraphDiagnostic('task_file_not_object', 'Task file must be a JSON object.')]
+        };
+    }
+    const record = parsed;
+    if (!Array.isArray(record.tasks)) {
+        return {
+            taskFile: null,
+            text: null,
+            migrated: false,
+            diagnostics: [createTaskGraphDiagnostic('task_array_missing', 'Task file must contain a tasks array.')]
+        };
+    }
+    const diagnostics = [];
+    const normalizedTasks = [];
+    const entryLocations = extractTaskEntryLocations(raw);
+    for (const [index, candidate] of record.tasks.entries()) {
+        const location = entryLocations[index];
+        if (typeof candidate === 'object' && candidate !== null) {
+            const taskRecord = candidate;
+            for (const key of Object.keys(taskRecord)) {
+                if (SUPPORTED_TASK_FIELDS.has(key)) {
+                    continue;
+                }
+                const suggestedField = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
+                if (!suggestedField) {
+                    continue;
+                }
+                diagnostics.push(createTaskGraphDiagnostic('unsupported_task_field', `${entryLabel(index, location)} uses unsupported field "${key}". Use "${suggestedField}" instead.`, {
+                    location
+                }));
+            }
+        }
+        try {
+            normalizedTasks.push(normalizeTask(candidate, location));
+        }
+        catch (error) {
+            diagnostics.push(createTaskGraphDiagnostic('task_entry_invalid', `${entryLabel(index, location)} is invalid: ${error instanceof Error ? error.message : String(error)}.`, {
+                location
+            }));
+        }
+    }
+    if (diagnostics.length > 0) {
+        return {
+            taskFile: null,
+            text: null,
+            migrated: false,
+            diagnostics
+        };
+    }
+    const knownIds = new Set(normalizedTasks.map((task) => task.id));
+    const explicitVersion = record.version;
+    const migratedTasks = normalizedTasks.map((task) => {
+        if (task.parentId) {
+            return task;
+        }
+        const inferredParentId = inferLegacyParentId(task.id, knownIds);
+        return inferredParentId
+            ? { ...task, parentId: inferredParentId }
+            : task;
+    });
+    const taskFile = {
+        version: 2,
+        tasks: migratedTasks
+    };
+    const taskDiagnostics = inspectTaskGraph(taskFile);
+    const normalizedText = stringifyTaskFile(taskFile);
+    return {
+        taskFile: taskDiagnostics.length === 0 ? taskFile : null,
+        text: taskDiagnostics.length === 0 ? normalizedText : null,
+        migrated: explicitVersion !== 2
+            || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
+            || raw.trimEnd() !== normalizedText.trimEnd(),
+        diagnostics: taskDiagnostics
+    };
+}
+function isDependencySatisfied(taskFile, dependencyId) {
+    return findTaskById(taskFile, dependencyId)?.status === 'done';
+}
+function isTaskSelectable(taskFile, task) {
+    return (task.dependsOn ?? []).every((dependencyId) => isDependencySatisfied(taskFile, dependencyId));
+}
+function collectDescendants(taskFile, taskId, seen = new Set()) {
+    const directChildren = taskFile.tasks.filter((task) => task.parentId === taskId);
+    const descendants = [];
+    for (const child of directChildren) {
+        if (seen.has(child.id)) {
+            continue;
+        }
+        seen.add(child.id);
+        descendants.push(child, ...collectDescendants(taskFile, child.id, seen));
+    }
+    return descendants;
 }
 function createDefaultTaskFile() {
     return {
-        version: 1,
+        version: 2,
         tasks: [
             {
                 id: 'T1',
@@ -53,24 +617,28 @@ function createDefaultTaskFile() {
     };
 }
 function parseTaskFile(raw) {
-    if (!raw.trim()) {
-        return createDefaultTaskFile();
+    const inspection = inspectTaskFileText(raw);
+    if (inspection.taskFile) {
+        return inspection.taskFile;
     }
-    const parsed = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) {
-        throw new Error('Task file must be a JSON object.');
+    throw new Error(formatTaskGraphDiagnostics(inspection.diagnostics));
+}
+function normalizeTaskFileText(raw) {
+    const inspection = inspectTaskFileText(raw);
+    if (inspection.taskFile && inspection.text) {
+        return {
+            taskFile: inspection.taskFile,
+            text: inspection.text,
+            migrated: inspection.migrated
+        };
     }
-    const record = parsed;
-    if (!Array.isArray(record.tasks)) {
-        throw new Error('Task file must contain a tasks array.');
-    }
-    return {
-        version: 1,
-        tasks: record.tasks.map((task) => normalizeTask(task))
-    };
+    throw new Error(formatTaskGraphDiagnostics(inspection.diagnostics));
 }
 function stringifyTaskFile(taskFile) {
-    return `${JSON.stringify(taskFile, null, 2)}\n`;
+    return `${JSON.stringify({
+        version: taskFile.version,
+        tasks: taskFile.tasks.map(({ source: _source, ...task }) => task)
+    }, null, 2)}\n`;
 }
 function countTaskStatuses(taskFile) {
     const counts = { ...EMPTY_COUNTS };
@@ -80,8 +648,8 @@ function countTaskStatuses(taskFile) {
     return counts;
 }
 function selectNextTask(taskFile) {
-    return taskFile.tasks.find((task) => task.status === 'in_progress')
-        ?? taskFile.tasks.find((task) => task.status === 'todo')
+    return taskFile.tasks.find((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task))
+        ?? taskFile.tasks.find((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
         ?? null;
 }
 function findTaskById(taskFile, taskId) {
@@ -90,20 +658,10 @@ function findTaskById(taskFile, taskId) {
     }
     return taskFile.tasks.find((task) => task.id === taskId) ?? null;
 }
-function subtaskPrefixes(taskId) {
-    return [
-        `${taskId}.`,
-        `${taskId}-`,
-        `${taskId}/`
-    ];
-}
 function remainingSubtasks(taskFile, taskId) {
     if (!taskId) {
         return [];
     }
-    const prefixes = subtaskPrefixes(taskId);
-    return taskFile.tasks.filter((task) => task.id !== taskId
-        && prefixes.some((prefix) => task.id.startsWith(prefix))
-        && task.status !== 'done');
+    return collectDescendants(taskFile, taskId).filter((task) => task.status !== 'done');
 }
 //# sourceMappingURL=taskFile.js.map

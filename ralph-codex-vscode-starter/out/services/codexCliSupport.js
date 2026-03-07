@@ -34,30 +34,82 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectCodexCliSupport = inspectCodexCliSupport;
+exports.inspectIdeCommandSupport = inspectIdeCommandSupport;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 function usesExplicitPath(commandPath) {
     return path.isAbsolute(commandPath) || commandPath.includes(path.sep) || commandPath.includes('/');
 }
+async function isExecutable(commandPath) {
+    try {
+        await fs.access(commandPath, fs.constants.X_OK);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
 async function inspectCodexCliSupport(commandPath) {
     if (!usesExplicitPath(commandPath)) {
         return {
             commandPath,
-            check: 'pathLookupUnverified'
+            configuredAs: 'pathLookup',
+            check: 'pathLookupAssumed',
+            confidence: 'assumed'
         };
     }
     try {
         await fs.access(commandPath);
+        if (!(await isExecutable(commandPath))) {
+            return {
+                commandPath,
+                configuredAs: 'explicitPath',
+                check: 'pathNotExecutable',
+                confidence: 'blocked'
+            };
+        }
         return {
             commandPath,
-            check: 'pathExists'
+            configuredAs: 'explicitPath',
+            check: 'pathVerifiedExecutable',
+            confidence: 'verified'
         };
     }
     catch {
         return {
             commandPath,
-            check: 'pathMissing'
+            configuredAs: 'explicitPath',
+            check: 'pathMissing',
+            confidence: 'blocked'
         };
     }
+}
+function commandIsDisabled(commandId) {
+    return !commandId || commandId === 'none';
+}
+function inspectIdeCommandSupport(input) {
+    if (input.preferredHandoffMode !== 'ideCommand') {
+        return {
+            preferredHandoffMode: input.preferredHandoffMode,
+            status: 'notRequired',
+            openSidebarCommandId: input.openSidebarCommandId,
+            newChatCommandId: input.newChatCommandId,
+            missingCommandIds: []
+        };
+    }
+    const availableCommands = new Set(input.availableCommands);
+    const candidateCommandIds = [input.openSidebarCommandId, input.newChatCommandId]
+        .filter((commandId) => !commandIsDisabled(commandId));
+    const missingCommandIds = candidateCommandIds.filter((commandId) => !availableCommands.has(commandId));
+    const configuredCommandCount = candidateCommandIds.length;
+    return {
+        preferredHandoffMode: input.preferredHandoffMode,
+        status: configuredCommandCount > 0 && missingCommandIds.length === 0 ? 'available' : 'unavailable',
+        openSidebarCommandId: input.openSidebarCommandId,
+        newChatCommandId: input.newChatCommandId,
+        missingCommandIds: configuredCommandCount > 0
+            ? missingCommandIds
+            : [input.openSidebarCommandId, input.newChatCommandId].filter((commandId) => commandIsDisabled(commandId) || !availableCommands.has(commandId))
+    };
 }
 //# sourceMappingURL=codexCliSupport.js.map
