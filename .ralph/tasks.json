@@ -10,8 +10,140 @@
     {
       "id": "T2",
       "title": "Replace this seed task list with repo-specific work",
-      "status": "todo",
+      "status": "done",
       "notes": "Keep statuses current so fresh Codex runs can resume deterministically."
+    },
+    {
+      "id": "T3",
+      "title": "Detect nested project roots so Ralph can inspect the starter extension from the repo root",
+      "status": "done",
+      "notes": "Workspace scanning now selects the nested `ralph-codex-vscode-starter` project root when the repo root has no shallow markers, and the runtime build was refreshed so the extension uses the updated scan path.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T4",
+      "title": "Add regression coverage for nested workspace scanning and prompt repo-context rendering",
+      "status": "done",
+      "dependsOn": [
+        "T3"
+      ],
+      "notes": "Locked in nested root-selection evidence plus prompt repo-context rendering for inspected-root versus workspace-root cases.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T5",
+      "title": "Cover clipboard and IDE handoff strategies with automated tests and explicit docs",
+      "status": "done",
+      "notes": "Added command-shell smoke coverage for prompt clipboard auto-copy plus Open Codex IDE clipboard-only, IDE-command, missing-command fallback, and cliExec-warning handoff paths, and documented the operator-facing handoff rules and remaining live-host gaps.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T6",
+      "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+      "status": "done",
+      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+      "validation": "cd ralph-codex-vscode-starter && npm run package"
+    },
+    {
+      "id": "T7",
+      "title": "Exercise a real CLI iteration against a temp workspace and tighten any artifact or verifier gaps it exposes",
+      "status": "done",
+      "dependsOn": [
+        "T3",
+        "T4"
+      ],
+      "notes": "Added an optional `npm run test:real-cli-smoke` temp-workspace runner that drives the actual `codex exec` path, documented its operator use and environment limits, and surfaced summarized execution failure messages into the structured iteration/latest-result/status artifacts. A real smoke run in this sandbox exercised the path and preserved a temp workspace with the expected backend-connect failure evidence.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T8",
+      "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+      "status": "todo",
+      "dependsOn": [
+        "T3",
+        "T4",
+        "T7"
+      ],
+      "notes": "Ralph can now inspect the nested `ralph-codex-vscode-starter` repo from the umbrella root, but execution and verifier working directories may still follow the workspace root unless commands manually `cd` into the nested repo. Make root-selection policy explicit, durable, and evidence-backed before expanding broader multi-agent behavior.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T8.1",
+      "title": "Persist chosen inspection root in prompt evidence, execution plans, provenance bundles, and status surfaces",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T3",
+        "T4"
+      ],
+      "notes": "Record workspace root, chosen inspection root, and selection mode so root choices are inspectable rather than inferred from formatted prompt text.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T8.2",
+      "title": "Define deterministic execution-root and verifier-root policy for nested repos",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T8.1"
+      ],
+      "notes": "Specify how workspace root, inspection root, execution root, and verifier/validation root relate. Keep the policy simple, shallow, and inspectable.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T8.3",
+      "title": "Implement CLI and verifier root-alignment using the chosen root policy",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T8.2"
+      ],
+      "notes": "Where safe, let execution and verifier paths follow the selected execution root instead of relying on manual `cd ... && ...` composition in commands.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T8.4",
+      "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T8.2"
+      ],
+      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T8.5",
+      "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T8.3",
+        "T8.4"
+      ],
+      "notes": "Cover obvious child repo selection, ambiguous sibling repos, explicit override, execution cwd selection, verifier cwd selection, and status/provenance reporting of root choices.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T8.6",
+      "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+      "status": "todo",
+      "parentId": "T8",
+      "dependsOn": [
+        "T8.3",
+        "T8.4"
+      ],
+      "notes": "Update architecture, workflows, provenance, and any routing docs so nested-repo semantics are explicit and operator-visible.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T9",
+      "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+      "status": "todo",
+      "dependsOn": [
+        "T8"
+      ],
+      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
     }
   ]
 }

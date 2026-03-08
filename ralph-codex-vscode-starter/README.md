@@ -15,6 +15,8 @@ The extension has two execution paths:
 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
 
+For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
+
 ## Durable Files
 
 Ralph keeps its durable state in the workspace:
@@ -28,7 +30,7 @@ Ralph keeps its durable state in the workspace:
 - artifacts and latest pointers: `.ralph/artifacts/`
 - logs: `.ralph/logs/extension.log`
 
-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
+The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
 
 ## Commands
 
@@ -48,19 +50,20 @@ The extension contributes these commands:
 
 ## Document Map
 
-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
+- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
+- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
+- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
+- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
+- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
+- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
+- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
 
 ## Product Notes
 
 - Prompt templates live in `prompt-templates/` and are selected deterministically.
+- Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
 - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
 - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
 
-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
+See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.

@@ -1,0 +1,19 @@
+**Changed**
+
+- [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json#L7) adds repository metadata and changes `npm run package` to `vsce package --no-dependencies`, which is what made packaging succeed in this repo.
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md#L18) now surfaces the local `.vsix` build/install path and switches README doc links to repository-relative links so `vsce` can package them.
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md#L21) now owns the manual `.vsix` packaging/install workflow.
+- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md#L46) now states the validation boundary clearly: packaging is proven, live install remains manual.
+- [src/validation/docsValidator.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts#L160) and [test/docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts#L133) now enforce that the packaging/install docs stay present.
+- [.ralph/tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json#L41) and [.ralph/progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md#L9) mark T6 complete with the packaging evidence.
+
+**Validation**
+
+- `cd ralph-codex-vscode-starter && npm run check:docs` passed.
+- `cd ralph-codex-vscode-starter && npm run package` passed and produced [ralph-codex-workbench-0.1.0.vsix](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix).
+
+**Notes**
+
+Assumption: the current `origin` remote (`https://github.com/S0l0m0n8und9/RalphDex.git`) is the correct repository URL to publish in the extension manifest.
+
+Known follow-up work: packaging still warns that no `LICENSE` file is present and that the extension has no `.vscodeignore` or `files` allowlist, so the VSIX currently includes more files than necessary.

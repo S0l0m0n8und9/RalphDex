@@ -1,0 +1,39 @@
+{
+  "selectedTaskId": "T7",
+  "selectedTaskBefore": {
+    "id": "T7",
+    "title": "Exercise a real CLI iteration against a temp workspace and tighten any artifact or verifier gaps it exposes",
+    "status": "todo",
+    "dependsOn": [
+      "T3",
+      "T4"
+    ],
+    "notes": "The integration suite mocks `codex exec`; a controlled real-run smoke should harden the end-to-end evidence path.",
+    "validation": "cd ralph-codex-vscode-starter && npm run validate",
+    "source": {
+      "arrayIndex": 6,
+      "line": 47,
+      "column": 5
+    }
+  },
+  "selectedTaskAfter": {
+    "id": "T7",
+    "title": "Exercise a real CLI iteration against a temp workspace and tighten any artifact or verifier gaps it exposes",
+    "status": "done",
+    "dependsOn": [
+      "T3",
+      "T4"
+    ],
+    "notes": "Added an optional `npm run test:real-cli-smoke` temp-workspace runner that drives the actual `codex exec` path, documented its operator use and environment limits, and surfaced summarized execution failure messages into the structured iteration/latest-result/status artifacts. A real smoke run in this sandbox exercised the path and preserved a temp workspace with the expected backend-connect failure evidence.",
+    "validation": "cd ralph-codex-vscode-starter && npm run validate",
+    "source": {
+      "arrayIndex": 6,
+      "line": 47,
+      "column": 5
+    }
+  },
+  "taskFileError": null,
+  "progressChanged": true,
+  "taskFileChanged": true,
+  "humanReviewNeeded": false
+}

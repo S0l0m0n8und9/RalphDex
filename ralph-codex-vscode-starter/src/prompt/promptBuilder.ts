@@ -189,17 +189,24 @@ function buildPreflightContext(report: RalphPreflightReport): string[] {
 function buildRepoContext(summary: WorkspaceScan): string[] {
   const lines = [
     `- Workspace: ${summary.workspaceName}`,
-    `- Root path: ${summary.rootPath}`,
+    `- Inspected root: ${summary.rootPath}`,
+    `- Root selection: ${summary.rootSelection.summary}`,
     `- Manifests: ${compactList(summary.manifests, 5)}`,
     `- Source roots: ${compactList(summary.sourceRoots, 5)}`,
+    `- Test roots: ${compactList(summary.tests, 5)}`,
     `- Package managers: ${compactList(summary.packageManagers, 4)}`,
+    `- Package manager indicators: ${compactList(summary.packageManagerIndicators, 5)}`,
     `- Validation commands: ${compactList(summary.validationCommands, 4)}`,
     `- Lifecycle commands: ${compactList(summary.lifecycleCommands, 4)}`,
     `- CI files: ${compactList(summary.ciFiles, 4)}`,
+    `- CI commands: ${compactList(summary.ciCommands, 4)}`,
     `- Docs: ${compactList(summary.docs, 4)}`,
     `- Test signals: ${compactList(summary.testSignals, 3)}`
   ];
 
+  if (summary.workspaceRootPath !== summary.rootPath) {
+    lines.push(`- Workspace root: ${summary.workspaceRootPath}`);
+  }
   if (summary.packageJson?.name) {
     lines.push(`- package.json name: ${summary.packageJson.name}`);
   }
@@ -518,6 +525,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       preflightContext: buildPreflightContext(input.preflightReport),
       objectiveContext: clipText(input.objectiveText, 14, 1600),
       repoContext: buildRepoContext(input.summary),
+      repoContextSnapshot: input.summary,
       runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target),
       taskContext: buildTaskContext(input.taskFile, input.taskCounts, input.selectedTask, input.validationCommand),
       progressContext: clipText(input.progressText, 10, 1200, true)

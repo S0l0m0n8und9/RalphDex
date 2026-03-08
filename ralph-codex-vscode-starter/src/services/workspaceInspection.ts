@@ -1,3 +1,53 @@
+export interface RepoRootCandidate {
+  path: string;
+  relativePath: string;
+  markerCount: number;
+  markers: string[];
+}
+
+export interface RepoRootSelection {
+  workspaceRootPath: string;
+  selectedRootPath: string;
+  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
+  summary: string;
+  candidates: RepoRootCandidate[];
+}
+
+export interface WorkspaceFieldEvidence {
+  checked: string[];
+  matches: string[];
+  emptyReason: string | null;
+}
+
+export interface WorkspacePackageManagerEvidence {
+  indicators: string[];
+  detected: string[];
+  packageJsonPackageManager: string | null;
+  emptyReason: string | null;
+}
+
+export interface WorkspaceCommandEvidence {
+  selected: string[];
+  packageJsonScripts: string[];
+  makeTargets: string[];
+  justTargets: string[];
+  ciCommands: string[];
+  manifestSignals: string[];
+  emptyReason: string | null;
+}
+
+export interface WorkspaceScanEvidence {
+  rootEntries: string[];
+  manifests: WorkspaceFieldEvidence;
+  sourceRoots: WorkspaceFieldEvidence;
+  tests: WorkspaceFieldEvidence;
+  docs: WorkspaceFieldEvidence;
+  ciFiles: WorkspaceFieldEvidence;
+  packageManagers: WorkspacePackageManagerEvidence;
+  validationCommands: WorkspaceCommandEvidence;
+  lifecycleCommands: WorkspaceCommandEvidence;
+}
+
 export interface PackageJsonSummary {
   name: string | null;
   packageManager: string | null;
@@ -10,23 +60,28 @@ export interface PackageJsonSummary {
 
 export interface WorkspaceScan {
   workspaceName: string;
+  workspaceRootPath: string;
   rootPath: string;
+  rootSelection: RepoRootSelection;
   manifests: string[];
   projectMarkers: string[];
   packageManagers: string[];
+  packageManagerIndicators: string[];
   ciFiles: string[];
   ciCommands: string[];
   docs: string[];
   sourceRoots: string[];
+  tests: string[];
   lifecycleCommands: string[];
   validationCommands: string[];
   testSignals: string[];
   notes: string[];
+  evidence: WorkspaceScanEvidence;
   packageJson: PackageJsonSummary | null;
 }
 
 const LIFECYCLE_SCRIPT_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile', 'typecheck'];
-const VALIDATION_TARGET_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile'];
+const VALIDATION_TARGET_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile', 'typecheck'];
 const CI_COMMAND_PATTERNS = [
   /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?[a-z0-9:_-]+/gi,
   /\bpytest\b(?:\s+[^\n\r#]+)?/gi,
@@ -76,6 +131,22 @@ function scriptCommand(packageManager: string | null, script: string): string {
   }
 }
 
+function collectScriptCommands(
+  scriptNames: string[],
+  preferredOrder: string[],
+  packageManager: string | null
+): string[] {
+  const commands: string[] = [];
+  const available = [...scriptNames].sort();
+
+  for (const prefix of preferredOrder) {
+    const matches = available.filter((script) => script === prefix || script.startsWith(`${prefix}:`));
+    commands.push(...matches.map((script) => scriptCommand(packageManager, script)));
+  }
+
+  return uniqueOrdered(commands);
+}
+
 export function summarizePackageJson(pkg: unknown): PackageJsonSummary {
   const candidate = typeof pkg === 'object' && pkg !== null ? (pkg as Record<string, unknown>) : {};
   const scriptsCandidate = typeof candidate.scripts === 'object' && candidate.scripts !== null
@@ -83,25 +154,20 @@ export function summarizePackageJson(pkg: unknown): PackageJsonSummary {
     : {};
   const scriptNames = Object.keys(scriptsCandidate);
   const packageManager = normalizePackageManager(typeof candidate.packageManager === 'string' ? candidate.packageManager : null);
-  const lifecycleCommands = LIFECYCLE_SCRIPT_ORDER
-    .filter((script) => scriptNames.includes(script))
-    .map((script) => scriptCommand(packageManager, script));
-
-  const validationCommands = VALIDATION_TARGET_ORDER
-    .filter((script) => scriptNames.includes(script))
-    .map((script) => scriptCommand(packageManager, script));
+  const lifecycleCommands = collectScriptCommands(scriptNames, LIFECYCLE_SCRIPT_ORDER, packageManager);
+  const validationCommands = collectScriptCommands(scriptNames, VALIDATION_TARGET_ORDER, packageManager);
 
   const testSignals = new Set<string>();
-  if (scriptNames.includes('test')) {
+  if (scriptNames.some((name) => name === 'test' || name.startsWith('test:'))) {
     testSignals.add('package.json defines a test script.');
   }
-  if (scriptNames.includes('lint')) {
+  if (scriptNames.some((name) => name === 'lint' || name.startsWith('lint:'))) {
     testSignals.add('package.json defines a lint script.');
   }
-  if (scriptNames.includes('validate') || scriptNames.includes('check')) {
+  if (scriptNames.some((name) => ['validate', 'check'].some((prefix) => name === prefix || name.startsWith(`${prefix}:`)))) {
     testSignals.add('package.json defines a validate/check script.');
   }
-  if (scriptNames.includes('build') || scriptNames.includes('compile')) {
+  if (scriptNames.some((name) => ['build', 'compile', 'typecheck'].some((prefix) => name === prefix || name.startsWith(`${prefix}:`)))) {
     testSignals.add('package.json defines a build/compile script.');
   }
 
@@ -157,6 +223,7 @@ export function detectPackageManagers(fileNames: string[], packageJson: PackageJ
 export function inferTestSignals(
   manifests: string[],
   docs: string[],
+  tests: string[],
   packageJson: PackageJsonSummary | null
 ): string[] {
   const signals = new Set<string>(packageJson?.testSignals ?? []);
@@ -181,6 +248,9 @@ export function inferTestSignals(
   }
   if (docs.some((item) => item.toLowerCase().startsWith('readme'))) {
     signals.add('README.md may define the canonical build/test commands.');
+  }
+  if (tests.length > 0) {
+    signals.add(`Detected test roots: ${tests.join(', ')}.`);
   }
 
   return Array.from(signals);

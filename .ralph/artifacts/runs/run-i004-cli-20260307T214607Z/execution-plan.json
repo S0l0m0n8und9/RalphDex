@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "executionPlan",
+  "provenanceId": "run-i004-cli-20260307T214607Z",
+  "iteration": 4,
+  "selectedTaskId": "T4",
+  "selectedTaskTitle": "Add regression coverage for nested workspace scanning and prompt repo-context rendering",
+  "promptKind": "iteration",
+  "promptTarget": "cliExec",
+  "selectionReason": "A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.",
+  "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-004.prompt.md",
+  "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/prompt.md",
+  "promptEvidencePath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/prompt-evidence.json",
+  "promptHash": "sha256:198483ed6ca0d04b82ed373f47ce953b90b500e8f5f566b81e5fc5baf02c5513",
+  "promptByteLength": 5753,
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004",
+  "createdAt": "2026-03-07T21:46:07.286Z"
+}

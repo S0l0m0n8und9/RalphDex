@@ -1,0 +1,37 @@
+{
+  "selectedTaskId": "T4",
+  "selectedTaskBefore": {
+    "id": "T4",
+    "title": "Add regression coverage for nested workspace scanning and prompt repo-context rendering",
+    "status": "todo",
+    "dependsOn": [
+      "T3"
+    ],
+    "notes": "Lock in repo-context detection once nested-package inspection is implemented.",
+    "validation": "cd ralph-codex-vscode-starter && npm test",
+    "source": {
+      "arrayIndex": 3,
+      "line": 23,
+      "column": 5
+    }
+  },
+  "selectedTaskAfter": {
+    "id": "T4",
+    "title": "Add regression coverage for nested workspace scanning and prompt repo-context rendering",
+    "status": "done",
+    "dependsOn": [
+      "T3"
+    ],
+    "notes": "Locked in nested root-selection evidence plus prompt repo-context rendering for inspected-root versus workspace-root cases.",
+    "validation": "cd ralph-codex-vscode-starter && npm test",
+    "source": {
+      "arrayIndex": 3,
+      "line": 23,
+      "column": 5
+    }
+  },
+  "taskFileError": null,
+  "progressChanged": true,
+  "taskFileChanged": true,
+  "humanReviewNeeded": false
+}

@@ -156,6 +156,38 @@ const DOC_RULES: Record<string, DocRule> = {
       'explicitly does not try to do',
       'trust guarantees stop'
     ]
+  },
+  'docs/workflows.md': {
+    requiredHeadings: [
+      'Develop The Extension',
+      'Package And Install A .vsix',
+      'Prepare A Prompt For IDE Use',
+      'Run One CLI Iteration',
+      'Run The Ralph Loop',
+      'Inspect State',
+      'Reset State',
+      'Diagnostics'
+    ],
+    requiredFragments: [
+      'Extensions: Install from VSIX...',
+      'code --install-extension',
+      'build a distributable `.vsix`'
+    ]
+  },
+  'docs/testing.md': {
+    requiredHeadings: [
+      'Authoritative Commands',
+      'What Is Covered',
+      'Stub Smoke Vs Real Activation Smoke',
+      'What Is Not Covered',
+      'Test Runtime Notes',
+      'Packaging Runtime'
+    ],
+    requiredFragments: [
+      '`npm run package`',
+      'manual `.vsix` install',
+      'Node 20+'
+    ]
   }
 };
 

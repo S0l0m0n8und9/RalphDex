@@ -50,7 +50,10 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       summary: 'Selected T1: Previous task | Execution: succeeded | Verification: failed | Outcome: complete | Backlog remaining: 2',
       warnings: [],
       errors: [],
-      execution: { exitCode: 0 },
+      execution: {
+        exitCode: 0,
+        message: 'codex exec completed successfully.'
+      },
       verification: {
         primaryCommand: 'pytest',
         validationFailureSignature: 'pytest::exit:127::not found',
@@ -151,6 +154,105 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     gitCheckpointMode: 'off',
     validationCommandOverride: null,
+    workspaceScan: {
+      workspaceName: 'workspace',
+      workspaceRootPath: '/workspace',
+      rootPath: '/workspace/ralph-codex-vscode-starter',
+      rootSelection: {
+        workspaceRootPath: '/workspace',
+        selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+        strategy: 'scoredChild',
+        summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
+        candidates: [
+          {
+            path: '/workspace',
+            relativePath: '.',
+            markerCount: 0,
+            markers: []
+          },
+          {
+            path: '/workspace/ralph-codex-vscode-starter',
+            relativePath: 'ralph-codex-vscode-starter',
+            markerCount: 4,
+            markers: ['package.json', 'README.md', 'src', 'test']
+          }
+        ]
+      },
+      manifests: ['package.json'],
+      projectMarkers: ['package.json', 'README.md', 'src', 'test'],
+      packageManagers: ['npm'],
+      packageManagerIndicators: ['package.json'],
+      ciFiles: [],
+      ciCommands: [],
+      docs: ['README.md'],
+      sourceRoots: ['src'],
+      tests: ['test'],
+      lifecycleCommands: ['npm run validate', 'npm run test'],
+      validationCommands: ['npm run validate', 'npm run test'],
+      testSignals: ['package.json defines a test script.', 'Detected test roots: test.'],
+      notes: ['Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.'],
+      evidence: {
+        rootEntries: ['README.md', 'package.json', 'src', 'test'],
+        manifests: {
+          checked: ['package.json', '*.sln', '*.csproj'],
+          matches: ['package.json'],
+          emptyReason: null
+        },
+        sourceRoots: {
+          checked: ['src', 'app', 'apps', 'packages', 'services', 'backend', 'frontend', 'server', 'client'],
+          matches: ['src'],
+          emptyReason: null
+        },
+        tests: {
+          checked: ['test', 'tests', '__tests__', 'spec', 'specs'],
+          matches: ['test'],
+          emptyReason: null
+        },
+        docs: {
+          checked: ['README.md', 'README', 'docs', 'AGENTS.md'],
+          matches: ['README.md'],
+          emptyReason: null
+        },
+        ciFiles: {
+          checked: ['.gitlab-ci.yml', 'azure-pipelines.yml', '.github/workflows/*.yml'],
+          matches: [],
+          emptyReason: 'No CI files matched among 3 shallow root checks.'
+        },
+        packageManagers: {
+          indicators: ['package.json'],
+          detected: ['npm'],
+          packageJsonPackageManager: 'npm',
+          emptyReason: null
+        },
+        validationCommands: {
+          selected: ['npm run validate', 'npm run test'],
+          packageJsonScripts: ['npm run validate', 'npm run test'],
+          makeTargets: [],
+          justTargets: [],
+          ciCommands: [],
+          manifestSignals: [],
+          emptyReason: null
+        },
+        lifecycleCommands: {
+          selected: ['npm run validate', 'npm run test'],
+          packageJsonScripts: ['npm run validate', 'npm run test'],
+          makeTargets: [],
+          justTargets: [],
+          ciCommands: [],
+          manifestSignals: [],
+          emptyReason: null
+        }
+      },
+      packageJson: {
+        name: 'nested-demo',
+        packageManager: 'npm',
+        hasWorkspaces: false,
+        scriptNames: ['validate', 'test'],
+        lifecycleCommands: ['npm run validate', 'npm run test'],
+        validationCommands: ['npm run validate', 'npm run test'],
+        testSignals: ['package.json defines a test script.']
+      }
+    },
     gitStatus: {
       available: false,
       raw: '',
@@ -171,9 +273,14 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Outcome: complete \(selected task\)/);
   assert.match(report, /- Backlog remaining: 2/);
   assert.match(report, /- Next actionable task available: yes/);
+  assert.match(report, /- Execution message: codex exec completed successfully\./);
   assert.match(report, /- Current prompt kind: fix-failure/);
   assert.match(report, /- Last prompt: iteration \(cliExec\)/);
   assert.match(report, /- Payload matched rendered artifact: yes/);
+  assert.match(report, /## Repo Context/);
+  assert.match(report, /- Inspected root: ralph-codex-vscode-starter/);
+  assert.match(report, /- Test roots: test/);
+  assert.match(report, /- Package manager indicators: package\.json/);
   assert.match(report, /- Trust level: prepared prompt only/);
   assert.match(report, /Prepared prompt provenance only; later IDE execution may differ/);
   assert.match(report, /- Bundle retention on write: keep latest 25/);

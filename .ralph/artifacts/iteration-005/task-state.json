@@ -1,0 +1,31 @@
+{
+  "selectedTaskId": "T5",
+  "selectedTaskBefore": {
+    "id": "T5",
+    "title": "Cover clipboard and IDE handoff strategies with automated tests and explicit docs",
+    "status": "todo",
+    "notes": "The current test plan explicitly leaves clipboard and VS Code command handoff behavior uncovered.",
+    "validation": "cd ralph-codex-vscode-starter && npm test",
+    "source": {
+      "arrayIndex": 4,
+      "line": 33,
+      "column": 5
+    }
+  },
+  "selectedTaskAfter": {
+    "id": "T5",
+    "title": "Cover clipboard and IDE handoff strategies with automated tests and explicit docs",
+    "status": "done",
+    "notes": "Added command-shell smoke coverage for prompt clipboard auto-copy plus Open Codex IDE clipboard-only, IDE-command, missing-command fallback, and cliExec-warning handoff paths, and documented the operator-facing handoff rules and remaining live-host gaps.",
+    "validation": "cd ralph-codex-vscode-starter && npm test",
+    "source": {
+      "arrayIndex": 4,
+      "line": 33,
+      "column": 5
+    }
+  },
+  "taskFileError": null,
+  "progressChanged": true,
+  "taskFileChanged": true,
+  "humanReviewNeeded": false
+}

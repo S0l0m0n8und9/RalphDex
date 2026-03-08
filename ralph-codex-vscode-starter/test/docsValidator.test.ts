@@ -133,11 +133,67 @@ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('do
   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
 
 See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
+
+## Develop The Extension
+
+Run the extension locally.
+
+## Package And Install A .vsix
+
+Use this path to build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
+
+## Prepare A Prompt For IDE Use
+
+Prepare the next prompt.
+
+## Run One CLI Iteration
+
+Run one iteration.
+
+## Run The Ralph Loop
+
+Run the loop.
+
+## Inspect State
+
+Inspect persisted state.
+
+## Reset State
+
+Reset generated state.
+
+## Diagnostics
+
+Review runtime diagnostics.
 `);
 
   await writeFile(rootPath, 'docs/testing.md', `# Testing
 
 Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
+
+## Authoritative Commands
+
+- \`npm run package\`
+
+## What Is Covered
+
+Stable coverage lives here.
+
+## Stub Smoke Vs Real Activation Smoke
+
+Stable activation notes live here.
+
+## What Is Not Covered
+
+manual \`.vsix\` install still needs an operator check.
+
+## Test Runtime Notes
+
+Stable runtime notes live here.
+
+## Packaging Runtime
+
+\`npm run package\` is supported on Node 20+.
 `);
 
   await writeFile(rootPath, 'docs/invariants.md', `# Invariants

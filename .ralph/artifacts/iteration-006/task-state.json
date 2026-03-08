@@ -1,0 +1,31 @@
+{
+  "selectedTaskId": "T6",
+  "selectedTaskBefore": {
+    "id": "T6",
+    "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+    "status": "todo",
+    "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
+    "validation": "cd ralph-codex-vscode-starter && npm run package",
+    "source": {
+      "arrayIndex": 5,
+      "line": 40,
+      "column": 5
+    }
+  },
+  "selectedTaskAfter": {
+    "id": "T6",
+    "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+    "status": "done",
+    "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+    "validation": "cd ralph-codex-vscode-starter && npm run package",
+    "source": {
+      "arrayIndex": 5,
+      "line": 40,
+      "column": 5
+    }
+  },
+  "taskFileError": null,
+  "progressChanged": true,
+  "taskFileChanged": true,
+  "humanReviewNeeded": false
+}

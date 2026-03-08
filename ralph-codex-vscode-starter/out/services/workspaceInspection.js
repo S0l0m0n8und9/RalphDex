@@ -8,7 +8,7 @@ exports.extractJustTargets = extractJustTargets;
 exports.extractCiCommands = extractCiCommands;
 exports.inferValidationCommands = inferValidationCommands;
 const LIFECYCLE_SCRIPT_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile', 'typecheck'];
-const VALIDATION_TARGET_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile'];
+const VALIDATION_TARGET_ORDER = ['validate', 'check', 'lint', 'test', 'build', 'compile', 'typecheck'];
 const CI_COMMAND_PATTERNS = [
     /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?[a-z0-9:_-]+/gi,
     /\bpytest\b(?:\s+[^\n\r#]+)?/gi,
@@ -50,6 +50,15 @@ function scriptCommand(packageManager, script) {
             return `npm run ${script}`;
     }
 }
+function collectScriptCommands(scriptNames, preferredOrder, packageManager) {
+    const commands = [];
+    const available = [...scriptNames].sort();
+    for (const prefix of preferredOrder) {
+        const matches = available.filter((script) => script === prefix || script.startsWith(`${prefix}:`));
+        commands.push(...matches.map((script) => scriptCommand(packageManager, script)));
+    }
+    return uniqueOrdered(commands);
+}
 function summarizePackageJson(pkg) {
     const candidate = typeof pkg === 'object' && pkg !== null ? pkg : {};
     const scriptsCandidate = typeof candidate.scripts === 'object' && candidate.scripts !== null
@@ -57,23 +66,19 @@ function summarizePackageJson(pkg) {
         : {};
     const scriptNames = Object.keys(scriptsCandidate);
     const packageManager = normalizePackageManager(typeof candidate.packageManager === 'string' ? candidate.packageManager : null);
-    const lifecycleCommands = LIFECYCLE_SCRIPT_ORDER
-        .filter((script) => scriptNames.includes(script))
-        .map((script) => scriptCommand(packageManager, script));
-    const validationCommands = VALIDATION_TARGET_ORDER
-        .filter((script) => scriptNames.includes(script))
-        .map((script) => scriptCommand(packageManager, script));
+    const lifecycleCommands = collectScriptCommands(scriptNames, LIFECYCLE_SCRIPT_ORDER, packageManager);
+    const validationCommands = collectScriptCommands(scriptNames, VALIDATION_TARGET_ORDER, packageManager);
     const testSignals = new Set();
-    if (scriptNames.includes('test')) {
+    if (scriptNames.some((name) => name === 'test' || name.startsWith('test:'))) {
         testSignals.add('package.json defines a test script.');
     }
-    if (scriptNames.includes('lint')) {
+    if (scriptNames.some((name) => name === 'lint' || name.startsWith('lint:'))) {
         testSignals.add('package.json defines a lint script.');
     }
-    if (scriptNames.includes('validate') || scriptNames.includes('check')) {
+    if (scriptNames.some((name) => ['validate', 'check'].some((prefix) => name === prefix || name.startsWith(`${prefix}:`)))) {
         testSignals.add('package.json defines a validate/check script.');
     }
-    if (scriptNames.includes('build') || scriptNames.includes('compile')) {
+    if (scriptNames.some((name) => ['build', 'compile', 'typecheck'].some((prefix) => name === prefix || name.startsWith(`${prefix}:`)))) {
         testSignals.add('package.json defines a build/compile script.');
     }
     return {
@@ -121,7 +126,7 @@ function detectPackageManagers(fileNames, packageJson) {
     }
     return Array.from(managers);
 }
-function inferTestSignals(manifests, docs, packageJson) {
+function inferTestSignals(manifests, docs, tests, packageJson) {
     const signals = new Set(packageJson?.testSignals ?? []);
     if (manifests.includes('pyproject.toml') || manifests.includes('requirements.txt')) {
         signals.add('Check pytest/tox/nox configuration.');
@@ -143,6 +148,9 @@ function inferTestSignals(manifests, docs, packageJson) {
     }
     if (docs.some((item) => item.toLowerCase().startsWith('readme'))) {
         signals.add('README.md may define the canonical build/test commands.');
+    }
+    if (tests.length > 0) {
+        signals.add(`Detected test roots: ${tests.join(', ')}.`);
     }
     return Array.from(signals);
 }

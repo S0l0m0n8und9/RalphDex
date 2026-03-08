@@ -1,0 +1,19 @@
+**Changed Files**
+- Added nested-root regression coverage in [workspaceScanner.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts).
+- Updated status-report fixtures to include the richer workspace scan shape in [statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts).
+- Marked T3 complete in [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json) and recorded the outcome in [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+- Refreshed generated runtime artifacts with `npm run compile`, including [workspaceScanner.js](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/out/services/workspaceScanner.js), [workspaceInspection.js](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/out/services/workspaceInspection.js), and [statusReport.js](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/out/ralph/statusReport.js).
+
+**Validation Results**
+- `cd ralph-codex-vscode-starter && npm test`: passed, 15/15 tests.
+- `cd ralph-codex-vscode-starter && npm run compile`: passed.
+
+**Assumptions / Blockers**
+- Assumed the existing TypeScript nested-root scanner logic was the intended source of truth; the active gap was stale generated runtime plus lagging test fixtures.
+- No blocker.
+
+**Known Limitations / Follow-up**
+- T4 is still open: prompt repo-context rendering should get its own explicit regression coverage.
+- The extension worktree had unrelated pre-existing source changes; I left those in place and only integrated the pieces needed to complete T3.
+
+Compact summary: locked in nested child-root detection with regression tests, synced the compiled extension runtime to the newer scanner, and marked Ralph task T3 done after `npm test` passed.

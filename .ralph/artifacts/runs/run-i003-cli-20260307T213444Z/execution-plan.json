@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "executionPlan",
+  "provenanceId": "run-i003-cli-20260307T213444Z",
+  "iteration": 3,
+  "selectedTaskId": "T3",
+  "selectedTaskTitle": "Detect nested project roots so Ralph can inspect the starter extension from the repo root",
+  "promptKind": "iteration",
+  "promptTarget": "cliExec",
+  "selectionReason": "A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.",
+  "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-003.prompt.md",
+  "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-003/prompt.md",
+  "promptEvidencePath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-003/prompt-evidence.json",
+  "promptHash": "sha256:6c0a936b81a42be3c6179a5f2536da69d6388c99bb2c756ca036dd7a516b4fe3",
+  "promptByteLength": 5557,
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-003",
+  "createdAt": "2026-03-07T21:34:44.402Z"
+}

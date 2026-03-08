@@ -61,6 +61,20 @@ async function seedWorkspace(rootPath: string): Promise<void> {
   }, null, 2), 'utf8');
 }
 
+async function readLatestPrompt(rootPath: string): Promise<string> {
+  return fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-prompt.md'), 'utf8');
+}
+
+async function readGeneratedPromptName(rootPath: string): Promise<string> {
+  const promptFiles = await fs.readdir(path.join(rootPath, '.ralph', 'prompts'));
+  const generatedPrompt = promptFiles
+    .filter((entry) => entry.endsWith('.prompt.md'))
+    .sort()[0];
+
+  assert.ok(generatedPrompt, 'Expected a generated Ralph prompt file.');
+  return generatedPrompt;
+}
+
 test.beforeEach(() => {
   const harness = vscodeTestHarness();
   harness.reset();
@@ -151,6 +165,126 @@ test('Open Latest Provenance Bundle prefers the human-readable provenance summar
   await vscode.commands.executeCommand('ralphCodex.openLatestProvenanceBundle');
 
   assert.deepEqual(harness.state.shownDocuments, [latestProvenanceSummaryPath]);
+});
+
+test('Prepare Prompt copies the generated prompt when clipboard auto-copy is enabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({ clipboardAutoCopy: true });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.generatePrompt');
+
+  assert.equal(harness.state.clipboardText, await readLatestPrompt(rootPath));
+  assert.equal(harness.state.warningMessages.length, 0);
+});
+
+test('Open Codex IDE in clipboard mode copies the prompt without invoking VS Code handoff commands', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    preferredHandoffMode: 'clipboard',
+    openSidebarCommandId: 'chatgpt.openSidebar',
+    newChatCommandId: 'chatgpt.newChat'
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openCodexAndCopyPrompt');
+
+  assert.equal(harness.state.clipboardText, await readLatestPrompt(rootPath));
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.openSidebar'), false);
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.newChat'), false);
+  assert.equal(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
+  );
+});
+
+test('Open Codex IDE runs configured VS Code handoff commands when ideCommand mode is available', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    preferredHandoffMode: 'ideCommand',
+    openSidebarCommandId: 'chatgpt.openSidebar',
+    newChatCommandId: 'chatgpt.newChat'
+  });
+  harness.setAvailableCommands(['chatgpt.openSidebar', 'chatgpt.newChat']);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openCodexAndCopyPrompt');
+
+  assert.equal(harness.state.clipboardText, await readLatestPrompt(rootPath));
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.openSidebar'), true);
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.newChat'), true);
+  assert.equal(harness.state.warningMessages.length, 0);
+  assert.equal(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
+  );
+});
+
+test('Open Codex IDE warns and falls back to manual paste when configured VS Code commands are unavailable', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    preferredHandoffMode: 'ideCommand',
+    openSidebarCommandId: 'chatgpt.openSidebar',
+    newChatCommandId: 'chatgpt.newChat'
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openCodexAndCopyPrompt');
+
+  assert.equal(harness.state.clipboardText, await readLatestPrompt(rootPath));
+  assert.match(
+    harness.state.warningMessages[0]?.message ?? '',
+    /The configured Codex sidebar command \(chatgpt\.openSidebar\) was not available\..*The configured Codex new-chat command \(chatgpt\.newChat\) was not available\./
+  );
+  assert.equal(
+    harness.state.warningMessages[1]?.message ?? '',
+    `Prompt copied to the clipboard from ${await readGeneratedPromptName(rootPath)}. Open Codex manually and paste it.`
+  );
+});
+
+test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on clipboard handoff', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    preferredHandoffMode: 'cliExec',
+    openSidebarCommandId: 'chatgpt.openSidebar',
+    newChatCommandId: 'chatgpt.newChat'
+  });
+  harness.setAvailableCommands(['chatgpt.openSidebar', 'chatgpt.newChat']);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openCodexAndCopyPrompt');
+
+  assert.equal(harness.state.clipboardText, await readLatestPrompt(rootPath));
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.openSidebar'), false);
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.newChat'), false);
+  assert.equal(
+    harness.state.warningMessages[0]?.message ?? '',
+    'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run CLI Iteration for codex exec.'
+  );
+  assert.equal(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
+  );
 });
 
 test('Reveal Latest Provenance Bundle Directory reveals the newest bundle directory', async () => {

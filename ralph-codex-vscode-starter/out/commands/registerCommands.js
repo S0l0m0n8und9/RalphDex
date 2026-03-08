@@ -163,9 +163,12 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     else if (taskInspection.diagnostics.length > 0) {
         taskFileError = taskInspection.diagnostics.map((diagnostic) => diagnostic.message).join(' ');
     }
+    const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
+        ? vscode.window.activeTextEditor.document.uri.fsPath
+        : null;
     const availableCommands = await vscode.commands.getCommands(true);
     const [workspaceScan, latestArtifacts, gitStatus, codexCliSupport] = await Promise.all([
-        (0, workspaceScanner_1.scanWorkspace)(workspaceFolder.uri.fsPath, workspaceFolder.name),
+        (0, workspaceScanner_1.scanWorkspace)(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
         (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths),
         (0, verifier_1.captureGitStatus)(workspaceFolder.uri.fsPath),
         (0, codexCliSupport_1.inspectCodexCliSupport)(config.codexCommandPath)
@@ -231,6 +234,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         verifierModes: config.verifierModes,
         gitCheckpointMode: config.gitCheckpointMode,
         validationCommandOverride: config.validationCommandOverride || null,
+        workspaceScan,
         gitStatus,
         preflightReport
     };

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "iteration": 6,
+  "kind": "iteration",
+  "target": "cliExec",
+  "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+  "selectionReason": "A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.",
+  "selectedTaskId": "T6",
+  "validationCommand": "cd ralph-codex-vscode-starter && npm run package",
+  "inputs": {
+    "strategyContext": [
+      "- Target: Codex CLI execution via `codex exec`.",
+      "- Operate autonomously inside the repository. Do not rely on interactive clarification to make forward progress.",
+      "- Keep command usage deterministic and concise because Ralph will persist transcripts, verifier output, and stop signals.",
+      "- End with a compact change summary Ralph can pair with verifier evidence."
+    ],
+    "preflightContext": [
+      "- Ready: yes",
+      "- Summary: Preflight ready: Selected task T6. Validation cd ralph-codex-vscode-starter && npm run package. Executable confirmed. Task graph: ok | Workspace/runtime: ok | Codex adapter: 1 warning, 1 info | Validation/verifier: 1 info",
+      "- codexAdapter warning: Codex CLI will be resolved from PATH at runtime: codex. Availability is assumed until execution starts."
+    ],
+    "objectiveContext": "# Product / project brief\n\n## Objective\n\nBuild Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, and orchestration without depending on chat memory.\n\n## Product direction\n\nRalph should let an operator define the work once in `.ralph/`, then execute repeatable Codex-driven iterations that stay inspectable across fresh sessions. The framework needs to strengthen both the quality of agent work and the control plane around it, so each step is deterministic, resumable, and supported by durable evidence.\n\n## Core outcomes\n\n- Turn requirements, progress, and task state into the shared source of truth for all agent activity.\n- Support end-to-end delivery flow across requirements analysis, implementation, validation, and orchestration.\n[trimmed for size]",
+    "repoContext": [
+      "- Workspace: Ralph",
+      "- Root path: /home/admin/Documents/repos/Ralph",
+      "- Manifests: none",
+      "- Source roots: none",
+      "- Package managers: none",
+      "- Validation commands: none",
+      "- Lifecycle commands: none",
+      "- CI files: none",
+      "- Docs: none",
+      "- Test signals: none"
+    ],
+    "runtimeContext": [
+      "- Prompt target: cliExec",
+      "- Current iteration number: 6",
+      "- Next iteration recorded in state: 6",
+      "- Last prompt kind: iteration",
+      "- Last prompt path: .ralph/prompts/iteration-005.prompt.md",
+      "- Last run: succeeded at iteration 5",
+      "- Last iteration outcome: complete at iteration 5",
+      "- PRD path: .ralph/prd.md",
+      "- Progress path: .ralph/progress.md",
+      "- Task file path: .ralph/tasks.json",
+      "- Runtime state path: .ralph/state.json",
+      "- Artifact root: .ralph/artifacts",
+      "- Last iteration summary: Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2"
+    ],
+    "taskContext": [
+      "- Backlog counts: todo 2, in_progress 0, blocked 0, done 5",
+      "- Next actionable task: T6 (todo)",
+      "- Selected task id: T6",
+      "- Title: Prove the packaging path and document the manual `.vsix` install workflow",
+      "- Status: todo",
+      "- Parent task: none",
+      "- Dependencies: none",
+      "- Direct children: none",
+      "- Remaining descendants: none",
+      "- Task validation hint: cd ralph-codex-vscode-starter && npm run package",
+      "- Selected validation command: cd ralph-codex-vscode-starter && npm run package",
+      "- Notes: The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
+      "- Blocker: none"
+    ],
+    "progressContext": [
+      "# Progress",
+      "- Ralph workspace initialized.",
+      "- Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.",
+      "- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.",
+      "- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.",
+      "- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.",
+      "- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.",
+      "- Use this file for durable progress notes between fresh Codex runs."
+    ],
+    "priorIterationContext": [
+      "- Prior iteration: 5",
+      "- Prior outcome classification: complete",
+      "- Prior execution / verification: succeeded / passed",
+      "- Prior follow-up action: continue_next_task",
+      "- Prior summary: Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2",
+      "- Prior stop reason: none",
+      "- Prior validation failure signature: none",
+      "- Additional prior-context signals omitted: 6."
+    ],
+    "operatingRules": [
+      "- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.",
+      "- Do not invent unsupported Codex IDE APIs or hidden handoff channels.",
+      "- Keep architecture thin, deterministic, and file-backed.",
+      "- Make the smallest coherent change that materially advances the selected Ralph task.",
+      "- Prefer the repository’s real validation commands when they exist.",
+      "- Update durable Ralph progress/tasks when the task state materially changes."
+    ],
+    "executionContract": [
+      "1. Inspect the workspace facts and selected Ralph task before editing.",
+      "2. Execute only the selected task, or explain deterministically why no safe task is available.",
+      "3. Implement the smallest coherent improvement that advances the task.",
+      "4. Update durable Ralph files when task state or progress changes.",
+      "5. Run the selected validation command when available and report the concrete result.",
+      "6. End with a compact result Ralph can pair with verifier and artifact evidence."
+    ],
+    "finalResponseContract": [
+      "- Changed files.",
+      "- Validation results.",
+      "- Assumptions or blockers.",
+      "- Known limitations or follow-up work."
+    ]
+  },
+  "provenanceId": "run-i006-cli-20260307T220201Z"
+}

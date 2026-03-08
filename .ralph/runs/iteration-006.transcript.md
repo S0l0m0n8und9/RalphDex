@@ -1,0 +1,8109 @@
+# Codex Exec Transcript
+
+- Command: codex exec --model gpt-5.4 --sandbox workspace-write --config approval_policy="never" --cd /home/admin/Documents/repos/Ralph --output-last-message /home/admin/Documents/repos/Ralph/.ralph/runs/iteration-006.last-message.md -
+- Prompt path: /home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/prompt.md
+- Prompt hash: sha256:9d108df611f18d894848f34f72c921e6b8ba9cee3cc11a041e465ed4bb02bdac
+- Prompt bytes: 6216
+- Stdin hash: sha256:9d108df611f18d894848f34f72c921e6b8ba9cee3cc11a041e465ed4bb02bdac
+- Payload matched prompt artifact: yes
+- Last message path: /home/admin/Documents/repos/Ralph/.ralph/runs/iteration-006.last-message.md
+- Exit code: 0
+
+## Stdout
+
+**Changed**
+
+- [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json#L7) adds repository metadata and changes `npm run package` to `vsce package --no-dependencies`, which is what made packaging succeed in this repo.
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md#L18) now surfaces the local `.vsix` build/install path and switches README doc links to repository-relative links so `vsce` can package them.
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md#L21) now owns the manual `.vsix` packaging/install workflow.
+- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md#L46) now states the validation boundary clearly: packaging is proven, live install remains manual.
+- [src/validation/docsValidator.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts#L160) and [test/docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts#L133) now enforce that the packaging/install docs stay present.
+- [.ralph/tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json#L41) and [.ralph/progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md#L9) mark T6 complete with the packaging evidence.
+
+**Validation**
+
+- `cd ralph-codex-vscode-starter && npm run check:docs` passed.
+- `cd ralph-codex-vscode-starter && npm run package` passed and produced [ralph-codex-workbench-0.1.0.vsix](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix).
+
+**Notes**
+
+Assumption: the current `origin` remote (`https://github.com/S0l0m0n8und9/RalphDex.git`) is the correct repository URL to publish in the extension manifest.
+
+Known follow-up work: packaging still warns that no `LICENSE` file is present and that the extension has no `.vscodeignore` or `files` allowlist, so the VSIX currently includes more files than necessary.
+
+
+## Stderr
+
+OpenAI Codex v0.111.0 (research preview)
+--------
+workdir: /home/admin/Documents/repos/Ralph
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /home/admin/.codex/memories]
+reasoning effort: high
+reasoning summaries: none
+session id: 019cca52-5d4e-7c63-96e3-233d05c558d5
+--------
+user
+# Ralph Prompt: iteration (cliExec)
+
+You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.
+
+## Template Selection
+A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.
+
+## Prompt Strategy
+- Target: Codex CLI execution via `codex exec`.
+- Operate autonomously inside the repository. Do not rely on interactive clarification to make forward progress.
+- Keep command usage deterministic and concise because Ralph will persist transcripts, verifier output, and stop signals.
+- End with a compact change summary Ralph can pair with verifier evidence.
+
+## Preflight Snapshot
+- Ready: yes
+- Summary: Preflight ready: Selected task T6. Validation cd ralph-codex-vscode-starter && npm run package. Executable confirmed. Task graph: ok | Workspace/runtime: ok | Codex adapter: 1 warning, 1 info | Validation/verifier: 1 info
+- codexAdapter warning: Codex CLI will be resolved from PATH at runtime: codex. Availability is assumed until execution starts.
+
+## Objective Snapshot
+# Product / project brief
+
+## Objective
+
+Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, and orchestration without depending on chat memory.
+
+## Product direction
+
+Ralph should let an operator define the work once in `.ralph/`, then execute repeatable Codex-driven iterations that stay inspectable across fresh sessions. The framework needs to strengthen both the quality of agent work and the control plane around it, so each step is deterministic, resumable, and supported by durable evidence.
+
+## Core outcomes
+
+- Turn requirements, progress, and task state into the shared source of truth for all agent activity.
+- Support end-to-end delivery flow across requirements analysis, implementation, validation, and orchestration.
+[trimmed for size]
+
+## Repo Context
+- Workspace: Ralph
+- Root path: /home/admin/Documents/repos/Ralph
+- Manifests: none
+- Source roots: none
+- Package managers: none
+- Validation commands: none
+- Lifecycle commands: none
+- CI files: none
+- Docs: none
+- Test signals: none
+
+## Ralph Runtime Context
+- Prompt target: cliExec
+- Current iteration number: 6
+- Next iteration recorded in state: 6
+- Last prompt kind: iteration
+- Last prompt path: .ralph/prompts/iteration-005.prompt.md
+- Last run: succeeded at iteration 5
+- Last iteration outcome: complete at iteration 5
+- PRD path: .ralph/prd.md
+- Progress path: .ralph/progress.md
+- Task file path: .ralph/tasks.json
+- Runtime state path: .ralph/state.json
+- Artifact root: .ralph/artifacts
+- Last iteration summary: Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2
+
+## Task Focus
+- Backlog counts: todo 2, in_progress 0, blocked 0, done 5
+- Next actionable task: T6 (todo)
+- Selected task id: T6
+- Title: Prove the packaging path and document the manual `.vsix` install workflow
+- Status: todo
+- Parent task: none
+- Dependencies: none
+- Direct children: none
+- Remaining descendants: none
+- Task validation hint: cd ralph-codex-vscode-starter && npm run package
+- Selected validation command: cd ralph-codex-vscode-starter && npm run package
+- Notes: The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.
+- Blocker: none
+
+## Recent Progress
+# Progress
+- Ralph workspace initialized.
+- Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.
+- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
+- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+- Use this file for durable progress notes between fresh Codex runs.
+
+## Prior Iteration Evidence
+- Prior iteration: 5
+- Prior outcome classification: complete
+- Prior execution / verification: succeeded / passed
+- Prior follow-up action: continue_next_task
+- Prior summary: Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2
+- Prior stop reason: none
+- Prior validation failure signature: none
+- Additional prior-context signals omitted: 6.
+
+## Operating Rules
+- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.
+- Do not invent unsupported Codex IDE APIs or hidden handoff channels.
+- Keep architecture thin, deterministic, and file-backed.
+- Make the smallest coherent change that materially advances the selected Ralph task.
+- Prefer the repository’s real validation commands when they exist.
+- Update durable Ralph progress/tasks when the task state materially changes.
+
+## Execution Contract
+1. Inspect the workspace facts and selected Ralph task before editing.
+2. Execute only the selected task, or explain deterministically why no safe task is available.
+3. Implement the smallest coherent improvement that advances the task.
+4. Update durable Ralph files when task state or progress changes.
+5. Run the selected validation command when available and report the concrete result.
+6. End with a compact result Ralph can pair with verifier and artifact evidence.
+
+## Final Response Contract
+- Changed files.
+- Validation results.
+- Assumptions or blockers.
+- Known limitations or follow-up work.
+
+mcp: codex_apps starting
+mcp: codex_apps ready
+mcp startup: ready: codex_apps
+codex
+Inspecting the repository state and the Ralph durable files first, then I’ll trace the current packaging workflow in `ralph-codex-vscode-starter` and make the smallest change that closes T6.
+exec
+/bin/bash -lc pwd in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,220p' .ralph/progress.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,220p' .ralph/state.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,220p' .ralph/tasks.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'rg --files .ralph ralph-codex-vscode-starter | sort' in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+/home/admin/Documents/repos/Ralph
+ succeeded in 50ms:
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Write or refine the project objective in the PRD file",
+      "status": "done",
+      "notes": "The prompt generator reads the PRD file directly."
+    },
+    {
+      "id": "T2",
+      "title": "Replace this seed task list with repo-specific work",
+      "status": "done",
+      "notes": "Keep statuses current so fresh Codex runs can resume deterministically."
+    },
+    {
+      "id": "T3",
+      "title": "Detect nested project roots so Ralph can inspect the starter extension from the repo root",
+      "status": "done",
+      "notes": "Workspace scanning now selects the nested `ralph-codex-vscode-starter` project root when the repo root has no shallow markers, and the runtime build was refreshed so the extension uses the updated scan path.",
+ succeeded in 50ms:
+{
+  "version": 2,
+  "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
+  "nextIteration": 6,
+  "lastPromptKind": "iteration",
+  "lastPromptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-005.prompt.md",
+  "lastRun": {
+    "provenanceId": "run-i005-cli-20260307T215251Z",
+    "iteration": 5,
+    "mode": "loop",
+    "promptKind": "iteration",
+    "startedAt": "2026-03-07T21:52:51.046Z",
+    "finishedAt": "2026-03-07T22:02:01.173Z",
+    "status": "succeeded",
+    "exitCode": 0,
+    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-005.prompt.md",
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-005.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-005.last-message.md",
+    "summary": "Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2"
+  },
+ succeeded in 50ms:
+# Progress
+
+- Ralph workspace initialized.
+- Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.
+- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
+- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+- Use this file for durable progress notes between fresh Codex runs.
+ succeeded in 52ms:
+Total output lines: 330
+
+.ralph/artifacts/iteration-001/cli-invocation.json
+.ralph/artifacts/iteration-001/diff-summary.json
+.ralph/artifacts/iteration-001/execution-plan.json
+.ralph/artifacts/iteration-001/execution-summary.json
+.ralph/artifacts/iteration-001/git-diff.json
+.ralph/artifacts/iteration-001/git-status-after.txt
+.ralph/artifacts/iteration-001/git-status-before.txt
+.ralph/artifacts/iteration-001/iteration-result.json
+.ralph/artifacts/iteration-001/preflight-report.json
+.ralph/artifacts/iteration-001/preflight-summary.md
+.ralph/artifacts/iteration-001/prompt-evidence.json
+.ralph/artifacts/iteration-001/prompt.md
+.ralph/artifacts/iteration-001/stderr.log
+.ralph/artifacts/iteration-001/stdout.log
+.ralph/artifacts/iteration-001/summary.md
+.ralph/artifacts/iteration-001/task-state.json
+.ralph/artifacts/iteration-001/verifier-summary.json
+.ralph/artifacts/iteration-002/cli-invocation.json
+codex
+I’ve confirmed T6 is still untouched in the durable state. Next I’m reading the extension packaging and operator docs to see whether this is purely documentation debt or whether the package script still needs a durable proof point.
+Plan update
+T6 needs two things: an operator-facing `.vsix` install path in the docs, and enough repo evidence that the packaging route is intentional and verifiable.
+  → Inspect extension packaging scripts, current docs, and any existing package artifacts or tests
+  • Implement the minimal doc and proof changes for packaging and manual `.vsix` installation
+  • Run the selected packaging validation and update Ralph durable state files
+exec
+/bin/bash -lc "sed -n '1,240p' ralph-codex-vscode-starter/package.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/README.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/docs/workflows.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/docs/testing.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/AGENTS.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "rg -n \"vsix|package|manual install|install from VSIX|vsce\" ralph-codex-vscode-starter -g '"'!out/**'"'" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+{
+  "name": "ralph-codex-workbench",
+  "displayName": "Ralph Codex Workbench",
+  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+  "version": "0.1.0",
+  "publisher": "starter",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Ralph Codex Workbench supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and Codex CLI execution require workspace trust.",
+      "restrictedConfigurations": [
+ succeeded in 51ms:
+# Workflows
+
+This document owns operator-facing command flows. Semantic rules for invariants, provenance, verifier behavior, and boundaries live in the focused docs linked below.
+
+Related docs:
+
+- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md)
+- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
+- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md)
+
+## Develop The Extension
+
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Start the Extension Development Host with `F5`.
+4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch`.
+
+Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+
+ succeeded in 52ms:
+# Ralph Codex Workbench
+
+Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+
+The extension has two execution paths:
+
+- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
+- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+
+## Quick Start
+
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Open the repo in VS Code and start the Extension Development Host with `F5`.
+4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+
+## Durable Files
+
+Ralph keeps its durable state in the workspace:
+ succeeded in 50ms:
+# Testing
+
+Related docs:
+
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md)
+- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md)
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md)
+- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+
+## Authoritative Commands
+
+- `npm run compile`: build the extension from `src/` to `out/`.
+- `npm run lint`: type-check `src/` and `test/` without emitting files.
+- `npm run check:docs`: run deterministic documentation structure, link, ownership, and lightweight code-doc alignment checks.
+- `npm test`: run `npm run compile:tests` and then execute the Node test suite from `out-test/test/`.
+- `npm run test:activation`: launch a real Extension Development Host smoke test through `@vscode/test-electron`.
+- `npm run validate`: run `compile`, `check:docs`, `lint`, and `test`.
+- `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
+
+## What Is Covered
+ succeeded in 51ms:
+# AGENTS.md
+
+## Purpose
+
+Ralph Codex Workbench is a VS Code extension that:
+
+- builds Ralph prompts from durable workspace files
+- hands prepared prompts to Codex through clipboard plus configurable VS Code command IDs
+- runs controlled `codex exec` iterations with deterministic verification, provenance, and stop behavior
+
+## Working Rules
+
+- Edit `src/` and `test/`. Treat `out/`, `out-test/`, and packaged `.vsix` files as generated artifacts.
+- Keep `AGENTS.md` thin: AGENTS.md is a routing/control document, not the place for detailed durable rules.
+- `package.json` is authoritative for commands, settings, activation events, scripts, and runtime expectations.
+- Keep docs aligned with code in the same change.
+- Prefer updating the focused doc that owns a rule instead of restating that rule elsewhere.
+
+## Authoritative Doc Map
+
+ succeeded in 51ms:
+Total output lines: 284
+
+ralph-codex-vscode-starter/scripts/ensure-node-version.js:10:    'Use a modern Node release before running npm run package.'
+ralph-codex-vscode-starter/package-lock.json:6:  "packages": {
+ralph-codex-vscode-starter/package-lock.json:15:        "@vscode/vsce": "^3.7.1",
+ralph-codex-vscode-starter/package-lock.json:521:    "node_modules/@types/normalize-package-data": {
+ralph-codex-vscode-starter/package-lock.json:523:      "resolved": "https://registry.npmjs.org/@types/normalize-package-data/-/normalize-package-data-2.4.4.tgz",
+ralph-codex-vscode-starter/package-lock.json:570:    "node_modules/@vscode/vsce": {
+ralph-codex-vscode-starter/package-lock.json:572:      "resolved": "https://registry.npmjs.org/@vscode/vsce/-/vsce-3.7.1.tgz",
+ralph-codex-vscode-starter/package-lock.json:581:        "@vscode/vsce-sign": "^2.0.0",
+ralph-codex-vscode-starter/package-lock.json:607:        "vsce": "vsce"
+ralph-codex-vscode-starter/package-lock.json:616:    "node_modules/@vscode/vsce-sign": {
+ralph-codex-vscode-starter/package-lock.json:618:      "resolved": "https://registry.npmjs.org/@vscode/vsce-sign/-/vsce-sign-2.0.9.tgz",
+ralph-codex-vscode-starter/package-lock.json:623:        "@vscode/vsce-sign-alpine-arm64": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:624:        "@vscode/vsce-sign-alpine-x64": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:625:        "@vscode/vsce-sign-darwin-arm64": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:626:        "@vscode/vsce-sign-darwin-x64": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:627:        "@vscode/vsce-sign-linux-arm": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:628:        "@vscode/vsce-sign-linux-arm64": "2.0.6",
+ralph-codex-vscode-starter/package-lock.json:629:        "@vscode/vsce-sign-linux-x64": "2.0.6",
+codex
+The current docs mention `npm run package`, but they stop short of the operator flow T6 asks for: where the `.vsix` lands, how to install it manually, and what is or is not validated. I’m checking whether the repo already has enough packaging metadata to turn this into a durable documented workflow instead of adding unnecessary code.
+exec
+/bin/bash -lc "rg -n '\"scripts\"|\"package\"|vsce' ralph-codex-vscode-starter/package.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '240,420p' ralph-codex-vscode-starter/package.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "find ralph-codex-vscode-starter -maxdepth 1 -type f -name '*.vsix' -printf '%f\\n' | sort" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,200p' ralph-codex-vscode-starter/scripts/ensure-node-version.js" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+241:  "scripts": {
+252:    "package": "npm run check:runtime && vsce package"
+259:    "@vscode/vsce": "^3.7.1"
+ succeeded in 50ms:
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "compile:tests": "tsc -p ./tsconfig.test.json",
+    "watch": "tsc -watch -p ./",
+    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
+    "check:docs": "node ./scripts/check-docs.js",
+    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js",
+    "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
+    "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+    "check:runtime": "node ./scripts/ensure-node-version.js",
+    "vscode:prepublish": "npm run compile",
+    "package": "npm run check:runtime && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/vscode": "^1.95.0",
+    "@vscode/test-electron": "^2.5.2",
+    "typescript": "^5.8.2",
+    "@vscode/vsce": "^3.7.1"
+ succeeded in 51ms:
+ralph-codex-workbench-0.1.0.vsix
+ succeeded in 50ms:
+#!/usr/bin/env node
+
+const minimumMajor = 20;
+const current = process.versions.node;
+const major = Number.parseInt(current.split('.')[0] ?? '0', 10);
+
+if (Number.isNaN(major) || major < minimumMajor) {
+  console.error(
+    `Packaging requires Node ${minimumMajor}+; current runtime is ${current}. ` +
+    'Use a modern Node release before running npm run package.'
+  );
+  process.exit(1);
+}
+
+console.log(`Node runtime ${current} satisfies the packaging requirement (>= ${minimumMajor}).`);
+exec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '260,560p' ralph-codex-vscode-starter/src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '560,860p' ralph-codex-vscode-starter/src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+export interface DocsValidationIssue {
+  code: string;
+  filePath: string;
+  message: string;
+}
+
+interface MarkdownHeading {
+  depth: number;
+  text: string;
+  slug: string;
+  line: number;
+}
+
+interface MarkdownLink {
+  text: string;
+  target: string;
+  line: number;
+ succeeded in 51ms:
+      repoRoot: input.repoRoot,
+      sourcePath: 'AGENTS.md',
+      sectionName: 'Authoritative Doc Map',
+      sectionBody: docMapBody,
+      requiredTargets: REQUIRED_AGENTS_DOC_MAP_TARGETS,
+      issues: input.issues
+    });
+  }
+
+  const codeOwnersBody = getSectionBody(agents.text, agents.parsed.headings, 'Code Owners For Behavior');
+  if (codeOwnersBody !== null) {
+    validateRequiredCodeOwnerEntries({
+      sectionBody: codeOwnersBody,
+      issues: input.issues
+    });
+    await validateBacktickedFileReferences({
+      repoRoot: input.repoRoot,
+      sourcePath: 'AGENTS.md',
+      sectionBody: codeOwnersBody,
+      issues: input.issues
+ succeeded in 50ms:
+  sourcePath: string;
+  sectionBody: string;
+  issues: DocsValidationIssue[];
+}): Promise<void> {
+  for (const token of extractBacktickedFileReferences(input.sectionBody)) {
+    const absolutePath = path.resolve(input.repoRoot, token);
+    if (!(await pathExists(absolutePath))) {
+      input.issues.push({
+        code: 'missing_file_reference',
+        filePath: input.sourcePath,
+        message: `Referenced file does not exist: ${token}`
+      });
+    }
+  }
+}
+
+function validateDocumentedListMatches(input: {
+  sourcePath: string;
+  sectionName: string;
+  documentedValues: string[];
+ succeeded in 51ms:
+import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import test from 'node:test';
+import { validateRepositoryDocs } from '../src/validation/docsValidator';
+
+async function makeTempRoot(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-docs-validator-'));
+}
+
+async function writeFile(rootPath: string, relativePath: string, content: string): Promise<void> {
+  const absolutePath = path.join(rootPath, relativePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fs.writeFile(absolutePath, content, 'utf8');
+}
+
+async function seedValidRepository(rootPath: string): Promise<void> {
+  const absolute = (relativePath: string) => path.join(rootPath, relativePath);
+
+codex
+I found a clean way to make T6 durable instead of just adding prose: put the manual `.vsix` operator flow in the workflow docs, note the validation boundary in testing docs, and extend the docs validator so those packaging/install sections can’t silently disappear later.
+codex
+I’m applying the doc and validator edits now. The goal is to leave one authoritative operator workflow for packaging/install, plus a cheap check that keeps it from drifting.
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md
+@@ -52,3 +52,3 @@
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+@@ -69 +69,2 @@
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -158,2 +158,34 @@
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -135,2 +135,34 @@
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+@@ -140,2 +172,26 @@
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+@@ -17,2 +17,4 @@
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md
+@@ -20,2 +20,16 @@
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+apply_patch(auto_approved=true) exited 0 in 23ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The edits are in place. I’m running the lightweight docs gate first so I can catch any validator drift before the actual packaging validation rewrites generated artifacts.
+exec
+/bin/bash -lc 'git status --short' in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+ M .ralph/artifacts/latest-cli-invocation.json
+ M .ralph/artifacts/latest-execution-plan.json
+ M .ralph/artifacts/latest-preflight-report.json
+ M .ralph/artifacts/latest-preflight-summary.md
+ M .ralph/artifacts/latest-prompt-evidence.json
+ M .ralph/artifacts/latest-prompt.md
+ M .ralph/artifacts/latest-provenance-bundle.json
+ M .ralph/artifacts/latest-provenance-summary.md
+ M .ralph/artifacts/latest-result.json
+ M .ralph/artifacts/latest-summary.md
+ M .ralph/artifacts/runs/run-i002-cli-20260307T212740Z/provenance-bundle.json
+ M .ralph/artifacts/runs/run-i002-cli-20260307T212740Z/summary.md
+ M .ralph/logs/extension.log
+ M .ralph/progress.md
+ M .ralph/state.json
+ M .ralph/tasks.json
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/architecture.md
+ M ralph-codex-vscode-starter/docs/boundaries.md
+ M ralph-codex-vscode-starter/docs/provenance.md
+exec
+/bin/bash -lc 'npm run check:docs' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 92ms:
+Documentation validation passed.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The docs gate passed. The workspace is already dirty in many Ralph and extension files from earlier activity, so I’m keeping this change scoped and will only touch the durable task/progress entries needed to record T6 after the packaging run succeeds.
+exec
+/bin/bash -lc 'npm run package' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+ exited 1 in 2.72s:
+
+> ralph-codex-workbench@0.1.0 check:runtime
+> node ./scripts/ensure-node-version.js
+
+Node runtime 24.14.0 satisfies the packaging requirement (>= 20).
+Executing prepublish script 'npm run vscode:prepublish'...
+
+> ralph-codex-workbench@0.1.0 vscode:prepublish
+> npm run compile
+
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+ WARNING  A 'repository' field is missing from the 'package.json' manifest file.
+Use --allow-missing-repository to bypass.
+ ERROR  Extension entrypoint(s) missing. Make sure these files exist and aren't ignored by '.vscodeignore':
+  extension/out/extension.js
+codex
+Packaging is in flight. `vsce` has already passed the Node runtime gate and kicked off the prepublish compile hook; I’m waiting for the archive step to finish so I can record the exact artifact result.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+`npm run package` failed for a real packaging reason, which is useful: `vsce` is rejecting the current manifest because the package omits the repository metadata and, more importantly, it thinks the extension entrypoint is missing from the packaged file set. I’m tracing the packaging inputs now so I can fix the actual release path instead of just documenting a broken command.
+exec
+/bin/bash -lc 'ls -la ralph-codex-vscode-starter' in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "rg --files ralph-codex-vscode-starter -g '.vscodeignore' -g '.npmignore' -g 'README*' -g 'package.json'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "if [ -f ralph-codex-vscode-starter/.vscodeignore ]; then sed -n '1,200p' ralph-codex-vscode-starter/.vscodeignore; fi" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'test -f ralph-codex-vscode-starter/out/extension.js && echo exists || echo missing' in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "node -e \"const p=require('./ralph-codex-vscode-starter/package.json'); console.log(JSON.stringify({main:p.main,files:p.files,repository:p.repository,publisher:p.publisher,name:p.name,version:p.version},null,2))\"" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+total 440
+drwxrwxr-x  14 admin admin   4096 Mar  8 07:37 .
+drwxrwxr-x   7 admin admin   4096 Mar  8 09:54 ..
+-rw-rw-r--   1 admin admin     64 Mar  7 22:17 .gitignore
+drwxrwxr-x   3 admin admin   4096 Mar  6 18:33 .ralph
+drwxrwxr-x   2 admin admin   4096 Mar  6 18:33 .vscode
+drwxrwxr-x   3 admin admin   4096 Mar  7 13:14 .vscode-test
+-rw-rw-r--   1 admin admin   3958 Mar  8 09:57 AGENTS.md
+-rw-rw-r--   1 admin admin   4750 Mar  8 11:08 README.md
+drwxrwxr-x   2 admin admin   4096 Mar  8 07:37 docs
+drwxrwxr-x   2 admin admin   4096 Mar  6 18:27 media
+drwxrwxr-x 273 admin admin  12288 Mar  7 13:07 node_modules
+drwxrwxr-x   9 admin admin   4096 Mar  8 09:57 out
+drwxrwxr-x   4 admin admin   4096 Mar  7 09:04 out-test
+-rw-rw-r--   1 admin admin 147260 Mar  7 13:21 package-lock.json
+-rw-r--r--   1 admin admin  10805 Mar  8 09:57 package.json
+drwxrwxr-x   2 admin admin   4096 Mar  7 21:32 prompt-templates
+-rw-rw-r--   1 admin admin 198933 Mar  7 11:55 ralph-codex-workbench-0.1.0.vsix
+drwxrwxr-x   2 admin admin   4096 Mar  8 09:57 scripts
+drwxrwxr-x   9 admin admin   4096 Mar  8 09:57 src
+ succeeded in 51ms:
+ralph-codex-vscode-starter/README.md
+ralph-codex-vscode-starter/package.json
+ succeeded in 51ms:
+
+ succeeded in 51ms:
+exists
+ succeeded in 51ms:
+{
+  "main": "./out/extension.js",
+  "publisher": "starter",
+  "name": "ralph-codex-workbench",
+  "version": "0.1.0"
+}
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc "sed -n '1,200p' ralph-codex-vscode-starter/.gitignore" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+node_modules/
+out-test/
+*.vsix
+out-test/
+.vscode-test/
+.ralph/
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+I verified the compiled entrypoint really exists on disk, so the failure is happening at the package-selection layer rather than TypeScript output. I’m checking what `vsce` thinks should go into the archive and whether the manifest needs explicit packaging metadata.
+exec
+/bin/bash -lc 'npx vsce ls' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc 'npm pack --dry-run' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter exited 243 in 361ms:
+npm warn gitignore-fallback No .npmignore file found, using .gitignore for file exclusion. Consider creating a .npmignore file to explicitly control published files.
+npm error code EACCES
+npm error syscall open
+npm error path /home/admin/.npm/_cacache/tmp/c39db5bc
+npm error errno -13
+npm error
+npm error Your cache folder contains root-owned files, due to a bug in
+npm error previous versions of npm which has since been addressed.
+npm error
+npm error To permanently fix this problem, please run:
+npm error   sudo chown -R 1000:1000 "/home/admin/.npm"
+npm error Log files were not written due to an error writing to the directory: /home/admin/.npm/_logs
+npm error You can rerun the command with `--loglevel=verbose` to see the logs in your terminal
+ succeeded in 1.00s:
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce ls --tree --allow-missing-repository' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter exited 1 in 321ms:
+error: unknown option '--allow-missing-repository'
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce ls --tree' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 739ms:
+ralph-codex-workbench-0.1.0.vsix
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce --help' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 331ms:
+Usage: vsce <command>
+
+VS Code Extensions Manager
+To learn more about the VS Code extension API:
+https://aka.ms/vscode-extension-api
+To connect with the VS Code extension developer community:
+https://aka.ms/vscode-discussions
+
+Options:
+  -V, --version                      output the version number
+  -h, --help                         display help for command
+
+Commands:
+  ls [options]                       Lists all the files that will be
+                                     published/packaged
+  package|pack [options] [version]   Packages an extension
+  publish [options] [version]        Publishes an extension
+  unpublish [options] [extensionid]  Removes an extension from the marketplace.
+                                     Example extension id:
+                                     ms-vscode.live-server.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce ls --help' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 353ms:
+Usage: vsce ls [options]
+
+Lists all the files that will be published/packaged
+
+Options:
+  --tree                         Prints the files in a tree format (default:
+                                 false)
+  --yarn                         Use yarn instead of npm (default inferred from
+                                 presence of yarn.lock or .yarnrc)
+  --no-yarn                      Use npm instead of yarn (default inferred from
+                                 absence of yarn.lock or .yarnrc)
+  --packagedDependencies <path>  Select packages that should be published only
+                                 (includes dependencies)
+  --ignoreFile <path>            Indicate alternative .vscodeignore
+  --dependencies                 Enable dependency detection via npm or yarn
+  --no-dependencies              Disable dependency detection via npm or yarn
+  --readme-path <path>           Path to README file (defaults to README.md)
+  --follow-symlinks              Recurse into symlinked directories instead of
+                                 treating them as files
+  -h, --help                     display help for command
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce ls --no-dependencies' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 779ms:
+tsconfig.test.json
+tsconfig.json
+package.json
+README.md
+AGENTS.md
+.gitignore
+test/workspaceSupport.test.ts
+test/workspaceScanner.test.ts
+test/workspaceInspection.test.ts
+test/verifier.test.ts
+test/taskFile.test.ts
+test/statusReport.test.ts
+test/stateManager.test.ts
+test/register-vscode-stub.cjs
+test/promptBuilder.test.ts
+test/preflight.test.ts
+test/loopLogic.test.ts
+test/iterationEngine.integration.test.ts
+test/docsValidator.test.ts
+test/commandShell.smoke.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce package --allow-missing-repository' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+ exited 1 in 2.53s:
+Executing prepublish script 'npm run vscode:prepublish'...
+
+> ralph-codex-workbench@0.1.0 vscode:prepublish
+> npm run compile
+
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+ ERROR  Extension entrypoint(s) missing. Make sure these files exist and aren't ignored by '.vscodeignore':
+  extension/out/extension.js
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc "./node_modules/.bin/vsce ls --dependencies | rg '"'^out/extension'"\\.js"'$|''^out/extension'"\\.js\\.map"'$|''^README'"\\.md"'$|''^package'"\\.json"'$'"' -n" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter exited 1 in 712ms:
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc './node_modules/.bin/vsce ls --dependencies' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 716ms:
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The failure is narrower than it first looked: `vsce ls` shows the extension files when dependency crawling is disabled, but the default dependency-enabled path produces an empty package set in this repo. I’m verifying that the release path is stable with `--no-dependencies`, which is appropriate here because the extension has no runtime `dependencies` to bundle.
+exec
+/bin/bash -lc './node_modules/.bin/vsce package --no-dependencies --allow-missing-repository' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+ exited 1 in 2.69s:
+Executing prepublish script 'npm run vscode:prepublish'...
+
+> ralph-codex-workbench@0.1.0 vscode:prepublish
+> npm run compile
+
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+ ERROR  Couldn't detect the repository where this extension is published. The link '/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md' will be broken in README.md. GitHub/GitLab repositories will be automatically detected. Otherwise, please provide the repository URL in package.json or use the --baseContentUrl and --baseImagesUrl options.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc 'git remote -v' in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+origin	https://github.com/S0l0m0n8und9/RalphDex.git (fetch)
+origin	https://github.com/S0l0m0n8und9/RalphDex.git (push)
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The packaging failure exposed a second real issue: the extension manifest lacks repository metadata, and the README uses workstation-local absolute links that `vsce` cannot publish. I’m fixing both so the release artifact is actually shippable, not just buildable on this machine.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc "sed -n '1,220p' ralph-codex-vscode-starter/README.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,80p' ralph-codex-vscode-starter/package.json" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+# Ralph Codex Workbench
+
+Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+
+The extension has two execution paths:
+
+- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
+- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+
+## Quick Start
+
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Open the repo in VS Code and start the Extension Development Host with `F5`.
+4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+
+For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
+
+## Durable Files
+ succeeded in 50ms:
+{
+  "name": "ralph-codex-workbench",
+  "displayName": "Ralph Codex Workbench",
+  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+  "version": "0.1.0",
+  "publisher": "starter",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Ralph Codex Workbench supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and Codex CLI execution require workspace trust.",
+      "restrictedConfigurations": [
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..650e5ad0318439e269e1af9b68945387b4082ecc
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json
+@@ -6,2 +6,7 @@
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+@@ -251,3 +256,3 @@
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+@@ -17,3 +17,3 @@
+ 
+-For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md).
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
+ 
+@@ -32,3 +32,3 @@
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+@@ -52,10 +52,10 @@
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+@@ -68,2 +68,2 @@
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+apply_patch(auto_approved=true) exited 0 in 18ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The fix is in: the package script now uses the packaging mode that actually includes this extension’s file set, and the manifest/README now give `vsce` enough repository context to package cleanly. I’m rerunning the docs gate and then the real `npm run package` path.
+exec
+/bin/bash -lc 'npm run check:docs' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 67ms:
+Documentation validation passed.
+exec
+/bin/bash -lc "./node_modules/.bin/vsce ls --no-dependencies | rg '"'^out/extension'"\\.js"'$|''^README'"\\.md"'$|''^package'"\\.json"'$'"' -n" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 763ms:
+3:package.json
+4:README.md
+41:out/extension.js
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc 'npm run package' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+ succeeded in 3.37s:
+
+> ralph-codex-workbench@0.1.0 check:runtime
+> node ./scripts/ensure-node-version.js
+
+Node runtime 24.14.0 satisfies the packaging requirement (>= 20).
+Executing prepublish script 'npm run vscode:prepublish'...
+
+> ralph-codex-workbench@0.1.0 vscode:prepublish
+> npm run compile
+
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+ WARNING  LICENSE, LICENSE.md, or LICENSE.txt not found
+ WARNING  Neither a .vscodeignore file nor a "files" property in package.json was found. To ensure only necessary files are included in your extension, add a .vscodeignore file or specify the "files" property in package.json. More info: https://aka.ms/vscode-vscodeignore
+
+ INFO  Files included in the VSIX:
+ralph-codex-workbench-0.1.0.vsix
+├─ [Content_Types].xml 
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+The packaging command now passes and produces the `.vsix`. I’m updating the durable Ralph task/progress records next so a fresh run sees T6 as complete with the actual packaging evidence and remaining warnings captured in the notes.
+file update
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+@@ -42,4 +42,4 @@
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+@@ -8,2 +8,3 @@
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+apply_patch(auto_approved=true) exited 0 in 23ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+Plan update
+The operator docs, package metadata, and package script are updated, and the selected packaging validation now succeeds. I’m doing a final readback of the touched files and durable state before closing.
+  ✓ Inspect extension packaging scripts, current docs, and any existing package artifacts or tests
+  ✓ Implement the minimal doc and proof changes for packaging and manual `.vsix` installation
+  → Run the selected packaging validation and update Ralph durable state files
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+exec
+/bin/bash -lc 'git diff -- .ralph/tasks.json .ralph/progress.md ralph-codex-vscode-starter/package.json ralph-codex-vscode-starter/README.md ralph-codex-vscode-starter/docs/workflows.md ralph-codex-vscode-starter/docs/testing.md ralph-codex-vscode-starter/src/validation/docsValidator.ts ralph-codex-vscode-starter/test/docsValidator.test.ts' in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'git status --short -- .ralph/tasks.json .ralph/progress.md ralph-codex-vscode-starter/package.json ralph-codex-vscode-starter/README.md ralph-codex-vscode-starter/docs/workflows.md ralph-codex-vscode-starter/docs/testing.md ralph-codex-vscode-starter/src/validation/docsValidator.ts ralph-codex-vscode-starter/test/docsValidator.test.ts ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix' in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 4763bc1..486825c 100644
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -2,4 +2,9 @@
+ 
+ - Ralph workspace initialized.
+ - Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.
++- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
++- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
++- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
++- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 20d21e7..7acdbf9 100644
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -10,8 +10,50 @@
+     {
+ succeeded in 51ms:
+ M .ralph/progress.md
+ M .ralph/tasks.json
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/testing.md
+ M ralph-codex-vscode-starter/docs/workflows.md
+ M ralph-codex-vscode-starter/package.json
+ M ralph-codex-vscode-starter/src/validation/docsValidator.ts
+ M ralph-codex-vscode-starter/test/docsValidator.test.ts
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+I’ve finished the implementation and durable-state update. I’m collecting the exact file references and the packaging warnings so the close-out is precise and compact.
+exec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/package.json | sed -n '1,25p;248,260p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/README.md | sed -n '1,90p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/docs/workflows.md | sed -n '1,70p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/docs/testing.md | sed -n '1,90p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/src/validation/docsValidator.ts | sed -n '148,200p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba ralph-codex-vscode-starter/test/docsValidator.test.ts | sed -n '128,210p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "nl -ba .ralph/tasks.json | sed -n '35,55p'; nl -ba .ralph/progress.md | sed -n '1,20p'" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+     1	{
+     2	  "name": "ralph-codex-workbench",
+     3	  "displayName": "Ralph Codex Workbench",
+     4	  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+     5	  "version": "0.1.0",
+     6	  "publisher": "starter",
+     7	  "repository": {
+     8	    "type": "git",
+     9	    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
+    10	    "directory": "ralph-codex-vscode-starter"
+    11	  },
+    12	  "license": "MIT",
+    13	  "engines": {
+    14	    "vscode": "^1.95.0",
+    15	    "node": ">=20"
+    16	  },
+    17	  "categories": [
+    18	    "AI",
+    19	    "Other"
+    20	  ],
+ succeeded in 50ms:
+     1	# Ralph Codex Workbench
+     2	
+     3	Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+     4	
+     5	The extension has two execution paths:
+     6	
+     7	- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
+     8	- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+     9	
+    10	## Quick Start
+    11	
+    12	1. Run `npm install`.
+    13	2. Run `npm run compile`.
+    14	3. Open the repo in VS Code and start the Extension Development Host with `F5`.
+    15	4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+    16	5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+    17	
+    18	For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
+    19	
+    20	## Durable Files
+ succeeded in 50ms:
+     1	# Workflows
+     2	
+     3	This document owns operator-facing command flows. Semantic rules for invariants, provenance, verifier behavior, and boundaries live in the focused docs linked below.
+     4	
+     5	Related docs:
+     6	
+     7	- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md)
+     8	- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
+     9	- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+    10	- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md)
+    11	
+    12	## Develop The Extension
+    13	
+    14	1. Run `npm install`.
+    15	2. Run `npm run compile`.
+    16	3. Start the Extension Development Host with `F5`.
+    17	4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch`.
+    18	
+    19	Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+    20	
+ succeeded in 51ms:
+     1	# Testing
+     2	
+     3	Related docs:
+     4	
+     5	- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md)
+     6	- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md)
+     7	- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md)
+     8	- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+     9	
+    10	## Authoritative Commands
+    11	
+    12	- `npm run compile`: build the extension from `src/` to `out/`.
+    13	- `npm run lint`: type-check `src/` and `test/` without emitting files.
+    14	- `npm run check:docs`: run deterministic documentation structure, link, ownership, and lightweight code-doc alignment checks.
+    15	- `npm test`: run `npm run compile:tests` and then execute the Node test suite from `out-test/test/`.
+    16	- `npm run test:activation`: launch a real Extension Development Host smoke test through `@vscode/test-electron`.
+    17	- `npm run validate`: run `compile`, `check:docs`, `lint`, and `test`.
+    18	- `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
+    19	
+    20	## What Is Covered
+ succeeded in 50ms:
+   148	      'Codex Product Boundary',
+   149	      'Trust Boundary',
+   150	      'Control-Plane Boundary',
+   151	      'Workspace And Runtime Boundary',
+   152	      'Git And Safety Boundary',
+   153	      'Testing Boundary'
+   154	    ],
+   155	    requiredFragments: [
+   156	      'explicitly does not try to do',
+   157	      'trust guarantees stop'
+   158	    ]
+   159	  },
+   160	  'docs/workflows.md': {
+   161	    requiredHeadings: [
+   162	      'Develop The Extension',
+   163	      'Package And Install A .vsix',
+   164	      'Prepare A Prompt For IDE Use',
+   165	      'Run One CLI Iteration',
+   166	      'Run The Ralph Loop',
+   167	      'Inspect State',
+ succeeded in 51ms:
+   128	  await writeFile(rootPath, 'docs/architecture.md', `# Architecture
+   129	
+   130	See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
+   131	`);
+   132	
+   133	  await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+   134	
+   135	See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
+   136	
+   137	## Develop The Extension
+   138	
+   139	Run the extension locally.
+   140	
+   141	## Package And Install A .vsix
+   142	
+   143	Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
+   144	
+   145	## Prepare A Prompt For IDE Use
+   146	
+   147	Prepare the next prompt.
+ succeeded in 51ms:
+    35	      "title": "Cover clipboard and IDE handoff strategies with automated tests and explicit docs",
+    36	      "status": "done",
+    37	      "notes": "Added command-shell smoke coverage for prompt clipboard auto-copy plus Open Codex IDE clipboard-only, IDE-command, missing-command fallback, and cliExec-warning handoff paths, and documented the operator-facing handoff rules and remaining live-host gaps.",
+    38	      "validation": "cd ralph-codex-vscode-starter && npm test"
+    39	    },
+    40	    {
+    41	      "id": "T6",
+    42	      "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+    43	      "status": "done",
+    44	      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+    45	      "validation": "cd ralph-codex-vscode-starter && npm run package"
+    46	    },
+    47	    {
+    48	      "id": "T7",
+    49	      "title": "Exercise a real CLI iteration against a temp workspace and tighten any artifact or verifier gaps it exposes",
+    50	      "status": "todo",
+    51	      "dependsOn": [
+    52	        "T3",
+    53	        "T4"
+    54	      ],
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+Plan update
+  ✓ Inspect extension packaging scripts, current docs, and any existing package artifacts or tests
+  ✓ Implement the minimal doc and proof changes for packaging and manual `.vsix` installation
+  ✓ Run the selected packaging validation and update Ralph durable state files
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+codex
+**Changed**
+
+- [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json#L7) adds repository metadata and changes `npm run package` to `vsce package --no-dependencies`, which is what made packaging succeed in this repo.
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md#L18) now surfaces the local `.vsix` build/install path and switches README doc links to repository-relative links so `vsce` can package them.
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md#L21) now owns the manual `.vsix` packaging/install workflow.
+- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md#L46) now states the validation boundary clearly: packaging is proven, live install remains manual.
+- [src/validation/docsValidator.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts#L160) and [test/docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts#L133) now enforce that the packaging/install docs stay present.
+- [.ralph/tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json#L41) and [.ralph/progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md#L9) mark T6 complete with the packaging evidence.
+
+**Validation**
+
+- `cd ralph-codex-vscode-starter && npm run check:docs` passed.
+- `cd ralph-codex-vscode-starter && npm run package` passed and produced [ralph-codex-workbench-0.1.0.vsix](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix).
+
+**Notes**
+
+Assumption: the current `origin` remote (`https://github.com/S0l0m0n8und9/RalphDex.git`) is the correct repository URL to publish in the extension manifest.
+
+Known follow-up work: packaging still warns that no `LICENSE` file is present and that the extension has no `.vscodeignore` or `files` allowlist, so the VSIX currently includes more files than necessary.
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index a3319d586c6db812f2173895a8bb0fcc61e3d716..486825ca6940029a1eeedc6e6a2dc5c0d5a8ed4b
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -6,4 +6,5 @@
+ - Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+ - Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
++- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index 9f11eb7ec4e2fea927da1fb8806be1fc5ce36074..7acdbf94b7e65e4511493b544603a3f364189b5f
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -40,8 +40,8 @@
+     {
+       "id": "T6",
+       "title": "Prove the packaging path and document the manual `.vsix` install workflow",
+-      "status": "todo",
+-      "notes": "The repo already includes packaging scripts and a packaged artifact, but the operator-facing release/install path is not yet part of the durable backlog.",
++      "status": "done",
++      "notes": "Documented the operator-facing `npm run package` plus manual `.vsix` install workflow, hardened the package script for this repo by using `vsce package --no-dependencies`, added repository metadata plus README links that `vsce` can rewrite, and validated a fresh `ralph-codex-workbench-0.1.0.vsix` build. Packaging still warns about a missing LICENSE file and the lack of `.vscodeignore` or a `files` allowlist.",
+       "validation": "cd ralph-codex-vscode-starter && npm run package"
+     },
+     {
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f903fbb9b3da011c33df6d708735d0372ce0c4ab..a1525ffdcee1870619545c5dacb598019d53e390
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -15,6 +15,8 @@
+ 4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+ 5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+ 
++For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
++
+ ## Durable Files
+ 
+ Ralph keeps its durable state in the workspace:
+@@ -28,7 +30,7 @@
+ - artifacts and latest pointers: `.ralph/artifacts/`
+ - logs: `.ralph/logs/extension.log`
+ 
+-The durable task model is explicit and flat. See [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for the version-2 task schema and control-plane rules.
++The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+ 
+ ## Commands
+ 
+@@ -48,14 +50,14 @@
+ 
+ ## Document Map
+ 
+-- [AGENTS.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/AGENTS.md): concise repo operating rules and authoritative map
+-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
+-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): scripts, coverage, and runtime notes
+-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): state, task, and artifact invariants
+-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): plan/prompt/invocation/run trust chain
+-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, classification rules, and stop semantics
+-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals and trust limits
++- [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map
++- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
++- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
++- [docs/testing.md](docs/testing.md): scripts, coverage, and runtime notes
++- [docs/invariants.md](docs/invariants.md): state, task, and artifact invariants
++- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
++- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
++- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+ 
+ ## Product Notes
+ 
+@@ -64,4 +66,4 @@
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+-See [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for command-by-command behavior and [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the trust model.
++See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+diff --git a/ralph-codex-vscode-starter/docs/testing.md b/ralph-codex-vscode-starter/docs/testing.md
+index 9b1bb63082e8d6757d90faba36e64d38de858bd2..d22ed5789b6eb7d94f5bc37a60f0df9e5a33ebc3
+--- a/ralph-codex-vscode-starter/docs/testing.md
++++ b/ralph-codex-vscode-starter/docs/testing.md
+@@ -50,7 +50,7 @@
+ - live VS Code command handoff behavior in a real Extension Development Host session
+ - Real `codex exec` process execution
+ - Live Git checkpoint behavior in a real repository
+-- `.vsix` install behavior
++- live `.vsix` install behavior after packaging
+ 
+ When changing those areas, rely on the authoritative commands above plus manual verification in the Extension Development Host.
+ 
+@@ -67,3 +67,4 @@
+ - Packaging is supported on Node 20+.
+ - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+ - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
++- `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 5e66ab17ad594485dc430d3a829da74d0ebcdca4..5d7858e219fd076cc902cb0130cf4293b6f35c8d
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -18,6 +18,20 @@
+ 
+ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+ 
++## Package And Install A .vsix
++
++1. Run `npm install` if dependencies are not present yet.
++2. Run `npm run package` from the extension root.
++3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
++4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
++5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
++
++The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
++
++If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
++
++This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
++
+ ## Prepare A Prompt For IDE Use
+ 
+ 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 017d28553a62f4ff96a7b313623f0e813759a605..d28ec85fea8861688bd784eef4f667ef07e7c166
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -4,6 +4,11 @@
+   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+   "version": "0.1.0",
+   "publisher": "starter",
++  "repository": {
++    "type": "git",
++    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
++    "directory": "ralph-codex-vscode-starter"
++  },
+   "license": "MIT",
+   "engines": {
+     "vscode": "^1.95.0",
+@@ -249,7 +254,7 @@
+     "validate": "npm run compile && npm run check:docs && npm run lint && npm run test",
+     "check:runtime": "node ./scripts/ensure-node-version.js",
+     "vscode:prepublish": "npm run compile",
+-    "package": "npm run check:runtime && vsce package"
++    "package": "npm run check:runtime && vsce package --no-dependencies"
+   },
+   "devDependencies": {
+     "@types/node": "^22.13.10",
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 7d63e75b70f81bbad1e0c1ab8c78fa7081befeca..5b484fe54b9d47f8184ce46000090c2cd2399d57
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -156,6 +156,38 @@
+       'explicitly does not try to do',
+       'trust guarantees stop'
+     ]
++  },
++  'docs/workflows.md': {
++    requiredHeadings: [
++      'Develop The Extension',
++      'Package And Install A .vsix',
++      'Prepare A Prompt For IDE Use',
++      'Run One CLI Iteration',
++      'Run The Ralph Loop',
++      'Inspect State',
++      'Reset State',
++      'Diagnostics'
++    ],
++    requiredFragments: [
++      'Extensions: Install from VSIX...',
++      'code --install-extension',
++      'build a distributable `.vsix`'
++    ]
++  },
++  'docs/testing.md': {
++    requiredHeadings: [
++      'Authoritative Commands',
++      'What Is Covered',
++      'Stub Smoke Vs Real Activation Smoke',
++      'What Is Not Covered',
++      'Test Runtime Notes',
++      'Packaging Runtime'
++    ],
++    requiredFragments: [
++      '`npm run package`',
++      'manual `.vsix` install',
++      'Node 20+'
++    ]
+   }
+ };
+ 
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 7b33cd35982e0ed02595dec5668b018af06850f1..da35b2da9c9c230b45f41c48585db1fa611eb48f
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -133,11 +133,67 @@
+   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+ 
+ See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
++
++## Develop The Extension
++
++Run the extension locally.
++
++## Package And Install A .vsix
++
++Build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
++
++## Prepare A Prompt For IDE Use
++
++Prepare the next prompt.
++
++## Run One CLI Iteration
++
++Run one iteration.
++
++## Run The Ralph Loop
++
++Run the loop.
++
++## Inspect State
++
++Inspect persisted state.
++
++## Reset State
++
++Reset generated state.
++
++## Diagnostics
++
++Review runtime diagnostics.
+ `);
+ 
+   await writeFile(rootPath, 'docs/testing.md', `# Testing
+ 
+ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md](${absolute('docs/verifier.md')}) for verifier semantics.
++
++## Authoritative Commands
++
++- \`npm run package\`
++
++## What Is Covered
++
++Stable coverage lives here.
++
++## Stub Smoke Vs Real Activation Smoke
++
++Stable activation notes live here.
++
++## What Is Not Covered
++
++manual \`.vsix\` install still needs an operator check.
++
++## Test Runtime Notes
++
++Stable runtime notes live here.
++
++## Packaging Runtime
++
++\`npm run package\` is supported on Node 20+.
+ `);
+ 
+   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
+
+tokens used
+76,958
+
+
+## Last Message
+
+**Changed**
+
+- [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json#L7) adds repository metadata and changes `npm run package` to `vsce package --no-dependencies`, which is what made packaging succeed in this repo.
+- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md#L18) now surfaces the local `.vsix` build/install path and switches README doc links to repository-relative links so `vsce` can package them.
+- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md#L21) now owns the manual `.vsix` packaging/install workflow.
+- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md#L46) now states the validation boundary clearly: packaging is proven, live install remains manual.
+- [src/validation/docsValidator.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts#L160) and [test/docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts#L133) now enforce that the packaging/install docs stay present.
+- [.ralph/tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json#L41) and [.ralph/progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md#L9) mark T6 complete with the packaging evidence.
+
+**Validation**
+
+- `cd ralph-codex-vscode-starter && npm run check:docs` passed.
+- `cd ralph-codex-vscode-starter && npm run package` passed and produced [ralph-codex-workbench-0.1.0.vsix](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix).
+
+**Notes**
+
+Assumption: the current `origin` remote (`https://github.com/S0l0m0n8und9/RalphDex.git`) is the correct repository URL to publish in the extension manifest.
+
+Known follow-up work: packaging still warns that no `LICENSE` file is present and that the extension has no `.vscodeignore` or `files` allowlist, so the VSIX currently includes more files than necessary.

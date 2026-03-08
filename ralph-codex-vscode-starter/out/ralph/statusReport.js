@@ -59,6 +59,14 @@ function shortHash(hash) {
     }
     return hash.length > 19 ? `${hash.slice(0, 19)}...` : hash;
 }
+function compactList(values, limit) {
+    if (values.length === 0) {
+        return 'none';
+    }
+    const visible = values.slice(0, limit);
+    const remaining = values.length - visible.length;
+    return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
+}
 function formatProvenanceTrustLevel(trustLevel) {
     if (trustLevel === 'verifiedCliExecution') {
         return 'verified CLI execution';
@@ -133,6 +141,7 @@ function buildStatusReport(snapshot) {
     const payloadMatched = lastIntegrity?.executionPayloadMatched === null || lastIntegrity?.executionPayloadMatched === undefined
         ? 'not recorded'
         : lastIntegrity.executionPayloadMatched ? 'yes' : 'no';
+    const scan = snapshot.workspaceScan;
     return [
         `# Ralph Status: ${snapshot.workspaceName}`,
         '',
@@ -167,6 +176,22 @@ function buildStatusReport(snapshot) {
         '### Validation/Verifier',
         preflightVerifier.length > 0 ? preflightVerifier.map(renderDiagnostic).join('\n') : '- ok',
         '',
+        '## Repo Context',
+        `- Inspected root: ${relativeFromRoot(snapshot.rootPath, scan.rootPath)}`,
+        `- Root selection: ${scan.rootSelection.summary}`,
+        `- Manifests: ${compactList(scan.manifests, 5)}`,
+        `- Source roots: ${compactList(scan.sourceRoots, 5)}`,
+        `- Test roots: ${compactList(scan.tests, 5)}`,
+        `- Docs: ${compactList(scan.docs, 5)}`,
+        `- Package managers: ${compactList(scan.packageManagers, 4)}`,
+        `- Package manager indicators: ${compactList(scan.packageManagerIndicators, 5)}`,
+        `- Validation commands: ${compactList(scan.validationCommands, 5)}`,
+        `- Lifecycle commands: ${compactList(scan.lifecycleCommands, 5)}`,
+        `- CI files: ${compactList(scan.ciFiles, 4)}`,
+        `- CI commands: ${compactList(scan.ciCommands, 4)}`,
+        `- Test signals: ${compactList(scan.testSignals, 4)}`,
+        `- Latest prompt evidence: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPromptEvidencePath)}`,
+        '',
         '## Provenance',
         `- Trust level: ${formatProvenanceTrustLevel(latestProvenance?.trustLevel)}`,
         `- Assurance: ${describeProvenanceAssurance(latestProvenance)}`,
@@ -189,6 +214,7 @@ function buildStatusReport(snapshot) {
         `- Backlog remaining: ${lastIteration ? lastIteration.backlog.remainingTaskCount : 'none'}`,
         `- Next actionable task available: ${lastIteration ? (lastIteration.backlog.actionableTaskAvailable ? 'yes' : 'no') : 'none'}`,
         `- Execution: ${lastIteration?.executionStatus ?? 'none'}`,
+        `- Execution message: ${lastIteration?.execution.message ?? lastIteration?.errors[0] ?? 'none'}`,
         `- Verification: ${lastIteration?.verificationStatus ?? 'none'}`,
         `- Stop reason: ${lastIteration?.stopReason ?? 'none'}`,
         `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,

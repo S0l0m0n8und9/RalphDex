@@ -34,10 +34,10 @@ Related docs:
 ## End-To-End Flow
 
 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
-2. The engine inspects the durable Ralph files and a shallow workspace summary.
+2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
-5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`.
+5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering.
 6. Preflight evaluates task-graph, workspace/runtime, Codex-adapter, and verifier-readiness diagnostics.
 7. If the path is `cliExec` and preflight is ready, launch verifies plan and prompt integrity and runs `codex exec`.
 8. The verifier layer evaluates the result.
@@ -52,7 +52,7 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 ## Runtime Constraints
 
-- The workspace scanner is intentionally shallow.
+- The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
 - Untrusted workspaces support status inspection only.
 - Virtual workspaces are unsupported.
 - Git handling is detection/reporting only.

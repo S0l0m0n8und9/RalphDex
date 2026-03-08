@@ -6,6 +6,7 @@ const state = {
   workspaceFolders: [],
   isTrusted: true,
   availableCommands: [],
+  clipboardText: '',
   infoMessages: [],
   warningMessages: [],
   errorMessages: [],
@@ -20,6 +21,7 @@ function reset() {
   state.workspaceFolders = [];
   state.isTrusted = true;
   state.availableCommands = [];
+  state.clipboardText = '';
   state.infoMessages = [];
   state.warningMessages = [];
   state.errorMessages = [];
@@ -52,6 +54,11 @@ const vscodeStub = {
     }
   },
   env: {
+    clipboard: {
+      async writeText(value) {
+        state.clipboardText = String(value);
+      }
+    },
     openExternal: async () => true
   },
   commands: {

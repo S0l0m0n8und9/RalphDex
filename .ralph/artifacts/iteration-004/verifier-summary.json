@@ -1,0 +1,53 @@
+[
+  {
+    "verifier": "validationCommand",
+    "status": "passed",
+    "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm test",
+    "warnings": [],
+    "errors": [],
+    "command": "cd ralph-codex-vscode-starter && npm test",
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.json",
+    "failureSignature": null,
+    "metadata": {
+      "exitCode": 0,
+      "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.stdout.log",
+      "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.stderr.log"
+    }
+  },
+  {
+    "verifier": "gitDiff",
+    "status": "passed",
+    "summary": "Detected 2 relevant changed file(s) out of 12 total changes.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-diff.json",
+    "metadata": {
+      "changedFiles": [
+        ".ralph/artifacts/iteration-004/cli-invocation.json",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json",
+        ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md",
+        ".ralph/progress.md",
+        ".ralph/runs/iteration-004.last-message.md",
+        ".ralph/runs/iteration-004.transcript.md",
+        ".ralph/tasks.json"
+      ],
+      "relevantChangedFiles": [
+        ".ralph/progress.md",
+        ".ralph/tasks.json"
+      ]
+    }
+  },
+  {
+    "verifier": "taskState",
+    "status": "passed",
+    "summary": "Selected task T4 is marked done.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/task-state.json"
+  }
+]

@@ -1,0 +1,18 @@
+**Changed Files**
+- Runtime/artifact signal changes: [src/codex/cliExecStrategy.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/codex/cliExecStrategy.ts), [src/ralph/iterationEngine.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts), [src/ralph/artifactStore.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/artifactStore.ts), [src/ralph/stateManager.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/stateManager.ts), [src/ralph/statusReport.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts), [src/ralph/types.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/types.ts)
+- Real smoke entrypoint: [scripts/run-real-cli-smoke.js](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/scripts/run-real-cli-smoke.js), [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json)
+- Tests/docs: [test/cliExecStrategy.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/cliExecStrategy.test.ts), [test/stateManager.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts), [test/statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts), [test/docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts), [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md), [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md), [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
+- Durable Ralph state: [.ralph/tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json), [.ralph/progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md)
+
+**Validation Results**
+- `cd ralph-codex-vscode-starter && npm run validate` passed.
+- `cd ralph-codex-vscode-starter && npm run test:real-cli-smoke` exercised the real `codex exec` path and failed in this sandbox as expected. Preserved workspace: `/tmp/ralph-real-cli-hdLcVX`.
+- The preserved structured result now carries the concrete failure reason: `codex exec exited with code 1: stream disconnected before completion: error sending request for url (https://chatgpt.com/backend-api/codex/responses)`.
+
+**Assumptions Or Blockers**
+- Successful end-to-end real smoke is blocked here by sandbox/backend network restrictions, not by the Ralph control-plane code.
+- The repo already had unrelated local changes; I left them intact.
+
+**Known Limitations / Follow-Up**
+- `npm run test:real-cli-smoke` is intentionally optional and not part of `npm run validate`.
+- Re-run that smoke in a network/auth-enabled environment to capture a passing real-run artifact set.

@@ -73,8 +73,8 @@ The default test strategy stays lightweight.
 
 The repo does not currently try to prove through automated tests:
 
-- live clipboard handoff behavior
-- live VS Code command handoff behavior
+- live clipboard handoff behavior in a real host OS session
+- live VS Code command handoff behavior in a real Extension Development Host session
 - real `codex exec` execution against the Codex service
 - heavy Extension Development Host UI automation
 

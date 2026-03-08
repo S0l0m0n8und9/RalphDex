@@ -136,6 +136,7 @@ function renderIterationSummary(input) {
         `- Target mode: ${result.executionIntegrity?.promptTarget ?? 'unknown'}`,
         `- Template: ${result.executionIntegrity?.templatePath ?? 'unknown'}`,
         `- Execution: ${result.executionStatus}`,
+        `- Execution message: ${result.execution.message ?? 'none'}`,
         `- Verification: ${result.verificationStatus}`,
         `- Classification: ${result.completionClassification} (selected task)`,
         `- Backlog remaining: ${result.backlog.remainingTaskCount}`,
@@ -244,6 +245,7 @@ function latestResultFromIteration(input) {
         promptTarget: input.result.executionIntegrity?.promptTarget ?? null,
         templatePath: input.result.executionIntegrity?.templatePath ?? null,
         executionStatus: input.result.executionStatus,
+        executionMessage: input.result.execution.message ?? null,
         verificationStatus: input.result.verificationStatus,
         completionClassification: input.result.completionClassification,
         backlog: input.result.backlog,
@@ -265,7 +267,9 @@ function latestResultFromIteration(input) {
         iterationResultPath: input.paths.iterationResultPath,
         diffSummaryPath: input.diffSummary ? input.paths.diffSummaryPath : null,
         stdoutPath: input.paths.stdoutPath,
-        stderrPath: input.paths.stderrPath
+        stderrPath: input.paths.stderrPath,
+        warnings: input.result.warnings,
+        errors: input.result.errors
     };
 }
 function resolveIterationArtifactPaths(artifactRootDir, iteration) {

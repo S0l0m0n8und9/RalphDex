@@ -7,6 +7,7 @@ import { buildPrompt, choosePromptKind, decidePromptKind } from '../src/prompt/p
 import { RalphPaths } from '../src/ralph/pathResolver';
 import { RalphIterationResult, RalphWorkspaceState } from '../src/ralph/types';
 import { WorkspaceScan } from '../src/services/workspaceInspection';
+import { scanWorkspace } from '../src/services/workspaceScanner';
 
 const paths: RalphPaths = {
   rootPath: '/workspace',
@@ -24,18 +25,87 @@ const paths: RalphPaths = {
 
 const summary: WorkspaceScan = {
   workspaceName: 'demo',
+  workspaceRootPath: '/workspace',
   rootPath: '/workspace',
+  rootSelection: {
+    workspaceRootPath: '/workspace',
+    selectedRootPath: '/workspace',
+    strategy: 'workspaceRoot',
+    summary: 'Using the workspace root because it already exposes shallow repo markers.',
+    candidates: [
+      {
+        path: '/workspace',
+        relativePath: '.',
+        markerCount: 7,
+        markers: ['package.json', 'tsconfig.json', 'README.md', 'docs', 'AGENTS.md', 'src', 'test']
+      }
+    ]
+  },
   manifests: ['package.json', 'tsconfig.json'],
-  projectMarkers: ['package.json', 'README.md', 'src'],
+  projectMarkers: ['package.json', 'README.md', 'docs', 'AGENTS.md', 'src', 'test'],
   packageManagers: ['npm'],
+  packageManagerIndicators: ['package.json'],
   ciFiles: ['.github/workflows/ci.yml'],
   ciCommands: ['npm test'],
   docs: ['README.md', 'AGENTS.md'],
   sourceRoots: ['src'],
-  lifecycleCommands: ['npm run lint', 'npm run test'],
+  tests: ['test'],
+  lifecycleCommands: ['npm run validate', 'npm run lint', 'npm run test'],
   validationCommands: ['npm run validate', 'npm run test'],
   testSignals: ['package.json defines a test script.'],
   notes: ['Makefile targets detected: validate'],
+  evidence: {
+    rootEntries: ['.github', 'AGENTS.md', 'README.md', 'docs', 'package.json', 'src', 'test', 'tsconfig.json'],
+    manifests: {
+      checked: ['package.json', 'tsconfig.json', '*.sln', '*.csproj'],
+      matches: ['package.json', 'tsconfig.json'],
+      emptyReason: null
+    },
+    sourceRoots: {
+      checked: ['src'],
+      matches: ['src'],
+      emptyReason: null
+    },
+    tests: {
+      checked: ['test'],
+      matches: ['test'],
+      emptyReason: null
+    },
+    docs: {
+      checked: ['README.md', 'README', 'docs', 'AGENTS.md'],
+      matches: ['README.md', 'AGENTS.md'],
+      emptyReason: null
+    },
+    ciFiles: {
+      checked: ['.gitlab-ci.yml', 'azure-pipelines.yml', '.github/workflows/*.yml'],
+      matches: ['.github/workflows/ci.yml'],
+      emptyReason: null
+    },
+    packageManagers: {
+      indicators: ['package.json'],
+      detected: ['npm'],
+      packageJsonPackageManager: 'npm',
+      emptyReason: null
+    },
+    validationCommands: {
+      selected: ['npm run validate', 'npm run test'],
+      packageJsonScripts: ['npm run validate', 'npm run test'],
+      makeTargets: ['make validate'],
+      justTargets: [],
+      ciCommands: ['npm test'],
+      manifestSignals: [],
+      emptyReason: null
+    },
+    lifecycleCommands: {
+      selected: ['npm run validate', 'npm run lint', 'npm run test'],
+      packageJsonScripts: ['npm run validate', 'npm run lint', 'npm run test'],
+      makeTargets: [],
+      justTargets: [],
+      ciCommands: [],
+      manifestSignals: [],
+      emptyReason: null
+    }
+  },
   packageJson: {
     name: 'demo',
     packageManager: 'npm',
@@ -177,6 +247,8 @@ async function createTemplateDir(): Promise<string> {
     '{{prompt_title}}',
     '',
     'Selection: {{template_selection_reason}}',
+    'Repo:',
+    '{{repo_context}}',
     'Strategy:',
     '{{strategy_context}}',
     'Task:',
@@ -295,11 +367,104 @@ test('buildPrompt renders a file-based template with structured inputs', async (
 
   assert.match(render.prompt, /# Ralph Prompt: fix-failure \(cliExec\)/);
   assert.match(render.prompt, /Selection: Previous validation failed\./);
+  assert.match(render.prompt, /Repo:/);
+  assert.match(render.prompt, /- Test roots: test/);
+  assert.match(render.prompt, /- Package manager indicators: package\.json/);
   assert.match(render.prompt, /Target: Codex CLI execution via `codex exec`\./);
   assert.match(render.prompt, /Selected task id: T1/);
   assert.equal(render.evidence.templatePath, path.join(templateDir, 'fix-failure.md'));
   assert.equal(render.evidence.kind, 'fix-failure');
   assert.equal(render.evidence.target, 'cliExec');
+  assert.equal(render.evidence.inputs.repoContextSnapshot.rootPath, '/workspace');
+  assert.deepEqual(render.evidence.inputs.repoContextSnapshot.tests, ['test']);
+});
+
+test('buildPrompt uses real scan results from a nested repo instead of rendering empty repo context', async () => {
+  const templateDir = await createTemplateDir();
+  const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-prompt-scan-parent-'));
+  const repoRoot = path.join(workspaceRoot, 'ralph-codex-vscode-starter');
+
+  await fs.mkdir(path.join(repoRoot, 'src'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'test'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'AGENTS.md'), '# agents\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'README.md'), '# demo\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'tsconfig.json'), '{}\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'package.json'), JSON.stringify({
+    name: 'demo',
+    scripts: {
+      validate: 'npm run lint && npm run test',
+      lint: 'tsc --noEmit',
+      test: 'node --test'
+    }
+  }, null, 2), 'utf8');
+
+  const scannedSummary = await scanWorkspace(workspaceRoot, 'workspace');
+
+  const render = await buildPrompt({
+    kind: 'bootstrap',
+    target: 'cliExec',
+    iteration: 1,
+    selectionReason: 'No prior prompt exists.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\nNone.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 0,
+      blocked: 0,
+      done: 0
+    },
+    summary: scannedSummary,
+    state: workspaceState({
+      lastPromptKind: null,
+      lastPromptPath: null,
+      lastRun: null,
+      runHistory: [],
+      lastIteration: null,
+      iterationHistory: []
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Ship prompt system', status: 'todo' }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Ship prompt system',
+      status: 'todo'
+    },
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.equal(scannedSummary.rootPath, repoRoot);
+  assert.equal(scannedSummary.rootSelection.strategy, 'scoredChild');
+  assert.match(render.prompt, /- Root selection: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers\./);
+  assert.match(render.prompt, new RegExp(`- Inspected root: ${repoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  assert.match(render.prompt, new RegExp(`- Workspace root: ${workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  assert.match(render.prompt, /- Manifests: package\.json, tsconfig\.json/);
+  assert.match(render.prompt, /- Source roots: src/);
+  assert.match(render.prompt, /- Test roots: test/);
+  assert.match(render.prompt, /- Docs: README\.md, docs, AGENTS\.md/);
+  assert.match(render.prompt, /- Package managers: npm/);
+  assert.match(render.prompt, /- package\.json name: demo/);
+  assert.match(render.prompt, /- Validation commands: npm run validate, npm run lint, npm run test/);
+  assert.doesNotMatch(render.prompt, /- Manifests: none/);
+  assert.doesNotMatch(render.prompt, /- Source roots: none/);
+  assert.doesNotMatch(render.prompt, /- Test roots: none/);
+  assert.equal(render.evidence.inputs.repoContextSnapshot.rootPath, repoRoot);
+  assert.equal(render.evidence.inputs.repoContextSnapshot.workspaceRootPath, workspaceRoot);
+  assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.selectedRootPath, repoRoot);
+  assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.strategy, 'scoredChild');
 });
 
 test('buildPrompt trims prior verifier context to the configured budget', async () => {

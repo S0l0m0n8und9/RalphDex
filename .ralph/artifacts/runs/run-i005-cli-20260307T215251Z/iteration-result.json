@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "provenanceId": "run-i005-cli-20260307T215251Z",
+  "iteration": 5,
+  "selectedTaskId": "T5",
+  "selectedTaskTitle": "Cover clipboard and IDE handoff strategies with automated tests and explicit docs",
+  "promptKind": "iteration",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-005.prompt.md",
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005",
+  "adapterUsed": "cliExec",
+  "executionIntegrity": {
+    "provenanceId": "run-i005-cli-20260307T215251Z",
+    "promptTarget": "cliExec",
+    "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+    "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/execution-plan.json",
+    "executionPlanHash": "sha256:63ea19a8bc96fcb50bf90bad620351d8eb5d608189a424aed4b0c63fd662cdc6",
+    "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/prompt.md",
+    "promptHash": "sha256:1119dfee900dff65b9a2e8ccc7b262e27c72afeceeab55f56980212fd4b90537",
+    "promptByteLength": 5943,
+    "executionPayloadHash": "sha256:1119dfee900dff65b9a2e8ccc7b262e27c72afeceeab55f56980212fd4b90537",
+    "executionPayloadMatched": true,
+    "mismatchReason": null,
+    "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/cli-invocation.json"
+  },
+  "executionStatus": "succeeded",
+  "verificationStatus": "passed",
+  "completionClassification": "complete",
+  "followUpAction": "continue_next_task",
+  "startedAt": "2026-03-07T21:52:51.046Z",
+  "finishedAt": "2026-03-07T22:02:01.173Z",
+  "phaseTimestamps": {
+    "inspectStartedAt": "2026-03-07T21:52:51.046Z",
+    "inspectFinishedAt": "2026-03-07T21:52:51.058Z",
+    "taskSelectedAt": "2026-03-07T21:52:51.058Z",
+    "promptGeneratedAt": "2026-03-07T21:52:51.095Z",
+    "resultCollectedAt": "2026-03-07T22:01:58.400Z",
+    "verificationFinishedAt": "2026-03-07T22:02:01.173Z",
+    "classifiedAt": "2026-03-07T22:02:01.173Z",
+    "executionStartedAt": "2026-03-07T21:52:51.132Z",
+    "executionFinishedAt": "2026-03-07T22:01:58.399Z",
+    "persistedAt": "2026-03-07T22:02:01.173Z"
+  },
+  "summary": "Selected T5: Cover clipboard and IDE handoff strategies with automated tests and explicit docs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2",
+  "warnings": [],
+  "errors": [],
+  "execution": {
+    "exitCode": 0,
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-005.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-005.last-message.md",
+    "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/stdout.log",
+    "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/stderr.log"
+  },
+  "verification": {
+    "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+    "validationFailureSignature": null,
+    "verifiers": [
+      {
+        "verifier": "validationCommand",
+        "status": "passed",
+        "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm test",
+        "warnings": [],
+        "errors": [],
+        "command": "cd ralph-codex-vscode-starter && npm test",
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/validation-command.json",
+        "failureSignature": null,
+        "metadata": {
+          "exitCode": 0,
+          "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/validation-command.stdout.log",
+          "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/validation-command.stderr.log"
+        }
+      },
+      {
+        "verifier": "gitDiff",
+        "status": "passed",
+        "summary": "Detected 8 relevant changed file(s) out of 18 total changes.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/git-diff.json",
+        "metadata": {
+          "changedFiles": [
+            ".ralph/artifacts/iteration-005/cli-invocation.json",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/execution-plan.json",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-report.json",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-summary.md",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt-evidence.json",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt.md",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/provenance-bundle.json",
+            ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/summary.md",
+            ".ralph/progress.md",
+            ".ralph/runs/iteration-005.last-message.md",
+            ".ralph/runs/iteration-005.transcript.md",
+            ".ralph/tasks.json",
+            "ralph-codex-vscode-starter/docs/boundaries.md",
+            "ralph-codex-vscode-starter/docs/testing.md",
+            "ralph-codex-vscode-starter/docs/workflows.md",
+            "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+            "ralph-codex-vscode-starter/test/register-vscode-stub.cjs",
+            "ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts"
+          ],
+          "relevantChangedFiles": [
+            ".ralph/progress.md",
+            ".ralph/tasks.json",
+            "ralph-codex-vscode-starter/docs/boundaries.md",
+            "ralph-codex-vscode-starter/docs/testing.md",
+            "ralph-codex-vscode-starter/docs/workflows.md",
+            "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+            "ralph-codex-vscode-starter/test/register-vscode-stub.cjs",
+            "ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts"
+          ]
+        }
+      },
+      {
+        "verifier": "taskState",
+        "status": "passed",
+        "summary": "Selected task T5 is marked done.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/task-state.json"
+      }
+    ]
+  },
+  "backlog": {
+    "remainingTaskCount": 2,
+    "actionableTaskAvailable": true
+  },
+  "diffSummary": {
+    "available": true,
+    "gitAvailable": true,
+    "summary": "Detected 8 relevant changed file(s) out of 18 total changes.",
+    "changedFileCount": 18,
+    "relevantChangedFileCount": 8,
+    "changedFiles": [
+      ".ralph/artifacts/iteration-005/cli-invocation.json",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/execution-plan.json",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-report.json",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-summary.md",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt-evidence.json",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt.md",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/provenance-bundle.json",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/summary.md",
+      ".ralph/progress.md",
+      ".ralph/runs/iteration-005.last-message.md",
+      ".ralph/runs/iteration-005.transcript.md",
+      ".ralph/tasks.json",
+      "ralph-codex-vscode-starter/docs/boundaries.md",
+      "ralph-codex-vscode-starter/docs/testing.md",
+      "ralph-codex-vscode-starter/docs/workflows.md",
+      "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+      "ralph-codex-vscode-starter/test/register-vscode-stub.cjs",
+      "ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts"
+    ],
+    "relevantChangedFiles": [
+      ".ralph/progress.md",
+      ".ralph/tasks.json",
+      "ralph-codex-vscode-starter/docs/boundaries.md",
+      "ralph-codex-vscode-starter/docs/testing.md",
+      "ralph-codex-vscode-starter/docs/workflows.md",
+      "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+      "ralph-codex-vscode-starter/test/register-vscode-stub.cjs",
+      "ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts"
+    ],
+    "statusTransitions": [
+      ".ralph/artifacts/iteration-005/cli-invocation.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/execution-plan.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-report.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/preflight-summary.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt-evidence.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/prompt.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/provenance-bundle.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i005-cli-20260307T215251Z/summary.md: clean -> ??",
+      ".ralph/progress.md: M -> M",
+      ".ralph/runs/iteration-005.last-message.md: clean -> ??",
+      ".ralph/runs/iteration-005.transcript.md: clean -> ??",
+      ".ralph/tasks.json: M -> M",
+      "ralph-codex-vscode-starter/docs/boundaries.md: clean -> M",
+      "ralph-codex-vscode-starter/docs/testing.md: clean -> M",
+      "ralph-codex-vscode-starter/docs/workflows.md: clean -> M",
+      "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts: clean -> M",
+      "ralph-codex-vscode-starter/test/register-vscode-stub.cjs: clean -> M",
+      "ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts: clean -> M"
+    ],
+    "suggestedCheckpointRef": "ralph/iter-iteration-005",
+    "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/git-status-before.txt",
+    "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-005/git-status-after.txt"
+  },
+  "noProgressSignals": [],
+  "stopReason": null
+}

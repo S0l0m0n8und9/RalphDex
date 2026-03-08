@@ -133,6 +133,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
     errors: [],
     execution: {
       exitCode: 0,
+      message: 'codex exec completed successfully.',
       stdoutPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'stdout.log'),
       stderrPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'stderr.log')
     },
@@ -157,6 +158,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
   assert.equal(reloaded.lastIteration?.selectedTaskId, 'T1');
   assert.equal(reloaded.lastIteration?.selectedTaskTitle, 'Seed task');
   assert.equal(reloaded.lastIteration?.executionIntegrity?.executionPayloadMatched, true);
+  assert.equal(reloaded.lastIteration?.execution.message, 'codex exec completed successfully.');
   assert.equal(reloaded.lastIteration?.verification.primaryCommand, 'npm test');
   assert.equal(reloaded.lastIteration?.backlog.remainingTaskCount, 1);
   assert.equal(reloaded.iterationHistory.length, 1);

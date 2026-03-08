@@ -811,6 +811,7 @@ export class RalphIterationEngine {
       errors,
       execution: {
         exitCode: execExitCode,
+        message: prepared.selectedTask ? executionErrors[0] ?? undefined : undefined,
         transcriptPath,
         lastMessagePath,
         stdoutPath: artifactPaths.stdoutPath,
@@ -872,6 +873,7 @@ export class RalphIterationEngine {
         cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null,
         executionStatus,
         exitCode: execExitCode,
+        message: executionErrors[0] ?? null,
         transcriptPath,
         lastMessagePath,
         lastMessage: summarizeLastMessage(lastMessage, execExitCode)
@@ -991,11 +993,14 @@ export class RalphIterationEngine {
     }
 
     const objectiveText = await this.maybeSeedObjective(snapshot.paths);
+    const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
+      ? vscode.window.activeTextEditor.document.uri.fsPath
+      : null;
     const [progressText, taskInspection, taskCounts, summary, beforeCoreState] = await Promise.all([
       this.stateManager.readProgressText(snapshot.paths),
       this.stateManager.inspectTaskFile(snapshot.paths),
       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
-      scanWorkspace(rootPath, workspaceFolder.name),
+      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
       captureCoreState(snapshot.paths)
     ]);
     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;

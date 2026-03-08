@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "provenanceId": "run-i006-cli-20260307T220201Z",
+  "iteration": 6,
+  "selectedTaskId": "T6",
+  "selectedTaskTitle": "Prove the packaging path and document the manual `.vsix` install workflow",
+  "promptKind": "iteration",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-006.prompt.md",
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006",
+  "adapterUsed": "cliExec",
+  "executionIntegrity": {
+    "provenanceId": "run-i006-cli-20260307T220201Z",
+    "promptTarget": "cliExec",
+    "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+    "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/execution-plan.json",
+    "executionPlanHash": "sha256:8e31c7c848ad825540497cec0a66e4d08da36883e061a2e0830db5b84177ce20",
+    "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/prompt.md",
+    "promptHash": "sha256:9d108df611f18d894848f34f72c921e6b8ba9cee3cc11a041e465ed4bb02bdac",
+    "promptByteLength": 6216,
+    "executionPayloadHash": "sha256:9d108df611f18d894848f34f72c921e6b8ba9cee3cc11a041e465ed4bb02bdac",
+    "executionPayloadMatched": true,
+    "mismatchReason": null,
+    "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/cli-invocation.json"
+  },
+  "executionStatus": "succeeded",
+  "verificationStatus": "passed",
+  "completionClassification": "complete",
+  "followUpAction": "stop",
+  "startedAt": "2026-03-07T22:02:01.188Z",
+  "finishedAt": "2026-03-07T22:13:04.440Z",
+  "phaseTimestamps": {
+    "inspectStartedAt": "2026-03-07T22:02:01.188Z",
+    "inspectFinishedAt": "2026-03-07T22:02:01.201Z",
+    "taskSelectedAt": "2026-03-07T22:02:01.201Z",
+    "promptGeneratedAt": "2026-03-07T22:02:01.242Z",
+    "resultCollectedAt": "2026-03-07T22:13:00.895Z",
+    "verificationFinishedAt": "2026-03-07T22:13:04.439Z",
+    "classifiedAt": "2026-03-07T22:13:04.440Z",
+    "executionStartedAt": "2026-03-07T22:02:01.286Z",
+    "executionFinishedAt": "2026-03-07T22:13:00.894Z",
+    "persistedAt": "2026-03-07T22:13:04.440Z"
+  },
+  "summary": "Selected T6: Prove the packaging path and document the manual `.vsix` install workflow | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1",
+  "warnings": [],
+  "errors": [],
+  "execution": {
+    "exitCode": 0,
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-006.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-006.last-message.md",
+    "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/stdout.log",
+    "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/stderr.log"
+  },
+  "verification": {
+    "primaryCommand": "cd ralph-codex-vscode-starter && npm run package",
+    "validationFailureSignature": null,
+    "verifiers": [
+      {
+        "verifier": "validationCommand",
+        "status": "passed",
+        "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm run package",
+        "warnings": [],
+        "errors": [],
+        "command": "cd ralph-codex-vscode-starter && npm run package",
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/validation-command.json",
+        "failureSignature": null,
+        "metadata": {
+          "exitCode": 0,
+          "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/validation-command.stdout.log",
+          "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/validation-command.stderr.log"
+        }
+      },
+      {
+        "verifier": "gitDiff",
+        "status": "passed",
+        "summary": "Detected 7 relevant changed file(s) out of 17 total changes.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/git-diff.json",
+        "metadata": {
+          "changedFiles": [
+            ".ralph/artifacts/iteration-006/cli-invocation.json",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/execution-plan.json",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-report.json",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-summary.md",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt-evidence.json",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt.md",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/provenance-bundle.json",
+            ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/summary.md",
+            ".ralph/progress.md",
+            ".ralph/runs/iteration-006.last-message.md",
+            ".ralph/runs/iteration-006.transcript.md",
+            ".ralph/tasks.json",
+            "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+            "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+            "ralph-codex-vscode-starter/package.json",
+            "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+            "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+          ],
+          "relevantChangedFiles": [
+            ".ralph/progress.md",
+            ".ralph/tasks.json",
+            "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+            "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+            "ralph-codex-vscode-starter/package.json",
+            "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+            "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+          ]
+        }
+      },
+      {
+        "verifier": "taskState",
+        "status": "passed",
+        "summary": "Selected task T6 is marked done.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/task-state.json"
+      }
+    ]
+  },
+  "backlog": {
+    "remainingTaskCount": 1,
+    "actionableTaskAvailable": true
+  },
+  "diffSummary": {
+    "available": true,
+    "gitAvailable": true,
+    "summary": "Detected 7 relevant changed file(s) out of 17 total changes.",
+    "changedFileCount": 17,
+    "relevantChangedFileCount": 7,
+    "changedFiles": [
+      ".ralph/artifacts/iteration-006/cli-invocation.json",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/execution-plan.json",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-report.json",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-summary.md",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt-evidence.json",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt.md",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/provenance-bundle.json",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/summary.md",
+      ".ralph/progress.md",
+      ".ralph/runs/iteration-006.last-message.md",
+      ".ralph/runs/iteration-006.transcript.md",
+      ".ralph/tasks.json",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+      "ralph-codex-vscode-starter/package.json",
+      "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+      "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+    ],
+    "relevantChangedFiles": [
+      ".ralph/progress.md",
+      ".ralph/tasks.json",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
+      "ralph-codex-vscode-starter/package.json",
+      "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
+      "ralph-codex-vscode-starter/test/docsValidator.test.ts"
+    ],
+    "statusTransitions": [
+      ".ralph/artifacts/iteration-006/cli-invocation.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/execution-plan.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-report.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/preflight-summary.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt-evidence.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/prompt.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/provenance-bundle.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i006-cli-20260307T220201Z/summary.md: clean -> ??",
+      ".ralph/progress.md: M -> M",
+      ".ralph/runs/iteration-006.last-message.md: clean -> ??",
+      ".ralph/runs/iteration-006.transcript.md: clean -> ??",
+      ".ralph/tasks.json: M -> M",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js: clean -> M",
+      "ralph-codex-vscode-starter/out/validation/docsValidator.js.map: clean -> M",
+      "ralph-codex-vscode-starter/package.json: clean -> M",
+      "ralph-codex-vscode-starter/src/validation/docsValidator.ts: clean -> M",
+      "ralph-codex-vscode-starter/test/docsValidator.test.ts: clean -> M"
+    ],
+    "suggestedCheckpointRef": "ralph/iter-iteration-006",
+    "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/git-status-before.txt",
+    "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-006/git-status-after.txt"
+  },
+  "noProgressSignals": [],
+  "stopReason": "iteration_cap_reached"
+}

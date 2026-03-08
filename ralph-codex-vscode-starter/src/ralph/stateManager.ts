@@ -322,6 +322,7 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
     errors: Array.isArray(record.errors) ? record.errors.filter((item): item is string => typeof item === 'string') : [],
     execution: {
       exitCode: typeof execution.exitCode === 'number' ? execution.exitCode : null,
+      message: typeof execution.message === 'string' ? execution.message : undefined,
       transcriptPath: typeof execution.transcriptPath === 'string' ? execution.transcriptPath : undefined,
       lastMessagePath: typeof execution.lastMessagePath === 'string' ? execution.lastMessagePath : undefined,
       stdoutPath: typeof execution.stdoutPath === 'string' ? execution.stdoutPath : undefined,

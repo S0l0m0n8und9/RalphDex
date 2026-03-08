@@ -1,0 +1,29 @@
+{
+  "selectedTaskId": "T2",
+  "selectedTaskBefore": {
+    "id": "T2",
+    "title": "Replace this seed task list with repo-specific work",
+    "status": "todo",
+    "notes": "Keep statuses current so fresh Codex runs can resume deterministically.",
+    "source": {
+      "arrayIndex": 1,
+      "line": 10,
+      "column": 5
+    }
+  },
+  "selectedTaskAfter": {
+    "id": "T2",
+    "title": "Replace this seed task list with repo-specific work",
+    "status": "done",
+    "notes": "Keep statuses current so fresh Codex runs can resume deterministically.",
+    "source": {
+      "arrayIndex": 1,
+      "line": 10,
+      "column": 5
+    }
+  },
+  "taskFileError": null,
+  "progressChanged": true,
+  "taskFileChanged": true,
+  "humanReviewNeeded": false
+}

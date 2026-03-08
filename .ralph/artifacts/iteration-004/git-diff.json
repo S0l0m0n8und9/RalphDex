@@ -1,0 +1,42 @@
+{
+  "available": true,
+  "gitAvailable": true,
+  "summary": "Detected 2 relevant changed file(s) out of 12 total changes.",
+  "changedFileCount": 12,
+  "relevantChangedFileCount": 2,
+  "changedFiles": [
+    ".ralph/artifacts/iteration-004/cli-invocation.json",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md",
+    ".ralph/progress.md",
+    ".ralph/runs/iteration-004.last-message.md",
+    ".ralph/runs/iteration-004.transcript.md",
+    ".ralph/tasks.json"
+  ],
+  "relevantChangedFiles": [
+    ".ralph/progress.md",
+    ".ralph/tasks.json"
+  ],
+  "statusTransitions": [
+    ".ralph/artifacts/iteration-004/cli-invocation.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md: clean -> ??",
+    ".ralph/progress.md: M -> M",
+    ".ralph/runs/iteration-004.last-message.md: clean -> ??",
+    ".ralph/runs/iteration-004.transcript.md: clean -> ??",
+    ".ralph/tasks.json: M -> M"
+  ],
+  "suggestedCheckpointRef": "ralph/iter-iteration-004",
+  "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-status-before.txt",
+  "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-status-after.txt"
+}

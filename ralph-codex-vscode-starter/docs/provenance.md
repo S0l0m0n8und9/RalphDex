@@ -37,6 +37,7 @@ Prompt generation also persists `prompt-evidence.json`, which records:
 - template path
 - selection reason
 - compact structured inputs used to render the prompt
+- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
 
 CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
 
@@ -51,7 +52,7 @@ For `cliExec`, the trusted chain is:
 5. launch re-reads the prompt artifact and verifies its hash against the plan
 6. `codex exec` runs with the persisted prompt payload
 7. `cli-invocation.json` records command path, args, workspace root, prompt artifact path, planned prompt hash, and stdin hash
-8. iteration-result and run-bundle artifacts capture the outcome
+8. iteration-result, execution-summary, and run-bundle artifacts capture the outcome, including the summarized `codex exec` message plus the transcript and stderr paths
 
 This is the strongest guarantee Ralph makes:
 
@@ -104,6 +105,7 @@ To confirm what actually ran for a CLI iteration, inspect:
 
 - `.ralph/artifacts/latest-provenance-summary.md`
 - `.ralph/artifacts/latest-execution-plan.json`
+- `.ralph/artifacts/latest-prompt-evidence.json`
 - the `promptArtifactPath` referenced by that plan
 - `.ralph/artifacts/latest-cli-invocation.json`
 

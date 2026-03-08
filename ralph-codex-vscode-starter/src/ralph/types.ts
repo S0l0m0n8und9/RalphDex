@@ -1,3 +1,5 @@
+import type { WorkspaceScan } from '../services/workspaceInspection';
+
 export type RalphTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 
 export interface RalphTaskSourceLocation {
@@ -168,6 +170,7 @@ export interface RalphPromptEvidence {
     preflightContext: string[];
     objectiveContext: string;
     repoContext: string[];
+    repoContextSnapshot: WorkspaceScan;
     runtimeContext: string[];
     taskContext: string[];
     progressContext: string[];
@@ -265,6 +268,7 @@ export interface RalphIterationVerificationSummary {
 
 export interface RalphIterationExecutionSummary {
   exitCode: number | null;
+  message?: string;
   transcriptPath?: string;
   lastMessagePath?: string;
   stdoutPath?: string;

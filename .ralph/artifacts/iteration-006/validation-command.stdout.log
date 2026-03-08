@@ -1,0 +1,42 @@
+
+> ralph-codex-workbench@0.1.0 package
+> npm run check:runtime && vsce package --no-dependencies
+
+
+> ralph-codex-workbench@0.1.0 check:runtime
+> node ./scripts/ensure-node-version.js
+
+Node runtime 24.14.0 satisfies the packaging requirement (>= 20).
+Executing prepublish script 'npm run vscode:prepublish'...
+
+> ralph-codex-workbench@0.1.0 vscode:prepublish
+> npm run compile
+
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+ INFO  Files included in the VSIX:
+ralph-codex-workbench-0.1.0.vsix
+├─ [Content_Types].xml 
+├─ extension.vsixmanifest 
+└─ extension/
+   ├─ .gitignore [0.06 KB]
+   ├─ AGENTS.md [3.87 KB]
+   ├─ package.json [10.71 KB]
+   ├─ readme.md 
+   ├─ tsconfig.json [0.32 KB]
+   ├─ tsconfig.test.json [0.19 KB]
+   ├─ .ralph/ (3 files) [2.42 KB]
+   ├─ .vscode/ (2 files) [1.03 KB]
+   ├─ docs/ (7 files) [32.96 KB]
+   ├─ out/ (70 files) [567.9 KB]
+   ├─ out-test/ (48 files) [464 KB]
+   ├─ prompt-templates/ (5 files) [3.28 KB]
+   ├─ scripts/ (3 files) [1.12 KB]
+   ├─ src/ (30 files) [301.03 KB]
+   └─ test/ (19 files) [134.6 KB]
+
+=> Run vsce ls --tree to see all included files.
+
+ DONE  Packaged: /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/ralph-codex-workbench-0.1.0.vsix (195 files, 387.29 KB)

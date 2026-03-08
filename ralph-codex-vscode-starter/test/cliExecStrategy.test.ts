@@ -7,7 +7,8 @@ import {
   CliExecCodexStrategy,
   buildCodexExecArgs,
   buildCodexExecTranscript,
-  describeCodexExecLaunchError
+  describeCodexExecLaunchError,
+  summarizeCodexExecResultMessage
 } from '../src/codex/cliExecStrategy';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
@@ -103,6 +104,22 @@ test('describeCodexExecLaunchError explains a missing Codex CLI path', () => {
   );
 });
 
+test('summarizeCodexExecResultMessage surfaces the root failure detail from stderr', () => {
+  assert.equal(
+    summarizeCodexExecResultMessage({
+      exitCode: 1,
+      stderr: [
+        'WARNING: failed to clean up stale arg0 temp dirs',
+        'Reconnecting... 5/5 (stream disconnected before completion)',
+        'ERROR: stream disconnected before completion: error sending request for url (https://chatgpt.com/backend-api/codex/responses)',
+        'ERROR: Failed to shutdown rollout recorder'
+      ].join('\n'),
+      lastMessage: ''
+    }),
+    'codex exec exited with code 1: stream disconnected before completion: error sending request for url (https://chatgpt.com/backend-api/codex/responses)'
+  );
+});
+
 test('CliExecCodexStrategy fails before launch when the stdin payload hash diverges from the plan', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-integrity-'));
   const strategy = new CliExecCodexStrategy(createLogger());
@@ -117,4 +134,30 @@ test('CliExecCodexStrategy fails before launch when the stdin payload hash diver
     }),
     /Execution integrity check failed before launch/
   );
+});
+
+test('CliExecCodexStrategy records a summarized stderr failure reason', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-failure-'));
+  const commandPath = path.join(root, 'fake-codex.sh');
+  await fs.writeFile(commandPath, [
+    '#!/bin/sh',
+    'cat >/dev/null',
+    'echo "ERROR: stream disconnected before completion: network offline" >&2',
+    'echo "ERROR: Failed to shutdown rollout recorder" >&2',
+    'exit 1'
+  ].join('\n'), 'utf8');
+  await fs.chmod(commandPath, 0o755);
+
+  const strategy = new CliExecCodexStrategy(createLogger());
+  const result = await strategy.runExec({
+    ...request(),
+    commandPath,
+    workspaceRoot: root,
+    transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+    lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+  });
+
+  assert.equal(result.exitCode, 1);
+  assert.equal(result.message, 'codex exec exited with code 1: stream disconnected before completion: network offline');
+  assert.match(result.stderr, /network offline/);
 });

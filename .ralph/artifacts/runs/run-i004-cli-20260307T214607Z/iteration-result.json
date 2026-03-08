@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "provenanceId": "run-i004-cli-20260307T214607Z",
+  "iteration": 4,
+  "selectedTaskId": "T4",
+  "selectedTaskTitle": "Add regression coverage for nested workspace scanning and prompt repo-context rendering",
+  "promptKind": "iteration",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-004.prompt.md",
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004",
+  "adapterUsed": "cliExec",
+  "executionIntegrity": {
+    "provenanceId": "run-i004-cli-20260307T214607Z",
+    "promptTarget": "cliExec",
+    "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+    "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/execution-plan.json",
+    "executionPlanHash": "sha256:dbf53f25a1e47a1b48f74e40cdfc793e13ce069cc785bcb4f291503a788aff4f",
+    "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/prompt.md",
+    "promptHash": "sha256:198483ed6ca0d04b82ed373f47ce953b90b500e8f5f566b81e5fc5baf02c5513",
+    "promptByteLength": 5753,
+    "executionPayloadHash": "sha256:198483ed6ca0d04b82ed373f47ce953b90b500e8f5f566b81e5fc5baf02c5513",
+    "executionPayloadMatched": true,
+    "mismatchReason": null,
+    "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/cli-invocation.json"
+  },
+  "executionStatus": "succeeded",
+  "verificationStatus": "passed",
+  "completionClassification": "complete",
+  "followUpAction": "continue_next_task",
+  "startedAt": "2026-03-07T21:46:07.237Z",
+  "finishedAt": "2026-03-07T21:52:51.034Z",
+  "phaseTimestamps": {
+    "inspectStartedAt": "2026-03-07T21:46:07.237Z",
+    "inspectFinishedAt": "2026-03-07T21:46:07.249Z",
+    "taskSelectedAt": "2026-03-07T21:46:07.249Z",
+    "promptGeneratedAt": "2026-03-07T21:46:07.288Z",
+    "resultCollectedAt": "2026-03-07T21:52:48.294Z",
+    "verificationFinishedAt": "2026-03-07T21:52:51.034Z",
+    "classifiedAt": "2026-03-07T21:52:51.034Z",
+    "executionStartedAt": "2026-03-07T21:46:07.326Z",
+    "executionFinishedAt": "2026-03-07T21:52:48.293Z",
+    "persistedAt": "2026-03-07T21:52:51.034Z"
+  },
+  "summary": "Selected T4: Add regression coverage for nested workspace scanning and prompt repo-context rendering | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 3",
+  "warnings": [],
+  "errors": [],
+  "execution": {
+    "exitCode": 0,
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-004.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-004.last-message.md",
+    "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/stdout.log",
+    "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/stderr.log"
+  },
+  "verification": {
+    "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+    "validationFailureSignature": null,
+    "verifiers": [
+      {
+        "verifier": "validationCommand",
+        "status": "passed",
+        "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm test",
+        "warnings": [],
+        "errors": [],
+        "command": "cd ralph-codex-vscode-starter && npm test",
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.json",
+        "failureSignature": null,
+        "metadata": {
+          "exitCode": 0,
+          "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.stdout.log",
+          "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/validation-command.stderr.log"
+        }
+      },
+      {
+        "verifier": "gitDiff",
+        "status": "passed",
+        "summary": "Detected 2 relevant changed file(s) out of 12 total changes.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-diff.json",
+        "metadata": {
+          "changedFiles": [
+            ".ralph/artifacts/iteration-004/cli-invocation.json",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json",
+            ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md",
+            ".ralph/progress.md",
+            ".ralph/runs/iteration-004.last-message.md",
+            ".ralph/runs/iteration-004.transcript.md",
+            ".ralph/tasks.json"
+          ],
+          "relevantChangedFiles": [
+            ".ralph/progress.md",
+            ".ralph/tasks.json"
+          ]
+        }
+      },
+      {
+        "verifier": "taskState",
+        "status": "passed",
+        "summary": "Selected task T4 is marked done.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/task-state.json"
+      }
+    ]
+  },
+  "backlog": {
+    "remainingTaskCount": 3,
+    "actionableTaskAvailable": true
+  },
+  "diffSummary": {
+    "available": true,
+    "gitAvailable": true,
+    "summary": "Detected 2 relevant changed file(s) out of 12 total changes.",
+    "changedFileCount": 12,
+    "relevantChangedFileCount": 2,
+    "changedFiles": [
+      ".ralph/artifacts/iteration-004/cli-invocation.json",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md",
+      ".ralph/progress.md",
+      ".ralph/runs/iteration-004.last-message.md",
+      ".ralph/runs/iteration-004.transcript.md",
+      ".ralph/tasks.json"
+    ],
+    "relevantChangedFiles": [
+      ".ralph/progress.md",
+      ".ralph/tasks.json"
+    ],
+    "statusTransitions": [
+      ".ralph/artifacts/iteration-004/cli-invocation.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/execution-plan.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-report.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/preflight-summary.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt-evidence.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/prompt.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/provenance-bundle.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i004-cli-20260307T214607Z/summary.md: clean -> ??",
+      ".ralph/progress.md: M -> M",
+      ".ralph/runs/iteration-004.last-message.md: clean -> ??",
+      ".ralph/runs/iteration-004.transcript.md: clean -> ??",
+      ".ralph/tasks.json: M -> M"
+    ],
+    "suggestedCheckpointRef": "ralph/iter-iteration-004",
+    "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-status-before.txt",
+    "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-004/git-status-after.txt"
+  },
+  "noProgressSignals": [],
+  "stopReason": null
+}

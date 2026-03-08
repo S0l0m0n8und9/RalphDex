@@ -8,6 +8,7 @@ export interface VscodeStubState {
   workspaceFolders: unknown[];
   isTrusted: boolean;
   availableCommands: string[];
+  clipboardText: string;
   infoMessages: VscodeMessageCall[];
   warningMessages: VscodeMessageCall[];
   errorMessages: VscodeMessageCall[];

@@ -243,6 +243,12 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   };
   const promptEvidence = JSON.parse(await fs.readFile(path.join(iterationDir, 'prompt-evidence.json'), 'utf8')) as {
     provenanceId: string;
+    inputs: {
+      repoContextSnapshot: {
+        rootPath: string;
+        manifests: string[];
+      };
+    };
   };
   const promptArtifact = await fs.readFile(path.join(iterationDir, 'prompt.md'), 'utf8');
   assert.equal(executionPlan.promptKind, 'bootstrap');
@@ -250,6 +256,8 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.equal(executionPlan.promptArtifactPath, path.join(iterationDir, 'prompt.md'));
   assert.match(executionPlan.provenanceId, /^run-i001-cli-/);
   assert.equal(promptEvidence.provenanceId, executionPlan.provenanceId);
+  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootPath, rootPath);
+  assert.ok(promptEvidence.inputs.repoContextSnapshot.manifests.includes('package.json'));
 
   const cliInvocation = JSON.parse(await fs.readFile(path.join(iterationDir, 'cli-invocation.json'), 'utf8')) as {
     provenanceId: string;

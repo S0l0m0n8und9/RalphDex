@@ -18,6 +18,20 @@ Related docs:
 
 Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
 
+## Package And Install A .vsix
+
+1. Run `npm install` if dependencies are not present yet.
+2. Run `npm run package` from the extension root.
+3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
+4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
+5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
+
+The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive.
+
+If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
+
+This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
+
 ## Prepare A Prompt For IDE Use
 
 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
@@ -25,6 +39,13 @@ Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-start
 3. Continue manually in the Codex IDE.
 
 This path persists prepared-prompt evidence, not a full executed iteration result.
+
+Handoff behavior on this path is intentionally explicit:
+
+- `Prepare Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.
+- `Open Codex IDE` with `preferredHandoffMode = clipboard` copies the prompt only. It does not execute `openSidebarCommandId` or `newChatCommandId`.
+- `Open Codex IDE` with `preferredHandoffMode = ideCommand` copies the prompt and then best-effort runs the configured VS Code command IDs. If either command is missing or throws, Ralph warns and tells the operator to open Codex manually and paste the prepared prompt.
+- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real `codex exec` automation.
 
 Artifacts written on this path include:
 
@@ -51,6 +72,8 @@ Operator-facing artifacts for this path include:
 - `.ralph/artifacts/latest-execution-plan.json`
 - `.ralph/artifacts/latest-cli-invocation.json`
 - `.ralph/artifacts/latest-provenance-summary.md`
+
+On execution failures, the structured iteration result and latest-result pointer should also carry the summarized `codex exec` message, while the transcript and `stderr.log` keep the full raw process output for inspection.
 
 Use this path when you need repeatable execution plus deterministic result recording.
 

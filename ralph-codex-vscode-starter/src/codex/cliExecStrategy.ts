@@ -61,6 +61,75 @@ export function buildCodexExecTranscript(result: CodexExecResult, request: Codex
   ].join('\n');
 }
 
+function firstNonEmptyLine(text: string): string | null {
+  return text
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+    ?? null;
+}
+
+function truncateSummary(value: string, maxLength = 240): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
+}
+
+function isIgnorableStderrLine(line: string): boolean {
+  return /^WARNING:/i.test(line)
+    || /^Reconnecting\.\.\./.test(line)
+    || /^mcp:/i.test(line)
+    || /^mcp startup:/i.test(line)
+    || /^OpenAI Codex\b/.test(line)
+    || /^-+$/.test(line)
+    || /^(workdir|model|provider|approval|sandbox|reasoning effort|reasoning summaries|session id):/i.test(line)
+    || /^user$/i.test(line)
+    || /^# Ralph Prompt:/.test(line)
+    || /^## /.test(line)
+    || /^- /.test(line);
+}
+
+function extractCodexExecFailureDetail(stderr: string, lastMessage: string): string | null {
+  const stderrLines = stderr
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  for (const line of [...stderrLines].reverse()) {
+    if (/^ERROR:/i.test(line)
+      && !/failed to shutdown rollout recorder/i.test(line)
+      && !/no last agent message/i.test(line)) {
+      return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
+    }
+  }
+
+  const lastMessageLine = firstNonEmptyLine(lastMessage);
+  if (lastMessageLine) {
+    return truncateSummary(lastMessageLine);
+  }
+
+  for (const line of [...stderrLines].reverse()) {
+    if (!isIgnorableStderrLine(line)) {
+      return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
+    }
+  }
+
+  return null;
+}
+
+export function summarizeCodexExecResultMessage(input: {
+  exitCode: number;
+  stderr: string;
+  lastMessage: string;
+}): string {
+  if (input.exitCode === 0) {
+    return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? 'codex exec completed successfully.');
+  }
+
+  const detail = extractCodexExecFailureDetail(input.stderr, input.lastMessage);
+  return detail
+    ? `codex exec exited with code ${input.exitCode}: ${detail}`
+    : `codex exec exited with code ${input.exitCode}.`;
+}
+
 export function describeCodexExecLaunchError(request: CodexExecRequest, error: ProcessLaunchError): string {
   if (error.code === 'ENOENT') {
     return `Codex CLI was not found at "${request.commandPath}". Install Codex CLI or update ralphCodex.codexCommandPath.`;
@@ -113,7 +182,11 @@ export class CliExecCodexStrategy implements CodexStrategy {
     const result: CodexExecResult = {
       strategy: this.id,
       success: processResult.code === 0,
-      message: `codex exec exited with code ${processResult.code}.`,
+      message: summarizeCodexExecResultMessage({
+        exitCode: processResult.code,
+        stderr: processResult.stderr,
+        lastMessage
+      }),
       warnings: [],
       exitCode: processResult.code,
       stdout: processResult.stdout,
