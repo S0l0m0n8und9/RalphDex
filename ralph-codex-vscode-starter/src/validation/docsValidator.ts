@@ -108,7 +108,8 @@ const DOC_RULES: Record<string, DocRule> = {
     requiredFragments: [
       'must remain true',
       'control plane',
-      'artifact model'
+      'artifact model',
+      'one selected task and one Codex execution at a time'
     ]
   },
   'docs/provenance.md': {
@@ -154,7 +155,8 @@ const DOC_RULES: Record<string, DocRule> = {
     ],
     requiredFragments: [
       'explicitly does not try to do',
-      'trust guarantees stop'
+      'trust guarantees stop',
+      'single-agent iteration/loop runner'
     ]
   },
   'docs/workflows.md': {

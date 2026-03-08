@@ -41,6 +41,7 @@ exports.createArtifactBaseName = createArtifactBaseName;
 exports.buildPrompt = buildPrompt;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const rootPolicy_1 = require("../ralph/rootPolicy");
 const taskFile_1 = require("../ralph/taskFile");
 const DEFAULT_TEMPLATE_DIR_CANDIDATES = [
     path.resolve(__dirname, '../../prompt-templates'),
@@ -50,6 +51,7 @@ const DEFAULT_TEMPLATE_DIR_CANDIDATES = [
 const TEMPLATE_FILE_BY_KIND = {
     bootstrap: 'bootstrap.md',
     iteration: 'iteration.md',
+    'replenish-backlog': 'replenish-backlog.md',
     'fix-failure': 'fix-failure.md',
     'continue-progress': 'continue-progress.md',
     'human-review-handoff': 'human-review-handoff.md'
@@ -57,6 +59,7 @@ const TEMPLATE_FILE_BY_KIND = {
 const PROMPT_INTRO_BY_KIND = {
     bootstrap: 'You are starting a fresh Ralph-guided Codex run inside an existing repository. Treat the repository and durable Ralph files as the source of truth.',
     iteration: 'You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.',
+    'replenish-backlog': 'The durable Ralph backlog is exhausted. Re-inspect the repository, PRD, and recent progress, then generate the next coherent tasks directly in the durable task file.',
     'fix-failure': 'A prior Ralph iteration failed, stalled, or produced a blocking verifier signal. Repair the concrete cause instead of repeating the same attempt.',
     'continue-progress': 'A prior Ralph iteration made partial progress. Resume from that durable state and finish the next coherent slice without redoing settled work.',
     'human-review-handoff': 'A prior Ralph iteration surfaced a blocker that may need human review. Preserve deterministic evidence, do not fake closure, and make the next safe move explicit.'
@@ -125,8 +128,23 @@ function childTaskSummary(taskFile, task) {
     }
     return compactList(children.map((child) => `${child.id} (${child.status})`), 4);
 }
+function isBacklogExhausted(context) {
+    return context?.selectedTask === null
+        && Boolean(context.taskCounts)
+        && context.taskCounts.todo === 0
+        && context.taskCounts.in_progress === 0
+        && context.taskCounts.blocked === 0;
+}
 function buildStrategyContext(target, kind) {
     if (target === 'cliExec') {
+        if (kind === 'replenish-backlog') {
+            return [
+                '- Target: Codex CLI execution via `codex exec`.',
+                '- The current durable Ralph backlog is exhausted; this run should replenish `.ralph/tasks.json`, not start broad feature work.',
+                '- Generate only the next coherent task slice grounded in the PRD, repo state, and recent durable progress.',
+                '- Leave the task file explicit, flat, version 2, and immediately actionable.'
+            ];
+        }
         return [
             '- Target: Codex CLI execution via `codex exec`.',
             '- Operate autonomously inside the repository. Do not rely on interactive clarification to make forward progress.',
@@ -134,6 +152,14 @@ function buildStrategyContext(target, kind) {
             kind === 'human-review-handoff'
                 ? '- This prompt follows a human-review signal. If the blocker is still real, preserve it cleanly instead of masking it with speculative edits.'
                 : '- End with a compact change summary Ralph can pair with verifier evidence.'
+        ];
+    }
+    if (kind === 'replenish-backlog') {
+        return [
+            '- Target: manual Codex IDE handoff via clipboard plus VS Code commands.',
+            '- The current durable Ralph backlog is exhausted; use this prompt to replenish `.ralph/tasks.json` from durable repo state.',
+            '- Add only explicit next tasks and keep the file flat, inspectable, and version 2.',
+            '- Make the next actionable task obvious for the following Ralph iteration.'
         ];
     }
     return [
@@ -157,10 +183,15 @@ function buildPreflightContext(report) {
     return salientDiagnostics.length > 0 ? [...lines, ...salientDiagnostics] : lines;
 }
 function buildRepoContext(summary) {
+    const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);
     const lines = [
         `- Workspace: ${summary.workspaceName}`,
+        `- Workspace root: ${summary.workspaceRootPath}`,
         `- Inspected root: ${summary.rootPath}`,
+        `- Execution root: ${rootPolicy.executionRootPath}`,
+        `- Verifier root: ${rootPolicy.verificationRootPath}`,
         `- Root selection: ${summary.rootSelection.summary}`,
+        `- Root policy: ${rootPolicy.policySummary}`,
         `- Manifests: ${compactList(summary.manifests, 5)}`,
         `- Source roots: ${compactList(summary.sourceRoots, 5)}`,
         `- Test roots: ${compactList(summary.tests, 5)}`,
@@ -173,9 +204,6 @@ function buildRepoContext(summary) {
         `- Docs: ${compactList(summary.docs, 4)}`,
         `- Test signals: ${compactList(summary.testSignals, 3)}`
     ];
-    if (summary.workspaceRootPath !== summary.rootPath) {
-        lines.push(`- Workspace root: ${summary.workspaceRootPath}`);
-    }
     if (summary.packageJson?.name) {
         lines.push(`- package.json name: ${summary.packageJson.name}`);
     }
@@ -207,12 +235,22 @@ function buildRuntimeContext(state, paths, iteration, target) {
     }
     return lines;
 }
-function buildTaskContext(taskFile, taskCounts, selectedTask, validationCommand) {
+function buildTaskContext(kind, taskFile, taskCounts, selectedTask, validationCommand) {
     const nextActionable = (0, taskFile_1.selectNextTask)(taskFile);
     const baseLines = [
         `- Backlog counts: todo ${taskCounts.todo}, in_progress ${taskCounts.in_progress}, blocked ${taskCounts.blocked}, done ${taskCounts.done}`,
         `- Next actionable task: ${nextActionable ? `${nextActionable.id} (${nextActionable.status})` : 'none'}`
     ];
+    if (kind === 'replenish-backlog') {
+        return [
+            ...baseLines,
+            '- The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.',
+            '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, optional `parentId`, and optional `dependsOn`.',
+            '- Do not duplicate already-completed work or mark speculative tasks done.',
+            '- Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.',
+            `- Validation command: ${validationCommand ?? 'none selected for backlog replenishment'}`
+        ];
+    }
     if (!selectedTask) {
         return [
             ...baseLines,
@@ -276,7 +314,24 @@ function buildOperatingRules() {
         '- Update durable Ralph progress/tasks when the task state materially changes.'
     ];
 }
-function buildExecutionContract(target) {
+function buildExecutionContract(target, kind) {
+    if (kind === 'replenish-backlog') {
+        const contract = [
+            '1. Inspect the PRD, durable progress log, and current repo state before editing the task file.',
+            '2. Replenish `.ralph/tasks.json` with the next coherent tasks only; do not broaden into unrelated planning.',
+            '3. Keep tasks explicit, flat, and dependency-aware so the next Ralph iteration can select deterministically.',
+            '4. Update `.ralph/progress.md` with a short note explaining why backlog replenishment was needed and what was added.'
+        ];
+        if (target === 'cliExec') {
+            contract.push('5. Do not run broad validation just for backlog generation unless you also changed runnable code.');
+            contract.push('6. End with the generated task ids and the next actionable task.');
+        }
+        else {
+            contract.push('5. Surface any ambiguity or blocker that prevented a safe next task from being generated.');
+            contract.push('6. End with the concrete next task a human or later Ralph iteration should pick up.');
+        }
+        return contract;
+    }
     const contract = [
         '1. Inspect the workspace facts and selected Ralph task before editing.',
         '2. Execute only the selected task, or explain deterministically why no safe task is available.',
@@ -293,7 +348,15 @@ function buildExecutionContract(target) {
     }
     return contract;
 }
-function buildFinalResponseContract(target) {
+function buildFinalResponseContract(target, kind) {
+    if (kind === 'replenish-backlog') {
+        return [
+            '- Generated or updated task ids.',
+            '- Why those tasks are the next coherent slice.',
+            '- Whether a new actionable task now exists.',
+            '- Any blocker that prevented safe backlog replenishment.'
+        ];
+    }
     if (target === 'cliExec') {
         return [
             '- Changed files.',
@@ -363,8 +426,14 @@ async function loadTemplate(kind, rootPath, overrideDirectory) {
 function hasAnyPriorPrompt(state) {
     return Boolean(state.lastPromptPath || state.lastPromptKind || state.lastRun || state.lastIteration);
 }
-function decidePromptKind(state, target) {
+function decidePromptKind(state, target, context) {
     const lastIteration = state.lastIteration;
+    if (isBacklogExhausted(context)) {
+        return {
+            kind: 'replenish-backlog',
+            reason: 'The current durable Ralph backlog is exhausted, so the next prompt should replenish `.ralph/tasks.json` before normal task execution resumes.'
+        };
+    }
     if (!hasAnyPriorPrompt(state)) {
         return {
             kind: 'bootstrap',
@@ -386,6 +455,13 @@ function decidePromptKind(state, target) {
             reason: 'The previous iteration recorded partial progress, so the next prompt should continue from that durable state.'
         };
     }
+    if (lastIteration?.completionClassification === 'complete'
+        && lastIteration.stopReason === 'no_actionable_task') {
+        return {
+            kind: 'iteration',
+            reason: 'The previous iteration completed and stopped because no executable Ralph task remains, so no failure-focused follow-up prompt is needed.'
+        };
+    }
     if (lastIteration
         && (lastIteration.executionStatus === 'failed'
             || lastIteration.verificationStatus === 'failed'
@@ -403,8 +479,8 @@ function decidePromptKind(state, target) {
         reason: 'A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.'
     };
 }
-function choosePromptKind(state, target) {
-    return decidePromptKind(state, target).kind;
+function choosePromptKind(state, target, context) {
+    return decidePromptKind(state, target, context).kind;
 }
 function createPromptFileName(kind, iteration) {
     return `${kind}-${String(iteration).padStart(3, '0')}.prompt.md`;
@@ -424,21 +500,22 @@ async function buildPrompt(input) {
         selectedTaskId: input.selectedTask?.id ?? null,
         validationCommand: input.validationCommand,
         inputs: {
+            rootPolicy: (0, rootPolicy_1.deriveRootPolicy)(input.summary),
             strategyContext: buildStrategyContext(input.target, input.kind),
             preflightContext: buildPreflightContext(input.preflightReport),
             objectiveContext: clipText(input.objectiveText, 14, 1600),
             repoContext: buildRepoContext(input.summary),
             repoContextSnapshot: input.summary,
             runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target),
-            taskContext: buildTaskContext(input.taskFile, input.taskCounts, input.selectedTask, input.validationCommand),
+            taskContext: buildTaskContext(input.kind, input.taskFile, input.taskCounts, input.selectedTask, input.validationCommand),
             progressContext: clipText(input.progressText, 10, 1200, true)
                 .split('\n')
                 .map((line) => line.trimEnd())
                 .filter((line) => line.length > 0),
             priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, input.config.promptPriorContextBudget, input.paths.rootPath),
             operatingRules: buildOperatingRules(),
-            executionContract: buildExecutionContract(input.target),
-            finalResponseContract: buildFinalResponseContract(input.target)
+            executionContract: buildExecutionContract(input.target, input.kind),
+            finalResponseContract: buildFinalResponseContract(input.target, input.kind)
         }
     };
     const prompt = renderTemplate(templateText, {

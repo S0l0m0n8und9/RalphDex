@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import { buildPrompt, choosePromptKind, decidePromptKind } from '../src/prompt/promptBuilder';
 import { RalphPaths } from '../src/ralph/pathResolver';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { RalphIterationResult, RalphWorkspaceState } from '../src/ralph/types';
 import { WorkspaceScan } from '../src/services/workspaceInspection';
 import { scanWorkspace } from '../src/services/workspaceScanner';
@@ -32,6 +33,7 @@ const summary: WorkspaceScan = {
     selectedRootPath: '/workspace',
     strategy: 'workspaceRoot',
     summary: 'Using the workspace root because it already exposes shallow repo markers.',
+    override: null,
     candidates: [
       {
         path: '/workspace',
@@ -129,6 +131,7 @@ function baseIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
     adapterUsed: 'cliExec',
     executionIntegrity: {
       promptTarget: 'cliExec',
+      rootPolicy: deriveRootPolicy(summary),
       templatePath: '/workspace/prompt-templates/iteration.md',
       executionPlanPath: '/workspace/.ralph/artifacts/iteration-001/execution-plan.json',
       promptArtifactPath: '/workspace/.ralph/artifacts/iteration-001/prompt.md',
@@ -260,6 +263,7 @@ async function createTemplateDir(): Promise<string> {
   await Promise.all([
     'bootstrap',
     'iteration',
+    'replenish-backlog',
     'fix-failure',
     'continue-progress',
     'human-review-handoff'
@@ -298,6 +302,24 @@ test('decidePromptKind selects specialized prompt kinds deterministically', () =
     })
   });
   assert.equal(decidePromptKind(failed, 'cliExec').kind, 'fix-failure');
+
+  const exhausted = workspaceState({
+    lastIteration: baseIterationResult({
+      completionClassification: 'complete',
+      verificationStatus: 'failed',
+      stopReason: 'no_actionable_task',
+      verification: {
+        primaryCommand: 'npm run validate',
+        validationFailureSignature: 'sig:artifact-only-no-task',
+        verifiers: []
+      }
+    })
+  });
+  assert.equal(decidePromptKind(exhausted, 'cliExec').kind, 'iteration');
+  assert.equal(decidePromptKind(exhausted, 'cliExec', {
+    selectedTask: null,
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 4 }
+  }).kind, 'replenish-backlog');
 
   const humanReview = workspaceState({
     lastIteration: baseIterationResult({
@@ -375,8 +397,60 @@ test('buildPrompt renders a file-based template with structured inputs', async (
   assert.equal(render.evidence.templatePath, path.join(templateDir, 'fix-failure.md'));
   assert.equal(render.evidence.kind, 'fix-failure');
   assert.equal(render.evidence.target, 'cliExec');
+  assert.equal(render.evidence.inputs.rootPolicy.executionRootPath, '/workspace');
   assert.equal(render.evidence.inputs.repoContextSnapshot.rootPath, '/workspace');
   assert.deepEqual(render.evidence.inputs.repoContextSnapshot.tests, ['test']);
+});
+
+test('buildPrompt renders backlog-replenishment instructions when the task list is exhausted', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'replenish-backlog',
+    target: 'cliExec',
+    iteration: 3,
+    selectionReason: 'The durable Ralph backlog is exhausted.',
+    objectiveText: '# Product / project brief\n\nKeep Ralph moving without manual task seeding.\n',
+    progressText: '# Progress\n\n- Finished the current backlog.\n',
+    taskCounts: {
+      todo: 0,
+      in_progress: 0,
+      blocked: 0,
+      done: 4
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'complete',
+        stopReason: 'no_actionable_task'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Done task', status: 'done' }
+      ]
+    },
+    selectedTask: null,
+    validationCommand: null,
+    preflightReport: {
+      ready: true,
+      summary: 'No blocking preflight errors.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.match(render.prompt, /# Ralph Prompt: replenish-backlog \(cliExec\)/);
+  assert.match(render.prompt, /replenish `\.ralph\/tasks\.json`/);
+  assert.match(render.prompt, /The actionable backlog is exhausted\./);
+  assert.equal(render.evidence.kind, 'replenish-backlog');
+  assert.equal(render.evidence.selectedTaskId, null);
 });
 
 test('buildPrompt uses real scan results from a nested repo instead of rendering empty repo context', async () => {
@@ -451,6 +525,8 @@ test('buildPrompt uses real scan results from a nested repo instead of rendering
   assert.match(render.prompt, /- Root selection: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers\./);
   assert.match(render.prompt, new RegExp(`- Inspected root: ${repoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   assert.match(render.prompt, new RegExp(`- Workspace root: ${workspaceRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  assert.match(render.prompt, new RegExp(`- Execution root: ${repoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  assert.match(render.prompt, new RegExp(`- Verifier root: ${repoRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
   assert.match(render.prompt, /- Manifests: package\.json, tsconfig\.json/);
   assert.match(render.prompt, /- Source roots: src/);
   assert.match(render.prompt, /- Test roots: test/);
@@ -465,6 +541,9 @@ test('buildPrompt uses real scan results from a nested repo instead of rendering
   assert.equal(render.evidence.inputs.repoContextSnapshot.workspaceRootPath, workspaceRoot);
   assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.selectedRootPath, repoRoot);
   assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.strategy, 'scoredChild');
+  assert.equal(render.evidence.inputs.rootPolicy.workspaceRootPath, workspaceRoot);
+  assert.equal(render.evidence.inputs.rootPolicy.executionRootPath, repoRoot);
+  assert.equal(render.evidence.inputs.rootPolicy.verificationRootPath, repoRoot);
 });
 
 test('buildPrompt trims prior verifier context to the configured budget', async () => {

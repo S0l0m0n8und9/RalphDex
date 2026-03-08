@@ -18,6 +18,8 @@ Configured through `ralphCodex.verifierModes`:
 
 Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
 
+For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+
 ## Verifier Artifacts
 
 Each iteration persists a machine-readable `verifier-summary.json`.

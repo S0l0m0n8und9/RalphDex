@@ -102,3 +102,50 @@ test('scanWorkspace selects a nested child root when the workspace root has no s
   assert.ok(summary.validationCommands.includes('npm run validate'));
   assert.ok(summary.validationCommands.includes('npm run test'));
 });
+
+test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
+  const rootPath = await makeTempRoot();
+  const alphaRoot = path.join(rootPath, 'alpha-repo');
+  const betaRoot = path.join(rootPath, 'beta-repo');
+  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
+  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
+  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
+  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
+
+  const summary = await scanWorkspace(rootPath, 'workspace-root', {
+    inspectionRootOverride: 'beta-repo'
+  });
+
+  assert.equal(summary.rootPath, betaRoot);
+  assert.equal(summary.rootSelection.strategy, 'manualOverride');
+  assert.deepEqual(summary.rootSelection.override, {
+    requestedPath: 'beta-repo',
+    resolvedPath: betaRoot,
+    status: 'applied',
+    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
+  });
+  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
+  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
+});
+
+test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
+  const rootPath = await makeTempRoot();
+  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
+  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
+  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
+
+  const summary = await scanWorkspace(rootPath, 'workspace-root', {
+    inspectionRootOverride: '../outside-workspace'
+  });
+
+  assert.equal(summary.rootPath, childRoot);
+  assert.equal(summary.rootSelection.strategy, 'scoredChild');
+  assert.deepEqual(summary.rootSelection.override, {
+    requestedPath: '../outside-workspace',
+    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
+    status: 'invalid',
+    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
+  });
+  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
+  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
+});

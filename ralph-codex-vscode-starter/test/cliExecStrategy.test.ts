@@ -19,6 +19,7 @@ function request(): CodexExecRequest {
   return {
     commandPath: 'codex',
     workspaceRoot: '/workspace',
+    executionRoot: '/workspace/repo',
     prompt: 'Ship it.',
     promptPath: '/workspace/.ralph/prompts/bootstrap-001.prompt.md',
     promptHash: hashText('Ship it.'),
@@ -63,7 +64,7 @@ test('buildCodexExecArgs appends stdin marker and optional git-skip flag', () =>
     '--model', 'gpt-5.4',
     '--sandbox', 'workspace-write',
     '--config', 'approval_policy="on-request"',
-    '--cd', '/workspace',
+    '--cd', '/workspace/repo',
     '--output-last-message', '/workspace/.ralph/runs/bootstrap-001.last-message.md',
     '-'
   ]);
@@ -73,7 +74,7 @@ test('buildCodexExecArgs appends stdin marker and optional git-skip flag', () =>
     '--model', 'gpt-5.4',
     '--sandbox', 'workspace-write',
     '--config', 'approval_policy="on-request"',
-    '--cd', '/workspace',
+    '--cd', '/workspace/repo',
     '--output-last-message', '/workspace/.ralph/runs/bootstrap-001.last-message.md',
     '--skip-git-repo-check',
     '-'
@@ -86,6 +87,8 @@ test('buildCodexExecTranscript captures command metadata and last message', () =
   assert.match(transcript, /Codex Exec Transcript/);
   assert.match(transcript, /--model gpt-5.4/);
   assert.match(transcript, /approval_policy="on-request"/);
+  assert.match(transcript, /Workspace root: \/workspace/);
+  assert.match(transcript, /Execution root: \/workspace\/repo/);
   assert.match(transcript, /Prompt path: \/workspace\/\.ralph\/prompts\/bootstrap-001\.prompt\.md/);
   assert.match(transcript, /Payload matched prompt artifact: yes/);
   assert.match(transcript, /Final answer/);
@@ -128,6 +131,7 @@ test('CliExecCodexStrategy fails before launch when the stdin payload hash diver
     () => strategy.runExec({
       ...request(),
       workspaceRoot: root,
+      executionRoot: root,
       transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
       lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md'),
       promptHash: hashText('different prompt')
@@ -153,6 +157,7 @@ test('CliExecCodexStrategy records a summarized stderr failure reason', async ()
     ...request(),
     commandPath,
     workspaceRoot: root,
+    executionRoot: root,
     transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
     lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
   });

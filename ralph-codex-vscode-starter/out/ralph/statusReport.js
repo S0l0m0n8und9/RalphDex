@@ -37,6 +37,7 @@ exports.resolveLatestStatusArtifacts = resolveLatestStatusArtifacts;
 exports.buildStatusReport = buildStatusReport;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const rootPolicy_1 = require("./rootPolicy");
 const artifactStore_1 = require("./artifactStore");
 async function pathExists(target) {
     try {
@@ -132,6 +133,8 @@ function buildStatusReport(snapshot) {
     const latestPlan = snapshot.latestExecutionPlan;
     const latestProvenance = snapshot.latestProvenanceBundle;
     const lastIntegrity = lastIteration?.executionIntegrity;
+    const currentRootPolicy = latestPlan?.rootPolicy ?? (0, rootPolicy_1.deriveRootPolicy)(snapshot.workspaceScan);
+    const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
     const lastTaskLabel = lastIteration?.selectedTaskId
         ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}`
         : 'none';
@@ -177,8 +180,13 @@ function buildStatusReport(snapshot) {
         preflightVerifier.length > 0 ? preflightVerifier.map(renderDiagnostic).join('\n') : '- ok',
         '',
         '## Repo Context',
-        `- Inspected root: ${relativeFromRoot(snapshot.rootPath, scan.rootPath)}`,
+        `- Workspace root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.workspaceRootPath)}`,
+        `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+        `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+        `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
+        `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
         `- Root selection: ${scan.rootSelection.summary}`,
+        `- Root policy: ${currentRootPolicy.policySummary}`,
         `- Manifests: ${compactList(scan.manifests, 5)}`,
         `- Source roots: ${compactList(scan.sourceRoots, 5)}`,
         `- Test roots: ${compactList(scan.tests, 5)}`,
@@ -209,6 +217,8 @@ function buildStatusReport(snapshot) {
         `- Last task: ${lastTaskLabel}`,
         `- Last prompt: ${lastPromptLabel}`,
         `- Last template: ${relativeFromRoot(snapshot.rootPath, lastIntegrity?.templatePath ?? null)}`,
+        `- Last execution root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.executionRootPath ?? null)}`,
+        `- Last verifier root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.verificationRootPath ?? null)}`,
         `- Payload matched rendered artifact: ${payloadMatched}`,
         `- Outcome: ${lastIteration ? `${lastIteration.completionClassification} (selected task)` : 'none'}`,
         `- Backlog remaining: ${lastIteration ? lastIteration.backlog.remainingTaskCount : 'none'}`,
@@ -251,5 +261,12 @@ function buildStatusReport(snapshot) {
         `- Working tree changes: ${snapshot.gitStatus.entries.length}`,
         gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
     ].join('\n');
+}
+function formatInspectionRootOverride(rootPath, override) {
+    if (!override) {
+        return 'none';
+    }
+    const location = relativeFromRoot(rootPath, override.resolvedPath);
+    return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
 }
 //# sourceMappingURL=statusReport.js.map

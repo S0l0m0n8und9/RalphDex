@@ -5,6 +5,7 @@ import * as path from 'path';
 import test from 'node:test';
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { RalphStateManager } from '../src/ralph/stateManager';
 import { RalphIterationResult } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
@@ -42,6 +43,103 @@ function createLogger(): Logger {
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-codex-'));
+}
+
+function rootPolicy(rootPath: string) {
+  return deriveRootPolicy({
+    workspaceName: path.basename(rootPath),
+    workspaceRootPath: rootPath,
+    rootPath,
+    rootSelection: {
+      workspaceRootPath: rootPath,
+      selectedRootPath: rootPath,
+      strategy: 'workspaceRoot',
+      summary: 'Using the workspace root because it already exposes shallow repo markers.',
+      override: null,
+      candidates: [
+        {
+          path: rootPath,
+          relativePath: '.',
+          markerCount: 1,
+          markers: ['package.json']
+        }
+      ]
+    },
+    manifests: ['package.json'],
+    projectMarkers: ['package.json'],
+    packageManagers: ['npm'],
+    packageManagerIndicators: ['package.json'],
+    ciFiles: [],
+    ciCommands: [],
+    docs: [],
+    sourceRoots: ['src'],
+    tests: ['test'],
+    lifecycleCommands: ['npm test'],
+    validationCommands: ['npm test'],
+    testSignals: [],
+    notes: [],
+    evidence: {
+      rootEntries: ['package.json', 'src', 'test'],
+      manifests: {
+        checked: ['package.json'],
+        matches: ['package.json'],
+        emptyReason: null
+      },
+      sourceRoots: {
+        checked: ['src'],
+        matches: ['src'],
+        emptyReason: null
+      },
+      tests: {
+        checked: ['test'],
+        matches: ['test'],
+        emptyReason: null
+      },
+      docs: {
+        checked: ['README.md'],
+        matches: [],
+        emptyReason: 'No docs matched among 1 shallow root checks.'
+      },
+      ciFiles: {
+        checked: ['.github/workflows/*.yml'],
+        matches: [],
+        emptyReason: 'No CI files matched among 1 shallow root checks.'
+      },
+      packageManagers: {
+        indicators: ['package.json'],
+        detected: ['npm'],
+        packageJsonPackageManager: 'npm',
+        emptyReason: null
+      },
+      validationCommands: {
+        selected: ['npm test'],
+        packageJsonScripts: ['npm test'],
+        makeTargets: [],
+        justTargets: [],
+        ciCommands: [],
+        manifestSignals: [],
+        emptyReason: null
+      },
+      lifecycleCommands: {
+        selected: ['npm test'],
+        packageJsonScripts: ['npm test'],
+        makeTargets: [],
+        justTargets: [],
+        ciCommands: [],
+        manifestSignals: [],
+        emptyReason: null
+      }
+    },
+    packageJson: {
+      name: 'demo',
+      packageManager: 'npm',
+      hasWorkspaces: false,
+      scriptNames: ['test'],
+      lifecycleCommands: ['npm test'],
+      validationCommands: ['npm test'],
+      testSignals: []
+    }
+  });
 }
 
 test('inspectWorkspace reports missing Ralph files without creating them', async () => {
@@ -100,6 +198,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
     adapterUsed: 'cliExec',
     executionIntegrity: {
       promptTarget: 'cliExec',
+      rootPolicy: rootPolicy(rootPath),
       templatePath: path.join(rootPath, 'prompt-templates', 'bootstrap.md'),
       executionPlanPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'execution-plan.json'),
       promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt.md'),

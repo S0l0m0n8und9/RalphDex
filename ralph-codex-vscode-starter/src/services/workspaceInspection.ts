@@ -8,9 +8,15 @@ export interface RepoRootCandidate {
 export interface RepoRootSelection {
   workspaceRootPath: string;
   selectedRootPath: string;
-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
+  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
   summary: string;
   candidates: RepoRootCandidate[];
+  override: {
+    requestedPath: string;
+    resolvedPath: string | null;
+    status: 'applied' | 'invalid';
+    summary: string;
+  } | null;
 }
 
 export interface WorkspaceFieldEvidence {

@@ -1,0 +1,1695 @@
+OpenAI Codex v0.111.0 (research preview)
+--------
+workdir: /home/admin/Documents/repos/Ralph
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /home/admin/.codex/memories]
+reasoning effort: high
+reasoning summaries: none
+session id: 019ccb09-aa6e-7fc0-9b5a-4a35cdd2d4dc
+--------
+user
+# Ralph Prompt: iteration (cliExec)
+
+You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.
+
+## Template Selection
+A prior Ralph prompt exists and there is no stronger prior-iteration signal that requires a specialized follow-up prompt.
+
+## Prompt Strategy
+- Target: Codex CLI execution via `codex exec`.
+- Operate autonomously inside the repository. Do not rely on interactive clarification to make forward progress.
+- Keep command usage deterministic and concise because Ralph will persist transcripts, verifier output, and stop signals.
+- End with a compact change summary Ralph can pair with verifier evidence.
+
+## Preflight Snapshot
+- Ready: yes
+- Summary: Preflight ready: Selected task T9. Validation npm run validate. Executable confirmed. Task graph: ok | Workspace/runtime: ok | Codex adapter: 1 warning, 1 info | Validation/verifier: 1 info
+- codexAdapter warning: Codex CLI will be resolved from PATH at runtime: codex. Availability is assumed until execution starts.
+
+## Objective Snapshot
+# Product / project brief
+
+## Objective
+
+Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, and orchestration without depending on chat memory.
+
+## Product direction
+
+Ralph should let an operator define the work once in `.ralph/`, then execute repeatable Codex-driven iterations that stay inspectable across fresh sessions. The framework needs to strengthen both the quality of agent work and the control plane around it, so each step is deterministic, resumable, and supported by durable evidence.
+
+## Core outcomes
+
+- Turn requirements, progress, and task state into the shared source of truth for all agent activity.
+- Support end-to-end delivery flow across requirements analysis, implementation, validation, and orchestration.
+[trimmed for size]
+
+## Repo Context
+- Workspace: Ralph
+- Inspected root: /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter
+- Root selection: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.
+- Manifests: package.json, tsconfig.json
+- Source roots: src
+- Test roots: test
+- Package managers: npm
+- Package manager indicators: package.json, package-lock.json
+- Validation commands: npm run validate, npm run check:docs, npm run check:runtime, npm run lint (+5 more)
+- Lifecycle commands: npm run validate, npm run check:docs, npm run check:runtime, npm run lint (+5 more)
+- CI files: none
+- CI commands: none
+- Docs: README.md, docs, AGENTS.md
+- Test signals: package.json defines a test script., package.json defines a lint script., package.json defines a validate/check script. (+3 more)
+- Workspace root: /home/admin/Documents/repos/Ralph
+- package.json name: ralph-codex-workbench
+- Notes: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.
+
+## Ralph Runtime Context
+- Prompt target: cliExec
+- Current iteration number: 10
+- Next iteration recorded in state: 10
+- Last prompt kind: continue-progress
+- Last prompt path: .ralph/prompts/continue-progress-009.prompt.md
+- Last run: succeeded at iteration 9
+- Last iteration outcome: complete at iteration 9
+- PRD path: .ralph/prd.md
+- Progress path: .ralph/progress.md
+- Task file path: .ralph/tasks.json
+- Runtime state path: .ralph/state.json
+- Artifact root: .ralph/artifacts
+- Last iteration summary: Selected T8: Align nested inspection-root and execution-root semantics across prompting, execution, and verification | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1
+
+## Task Focus
+- Backlog counts: todo 1, in_progress 0, blocked 0, done 15
+- Next actionable task: T9 (todo)
+- Selected task id: T9
+- Title: Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed
+- Status: todo
+- Parent task: none
+- Dependencies: T8 (done)
+- Direct children: T10 (done)
+- Remaining descendants: none
+- Task validation hint: none
+- Selected validation command: npm run validate
+- Notes: Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented.
+- Blocker: none
+
+## Recent Progress
+- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
+- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+- Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summ
+[trimmed for size]
+
+## Prior Iteration Evidence
+- Prior iteration: 9
+- Prior outcome classification: complete
+- Prior execution / verification: succeeded / passed
+- Prior follow-up action: continue_next_task
+- Prior summary: Selected T8: Align nested inspection-root and execution-root semantics across prompting, execution, and verification | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1
+- Prior stop reason: none
+- Prior validation failure signature: none
+- Additional prior-context signals omitted: 6.
+
+## Operating Rules
+- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.
+- Do not invent unsupported Codex IDE APIs or hidden handoff channels.
+- Keep architecture thin, deterministic, and file-backed.
+- Make the smallest coherent change that materially advances the selected Ralph task.
+- Prefer the repository’s real validation commands when they exist.
+- Update durable Ralph progress/tasks when the task state materially changes.
+
+## Execution Contract
+1. Inspect the workspace facts and selected Ralph task before editing.
+2. Execute only the selected task, or explain deterministically why no safe task is available.
+3. Implement the smallest coherent improvement that advances the task.
+4. Update durable Ralph files when task state or progress changes.
+5. Run the selected validation command when available and report the concrete result.
+6. End with a compact result Ralph can pair with verifier and artifact evidence.
+
+## Final Response Contract
+- Changed files.
+- Validation results.
+- Assumptions or blockers.
+- Known limitations or follow-up work.
+
+mcp: codex_apps starting
+mcp: codex_apps ready
+mcp startup: ready: codex_apps
+codex
+Inspecting the repository state and the Ralph task selection first. I’m checking the durable task/progress files plus the nested repo layout before making any edits.
+exec
+/bin/bash -lc "pwd && ls -la && printf '\\n--- child repo ---\\n' && ls -la ralph-codex-vscode-starter" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "printf '%s\\n' '--- AGENTS.md ---' && sed -n '1,240p' AGENTS.md && printf '\\n--- .ralph/state.json ---\\n' && sed -n '1,220p' .ralph/state.json && printf '\\n--- .ralph/tasks.json ---\\n' && sed -n '1,260p' .ralph/tasks.json && printf '\\n--- .ralph/progress.md ---\\n' && sed -n '1,260p' .ralph/progress.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "git -C /home/admin/Documents/repos/Ralph status --short && printf '\\n--- child git status ---\\n' && git -C /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter status --short && printf '\\n--- package scripts ---\\n' && node -e \"const p=require('./ralph-codex-vscode-starter/package.json'); console.log(JSON.stringify(p.scripts,null,2))\"" in /home/admin/Documents/repos/Ralph exited 2 in 51ms:
+--- AGENTS.md ---
+sed: can't read AGENTS.md: No such file or directory
+ succeeded in 51ms:
+/home/admin/Documents/repos/Ralph
+total 32
+drwxrwxr-x  7 admin admin 4096 Mar  8 09:54 .
+drwxrwxr-x  6 admin admin 4096 Mar  7 21:16 ..
+drwxrwxr-x  3 admin admin 4096 Mar  7 08:43 .codex
+drwxrwxr-x  8 admin admin 4096 Mar  8 14:22 .git
+drwxrwxr-x  6 admin admin 4096 Mar  8 09:54 .ralph
+drwxrwxr-x  2 admin admin 4096 Mar  7 13:11 .vscode
+drwxrwxr-x 14 admin admin 4096 Mar  8 11:13 ralph-codex-vscode-starter
+-rw-rw-r--  1 admin admin  260 Mar  7 08:57 ralph.code-workspace
+
+--- child repo ---
+total 632
+drwxrwxr-x  14 admin admin   4096 Mar  8 11:13 .
+drwxrwxr-x   7 admin admin   4096 Mar  8 09:54 ..
+-rw-rw-r--   1 admin admin     64 Mar  7 22:17 .gitignore
+drwxrwxr-x   3 admin admin   4096 Mar  6 18:33 .ralph
+drwxrwxr-x   2 admin admin   4096 Mar  6 18:33 .vscode
+drwxrwxr-x   3 admin admin   4096 Mar  7 13:14 .vscode-test
+-rw-rw-r--   1 admin admin   3958 Mar  8 09:57 AGENTS.md
+ succeeded in 50ms:
+ M .ralph/artifacts/latest-cli-invocation.json
+ M .ralph/artifacts/latest-execution-plan.json
+ M .ralph/artifacts/latest-preflight-report.json
+ M .ralph/artifacts/latest-preflight-summary.md
+ M .ralph/artifacts/latest-prompt-evidence.json
+ M .ralph/artifacts/latest-prompt.md
+ M .ralph/artifacts/latest-provenance-bundle.json
+ M .ralph/artifacts/latest-provenance-summary.md
+ M .ralph/artifacts/latest-result.json
+ M .ralph/artifacts/latest-summary.md
+ M .ralph/logs/extension.log
+ M .ralph/progress.md
+ M .ralph/prompts/iteration-008.prompt.md
+ M .ralph/state.json
+ M .ralph/tasks.json
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/architecture.md
+ M ralph-codex-vscode-starter/docs/provenance.md
+ M ralph-codex-vscode-starter/docs/verifier.md
+ M ralph-codex-vscode-starter/out/codex/cliExecStrategy.js
+codex
+The repo is already dirty from prior Ralph iterations, so I’m reading the child repo instructions and the current durable task state carefully before touching overlapping files. Next I’m narrowing on T9 and the orchestration/root-policy code paths it depends on.
+exec
+/bin/bash -lc "sed -n '1,240p' AGENTS.md" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "printf '%s\\n' '--- state ---' && sed -n '1,260p' /home/admin/Documents/repos/Ralph/.ralph/state.json && printf '\\n--- tasks ---\\n' && sed -n '1,320p' /home/admin/Documents/repos/Ralph/.ralph/tasks.json && printf '\\n--- progress ---\\n' && sed -n '1,260p' /home/admin/Documents/repos/Ralph/.ralph/progress.md" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+# AGENTS.md
+
+## Purpose
+
+Ralph Codex Workbench is a VS Code extension that:
+
+- builds Ralph prompts from durable workspace files
+- hands prepared prompts to Codex through clipboard plus configurable VS Code command IDs
+- runs controlled `codex exec` iterations with deterministic verification, provenance, and stop behavior
+
+## Working Rules
+
+- Edit `src/` and `test/`. Treat `out/`, `out-test/`, and packaged `.vsix` files as generated artifacts.
+- Keep `AGENTS.md` thin: AGENTS.md is a routing/control document, not the place for detailed durable rules.
+- `package.json` is authoritative for commands, settings, activation events, scripts, and runtime expectations.
+- Keep docs aligned with code in the same change.
+- Prefer updating the focused doc that owns a rule instead of restating that rule elsewhere.
+
+## Authoritative Doc Map
+
+exec
+/bin/bash -lc 'rg -n "T9|multi-agent|orchestrat|nested root|execution-root|inspection-root|root policy|defer broad" -S /home/admin/Documents/repos/Ralph/.ralph /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 50ms:
+--- state ---
+{
+  "version": 2,
+  "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
+  "nextIteration": 10,
+  "lastPromptKind": "continue-progress",
+  "lastPromptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/continue-progress-009.prompt.md",
+  "lastRun": {
+    "provenanceId": "run-i009-cli-20260308T011035Z",
+    "iteration": 9,
+    "mode": "loop",
+    "promptKind": "continue-progress",
+    "startedAt": "2026-03-08T01:10:35.317Z",
+    "finishedAt": "2026-03-08T01:22:13.334Z",
+    "status": "succeeded",
+    "exitCode": 0,
+    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/continue-progress-009.prompt.md",
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.last-message.md",
+    "summary": "Selected T8: Align nested inspection-root and execution-root semantics across prompting, execution, and verification | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1"
+ succeeded in 51ms:
+Total output lines: 2014
+
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md:67:- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md:21:For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md:68:- turn git checkpoints into orchestration or rollback automation
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md:151:Git handling is detection/reporting only. Do not add branch orchestration, worktree orchestration, or destructive git behavior as part of the control plane.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md:40:- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md:50:3. execution-plan persistence records the selected task, template, target, prompt hash, and the explicit workspace/inspection/execution/verification root policy
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md:54:7. `cli-invocation.json` records command path, args, workspace root, root policy, prompt artifact path, planned prompt hash, and stdin hash
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md:60:- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md:27:- `src/ralph/iterationEngine.ts`: explicit Ralph loop orchestration
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md:40:5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md:57:- Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts:341:test('buildStatusReport surfaces inspection-root override state', () => {
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts:348:        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts:353:          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts:360:  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts:522:        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts:565:  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
+/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts:106:test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
+codex
+I have enough context to scope T9. The smallest coherent move is to make the deferral explicit in the extension’s owned docs and durable Ralph state, rather than inventing new orchestration machinery when the repo still only implements single-agent CLI/loop control.
+exec
+/bin/bash -lc "sed -n '1,240p' README.md" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "printf '%s\\n' '--- boundaries ---' && sed -n '1,240p' docs/boundaries.md && printf '\\n--- invariants ---\\n' && sed -n '1,260p' docs/invariants.md && printf '\\n--- architecture ---\\n' && sed -n '1,220p' docs/architecture.md" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc 'rg -n "multi-agent|orchestrat|single-agent|loop|codex exec" src test docs README.md package.json' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 50ms:
+# Ralph Codex Workbench
+
+Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+
+The extension has two execution paths:
+
+- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
+- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+
+## Quick Start
+
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Open the repo in VS Code and start the Extension Development Host with `F5`.
+4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+
+For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
+
+## Durable Files
+ succeeded in 50ms:
+--- boundaries ---
+# Boundaries
+
+This document owns what Ralph Codex Workbench explicitly does not try to do and where its trust guarantees stop.
+
+Related docs:
+
+- [Architecture](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md) for module shape
+- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for trust-chain details
+- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for stop and review semantics
+
+## Codex Product Boundary
+
+Supported paths:
+
+- IDE handoff through clipboard plus `vscode.commands.executeCommand(...)`
+- scripted automation through `codex exec`
+
+Unsupported assumptions:
+
+ succeeded in 50ms:
+package.json:4:  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+package.json:132:          "description": "Maximum number of Codex CLI iterations to run for the Ralph loop command."
+package.json:148:          "description": "Number of consecutive no-progress Ralph iterations that stop the loop."
+package.json:155:          "description": "Number of consecutive identical blocked/failed/human-review classifications that stop the loop."
+package.json:183:          "description": "Stop the Ralph loop immediately when the task-state verifier classifies an iteration as needs_human_review."
+package.json:225:          "description": "Default model for codex exec runs."
+README.md:3:Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+README.md:8:- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+README.md:55:- [docs/workflows.md](docs/workflows.md): operator workflows for prompt prep, single iterations, loops, and inspection
+README.md:67:- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+README.md:69:- CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+docs/workflows.md:48:- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real `codex exec` automation.
+docs/workflows.md:64:3. If preflight is blocked, Ralph persists blocked-start evidence and stops before `codex exec`.
+docs/workflows.md:65:4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs `codex exec`, verifies the outcome, and persists the iteration result.
+docs/workflows.md:76:On execution failures, the structured iteration result and latest-result pointer should also carry the summarized `codex exec` message, while the transcript and `stderr.log` keep the full raw process output for inspection.
+docs/workflows.md:84:3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
+docs/verifier.md:3:This document owns verifier modes, outcome classifications, and how verification affects loop stopping and review behavior.
+docs/verifier.md:7:- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for loop and artifact requirements
+docs/verifier.md:75:The loop may stop for:
+docs/testing.md:17:- `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
+codex
+I’m turning T9 into an explicit product guardrail: document that Ralph’s current loop remains single-agent and add a cheap docs regression so that boundary doesn’t silently drift later. After that I’ll update the durable task/progress state and run the full validation gate.
+exec
+/bin/bash -lc "sed -n '1,220p' test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "sed -n '1,260p' src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "sed -n '220,520p' test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 50ms:
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
+
+export interface DocsValidationIssue {
+  code: string;
+  filePath: string;
+  message: string;
+}
+
+interface MarkdownHeading {
+  depth: number;
+  text: string;
+  slug: string;
+  line: number;
+}
+
+interface MarkdownLink {
+  text: string;
+  target: string;
+  line: number;
+ succeeded in 52ms:
+import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import test from 'node:test';
+import { validateRepositoryDocs } from '../src/validation/docsValidator';
+
+async function makeTempRoot(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-docs-validator-'));
+}
+
+async function writeFile(rootPath: string, relativePath: string, content: string): Promise<void> {
+  const absolutePath = path.join(rootPath, relativePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fs.writeFile(absolutePath, content, 'utf8');
+}
+
+async function seedValidRepository(rootPath: string): Promise<void> {
+  const absolute = (relativePath: string) => path.join(rootPath, relativePath);
+
+ succeeded in 51ms:
+
+Stable artifact rules live here.
+
+## Retention And Cleanup Invariants
+
+Stable cleanup rules live here.
+`);
+
+  await writeFile(rootPath, 'docs/provenance.md', `# Provenance
+
+This document owns how Ralph links plans, prompts, invocations, and run bundles into a trusted record.
+
+## Provenance Unit
+
+Stable provenance unit rules live here.
+
+## What Gets Bound Before Execution
+
+Stable binding rules live here.
+
+codex
+Before editing, I’m checking the current diffs for the files I’m about to touch so I can layer the T9 changes without trampling prior iteration work.
+exec
+/bin/bash -lc 'git diff -- README.md docs/boundaries.md docs/invariants.md docs/workflows.md' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc 'git -C /home/admin/Documents/repos/Ralph diff -- .ralph/tasks.json .ralph/progress.md' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc 'git diff -- src/validation/docsValidator.ts test/docsValidator.test.ts' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 50ms:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index a1525ff..6ced7dc 100644
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,8 @@ The extension contributes these commands:
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
++- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+ succeeded in 50ms:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index d963ed9..865128f 100644
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -8,4 +8,6 @@
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
++- Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index d233eae..ef43c43 100644
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,82 +58,82 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "todo",
+ succeeded in 52ms:
+
+exec
+/bin/bash -lc 'rg -n "function validate|validateDocRule|requiredFragments|missing_fragment" src/validation/docsValidator.ts' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "sed -n '260,520p' src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+31:  requiredFragments?: string[];
+93:    requiredFragments: [
+108:    requiredFragments: [
+124:    requiredFragments: [
+139:    requiredFragments: [
+155:    requiredFragments: [
+171:    requiredFragments: [
+186:    requiredFragments: [
+194:export async function validateRepositoryDocs(rootDir: string): Promise<DocsValidationIssue[]> {
+223:    validateDocRule({
+279:async function validateAgentsSections(input: {
+326:async function validateReadmeDocMap(input: {
+356:async function validateLocalMarkdownLinks(input: {
+426:async function validateVerifierDocumentationAlignment(input: {
+501:function validateDocRule(input: {
+520:  for (const fragment of input.rule.requiredFragments ?? []) {
+523:        code: 'missing_fragment',
+539:function validateRequiredCodeOwnerEntries(input: {
+555:async function validateRequiredSectionLinks(input: {
+590:async function validateBacktickedFileReferences(input: {
+ succeeded in 51ms:
+    if (codeOrder !== 0) {
+      return codeOrder;
+    }
+
+    return left.message.localeCompare(right.message);
+  });
+}
+
+export function formatDocsValidationReport(issues: DocsValidationIssue[]): string {
+  if (issues.length === 0) {
+    return 'Documentation validation passed.';
+  }
+
+  return [
+    'Documentation validation failed:',
+    ...issues.map((issue) => `- [${issue.code}] ${issue.filePath}: ${issue.message}`)
+  ].join('\n');
+}
+
+async function validateAgentsSections(input: {
+exec
+/bin/bash -lc "sed -n '520,680p' src/validation/docsValidator.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+  for (const fragment of input.rule.requiredFragments ?? []) {
+    if (!input.text.includes(fragment)) {
+      input.issues.push({
+        code: 'missing_fragment',
+        filePath: input.relativePath,
+        message: `Missing required text fragment "${fragment}".`
+      });
+    }
+  }
+
+  if (input.rule.maxNonEmptyLines !== undefined && input.parsed.nonEmptyLineCount > input.rule.maxNonEmptyLines) {
+    input.issues.push({
+      code: 'line_budget_exceeded',
+      filePath: input.relativePath,
+      message: `Expected at most ${input.rule.maxNonEmptyLines} non-empty lines, found ${input.parsed.nonEmptyLineCount}. Keep this file focused.`
+    });
+  }
+}
+
+function validateRequiredCodeOwnerEntries(input: {
+codex
+I’m applying the doc and validator edits now, then I’ll close T9 in the durable backlog once the wording is in place.
+codex
+The patch hit a context mismatch in `docs/workflows.md`, so I’m re-reading the exact sections and then applying a narrower patch.
+exec
+/bin/bash -lc "rg -n \"Run The Ralph Loop|Product Notes|Control-Plane Boundary|The control plane stays deterministic|Completed T8|\\\"id\\\": \\\"T9\\\"\" README.md docs/boundaries.md docs/invariants.md docs/workflows.md /home/admin/Documents/repos/Ralph/.ralph/tasks.json /home/admin/Documents/repos/Ralph/.ralph/progress.md test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "sed -n '58,86p' README.md && printf '\\n--- boundaries ---\\n' && sed -n '20,48p' docs/boundaries.md && printf '\\n--- invariants ---\\n' && sed -n '92,112p' docs/invariants.md && printf '\\n--- workflows ---\\n' && sed -n '72,94p' docs/workflows.md && printf '\\n--- tasks ---\\n' && sed -n '138,154p' /home/admin/Documents/repos/Ralph/.ralph/tasks.json && printf '\\n--- progress ---\\n' && sed -n '8,18p' /home/admin/Documents/repos/Ralph/.ralph/progress.md && printf '\\n--- docs test fragments ---\\n' && sed -n '150,250p' test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+test/docsValidator.test.ts:153:## Run The Ralph Loop
+test/docsValidator.test.ts:317:## Control-Plane Boundary
+/home/admin/Documents/repos/Ralph/.ralph/tasks.json:140:      "id": "T9",
+/home/admin/Documents/repos/Ralph/.ralph/progress.md:12:- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+docs/workflows.md:80:## Run The Ralph Loop
+docs/boundaries.md:37:## Control-Plane Boundary
+docs/invariants.md:95:The control plane stays deterministic:
+README.md:62:## Product Notes
+ succeeded in 51ms:
+- [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
+- [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
+- [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+
+## Product Notes
+
+- Prompt templates live in `prompt-templates/` and are selected deterministically.
+- Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+- The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+- CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+
+See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+
+--- boundaries ---
+- direct composer injection
+- private or invented Codex IDE APIs
+- treating `preferredHandoffMode = cliExec` as if `Open Codex IDE` should run the CLI
+
+exec
+/bin/bash -lc "sed -n '250,360p' test/docsValidator.test.ts" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 52ms:
+Stable integrity failure rules live here.
+
+## Run Bundle Contract
+
+Stable run bundle rules live here.
+
+## What Operators Can Verify
+
+Stable operator verification rules live here.
+`);
+
+  await writeFile(rootPath, 'docs/verifier.md', `# Verifier
+
+This document owns verifier modes, outcome classifications, and how verification affects loop stopping and review behavior.
+
+## Verifier Modes
+
+Configured through \`ralphCodex.verifierModes\`:
+
+- \`validationCommand\`
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -40,2 +40,4 @@
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+@@ -46,2 +48,3 @@
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md
+@@ -98,2 +98,3 @@
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+@@ -67,2 +67,3 @@
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md
+@@ -84,2 +84,3 @@
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -110,3 +110,4 @@
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+@@ -156,3 +157,4 @@
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+@@ -12,2 +12,3 @@
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -218,2 +218,4 @@
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+@@ -320,2 +322,4 @@
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+@@ -141,3 +141,3 @@
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+@@ -145,3 +145,3 @@
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+apply_patch(auto_approved=true) exited 0 in 20ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+codex
+The edits are in. I’m checking the resulting diff briefly, then running `npm run validate` from the nested extension root as requested by the Ralph task.
+exec
+/bin/bash -lc 'git diff -- README.md docs/boundaries.md docs/invariants.md docs/workflows.md src/validation/docsValidator.ts test/docsValidator.test.ts' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc 'git -C /home/admin/Documents/repos/Ralph diff -- .ralph/tasks.json .ralph/progress.md' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index a1525ff..ad8d37d 100644
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,9 @@ The extension contributes these commands:
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
++- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7ea..a6e03db 100644
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@ Ralph does not prove:
+ 
+ succeeded in 50ms:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index d963ed9..2a7085e 100644
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -8,4 +8,7 @@
+ - Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
++- Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index d233eae..b7ba638 100644
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,92 +58,103 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+exec
+/bin/bash -lc 'npm run validate' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+codex
+Validation is running through the full compile/docs/lint/test pipeline now. I’m waiting for the full result before I summarize and I’ll only patch again if the new docs guardrail exposed something real.
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+ succeeded in 8.20s:
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+
+> ralph-codex-workbench@0.1.0 check:docs
+> node ./scripts/check-docs.js
+
+Documentation validation passed.
+
+> ralph-codex-workbench@0.1.0 lint
+> tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json
+
+
+> ralph-codex-workbench@0.1.0 test
+> npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js
+
+
+> ralph-codex-workbench@0.1.0 compile:tests
+> tsc -p ./tsconfig.test.json
+codex
+The validation gate passed. I’m doing one last status check so the close-out reflects the actual changed files, including any generated `out/` artifacts refreshed by the compile step.
+exec
+/bin/bash -lc 'git status --short README.md docs/boundaries.md docs/invariants.md docs/workflows.md src/validation/docsValidator.ts test/docsValidator.test.ts out /home/admin/Documents/repos/Ralph/.ralph/tasks.json /home/admin/Documents/repos/Ralph/.ralph/progress.md' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterexec
+/bin/bash -lc "nl -ba README.md | sed -n '63,74p' && printf '\\n--- boundaries ---\\n' && nl -ba docs/boundaries.md | sed -n '37,52p' && printf '\\n--- invariants ---\\n' && nl -ba docs/invariants.md | sed -n '95,105p' && printf '\\n--- workflows ---\\n' && nl -ba docs/workflows.md | sed -n '80,88p' && printf '\\n--- validator ---\\n' && nl -ba src/validation/docsValidator.ts | sed -n '104,162p' && printf '\\n--- docs test ---\\n' && nl -ba test/docsValidator.test.ts | sed -n '212,326p' && printf '\\n--- tasks ---\\n' && nl -ba /home/admin/Documents/repos/Ralph/.ralph/tasks.json | sed -n '140,148p' && printf '\\n--- progress ---\\n' && nl -ba /home/admin/Documents/repos/Ralph/.ralph/progress.md | sed -n '10,16p'" in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter succeeded in 51ms:
+ M ../.ralph/progress.md
+ M ../.ralph/tasks.json
+ M README.md
+ M docs/boundaries.md
+ M docs/invariants.md
+ M docs/workflows.md
+ M out/codex/cliExecStrategy.js
+ M out/codex/cliExecStrategy.js.map
+ M out/commands/registerCommands.js
+ M out/commands/registerCommands.js.map
+ M out/config/defaults.js
+ M out/config/defaults.js.map
+ M out/config/readConfig.js
+ M out/config/readConfig.js.map
+ M out/prompt/promptBuilder.js
+ M out/prompt/promptBuilder.js.map
+ M out/ralph/artifactStore.js
+ M out/ralph/artifactStore.js.map
+ M out/ralph/iterationEngine.js
+ M out/ralph/iterationEngine.js.map
+ succeeded in 51ms:
+    63	
+    64	- Prompt templates live in `prompt-templates/` and are selected deterministically.
+    65	- Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+    66	- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+    67	- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+    68	- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+    69	- The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+    70	- CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+    71	
+    72	See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.
+
+--- boundaries ---
+    37	## Control-Plane Boundary
+    38	
+    39	Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+    40	
+    41	The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
+    42	
+    43	It does not:
+    44	
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+codex
+**Changed Files**
+- Documented the T9 guardrail in [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md#L62), [boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md#L37), [invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md#L95), and [workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md#L80): Ralph’s shipped automation stays a sequential single-agent loop, and broader multi-agent orchestration is explicitly deferred until nested-root behavior remains deterministic and evidence-backed.
+- Added docs-validation coverage for that boundary in [docsValidator.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/validation/docsValidator.ts#L104) with fixture coverage in [docsValidator.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/docsValidator.test.ts#L215).
+- Marked T9 complete in durable Ralph state at [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json#L140) and recorded the completion note in [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md#L10).
+
+**Validation Results**
+- Ran `npm run validate` in `/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter`
+- Result: passed
+
+**Assumptions Or Blockers**
+- Assumed T9 should be completed by codifying and testing the current orchestration boundary, not by adding new multi-agent runtime behavior.
+- No blockers.
+
+**Known Limitations Or Follow-Up Work**
+- Ralph still does not implement broad multi-agent orchestration; this change makes that deferral explicit and test-backed.
+- The worktree already contained unrelated prior-iteration changes, including other generated `out/` artifacts, and I did not modify or revert those.
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index 865128f54487d7b16678a45c5fffe81dcaf9fa29..2a7085e1e3c5c669fa7c4760ad4e6028ec6a9aff
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -10,4 +10,5 @@
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+ - Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
++- Completed T9 by locking the shipped automation scope to a sequential single-agent loop, documenting that broader multi-agent orchestration remains deferred until nested root semantics are deterministic and evidence-backed, and adding docs-validation coverage so the guardrail is test-backed.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index ef43c43e40fd77530bfa2d7f5af06eb9bbcce6bb..b7ba638ffbcc7a79684c3c10893814f802e0b143
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -139,11 +139,11 @@
+     {
+       "id": "T9",
+       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
+-      "status": "todo",
++      "status": "done",
+       "dependsOn": [
+         "T8"
+       ],
+-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
++      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+     },
+     {
+       "id": "T10",
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index 6ced7dcd0eebcaf3378744781640adc525dbf923..ad8d37decc62e85f935bd040cdf5adeb2b4ccd2c
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -65,6 +65,7 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
++- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+ 
+diff --git a/ralph-codex-vscode-starter/docs/boundaries.md b/ralph-codex-vscode-starter/docs/boundaries.md
+index 1e5e7eadf1ed5d5d22461c9df4a4f1faf67ef007..a6e03db676124336eb0fc50379c6512ac2b9e81f
+--- a/ralph-codex-vscode-starter/docs/boundaries.md
++++ b/ralph-codex-vscode-starter/docs/boundaries.md
+@@ -38,12 +38,15 @@
+ 
+ Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
+ 
++The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
++
+ It does not:
+ 
+ - let the model freely choose the next task outside the durable task file
+ - replace deterministic stop logic with freeform intent inference
+ - inject raw transcript dumps into future prompts
+ - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
++- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+ 
+ ## Workspace And Runtime Boundary
+ 
+diff --git a/ralph-codex-vscode-starter/docs/invariants.md b/ralph-codex-vscode-starter/docs/invariants.md
+index bd6f39f44c7eee6a658468b8e4a1e2e9c09a4b2c..146145b6c32ebf59edc78a982b3203653bccd353
+--- a/ralph-codex-vscode-starter/docs/invariants.md
++++ b/ralph-codex-vscode-starter/docs/invariants.md
+@@ -96,6 +96,7 @@
+ 
+ - prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+ - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
++- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+ - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
+ - execution must bind to persisted artifacts before launch
+ - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+diff --git a/ralph-codex-vscode-starter/docs/workflows.md b/ralph-codex-vscode-starter/docs/workflows.md
+index 19ffa6dd031e8652555f56af0fb5182c09dd1b2c..c0fc110d09080bda416e856f0d19bf627c0eca43
+--- a/ralph-codex-vscode-starter/docs/workflows.md
++++ b/ralph-codex-vscode-starter/docs/workflows.md
+@@ -82,6 +82,7 @@
+ 1. Run `Ralph Codex: Run CLI Loop`.
+ 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
+ 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
++4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+ 
+ Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+ 
+diff --git a/ralph-codex-vscode-starter/src/validation/docsValidator.ts b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+index 5b484fe54b9d47f8184ce46000090c2cd2399d57..fc85e0b20ee816ff5ff4c93f4ec0d0191f845a33
+--- a/ralph-codex-vscode-starter/src/validation/docsValidator.ts
++++ b/ralph-codex-vscode-starter/src/validation/docsValidator.ts
+@@ -108,7 +108,8 @@
+     requiredFragments: [
+       'must remain true',
+       'control plane',
+-      'artifact model'
++      'artifact model',
++      'one selected task and one Codex execution at a time'
+     ]
+   },
+   'docs/provenance.md': {
+@@ -154,7 +155,8 @@
+     ],
+     requiredFragments: [
+       'explicitly does not try to do',
+-      'trust guarantees stop'
++      'trust guarantees stop',
++      'single-agent iteration/loop runner'
+     ]
+   },
+   'docs/workflows.md': {
+diff --git a/ralph-codex-vscode-starter/test/docsValidator.test.ts b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+index 9dce0fef1ed39e035f83155c55efa6c390a62965..e3dfc7b1d83cf92693c36fb9c2837600285c1416
+--- a/ralph-codex-vscode-starter/test/docsValidator.test.ts
++++ b/ralph-codex-vscode-starter/test/docsValidator.test.ts
+@@ -216,6 +216,8 @@
+ 
+ Stable iteration rules live here.
+ 
++The loop coordinates one selected task and one Codex execution at a time.
++
+ ## Artifact Model Invariants
+ 
+ Stable artifact rules live here.
+@@ -318,6 +320,8 @@
+ 
+ Stable control-plane boundary rules live here.
+ 
++The shipped control plane is a single-agent iteration/loop runner.
++
+ ## Workspace And Runtime Boundary
+ 
+ Stable workspace rules live here.
+
+tokens used
+70,639

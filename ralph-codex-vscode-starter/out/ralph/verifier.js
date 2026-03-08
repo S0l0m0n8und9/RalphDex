@@ -343,7 +343,13 @@ async function runTaskStateVerifier(input) {
     const warnings = [];
     const errors = [];
     if (!input.selectedTaskId) {
-        summary = 'No Ralph task was selected for task-state verification.';
+        if (progressChanged || taskFileChanged) {
+            status = 'passed';
+            summary = 'Durable Ralph task/progress files changed during a no-task iteration.';
+        }
+        else {
+            summary = 'No Ralph task was selected for task-state verification.';
+        }
     }
     else if (input.after.taskFileError) {
         status = 'failed';

@@ -1,0 +1,40 @@
+[
+  {
+    "verifier": "validationCommand",
+    "status": "skipped",
+    "summary": "Validation-command verifier skipped because Codex execution did not succeed.",
+    "warnings": [],
+    "errors": [],
+    "command": "npm run validate"
+  },
+  {
+    "verifier": "gitDiff",
+    "status": "failed",
+    "summary": "Detected 7 change(s), but none outside Ralph-managed files.",
+    "warnings": [
+      "No relevant workspace changes were detected."
+    ],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-diff.json",
+    "metadata": {
+      "changedFiles": [
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json",
+        ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md"
+      ],
+      "relevantChangedFiles": []
+    }
+  },
+  {
+    "verifier": "taskState",
+    "status": "skipped",
+    "summary": "No Ralph task was selected for task-state verification.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/task-state.json"
+  }
+]

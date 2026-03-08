@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "provenanceId": "run-i012-cli-20260308T053021Z",
+  "iteration": 12,
+  "selectedTaskId": null,
+  "selectedTaskTitle": null,
+  "promptKind": "iteration",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-012.prompt.md",
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012",
+  "adapterUsed": "cliExec",
+  "executionIntegrity": {
+    "provenanceId": "run-i012-cli-20260308T053021Z",
+    "promptTarget": "cliExec",
+    "rootPolicy": {
+      "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+      "inspectionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "executionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "verificationRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "selectionStrategy": "scoredChild",
+      "selectionSummary": "Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.",
+      "policySummary": "Inspect ralph-codex-vscode-starter, run Codex and verifiers there, and keep Ralph artifacts under the workspace-root .ralph directory."
+    },
+    "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+    "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/execution-plan.json",
+    "executionPlanHash": "sha256:725ed4700883e3d969c171aa60ce0bf5df2a37f7a4f194920fbdce0c346ee95a",
+    "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/prompt.md",
+    "promptHash": "sha256:53d3ea5b5838e4dccee3be2a0bd59849e8ab129c7c7edef9cafea63df27d9201",
+    "promptByteLength": 6891,
+    "executionPayloadHash": null,
+    "executionPayloadMatched": null,
+    "mismatchReason": null,
+    "cliInvocationPath": null
+  },
+  "executionStatus": "skipped",
+  "verificationStatus": "skipped",
+  "completionClassification": "complete",
+  "followUpAction": "stop",
+  "startedAt": "2026-03-08T05:30:21.086Z",
+  "finishedAt": "2026-03-08T05:30:21.272Z",
+  "phaseTimestamps": {
+    "inspectStartedAt": "2026-03-08T05:30:21.086Z",
+    "inspectFinishedAt": "2026-03-08T05:30:21.143Z",
+    "taskSelectedAt": "2026-03-08T05:30:21.143Z",
+    "promptGeneratedAt": "2026-03-08T05:30:21.192Z",
+    "resultCollectedAt": "2026-03-08T05:30:21.236Z",
+    "verificationFinishedAt": "2026-03-08T05:30:21.272Z",
+    "classifiedAt": "2026-03-08T05:30:21.272Z",
+    "executionStartedAt": "2026-03-08T05:30:21.236Z",
+    "executionFinishedAt": "2026-03-08T05:30:21.236Z",
+    "persistedAt": "2026-03-08T05:30:21.273Z"
+  },
+  "summary": "No actionable Ralph task selected. | Execution: skipped | Verification: skipped | Outcome: complete | Backlog remaining: 0",
+  "warnings": [
+    "No actionable Ralph task was selected; execution was skipped."
+  ],
+  "errors": [],
+  "execution": {
+    "exitCode": null,
+    "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/stdout.log",
+    "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/stderr.log"
+  },
+  "verification": {
+    "primaryCommand": "npm run validate",
+    "validationFailureSignature": null,
+    "verifiers": [
+      {
+        "verifier": "validationCommand",
+        "status": "skipped",
+        "summary": "Validation-command verifier skipped because Codex execution did not succeed.",
+        "warnings": [],
+        "errors": [],
+        "command": "npm run validate"
+      },
+      {
+        "verifier": "gitDiff",
+        "status": "skipped",
+        "summary": "Git-diff/file-change verifier skipped because no Ralph task was selected.",
+        "warnings": [],
+        "errors": []
+      },
+      {
+        "verifier": "taskState",
+        "status": "skipped",
+        "summary": "No Ralph task was selected for task-state verification.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/task-state.json"
+      }
+    ]
+  },
+  "backlog": {
+    "remainingTaskCount": 0,
+    "actionableTaskAvailable": false
+  },
+  "diffSummary": null,
+  "noProgressSignals": [
+    "no_relevant_file_changes",
+    "task_and_progress_state_unchanged"
+  ],
+  "stopReason": "no_actionable_task"
+}

@@ -5,6 +5,7 @@ import { readConfig } from '../config/readConfig';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { RalphIterationEngine } from '../ralph/iterationEngine';
 import { buildPreflightReport } from '../ralph/preflight';
+import { deriveRootPolicy } from '../ralph/rootPolicy';
 import { buildStatusReport, resolveLatestStatusArtifacts, RalphStatusSnapshot } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
 import { selectNextTask } from '../ralph/taskFile';
@@ -167,12 +168,16 @@ async function collectStatusSnapshot(
     ? vscode.window.activeTextEditor.document.uri.fsPath
     : null;
   const availableCommands = await vscode.commands.getCommands(true);
-  const [workspaceScan, latestArtifacts, gitStatus, codexCliSupport] = await Promise.all([
-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
+  const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
+      focusPath,
+      inspectionRootOverride: config.inspectionRootOverride
+    }),
     resolveLatestStatusArtifacts(inspection.paths),
-    captureGitStatus(workspaceFolder.uri.fsPath),
     inspectCodexCliSupport(config.codexCommandPath)
   ]);
+  const rootPolicy = deriveRootPolicy(workspaceScan);
+  const gitStatus = await captureGitStatus(rootPolicy.verificationRootPath);
   const ideCommandSupport = inspectIdeCommandSupport({
     preferredHandoffMode: config.preferredHandoffMode,
     openSidebarCommandId: config.openSidebarCommandId,
@@ -182,7 +187,7 @@ async function collectStatusSnapshot(
   const validationCommand = chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride);
   const validationCommandReadiness = await inspectValidationCommandReadiness({
     command: validationCommand,
-    rootPath: workspaceFolder.uri.fsPath
+    rootPath: rootPolicy.verificationRootPath
   });
   const preflightReport = buildPreflightReport({
     rootPath: workspaceFolder.uri.fsPath,

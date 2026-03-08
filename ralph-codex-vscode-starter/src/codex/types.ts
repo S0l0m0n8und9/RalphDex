@@ -23,6 +23,7 @@ export interface PromptHandoffRequest {
 export interface CodexExecRequest {
   commandPath: string;
   workspaceRoot: string;
+  executionRoot: string;
   prompt: string;
   promptPath: string;
   promptHash: string;

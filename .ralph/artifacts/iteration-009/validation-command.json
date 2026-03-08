@@ -1,0 +1,7 @@
+{
+  "command": "cd ralph-codex-vscode-starter && npm run validate",
+  "exitCode": 0,
+  "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/validation-command.stdout.log",
+  "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/validation-command.stderr.log",
+  "failureSignature": null
+}

@@ -94,8 +94,10 @@ The Ralph loop phases are fixed:
 
 The control plane stays deterministic:
 
-- prompt kinds are `bootstrap`, `iteration`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+- prompt kinds are `bootstrap`, `iteration`, `replenish-backlog`, `fix-failure`, `continue-progress`, and `human-review-handoff`
+- when the durable backlog is exhausted, Ralph may run a dedicated replenishment prompt that updates `.ralph/tasks.json`; it must still leave the task file explicit, flat, and version 2
 - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
+- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
 - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
 - execution must bind to persisted artifacts before launch
 - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references

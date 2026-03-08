@@ -1,0 +1,14014 @@
+# Codex Exec Transcript
+
+- Command: codex exec --model gpt-5.4 --sandbox workspace-write --config approval_policy="never" --cd /home/admin/Documents/repos/Ralph --output-last-message /home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.last-message.md -
+- Prompt path: /home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/prompt.md
+- Prompt hash: sha256:38e25f83105568fb3197f86c509873b454be4c7887be9634dbf99fc8ebe22c5b
+- Prompt bytes: 7887
+- Stdin hash: sha256:38e25f83105568fb3197f86c509873b454be4c7887be9634dbf99fc8ebe22c5b
+- Payload matched prompt artifact: yes
+- Last message path: /home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.last-message.md
+- Exit code: 0
+
+## Stdout
+
+**Changed Files**
+- Root-override implementation and wiring: [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json), [types.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts), [defaults.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts), [readConfig.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts), [workspaceInspection.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts), [workspaceScanner.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts), [registerCommands.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts), [iterationEngine.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts), [statusReport.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts).
+- Regression coverage: [workspaceScanner.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts), [iterationEngine.integration.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts), [statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts), plus typed fixture updates in [artifactStore.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts), [stateManager.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts), and [promptBuilder.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts).
+- Docs and durable Ralph state: [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md), [architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md), [provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md), [verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md), [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json), [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+
+Added `ralphCodex.inspectionRootOverride` as a deterministic workspace-relative or absolute in-workspace override. Valid overrides now drive prompt/status/evidence plus CLI execution and verifier cwd; invalid overrides are recorded and fall back to automatic selection.
+
+**Validation Results**
+- `cd /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter && npm run validate`
+- Result: passed
+
+**Assumptions Or Blockers**
+- No blockers.
+- Assumed the explicit override should be config-driven rather than a new command, and must stay inside the workspace boundary.
+
+**Known Limitations Or Follow-Up**
+- Override selection is manual configuration only; there is still no interactive picker for ambiguous workspaces.
+- T8 is now closed in `.ralph`; the next backlog item is the deferred broader orchestration work under T9.
+
+
+## Stderr
+
+OpenAI Codex v0.111.0 (research preview)
+--------
+workdir: /home/admin/Documents/repos/Ralph
+model: gpt-5.4
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR, /home/admin/.codex/memories]
+reasoning effort: high
+reasoning summaries: none
+session id: 019ccaff-03d8-73e0-978d-00ece135d3b2
+--------
+user
+# Ralph Prompt: continue-progress (cliExec)
+
+A prior Ralph iteration made partial progress. Resume from that durable state and finish the next coherent slice without redoing settled work.
+
+Assume some useful work already landed in the repository. Build on that durable state and avoid redoing completed investigation unless the current files contradict the prior summary.
+
+## Template Selection
+The previous iteration recorded partial progress, so the next prompt should continue from that durable state.
+
+## Prompt Strategy
+- Target: Codex CLI execution via `codex exec`.
+- Operate autonomously inside the repository. Do not rely on interactive clarification to make forward progress.
+- Keep command usage deterministic and concise because Ralph will persist transcripts, verifier output, and stop signals.
+- End with a compact change summary Ralph can pair with verifier evidence.
+
+## Preflight Snapshot
+- Ready: yes
+- Summary: Preflight ready: Selected task T8. Validation cd ralph-codex-vscode-starter && npm run validate. Executable confirmed. Task graph: ok | Workspace/runtime: ok | Codex adapter: 1 warning, 1 info | Validation/verifier: 1 info
+- codexAdapter warning: Codex CLI will be resolved from PATH at runtime: codex. Availability is assumed until execution starts.
+
+## Objective Snapshot
+# Product / project brief
+
+## Objective
+
+Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, and orchestration without depending on chat memory.
+
+## Product direction
+
+Ralph should let an operator define the work once in `.ralph/`, then execute repeatable Codex-driven iterations that stay inspectable across fresh sessions. The framework needs to strengthen both the quality of agent work and the control plane around it, so each step is deterministic, resumable, and supported by durable evidence.
+
+## Core outcomes
+
+- Turn requirements, progress, and task state into the shared source of truth for all agent activity.
+- Support end-to-end delivery flow across requirements analysis, implementation, validation, and orchestration.
+[trimmed for size]
+
+## Repo Context
+- Workspace: Ralph
+- Inspected root: /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter
+- Root selection: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.
+- Manifests: package.json, tsconfig.json
+- Source roots: src
+- Test roots: test
+- Package managers: npm
+- Package manager indicators: package.json, package-lock.json
+- Validation commands: npm run validate, npm run check:docs, npm run check:runtime, npm run lint (+5 more)
+- Lifecycle commands: npm run validate, npm run check:docs, npm run check:runtime, npm run lint (+5 more)
+- CI files: none
+- CI commands: none
+- Docs: README.md, docs, AGENTS.md
+- Test signals: package.json defines a test script., package.json defines a lint script., package.json defines a validate/check script. (+3 more)
+- Workspace root: /home/admin/Documents/repos/Ralph
+- package.json name: ralph-codex-workbench
+- Notes: Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.
+
+## Ralph Runtime Context
+- Prompt target: cliExec
+- Current iteration number: 9
+- Next iteration recorded in state: 9
+- Last prompt kind: iteration
+- Last prompt path: .ralph/prompts/iteration-008.prompt.md
+- Last run: succeeded at iteration 8
+- Last iteration outcome: partial_progress at iteration 8
+- PRD path: .ralph/prd.md
+- Progress path: .ralph/progress.md
+- Task file path: .ralph/tasks.json
+- Runtime state path: .ralph/state.json
+- Artifact root: .ralph/artifacts
+- Last iteration summary: Selected T8: Align nested inspection-root and execution-root semantics across prompting, execution, and verification | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 0
+
+## Task Focus
+- Backlog counts: todo 2, in_progress 3, blocked 0, done 10
+- Next actionable task: T8 (in_progress)
+- Selected task id: T8
+- Title: Align nested inspection-root and execution-root semantics across prompting, execution, and verification
+- Status: in_progress
+- Parent task: none
+- Dependencies: T3 (done), T4 (done), T7 (done)
+- Direct children: T8.1 (done), T8.2 (done), T8.3 (done), T8.4 (todo) (+2 more)
+- Remaining descendants: T8.4 (todo), T8.5 (in_progress), T8.6 (in_progress)
+- Task validation hint: cd ralph-codex-vscode-starter && npm run validate
+- Selected validation command: cd ralph-codex-vscode-starter && npm run validate
+- Notes: Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.
+- Blocker: none
+
+## Recent Progress
+- Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.
+- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
+- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the r
+[trimmed for size]
+
+## Prior Iteration Evidence
+- Prior iteration: 8
+- Prior outcome classification: partial_progress
+- Prior execution / verification: succeeded / failed
+- Prior follow-up action: stop
+- Prior summary: Selected T8: Align nested inspection-root and execution-root semantics across prompting, execution, and verification | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 0
+- Prior stop reason: no_actionable_task
+- Prior validation failure signature: none
+- Additional prior-context signals omitted: 6.
+
+## Operating Rules
+- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.
+- Do not invent unsupported Codex IDE APIs or hidden handoff channels.
+- Keep architecture thin, deterministic, and file-backed.
+- Make the smallest coherent change that materially advances the selected Ralph task.
+- Prefer the repository’s real validation commands when they exist.
+- Update durable Ralph progress/tasks when the task state materially changes.
+
+## Execution Contract
+1. Inspect the workspace facts and selected Ralph task before editing.
+2. Execute only the selected task, or explain deterministically why no safe task is available.
+3. Implement the smallest coherent improvement that advances the task.
+4. Update durable Ralph files when task state or progress changes.
+5. Run the selected validation command when available and report the concrete result.
+6. End with a compact result Ralph can pair with verifier and artifact evidence.
+
+## Final Response Contract
+- Changed files.
+- Validation results.
+- Assumptions or blockers.
+- Known limitations or follow-up work.
+
+mcp: codex_apps starting
+mcp: codex_apps ready
+mcp startup: ready: codex_apps
+codex
+Inspecting the current Ralph state and the nested-root task before changing anything. I’m reading the durable `.ralph` files, task details, and the relevant implementation paths in `ralph-codex-vscode-starter` to identify the smallest remaining slice for T8.
+exec
+/bin/bash -lc "sed -n '1,220p' AGENTS.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' .ralph/tasks.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "pwd && rg --files -g 'AGENTS.md' -g '.ralph/*' -g 'ralph-codex-vscode-starter/src/**' -g 'ralph-codex-vscode-starter/test/**' -g 'ralph-codex-vscode-starter/package.json'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' .ralph/progress.md" in /home/admin/Documents/repos/Ralph exited 2 in 51ms:
+sed: can't read AGENTS.md: No such file or directory
+ succeeded in 52ms:
+/home/admin/Documents/repos/Ralph
+ralph-codex-vscode-starter/package.json
+ralph-codex-vscode-starter/src/commands/registerCommands.ts
+ralph-codex-vscode-starter/src/commands/workspaceSupport.ts
+ralph-codex-vscode-starter/src/extension.ts
+ralph-codex-vscode-starter/src/services/processRunner.ts
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+ralph-codex-vscode-starter/src/services/logger.ts
+ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+ralph-codex-vscode-starter/src/services/codexCliSupport.ts
+ralph-codex-vscode-starter/src/codex/cliExecStrategy.ts
+ralph-codex-vscode-starter/src/codex/types.ts
+ralph-codex-vscode-starter/src/codex/clipboardStrategy.ts
+ralph-codex-vscode-starter/src/codex/ideCommandStrategy.ts
+ralph-codex-vscode-starter/src/codex/providerFactory.ts
+ralph-codex-vscode-starter/src/ralph/integrity.ts
+ralph-codex-vscode-starter/src/ralph/statusReport.ts
+ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+ralph-codex-vscode-starter/src/ralph/artifactStore.ts
+ralph-codex-vscode-starter/src/ralph/types.ts
+ succeeded in 53ms:
+{
+  "version": 2,
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Write or refine the project objective in the PRD file",
+      "status": "done",
+      "notes": "The prompt generator reads the PRD file directly."
+    },
+    {
+      "id": "T2",
+      "title": "Replace this seed task list with repo-specific work",
+      "status": "done",
+      "notes": "Keep statuses current so fresh Codex runs can resume deterministically."
+    },
+    {
+      "id": "T3",
+      "title": "Detect nested project roots so Ralph can inspect the starter extension from the repo root",
+      "status": "done",
+      "notes": "Workspace scanning now selects the nested `ralph-codex-vscode-starter` project root when the repo root has no shallow markers, and the runtime build was refreshed so the extension uses the updated scan path.",
+ succeeded in 50ms:
+# Progress
+
+- Ralph workspace initialized.
+- Refined `.ralph/prd.md` into a concrete objective for a durable, file-backed multi-agent delivery framework spanning requirements, implementation, testing, and orchestration.
+- Replaced the seed backlog in `.ralph/tasks.json` with repo-specific work derived from the actual `ralph-codex-vscode-starter` extension surface and current coverage gaps.
+- Completed T3 by validating nested project-root selection for `ralph-codex-vscode-starter`, adding scanner/status regressions, and rebuilding the extension runtime artifacts.
+- Completed T4 by adding regression coverage for nested workspace root-selection candidates and prompt repo-context rendering so nested child repos remain visible in generated prompts.
+- Completed T5 by adding command-shell smoke coverage for prompt clipboard auto-copy and Open Codex IDE handoff modes, and by documenting the exact clipboard, IDE-command, fallback, and live-host testing boundaries.
+- Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+- Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+- Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
+- Use this file for durable progress notes between fresh Codex runs.
+codex
+The remaining gap is narrower than the parent task summary suggests: manual inspection-root override is still missing, and the dependent test/doc subtasks are waiting on that. I’m checking the existing root-selection policy, config surface, and tests to wire the override through the least invasive path.
+exec
+/bin/bash -lc "sed -n '1,220p' ralph-codex-vscode-starter/AGENTS.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'git -C /home/admin/Documents/repos/Ralph status --short' in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,240p' ralph-codex-vscode-starter/src/ralph/rootPolicy.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/config/types.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/config/readConfig.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/services/workspaceScanner.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'rg -n "inspection root|inspectionRoot|root policy|workspace root|verification root|execution root|override" ralph-codex-vscode-starter/src ralph-codex-vscode-starter/test ralph-codex-vscode-starter/README.md ralph-codex-vscode-starter/docs' in /home/admin/Documents/repos/Ralph succeeded in 52ms:
+# AGENTS.md
+
+## Purpose
+
+Ralph Codex Workbench is a VS Code extension that:
+
+- builds Ralph prompts from durable workspace files
+- hands prepared prompts to Codex through clipboard plus configurable VS Code command IDs
+- runs controlled `codex exec` iterations with deterministic verification, provenance, and stop behavior
+
+## Working Rules
+
+- Edit `src/` and `test/`. Treat `out/`, `out-test/`, and packaged `.vsix` files as generated artifacts.
+- Keep `AGENTS.md` thin: AGENTS.md is a routing/control document, not the place for detailed durable rules.
+- `package.json` is authoritative for commands, settings, activation events, scripts, and runtime expectations.
+- Keep docs aligned with code in the same change.
+- Prefer updating the focused doc that owns a rule instead of restating that rule elsewhere.
+
+## Authoritative Doc Map
+
+ succeeded in 51ms:
+ M .ralph/artifacts/latest-cli-invocation.json
+ M .ralph/artifacts/latest-execution-plan.json
+ M .ralph/artifacts/latest-preflight-report.json
+ M .ralph/artifacts/latest-preflight-summary.md
+ M .ralph/artifacts/latest-prompt-evidence.json
+ M .ralph/artifacts/latest-prompt.md
+ M .ralph/artifacts/latest-provenance-bundle.json
+ M .ralph/artifacts/latest-provenance-summary.md
+ M .ralph/artifacts/latest-result.json
+ M .ralph/artifacts/latest-summary.md
+ M .ralph/logs/extension.log
+ M .ralph/progress.md
+ M .ralph/prompts/iteration-008.prompt.md
+ M .ralph/state.json
+ M .ralph/tasks.json
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/architecture.md
+ M ralph-codex-vscode-starter/docs/provenance.md
+ M ralph-codex-vscode-starter/docs/verifier.md
+ M ralph-codex-vscode-starter/out/codex/cliExecStrategy.js
+ succeeded in 51ms:
+import * as path from 'path';
+import { WorkspaceScan } from '../services/workspaceInspection';
+import { RalphRootPolicy } from './types';
+
+export function deriveRootPolicy(summary: WorkspaceScan): RalphRootPolicy {
+  const inspectionRootPath = summary.rootPath;
+  const relativeInspectionRoot = path.relative(summary.workspaceRootPath, inspectionRootPath) || '.';
+  const policySummary = summary.workspaceRootPath === inspectionRootPath
+    ? 'Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there.'
+    : `Inspect ${relativeInspectionRoot}, run Codex and verifiers there, and keep Ralph artifacts under the workspace-root .ralph directory.`;
+
+  return {
+    workspaceRootPath: summary.workspaceRootPath,
+    inspectionRootPath,
+    executionRootPath: inspectionRootPath,
+    verificationRootPath: inspectionRootPath,
+    selectionStrategy: summary.rootSelection.strategy,
+    selectionSummary: summary.rootSelection.summary,
+    policySummary
+  };
+ succeeded in 51ms:
+export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
+
+export type CodexApprovalMode = 'never' | 'on-request' | 'untrusted';
+
+export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
+
+export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
+
+export type RalphGitCheckpointMode = 'off' | 'snapshot' | 'snapshotAndDiff';
+
+export interface RalphCodexConfig {
+  codexCommandPath: string;
+  preferredHandoffMode: CodexHandoffMode;
+  ralphIterationCap: number;
+  verifierModes: RalphVerifierMode[];
+  noProgressThreshold: number;
+  repeatedFailureThreshold: number;
+  artifactRetentionPath: string;
+  provenanceBundleRetentionCount: number;
+  gitCheckpointMode: RalphGitCheckpointMode;
+ succeeded in 50ms:
+import * as vscode from 'vscode';
+import { DEFAULT_CONFIG } from './defaults';
+import {
+  CodexApprovalMode,
+  CodexHandoffMode,
+  CodexSandboxMode,
+  RalphCodexConfig,
+  RalphGitCheckpointMode,
+  RalphVerifierMode
+} from './types';
+
+function readString(
+  config: vscode.WorkspaceConfiguration,
+  key: string,
+  fallback: string,
+  legacyKeys: string[] = []
+): string {
+  const value = config.get<string>(key);
+  if (typeof value === 'string' && value.trim()) {
+    return value.trim();
+ succeeded in 51ms:
+import * as fs from 'fs/promises';
+import * as path from 'path';
+import {
+  detectPackageManagers,
+  extractCiCommands,
+  extractJustTargets,
+  extractNamedTargets,
+  inferTestSignals,
+  inferValidationCommands,
+  RepoRootCandidate,
+  RepoRootSelection,
+  summarizePackageJson,
+  WorkspaceCommandEvidence,
+  WorkspaceFieldEvidence,
+  WorkspaceScan
+} from './workspaceInspection';
+
+const MANIFEST_FILES = [
+  'package.json',
+  'tsconfig.json',
+ succeeded in 50ms:
+ralph-codex-vscode-starter/README.md:65:- Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
+ralph-codex-vscode-starter/README.md:66:- When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ralph-codex-vscode-starter/docs/verifier.md:21:For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
+ralph-codex-vscode-starter/test/loopLogic.test.ts:10:function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
+ralph-codex-vscode-starter/test/loopLogic.test.ts:66:    ...overrides
+ralph-codex-vscode-starter/docs/provenance.md:50:3. execution-plan persistence records the selected task, template, target, prompt hash, and the explicit workspace/inspection/execution/verification root policy
+ralph-codex-vscode-starter/docs/provenance.md:54:7. `cli-invocation.json` records command path, args, workspace root, root policy, prompt artifact path, planned prompt hash, and stdin hash
+ralph-codex-vscode-starter/test/statusReport.test.ts:14:    summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
+ralph-codex-vscode-starter/test/statusReport.test.ts:42:  notes: ['Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.'],
+ralph-codex-vscode-starter/test/statusReport.test.ts:108:function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnapshot {
+ralph-codex-vscode-starter/test/statusReport.test.ts:275:    ...overrides
+ralph-codex-vscode-starter/test/statusReport.test.ts:288:  assert.match(report, /- Last execution root: ralph-codex-vscode-starter/);
+ralph-codex-vscode-starter/test/stateManager.test.ts:57:      summary: 'Using the workspace root because it already exposes shallow repo markers.',
+ralph-codex-vscode-starter/docs/architecture.md:37:2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
+ralph-codex-vscode-starter/docs/architecture.md:40:5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+ralph-codex-vscode-starter/docs/architecture.md:42:7. If the path is `cliExec` and preflight is ready, launch verifies plan and prompt integrity and runs `codex exec` from the policy’s execution root. `.ralph` artifact storage still stays under the workspace root.
+ralph-codex-vscode-starter/docs/architecture.md:43:8. The verifier layer evaluates the result from the policy’s verification root.
+ralph-codex-vscode-starter/docs/architecture.md:55:- The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
+ralph-codex-vscode-starter/docs/architecture.md:56:- Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ralph-codex-vscode-starter/src/ralph/verifier.ts:255:  overrideCommand: string
+codex
+The current code has the root-policy persistence, but there’s no operator-controlled input into root selection yet. Next I’m tracing where workspace scans are initiated and where settings are declared so the override can affect prompts, CLI runs, status, and docs in one pass.
+exec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/services/workspaceInspection.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '220,420p' ralph-codex-vscode-starter/src/services/workspaceScanner.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/commands/workspaceSupport.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/src/ralph/types.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/package.json" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "rg -n \"scanWorkspace\\(|deriveRootPolicy\\(|readConfig\\(|rootSelection|selectionStrategy|selectionSummary\" ralph-codex-vscode-starter/src ralph-codex-vscode-starter/test" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+export interface RepoRootCandidate {
+  path: string;
+  relativePath: string;
+  markerCount: number;
+  markers: string[];
+}
+
+export interface RepoRootSelection {
+  workspaceRootPath: string;
+  selectedRootPath: string;
+  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
+  summary: string;
+  candidates: RepoRootCandidate[];
+}
+
+export interface WorkspaceFieldEvidence {
+  checked: string[];
+  matches: string[];
+  emptyReason: string | null;
+}
+ succeeded in 51ms:
+  const childEntries = await Promise.all(workspaceEntries.directoryNames
+    .filter((directory) => !EXCLUDED_CHILD_DIRECTORIES.has(directory))
+    .map(async (directory) => {
+      const candidatePath = path.join(workspaceRootPath, directory);
+
+      try {
+        const entries = await readRootEntries(candidatePath);
+        return buildCandidate(candidatePath, workspaceRootPath, entries);
+      } catch {
+        return null;
+      }
+    }));
+  const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+  const candidates = [workspaceCandidate, ...childCandidates]
+    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+
+  const focusedCandidate = focusPath
+    ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+    : null;
+
+ succeeded in 54ms:
+import * as vscode from 'vscode';
+import { RalphCodexConfig } from '../config/types';
+
+export interface IdeCommandSupport {
+  commandId: string;
+  configured: boolean;
+  available: boolean;
+}
+
+function isConfiguredCommand(commandId: string): boolean {
+  return commandId.trim().length > 0 && commandId !== 'none';
+}
+
+export function requireTrustedWorkspace(commandLabel: string): void {
+  if (!vscode.workspace.isTrusted) {
+    throw new Error(
+      `${commandLabel} requires a trusted workspace. Trust this workspace to allow Ralph file writes, VS Code command handoff, and Codex CLI execution.`
+    );
+  }
+}
+ succeeded in 50ms:
+import type { WorkspaceScan } from '../services/workspaceInspection';
+
+export type RalphTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
+
+export interface RalphTaskSourceLocation {
+  arrayIndex: number;
+  line: number;
+  column: number;
+}
+
+export interface RalphTask {
+  id: string;
+  title: string;
+  status: RalphTaskStatus;
+  parentId?: string;
+  dependsOn?: string[];
+  notes?: string;
+  validation?: string;
+  blocker?: string;
+  source?: RalphTaskSourceLocation;
+ succeeded in 50ms:
+{
+  "name": "ralph-codex-workbench",
+  "displayName": "Ralph Codex Workbench",
+  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+  "version": "0.1.0",
+  "publisher": "starter",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
+    "directory": "ralph-codex-vscode-starter"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.95.0",
+    "node": ">=20"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+ succeeded in 52ms:
+ralph-codex-vscode-starter/test/artifactStore.test.ts:25:  return deriveRootPolicy({
+ralph-codex-vscode-starter/test/artifactStore.test.ts:29:    rootSelection: {
+ralph-codex-vscode-starter/test/statusReport.test.ts:10:  rootSelection: {
+ralph-codex-vscode-starter/test/statusReport.test.ts:106:const nestedRootPolicy = deriveRootPolicy(workspaceScan);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:143:  const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:172:    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:176:  const rootPolicy = deriveRootPolicy(workspaceScan);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:251:  const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:280:  const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:306:  const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:499:      const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:627:      const config = readConfig(workspaceFolder);
+ralph-codex-vscode-starter/test/stateManager.test.ts:49:  return deriveRootPolicy({
+ralph-codex-vscode-starter/test/stateManager.test.ts:53:    rootSelection: {
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:31:  rootSelection: {
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:133:      rootPolicy: deriveRootPolicy(summary),
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:405:  const scannedSummary = await scanWorkspace(workspaceRoot, 'workspace');
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:453:  assert.equal(scannedSummary.rootSelection.strategy, 'scoredChild');
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:471:  assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.selectedRootPath, repoRoot);
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:472:  assert.equal(render.evidence.inputs.repoContextSnapshot.rootSelection.strategy, 'scoredChild');
+codex
+I’ve confirmed the likely seam: `scanWorkspace(...)` still has only automatic selection inputs, while command wiring and iteration entrypoints already read config. I’m reading those callers now to thread a config override through without disturbing the settled root-policy persistence work.
+exec
+/bin/bash -lc "sed -n '120,240p' ralph-codex-vscode-starter/src/commands/registerCommands.ts" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+    || typeof record.provenanceId !== 'string'
+    || typeof record.iteration !== 'number'
+    || typeof record.promptKind !== 'string'
+    || typeof record.promptTarget !== 'string'
+    || typeof record.trustLevel !== 'string'
+    || typeof record.bundleDir !== 'string'
+    || typeof record.status !== 'string'
+    || typeof record.summary !== 'string') {
+    return null;
+  }
+
+  return record as unknown as RalphProvenanceBundle;
+}
+
+function iterationFailureMessage(result: { iteration: number; execution: { transcriptPath?: string } }): string {
+  return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
+}
+
+async function collectStatusSnapshot(
+  workspaceFolder: vscode.WorkspaceFolder,
+exec
+/bin/bash -lc "sed -n '980,1060p' ralph-codex-vscode-starter/src/ralph/iterationEngine.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '150,320p' ralph-codex-vscode-starter/src/ralph/statusReport.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,180p' ralph-codex-vscode-starter/test/workspaceScanner.test.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '380,560p' ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,360p' ralph-codex-vscode-starter/test/statusReport.test.ts" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+    ].join('\n');
+
+    await this.stateManager.writeObjectiveText(paths, nextText);
+    return `${nextText}\n`;
+  }
+
+  private async prepareIterationContext(
+    workspaceFolder: vscode.WorkspaceFolder,
+    progress: vscode.Progress<{ message?: string; increment?: number }>,
+    includeVerifierContext: boolean
+  ): Promise<PreparedIterationContext> {
+    const inspectStartedAt = new Date().toISOString();
+    progress.report({ message: 'Inspecting Ralph workspace' });
+    const config = readConfig(workspaceFolder);
+    const rootPath = workspaceFolder.uri.fsPath;
+    const snapshot = await this.stateManager.ensureWorkspace(rootPath, config);
+    await this.logger.setWorkspaceLogFile(snapshot.paths.logFilePath);
+
+    if (snapshot.createdPaths.length > 0) {
+      this.logger.warn('Initialized or repaired Ralph workspace paths.', {
+ succeeded in 51ms:
+      : null,
+    latestProvenanceSummaryPath: await pathExists(latestPaths.latestProvenanceSummaryPath)
+      ? latestPaths.latestProvenanceSummaryPath
+      : null,
+    latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
+      ? latestPaths.latestProvenanceFailurePath
+      : null
+  };
+}
+
+export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
+  const renderDiagnostic = (diagnostic: RalphStatusSnapshot['preflightReport']['diagnostics'][number]): string =>
+    `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
+  const lastIteration = snapshot.lastIteration;
+  const verifierSummaries = lastIteration?.verification.verifiers.map((verifier) => {
+    const location = verifier.artifactPath ? ` (${relativeFromRoot(snapshot.rootPath, verifier.artifactPath)})` : '';
+    return `- ${verifier.verifier}: ${verifier.status} - ${verifier.summary}${location}`;
+  }) ?? [];
+  const gitEntryLines = snapshot.gitStatus.entries.slice(0, 10).map((entry) => `- ${entry.status} ${entry.path}`);
+  const preflightTaskGraph = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'taskGraph');
+ succeeded in 51ms:
+import assert from 'node:assert/strict';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
+import test from 'node:test';
+import { scanWorkspace } from '../src/services/workspaceScanner';
+
+async function makeTempRoot(): Promise<string> {
+  return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-codex-scan-'));
+}
+
+test('scanWorkspace detects validation heuristics from common project markers', async () => {
+  const rootPath = await makeTempRoot();
+  const repoRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
+  await fs.mkdir(path.join(repoRoot, '.github', 'workflows'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'src'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'test'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'docs'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'AGENTS.md'), '# agents\n', 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'README.md'), '# demo\n', 'utf8');
+ succeeded in 51ms:
+  };
+  const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    provenanceId: string;
+    status: string;
+    promptArtifactPath: string | null;
+  };
+
+  assert.equal(preflightReport.ready, false);
+  assert.equal(preflightReport.blocked, true);
+  const diagnosticCodes = preflightReport.diagnostics.map((diagnostic) => diagnostic.code);
+  assert.ok(diagnosticCodes.includes('codex_cli_missing'));
+  assert.ok(diagnosticCodes.includes('invalid_dependency_reference'));
+  assert.match(latestSummary, /Preflight blocked before Codex execution started/);
+  assert.equal(latestBundle.provenanceId, preflightReport.provenanceId);
+  assert.equal(latestBundle.status, 'blocked');
+  assert.equal(latestBundle.promptArtifactPath, null);
+});
+
+test('runCliIteration aligns nested execution and verifier roots while keeping Ralph artifacts at the workspace root', async () => {
+ succeeded in 50ms:
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
+import { buildStatusReport, RalphStatusSnapshot } from '../src/ralph/statusReport';
+
+const workspaceScan: RalphStatusSnapshot['workspaceScan'] = {
+  workspaceName: 'workspace',
+  workspaceRootPath: '/workspace',
+  rootPath: '/workspace/ralph-codex-vscode-starter',
+  rootSelection: {
+    workspaceRootPath: '/workspace',
+    selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+    strategy: 'scoredChild',
+    summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
+    candidates: [
+      {
+        path: '/workspace',
+        relativePath: '.',
+        markerCount: 0,
+        markers: []
+codex
+I’ve got enough context to make the change cleanly. Plan:
+1. Add a config-backed `inspectionRootOverride` setting and extend workspace scanning/root-policy metadata so an explicit workspace-relative or absolute child-root override can win deterministically, with validation against the workspace boundary.
+2. Thread that override through prompt/status/iteration entrypoints and surface its state in root-selection summaries, evidence, and status output.
+3. Add focused tests for scanner override behavior plus one end-to-end nested iteration/status path, update the owned docs, then run `cd ralph-codex-vscode-starter && npm run validate`.
+
+exec
+/bin/bash -lc "sed -n '1,260p' ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "rg -n \"setConfiguration|getConfiguration\\(|inspectionRootOverride|validationCommandOverride|preferredHandoffMode\" ralph-codex-vscode-starter/test ralph-codex-vscode-starter/src/test-support ralph-codex-vscode-starter/test/support ralph-codex-vscode-starter/src" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,220p' ralph-codex-vscode-starter/src/config/defaults.ts" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+export interface VscodeMessageCall {
+  message: string;
+  items: string[];
+}
+
+export interface VscodeStubState {
+  configuration: Record<string, unknown>;
+  workspaceFolders: unknown[];
+  isTrusted: boolean;
+  availableCommands: string[];
+  clipboardText: string;
+  infoMessages: VscodeMessageCall[];
+  warningMessages: VscodeMessageCall[];
+  errorMessages: VscodeMessageCall[];
+  shownDocuments: Array<string | null>;
+  executedCommands: Array<{ command: string; args: unknown[] }>;
+  inputBoxValue?: string;
+  messageChoice?: string;
+}
+
+ exited 2 in 51ms:
+rg: ralph-codex-vscode-starter/src/test-support: No such file or directory (os error 2)
+ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts:24:  setConfiguration(configuration: Record<string, unknown>): void;
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:179:    preferredHandoffMode: config.preferredHandoffMode,
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:184:  const validationCommand = chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:239:    validationCommandOverride: config.validationCommandOverride || null,
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:435:      const strategy = strategies.getPromptHandoffStrategy(prepared.config.preferredHandoffMode);
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:455:      if (prepared.config.preferredHandoffMode === 'cliExec') {
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:457:          'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run CLI Iteration for codex exec.'
+ralph-codex-vscode-starter/test/workspaceSupport.test.ts:53:    preferredHandoffMode: 'ideCommand',
+ralph-codex-vscode-starter/test/workspaceSupport.test.ts:65:    preferredHandoffMode: 'ideCommand',
+ralph-codex-vscode-starter/test/support/vscodeTestHarness.ts:24:  setConfiguration(configuration: Record<string, unknown>): void;
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:176:  harness.setConfiguration({ clipboardAutoCopy: true });
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:191:  harness.setConfiguration({
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:192:    preferredHandoffMode: 'clipboard',
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:215:  harness.setConfiguration({
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:216:    preferredHandoffMode: 'ideCommand',
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:241:  harness.setConfiguration({
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:242:    preferredHandoffMode: 'ideCommand',
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:261:test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on clipboard handoff', async () => {
+ralph-codex-vscode-starter/test/commandShell.smoke.test.ts:267:  harness.setConfiguration({
+ succeeded in 50ms:
+import { RalphCodexConfig } from './types';
+
+export const DEFAULT_CONFIG: RalphCodexConfig = {
+  codexCommandPath: 'codex',
+  preferredHandoffMode: 'ideCommand',
+  ralphIterationCap: 5,
+  verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+  noProgressThreshold: 2,
+  repeatedFailureThreshold: 2,
+  artifactRetentionPath: '.ralph/artifacts',
+  provenanceBundleRetentionCount: 25,
+  gitCheckpointMode: 'snapshotAndDiff',
+  validationCommandOverride: '',
+  stopOnHumanReviewNeeded: true,
+  ralphTaskFilePath: '.ralph/tasks.json',
+  prdPath: '.ralph/prd.md',
+  progressPath: '.ralph/progress.md',
+  promptTemplateDirectory: '',
+  promptIncludeVerifierFeedback: true,
+  promptPriorContextBudget: 8,
+codex
+I’m at the edit point. The implementation will stay config-driven rather than adding a new command: a workspace setting is the least disruptive way to make root choice explicit, persistable, and visible across prompt generation, CLI execution, status, and verification.
+exec
+/bin/bash -lc "sed -n '1,140p' ralph-codex-vscode-starter/README.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,140p' ralph-codex-vscode-starter/docs/architecture.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,140p' ralph-codex-vscode-starter/docs/provenance.md" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,140p' ralph-codex-vscode-starter/docs/verifier.md" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+# Ralph Codex Workbench
+
+Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+
+The extension has two execution paths:
+
+- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
+- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+
+## Quick Start
+
+1. Run `npm install`.
+2. Run `npm run compile`.
+3. Open the repo in VS Code and start the Extension Development Host with `F5`.
+4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+
+For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
+
+## Durable Files
+ succeeded in 50ms:
+# Architecture
+
+This document owns module boundaries and the end-to-end flow. It intentionally links to focused policy docs instead of restating their rules.
+
+Related docs:
+
+- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md)
+- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
+- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md)
+
+## Entry Point
+
+- `src/extension.ts` creates the output-channel logger and delegates activation behavior to `registerCommands(...)`.
+- Activation is command-based through `package.json`.
+
+## Module Boundaries
+
+- `src/commands/registerCommands.ts`: command registration, trust gating, progress UI, and operator-visible status/reporting behavior
+- `src/codex/`: `clipboard`, `ideCommand`, and `cliExec` handoff or execution strategies
+ succeeded in 51ms:
+# Provenance
+
+This document owns how Ralph links plans, prompts, invocations, and run bundles into a trusted record.
+
+Related docs:
+
+- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for artifact-model rules
+- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for post-execution evaluation
+- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md) for trust limits
+
+## Provenance Unit
+
+Every meaningful Ralph attempt mints a stable provenance id and threads it through:
+
+- preflight
+- prompt evidence
+- execution plan
+- CLI invocation when CLI execution happens
+- iteration result when an iteration completes
+- run-level provenance bundle artifacts
+ succeeded in 51ms:
+# Verifier
+
+This document owns verifier modes, outcome classifications, and how verification affects loop stopping and review behavior.
+
+Related docs:
+
+- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for loop and artifact requirements
+- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for execution trust
+- [Workflows](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for operator-facing command paths
+
+## Verifier Modes
+
+Configured through `ralphCodex.verifierModes`:
+
+- `validationCommand`: runs `validationCommandOverride`, then task-level validation, then inferred workspace validation
+- `gitDiff`: records git/file-change summaries and relevant changed files
+- `taskState`: compares durable Ralph task/progress state before and after the iteration
+
+Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+
+Plan update
+Implementing the remaining T8 slice by adding a deterministic manual inspection-root override, surfacing it through status/evidence/docs, and closing the loop with validation.
+  → Add config and scanner support for an explicit inspection-root override, then thread it through prompt/status/iteration entrypoints
+  • Add regression tests for override selection and nested execution/status behavior
+  • Update docs and durable Ralph task/progress state, then run validate
+exec
+/bin/bash -lc "sed -n '160,220p' ralph-codex-vscode-starter/src/commands/registerCommands.ts && sed -n '1000,1045p' ralph-codex-vscode-starter/src/ralph/iterationEngine.ts" in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+
+  if (taskInspection.taskFile) {
+    selectedTask = selectNextTask(taskInspection.taskFile);
+  } else if (taskInspection.diagnostics.length > 0) {
+    taskFileError = taskInspection.diagnostics.map((diagnostic) => diagnostic.message).join(' ');
+  }
+
+  const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
+    ? vscode.window.activeTextEditor.document.uri.fsPath
+    : null;
+  const availableCommands = await vscode.commands.getCommands(true);
+  const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
+    resolveLatestStatusArtifacts(inspection.paths),
+    inspectCodexCliSupport(config.codexCommandPath)
+  ]);
+  const rootPolicy = deriveRootPolicy(workspaceScan);
+  const gitStatus = await captureGitStatus(rootPolicy.verificationRootPath);
+  const ideCommandSupport = inspectIdeCommandSupport({
+    preferredHandoffMode: config.preferredHandoffMode,
+codex
+I’m editing the config and scan layers now, then I’ll update the iteration/status callers so the override actually governs the persisted root policy and not just the standalone scanner.
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -71,2 +71,9 @@
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+@@ -215,4 +222,8 @@
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+@@ -232,4 +243,14 @@
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+@@ -243,3 +264,7 @@
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+@@ -266,2 +291,6 @@
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+@@ -273,3 +302,4 @@
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+@@ -283,5 +313,6 @@
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+@@ -350,3 +381,3 @@
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+@@ -409 +440,55 @@
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -123,2 +123,7 @@
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -5,2 +5,3 @@
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts
+@@ -13,2 +13,3 @@
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -10,5 +10,11 @@
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+apply_patch(auto_approved=true) exited 0 in 17ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update:
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1012,3 +1012,6 @@
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -227,2 +227,3 @@
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+@@ -304 +305,13 @@
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -171,3 +171,6 @@
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+apply_patch(auto_approved=true) exited 0 in 22ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update:
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json
+@@ -27,2 +27,3 @@
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+@@ -120,2 +121,7 @@
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+apply_patch(auto_approved=true) exited 0 in 23ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+codex
+The core wiring is in place. I’m updating the typed fixtures and adding regression cases now, because the new root-selection metadata adds one required field and I want the tests to prove both applied and rejected overrides.
+exec
+/bin/bash -lc "sed -n '1,120p' ralph-codex-vscode-starter/test/artifactStore.test.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "rg -n \"rootSelection: \\{\" ralph-codex-vscode-starter/test ralph-codex-vscode-starter/src | sed -n '1,120p'" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,120p' ralph-codex-vscode-starter/test/stateManager.test.ts" in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc "sed -n '1,80p' ralph-codex-vscode-starter/test/promptBuilder.test.ts" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import test from 'node:test';
+import {
+  resolveProvenanceBundlePaths,
+  writeProvenanceBundle
+} from '../src/ralph/artifactStore';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
+import {
+  RalphIntegrityFailure,
+  RalphPersistedPreflightReport,
+  RalphProvenanceBundle
+} from '../src/ralph/types';
+
+async function makeArtifactRoot(): Promise<string> {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-artifact-store-'));
+  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
+  await fs.mkdir(artifactRootDir, { recursive: true });
+ succeeded in 51ms:
+ralph-codex-vscode-starter/test/statusReport.test.ts:10:  rootSelection: {
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:298:    rootSelection: {
+ralph-codex-vscode-starter/test/stateManager.test.ts:53:    rootSelection: {
+ralph-codex-vscode-starter/test/artifactStore.test.ts:29:    rootSelection: {
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:31:  rootSelection: {
+ succeeded in 51ms:
+import assert from 'node:assert/strict';
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
+import test from 'node:test';
+import * as vscode from 'vscode';
+import { DEFAULT_CONFIG } from '../src/config/defaults';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
+import { RalphStateManager } from '../src/ralph/stateManager';
+import { RalphIterationResult } from '../src/ralph/types';
+import { Logger } from '../src/services/logger';
+
+class MemoryMemento implements vscode.Memento {
+  private readonly values = new Map<string, unknown>();
+
+  public keys(): readonly string[] {
+    return Array.from(this.values.keys());
+  }
+
+  public get<T>(key: string): T | undefined;
+ succeeded in 51ms:
+import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import test from 'node:test';
+import { buildPrompt, choosePromptKind, decidePromptKind } from '../src/prompt/promptBuilder';
+import { RalphPaths } from '../src/ralph/pathResolver';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
+import { RalphIterationResult, RalphWorkspaceState } from '../src/ralph/types';
+import { WorkspaceScan } from '../src/services/workspaceInspection';
+import { scanWorkspace } from '../src/services/workspaceScanner';
+
+const paths: RalphPaths = {
+  rootPath: '/workspace',
+  ralphDir: '/workspace/.ralph',
+  prdPath: '/workspace/.ralph/prd.md',
+  progressPath: '/workspace/.ralph/progress.md',
+  taskFilePath: '/workspace/.ralph/tasks.json',
+  stateFilePath: '/workspace/.ralph/state.json',
+  promptDir: '/workspace/.ralph/prompts',
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -14,2 +14,3 @@
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -35,2 +35,3 @@
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -57,2 +57,3 @@
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -33,2 +33,3 @@
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+apply_patch(auto_approved=true) exited 0 in 27ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+
+exec
+/bin/bash -lc "sed -n '1,220p' ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts" in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import test from 'node:test';
+import { promisify } from 'node:util';
+import * as vscode from 'vscode';
+import { DEFAULT_CONFIG } from '../src/config/defaults';
+import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
+import { hashText } from '../src/ralph/integrity';
+import { RalphIterationEngine, RalphIterationEngineHooks } from '../src/ralph/iterationEngine';
+import { RalphStateManager } from '../src/ralph/stateManager';
+import { RalphTaskFile } from '../src/ralph/types';
+import { Logger } from '../src/services/logger';
+import { vscodeTestHarness } from './support/vscodeTestHarness';
+
+const execFileAsync = promisify(execFile);
+
+class MemoryMemento implements vscode.Memento {
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -104 +104,48 @@
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+apply_patch(auto_approved=true) exited 0 in 26ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -491,2 +491,80 @@
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+apply_patch(auto_approved=true) exited 0 in 36ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..4451b38b821e414260e53cba24b73b31ad8295af
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -339 +339,23 @@
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+apply_patch(auto_approved=true) exited 0 in 31ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update:
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+codex
+The code path is done; I’m aligning the owned docs before validation so `npm run check:docs` sees a consistent story. The docs update is limited to the places that already own nested-root semantics and provenance.
+file update
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md
+@@ -39,3 +39,3 @@
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+@@ -59,3 +59,3 @@
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+@@ -65,2 +65,3 @@
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md
+@@ -20,3 +20,3 @@
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md
+@@ -36,3 +36,3 @@
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+@@ -55,2 +55,3 @@
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+apply_patch(auto_approved=true) exited 0 in 34ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md
+M /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+exec
+/bin/bash -lc 'rg -n "inspectionRootOverride|override:" ralph-codex-vscode-starter/src ralph-codex-vscode-starter/test' in /home/admin/Documents/repos/Ralph succeeded in 50ms:
+ralph-codex-vscode-starter/test/stateManager.test.ts:58:      override: null,
+ralph-codex-vscode-starter/test/promptBuilder.test.ts:36:    override: null,
+ralph-codex-vscode-starter/src/commands/registerCommands.ts:174:      inspectionRootOverride: config.inspectionRootOverride
+ralph-codex-vscode-starter/test/workspaceScanner.test.ts:116:    inspectionRootOverride: 'beta-repo'
+ralph-codex-vscode-starter/test/workspaceScanner.test.ts:138:    inspectionRootOverride: '../outside-workspace'
+ralph-codex-vscode-starter/test/statusReport.test.ts:15:    override: null,
+ralph-codex-vscode-starter/test/statusReport.test.ts:349:        override: {
+ralph-codex-vscode-starter/test/statusReport.test.ts:359:  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
+ralph-codex-vscode-starter/test/artifactStore.test.ts:34:      override: null,
+ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts:492:test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
+ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts:510:    inspectionRootOverride: 'beta-repo',
+ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts:549:          override: {
+ralph-codex-vscode-starter/src/ralph/statusReport.ts:228:    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+ralph-codex-vscode-starter/src/ralph/statusReport.ts:276:    `- Validation override: ${snapshot.validationCommandOverride ?? 'none'}`,
+ralph-codex-vscode-starter/src/ralph/statusReport.ts:309:  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:225:    inspectionRootOverride?: string | null;
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:228:  const { focusPath, inspectionRootOverride } = options;
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:244:  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:304:      override: resolvedOverride
+ralph-codex-vscode-starter/src/services/workspaceScanner.ts:314:    inspectionRootOverride?: string | null;
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+codex
+I’m in validation now. If this passes, I’ll update `.ralph/tasks.json` and `.ralph/progress.md` to reflect that T8’s remaining override slice is complete and the parent task can close.
+exec
+/bin/bash -lc 'npm run validate' in /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starterfile update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+codex
+Validation is still running through compile, docs, lint, and tests. I’m watching for type fallout from the new root-selection metadata before I touch the durable Ralph state.
+file update:
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+ succeeded in 8.27s:
+
+> ralph-codex-workbench@0.1.0 compile
+> tsc -p ./
+
+
+> ralph-codex-workbench@0.1.0 check:docs
+> node ./scripts/check-docs.js
+
+Documentation validation passed.
+
+> ralph-codex-workbench@0.1.0 lint
+> tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json
+
+
+> ralph-codex-workbench@0.1.0 test
+> npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js
+
+
+> ralph-codex-workbench@0.1.0 compile:tests
+> tsc -p ./tsconfig.test.json
+codex
+Validation passed cleanly, so I’m updating the durable Ralph state now. I’m closing the override subtask and its dependent test/doc subtasks, and I’m also clearing the duplicate override placeholder so the next iteration doesn’t reselect already-finished work.
+file update
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+@@ -60,3 +60,3 @@
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+@@ -66,3 +66,3 @@
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+@@ -106,3 +106,3 @@
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+@@ -111,3 +111,3 @@
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+@@ -117,3 +117,3 @@
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+@@ -123,3 +123,3 @@
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+@@ -129,3 +129,3 @@
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+@@ -135,3 +135,3 @@
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+@@ -150,3 +150,3 @@
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+@@ -155,3 +155,3 @@
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+@@ -11,2 +11,3 @@
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+apply_patch(auto_approved=true) exited 0 in 41ms:
+Success. Updated the following files:
+M /home/admin/Documents/repos/Ralph/.ralph/tasks.json
+M /home/admin/Documents/repos/Ralph/.ralph/progress.md
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index aab8262f1dc10ca716f036b64ee73c61ec29e8e8..865128f54487d7b16678a45c5fffe81dcaf9fa29
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -9,4 +9,5 @@
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index de6956352745ad4206490eab5d36fcc48bebbf3d..f17ef15aea4e1cea1a3bc5f72c18e10e2d60784e
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,13 +58,13 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+         "T3",
+         "T4",
+         "T7"
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+@@ -104,36 +104,36 @@
+     {
+       "id": "T8.4",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+       "id": "T8.5",
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+       "id": "T8.6",
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+@@ -148,12 +148,12 @@
+      {
+       "id": "T10",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     }
+   ]
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index aab8262f1dc10ca716f036b64ee73c61ec29e8e8..865128f54487d7b16678a45c5fffe81dcaf9fa29
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -9,4 +9,5 @@
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index de6956352745ad4206490eab5d36fcc48bebbf3d..f17ef15aea4e1cea1a3bc5f72c18e10e2d60784e
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,13 +58,13 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+         "T3",
+         "T4",
+         "T7"
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+@@ -104,36 +104,36 @@
+     {
+       "id": "T8.4",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+       "id": "T8.5",
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+       "id": "T8.6",
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+@@ -148,12 +148,12 @@
+      {
+       "id": "T10",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     }
+   ]
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+exec
+/bin/bash -lc 'git -C /home/admin/Documents/repos/Ralph status --short .ralph/tasks.json .ralph/progress.md ralph-codex-vscode-starter/package.json ralph-codex-vscode-starter/README.md ralph-codex-vscode-starter/docs/architecture.md ralph-codex-vscode-starter/docs/provenance.md ralph-codex-vscode-starter/docs/verifier.md ralph-codex-vscode-starter/src/config/types.ts ralph-codex-vscode-starter/src/config/defaults.ts ralph-codex-vscode-starter/src/config/readConfig.ts ralph-codex-vscode-starter/src/services/workspaceInspection.ts ralph-codex-vscode-starter/src/services/workspaceScanner.ts ralph-codex-vscode-starter/src/commands/registerCommands.ts ralph-codex-vscode-starter/src/ralph/iterationEngine.ts ralph-codex-vscode-starter/src/ralph/statusReport.ts ralph-codex-vscode-starter/test/workspaceScanner.test.ts ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts ralph-codex-vscode-starter/test/statusReport.test.ts ralph-codex-vscode-starter/test/artifactStore.test.ts ralph-codex-vscode-starter/test/stateManager.test.ts ralph-codex-vscode-starter/test/promptBuilder.test.ts' in /home/admin/Documents/repos/Ralphexec
+/bin/bash -lc 'git -C /home/admin/Documents/repos/Ralph diff --stat -- .ralph/tasks.json .ralph/progress.md ralph-codex-vscode-starter/package.json ralph-codex-vscode-starter/README.md ralph-codex-vscode-starter/docs/architecture.md ralph-codex-vscode-starter/docs/provenance.md ralph-codex-vscode-starter/docs/verifier.md ralph-codex-vscode-starter/src/config/types.ts ralph-codex-vscode-starter/src/config/defaults.ts ralph-codex-vscode-starter/src/config/readConfig.ts ralph-codex-vscode-starter/src/services/workspaceInspection.ts ralph-codex-vscode-starter/src/services/workspaceScanner.ts ralph-codex-vscode-starter/src/commands/registerCommands.ts ralph-codex-vscode-starter/src/ralph/iterationEngine.ts ralph-codex-vscode-starter/src/ralph/statusReport.ts ralph-codex-vscode-starter/test/workspaceScanner.test.ts ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts ralph-codex-vscode-starter/test/statusReport.test.ts ralph-codex-vscode-starter/test/artifactStore.test.ts ralph-codex-vscode-starter/test/stateManager.test.ts ralph-codex-vscode-starter/test/promptBuilder.test.ts' in /home/admin/Documents/repos/Ralph succeeded in 51ms:
+ M .ralph/progress.md
+ M .ralph/tasks.json
+ M ralph-codex-vscode-starter/README.md
+ M ralph-codex-vscode-starter/docs/architecture.md
+ M ralph-codex-vscode-starter/docs/provenance.md
+ M ralph-codex-vscode-starter/docs/verifier.md
+ M ralph-codex-vscode-starter/package.json
+ M ralph-codex-vscode-starter/src/commands/registerCommands.ts
+ M ralph-codex-vscode-starter/src/config/defaults.ts
+ M ralph-codex-vscode-starter/src/config/readConfig.ts
+ M ralph-codex-vscode-starter/src/config/types.ts
+ M ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+ M ralph-codex-vscode-starter/src/ralph/statusReport.ts
+ M ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+ M ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+ M ralph-codex-vscode-starter/test/artifactStore.test.ts
+ M ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+ M ralph-codex-vscode-starter/test/promptBuilder.test.ts
+ M ralph-codex-vscode-starter/test/stateManager.test.ts
+ M ralph-codex-vscode-starter/test/statusReport.test.ts
+ succeeded in 50ms:
+ .ralph/progress.md                                 |   2 +
+ .ralph/tasks.json                                  |  41 ++--
+ ralph-codex-vscode-starter/README.md               |   2 +
+ ralph-codex-vscode-starter/docs/architecture.md    |  10 +-
+ ralph-codex-vscode-starter/docs/provenance.md      |   7 +-
+ ralph-codex-vscode-starter/docs/verifier.md        |   2 +
+ ralph-codex-vscode-starter/package.json            |   6 +
+ .../src/commands/registerCommands.ts               |  13 +-
+ ralph-codex-vscode-starter/src/config/defaults.ts  |   1 +
+ .../src/config/readConfig.ts                       |   5 +
+ ralph-codex-vscode-starter/src/config/types.ts     |   1 +
+ .../src/ralph/iterationEngine.ts                   |  29 ++-
+ .../src/ralph/statusReport.ts                      |  24 ++-
+ .../src/services/workspaceInspection.ts            |   8 +-
+ .../src/services/workspaceScanner.ts               |  99 ++++++++-
+ .../test/artifactStore.test.ts                     |  74 +++++++
+ .../test/iterationEngine.integration.test.ts       | 191 +++++++++++++++++
+ .../test/promptBuilder.test.ts                     |   9 +
+ .../test/stateManager.test.ts                      |  99 +++++++++
+ .../test/statusReport.test.ts                      | 234 ++++++++++++---------
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index aab8262f1dc10ca716f036b64ee73c61ec29e8e8..865128f54487d7b16678a45c5fffe81dcaf9fa29
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -9,4 +9,5 @@
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index de6956352745ad4206490eab5d36fcc48bebbf3d..f17ef15aea4e1cea1a3bc5f72c18e10e2d60784e
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,13 +58,13 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+         "T3",
+         "T4",
+         "T7"
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+@@ -104,36 +104,36 @@
+     {
+       "id": "T8.4",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+       "id": "T8.5",
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+       "id": "T8.6",
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+@@ -148,12 +148,12 @@
+      {
+       "id": "T10",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     }
+   ]
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+Plan update
+The override implementation, regression coverage, docs, durable task state, and full validation are all complete.
+  ✓ Add config and scanner support for an explicit inspection-root override, then thread it through prompt/status/iteration entrypoints
+  ✓ Add regression tests for override selection and nested execution/status behavior
+  ✓ Update docs and durable Ralph task/progress state, then run validate
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index aab8262f1dc10ca716f036b64ee73c61ec29e8e8..865128f54487d7b16678a45c5fffe81dcaf9fa29
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -9,4 +9,5 @@
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index de6956352745ad4206490eab5d36fcc48bebbf3d..f17ef15aea4e1cea1a3bc5f72c18e10e2d60784e
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,13 +58,13 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+         "T3",
+         "T4",
+         "T7"
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+@@ -104,36 +104,36 @@
+     {
+       "id": "T8.4",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+       "id": "T8.5",
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+       "id": "T8.6",
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+@@ -148,12 +148,12 @@
+      {
+       "id": "T10",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     }
+   ]
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+codex
+**Changed Files**
+- Root-override implementation and wiring: [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json), [types.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts), [defaults.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts), [readConfig.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts), [workspaceInspection.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts), [workspaceScanner.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts), [registerCommands.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts), [iterationEngine.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts), [statusReport.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts).
+- Regression coverage: [workspaceScanner.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts), [iterationEngine.integration.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts), [statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts), plus typed fixture updates in [artifactStore.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts), [stateManager.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts), and [promptBuilder.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts).
+- Docs and durable Ralph state: [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md), [architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md), [provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md), [verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md), [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json), [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+
+Added `ralphCodex.inspectionRootOverride` as a deterministic workspace-relative or absolute in-workspace override. Valid overrides now drive prompt/status/evidence plus CLI execution and verifier cwd; invalid overrides are recorded and fall back to automatic selection.
+
+**Validation Results**
+- `cd /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter && npm run validate`
+- Result: passed
+
+**Assumptions Or Blockers**
+- No blockers.
+- Assumed the explicit override should be config-driven rather than a new command, and must stay inside the workspace boundary.
+
+**Known Limitations Or Follow-Up**
+- Override selection is manual configuration only; there is still no interactive picker for ambiguous workspaces.
+- T8 is now closed in `.ralph`; the next backlog item is the deferred broader orchestration work under T9.
+file update:
+diff --git a/.ralph/progress.md b/.ralph/progress.md
+index aab8262f1dc10ca716f036b64ee73c61ec29e8e8..865128f54487d7b16678a45c5fffe81dcaf9fa29
+--- a/.ralph/progress.md
++++ b/.ralph/progress.md
+@@ -9,4 +9,5 @@
+ - Completed T6 by documenting the manual `.vsix` install workflow, making `npm run package` succeed with `vsce package --no-dependencies` plus repository-aware README links, and validating a fresh `ralph-codex-workbench-0.1.0.vsix` build while capturing the remaining packaging warnings.
+ - Completed T7 by adding an optional real `codex exec` temp-workspace smoke command, documenting its environment-sensitive usage, and surfacing summarized execution failure messages into the structured Ralph iteration/latest-result/status artifacts after a sandboxed real-run preserved backend-connect failure evidence.
+ - Advanced T8 by persisting explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries; `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` remains anchored at the workspace root, with nested-root regressions and focused docs updated. Manual override for ambiguous umbrella workspaces is still pending under T8.4.
++- Completed T8 by adding the `ralphCodex.inspectionRootOverride` escape hatch for ambiguous umbrella workspaces, validating override paths against the workspace boundary, surfacing applied or invalid override state in scan evidence and status output, expanding override-focused regression coverage, and updating the nested-root docs to reflect the now-complete root policy.
+ - Use this file for durable progress notes between fresh Codex runs.
+diff --git a/.ralph/tasks.json b/.ralph/tasks.json
+index de6956352745ad4206490eab5d36fcc48bebbf3d..f17ef15aea4e1cea1a3bc5f72c18e10e2d60784e
+--- a/.ralph/tasks.json
++++ b/.ralph/tasks.json
+@@ -58,13 +58,13 @@
+     {
+       "id": "T8",
+       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
+-      "status": "in_progress",
++      "status": "done",
+       "dependsOn": [
+         "T3",
+         "T4",
+         "T7"
+       ],
+-      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers now run from the selected inspection root while `.ralph` stays anchored at the workspace root. Manual inspection-root override for ambiguous umbrella workspaces is still pending before this parent task can close.",
++      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+@@ -104,36 +104,36 @@
+     {
+       "id": "T8.4",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+       "id": "T8.5",
+       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Added regression coverage for persisted root-policy evidence, status rendering, CLI execution-root selection, verifier cwd selection, and nested child-repo execution. Explicit override coverage remains tied to T8.4.",
++      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
+       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+     },
+     {
+       "id": "T8.6",
+       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
+-      "status": "in_progress",
++      "status": "done",
+       "parentId": "T8",
+       "dependsOn": [
+         "T8.3",
+         "T8.4"
+       ],
+-      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics and the workspace-root `.ralph` boundary are explicit.",
++      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     },
+     {
+@@ -148,12 +148,12 @@
+      {
+       "id": "T10",
+       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+-      "status": "todo",
++      "status": "done",
+       "parentId": "T9",
+       "dependsOn": [
+         "T8.2"
+       ],
+-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
++      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+       "validation": "cd ralph-codex-vscode-starter && npm test"
+     }
+   ]
+diff --git a/ralph-codex-vscode-starter/README.md b/ralph-codex-vscode-starter/README.md
+index f218987abb9cb70d1cd34ff0c2a0d6f166963a24..6ced7dcd0eebcaf3378744781640adc525dbf923
+--- a/ralph-codex-vscode-starter/README.md
++++ b/ralph-codex-vscode-starter/README.md
+@@ -63,6 +63,7 @@
+ 
+ - Prompt templates live in `prompt-templates/` and are selected deterministically.
+ - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
++- Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
+ - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
+ - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+ - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
+diff --git a/ralph-codex-vscode-starter/docs/architecture.md b/ralph-codex-vscode-starter/docs/architecture.md
+index 6751ee144c2766a2b0aa94aa962fcd1bb6acbce2..fcece4e0bc91858262dbe7c6e99c3a15df02142b
+--- a/ralph-codex-vscode-starter/docs/architecture.md
++++ b/ralph-codex-vscode-starter/docs/architecture.md
+@@ -34,7 +34,7 @@
+ ## End-To-End Flow
+ 
+ 1. A trusted command resolves config and workspace paths through `RalphStateManager`.
+-2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root or a stronger immediate child repo root when the workspace root is only an umbrella folder.
++2. The engine inspects the durable Ralph files and a shallow repo-context snapshot. Repo inspection may select the workspace root, a stronger immediate child repo root when the workspace root is only an umbrella folder, or an explicit `inspectionRootOverride` directory inside the workspace.
+ 3. The task layer selects the next actionable task from `.ralph/tasks.json`.
+ 4. The prompt builder chooses a prompt kind and renders the matching template for `cliExec` or `ideHandoff`.
+ 5. The artifact store persists `prompt.md`, `prompt-evidence.json`, and `execution-plan.json`. `prompt-evidence.json` includes the exact structured repo-context object that fed template rendering, plus the explicit workspace/inspection/execution/verification root policy for the iteration.
+@@ -53,6 +53,7 @@
+ ## Runtime Constraints
+ 
+ - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.
++- `inspectionRootOverride` is the escape hatch for ambiguous umbrella workspaces: it must resolve to a directory inside the workspace, it bypasses shallow scoring when valid, and invalid overrides are recorded before Ralph falls back to automatic selection.
+ - Nested-root policy is intentionally simple: execution root and verifier root currently follow the inspected root exactly; Ralph does not infer a second deeper execution target.
+ - Untrusted workspaces support status inspection only.
+ - Virtual workspaces are unsupported.
+diff --git a/ralph-codex-vscode-starter/docs/provenance.md b/ralph-codex-vscode-starter/docs/provenance.md
+index e0df386e8f06d3def25e9b26e99e4d24f70132cd..47c954b94ca83a0395577432423dbcf981796796
+--- a/ralph-codex-vscode-starter/docs/provenance.md
++++ b/ralph-codex-vscode-starter/docs/provenance.md
+@@ -37,7 +37,7 @@
+ - template path
+ - selection reason
+ - compact structured inputs used to render the prompt
+-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
++- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+ 
+ CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
+ 
+@@ -57,7 +57,7 @@
+ This is the strongest guarantee Ralph makes:
+ 
+ - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+-- For nested workspaces, that proof includes which root Ralph inspected and which root it actually executed and verified from.
++- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
+ 
+ ## IDE Handoff Provenance Chain
+ 
+diff --git a/ralph-codex-vscode-starter/docs/verifier.md b/ralph-codex-vscode-starter/docs/verifier.md
+index 6e0b16887320bee7294f5948bd60fce3e51608f6..9e0b9b8e352d51ea7412e19b64bd7b569f27d3c0
+--- a/ralph-codex-vscode-starter/docs/verifier.md
++++ b/ralph-codex-vscode-starter/docs/verifier.md
+@@ -18,7 +18,7 @@
+ 
+ Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
+ 
+-For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`.
++For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.
+ 
+ ## Verifier Artifacts
+ 
+diff --git a/ralph-codex-vscode-starter/package.json b/ralph-codex-vscode-starter/package.json
+index 878cd76f3ebd1928c293f522d3a8c33405f87371..35a63febe2f5a8c511640d3f5583b06dca1c0b70
+--- a/ralph-codex-vscode-starter/package.json
++++ b/ralph-codex-vscode-starter/package.json
+@@ -25,6 +25,7 @@
+       "restrictedConfigurations": [
+         "ralphCodex.codexCommandPath",
+         "ralphCodex.preferredHandoffMode",
++        "ralphCodex.inspectionRootOverride",
+         "ralphCodex.ralphIterationCap",
+         "ralphCodex.verifierModes",
+         "ralphCodex.noProgressThreshold",
+@@ -118,6 +119,11 @@
+           "default": "ideCommand",
+           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+         },
++        "ralphCodex.inspectionRootOverride": {
++          "type": "string",
++          "default": "",
++          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
++        },
+         "ralphCodex.ralphIterationCap": {
+           "type": "number",
+           "default": 5,
+diff --git a/ralph-codex-vscode-starter/src/commands/registerCommands.ts b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+index 5bd4b19ace25fa2be3ce8792d1035141554a3d0c..a8482d24ea7ce8697a6c7fe80b35dc4635b748ac
+--- a/ralph-codex-vscode-starter/src/commands/registerCommands.ts
++++ b/ralph-codex-vscode-starter/src/commands/registerCommands.ts
+@@ -169,7 +169,10 @@
+     : null;
+   const availableCommands = await vscode.commands.getCommands(true);
+   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
++    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
++      focusPath,
++      inspectionRootOverride: config.inspectionRootOverride
++    }),
+     resolveLatestStatusArtifacts(inspection.paths),
+     inspectCodexCliSupport(config.codexCommandPath)
+   ]);
+diff --git a/ralph-codex-vscode-starter/src/config/defaults.ts b/ralph-codex-vscode-starter/src/config/defaults.ts
+index b0edfa7acf2630382667a48cb0df2508dcb31f5e..ec2f4127c347de1970353bbc0e12874cc62a0b98
+--- a/ralph-codex-vscode-starter/src/config/defaults.ts
++++ b/ralph-codex-vscode-starter/src/config/defaults.ts
+@@ -3,6 +3,7 @@
+ export const DEFAULT_CONFIG: RalphCodexConfig = {
+   codexCommandPath: 'codex',
+   preferredHandoffMode: 'ideCommand',
++  inspectionRootOverride: '',
+   ralphIterationCap: 5,
+   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+   noProgressThreshold: 2,
+diff --git a/ralph-codex-vscode-starter/src/config/readConfig.ts b/ralph-codex-vscode-starter/src/config/readConfig.ts
+index d766b84d2dff035d014cf584097ab0befd8f4c23..162b03b9151e08499b9871bd3204622d77c2d75c
+--- a/ralph-codex-vscode-starter/src/config/readConfig.ts
++++ b/ralph-codex-vscode-starter/src/config/readConfig.ts
+@@ -121,6 +121,11 @@
+       ['ideCommand', 'clipboard', 'cliExec'],
+       DEFAULT_CONFIG.preferredHandoffMode
+     ),
++    inspectionRootOverride: readString(
++      config,
++      'inspectionRootOverride',
++      DEFAULT_CONFIG.inspectionRootOverride
++    ),
+     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+     verifierModes: readEnumArray<RalphVerifierMode>(
+       config,
+diff --git a/ralph-codex-vscode-starter/src/config/types.ts b/ralph-codex-vscode-starter/src/config/types.ts
+index f235bd06661d41cb47fd7c4e8b5f78dda21baed6..e22c1f10d95e570d80e0d40e49876b91105d4c6d
+--- a/ralph-codex-vscode-starter/src/config/types.ts
++++ b/ralph-codex-vscode-starter/src/config/types.ts
+@@ -11,6 +11,7 @@
+ export interface RalphCodexConfig {
+   codexCommandPath: string;
+   preferredHandoffMode: CodexHandoffMode;
++  inspectionRootOverride: string;
+   ralphIterationCap: number;
+   verifierModes: RalphVerifierMode[];
+   noProgressThreshold: number;
+diff --git a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+index 33e772c96693e03ba644a65b762e2bc4f900b16e..4a29159710edfd4c483f38f77efb539f33285692
+--- a/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
++++ b/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts
+@@ -1010,7 +1010,10 @@
+       this.stateManager.readProgressText(snapshot.paths),
+       this.stateManager.inspectTaskFile(snapshot.paths),
+       this.stateManager.taskCounts(snapshot.paths).catch(() => null),
+-      scanWorkspace(rootPath, workspaceFolder.name, { focusPath }),
++      scanWorkspace(rootPath, workspaceFolder.name, {
++        focusPath,
++        inspectionRootOverride: config.inspectionRootOverride
++      }),
+       captureCoreState(snapshot.paths)
+     ]);
+     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
+diff --git a/ralph-codex-vscode-starter/src/ralph/statusReport.ts b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+index d3bd247b7dc6202f5b0063c6718138ad8f8bd9d0..00a6664fc9eda067e280b6a04b5d77fd6a2ba241
+--- a/ralph-codex-vscode-starter/src/ralph/statusReport.ts
++++ b/ralph-codex-vscode-starter/src/ralph/statusReport.ts
+@@ -225,6 +225,7 @@
+     `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+     `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+     `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
++    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
+     `- Root selection: ${scan.rootSelection.summary}`,
+     `- Root policy: ${currentRootPolicy.policySummary}`,
+     `- Manifests: ${compactList(scan.manifests, 5)}`,
+@@ -302,3 +303,15 @@
+     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
+   ].join('\n');
+ }
++
++function formatInspectionRootOverride(
++  rootPath: string,
++  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
++): string {
++  if (!override) {
++    return 'none';
++  }
++
++  const location = relativeFromRoot(rootPath, override.resolvedPath);
++  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
++}
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+index 67033ef6a988cddf64637c317752adc69afe2ee3..cfc546b87cdb2fdf8365839d61d4801d88755e6f
+--- a/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceInspection.ts
+@@ -8,9 +8,15 @@
+ export interface RepoRootSelection {
+   workspaceRootPath: string;
+   selectedRootPath: string;
+-  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild';
++  strategy: 'workspaceRoot' | 'focusedChild' | 'scoredChild' | 'manualOverride';
+   summary: string;
+   candidates: RepoRootCandidate[];
++  override: {
++    requestedPath: string;
++    resolvedPath: string | null;
++    status: 'applied' | 'invalid';
++    summary: string;
++  } | null;
+ }
+ 
+ export interface WorkspaceFieldEvidence {
+diff --git a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+index 6fbcbab5d763b3f5169c499ca9e79820c368abda..487cac44f89d1494a347ad387dba7146d18dc8c3
+--- a/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
++++ b/ralph-codex-vscode-starter/src/services/workspaceScanner.ts
+@@ -69,6 +69,13 @@
+   directoryNames: string[];
+ }
+ 
++interface ResolvedOverride {
++  requestedPath: string;
++  resolvedPath: string | null;
++  status: 'applied' | 'invalid';
++  summary: string;
++}
++
+ function uniqueOrdered(values: Iterable<string>): string[] {
+   const seen = new Set<string>();
+   const ordered: string[] = [];
+@@ -213,8 +220,12 @@
+ 
+ async function chooseScanRoot(
+   workspaceRootPath: string,
+-  focusPath?: string | null
++  options: {
++    focusPath?: string | null;
++    inspectionRootOverride?: string | null;
++  } = {}
+ ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
++  const { focusPath, inspectionRootOverride } = options;
+   const workspaceEntries = await readRootEntries(workspaceRootPath);
+   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
+   const childEntries = await Promise.all(workspaceEntries.directoryNames
+@@ -230,8 +241,18 @@
+       }
+     }));
+   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
+-  const candidates = [workspaceCandidate, ...childCandidates]
+-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
++  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
++  const candidates = [workspaceCandidate, ...childCandidates];
++
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
++    if (!existingCandidate) {
++      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
++      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
++    }
++  }
++
++  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+ 
+   const focusedCandidate = focusPath
+     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
+@@ -241,7 +262,11 @@
+   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
+   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
+ 
+-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
++  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
++    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
++    strategy = 'manualOverride';
++    summary = resolvedOverride.summary;
++  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
+     selected = focusedCandidate;
+     strategy = 'focusedChild';
+     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
+@@ -264,6 +289,10 @@
+     }
+   }
+ 
++  if (resolvedOverride?.status === 'invalid') {
++    summary = `${resolvedOverride.summary} ${summary}`;
++  }
++
+   return {
+     selectedRootPath: selected.path,
+     rootSelection: {
+@@ -271,7 +300,8 @@
+       selectedRootPath: selected.path,
+       strategy,
+       summary,
+-      candidates
++      candidates,
++      override: resolvedOverride
+     }
+   };
+ }
+@@ -281,9 +311,10 @@
+   workspaceName = path.basename(workspaceRootPath),
+   options: {
+     focusPath?: string | null;
++    inspectionRootOverride?: string | null;
+   } = {}
+ ): Promise<WorkspaceScan> {
+-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
++  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
+   const entries = await readRootEntries(selectedRootPath);
+   const notes: string[] = [];
+ 
+@@ -348,7 +379,7 @@
+   if (justTargets.length > 0) {
+     notes.push(`just targets detected: ${justTargets.join(', ')}`);
+   }
+-  if (selectedRootPath !== workspaceRootPath) {
++  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
+     notes.push(rootSelection.summary);
+   }
+ 
+@@ -407,3 +438,57 @@
+     packageJson: packageJsonSummary
+   };
+ }
++
++function isWithinRoot(rootPath: string, candidatePath: string): boolean {
++  const relativePath = path.relative(rootPath, candidatePath);
++  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
++}
++
++async function resolveInspectionRootOverride(
++  workspaceRootPath: string,
++  overridePath: string | null | undefined
++): Promise<ResolvedOverride | null> {
++  const requestedPath = overridePath?.trim();
++  if (!requestedPath) {
++    return null;
++  }
++
++  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
++  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
++    };
++  }
++
++  try {
++    const stats = await fs.stat(resolvedPath);
++    if (!stats.isDirectory()) {
++      return {
++        requestedPath,
++        resolvedPath,
++        status: 'invalid',
++        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
++      };
++    }
++  } catch {
++    return {
++      requestedPath,
++      resolvedPath,
++      status: 'invalid',
++      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
++    };
++  }
++
++  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
++  return {
++    requestedPath,
++    resolvedPath,
++    status: 'applied',
++    summary: relativePath === '.'
++      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
++      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
++  };
++}
+diff --git a/ralph-codex-vscode-starter/test/artifactStore.test.ts b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+index 2c4d9a69c66b48569673657255fc47cfc98dfe76..978f92dd60bf9bcbbd1f67a1fdbeb43e71330b7e
+--- a/ralph-codex-vscode-starter/test/artifactStore.test.ts
++++ b/ralph-codex-vscode-starter/test/artifactStore.test.ts
+@@ -31,6 +31,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+index 4f394982f11401243541af208881a80528da334a..c737e6c9e705ae950074eabfb523254526bb3a05
+--- a/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
++++ b/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts
+@@ -489,6 +489,84 @@
+   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+ });
+ 
++test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
++  const rootPath = await makeTempRoot();
++  await seedNestedWorkspace(rootPath, 'alpha-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
++    version: 2,
++    tasks: [
++      { id: 'T1', title: 'Ship override support', status: 'todo' }
++    ]
++  });
++  await initGitRepo(rootPath);
++
++  const harness = vscodeTestHarness();
++  harness.setConfiguration({
++    inspectionRootOverride: 'beta-repo',
++    verifierModes: ['validationCommand', 'taskState'],
++    gitCheckpointMode: 'off'
++  });
++  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
++
++  const run = createEngine([
++    {
++      run: async (request) => {
++        assert.equal(request.workspaceRoot, rootPath);
++        assert.equal(request.executionRoot, betaRoot);
++        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
++        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
++        await updateTaskFile(rootPath, (taskFile) => ({
++          ...taskFile,
++          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
++        }));
++        return {
++          stdout: 'updated override feature',
++          lastMessage: 'Manual override completed the task.'
++        };
++      }
++    }
++  ]);
++
++  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
++    reachedIterationCap: false
++  });
++
++  assert.equal(runSummary.result.executionStatus, 'succeeded');
++  assert.equal(runSummary.result.verificationStatus, 'passed');
++  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
++
++  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
++    inputs: {
++      repoContextSnapshot: {
++        rootSelection: {
++          strategy: string;
++          summary: string;
++          override: {
++            status: string;
++            requestedPath: string;
++          } | null;
++        };
++      };
++      rootPolicy: {
++        executionRootPath: string;
++        verificationRootPath: string;
++      };
++    };
++  };
++
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
++  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
++  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
++  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
++});
++
+ test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
+   const rootPath = await makeTempRoot();
+   await seedWorkspace(rootPath, {
+diff --git a/ralph-codex-vscode-starter/test/promptBuilder.test.ts b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+index 4841f761da9b382bb69db96bd432c568970ddc84..725ef55368699fc628a3f6b86b294ebbb5330a6a
+--- a/ralph-codex-vscode-starter/test/promptBuilder.test.ts
++++ b/ralph-codex-vscode-starter/test/promptBuilder.test.ts
+@@ -33,6 +33,7 @@
+     selectedRootPath: '/workspace',
+     strategy: 'workspaceRoot',
+     summary: 'Using the workspace root because it already exposes shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+diff --git a/ralph-codex-vscode-starter/test/stateManager.test.ts b/ralph-codex-vscode-starter/test/stateManager.test.ts
+index 5f8a6493a07223402088dafefa38ae348c695690..051aadfe8b289a81d71555442d069b2b3d2ce25b
+--- a/ralph-codex-vscode-starter/test/stateManager.test.ts
++++ b/ralph-codex-vscode-starter/test/stateManager.test.ts
+@@ -55,6 +55,7 @@
+       selectedRootPath: rootPath,
+       strategy: 'workspaceRoot',
+       summary: 'Using the workspace root because it already exposes shallow repo markers.',
++      override: null,
+       candidates: [
+         {
+           path: rootPath,
+diff --git a/ralph-codex-vscode-starter/test/statusReport.test.ts b/ralph-codex-vscode-starter/test/statusReport.test.ts
+index 5fb862bf91552ef233afc058e22de292b2d72287..7952c35c5e0801634a49f18b035db1a2a00ba017
+--- a/ralph-codex-vscode-starter/test/statusReport.test.ts
++++ b/ralph-codex-vscode-starter/test/statusReport.test.ts
+@@ -12,6 +12,7 @@
+     selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+     strategy: 'scoredChild',
+     summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
++    override: null,
+     candidates: [
+       {
+         path: '/workspace',
+@@ -336,3 +337,25 @@
+   assert.match(report, /- Trust level: verified CLI execution/);
+   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+ });
++
++test('buildStatusReport surfaces inspection-root override state', () => {
++  const report = buildStatusReport(snapshot({
++    workspaceScan: {
++      ...workspaceScan,
++      rootSelection: {
++        ...workspaceScan.rootSelection,
++        strategy: 'manualOverride',
++        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
++        override: {
++          requestedPath: 'sibling-repo',
++          resolvedPath: '/workspace/sibling-repo',
++          status: 'applied',
++          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
++        }
++      }
++    }
++  }));
++
++  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
++  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
++});
+diff --git a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+index a2816756d591b289ba743df7b7cf195289509d4d..77efa87a2d0618c86fb24fc4e8781c212738a062
+--- a/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
++++ b/ralph-codex-vscode-starter/test/workspaceScanner.test.ts
+@@ -102,3 +102,50 @@
+   assert.ok(summary.validationCommands.includes('npm run validate'));
+   assert.ok(summary.validationCommands.includes('npm run test'));
+ });
++
++test('scanWorkspace applies an explicit inspection-root override inside the workspace', async () => {
++  const rootPath = await makeTempRoot();
++  const alphaRoot = path.join(rootPath, 'alpha-repo');
++  const betaRoot = path.join(rootPath, 'beta-repo');
++  await fs.mkdir(path.join(alphaRoot, 'src'), { recursive: true });
++  await fs.mkdir(path.join(betaRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(alphaRoot, 'package.json'), JSON.stringify({ name: 'alpha' }, null, 2));
++  await fs.writeFile(path.join(betaRoot, 'package.json'), JSON.stringify({ name: 'beta' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: 'beta-repo'
++  });
++
++  assert.equal(summary.rootPath, betaRoot);
++  assert.equal(summary.rootSelection.strategy, 'manualOverride');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: 'beta-repo',
++    resolvedPath: betaRoot,
++    status: 'applied',
++    summary: 'Using manual inspection-root override beta-repo instead of shallow root scoring.'
++  });
++  assert.match(summary.rootSelection.summary, /manual inspection-root override beta-repo/);
++  assert.ok(summary.notes.includes('Using manual inspection-root override beta-repo instead of shallow root scoring.'));
++});
++
++test('scanWorkspace reports invalid inspection-root overrides and falls back to automatic selection', async () => {
++  const rootPath = await makeTempRoot();
++  const childRoot = path.join(rootPath, 'ralph-codex-vscode-starter');
++  await fs.mkdir(path.join(childRoot, 'src'), { recursive: true });
++  await fs.writeFile(path.join(childRoot, 'package.json'), JSON.stringify({ name: 'nested-demo' }, null, 2));
++
++  const summary = await scanWorkspace(rootPath, 'workspace-root', {
++    inspectionRootOverride: '../outside-workspace'
++  });
++
++  assert.equal(summary.rootPath, childRoot);
++  assert.equal(summary.rootSelection.strategy, 'scoredChild');
++  assert.deepEqual(summary.rootSelection.override, {
++    requestedPath: '../outside-workspace',
++    resolvedPath: path.resolve(rootPath, '../outside-workspace'),
++    status: 'invalid',
++    summary: 'Ignored inspection-root override ../outside-workspace because it resolves outside the workspace root.'
++  });
++  assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
++  assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
++});
+
+tokens used
+78,349
+
+
+## Last Message
+
+**Changed Files**
+- Root-override implementation and wiring: [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json), [types.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts), [defaults.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts), [readConfig.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts), [workspaceInspection.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts), [workspaceScanner.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts), [registerCommands.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts), [iterationEngine.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts), [statusReport.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts).
+- Regression coverage: [workspaceScanner.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts), [iterationEngine.integration.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts), [statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts), plus typed fixture updates in [artifactStore.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts), [stateManager.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts), and [promptBuilder.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts).
+- Docs and durable Ralph state: [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md), [architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md), [provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md), [verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md), [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json), [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+
+Added `ralphCodex.inspectionRootOverride` as a deterministic workspace-relative or absolute in-workspace override. Valid overrides now drive prompt/status/evidence plus CLI execution and verifier cwd; invalid overrides are recorded and fall back to automatic selection.
+
+**Validation Results**
+- `cd /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter && npm run validate`
+- Result: passed
+
+**Assumptions Or Blockers**
+- No blockers.
+- Assumed the explicit override should be config-driven rather than a new command, and must stay inside the workspace boundary.
+
+**Known Limitations Or Follow-Up**
+- Override selection is manual configuration only; there is still no interactive picker for ambiguous workspaces.
+- T8 is now closed in `.ralph`; the next backlog item is the deferred broader orchestration work under T9.

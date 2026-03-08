@@ -166,6 +166,30 @@ function normalizeDiffSummary(candidate) {
         afterStatusPath: typeof record.afterStatusPath === 'string' ? record.afterStatusPath : undefined
     };
 }
+function normalizeRootPolicy(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.workspaceRootPath !== 'string'
+        || typeof record.inspectionRootPath !== 'string'
+        || typeof record.executionRootPath !== 'string'
+        || typeof record.verificationRootPath !== 'string'
+        || typeof record.selectionStrategy !== 'string'
+        || typeof record.selectionSummary !== 'string'
+        || typeof record.policySummary !== 'string') {
+        return null;
+    }
+    return {
+        workspaceRootPath: record.workspaceRootPath,
+        inspectionRootPath: record.inspectionRootPath,
+        executionRootPath: record.executionRootPath,
+        verificationRootPath: record.verificationRootPath,
+        selectionStrategy: record.selectionStrategy,
+        selectionSummary: record.selectionSummary,
+        policySummary: record.policySummary
+    };
+}
 function normalizeExecutionIntegrity(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -182,6 +206,7 @@ function normalizeExecutionIntegrity(candidate) {
     return {
         provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         promptTarget: record.promptTarget,
+        rootPolicy: normalizeRootPolicy(record.rootPolicy),
         templatePath: record.templatePath,
         executionPlanPath: record.executionPlanPath,
         executionPlanHash: typeof record.executionPlanHash === 'string' ? record.executionPlanHash : undefined,
@@ -369,6 +394,7 @@ function normalizeWorkspaceState(candidate) {
         nextIteration: typeof record.nextIteration === 'number' && record.nextIteration > 0 ? Math.floor(record.nextIteration) : 1,
         lastPromptKind: record.lastPromptKind === 'bootstrap'
             || record.lastPromptKind === 'iteration'
+            || record.lastPromptKind === 'replenish-backlog'
             || record.lastPromptKind === 'fix-failure'
             || record.lastPromptKind === 'continue-progress'
             || record.lastPromptKind === 'human-review-handoff'

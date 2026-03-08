@@ -150,6 +150,9 @@ function renderIterationSummary(input) {
         `- Plan hash: ${result.executionIntegrity?.executionPlanHash ?? 'none'}`,
         `- Prompt artifact: ${result.executionIntegrity?.promptArtifactPath ?? 'none'}`,
         `- Prompt hash: ${result.executionIntegrity?.promptHash ?? 'none'}`,
+        `- Workspace root: ${result.executionIntegrity?.rootPolicy?.workspaceRootPath ?? 'none'}`,
+        `- Execution root: ${result.executionIntegrity?.rootPolicy?.executionRootPath ?? 'none'}`,
+        `- Verifier root: ${result.executionIntegrity?.rootPolicy?.verificationRootPath ?? 'none'}`,
         `- Payload matched rendered artifact: ${result.executionIntegrity?.executionPayloadMatched == null
             ? 'not executed'
             : result.executionIntegrity.executionPayloadMatched ? 'yes' : 'no'}`,
@@ -209,6 +212,10 @@ function renderProvenanceSummary(bundle) {
         `- Trust level: ${formatTrustLevel(bundle.trustLevel)}`,
         `- Prompt kind: ${bundle.promptKind}`,
         `- Prompt target: ${bundle.promptTarget}`,
+        `- Workspace root: ${bundle.rootPolicy.workspaceRootPath}`,
+        `- Inspection root: ${bundle.rootPolicy.inspectionRootPath}`,
+        `- Execution root: ${bundle.rootPolicy.executionRootPath}`,
+        `- Verifier root: ${bundle.rootPolicy.verificationRootPath}`,
         `- Selected task: ${formatOptional(bundle.selectedTaskId)}${bundle.selectedTaskTitle ? ` - ${bundle.selectedTaskTitle}` : ''}`,
         `- Summary: ${bundle.summary}`,
         '',
@@ -243,6 +250,7 @@ function latestResultFromIteration(input) {
         selectedTaskTitle: input.result.selectedTaskTitle,
         promptKind: input.result.promptKind,
         promptTarget: input.result.executionIntegrity?.promptTarget ?? null,
+        rootPolicy: input.result.executionIntegrity?.rootPolicy ?? null,
         templatePath: input.result.executionIntegrity?.templatePath ?? null,
         executionStatus: input.result.executionStatus,
         executionMessage: input.result.execution.message ?? null,

@@ -1,0 +1,13 @@
+Proposed task ids for the durable backlog are `T11` through `T14`, but they were not written because the live Ralph files are outside this session’s writable sandbox: [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json) and [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+
+The next coherent slice is a thin sequential review-pass control plane:
+- `T11`: Introduce a deterministic sequential review-pass control plane for CLI iterations.
+- `T12`: Add a dedicated review-pass prompt and execution path that reuses persisted iteration evidence. Depends on `T11`.
+- `T13`: Persist structured review findings into status, provenance, and deterministic stop surfaces. Depends on `T12`.
+- `T14`: Document and regression-test the sequential review-pass workflow and its boundaries. Depends on `T12`, `T13`.
+
+This is the right next slice because the nested-root gating work is complete in the durable history, the PRD still targets stronger quality plus orchestration, and the repo still has no dedicated review-pass prompt/config/artifact lane. It advances the product without jumping straight into broad multi-agent coordination.
+
+New actionable task in the durable file: no, because I could not edit the real file. If you apply the slice above, the next actionable task is `T11`.
+
+Blocker: filesystem policy rejected writes outside the repo root, so I could not safely update the actual workspace-root Ralph files.

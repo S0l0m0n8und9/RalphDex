@@ -38,12 +38,15 @@ Ralph does not prove:
 
 Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
 
+The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
+
 It does not:
 
-- let the model freely choose the next task outside the durable task file
+- let the model freely choose implementation work outside the durable task file; backlog replenishment must still write explicit next tasks back into `.ralph/tasks.json`
 - replace deterministic stop logic with freeform intent inference
 - inject raw transcript dumps into future prompts
 - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
+- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
 
 ## Workspace And Runtime Boundary
 

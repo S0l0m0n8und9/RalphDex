@@ -1,0 +1,25 @@
+[
+  {
+    "verifier": "validationCommand",
+    "status": "skipped",
+    "summary": "Validation-command verifier skipped because Codex execution did not succeed.",
+    "warnings": [],
+    "errors": [],
+    "command": "npm run validate"
+  },
+  {
+    "verifier": "gitDiff",
+    "status": "skipped",
+    "summary": "Git-diff/file-change verifier skipped because no Ralph task was selected.",
+    "warnings": [],
+    "errors": []
+  },
+  {
+    "verifier": "taskState",
+    "status": "skipped",
+    "summary": "No Ralph task was selected for task-state verification.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/task-state.json"
+  }
+]

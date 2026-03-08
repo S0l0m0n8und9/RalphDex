@@ -4,6 +4,7 @@ exports.DEFAULT_CONFIG = void 0;
 exports.DEFAULT_CONFIG = {
     codexCommandPath: 'codex',
     preferredHandoffMode: 'ideCommand',
+    inspectionRootOverride: '',
     ralphIterationCap: 5,
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     noProgressThreshold: 2,

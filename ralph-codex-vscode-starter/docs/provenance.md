@@ -37,7 +37,7 @@ Prompt generation also persists `prompt-evidence.json`, which records:
 - template path
 - selection reason
 - compact structured inputs used to render the prompt
-- the exact repo-context snapshot used for rendering, including inspected root selection and concise empty-field evidence
+- the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
 
 CLI execution must run the verified persisted prompt artifact content, not an ad hoc in-memory string.
 
@@ -47,16 +47,17 @@ For `cliExec`, the trusted chain is:
 
 1. preflight runs and persists its report
 2. prompt rendering persists `prompt.md` and `prompt-evidence.json`
-3. execution-plan persistence records the selected task, template, target, and prompt hash
+3. execution-plan persistence records the selected task, template, target, prompt hash, and the explicit workspace/inspection/execution/verification root policy
 4. launch re-reads the plan artifact and verifies its hash
 5. launch re-reads the prompt artifact and verifies its hash against the plan
 6. `codex exec` runs with the persisted prompt payload
-7. `cli-invocation.json` records command path, args, workspace root, prompt artifact path, planned prompt hash, and stdin hash
+7. `cli-invocation.json` records command path, args, workspace root, root policy, prompt artifact path, planned prompt hash, and stdin hash
 8. iteration-result, execution-summary, and run-bundle artifacts capture the outcome, including the summarized `codex exec` message plus the transcript and stderr paths
 
 This is the strongest guarantee Ralph makes:
 
 - CLI runs prove selected, rendered, and executed prompt integrity up to the `codex exec` boundary.
+- For nested workspaces, that proof includes which root Ralph inspected, whether a manual inspection-root override was applied or rejected, and which root it actually executed and verified from.
 
 ## IDE Handoff Provenance Chain
 

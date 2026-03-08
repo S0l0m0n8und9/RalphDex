@@ -58,92 +58,103 @@
     {
       "id": "T8",
       "title": "Align nested inspection-root and execution-root semantics across prompting, execution, and verification",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T3",
         "T4",
         "T7"
       ],
-      "notes": "Ralph can now inspect the nested `ralph-codex-vscode-starter` repo from the umbrella root, but execution and verifier working directories may still follow the workspace root unless commands manually `cd` into the nested repo. Make root-selection policy explicit, durable, and evidence-backed before expanding broader multi-agent behavior.",
+      "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T8.1",
       "title": "Persist chosen inspection root in prompt evidence, execution plans, provenance bundles, and status surfaces",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T3",
         "T4"
       ],
-      "notes": "Record workspace root, chosen inspection root, and selection mode so root choices are inspectable rather than inferred from formatted prompt text.",
+      "notes": "Added explicit root-policy persistence covering workspace, inspection, execution, and verification roots in prompt evidence, execution plans, CLI invocation artifacts, iteration results, provenance bundles, and status summaries.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T8.2",
       "title": "Define deterministic execution-root and verifier-root policy for nested repos",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T8.1"
       ],
-      "notes": "Specify how workspace root, inspection root, execution root, and verifier/validation root relate. Keep the policy simple, shallow, and inspectable.",
+      "notes": "Locked in a simple policy: execution root and verifier root follow the selected inspection root; workspace root continues to own `.ralph` control-plane state and artifacts.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T8.3",
       "title": "Implement CLI and verifier root-alignment using the chosen root policy",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T8.2"
       ],
-      "notes": "Where safe, let execution and verifier paths follow the selected execution root instead of relying on manual `cd ... && ...` composition in commands.",
+      "notes": "CLI execution now passes the selected execution root into `codex exec --cd`, and validation/git verifiers run from the selected verification root instead of depending on manual `cd ... && ...` command composition.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T8.4",
       "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T8.2"
       ],
-      "notes": "Provide a manual override when shallow root scoring is ambiguous. Surface override status clearly in evidence, status, and docs.",
+      "notes": "Added the `ralphCodex.inspectionRootOverride` setting, validated it against the workspace boundary, let it override shallow root scoring when valid, and surfaced applied/invalid override state in workspace-scan evidence and status output.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T8.5",
       "title": "Add regression coverage for nested execution-root, verifier-root, and override behavior",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T8.3",
         "T8.4"
       ],
-      "notes": "Cover obvious child repo selection, ambiguous sibling repos, explicit override, execution cwd selection, verifier cwd selection, and status/provenance reporting of root choices.",
+      "notes": "Regression coverage now includes applied and invalid inspection-root override scanning, status rendering for override state, nested execution-root and verifier-root persistence, and an end-to-end CLI iteration proving override-driven execution/verifier cwd selection.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T8.6",
       "title": "Document workspace-root, inspection-root, execution-root, and verifier-root behavior",
-      "status": "todo",
+      "status": "done",
       "parentId": "T8",
       "dependsOn": [
         "T8.3",
         "T8.4"
       ],
-      "notes": "Update architecture, workflows, provenance, and any routing docs so nested-repo semantics are explicit and operator-visible.",
+      "notes": "Updated README plus architecture, provenance, and verifier docs so nested-root execution semantics, the workspace-root `.ralph` boundary, and the `inspectionRootOverride` escape hatch are explicit.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T9",
       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T8"
       ],
-      "notes": "Do not broaden autonomous multi-agent processes until inspection-root and execution-root behavior are aligned, test-backed, and documented."
+      "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
+    },
+    {
+      "id": "T10",
+      "title": "Add an explicit inspection-root override for ambiguous umbrella or multi-repo workspaces",
+      "status": "done",
+      "parentId": "T9",
+      "dependsOn": [
+        "T8.2"
+      ],
+      "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
     }
   ]
 }

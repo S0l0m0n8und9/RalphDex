@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
+import { deriveRootPolicy } from './rootPolicy';
 import { resolveLatestArtifactPaths } from './artifactStore';
 import { RalphPaths } from './pathResolver';
 import {
@@ -172,6 +173,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const latestPlan = snapshot.latestExecutionPlan;
   const latestProvenance = snapshot.latestProvenanceBundle;
   const lastIntegrity = lastIteration?.executionIntegrity;
+  const currentRootPolicy = latestPlan?.rootPolicy ?? deriveRootPolicy(snapshot.workspaceScan);
+  const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
   const lastTaskLabel = lastIteration?.selectedTaskId
     ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}`
     : 'none';
@@ -218,8 +221,13 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     preflightVerifier.length > 0 ? preflightVerifier.map(renderDiagnostic).join('\n') : '- ok',
     '',
     '## Repo Context',
-    `- Inspected root: ${relativeFromRoot(snapshot.rootPath, scan.rootPath)}`,
+    `- Workspace root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.workspaceRootPath)}`,
+    `- Inspected root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.inspectionRootPath)}`,
+    `- Execution root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.executionRootPath)}`,
+    `- Verifier root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.verificationRootPath)}`,
+    `- Inspection override: ${formatInspectionRootOverride(snapshot.rootPath, scan.rootSelection.override)}`,
     `- Root selection: ${scan.rootSelection.summary}`,
+    `- Root policy: ${currentRootPolicy.policySummary}`,
     `- Manifests: ${compactList(scan.manifests, 5)}`,
     `- Source roots: ${compactList(scan.sourceRoots, 5)}`,
     `- Test roots: ${compactList(scan.tests, 5)}`,
@@ -250,6 +258,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Last task: ${lastTaskLabel}`,
     `- Last prompt: ${lastPromptLabel}`,
     `- Last template: ${relativeFromRoot(snapshot.rootPath, lastIntegrity?.templatePath ?? null)}`,
+    `- Last execution root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.executionRootPath ?? null)}`,
+    `- Last verifier root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.verificationRootPath ?? null)}`,
     `- Payload matched rendered artifact: ${payloadMatched}`,
     `- Outcome: ${lastIteration ? `${lastIteration.completionClassification} (selected task)` : 'none'}`,
     `- Backlog remaining: ${lastIteration ? lastIteration.backlog.remainingTaskCount : 'none'}`,
@@ -292,4 +302,16 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Working tree changes: ${snapshot.gitStatus.entries.length}`,
     gitEntryLines.length > 0 ? gitEntryLines.join('\n') : '- working tree clean or git unavailable'
   ].join('\n');
+}
+
+function formatInspectionRootOverride(
+  rootPath: string,
+  override: RalphStatusSnapshot['workspaceScan']['rootSelection']['override']
+): string {
+  if (!override) {
+    return 'none';
+  }
+
+  const location = relativeFromRoot(rootPath, override.resolvedPath);
+  return `${override.requestedPath} (${override.status}${location !== 'none' ? `: ${location}` : ''})`;
 }

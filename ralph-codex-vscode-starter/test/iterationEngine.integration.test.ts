@@ -93,6 +93,26 @@ async function seedWorkspace(rootPath: string, taskFile: RalphTaskFile): Promise
   await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), `${JSON.stringify(taskFile, null, 2)}\n`, 'utf8');
 }
 
+async function seedNestedWorkspace(rootPath: string, childDirectory: string, taskFile: RalphTaskFile): Promise<string> {
+  const repoRoot = path.join(rootPath, childDirectory);
+  await fs.mkdir(path.join(repoRoot, 'src'), { recursive: true });
+  await fs.mkdir(path.join(repoRoot, 'test'), { recursive: true });
+  await fs.writeFile(path.join(repoRoot, 'package.json'), JSON.stringify({
+    name: 'nested-fixture',
+    version: '1.0.0',
+    scripts: {
+      validate: 'node -e "require(\'node:fs\').writeFileSync(\'validate.cwd.txt\', process.cwd())"',
+      test: 'node -e "process.exit(0)"'
+    }
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(repoRoot, 'src', 'feature.ts'), 'export const ready = true;\n', 'utf8');
+  await fs.mkdir(path.join(rootPath, '.ralph'), { recursive: true });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Product / project brief\n\nShip stable Ralph iterations.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n\n- Baseline created.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), `${JSON.stringify(taskFile, null, 2)}\n`, 'utf8');
+  return repoRoot;
+}
+
 async function initGitRepo(rootPath: string): Promise<void> {
   await execFileAsync('git', ['init', '--initial-branch=main'], { cwd: rootPath });
   await execFileAsync('git', ['config', 'user.email', 'tests@example.com'], { cwd: rootPath });
@@ -376,6 +396,177 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
   assert.equal(latestBundle.promptArtifactPath, null);
 });
 
+test('runCliIteration aligns nested execution and verifier roots while keeping Ralph artifacts at the workspace root', async () => {
+  const rootPath = await makeTempRoot();
+  const nestedRoot = await seedNestedWorkspace(rootPath, 'ralph-codex-vscode-starter', {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship nested-root support', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async (request) => {
+        assert.equal(request.workspaceRoot, rootPath);
+        assert.equal(request.executionRoot, nestedRoot);
+        await fs.writeFile(path.join(nestedRoot, 'src', 'feature.ts'), 'export const ready = "nested";\n', 'utf8');
+        await appendProgress(rootPath, 'Nested execution root updated child repo files.');
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
+        }));
+        return {
+          stdout: 'updated nested feature',
+          lastMessage: 'Nested execution root completed the task.'
+        };
+      }
+    }
+  ]);
+
+  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(runSummary.result.executionStatus, 'succeeded');
+  assert.equal(runSummary.result.verificationStatus, 'passed');
+  assert.equal(await fs.readFile(path.join(nestedRoot, 'validate.cwd.txt'), 'utf8'), nestedRoot);
+
+  const iterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  const promptEvidence = JSON.parse(await fs.readFile(path.join(iterationDir, 'prompt-evidence.json'), 'utf8')) as {
+    inputs: {
+      rootPolicy: {
+        workspaceRootPath: string;
+        executionRootPath: string;
+        verificationRootPath: string;
+      };
+    };
+  };
+  const executionPlan = JSON.parse(await fs.readFile(path.join(iterationDir, 'execution-plan.json'), 'utf8')) as {
+    rootPolicy: {
+      workspaceRootPath: string;
+      inspectionRootPath: string;
+      executionRootPath: string;
+      verificationRootPath: string;
+    };
+  };
+  const cliInvocation = JSON.parse(await fs.readFile(path.join(iterationDir, 'cli-invocation.json'), 'utf8')) as {
+    workspaceRoot: string;
+    rootPolicy: {
+      executionRootPath: string;
+      verificationRootPath: string;
+    };
+  };
+  const bundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    artifactDir: string;
+    rootPolicy: {
+      workspaceRootPath: string;
+      executionRootPath: string;
+      verificationRootPath: string;
+    };
+  };
+
+  assert.equal(promptEvidence.inputs.rootPolicy.workspaceRootPath, rootPath);
+  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, nestedRoot);
+  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, nestedRoot);
+  assert.equal(executionPlan.rootPolicy.workspaceRootPath, rootPath);
+  assert.equal(executionPlan.rootPolicy.inspectionRootPath, nestedRoot);
+  assert.equal(executionPlan.rootPolicy.executionRootPath, nestedRoot);
+  assert.equal(cliInvocation.workspaceRoot, rootPath);
+  assert.equal(cliInvocation.rootPolicy.executionRootPath, nestedRoot);
+  assert.equal(cliInvocation.rootPolicy.verificationRootPath, nestedRoot);
+  assert.equal(bundle.artifactDir, path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'));
+  assert.equal(bundle.rootPolicy.workspaceRootPath, rootPath);
+  assert.equal(bundle.rootPolicy.executionRootPath, nestedRoot);
+  assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+});
+
+test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {
+  const rootPath = await makeTempRoot();
+  await seedNestedWorkspace(rootPath, 'alpha-repo', {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship override support', status: 'todo' }
+    ]
+  });
+  const betaRoot = await seedNestedWorkspace(rootPath, 'beta-repo', {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship override support', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    inspectionRootOverride: 'beta-repo',
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async (request) => {
+        assert.equal(request.workspaceRoot, rootPath);
+        assert.equal(request.executionRoot, betaRoot);
+        await fs.writeFile(path.join(betaRoot, 'src', 'feature.ts'), 'export const ready = "override";\n', 'utf8');
+        await appendProgress(rootPath, 'Manual inspection-root override selected beta-repo.');
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
+        }));
+        return {
+          stdout: 'updated override feature',
+          lastMessage: 'Manual override completed the task.'
+        };
+      }
+    }
+  ]);
+
+  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(runSummary.result.executionStatus, 'succeeded');
+  assert.equal(runSummary.result.verificationStatus, 'passed');
+  assert.equal(await fs.readFile(path.join(betaRoot, 'validate.cwd.txt'), 'utf8'), betaRoot);
+
+  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt-evidence.json'), 'utf8')) as {
+    inputs: {
+      repoContextSnapshot: {
+        rootSelection: {
+          strategy: string;
+          summary: string;
+          override: {
+            status: string;
+            requestedPath: string;
+          } | null;
+        };
+      };
+      rootPolicy: {
+        executionRootPath: string;
+        verificationRootPath: string;
+      };
+    };
+  };
+
+  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.strategy, 'manualOverride');
+  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.status, 'applied');
+  assert.equal(promptEvidence.inputs.repoContextSnapshot.rootSelection.override?.requestedPath, 'beta-repo');
+  assert.match(promptEvidence.inputs.repoContextSnapshot.rootSelection.summary, /manual inspection-root override beta-repo/);
+  assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, betaRoot);
+  assert.equal(promptEvidence.inputs.rootPolicy.verificationRootPath, betaRoot);
+});
+
 test('runCliIteration persists blocked provenance artifacts when launch integrity fails', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
@@ -585,6 +776,61 @@ test('runCliIteration stops after repeated no-progress iterations', async () => 
   });
 
   assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+});
+
+test('runCliIteration replenishes the durable backlog when no actionable task remains', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Already complete', status: 'done' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState', 'gitDiff'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async (request) => {
+        assert.match(request.prompt, /replenish `\.ralph\/tasks\.json`/i);
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: [
+            ...taskFile.tasks,
+            { id: 'T2', title: 'Plan the next Ralph enhancement', status: 'todo' }
+          ]
+        }));
+        await appendProgress(rootPath, 'Replenished the Ralph backlog with T2.');
+        return {
+          lastMessage: 'Backlog replenished.'
+        };
+      }
+    }
+  ]);
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(summary.result.selectedTaskId, null);
+  assert.equal(summary.prepared.promptKind, 'replenish-backlog');
+  assert.equal(summary.result.executionStatus, 'succeeded');
+  assert.equal(summary.result.verificationStatus, 'passed');
+  assert.equal(summary.result.completionClassification, 'partial_progress');
+  assert.equal(summary.result.stopReason, null);
+  assert.equal(summary.result.backlog.remainingTaskCount, 1);
+  assert.equal(summary.result.backlog.actionableTaskAvailable, true);
+  assert.equal(summary.loopDecision.shouldContinue, true);
+
+  const gitDiffVerifier = summary.result.verification.verifiers.find((item) => item.verifier === 'gitDiff');
+  assert.ok(gitDiffVerifier);
+  assert.equal(gitDiffVerifier.status, 'skipped');
+  assert.match(gitDiffVerifier.summary, /no Ralph task was selected/i);
 });
 
 test('runCliIteration stops after repeated identical failure classifications', async () => {

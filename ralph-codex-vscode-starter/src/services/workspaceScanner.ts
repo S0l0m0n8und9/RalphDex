@@ -69,6 +69,13 @@ interface RootEntries {
   directoryNames: string[];
 }
 
+interface ResolvedOverride {
+  requestedPath: string;
+  resolvedPath: string | null;
+  status: 'applied' | 'invalid';
+  summary: string;
+}
+
 function uniqueOrdered(values: Iterable<string>): string[] {
   const seen = new Set<string>();
   const ordered: string[] = [];
@@ -213,8 +220,12 @@ function buildCandidate(pathToCandidate: string, workspaceRootPath: string, entr
 
 async function chooseScanRoot(
   workspaceRootPath: string,
-  focusPath?: string | null
+  options: {
+    focusPath?: string | null;
+    inspectionRootOverride?: string | null;
+  } = {}
 ): Promise<{ selectedRootPath: string; rootSelection: RepoRootSelection }> {
+  const { focusPath, inspectionRootOverride } = options;
   const workspaceEntries = await readRootEntries(workspaceRootPath);
   const workspaceCandidate = buildCandidate(workspaceRootPath, workspaceRootPath, workspaceEntries);
   const childEntries = await Promise.all(workspaceEntries.directoryNames
@@ -230,8 +241,18 @@ async function chooseScanRoot(
       }
     }));
   const childCandidates = childEntries.filter((candidate): candidate is RepoRootCandidate => candidate !== null);
-  const candidates = [workspaceCandidate, ...childCandidates]
-    .sort((left, right) => left.relativePath.localeCompare(right.relativePath));
+  const resolvedOverride = await resolveInspectionRootOverride(workspaceRootPath, inspectionRootOverride);
+  const candidates = [workspaceCandidate, ...childCandidates];
+
+  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
+    const existingCandidate = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath);
+    if (!existingCandidate) {
+      const overrideEntries = await readRootEntries(resolvedOverride.resolvedPath);
+      candidates.push(buildCandidate(resolvedOverride.resolvedPath, workspaceRootPath, overrideEntries));
+    }
+  }
+
+  candidates.sort((left, right) => left.relativePath.localeCompare(right.relativePath));
 
   const focusedCandidate = focusPath
     ? childCandidates.find((candidate) => focusPath.startsWith(`${candidate.path}${path.sep}`) || focusPath === candidate.path)
@@ -241,7 +262,11 @@ async function chooseScanRoot(
   let strategy: RepoRootSelection['strategy'] = 'workspaceRoot';
   let summary = 'Using the workspace root because it already exposes shallow repo markers.';
 
-  if (focusedCandidate && focusedCandidate.markerCount > 0) {
+  if (resolvedOverride?.status === 'applied' && resolvedOverride.resolvedPath) {
+    selected = candidates.find((candidate) => candidate.path === resolvedOverride.resolvedPath) ?? workspaceCandidate;
+    strategy = 'manualOverride';
+    summary = resolvedOverride.summary;
+  } else if (focusedCandidate && focusedCandidate.markerCount > 0) {
     selected = focusedCandidate;
     strategy = 'focusedChild';
     summary = `Using focused child ${focusedCandidate.relativePath} because it contains the active work and exposes shallow repo markers.`;
@@ -264,6 +289,10 @@ async function chooseScanRoot(
     }
   }
 
+  if (resolvedOverride?.status === 'invalid') {
+    summary = `${resolvedOverride.summary} ${summary}`;
+  }
+
   return {
     selectedRootPath: selected.path,
     rootSelection: {
@@ -271,7 +300,8 @@ async function chooseScanRoot(
       selectedRootPath: selected.path,
       strategy,
       summary,
-      candidates
+      candidates,
+      override: resolvedOverride
     }
   };
 }
@@ -281,9 +311,10 @@ export async function scanWorkspace(
   workspaceName = path.basename(workspaceRootPath),
   options: {
     focusPath?: string | null;
+    inspectionRootOverride?: string | null;
   } = {}
 ): Promise<WorkspaceScan> {
-  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options.focusPath);
+  const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);
   const entries = await readRootEntries(selectedRootPath);
   const notes: string[] = [];
 
@@ -348,7 +379,7 @@ export async function scanWorkspace(
   if (justTargets.length > 0) {
     notes.push(`just targets detected: ${justTargets.join(', ')}`);
   }
-  if (selectedRootPath !== workspaceRootPath) {
+  if (selectedRootPath !== workspaceRootPath || rootSelection.override !== null) {
     notes.push(rootSelection.summary);
   }
 
@@ -405,5 +436,59 @@ export async function scanWorkspace(
       })
     },
     packageJson: packageJsonSummary
+  };
+}
+
+function isWithinRoot(rootPath: string, candidatePath: string): boolean {
+  const relativePath = path.relative(rootPath, candidatePath);
+  return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+}
+
+async function resolveInspectionRootOverride(
+  workspaceRootPath: string,
+  overridePath: string | null | undefined
+): Promise<ResolvedOverride | null> {
+  const requestedPath = overridePath?.trim();
+  if (!requestedPath) {
+    return null;
+  }
+
+  const resolvedPath = path.resolve(path.isAbsolute(requestedPath) ? requestedPath : path.join(workspaceRootPath, requestedPath));
+  if (!isWithinRoot(workspaceRootPath, resolvedPath)) {
+    return {
+      requestedPath,
+      resolvedPath,
+      status: 'invalid',
+      summary: `Ignored inspection-root override ${requestedPath} because it resolves outside the workspace root.`
+    };
+  }
+
+  try {
+    const stats = await fs.stat(resolvedPath);
+    if (!stats.isDirectory()) {
+      return {
+        requestedPath,
+        resolvedPath,
+        status: 'invalid',
+        summary: `Ignored inspection-root override ${requestedPath} because it does not point to a directory.`
+      };
+    }
+  } catch {
+    return {
+      requestedPath,
+      resolvedPath,
+      status: 'invalid',
+      summary: `Ignored inspection-root override ${requestedPath} because the directory does not exist.`
+    };
+  }
+
+  const relativePath = path.relative(workspaceRootPath, resolvedPath) || '.';
+  return {
+    requestedPath,
+    resolvedPath,
+    status: 'applied',
+    summary: relativePath === '.'
+      ? 'Using the workspace root because inspectionRootOverride explicitly selected it.'
+      : `Using manual inspection-root override ${relativePath} instead of shallow root scoring.`
   };
 }

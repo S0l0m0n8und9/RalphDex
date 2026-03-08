@@ -101,6 +101,7 @@ function readConfig(workspaceFolder) {
     return {
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
+        inspectionRootOverride: readString(config, 'inspectionRootOverride', defaults_1.DEFAULT_CONFIG.inspectionRootOverride),
         ralphIterationCap: readNumber(config, 'ralphIterationCap', defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
         verifierModes: readEnumArray(config, 'verifierModes', ['validationCommand', 'gitDiff', 'taskState'], defaults_1.DEFAULT_CONFIG.verifierModes),
         noProgressThreshold: readNumber(config, 'noProgressThreshold', defaults_1.DEFAULT_CONFIG.noProgressThreshold, 1),

@@ -41,6 +41,7 @@ const readConfig_1 = require("../config/readConfig");
 const providerFactory_1 = require("../codex/providerFactory");
 const iterationEngine_1 = require("../ralph/iterationEngine");
 const preflight_1 = require("../ralph/preflight");
+const rootPolicy_1 = require("../ralph/rootPolicy");
 const statusReport_1 = require("../ralph/statusReport");
 const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
@@ -167,12 +168,16 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         ? vscode.window.activeTextEditor.document.uri.fsPath
         : null;
     const availableCommands = await vscode.commands.getCommands(true);
-    const [workspaceScan, latestArtifacts, gitStatus, codexCliSupport] = await Promise.all([
-        (0, workspaceScanner_1.scanWorkspace)(workspaceFolder.uri.fsPath, workspaceFolder.name, { focusPath }),
+    const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
+        (0, workspaceScanner_1.scanWorkspace)(workspaceFolder.uri.fsPath, workspaceFolder.name, {
+            focusPath,
+            inspectionRootOverride: config.inspectionRootOverride
+        }),
         (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths),
-        (0, verifier_1.captureGitStatus)(workspaceFolder.uri.fsPath),
         (0, codexCliSupport_1.inspectCodexCliSupport)(config.codexCommandPath)
     ]);
+    const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(workspaceScan);
+    const gitStatus = await (0, verifier_1.captureGitStatus)(rootPolicy.verificationRootPath);
     const ideCommandSupport = (0, codexCliSupport_1.inspectIdeCommandSupport)({
         preferredHandoffMode: config.preferredHandoffMode,
         openSidebarCommandId: config.openSidebarCommandId,
@@ -182,7 +187,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const validationCommand = (0, verifier_1.chooseValidationCommand)(workspaceScan, selectedTask, config.validationCommandOverride);
     const validationCommandReadiness = await (0, verifier_1.inspectValidationCommandReadiness)({
         command: validationCommand,
-        rootPath: workspaceFolder.uri.fsPath
+        rootPath: rootPolicy.verificationRootPath
     });
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath: workspaceFolder.uri.fsPath,

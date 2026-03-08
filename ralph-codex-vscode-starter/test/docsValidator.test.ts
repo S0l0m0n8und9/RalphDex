@@ -216,6 +216,8 @@ Stable preflight rules live here.
 
 Stable iteration rules live here.
 
+The loop coordinates one selected task and one Codex execution at a time.
+
 ## Artifact Model Invariants
 
 Stable artifact rules live here.
@@ -317,6 +319,8 @@ Stable trust boundary rules live here.
 ## Control-Plane Boundary
 
 Stable control-plane boundary rules live here.
+
+The shipped control plane is a single-agent iteration/loop runner.
 
 ## Workspace And Runtime Boundary
 

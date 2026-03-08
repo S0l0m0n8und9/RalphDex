@@ -1,0 +1,81 @@
+[
+  {
+    "verifier": "validationCommand",
+    "status": "passed",
+    "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm run validate",
+    "warnings": [],
+    "errors": [],
+    "command": "cd ralph-codex-vscode-starter && npm run validate",
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/validation-command.json",
+    "failureSignature": null,
+    "metadata": {
+      "exitCode": 0,
+      "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/validation-command.stdout.log",
+      "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/validation-command.stderr.log"
+    }
+  },
+  {
+    "verifier": "gitDiff",
+    "status": "passed",
+    "summary": "Detected 16 relevant changed file(s) out of 26 total changes.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/git-diff.json",
+    "metadata": {
+      "changedFiles": [
+        ".ralph/artifacts/iteration-009/cli-invocation.json",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/execution-plan.json",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/preflight-report.json",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/preflight-summary.md",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/prompt-evidence.json",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/prompt.md",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/provenance-bundle.json",
+        ".ralph/artifacts/runs/run-i009-cli-20260308T011035Z/summary.md",
+        ".ralph/progress.md",
+        ".ralph/runs/continue-progress-009.last-message.md",
+        ".ralph/runs/continue-progress-009.transcript.md",
+        ".ralph/tasks.json",
+        "ralph-codex-vscode-starter/out/config/defaults.js",
+        "ralph-codex-vscode-starter/out/config/defaults.js.map",
+        "ralph-codex-vscode-starter/out/config/readConfig.js",
+        "ralph-codex-vscode-starter/out/config/readConfig.js.map",
+        "ralph-codex-vscode-starter/out/services/workspaceInspection.js.map",
+        "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+        "ralph-codex-vscode-starter/out/services/workspaceScanner.js.map",
+        "ralph-codex-vscode-starter/package.json",
+        "ralph-codex-vscode-starter/src/config/defaults.ts",
+        "ralph-codex-vscode-starter/src/config/readConfig.ts",
+        "ralph-codex-vscode-starter/src/config/types.ts",
+        "ralph-codex-vscode-starter/src/services/workspaceInspection.ts",
+        "ralph-codex-vscode-starter/src/services/workspaceScanner.ts",
+        "ralph-codex-vscode-starter/test/workspaceScanner.test.ts"
+      ],
+      "relevantChangedFiles": [
+        ".ralph/progress.md",
+        ".ralph/tasks.json",
+        "ralph-codex-vscode-starter/out/config/defaults.js",
+        "ralph-codex-vscode-starter/out/config/defaults.js.map",
+        "ralph-codex-vscode-starter/out/config/readConfig.js",
+        "ralph-codex-vscode-starter/out/config/readConfig.js.map",
+        "ralph-codex-vscode-starter/out/services/workspaceInspection.js.map",
+        "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+        "ralph-codex-vscode-starter/out/services/workspaceScanner.js.map",
+        "ralph-codex-vscode-starter/package.json",
+        "ralph-codex-vscode-starter/src/config/defaults.ts",
+        "ralph-codex-vscode-starter/src/config/readConfig.ts",
+        "ralph-codex-vscode-starter/src/config/types.ts",
+        "ralph-codex-vscode-starter/src/services/workspaceInspection.ts",
+        "ralph-codex-vscode-starter/src/services/workspaceScanner.ts",
+        "ralph-codex-vscode-starter/test/workspaceScanner.test.ts"
+      ]
+    }
+  },
+  {
+    "verifier": "taskState",
+    "status": "passed",
+    "summary": "Selected task T8 is marked done.",
+    "warnings": [],
+    "errors": [],
+    "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-009/task-state.json"
+  }
+]

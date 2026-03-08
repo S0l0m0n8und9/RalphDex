@@ -93,6 +93,7 @@ export interface RalphPersistedPreflightReport {
 export type RalphPromptKind =
   | 'bootstrap'
   | 'iteration'
+  | 'replenish-backlog'
   | 'fix-failure'
   | 'continue-progress'
   | 'human-review-handoff';
@@ -166,6 +167,7 @@ export interface RalphPromptEvidence {
   selectedTaskId: string | null;
   validationCommand: string | null;
   inputs: {
+    rootPolicy: RalphRootPolicy;
     strategyContext: string[];
     preflightContext: string[];
     objectiveContext: string;
@@ -181,6 +183,16 @@ export interface RalphPromptEvidence {
   };
 }
 
+export interface RalphRootPolicy {
+  workspaceRootPath: string;
+  inspectionRootPath: string;
+  executionRootPath: string;
+  verificationRootPath: string;
+  selectionStrategy: WorkspaceScan['rootSelection']['strategy'];
+  selectionSummary: string;
+  policySummary: string;
+}
+
 export interface RalphExecutionPlan {
   schemaVersion: 1;
   kind: 'executionPlan';
@@ -191,6 +203,7 @@ export interface RalphExecutionPlan {
   promptKind: RalphPromptKind;
   promptTarget: RalphPromptTarget;
   selectionReason: string;
+  rootPolicy: RalphRootPolicy;
   templatePath: string;
   promptPath: string;
   promptArtifactPath: string;
@@ -209,6 +222,7 @@ export interface RalphCliInvocation {
   commandPath: string;
   args: string[];
   workspaceRoot: string;
+  rootPolicy: RalphRootPolicy;
   promptArtifactPath: string;
   promptHash: string;
   promptByteLength: number;
@@ -221,6 +235,7 @@ export interface RalphCliInvocation {
 export interface RalphExecutionIntegritySummary {
   provenanceId?: string;
   promptTarget: RalphPromptTarget;
+  rootPolicy: RalphRootPolicy | null;
   templatePath: string;
   executionPlanPath: string;
   executionPlanHash?: string;
@@ -344,6 +359,7 @@ export interface RalphProvenanceBundle {
   trustLevel: RalphProvenanceTrustLevel;
   status: RalphProvenanceBundleStatus;
   summary: string;
+  rootPolicy: RalphRootPolicy;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
   artifactDir: string;

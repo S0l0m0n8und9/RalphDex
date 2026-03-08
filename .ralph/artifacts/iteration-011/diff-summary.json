@@ -1,0 +1,28 @@
+{
+  "available": true,
+  "gitAvailable": true,
+  "summary": "Detected 7 change(s), but none outside Ralph-managed files.",
+  "changedFileCount": 7,
+  "relevantChangedFileCount": 0,
+  "changedFiles": [
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md"
+  ],
+  "relevantChangedFiles": [],
+  "statusTransitions": [
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json: clean -> ??",
+    ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md: clean -> ??"
+  ],
+  "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-status-before.txt",
+  "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-status-after.txt"
+}

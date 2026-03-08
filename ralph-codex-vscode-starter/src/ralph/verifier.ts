@@ -411,7 +411,12 @@ export async function runTaskStateVerifier(input: {
   const errors: string[] = [];
 
   if (!input.selectedTaskId) {
-    summary = 'No Ralph task was selected for task-state verification.';
+    if (progressChanged || taskFileChanged) {
+      status = 'passed';
+      summary = 'Durable Ralph task/progress files changed during a no-task iteration.';
+    } else {
+      summary = 'No Ralph task was selected for task-state verification.';
+    }
   } else if (input.after.taskFileError) {
     status = 'failed';
     summary = `Task file could not be parsed after iteration for ${input.selectedTaskId}.`;

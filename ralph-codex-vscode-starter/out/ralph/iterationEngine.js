@@ -41,6 +41,7 @@ const promptBuilder_1 = require("../prompt/promptBuilder");
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
+const rootPolicy_1 = require("./rootPolicy");
 const taskFile_1 = require("./taskFile");
 const loopLogic_1 = require("./loopLogic");
 const preflight_1 = require("./preflight");
@@ -63,6 +64,9 @@ function summarizeLastMessage(lastMessage, exitCode) {
 }
 function trustLevelForTarget(promptTarget) {
     return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
+}
+function isBacklogExhausted(taskCounts) {
+    return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
 }
 class RalphIntegrityFailureError extends Error {
     details;
@@ -204,6 +208,7 @@ class RalphIterationEngine {
             trustLevel: prepared.trustLevel,
             status,
             summary,
+            rootPolicy: prepared.rootPolicy,
             selectedTaskId: prepared.selectedTask?.id ?? null,
             selectedTaskTitle: prepared.selectedTask?.title ?? null,
             artifactDir: (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration).directory,
@@ -265,6 +270,7 @@ class RalphIterationEngine {
             trustLevel: input.trustLevel,
             status: 'blocked',
             summary: input.persistedPreflightReport.summary,
+            rootPolicy: input.rootPolicy,
             selectedTaskId: input.selectedTask?.id ?? null,
             selectedTaskTitle: input.selectedTask?.title ?? null,
             artifactDir: (0, artifactStore_1.resolveIterationArtifactPaths)(input.paths.artifactDir, input.iteration).directory,
@@ -392,7 +398,8 @@ class RalphIterationEngine {
         let lastMessagePath;
         let lastMessage = '';
         let invocation;
-        if (prepared.selectedTask) {
+        const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
+        if (shouldExecutePrompt) {
             const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
             const runArtifacts = this.stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
             this.logger.info('Running Ralph iteration.', {
@@ -401,7 +408,7 @@ class RalphIterationEngine {
                 promptPath: prepared.promptPath,
                 promptArtifactPath: prepared.executionPlan.promptArtifactPath,
                 promptHash: prepared.executionPlan.promptHash,
-                selectedTaskId: prepared.selectedTask.id,
+                selectedTaskId: prepared.selectedTask?.id ?? null,
                 validationCommand: prepared.validationCommand
             });
             try {
@@ -414,6 +421,7 @@ class RalphIterationEngine {
                 const execResult = await execStrategy.runExec({
                     commandPath: prepared.config.codexCommandPath,
                     workspaceRoot: prepared.rootPath,
+                    executionRoot: prepared.rootPolicy.executionRootPath,
                     prompt: promptArtifactText,
                     promptPath: verifiedPlan.promptArtifactPath,
                     promptHash: verifiedPlan.promptHash,
@@ -445,6 +453,7 @@ class RalphIterationEngine {
                     commandPath: prepared.config.codexCommandPath,
                     args: execResult.args,
                     workspaceRoot: prepared.rootPath,
+                    rootPolicy: prepared.rootPolicy,
                     promptArtifactPath: verifiedPlan.promptArtifactPath,
                     promptHash: verifiedPlan.promptHash,
                     promptByteLength: verifiedPlan.promptByteLength,
@@ -477,12 +486,12 @@ class RalphIterationEngine {
         phaseTimestamps.resultCollectedAt = new Date().toISOString();
         const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
         const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
-        const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPath) : EMPTY_GIT_STATUS;
+        const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
         progress.report({ message: 'Running Ralph verifiers' });
         const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
             ? await (0, verifier_1.runValidationCommandVerifier)({
                 command: prepared.validationCommand,
-                rootPath: prepared.rootPath,
+                rootPath: prepared.rootPolicy.verificationRootPath,
                 artifactDir: artifactPaths.directory
             })
             : {
@@ -523,11 +532,12 @@ class RalphIterationEngine {
                     errors: []
                 }
             };
-        const shouldRunFileChangeVerifier = prepared.config.verifierModes.includes('gitDiff')
-            || prepared.config.gitCheckpointMode === 'snapshotAndDiff';
+        const shouldRunFileChangeVerifier = prepared.selectedTask !== null
+            && (prepared.config.verifierModes.includes('gitDiff')
+                || prepared.config.gitCheckpointMode === 'snapshotAndDiff');
         const fileChangeVerification = shouldRunFileChangeVerifier
             ? await (0, verifier_1.runFileChangeVerifier)({
-                rootPath: prepared.rootPath,
+                rootPath: prepared.rootPolicy.verificationRootPath,
                 artifactDir: artifactPaths.directory,
                 beforeGit: prepared.beforeGit,
                 afterGit,
@@ -539,7 +549,9 @@ class RalphIterationEngine {
                 result: {
                     verifier: 'gitDiff',
                     status: 'skipped',
-                    summary: 'Git-diff/file-change verifier disabled for this iteration.',
+                    summary: prepared.selectedTask
+                        ? 'Git-diff/file-change verifier disabled for this iteration.'
+                        : 'Git-diff/file-change verifier skipped because no Ralph task was selected.',
                     warnings: [],
                     errors: []
                 }
@@ -574,11 +586,11 @@ class RalphIterationEngine {
         let completionClassification = outcome.classification;
         let followUpAction = outcome.followUpAction;
         if (!prepared.selectedTask) {
-            if (prepared.taskCounts.todo === 0 && prepared.taskCounts.in_progress === 0 && prepared.taskCounts.blocked === 0) {
+            if (isBacklogExhausted(afterTaskCounts)) {
                 completionClassification = 'complete';
                 followUpAction = 'stop';
             }
-            else if (prepared.taskCounts.todo === 0 && prepared.taskCounts.in_progress === 0 && prepared.taskCounts.blocked > 0) {
+            else if (afterTaskCounts.todo === 0 && afterTaskCounts.in_progress === 0 && afterTaskCounts.blocked > 0) {
                 completionClassification = 'blocked';
                 followUpAction = 'request_human_review';
             }
@@ -587,7 +599,9 @@ class RalphIterationEngine {
         const summary = [
             prepared.selectedTask
                 ? `Selected ${prepared.selectedTask.id}: ${prepared.selectedTask.title}`
-                : 'No actionable Ralph task selected.',
+                : prepared.promptKind === 'replenish-backlog'
+                    ? 'Replenishing exhausted Ralph backlog.'
+                    : 'No actionable Ralph task selected.',
             `Execution: ${executionStatus}`,
             `Verification: ${verificationStatus}`,
             `Outcome: ${completionClassification}`,
@@ -614,6 +628,7 @@ class RalphIterationEngine {
             executionIntegrity: {
                 provenanceId: prepared.provenanceId,
                 promptTarget: prepared.executionPlan.promptTarget,
+                rootPolicy: prepared.rootPolicy,
                 templatePath: prepared.executionPlan.templatePath,
                 executionPlanPath: prepared.executionPlanPath,
                 executionPlanHash: prepared.executionPlanHash,
@@ -689,6 +704,7 @@ class RalphIterationEngine {
                 selectedTaskId: prepared.selectedTask?.id ?? null,
                 promptKind: prepared.promptKind,
                 promptTarget: prepared.executionPlan.promptTarget,
+                rootPolicy: prepared.rootPolicy,
                 templatePath: prepared.executionPlan.templatePath,
                 executionPlanPath: prepared.executionPlanPath,
                 executionPlanHash: prepared.executionPlanHash,
@@ -802,7 +818,10 @@ class RalphIterationEngine {
             this.stateManager.readProgressText(snapshot.paths),
             this.stateManager.inspectTaskFile(snapshot.paths),
             this.stateManager.taskCounts(snapshot.paths).catch(() => null),
-            (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name, { focusPath }),
+            (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name, {
+                focusPath,
+                inspectionRootOverride: config.inspectionRootOverride
+            }),
             (0, verifier_1.captureCoreState)(snapshot.paths)
         ]);
         const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
@@ -810,15 +829,21 @@ class RalphIterationEngine {
         const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
         const selectedTask = (0, taskFile_1.selectNextTask)(taskFile);
         const taskSelectedAt = new Date().toISOString();
-        const validationCommand = (0, verifier_1.chooseValidationCommand)(summary, selectedTask, config.validationCommandOverride);
+        const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);
+        const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
+        const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget, {
+            selectedTask,
+            taskCounts: effectiveTaskCounts
+        });
+        const promptKind = promptDecision.kind;
+        const validationCommand = promptKind === 'replenish-backlog'
+            ? null
+            : (0, verifier_1.chooseValidationCommand)(summary, selectedTask, config.validationCommandOverride);
         const validationCommandReadiness = await (0, verifier_1.inspectValidationCommandReadiness)({
             command: validationCommand,
-            rootPath
+            rootPath: rootPolicy.verificationRootPath
         });
-        const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
         const trustLevel = trustLevelForTarget(promptTarget);
-        const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget);
-        const promptKind = promptDecision.kind;
         const iteration = snapshot.state.nextIteration;
         const provenanceId = (0, integrity_1.createProvenanceId)({
             iteration,
@@ -883,6 +908,7 @@ class RalphIterationEngine {
                 trustLevel,
                 retentionCount: config.provenanceBundleRetentionCount,
                 selectedTask,
+                rootPolicy,
                 persistedPreflightReport,
                 preflightSummaryText
             });
@@ -930,6 +956,7 @@ class RalphIterationEngine {
             promptKind,
             promptTarget,
             selectionReason: promptDecision.reason,
+            rootPolicy,
             templatePath: promptRender.templatePath,
             promptPath,
             promptArtifactPath: artifactPaths.promptPath,
@@ -948,7 +975,7 @@ class RalphIterationEngine {
         const promptGeneratedAt = new Date().toISOString();
         const beforeGit = includeVerifierContext
             && (config.verifierModes.includes('gitDiff') || config.gitCheckpointMode !== 'off')
-            ? await (0, verifier_1.captureGitStatus)(rootPath)
+            ? await (0, verifier_1.captureGitStatus)(rootPolicy.verificationRootPath)
             : EMPTY_GIT_STATUS;
         this.logger.info('Prepared Ralph prompt context.', {
             rootPath,
@@ -968,6 +995,7 @@ class RalphIterationEngine {
         const preparedContext = {
             config,
             rootPath,
+            rootPolicy,
             state: snapshot.state,
             paths: snapshot.paths,
             provenanceId,

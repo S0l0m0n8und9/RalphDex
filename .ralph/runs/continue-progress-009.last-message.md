@@ -1,0 +1,18 @@
+**Changed Files**
+- Root-override implementation and wiring: [package.json](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/package.json), [types.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/types.ts), [defaults.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/defaults.ts), [readConfig.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/config/readConfig.ts), [workspaceInspection.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceInspection.ts), [workspaceScanner.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/services/workspaceScanner.ts), [registerCommands.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/commands/registerCommands.ts), [iterationEngine.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/iterationEngine.ts), [statusReport.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/src/ralph/statusReport.ts).
+- Regression coverage: [workspaceScanner.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/workspaceScanner.test.ts), [iterationEngine.integration.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts), [statusReport.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/statusReport.test.ts), plus typed fixture updates in [artifactStore.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/artifactStore.test.ts), [stateManager.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/stateManager.test.ts), and [promptBuilder.test.ts](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/test/promptBuilder.test.ts).
+- Docs and durable Ralph state: [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md), [architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md), [provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md), [verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md), [tasks.json](/home/admin/Documents/repos/Ralph/.ralph/tasks.json), [progress.md](/home/admin/Documents/repos/Ralph/.ralph/progress.md).
+
+Added `ralphCodex.inspectionRootOverride` as a deterministic workspace-relative or absolute in-workspace override. Valid overrides now drive prompt/status/evidence plus CLI execution and verifier cwd; invalid overrides are recorded and fall back to automatic selection.
+
+**Validation Results**
+- `cd /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter && npm run validate`
+- Result: passed
+
+**Assumptions Or Blockers**
+- No blockers.
+- Assumed the explicit override should be config-driven rather than a new command, and must stay inside the workspace boundary.
+
+**Known Limitations Or Follow-Up**
+- Override selection is manual configuration only; there is still no interactive picker for ambiguous workspaces.
+- T8 is now closed in `.ralph`; the next backlog item is the deferred broader orchestration work under T9.

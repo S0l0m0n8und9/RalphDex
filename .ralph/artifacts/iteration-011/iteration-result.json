@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "provenanceId": "run-i011-cli-20260308T051624Z",
+  "iteration": 11,
+  "selectedTaskId": null,
+  "selectedTaskTitle": null,
+  "promptKind": "fix-failure",
+  "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/fix-failure-011.prompt.md",
+  "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011",
+  "adapterUsed": "cliExec",
+  "executionIntegrity": {
+    "provenanceId": "run-i011-cli-20260308T051624Z",
+    "promptTarget": "cliExec",
+    "rootPolicy": {
+      "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+      "inspectionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "executionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "verificationRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+      "selectionStrategy": "scoredChild",
+      "selectionSummary": "Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.",
+      "policySummary": "Inspect ralph-codex-vscode-starter, run Codex and verifiers there, and keep Ralph artifacts under the workspace-root .ralph directory."
+    },
+    "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/fix-failure.md",
+    "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/execution-plan.json",
+    "executionPlanHash": "sha256:12be0ecd9190daa3e61516ef58de474f746b633a7a02723958c7050ebfc28d86",
+    "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/prompt.md",
+    "promptHash": "sha256:b23ce65a9f9b0f2aa67b235cc81bdbfb28f3db347f72108239608444f446f0dc",
+    "promptByteLength": 7390,
+    "executionPayloadHash": null,
+    "executionPayloadMatched": null,
+    "mismatchReason": null,
+    "cliInvocationPath": null
+  },
+  "executionStatus": "skipped",
+  "verificationStatus": "failed",
+  "completionClassification": "complete",
+  "followUpAction": "stop",
+  "startedAt": "2026-03-08T05:16:24.231Z",
+  "finishedAt": "2026-03-08T05:16:24.418Z",
+  "phaseTimestamps": {
+    "inspectStartedAt": "2026-03-08T05:16:24.231Z",
+    "inspectFinishedAt": "2026-03-08T05:16:24.285Z",
+    "taskSelectedAt": "2026-03-08T05:16:24.285Z",
+    "promptGeneratedAt": "2026-03-08T05:16:24.339Z",
+    "resultCollectedAt": "2026-03-08T05:16:24.382Z",
+    "verificationFinishedAt": "2026-03-08T05:16:24.418Z",
+    "classifiedAt": "2026-03-08T05:16:24.418Z",
+    "executionStartedAt": "2026-03-08T05:16:24.382Z",
+    "executionFinishedAt": "2026-03-08T05:16:24.382Z",
+    "persistedAt": "2026-03-08T05:16:24.419Z"
+  },
+  "summary": "No actionable Ralph task selected. | Execution: skipped | Verification: failed | Outcome: complete | Backlog remaining: 0",
+  "warnings": [
+    "No actionable Ralph task was selected; execution was skipped.",
+    "No relevant workspace changes were detected."
+  ],
+  "errors": [],
+  "execution": {
+    "exitCode": null,
+    "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/stdout.log",
+    "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/stderr.log"
+  },
+  "verification": {
+    "primaryCommand": "npm run validate",
+    "validationFailureSignature": null,
+    "verifiers": [
+      {
+        "verifier": "validationCommand",
+        "status": "skipped",
+        "summary": "Validation-command verifier skipped because Codex execution did not succeed.",
+        "warnings": [],
+        "errors": [],
+        "command": "npm run validate"
+      },
+      {
+        "verifier": "gitDiff",
+        "status": "failed",
+        "summary": "Detected 7 change(s), but none outside Ralph-managed files.",
+        "warnings": [
+          "No relevant workspace changes were detected."
+        ],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-diff.json",
+        "metadata": {
+          "changedFiles": [
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json",
+            ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md"
+          ],
+          "relevantChangedFiles": []
+        }
+      },
+      {
+        "verifier": "taskState",
+        "status": "skipped",
+        "summary": "No Ralph task was selected for task-state verification.",
+        "warnings": [],
+        "errors": [],
+        "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/task-state.json"
+      }
+    ]
+  },
+  "backlog": {
+    "remainingTaskCount": 0,
+    "actionableTaskAvailable": false
+  },
+  "diffSummary": {
+    "available": true,
+    "gitAvailable": true,
+    "summary": "Detected 7 change(s), but none outside Ralph-managed files.",
+    "changedFileCount": 7,
+    "relevantChangedFileCount": 0,
+    "changedFiles": [
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md"
+    ],
+    "relevantChangedFiles": [],
+    "statusTransitions": [
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/execution-plan.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-report.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/preflight-summary.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt-evidence.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/prompt.md: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/provenance-bundle.json: clean -> ??",
+      ".ralph/artifacts/runs/run-i011-cli-20260308T051624Z/summary.md: clean -> ??"
+    ],
+    "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-status-before.txt",
+    "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-011/git-status-after.txt"
+  },
+  "noProgressSignals": [
+    "no_relevant_file_changes",
+    "task_and_progress_state_unchanged"
+  ],
+  "stopReason": "no_actionable_task"
+}

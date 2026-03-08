@@ -121,6 +121,11 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       ['ideCommand', 'clipboard', 'cliExec'],
       DEFAULT_CONFIG.preferredHandoffMode
     ),
+    inspectionRootOverride: readString(
+      config,
+      'inspectionRootOverride',
+      DEFAULT_CONFIG.inspectionRootOverride
+    ),
     ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
     verifierModes: readEnumArray<RalphVerifierMode>(
       config,

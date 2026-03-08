@@ -1,6 +1,110 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { buildStatusReport, RalphStatusSnapshot } from '../src/ralph/statusReport';
+
+const workspaceScan: RalphStatusSnapshot['workspaceScan'] = {
+  workspaceName: 'workspace',
+  workspaceRootPath: '/workspace',
+  rootPath: '/workspace/ralph-codex-vscode-starter',
+  rootSelection: {
+    workspaceRootPath: '/workspace',
+    selectedRootPath: '/workspace/ralph-codex-vscode-starter',
+    strategy: 'scoredChild',
+    summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
+    override: null,
+    candidates: [
+      {
+        path: '/workspace',
+        relativePath: '.',
+        markerCount: 0,
+        markers: []
+      },
+      {
+        path: '/workspace/ralph-codex-vscode-starter',
+        relativePath: 'ralph-codex-vscode-starter',
+        markerCount: 4,
+        markers: ['package.json', 'README.md', 'src', 'test']
+      }
+    ]
+  },
+  manifests: ['package.json'],
+  projectMarkers: ['package.json', 'README.md', 'src', 'test'],
+  packageManagers: ['npm'],
+  packageManagerIndicators: ['package.json'],
+  ciFiles: [],
+  ciCommands: [],
+  docs: ['README.md'],
+  sourceRoots: ['src'],
+  tests: ['test'],
+  lifecycleCommands: ['npm run validate', 'npm run test'],
+  validationCommands: ['npm run validate', 'npm run test'],
+  testSignals: ['package.json defines a test script.', 'Detected test roots: test.'],
+  notes: ['Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.'],
+  evidence: {
+    rootEntries: ['README.md', 'package.json', 'src', 'test'],
+    manifests: {
+      checked: ['package.json', '*.sln', '*.csproj'],
+      matches: ['package.json'],
+      emptyReason: null
+    },
+    sourceRoots: {
+      checked: ['src', 'app', 'apps', 'packages', 'services', 'backend', 'frontend', 'server', 'client'],
+      matches: ['src'],
+      emptyReason: null
+    },
+    tests: {
+      checked: ['test', 'tests', '__tests__', 'spec', 'specs'],
+      matches: ['test'],
+      emptyReason: null
+    },
+    docs: {
+      checked: ['README.md', 'README', 'docs', 'AGENTS.md'],
+      matches: ['README.md'],
+      emptyReason: null
+    },
+    ciFiles: {
+      checked: ['.gitlab-ci.yml', 'azure-pipelines.yml', '.github/workflows/*.yml'],
+      matches: [],
+      emptyReason: 'No CI files matched among 3 shallow root checks.'
+    },
+    packageManagers: {
+      indicators: ['package.json'],
+      detected: ['npm'],
+      packageJsonPackageManager: 'npm',
+      emptyReason: null
+    },
+    validationCommands: {
+      selected: ['npm run validate', 'npm run test'],
+      packageJsonScripts: ['npm run validate', 'npm run test'],
+      makeTargets: [],
+      justTargets: [],
+      ciCommands: [],
+      manifestSignals: [],
+      emptyReason: null
+    },
+    lifecycleCommands: {
+      selected: ['npm run validate', 'npm run test'],
+      packageJsonScripts: ['npm run validate', 'npm run test'],
+      makeTargets: [],
+      justTargets: [],
+      ciCommands: [],
+      manifestSignals: [],
+      emptyReason: null
+    }
+  },
+  packageJson: {
+    name: 'nested-demo',
+    packageManager: 'npm',
+    hasWorkspaces: false,
+    scriptNames: ['validate', 'test'],
+    lifecycleCommands: ['npm run validate', 'npm run test'],
+    validationCommands: ['npm run validate', 'npm run test'],
+    testSignals: ['package.json defines a test script.']
+  }
+};
+
+const nestedRootPolicy = deriveRootPolicy(workspaceScan);
 
 function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnapshot {
   return {
@@ -22,6 +126,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       adapterUsed: 'cliExec',
       executionIntegrity: {
         promptTarget: 'cliExec',
+        rootPolicy: nestedRootPolicy,
         templatePath: '/workspace/prompt-templates/iteration.md',
         executionPlanPath: '/workspace/.ralph/artifacts/iteration-002/execution-plan.json',
         promptArtifactPath: '/workspace/.ralph/artifacts/iteration-002/prompt.md',
@@ -93,6 +198,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       promptKind: 'fix-failure',
       promptTarget: 'cliExec',
       selectionReason: 'Prior verification failed.',
+      rootPolicy: nestedRootPolicy,
       templatePath: '/workspace/prompt-templates/fix-failure.md',
       promptPath: '/workspace/.ralph/prompts/fix-failure-003.prompt.md',
       promptArtifactPath: '/workspace/.ralph/artifacts/iteration-003/prompt.md',
@@ -110,6 +216,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       commandPath: 'codex',
       args: ['exec', '-'],
       workspaceRoot: '/workspace',
+      rootPolicy: nestedRootPolicy,
       promptArtifactPath: '/workspace/.ralph/artifacts/iteration-002/prompt.md',
       promptHash: 'sha256:abc123',
       promptByteLength: 1234,
@@ -128,6 +235,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       trustLevel: 'preparedPromptOnly',
       status: 'prepared',
       summary: 'Prepared prompt provenance bundle for IDE handoff.',
+      rootPolicy: nestedRootPolicy,
       selectedTaskId: 'T2',
       selectedTaskTitle: 'Next task',
       artifactDir: '/workspace/.ralph/artifacts/iteration-003',
@@ -154,105 +262,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     gitCheckpointMode: 'off',
     validationCommandOverride: null,
-    workspaceScan: {
-      workspaceName: 'workspace',
-      workspaceRootPath: '/workspace',
-      rootPath: '/workspace/ralph-codex-vscode-starter',
-      rootSelection: {
-        workspaceRootPath: '/workspace',
-        selectedRootPath: '/workspace/ralph-codex-vscode-starter',
-        strategy: 'scoredChild',
-        summary: 'Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.',
-        candidates: [
-          {
-            path: '/workspace',
-            relativePath: '.',
-            markerCount: 0,
-            markers: []
-          },
-          {
-            path: '/workspace/ralph-codex-vscode-starter',
-            relativePath: 'ralph-codex-vscode-starter',
-            markerCount: 4,
-            markers: ['package.json', 'README.md', 'src', 'test']
-          }
-        ]
-      },
-      manifests: ['package.json'],
-      projectMarkers: ['package.json', 'README.md', 'src', 'test'],
-      packageManagers: ['npm'],
-      packageManagerIndicators: ['package.json'],
-      ciFiles: [],
-      ciCommands: [],
-      docs: ['README.md'],
-      sourceRoots: ['src'],
-      tests: ['test'],
-      lifecycleCommands: ['npm run validate', 'npm run test'],
-      validationCommands: ['npm run validate', 'npm run test'],
-      testSignals: ['package.json defines a test script.', 'Detected test roots: test.'],
-      notes: ['Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.'],
-      evidence: {
-        rootEntries: ['README.md', 'package.json', 'src', 'test'],
-        manifests: {
-          checked: ['package.json', '*.sln', '*.csproj'],
-          matches: ['package.json'],
-          emptyReason: null
-        },
-        sourceRoots: {
-          checked: ['src', 'app', 'apps', 'packages', 'services', 'backend', 'frontend', 'server', 'client'],
-          matches: ['src'],
-          emptyReason: null
-        },
-        tests: {
-          checked: ['test', 'tests', '__tests__', 'spec', 'specs'],
-          matches: ['test'],
-          emptyReason: null
-        },
-        docs: {
-          checked: ['README.md', 'README', 'docs', 'AGENTS.md'],
-          matches: ['README.md'],
-          emptyReason: null
-        },
-        ciFiles: {
-          checked: ['.gitlab-ci.yml', 'azure-pipelines.yml', '.github/workflows/*.yml'],
-          matches: [],
-          emptyReason: 'No CI files matched among 3 shallow root checks.'
-        },
-        packageManagers: {
-          indicators: ['package.json'],
-          detected: ['npm'],
-          packageJsonPackageManager: 'npm',
-          emptyReason: null
-        },
-        validationCommands: {
-          selected: ['npm run validate', 'npm run test'],
-          packageJsonScripts: ['npm run validate', 'npm run test'],
-          makeTargets: [],
-          justTargets: [],
-          ciCommands: [],
-          manifestSignals: [],
-          emptyReason: null
-        },
-        lifecycleCommands: {
-          selected: ['npm run validate', 'npm run test'],
-          packageJsonScripts: ['npm run validate', 'npm run test'],
-          makeTargets: [],
-          justTargets: [],
-          ciCommands: [],
-          manifestSignals: [],
-          emptyReason: null
-        }
-      },
-      packageJson: {
-        name: 'nested-demo',
-        packageManager: 'npm',
-        hasWorkspaces: false,
-        scriptNames: ['validate', 'test'],
-        lifecycleCommands: ['npm run validate', 'npm run test'],
-        validationCommands: ['npm run validate', 'npm run test'],
-        testSignals: ['package.json defines a test script.']
-      }
-    },
+    workspaceScan,
     gitStatus: {
       available: false,
       raw: '',
@@ -276,9 +286,13 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Execution message: codex exec completed successfully\./);
   assert.match(report, /- Current prompt kind: fix-failure/);
   assert.match(report, /- Last prompt: iteration \(cliExec\)/);
+  assert.match(report, /- Last execution root: ralph-codex-vscode-starter/);
   assert.match(report, /- Payload matched rendered artifact: yes/);
   assert.match(report, /## Repo Context/);
+  assert.match(report, /- Workspace root: \./);
   assert.match(report, /- Inspected root: ralph-codex-vscode-starter/);
+  assert.match(report, /- Execution root: ralph-codex-vscode-starter/);
+  assert.match(report, /- Verifier root: ralph-codex-vscode-starter/);
   assert.match(report, /- Test roots: test/);
   assert.match(report, /- Package manager indicators: package\.json/);
   assert.match(report, /- Trust level: prepared prompt only/);
@@ -322,4 +336,26 @@ test('buildStatusReport distinguishes verified CLI execution provenance from pre
 
   assert.match(report, /- Trust level: verified CLI execution/);
   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+});
+
+test('buildStatusReport surfaces inspection-root override state', () => {
+  const report = buildStatusReport(snapshot({
+    workspaceScan: {
+      ...workspaceScan,
+      rootSelection: {
+        ...workspaceScan.rootSelection,
+        strategy: 'manualOverride',
+        summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.',
+        override: {
+          requestedPath: 'sibling-repo',
+          resolvedPath: '/workspace/sibling-repo',
+          status: 'applied',
+          summary: 'Using manual inspection-root override sibling-repo instead of shallow root scoring.'
+        }
+      }
+    }
+  }));
+
+  assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
+  assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
 });

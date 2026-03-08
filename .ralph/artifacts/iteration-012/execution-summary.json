@@ -1,0 +1,27 @@
+{
+  "iteration": 12,
+  "selectedTaskId": null,
+  "promptKind": "iteration",
+  "promptTarget": "cliExec",
+  "rootPolicy": {
+    "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+    "inspectionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+    "executionRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+    "verificationRootPath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter",
+    "selectionStrategy": "scoredChild",
+    "selectionSummary": "Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers.",
+    "policySummary": "Inspect ralph-codex-vscode-starter, run Codex and verifiers there, and keep Ralph artifacts under the workspace-root .ralph directory."
+  },
+  "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+  "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/execution-plan.json",
+  "executionPlanHash": "sha256:725ed4700883e3d969c171aa60ce0bf5df2a37f7a4f194920fbdce0c346ee95a",
+  "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-012/prompt.md",
+  "promptHash": "sha256:53d3ea5b5838e4dccee3be2a0bd59849e8ab129c7c7edef9cafea63df27d9201",
+  "executionPayloadHash": null,
+  "executionPayloadMatched": null,
+  "cliInvocationPath": null,
+  "executionStatus": "skipped",
+  "exitCode": null,
+  "message": null,
+  "lastMessage": "Execution skipped."
+}

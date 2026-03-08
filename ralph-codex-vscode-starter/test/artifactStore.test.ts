@@ -7,6 +7,7 @@ import {
   resolveProvenanceBundlePaths,
   writeProvenanceBundle
 } from '../src/ralph/artifactStore';
+import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import {
   RalphIntegrityFailure,
   RalphPersistedPreflightReport,
@@ -18,6 +19,78 @@ async function makeArtifactRoot(): Promise<string> {
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
   await fs.mkdir(artifactRootDir, { recursive: true });
   return artifactRootDir;
+}
+
+function rootPolicy(rootPath: string) {
+  return deriveRootPolicy({
+    workspaceName: path.basename(rootPath),
+    workspaceRootPath: rootPath,
+    rootPath,
+    rootSelection: {
+      workspaceRootPath: rootPath,
+      selectedRootPath: rootPath,
+      strategy: 'workspaceRoot',
+      summary: 'Using the workspace root because it already exposes shallow repo markers.',
+      override: null,
+      candidates: [
+        {
+          path: rootPath,
+          relativePath: '.',
+          markerCount: 1,
+          markers: ['package.json']
+        }
+      ]
+    },
+    manifests: ['package.json'],
+    projectMarkers: ['package.json'],
+    packageManagers: ['npm'],
+    packageManagerIndicators: ['package.json'],
+    ciFiles: [],
+    ciCommands: [],
+    docs: [],
+    sourceRoots: ['src'],
+    tests: ['test'],
+    lifecycleCommands: ['npm test'],
+    validationCommands: ['npm test'],
+    testSignals: [],
+    notes: [],
+    evidence: {
+      rootEntries: ['package.json'],
+      manifests: { checked: ['package.json'], matches: ['package.json'], emptyReason: null },
+      sourceRoots: { checked: ['src'], matches: ['src'], emptyReason: null },
+      tests: { checked: ['test'], matches: ['test'], emptyReason: null },
+      docs: { checked: ['README.md'], matches: [], emptyReason: 'No docs matched among 1 shallow root checks.' },
+      ciFiles: { checked: ['.github/workflows/*.yml'], matches: [], emptyReason: 'No CI files matched among 1 shallow root checks.' },
+      packageManagers: { indicators: ['package.json'], detected: ['npm'], packageJsonPackageManager: 'npm', emptyReason: null },
+      validationCommands: {
+        selected: ['npm test'],
+        packageJsonScripts: ['npm test'],
+        makeTargets: [],
+        justTargets: [],
+        ciCommands: [],
+        manifestSignals: [],
+        emptyReason: null
+      },
+      lifecycleCommands: {
+        selected: ['npm test'],
+        packageJsonScripts: ['npm test'],
+        makeTargets: [],
+        justTargets: [],
+        ciCommands: [],
+        manifestSignals: [],
+        emptyReason: null
+      }
+    },
+    packageJson: {
+      name: 'artifact-demo',
+      packageManager: 'npm',
+      hasWorkspaces: false,
+      scriptNames: ['test'],
+      lifecycleCommands: ['npm test'],
+      validationCommands: ['npm test'],
+      testSignals: []
+    }
+  });
 }
 
 function preflightReport(input: {
@@ -65,6 +138,7 @@ function bundle(input: {
     trustLevel: 'verifiedCliExecution',
     status: input.status,
     summary: `Bundle ${input.provenanceId}`,
+    rootPolicy: rootPolicy(path.join(input.artifactRootDir, '..', '..')),
     selectedTaskId: 'T1',
     selectedTaskTitle: 'Task',
     artifactDir: `/tmp/iteration-${input.iteration}`,

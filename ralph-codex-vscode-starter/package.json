@@ -25,6 +25,7 @@
       "restrictedConfigurations": [
         "ralphCodex.codexCommandPath",
         "ralphCodex.preferredHandoffMode",
+        "ralphCodex.inspectionRootOverride",
         "ralphCodex.ralphIterationCap",
         "ralphCodex.verifierModes",
         "ralphCodex.noProgressThreshold",
@@ -117,6 +118,11 @@
           "enum": ["ideCommand", "clipboard", "cliExec"],
           "default": "ideCommand",
           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
+        },
+        "ralphCodex.inspectionRootOverride": {
+          "type": "string",
+          "default": "",
+          "description": "Optional workspace-relative or absolute directory inside the workspace to inspect, execute, and verify from instead of using Ralph's shallow root-selection heuristics."
         },
         "ralphCodex.ralphIterationCap": {
           "type": "number",

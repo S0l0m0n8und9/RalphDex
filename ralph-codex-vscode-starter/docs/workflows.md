@@ -82,6 +82,7 @@ Use this path when you need repeatable execution plus deterministic result recor
 1. Run `Ralph Codex: Run CLI Loop`.
 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
+4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
 
 Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
 

@@ -3,6 +3,7 @@ import { RalphCodexConfig } from './types';
 export const DEFAULT_CONFIG: RalphCodexConfig = {
   codexCommandPath: 'codex',
   preferredHandoffMode: 'ideCommand',
+  inspectionRootOverride: '',
   ralphIterationCap: 5,
   verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
   noProgressThreshold: 2,

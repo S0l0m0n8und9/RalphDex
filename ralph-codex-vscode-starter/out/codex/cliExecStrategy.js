@@ -57,7 +57,7 @@ function buildCodexExecArgs(request, includeSkipGitRepoCheck) {
         '--model', request.model,
         '--sandbox', request.sandboxMode,
         '--config', `approval_policy="${request.approvalMode}"`,
-        '--cd', request.workspaceRoot,
+        '--cd', request.executionRoot,
         '--output-last-message', request.lastMessagePath
     ];
     if (includeSkipGitRepoCheck) {
@@ -72,6 +72,8 @@ function buildCodexExecTranscript(result, request) {
         '# Codex Exec Transcript',
         '',
         `- Command: ${request.commandPath} ${result.args.join(' ')}`,
+        `- Workspace root: ${request.workspaceRoot}`,
+        `- Execution root: ${request.executionRoot}`,
         `- Prompt path: ${request.promptPath}`,
         `- Prompt hash: ${request.promptHash}`,
         `- Prompt bytes: ${request.promptByteLength}`,
@@ -163,7 +165,7 @@ class CliExecCodexStrategy {
     async runExec(request) {
         await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
         await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-        const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.workspaceRoot)));
+        const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.executionRoot)));
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
         if (stdinHash !== request.promptHash) {
             throw new Error(`Execution integrity check failed before launch: stdin payload hash ${stdinHash} did not match planned prompt hash ${request.promptHash}.`);
@@ -171,13 +173,14 @@ class CliExecCodexStrategy {
         this.logger.info('Starting codex exec.', {
             commandPath: request.commandPath,
             workspaceRoot: request.workspaceRoot,
+            executionRoot: request.executionRoot,
             promptPath: request.promptPath,
             args
         });
         let processResult;
         try {
             processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
-                cwd: request.workspaceRoot,
+                cwd: request.executionRoot,
                 stdinText: request.prompt,
                 onStdoutChunk: request.onStdoutChunk,
                 onStderrChunk: request.onStderrChunk

@@ -20,7 +20,7 @@ export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepo
     '--model', request.model,
     '--sandbox', request.sandboxMode,
     '--config', `approval_policy="${request.approvalMode}"`,
-    '--cd', request.workspaceRoot,
+    '--cd', request.executionRoot,
     '--output-last-message', request.lastMessagePath
   ];
 
@@ -39,6 +39,8 @@ export function buildCodexExecTranscript(result: CodexExecResult, request: Codex
     '# Codex Exec Transcript',
     '',
     `- Command: ${request.commandPath} ${result.args.join(' ')}`,
+    `- Workspace root: ${request.workspaceRoot}`,
+    `- Execution root: ${request.executionRoot}`,
     `- Prompt path: ${request.promptPath}`,
     `- Prompt hash: ${request.promptHash}`,
     `- Prompt bytes: ${request.promptByteLength}`,
@@ -146,7 +148,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
   public async runExec(request: CodexExecRequest): Promise<CodexExecResult> {
     await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
     await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-    const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.workspaceRoot)));
+    const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.executionRoot)));
     const stdinHash = hashText(request.prompt);
 
     if (stdinHash !== request.promptHash) {
@@ -158,6 +160,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
     this.logger.info('Starting codex exec.', {
       commandPath: request.commandPath,
       workspaceRoot: request.workspaceRoot,
+      executionRoot: request.executionRoot,
       promptPath: request.promptPath,
       args
     });
@@ -165,7 +168,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
     let processResult;
     try {
       processResult = await runProcess(request.commandPath, args, {
-        cwd: request.workspaceRoot,
+        cwd: request.executionRoot,
         stdinText: request.prompt,
         onStdoutChunk: request.onStdoutChunk,
         onStderrChunk: request.onStderrChunk

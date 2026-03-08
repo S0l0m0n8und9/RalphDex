@@ -1,0 +1,9 @@
+{
+  "selectedTaskId": null,
+  "selectedTaskBefore": null,
+  "selectedTaskAfter": null,
+  "taskFileError": null,
+  "progressChanged": false,
+  "taskFileChanged": false,
+  "humanReviewNeeded": false
+}

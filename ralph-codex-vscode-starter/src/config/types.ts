@@ -11,6 +11,7 @@ export type RalphGitCheckpointMode = 'off' | 'snapshot' | 'snapshotAndDiff';
 export interface RalphCodexConfig {
   codexCommandPath: string;
   preferredHandoffMode: CodexHandoffMode;
+  inspectionRootOverride: string;
   ralphIterationCap: number;
   verifierModes: RalphVerifierMode[];
   noProgressThreshold: number;
