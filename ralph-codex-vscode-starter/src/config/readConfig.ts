@@ -150,6 +150,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'artifactRetentionPath',
       DEFAULT_CONFIG.artifactRetentionPath
     ),
+    generatedArtifactRetentionCount: readNumber(
+      config,
+      'generatedArtifactRetentionCount',
+      DEFAULT_CONFIG.generatedArtifactRetentionCount,
+      0
+    ),
     provenanceBundleRetentionCount: readNumber(
       config,
       'provenanceBundleRetentionCount',

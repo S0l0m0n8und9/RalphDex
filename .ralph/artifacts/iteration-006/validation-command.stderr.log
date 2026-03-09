@@ -1,3 +1,0 @@
- WARNING  LICENSE, LICENSE.md, or LICENSE.txt not found
- WARNING  Neither a .vscodeignore file nor a "files" property in package.json was found. To ensure only necessary files are included in your extension, add a .vscodeignore file or specify the "files" property in package.json. More info: https://aka.ms/vscode-vscodeignore
-

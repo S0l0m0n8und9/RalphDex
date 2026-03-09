@@ -208,6 +208,15 @@ function normalizeExecutionIntegrity(candidate) {
         promptTarget: record.promptTarget,
         rootPolicy: normalizeRootPolicy(record.rootPolicy),
         templatePath: record.templatePath,
+        taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
+        effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
+            ? record.effectiveValidationCommand
+            : typeof record.validationCommand === 'string'
+                ? record.validationCommand
+                : null,
+        normalizedValidationCommandFrom: typeof record.normalizedValidationCommandFrom === 'string'
+            ? record.normalizedValidationCommandFrom
+            : null,
         executionPlanPath: record.executionPlanPath,
         executionPlanHash: typeof record.executionPlanHash === 'string' ? record.executionPlanHash : undefined,
         promptArtifactPath: record.promptArtifactPath,
@@ -257,6 +266,9 @@ function iterationFromRunRecord(run) {
             lastMessagePath: run.lastMessagePath
         },
         verification: {
+            taskValidationHint: null,
+            effectiveValidationCommand: null,
+            normalizedValidationCommandFrom: null,
             primaryCommand: null,
             validationFailureSignature: null,
             verifiers: []
@@ -344,6 +356,15 @@ function normalizeIterationResult(candidate) {
             stderrPath: typeof execution.stderrPath === 'string' ? execution.stderrPath : undefined
         },
         verification: {
+            taskValidationHint: typeof verification.taskValidationHint === 'string' ? verification.taskValidationHint : null,
+            effectiveValidationCommand: typeof verification.effectiveValidationCommand === 'string'
+                ? verification.effectiveValidationCommand
+                : typeof verification.primaryCommand === 'string'
+                    ? verification.primaryCommand
+                    : null,
+            normalizedValidationCommandFrom: typeof verification.normalizedValidationCommandFrom === 'string'
+                ? verification.normalizedValidationCommandFrom
+                : null,
             primaryCommand: typeof verification.primaryCommand === 'string' ? verification.primaryCommand : null,
             validationFailureSignature: typeof verification.validationFailureSignature === 'string'
                 ? verification.validationFailureSignature
@@ -365,6 +386,15 @@ function normalizeIterationResult(candidate) {
         noProgressSignals: Array.isArray(record.noProgressSignals)
             ? record.noProgressSignals.filter((item) => typeof item === 'string')
             : [],
+        completionReportStatus: record.completionReportStatus === 'applied'
+            || record.completionReportStatus === 'rejected'
+            || record.completionReportStatus === 'missing'
+            || record.completionReportStatus === 'invalid'
+            ? record.completionReportStatus
+            : undefined,
+        reconciliationWarnings: Array.isArray(record.reconciliationWarnings)
+            ? record.reconciliationWarnings.filter((item) => typeof item === 'string')
+            : undefined,
         stopReason: typeof record.stopReason === 'string' ? record.stopReason : null
     };
 }
@@ -552,6 +582,23 @@ class RalphStateManager {
     }
     async taskCounts(paths) {
         return (0, taskFile_1.countTaskStatuses)(await this.readTaskFile(paths));
+    }
+    async updateTaskFile(paths, transform) {
+        const nextTaskFile = transform(await this.readTaskFile(paths));
+        await fs.writeFile(paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        return (0, taskFile_1.parseTaskFile)(await this.readTaskFileText(paths));
+    }
+    async appendProgressBullet(paths, bullet) {
+        const current = await this.readProgressText(paths);
+        const trimmed = bullet.trim();
+        if (!trimmed) {
+            return;
+        }
+        const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
+        await fs.writeFile(paths.progressPath, nextText, 'utf8');
+    }
+    async selectedTask(paths, taskId) {
+        return (0, taskFile_1.findTaskById)(await this.readTaskFile(paths), taskId);
     }
     async writePrompt(paths, fileName, prompt) {
         const target = path.join(paths.promptDir, fileName);

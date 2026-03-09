@@ -67,6 +67,7 @@ The extension contributes these commands:
 - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
 - The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
 - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
+- Generated artifact cleanup stays deterministic and file-backed: Ralph keeps the newest configured prompt/run/iteration artifacts by parsed iteration first, then adds any older state-linked or latest-pointer-protected entries without evicting the newer retained window.
 - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.
 
 See [docs/workflows.md](docs/workflows.md) for command-by-command behavior and [docs/provenance.md](docs/provenance.md) for the trust model.

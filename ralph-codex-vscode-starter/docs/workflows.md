@@ -57,12 +57,14 @@ Artifacts written on this path include:
 
 Use this path when a human should inspect or edit the prompt before execution. See [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the prepared-prompt-only trust distinction.
 
+When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph also prunes older generated prompt files, older iteration directories, and older transcript or last-message pairs after the prompt provenance write completes. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
+
 ## Run One CLI Iteration
 
 1. Run `Ralph Codex: Run CLI Iteration`.
 2. Ralph emits a short preflight summary covering task graph, workspace/runtime, Codex adapter, and verifier readiness.
 3. If preflight is blocked, Ralph persists blocked-start evidence and stops before `codex exec`.
-4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs `codex exec`, verifies the outcome, and persists the iteration result.
+4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs `codex exec`, verifies the outcome, reconciles the structured completion report, and persists the iteration result.
 
 Operator-facing artifacts for this path include:
 
@@ -73,9 +75,15 @@ Operator-facing artifacts for this path include:
 - `.ralph/artifacts/latest-cli-invocation.json`
 - `.ralph/artifacts/latest-provenance-summary.md`
 
+Per-iteration artifacts now also include `completion-report.json`, which records the parsed report, parse errors, or rejection warnings that explain whether Ralph applied the model's requested selected-task update.
+
 On execution failures, the structured iteration result and latest-result pointer should also carry the summarized `codex exec` message, while the transcript and `stderr.log` keep the full raw process output for inspection.
 
+For normal task execution, the prompt explicitly tells the model not to edit `.ralph/tasks.json` or `.ralph/progress.md` directly. Backlog replenishment is the exception: that prompt kind still updates the durable task file and progress log itself.
+
 Use this path when you need repeatable execution plus deterministic result recording.
+
+When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph prunes older generated prompt files, iteration directories, and transcript or last-message pairs after iteration provenance is persisted. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
 
 ## Run The Ralph Loop
 
@@ -83,6 +91,8 @@ Use this path when you need repeatable execution plus deterministic result recor
 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
 4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
+
+If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
 
 Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
 

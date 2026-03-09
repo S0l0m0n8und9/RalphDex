@@ -33,12 +33,14 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = exports.PROTECTED_GENERATED_STATE_ROOT_REFERENCES = void 0;
 exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
 exports.resolvePreflightArtifactPaths = resolvePreflightArtifactPaths;
 exports.ensureIterationArtifactDirectory = ensureIterationArtifactDirectory;
 exports.cleanupProvenanceBundles = cleanupProvenanceBundles;
+exports.cleanupGeneratedArtifacts = cleanupGeneratedArtifacts;
 exports.writePromptArtifacts = writePromptArtifacts;
 exports.writeExecutionPlanArtifact = writeExecutionPlanArtifact;
 exports.writeCliInvocationArtifact = writeCliInvocationArtifact;
@@ -48,6 +50,86 @@ exports.writeProvenanceBundle = writeProvenanceBundle;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
+exports.PROTECTED_GENERATED_STATE_ROOT_REFERENCES = [
+    'lastPromptPath',
+    'lastRun.promptPath',
+    'lastRun.transcriptPath',
+    'lastRun.lastMessagePath',
+    'lastIteration.artifactDir',
+    'lastIteration.promptPath',
+    'lastIteration.execution.transcriptPath',
+    'lastIteration.execution.lastMessagePath',
+    'runHistory[].promptPath',
+    'runHistory[].transcriptPath',
+    'runHistory[].lastMessagePath',
+    'iterationHistory[].artifactDir',
+    'iterationHistory[].promptPath',
+    'iterationHistory[].execution.transcriptPath',
+    'iterationHistory[].execution.lastMessagePath'
+];
+exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = [
+    'latest-result.json',
+    'latest-preflight-report.json',
+    'latest-prompt-evidence.json',
+    'latest-execution-plan.json',
+    'latest-cli-invocation.json',
+    'latest-provenance-bundle.json',
+    'latest-provenance-failure.json'
+];
+exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = {
+    'latest-result.json': [
+        'artifactDir',
+        'summaryPath',
+        'promptPath',
+        'promptEvidencePath',
+        'executionPlanPath',
+        'cliInvocationPath',
+        'promptArtifactPath',
+        'transcriptPath',
+        'lastMessagePath'
+    ],
+    'latest-preflight-report.json': [
+        'artifactDir',
+        'reportPath',
+        'summaryPath'
+    ],
+    'latest-prompt-evidence.json': [
+        'kind+iteration (derived iteration directory and prompt file)'
+    ],
+    'latest-execution-plan.json': [
+        'artifactDir',
+        'promptPath',
+        'promptArtifactPath',
+        'promptEvidencePath',
+        'executionPlanPath'
+    ],
+    'latest-cli-invocation.json': [
+        'promptArtifactPath',
+        'transcriptPath',
+        'lastMessagePath',
+        'cliInvocationPath'
+    ],
+    'latest-provenance-bundle.json': [
+        'artifactDir',
+        'preflightReportPath',
+        'preflightSummaryPath',
+        'promptArtifactPath',
+        'promptEvidencePath',
+        'executionPlanPath',
+        'cliInvocationPath',
+        'iterationResultPath',
+        'provenanceFailurePath',
+        'provenanceFailureSummaryPath'
+    ],
+    'latest-provenance-failure.json': [
+        'artifactDir',
+        'executionPlanPath',
+        'promptArtifactPath',
+        'cliInvocationPath',
+        'provenanceFailurePath',
+        'provenanceFailureSummaryPath'
+    ]
+};
 function formatOptional(value) {
     return value && value.trim().length > 0 ? value : 'none';
 }
@@ -62,11 +144,269 @@ function formatTrustLevel(value) {
         ? 'verified CLI execution'
         : 'prepared prompt only';
 }
+function sortByIterationDesc(left, right) {
+    return right.iteration - left.iteration || right.name.localeCompare(left.name);
+}
+function retainedNamesByNewestAndProtected(entries, retentionCount, protectedNames, getName) {
+    // Protection augments the newest-N retention window; it never displaces newer entries.
+    const retained = new Set(entries.slice(0, retentionCount).map((entry) => getName(entry)));
+    for (const name of protectedNames) {
+        retained.add(name);
+    }
+    return retained;
+}
+function retentionDecisionByNewestAndProtected(entries, retentionCount, protectedNames, getName) {
+    const newestWindowNames = new Set(entries.slice(0, retentionCount).map((entry) => getName(entry)));
+    const retainedNames = retainedNamesByNewestAndProtected(entries, retentionCount, protectedNames, getName);
+    const protectedRetainedNames = entries
+        .filter((entry) => {
+        const name = getName(entry);
+        return retainedNames.has(name) && !newestWindowNames.has(name);
+    })
+        .map((entry) => getName(entry));
+    return {
+        retainedNames,
+        protectedRetainedNames
+    };
+}
+function parseIterationDirectoryName(name) {
+    const match = /^iteration-(\d+)$/.exec(name);
+    if (!match) {
+        return null;
+    }
+    return {
+        name,
+        iteration: Number.parseInt(match[1], 10)
+    };
+}
+function parsePromptFileName(name) {
+    const match = /^.+-(\d+)\.prompt\.md$/.exec(name);
+    if (!match) {
+        return null;
+    }
+    return {
+        name,
+        iteration: Number.parseInt(match[1], 10)
+    };
+}
+function parseRunArtifactFileName(name) {
+    const match = /^(.+)-(\d+)\.(transcript|last-message)\.md$/.exec(name);
+    if (!match) {
+        return null;
+    }
+    return {
+        name,
+        baseName: `${match[1]}-${match[2]}`,
+        iteration: Number.parseInt(match[2], 10)
+    };
+}
+function createProtectedGeneratedArtifacts() {
+    return {
+        iterationDirectories: new Set(),
+        promptFiles: new Set(),
+        runArtifactBaseNames: new Set()
+    };
+}
+function isPathWithin(rootDir, targetPath) {
+    if (!path.isAbsolute(targetPath)) {
+        return false;
+    }
+    const relative = path.relative(rootDir, targetPath);
+    return !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+function readPathReference(record, key) {
+    const value = record?.[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+function readRecordReference(record, key) {
+    const value = record?.[key];
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+        ? value
+        : null;
+}
+function compactPathReferences(references) {
+    return references.filter((value) => Boolean(value));
+}
+function parsePromptEvidenceIdentity(record) {
+    if (!record) {
+        return null;
+    }
+    const kind = record.kind;
+    const iteration = record.iteration;
+    if ((kind !== 'bootstrap'
+        && kind !== 'iteration'
+        && kind !== 'replenish-backlog'
+        && kind !== 'fix-failure'
+        && kind !== 'continue-progress'
+        && kind !== 'human-review-handoff')
+        || typeof iteration !== 'number'
+        || !Number.isFinite(iteration)
+        || iteration < 1) {
+        return null;
+    }
+    return {
+        kind,
+        iteration: Math.floor(iteration)
+    };
+}
+function derivedLatestPromptEvidenceReferences(record, dirs) {
+    const identity = parsePromptEvidenceIdentity(record);
+    if (!identity) {
+        return [];
+    }
+    const paddedIteration = String(identity.iteration).padStart(3, '0');
+    return [
+        path.join(dirs.artifactRootDir, `iteration-${paddedIteration}`),
+        path.join(dirs.promptDir, `${identity.kind}-${paddedIteration}.prompt.md`)
+    ];
+}
+function readRecordArray(record, key) {
+    const value = record?.[key];
+    if (!Array.isArray(value)) {
+        return [];
+    }
+    return value.filter((candidate) => typeof candidate === 'object' && candidate !== null && !Array.isArray(candidate));
+}
+function addProtectedGeneratedArtifactPath(protectedArtifacts, input) {
+    const normalizedPath = path.normalize(input.targetPath);
+    if (isPathWithin(input.artifactRootDir, normalizedPath)) {
+        const relative = path.relative(input.artifactRootDir, normalizedPath);
+        const [firstSegment] = relative.split(path.sep);
+        if (firstSegment && parseIterationDirectoryName(firstSegment)) {
+            protectedArtifacts.iterationDirectories.add(firstSegment);
+        }
+    }
+    const baseName = path.basename(normalizedPath);
+    if (isPathWithin(input.promptDir, normalizedPath)) {
+        const parsedPrompt = parsePromptFileName(baseName);
+        if (parsedPrompt) {
+            protectedArtifacts.promptFiles.add(parsedPrompt.name);
+        }
+    }
+    if (isPathWithin(input.runDir, normalizedPath)) {
+        const parsedRunArtifact = parseRunArtifactFileName(baseName);
+        if (parsedRunArtifact) {
+            protectedArtifacts.runArtifactBaseNames.add(parsedRunArtifact.baseName);
+        }
+    }
+}
+function addProtectedGeneratedArtifactPaths(protectedArtifacts, input, targetPaths) {
+    for (const targetPath of targetPaths) {
+        addProtectedGeneratedArtifactPath(protectedArtifacts, {
+            ...input,
+            targetPath
+        });
+    }
+}
+function readStateRunReference(candidate) {
+    if (!candidate) {
+        return null;
+    }
+    const iteration = typeof candidate.iteration === 'number'
+        && Number.isFinite(candidate.iteration)
+        && candidate.iteration >= 1
+        ? Math.floor(candidate.iteration)
+        : null;
+    const promptPath = readPathReference(candidate, 'promptPath');
+    const transcriptPath = readPathReference(candidate, 'transcriptPath');
+    const lastMessagePath = readPathReference(candidate, 'lastMessagePath');
+    if (!promptPath && !transcriptPath && !lastMessagePath && iteration === null) {
+        return null;
+    }
+    return {
+        iteration,
+        promptPath,
+        transcriptPath,
+        lastMessagePath
+    };
+}
+function derivedIterationDirectoryPath(artifactRootDir, iteration) {
+    return path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);
+}
+function currentStateArtifactReferences(input) {
+    if (!input.stateRecord) {
+        return [];
+    }
+    const runHistory = readRecordArray(input.stateRecord, 'runHistory')
+        .map((record) => readStateRunReference(record))
+        .filter((record) => record !== null);
+    const lastRun = readStateRunReference(readRecordReference(input.stateRecord, 'lastRun')) ?? runHistory.at(-1) ?? null;
+    const effectiveRunHistory = lastRun ? [...runHistory, lastRun] : runHistory;
+    const iterationHistory = readRecordArray(input.stateRecord, 'iterationHistory');
+    const effectiveIterationHistory = iterationHistory.length > 0
+        ? iterationHistory
+        : effectiveRunHistory.flatMap((runRecord) => {
+            if (runRecord.iteration === null) {
+                return [];
+            }
+            return [{
+                    artifactDir: derivedIterationDirectoryPath(input.artifactRootDir, runRecord.iteration),
+                    promptPath: runRecord.promptPath,
+                    execution: {
+                        transcriptPath: runRecord.transcriptPath,
+                        lastMessagePath: runRecord.lastMessagePath
+                    }
+                }];
+        });
+    const lastIteration = readRecordReference(input.stateRecord, 'lastIteration') ?? effectiveIterationHistory.at(-1) ?? null;
+    const lastIterationExecution = readRecordReference(lastIteration, 'execution');
+    const references = compactPathReferences([
+        readPathReference(input.stateRecord, 'lastPromptPath'),
+        readPathReference(lastRun, 'promptPath'),
+        readPathReference(lastRun, 'transcriptPath'),
+        readPathReference(lastRun, 'lastMessagePath'),
+        readPathReference(lastIteration, 'artifactDir'),
+        readPathReference(lastIteration, 'promptPath'),
+        readPathReference(lastIterationExecution, 'transcriptPath'),
+        readPathReference(lastIterationExecution, 'lastMessagePath')
+    ]);
+    for (const runRecord of runHistory) {
+        references.push(...compactPathReferences([
+            readPathReference(runRecord, 'promptPath'),
+            readPathReference(runRecord, 'transcriptPath'),
+            readPathReference(runRecord, 'lastMessagePath')
+        ]));
+    }
+    for (const iterationRecord of effectiveIterationHistory) {
+        const executionRecord = readRecordReference(iterationRecord, 'execution');
+        references.push(...compactPathReferences([
+            readPathReference(iterationRecord, 'artifactDir'),
+            readPathReference(iterationRecord, 'promptPath'),
+            readPathReference(executionRecord, 'transcriptPath'),
+            readPathReference(executionRecord, 'lastMessagePath')
+        ]));
+    }
+    return references;
+}
+function latestArtifactReferences(records, dirs) {
+    const latestResultReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-result.json'];
+    const latestPreflightReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-preflight-report.json'];
+    const latestExecutionPlanReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-execution-plan.json'];
+    const latestCliInvocationReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-cli-invocation.json'];
+    const latestProvenanceBundleReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-bundle.json'];
+    const latestProvenanceFailureReferenceFields = exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-failure.json'];
+    return compactPathReferences([
+        ...latestResultReferenceFields.map((field) => readPathReference(records.latestResult, field)),
+        ...latestPreflightReferenceFields.map((field) => readPathReference(records.latestPreflightReport, field)),
+        ...latestExecutionPlanReferenceFields.map((field) => readPathReference(records.latestExecutionPlan, field)),
+        ...latestCliInvocationReferenceFields.map((field) => readPathReference(records.latestCliInvocation, field)),
+        ...latestProvenanceBundleReferenceFields.map((field) => readPathReference(records.latestProvenanceBundle, field)),
+        ...latestProvenanceFailureReferenceFields.map((field) => readPathReference(records.latestProvenanceFailure, field)),
+        ...derivedLatestPromptEvidenceReferences(records.latestPromptEvidence, dirs),
+        ...derivedLatestSurfaceReferences({
+            artifactRootDir: dirs.artifactRootDir,
+            latestSummaryText: records.latestSummaryText,
+            latestPreflightSummaryText: records.latestPreflightSummaryText,
+            latestProvenanceSummaryText: records.latestProvenanceSummaryText
+        })
+    ]);
+}
 function artifactReferenceLines(paths, diffSummary) {
     const lines = [
         `- Prompt: ${paths.promptPath}`,
         `- Prompt evidence: ${paths.promptEvidencePath}`,
         `- Execution plan: ${paths.executionPlanPath}`,
+        `- Completion report: ${paths.completionReportPath}`,
         `- Execution summary: ${paths.executionSummaryPath}`,
         `- Verifier summary: ${paths.verifierSummaryPath}`,
         `- Iteration result: ${paths.iterationResultPath}`,
@@ -101,6 +441,9 @@ function renderPreflightSummary(report) {
         `- Prompt kind: ${report.promptKind}`,
         `- Prompt target: ${report.promptTarget}`,
         `- Selected task: ${formatOptional(report.selectedTaskId)}${report.selectedTaskTitle ? ` - ${report.selectedTaskTitle}` : ''}`,
+        `- Task validation hint: ${formatOptional(report.taskValidationHint)}`,
+        `- Effective validation command: ${formatOptional(report.effectiveValidationCommand)}`,
+        `- Validation normalized from: ${formatOptional(report.normalizedValidationCommandFrom)}`,
         `- Validation: ${formatOptional(report.validationCommand)}`,
         `- Summary: ${report.summary}`,
         `- Report: ${report.reportPath}`,
@@ -160,6 +503,9 @@ function renderIterationSummary(input) {
         `- Integrity issue: ${result.executionIntegrity?.mismatchReason ?? 'none'}`,
         '',
         '## Validation',
+        `- Task validation hint: ${formatOptional(result.verification.taskValidationHint)}`,
+        `- Effective validation command: ${formatOptional(result.verification.effectiveValidationCommand)}`,
+        `- Validation command normalized from: ${formatOptional(result.verification.normalizedValidationCommandFrom)}`,
         `- Primary command: ${formatOptional(result.verification.primaryCommand)}`,
         `- Failure signature: ${formatOptional(result.verification.validationFailureSignature)}`,
         verifierLines.length > 0 ? bulletList(verifierLines) : '- none',
@@ -172,6 +518,8 @@ function renderIterationSummary(input) {
         '',
         '## Signals',
         `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,
+        `- Completion report status: ${result.completionReportStatus ?? 'none'}`,
+        `- Reconciliation warnings: ${result.reconciliationWarnings?.join(' | ') || 'none'}`,
         `- Warnings: ${result.warnings.join(' | ') || 'none'}`,
         `- Errors: ${result.errors.join(' | ') || 'none'}`
     ].join('\n');
@@ -252,6 +600,9 @@ function latestResultFromIteration(input) {
         promptTarget: input.result.executionIntegrity?.promptTarget ?? null,
         rootPolicy: input.result.executionIntegrity?.rootPolicy ?? null,
         templatePath: input.result.executionIntegrity?.templatePath ?? null,
+        taskValidationHint: input.result.verification.taskValidationHint,
+        effectiveValidationCommand: input.result.verification.effectiveValidationCommand,
+        normalizedValidationCommandFrom: input.result.verification.normalizedValidationCommandFrom,
         executionStatus: input.result.executionStatus,
         executionMessage: input.result.execution.message ?? null,
         verificationStatus: input.result.verificationStatus,
@@ -270,12 +621,16 @@ function latestResultFromIteration(input) {
         promptHash: input.result.executionIntegrity?.promptHash ?? null,
         executionPlanHash: input.result.executionIntegrity?.executionPlanHash ?? null,
         executionPayloadMatched: input.result.executionIntegrity?.executionPayloadMatched ?? null,
+        transcriptPath: input.result.execution.transcriptPath ?? null,
+        lastMessagePath: input.result.execution.lastMessagePath ?? null,
         executionSummaryPath: input.paths.executionSummaryPath,
         verifierSummaryPath: input.paths.verifierSummaryPath,
         iterationResultPath: input.paths.iterationResultPath,
         diffSummaryPath: input.diffSummary ? input.paths.diffSummaryPath : null,
         stdoutPath: input.paths.stdoutPath,
         stderrPath: input.paths.stderrPath,
+        completionReportStatus: input.result.completionReportStatus ?? null,
+        reconciliationWarnings: input.result.reconciliationWarnings ?? [],
         warnings: input.result.warnings,
         errors: input.result.errors
     };
@@ -288,6 +643,7 @@ function resolveIterationArtifactPaths(artifactRootDir, iteration) {
         promptEvidencePath: path.join(directory, 'prompt-evidence.json'),
         executionPlanPath: path.join(directory, 'execution-plan.json'),
         cliInvocationPath: path.join(directory, 'cli-invocation.json'),
+        completionReportPath: path.join(directory, 'completion-report.json'),
         stdoutPath: path.join(directory, 'stdout.log'),
         stderrPath: path.join(directory, 'stderr.log'),
         executionSummaryPath: path.join(directory, 'execution-summary.json'),
@@ -355,10 +711,68 @@ async function readJsonRecord(target) {
         return null;
     }
 }
+async function readTextRecord(target) {
+    try {
+        return await fs.readFile(target, 'utf8');
+    }
+    catch {
+        return null;
+    }
+}
 function provenanceIdFromRecord(record) {
     return typeof record?.provenanceId === 'string' && record.provenanceId.trim().length > 0
         ? record.provenanceId
         : null;
+}
+function parseIterationFromLatestSurface(raw) {
+    if (!raw) {
+        return null;
+    }
+    const headingMatch = /^# Ralph (?:Iteration|Preflight|Provenance Failure) (\d+)\s*$/m.exec(raw);
+    if (headingMatch) {
+        return Number.parseInt(headingMatch[1], 10);
+    }
+    const bulletMatch = /^- Iteration:\s+(\d+)\s*$/m.exec(raw);
+    if (bulletMatch) {
+        return Number.parseInt(bulletMatch[1], 10);
+    }
+    return null;
+}
+function parseArtifactPathsFromLatestSurface(raw) {
+    if (!raw) {
+        return [];
+    }
+    const pathLabels = new Set([
+        'Prompt',
+        'Report',
+        'Preflight report',
+        'Preflight summary',
+        'Iteration artifact dir'
+    ]);
+    const extractedPaths = [];
+    for (const line of raw.split(/\r?\n/u)) {
+        const match = /^- ([^:]+):\s+(.+?)\s*$/.exec(line);
+        if (!match || !pathLabels.has(match[1])) {
+            continue;
+        }
+        extractedPaths.push(match[2].trim());
+    }
+    return extractedPaths;
+}
+function derivedLatestSurfaceReferences(input) {
+    const surfaces = [
+        input.latestSummaryText,
+        input.latestPreflightSummaryText,
+        input.latestProvenanceSummaryText
+    ];
+    const iterations = surfaces
+        .map((surface) => parseIterationFromLatestSurface(surface))
+        .filter((value) => value !== null);
+    const artifactPaths = surfaces.flatMap((surface) => parseArtifactPathsFromLatestSurface(surface));
+    return [
+        ...artifactPaths,
+        ...iterations.map((iteration) => derivedIterationDirectoryPath(input.artifactRootDir, iteration))
+    ];
 }
 async function resolveProtectedBundleIds(artifactRootDir) {
     const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
@@ -374,6 +788,45 @@ async function resolveProtectedBundleIds(artifactRootDir) {
     return new Set(records
         .map((record) => provenanceIdFromRecord(record))
         .filter((value) => Boolean(value)));
+}
+async function resolveProtectedGeneratedArtifacts(input) {
+    const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+    const [stateRecord, latestResult, latestPreflightReport, latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestProvenanceBundle, latestProvenanceFailure, latestSummaryText, latestPreflightSummaryText, latestProvenanceSummaryText] = await Promise.all([
+        readJsonRecord(input.stateFilePath),
+        readJsonRecord(latestPaths.latestResultPath),
+        readJsonRecord(latestPaths.latestPreflightReportPath),
+        readJsonRecord(latestPaths.latestPromptEvidencePath),
+        readJsonRecord(latestPaths.latestExecutionPlanPath),
+        readJsonRecord(latestPaths.latestCliInvocationPath),
+        readJsonRecord(latestPaths.latestProvenanceBundlePath),
+        readJsonRecord(latestPaths.latestProvenanceFailurePath),
+        readTextRecord(latestPaths.latestSummaryPath),
+        readTextRecord(latestPaths.latestPreflightSummaryPath),
+        readTextRecord(latestPaths.latestProvenanceSummaryPath)
+    ]);
+    const protectedArtifacts = createProtectedGeneratedArtifacts();
+    const pathInput = {
+        artifactRootDir: input.artifactRootDir,
+        promptDir: input.promptDir,
+        runDir: input.runDir
+    };
+    addProtectedGeneratedArtifactPaths(protectedArtifacts, pathInput, currentStateArtifactReferences({
+        stateRecord,
+        artifactRootDir: input.artifactRootDir
+    }));
+    addProtectedGeneratedArtifactPaths(protectedArtifacts, pathInput, latestArtifactReferences({
+        latestResult,
+        latestPreflightReport,
+        latestPromptEvidence,
+        latestExecutionPlan,
+        latestCliInvocation,
+        latestProvenanceBundle,
+        latestProvenanceFailure,
+        latestSummaryText,
+        latestPreflightSummaryText,
+        latestProvenanceSummaryText
+    }, pathInput));
+    return protectedArtifacts;
 }
 async function cleanupProvenanceBundles(input) {
     const runsDir = path.join(input.artifactRootDir, 'runs');
@@ -404,6 +857,107 @@ async function cleanupProvenanceBundles(input) {
         deletedBundleIds,
         retainedBundleIds: bundleIds.filter((bundleId) => retainedIds.has(bundleId)),
         protectedBundleIds: Array.from(protectedIds).sort()
+    };
+}
+async function cleanupGeneratedArtifacts(input) {
+    if (input.retentionCount <= 0) {
+        return {
+            deletedIterationDirectories: [],
+            retainedIterationDirectories: [],
+            protectedRetainedIterationDirectories: [],
+            deletedPromptFiles: [],
+            retainedPromptFiles: [],
+            protectedRetainedPromptFiles: [],
+            deletedRunArtifactBaseNames: [],
+            retainedRunArtifactBaseNames: [],
+            protectedRetainedRunArtifactBaseNames: []
+        };
+    }
+    const [artifactEntries, promptEntries, runEntries, protectedArtifacts] = await Promise.all([
+        fs.readdir(input.artifactRootDir, { withFileTypes: true }).catch(() => []),
+        fs.readdir(input.promptDir, { withFileTypes: true }).catch(() => []),
+        fs.readdir(input.runDir, { withFileTypes: true }).catch(() => []),
+        resolveProtectedGeneratedArtifacts({
+            artifactRootDir: input.artifactRootDir,
+            promptDir: input.promptDir,
+            runDir: input.runDir,
+            stateFilePath: input.stateFilePath
+        })
+    ]);
+    const iterationDirectories = artifactEntries
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => parseIterationDirectoryName(entry.name))
+        .filter((entry) => entry !== null)
+        .sort(sortByIterationDesc);
+    const iterationDirectoryDecision = retentionDecisionByNewestAndProtected(iterationDirectories, input.retentionCount, protectedArtifacts.iterationDirectories, (entry) => entry.name);
+    const retainedIterationDirectories = iterationDirectoryDecision.retainedNames;
+    const deletedIterationDirectories = [];
+    for (const entry of iterationDirectories.slice(input.retentionCount)) {
+        if (retainedIterationDirectories.has(entry.name)) {
+            continue;
+        }
+        await fs.rm(path.join(input.artifactRootDir, entry.name), { recursive: true, force: true });
+        deletedIterationDirectories.push(entry.name);
+    }
+    const promptFiles = promptEntries
+        .filter((entry) => entry.isFile())
+        .map((entry) => parsePromptFileName(entry.name))
+        .filter((entry) => entry !== null)
+        .sort(sortByIterationDesc);
+    const promptFileDecision = retentionDecisionByNewestAndProtected(promptFiles, input.retentionCount, protectedArtifacts.promptFiles, (entry) => entry.name);
+    const retainedPromptFiles = promptFileDecision.retainedNames;
+    const deletedPromptFiles = [];
+    for (const entry of promptFiles.slice(input.retentionCount)) {
+        if (retainedPromptFiles.has(entry.name)) {
+            continue;
+        }
+        await fs.rm(path.join(input.promptDir, entry.name), { force: true });
+        deletedPromptFiles.push(entry.name);
+    }
+    const runArtifactGroups = new Map();
+    for (const entry of runEntries.filter((candidate) => candidate.isFile())) {
+        const parsed = parseRunArtifactFileName(entry.name);
+        if (!parsed) {
+            continue;
+        }
+        const current = runArtifactGroups.get(parsed.baseName);
+        if (current) {
+            current.fileNames.push(parsed.name);
+            continue;
+        }
+        runArtifactGroups.set(parsed.baseName, {
+            baseName: parsed.baseName,
+            iteration: parsed.iteration,
+            fileNames: [parsed.name]
+        });
+    }
+    const runArtifacts = Array.from(runArtifactGroups.values()).sort((left, right) => right.iteration - left.iteration || right.baseName.localeCompare(left.baseName));
+    const runArtifactDecision = retentionDecisionByNewestAndProtected(runArtifacts, input.retentionCount, protectedArtifacts.runArtifactBaseNames, (entry) => entry.baseName);
+    const retainedRunArtifactBaseNames = runArtifactDecision.retainedNames;
+    const deletedRunArtifactBaseNames = [];
+    for (const entry of runArtifacts.slice(input.retentionCount)) {
+        if (retainedRunArtifactBaseNames.has(entry.baseName)) {
+            continue;
+        }
+        await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
+        deletedRunArtifactBaseNames.push(entry.baseName);
+    }
+    return {
+        deletedIterationDirectories,
+        retainedIterationDirectories: iterationDirectories
+            .filter((entry) => retainedIterationDirectories.has(entry.name))
+            .map((entry) => entry.name),
+        protectedRetainedIterationDirectories: iterationDirectoryDecision.protectedRetainedNames,
+        deletedPromptFiles,
+        retainedPromptFiles: promptFiles
+            .filter((entry) => retainedPromptFiles.has(entry.name))
+            .map((entry) => entry.name),
+        protectedRetainedPromptFiles: promptFileDecision.protectedRetainedNames,
+        deletedRunArtifactBaseNames,
+        retainedRunArtifactBaseNames: runArtifacts
+            .filter((entry) => retainedRunArtifactBaseNames.has(entry.baseName))
+            .map((entry) => entry.baseName),
+        protectedRetainedRunArtifactBaseNames: runArtifactDecision.protectedRetainedNames
     };
 }
 async function writePromptArtifacts(input) {
@@ -450,6 +1004,9 @@ async function writePreflightArtifacts(input) {
         summary: input.report.summary,
         selectedTaskId: input.selectedTaskId,
         selectedTaskTitle: input.selectedTaskTitle,
+        taskValidationHint: input.taskValidationHint,
+        effectiveValidationCommand: input.effectiveValidationCommand,
+        normalizedValidationCommandFrom: input.normalizedValidationCommandFrom,
         validationCommand: input.validationCommand,
         artifactDir: input.paths.directory,
         reportPath: input.paths.reportPath,
@@ -494,6 +1051,7 @@ async function writeIterationArtifacts(input) {
     await Promise.all([
         fs.writeFile(input.paths.promptPath, `${input.prompt.trimEnd()}\n`, 'utf8'),
         fs.writeFile(input.paths.promptEvidencePath, (0, integrity_1.stableJson)(input.promptEvidence), 'utf8'),
+        fs.writeFile(input.paths.completionReportPath, (0, integrity_1.stableJson)(input.completionReport), 'utf8'),
         fs.writeFile(input.paths.stdoutPath, input.stdout, 'utf8'),
         fs.writeFile(input.paths.stderrPath, input.stderr, 'utf8'),
         fs.writeFile(input.paths.executionSummaryPath, (0, integrity_1.stableJson)(input.executionSummary), 'utf8'),

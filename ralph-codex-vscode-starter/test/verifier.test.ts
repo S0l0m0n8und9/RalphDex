@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { inspectValidationCommandReadiness } from '../src/ralph/verifier';
+import { inspectValidationCommandReadiness, normalizeValidationCommand } from '../src/ralph/verifier';
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-verifier-'));
@@ -33,4 +33,42 @@ test('inspectValidationCommandReadiness warns when a PATH command cannot be reso
 
   assert.equal(readiness.status, 'executableNotConfirmed');
   assert.equal(readiness.executable, 'ralph-command-that-should-not-exist');
+});
+
+test('normalizeValidationCommand strips a redundant workspace-relative cd into the selected verifier root', () => {
+  const workspaceRootPath = path.join('/tmp', 'ralph-workspace');
+  const verificationRootPath = path.join(workspaceRootPath, 'ralph-codex-vscode-starter');
+
+  const command = normalizeValidationCommand({
+    command: 'cd ralph-codex-vscode-starter && npm run validate',
+    workspaceRootPath,
+    verificationRootPath
+  });
+
+  assert.equal(command, 'npm run validate');
+});
+
+test('normalizeValidationCommand strips a legacy repo-name cd when the opened workspace is already the verifier root', () => {
+  const workspaceRootPath = path.join('/tmp', 'ralph-workspace', 'ralph-codex-vscode-starter');
+
+  const command = normalizeValidationCommand({
+    command: 'cd ralph-codex-vscode-starter && npm run validate',
+    workspaceRootPath,
+    verificationRootPath: workspaceRootPath
+  });
+
+  assert.equal(command, 'npm run validate');
+});
+
+test('normalizeValidationCommand keeps commands that cd somewhere other than the selected verifier root', () => {
+  const workspaceRootPath = path.join('/tmp', 'ralph-workspace');
+  const verificationRootPath = path.join(workspaceRootPath, 'ralph-codex-vscode-starter');
+
+  const command = normalizeValidationCommand({
+    command: 'cd sibling-repo && npm test',
+    workspaceRootPath,
+    verificationRootPath
+  });
+
+  assert.equal(command, 'cd sibling-repo && npm test');
 });

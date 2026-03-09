@@ -1,7 +1,0 @@
- M .ralph/artifacts/latest-cli-invocation.json
- M .ralph/logs/extension.log
- M .ralph/progress.md
- M .ralph/tasks.json
-?? .ralph/artifacts/iteration-002/cli-invocation.json
-?? .ralph/runs/iteration-002.last-message.md
-?? .ralph/runs/iteration-002.transcript.md

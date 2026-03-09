@@ -200,6 +200,9 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
       promptTarget: 'cliExec',
       rootPolicy: rootPolicy(rootPath),
       templatePath: path.join(rootPath, 'prompt-templates', 'bootstrap.md'),
+      taskValidationHint: null,
+      effectiveValidationCommand: 'npm test',
+      normalizedValidationCommandFrom: null,
       executionPlanPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'execution-plan.json'),
       promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'prompt.md'),
       promptHash: 'sha256:bootstrap001',
@@ -237,6 +240,9 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
       stderrPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'stderr.log')
     },
     verification: {
+      taskValidationHint: null,
+      effectiveValidationCommand: 'npm test',
+      normalizedValidationCommandFrom: null,
       primaryCommand: 'npm test',
       validationFailureSignature: null,
       verifiers: []

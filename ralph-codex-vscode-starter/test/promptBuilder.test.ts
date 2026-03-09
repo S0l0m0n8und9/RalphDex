@@ -24,6 +24,12 @@ const paths: RalphPaths = {
   artifactDir: '/workspace/.ralph/artifacts'
 };
 
+const validationProvenance = {
+  taskValidationHint: 'cd nested && npm run validate',
+  effectiveValidationCommand: 'npm run validate',
+  normalizedValidationCommandFrom: 'cd nested && npm run validate'
+};
+
 const summary: WorkspaceScan = {
   workspaceName: 'demo',
   workspaceRootPath: '/workspace',
@@ -133,6 +139,9 @@ function baseIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
       promptTarget: 'cliExec',
       rootPolicy: deriveRootPolicy(summary),
       templatePath: '/workspace/prompt-templates/iteration.md',
+      taskValidationHint: validationProvenance.taskValidationHint,
+      effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+      normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
       executionPlanPath: '/workspace/.ralph/artifacts/iteration-001/execution-plan.json',
       promptArtifactPath: '/workspace/.ralph/artifacts/iteration-001/prompt.md',
       promptHash: 'sha256:iteration001',
@@ -171,6 +180,9 @@ function baseIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
       stderrPath: '/workspace/.ralph/artifacts/iteration-001/stderr.log'
     },
     verification: {
+      taskValidationHint: validationProvenance.taskValidationHint,
+      effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+      normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
       primaryCommand: 'npm run validate',
       validationFailureSignature: null,
       verifiers: [
@@ -213,6 +225,8 @@ function baseIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
       suggestedCheckpointRef: 'ralph/iter-iteration-001'
     },
     noProgressSignals: [],
+    completionReportStatus: 'applied',
+    reconciliationWarnings: [],
     stopReason: null,
     ...overrides
   };
@@ -295,6 +309,9 @@ test('decidePromptKind selects specialized prompt kinds deterministically', () =
       completionClassification: 'failed',
       verificationStatus: 'failed',
       verification: {
+        taskValidationHint: validationProvenance.taskValidationHint,
+        effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+        normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
         primaryCommand: 'npm run validate',
         validationFailureSignature: 'sig:validate:1',
         verifiers: []
@@ -309,6 +326,9 @@ test('decidePromptKind selects specialized prompt kinds deterministically', () =
       verificationStatus: 'failed',
       stopReason: 'no_actionable_task',
       verification: {
+        taskValidationHint: validationProvenance.taskValidationHint,
+        effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+        normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
         primaryCommand: 'npm run validate',
         validationFailureSignature: 'sig:artifact-only-no-task',
         verifiers: []
@@ -352,6 +372,9 @@ test('buildPrompt renders a file-based template with structured inputs', async (
         completionClassification: 'failed',
         verificationStatus: 'failed',
         verification: {
+          taskValidationHint: validationProvenance.taskValidationHint,
+          effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+          normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
           primaryCommand: 'npm run validate',
           validationFailureSignature: 'sig:validate:1',
           verifiers: []
@@ -374,6 +397,9 @@ test('buildPrompt renders a file-based template with structured inputs', async (
       dependsOn: ['T0'],
       notes: 'Keep it deterministic.'
     },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
     validationCommand: 'npm run validate',
     preflightReport: {
       ready: true,
@@ -433,6 +459,9 @@ test('buildPrompt renders backlog-replenishment instructions when the task list 
       ]
     },
     selectedTask: null,
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
     validationCommand: null,
     preflightReport: {
       ready: true,
@@ -507,6 +536,9 @@ test('buildPrompt uses real scan results from a nested repo instead of rendering
       title: 'Ship prompt system',
       status: 'todo'
     },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
     validationCommand: 'npm run validate',
     preflightReport: {
       ready: true,
@@ -552,6 +584,9 @@ test('buildPrompt trims prior verifier context to the configured budget', async 
     completionClassification: 'failed',
     verificationStatus: 'failed',
     verification: {
+      taskValidationHint: validationProvenance.taskValidationHint,
+      effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+      normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
       primaryCommand: 'npm run validate',
       validationFailureSignature: 'sig:validate:1',
       verifiers: [
@@ -607,6 +642,9 @@ test('buildPrompt trims prior verifier context to the configured budget', async 
       title: 'Ship prompt system',
       status: 'in_progress'
     },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
     validationCommand: 'npm run validate',
     preflightReport: {
       ready: true,
@@ -653,6 +691,9 @@ test('buildPrompt is deterministic across equivalent inputs', async () => {
       title: 'Ship prompt system',
       status: 'in_progress'
     },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
     validationCommand: 'npm run validate',
     preflightReport: {
       ready: true,

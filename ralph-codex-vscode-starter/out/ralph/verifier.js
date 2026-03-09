@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.normalizeValidationCommand = normalizeValidationCommand;
 exports.captureCoreState = captureCoreState;
 exports.captureGitStatus = captureGitStatus;
 exports.chooseValidationCommand = chooseValidationCommand;
@@ -158,6 +159,36 @@ async function isExecutable(commandPath) {
 }
 function shellQuote(value) {
     return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+function stripOuterQuotes(value) {
+    const trimmed = value.trim();
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"'))
+        || (trimmed.startsWith('\'') && trimmed.endsWith('\''))) {
+        return trimmed.slice(1, -1);
+    }
+    return trimmed;
+}
+function normalizeValidationCommand(input) {
+    if (!input.command) {
+        return null;
+    }
+    const match = /^\s*cd\s+("[^"]+"|'[^']+'|[^&|;]+?)\s*&&\s*(.+)\s*$/s.exec(input.command);
+    if (!match) {
+        return input.command;
+    }
+    const target = stripOuterQuotes(match[1]);
+    const normalizedVerificationRoot = path.resolve(input.verificationRootPath);
+    const normalizedTargetFromWorkspaceRoot = path.resolve(input.workspaceRootPath, target);
+    if (normalizedTargetFromWorkspaceRoot === normalizedVerificationRoot) {
+        return match[2].trim();
+    }
+    if (path.resolve(input.workspaceRootPath) === normalizedVerificationRoot) {
+        const normalizedTargetFromVerifierParent = path.resolve(path.dirname(normalizedVerificationRoot), target);
+        if (normalizedTargetFromVerifierParent === normalizedVerificationRoot) {
+            return match[2].trim();
+        }
+    }
+    return input.command;
 }
 async function writeJsonArtifact(target, value) {
     await fs.mkdir(path.dirname(target), { recursive: true });
@@ -309,12 +340,16 @@ async function runValidationCommandVerifier(input) {
         failureSignature,
         metadata: {
             exitCode: run.code,
+            taskValidationHint: input.taskValidationHint ?? null,
+            normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
             stdoutPath,
             stderrPath
         }
     };
     await writeJsonArtifact(summaryPath, {
         command: input.command,
+        taskValidationHint: input.taskValidationHint ?? null,
+        normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
         exitCode: run.code,
         stdoutPath,
         stderrPath,

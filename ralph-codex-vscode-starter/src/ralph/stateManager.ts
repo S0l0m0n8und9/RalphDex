@@ -10,6 +10,7 @@ import {
   inspectTaskFileText,
   parseTaskFile,
   RalphTaskFileInspection,
+  findTaskById,
   stringifyTaskFile
 } from './taskFile';
 import {
@@ -19,6 +20,7 @@ import {
   RalphPromptKind,
   RalphRootPolicy,
   RalphRunRecord,
+  RalphTask,
   RalphTaskCounts,
   RalphTaskFile,
   RalphVerificationResult,
@@ -217,6 +219,15 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
     promptTarget: record.promptTarget as RalphExecutionIntegritySummary['promptTarget'],
     rootPolicy: normalizeRootPolicy(record.rootPolicy),
     templatePath: record.templatePath,
+    taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
+    effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
+      ? record.effectiveValidationCommand
+      : typeof record.validationCommand === 'string'
+        ? record.validationCommand
+        : null,
+    normalizedValidationCommandFrom: typeof record.normalizedValidationCommandFrom === 'string'
+      ? record.normalizedValidationCommandFrom
+      : null,
     executionPlanPath: record.executionPlanPath,
     executionPlanHash: typeof record.executionPlanHash === 'string' ? record.executionPlanHash : undefined,
     promptArtifactPath: record.promptArtifactPath,
@@ -267,6 +278,9 @@ function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
       lastMessagePath: run.lastMessagePath
     },
     verification: {
+      taskValidationHint: null,
+      effectiveValidationCommand: null,
+      normalizedValidationCommandFrom: null,
       primaryCommand: null,
       validationFailureSignature: null,
       verifiers: []
@@ -358,6 +372,15 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
       stderrPath: typeof execution.stderrPath === 'string' ? execution.stderrPath : undefined
     },
     verification: {
+      taskValidationHint: typeof verification.taskValidationHint === 'string' ? verification.taskValidationHint : null,
+      effectiveValidationCommand: typeof verification.effectiveValidationCommand === 'string'
+        ? verification.effectiveValidationCommand
+        : typeof verification.primaryCommand === 'string'
+          ? verification.primaryCommand
+          : null,
+      normalizedValidationCommandFrom: typeof verification.normalizedValidationCommandFrom === 'string'
+        ? verification.normalizedValidationCommandFrom
+        : null,
       primaryCommand: typeof verification.primaryCommand === 'string' ? verification.primaryCommand : null,
       validationFailureSignature: typeof verification.validationFailureSignature === 'string'
         ? verification.validationFailureSignature
@@ -379,6 +402,15 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
     noProgressSignals: Array.isArray(record.noProgressSignals)
       ? record.noProgressSignals.filter((item): item is string => typeof item === 'string')
       : [],
+    completionReportStatus: record.completionReportStatus === 'applied'
+      || record.completionReportStatus === 'rejected'
+      || record.completionReportStatus === 'missing'
+      || record.completionReportStatus === 'invalid'
+      ? record.completionReportStatus
+      : undefined,
+    reconciliationWarnings: Array.isArray(record.reconciliationWarnings)
+      ? record.reconciliationWarnings.filter((item): item is string => typeof item === 'string')
+      : undefined,
     stopReason: typeof record.stopReason === 'string' ? record.stopReason as RalphIterationResult['stopReason'] : null
   };
 }
@@ -610,6 +642,27 @@ export class RalphStateManager {
 
   public async taskCounts(paths: RalphPaths): Promise<RalphTaskCounts> {
     return countTaskStatuses(await this.readTaskFile(paths));
+  }
+
+  public async updateTaskFile(paths: RalphPaths, transform: (taskFile: RalphTaskFile) => RalphTaskFile): Promise<RalphTaskFile> {
+    const nextTaskFile = transform(await this.readTaskFile(paths));
+    await fs.writeFile(paths.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    return parseTaskFile(await this.readTaskFileText(paths));
+  }
+
+  public async appendProgressBullet(paths: RalphPaths, bullet: string): Promise<void> {
+    const current = await this.readProgressText(paths);
+    const trimmed = bullet.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
+    await fs.writeFile(paths.progressPath, nextText, 'utf8');
+  }
+
+  public async selectedTask(paths: RalphPaths, taskId: string | null): Promise<RalphTask | null> {
+    return findTaskById(await this.readTaskFile(paths), taskId);
   }
 
   public async writePrompt(paths: RalphPaths, fileName: string, prompt: string): Promise<string> {

@@ -189,6 +189,47 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
+function stripOuterQuotes(value: string): string {
+  const trimmed = value.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"'))
+    || (trimmed.startsWith('\'') && trimmed.endsWith('\''))) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+export function normalizeValidationCommand(input: {
+  command: string | null;
+  workspaceRootPath: string;
+  verificationRootPath: string;
+}): string | null {
+  if (!input.command) {
+    return null;
+  }
+
+  const match = /^\s*cd\s+("[^"]+"|'[^']+'|[^&|;]+?)\s*&&\s*(.+)\s*$/s.exec(input.command);
+  if (!match) {
+    return input.command;
+  }
+
+  const target = stripOuterQuotes(match[1]);
+  const normalizedVerificationRoot = path.resolve(input.verificationRootPath);
+  const normalizedTargetFromWorkspaceRoot = path.resolve(input.workspaceRootPath, target);
+  if (normalizedTargetFromWorkspaceRoot === normalizedVerificationRoot) {
+    return match[2].trim();
+  }
+
+  if (path.resolve(input.workspaceRootPath) === normalizedVerificationRoot) {
+    const normalizedTargetFromVerifierParent = path.resolve(path.dirname(normalizedVerificationRoot), target);
+    if (normalizedTargetFromVerifierParent === normalizedVerificationRoot) {
+      return match[2].trim();
+    }
+  }
+
+  return input.command;
+}
+
 async function writeJsonArtifact(target: string, value: unknown): Promise<string> {
   await fs.mkdir(path.dirname(target), { recursive: true });
   await fs.writeFile(target, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -320,6 +361,8 @@ export async function inspectValidationCommandReadiness(input: {
 
 export async function runValidationCommandVerifier(input: {
   command: string | null;
+  taskValidationHint?: string | null;
+  normalizedValidationCommandFrom?: string | null;
   rootPath: string;
   artifactDir: string;
 }): Promise<ValidationCommandVerification> {
@@ -367,6 +410,8 @@ export async function runValidationCommandVerifier(input: {
     failureSignature,
     metadata: {
       exitCode: run.code,
+      taskValidationHint: input.taskValidationHint ?? null,
+      normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
       stdoutPath,
       stderrPath
     }
@@ -374,6 +419,8 @@ export async function runValidationCommandVerifier(input: {
 
   await writeJsonArtifact(summaryPath, {
     command: input.command,
+    taskValidationHint: input.taskValidationHint ?? null,
+    normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
     exitCode: run.code,
     stdoutPath,
     stderrPath,

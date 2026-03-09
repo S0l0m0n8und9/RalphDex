@@ -28,7 +28,7 @@ Related docs:
 - `src/ralph/verifier.ts`: validation-command, git/file-change, and task-state verifiers
 - `src/ralph/loopLogic.ts`: deterministic outcome classification and stop decisions
 - `src/ralph/integrity.ts`: prompt and artifact hashing helpers
-- `src/ralph/artifactStore.ts`: per-iteration artifacts, run-level provenance bundles, latest pointers, and retention cleanup
+- `src/ralph/artifactStore.ts`: per-iteration artifacts, run-level provenance bundles, latest pointers, and retention cleanup, including newest-first generated-artifact retention that can add older protected references without displacing the retained window
 - `src/services/`: logging, process execution, Codex CLI support inspection, and shallow workspace scanning
 
 ## End-To-End Flow

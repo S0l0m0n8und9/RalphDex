@@ -31,6 +31,7 @@
         "ralphCodex.noProgressThreshold",
         "ralphCodex.repeatedFailureThreshold",
         "ralphCodex.artifactRetentionPath",
+        "ralphCodex.generatedArtifactRetentionCount",
         "ralphCodex.provenanceBundleRetentionCount",
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.validationCommandOverride",
@@ -159,12 +160,19 @@
           "default": ".ralph/artifacts",
           "description": "Workspace-relative or absolute directory used for per-iteration Ralph artifacts."
         },
+        "ralphCodex.generatedArtifactRetentionCount": {
+          "type": "number",
+          "default": 25,
+          "minimum": 0,
+          "maximum": 500,
+          "description": "How many of the newest generated prompt files, transcript or last-message pairs, and iteration artifact directories to keep before adding any older state-linked or latest-pointer-protected references. Cleanup runs after Ralph persists prompt or iteration provenance, protection never evicts the newest retained entries, and 0 disables automatic cleanup."
+        },
         "ralphCodex.provenanceBundleRetentionCount": {
           "type": "number",
           "default": 25,
           "minimum": 0,
           "maximum": 500,
-          "description": "How many of the newest provenance bundle directories to keep under .ralph/artifacts/runs/. Cleanup runs after bundle writes, never deletes the newest bundle referenced by latest pointers, and 0 disables automatic cleanup."
+          "description": "How many of the newest provenance bundle directories to keep under .ralph/artifacts/runs/ before adding any older latest-pointer-protected bundles. Cleanup runs after bundle writes, protection never evicts the newest retained entries, and 0 disables automatic cleanup."
         },
         "ralphCodex.gitCheckpointMode": {
           "type": "string",

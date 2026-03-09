@@ -184,7 +184,18 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         newChatCommandId: config.newChatCommandId,
         availableCommands
     });
-    const validationCommand = (0, verifier_1.chooseValidationCommand)(workspaceScan, selectedTask, config.validationCommandOverride);
+    const validationCommand = (0, verifier_1.normalizeValidationCommand)({
+        command: (0, verifier_1.chooseValidationCommand)(workspaceScan, selectedTask, config.validationCommandOverride),
+        workspaceRootPath: workspaceFolder.uri.fsPath,
+        verificationRootPath: rootPolicy.verificationRootPath
+    });
+    const taskValidationHint = selectedTask?.validation?.trim() || null;
+    const rawSelectedValidationCommand = (0, verifier_1.chooseValidationCommand)(workspaceScan, selectedTask, config.validationCommandOverride);
+    const normalizedValidationCommandFrom = rawSelectedValidationCommand
+        && validationCommand
+        && rawSelectedValidationCommand !== validationCommand
+        ? rawSelectedValidationCommand
+        : null;
     const validationCommandReadiness = await (0, verifier_1.inspectValidationCommandReadiness)({
         command: validationCommand,
         rootPath: rootPolicy.verificationRootPath
@@ -196,7 +207,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         taskInspection,
         taskCounts,
         selectedTask,
+        taskValidationHint,
         validationCommand,
+        normalizedValidationCommandFrom,
         validationCommandReadiness,
         fileStatus: inspection.fileStatus,
         codexCliSupport,
@@ -235,6 +248,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestExecutionPlan,
         latestCliInvocation,
         latestProvenanceBundle,
+        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
         provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
         verifierModes: config.verifierModes,
         gitCheckpointMode: config.gitCheckpointMode,

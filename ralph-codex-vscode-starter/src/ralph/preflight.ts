@@ -87,7 +87,9 @@ export interface RalphPreflightInput {
   taskInspection: RalphTaskFileInspection;
   taskCounts: RalphTaskCounts | null;
   selectedTask: RalphTask | null;
+  taskValidationHint: string | null;
   validationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   validationCommandReadiness: RalphValidationCommandReadiness;
   fileStatus: RalphWorkspaceFileStatus;
   createdPaths?: string[];
@@ -225,6 +227,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
         `Validation command was selected but preflight could not confirm its executable cheaply: ${input.validationCommand}.`
       ));
     }
+  }
+
+  if (input.normalizedValidationCommandFrom && input.validationCommand) {
+    diagnostics.push(createDiagnostic(
+      'validationVerifier',
+      'info',
+      'validation_command_normalized',
+      `Normalized the selected validation command from "${input.normalizedValidationCommandFrom}" to "${input.validationCommand}" because the verifier root already matches the nested repo target.`
+    ));
   }
 
   if (input.config.verifierModes.length === 0) {

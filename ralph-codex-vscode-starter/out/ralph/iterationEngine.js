@@ -62,6 +62,148 @@ function summarizeLastMessage(lastMessage, exitCode) {
         .find((line) => line.length > 0)
         ?? (exitCode === null ? 'Execution skipped.' : `Exit code ${exitCode}`);
 }
+function sanitizeCompletionText(value, maximumLength = 400) {
+    if (!value) {
+        return undefined;
+    }
+    const normalized = value
+        .replace(/^\s*[-*]\s*/, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!normalized) {
+        return undefined;
+    }
+    return normalized.slice(0, maximumLength).trim();
+}
+function isAllowedCompletionStatus(value) {
+    return value === 'done' || value === 'blocked' || value === 'in_progress';
+}
+function extractTrailingJsonObject(text) {
+    const trimmed = text.trimEnd();
+    if (!trimmed.endsWith('}')) {
+        return null;
+    }
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    for (let index = trimmed.length - 1; index >= 0; index -= 1) {
+        const char = trimmed[index];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            }
+            else if (char === '\\') {
+                escaped = true;
+            }
+            else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+        if (char === '}') {
+            depth += 1;
+            continue;
+        }
+        if (char === '{') {
+            depth -= 1;
+            if (depth === 0) {
+                const candidate = trimmed.slice(index);
+                return candidate.trim();
+            }
+        }
+    }
+    return null;
+}
+function parseCompletionReport(lastMessage) {
+    const trimmed = lastMessage.trim();
+    if (!trimmed) {
+        return {
+            status: 'missing',
+            report: null,
+            rawBlock: null,
+            parseError: null
+        };
+    }
+    const fencedMatch = /```json\s*([\s\S]*?)\s*```\s*$/i.exec(trimmed);
+    const rawBlock = fencedMatch?.[1]?.trim() ?? extractTrailingJsonObject(trimmed);
+    if (!rawBlock) {
+        return {
+            status: 'missing',
+            report: null,
+            rawBlock: null,
+            parseError: null
+        };
+    }
+    let candidate;
+    try {
+        const parsed = JSON.parse(rawBlock);
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+            throw new Error('Completion report must be a JSON object.');
+        }
+        candidate = parsed;
+    }
+    catch (error) {
+        return {
+            status: 'invalid',
+            report: null,
+            rawBlock,
+            parseError: error instanceof Error ? error.message : String(error)
+        };
+    }
+    if (typeof candidate.selectedTaskId !== 'string' || !candidate.selectedTaskId.trim()) {
+        return {
+            status: 'invalid',
+            report: null,
+            rawBlock,
+            parseError: 'Completion report requires a non-empty selectedTaskId string.'
+        };
+    }
+    if (typeof candidate.requestedStatus !== 'string' || !isAllowedCompletionStatus(candidate.requestedStatus)) {
+        return {
+            status: 'invalid',
+            report: null,
+            rawBlock,
+            parseError: 'Completion report requestedStatus must be one of done, blocked, or in_progress.'
+        };
+    }
+    if (candidate.needsHumanReview !== undefined && typeof candidate.needsHumanReview !== 'boolean') {
+        return {
+            status: 'invalid',
+            report: null,
+            rawBlock,
+            parseError: 'Completion report needsHumanReview must be a boolean when provided.'
+        };
+    }
+    const report = {
+        selectedTaskId: candidate.selectedTaskId.trim(),
+        requestedStatus: candidate.requestedStatus,
+        progressNote: sanitizeCompletionText(typeof candidate.progressNote === 'string' ? candidate.progressNote : undefined),
+        blocker: sanitizeCompletionText(typeof candidate.blocker === 'string' ? candidate.blocker : undefined),
+        validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
+        needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined
+    };
+    return {
+        status: 'parsed',
+        report,
+        rawBlock,
+        parseError: null
+    };
+}
+function controlPlaneRuntimeChanges(changedFiles) {
+    const matches = new Set();
+    for (const filePath of changedFiles) {
+        const normalized = filePath.replace(/\\/g, '/');
+        if (/^(?:.+\/)?package\.json$/.test(normalized)
+            || /(?:^|\/)(?:src|out|prompt-templates)\//.test(normalized)) {
+            matches.add(filePath);
+        }
+    }
+    return Array.from(matches).sort();
+}
 function trustLevelForTarget(promptTarget) {
     return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
 }
@@ -257,6 +399,7 @@ class RalphIterationEngine {
                 retentionCount: prepared.config.provenanceBundleRetentionCount
             });
         }
+        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'prepare');
     }
     async persistBlockedPreflightBundle(input) {
         const provenanceBundlePaths = (0, artifactStore_1.resolveProvenanceBundlePaths)(input.paths.artifactDir, input.provenanceId);
@@ -299,13 +442,14 @@ class RalphIterationEngine {
             bundle,
             preflightReport: input.persistedPreflightReport,
             preflightSummary: input.preflightSummaryText,
-            retentionCount: input.retentionCount
+            retentionCount: input.provenanceRetentionCount
         });
         if (writeResult.retention.deletedBundleIds.length > 0) {
             this.logger.info('Cleaned up old Ralph provenance bundles after blocked preflight.', {
                 deletedBundleIds: writeResult.retention.deletedBundleIds
             });
         }
+        await this.cleanupGeneratedArtifacts(input.paths, input.generatedArtifactRetentionCount, 'blocked preflight');
     }
     async persistIntegrityFailureBundle(prepared, failureError) {
         const failure = {
@@ -360,6 +504,163 @@ class RalphIterationEngine {
                 retentionCount: prepared.config.provenanceBundleRetentionCount
             });
         }
+        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'integrity failure');
+    }
+    async cleanupGeneratedArtifacts(paths, retentionCount, stage) {
+        const retention = await (0, artifactStore_1.cleanupGeneratedArtifacts)({
+            artifactRootDir: paths.artifactDir,
+            promptDir: paths.promptDir,
+            runDir: paths.runDir,
+            stateFilePath: paths.stateFilePath,
+            retentionCount
+        });
+        if (retention.deletedIterationDirectories.length === 0
+            && retention.deletedPromptFiles.length === 0
+            && retention.deletedRunArtifactBaseNames.length === 0) {
+            return;
+        }
+        this.logger.info(`Cleaned up generated Ralph artifacts after ${stage}.`, {
+            retentionCount,
+            deletedIterationDirectories: retention.deletedIterationDirectories,
+            protectedRetainedIterationDirectories: retention.protectedRetainedIterationDirectories,
+            deletedPromptFiles: retention.deletedPromptFiles,
+            protectedRetainedPromptFiles: retention.protectedRetainedPromptFiles,
+            deletedRunArtifactBaseNames: retention.deletedRunArtifactBaseNames,
+            protectedRetainedRunArtifactBaseNames: retention.protectedRetainedRunArtifactBaseNames
+        });
+    }
+    async reconcileCompletionReport(input) {
+        const parsed = parseCompletionReport(input.lastMessage);
+        const artifactBase = {
+            schemaVersion: 1,
+            kind: 'completionReport',
+            status: parsed.status === 'parsed' ? 'rejected' : parsed.status,
+            selectedTaskId: input.selectedTask?.id ?? null,
+            report: parsed.report,
+            rawBlock: parsed.rawBlock,
+            parseError: parsed.parseError,
+            warnings: []
+        };
+        if (!input.selectedTask || input.prepared.promptKind === 'replenish-backlog') {
+            artifactBase.status = 'missing';
+            return {
+                artifact: artifactBase,
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                warnings: []
+            };
+        }
+        if (parsed.status !== 'parsed' || !parsed.report) {
+            const warnings = parsed.status === 'invalid' && parsed.parseError
+                ? [parsed.parseError]
+                : parsed.status === 'missing'
+                    ? ['No completion report JSON block was found at the end of the Codex last message.']
+                    : [];
+            artifactBase.warnings = warnings;
+            return {
+                artifact: {
+                    ...artifactBase,
+                    warnings
+                },
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                warnings
+            };
+        }
+        const warnings = [];
+        if (parsed.report.selectedTaskId !== input.selectedTask.id) {
+            warnings.push(`Completion report selectedTaskId ${parsed.report.selectedTaskId} did not match the selected task ${input.selectedTask.id}.`);
+            return {
+                artifact: {
+                    ...artifactBase,
+                    warnings
+                },
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                warnings
+            };
+        }
+        let requestedStatus = parsed.report.requestedStatus;
+        if (requestedStatus === 'done') {
+            if (input.verificationStatus !== 'passed') {
+                warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
+            }
+            if (parsed.report.needsHumanReview) {
+                warnings.push('Completion report requested done while also declaring needsHumanReview.');
+            }
+            if (warnings.length > 0) {
+                return {
+                    artifact: {
+                        ...artifactBase,
+                        warnings
+                    },
+                    selectedTask: input.selectedTask,
+                    progressChanged: false,
+                    taskFileChanged: false,
+                    warnings
+                };
+            }
+        }
+        if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
+            warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
+            return {
+                artifact: {
+                    ...artifactBase,
+                    warnings
+                },
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                warnings
+            };
+        }
+        let taskFileChanged = false;
+        let progressChanged = false;
+        await this.stateManager.updateTaskFile(input.prepared.paths, (taskFile) => {
+            const nextTasks = taskFile.tasks.map((task) => {
+                if (task.id !== input.selectedTask.id) {
+                    return task;
+                }
+                const nextTask = {
+                    ...task,
+                    status: requestedStatus,
+                    notes: parsed.report.progressNote ?? task.notes,
+                    blocker: requestedStatus === 'blocked'
+                        ? parsed.report.blocker ?? task.blocker
+                        : task.blocker
+                };
+                if (requestedStatus !== 'blocked' && parsed.report.blocker) {
+                    nextTask.blocker = parsed.report.blocker;
+                }
+                taskFileChanged = nextTask.status !== task.status
+                    || nextTask.notes !== task.notes
+                    || nextTask.blocker !== task.blocker;
+                return nextTask;
+            });
+            return {
+                ...taskFile,
+                tasks: nextTasks
+            };
+        });
+        if (parsed.report.progressNote) {
+            await this.stateManager.appendProgressBullet(input.prepared.paths, parsed.report.progressNote);
+            progressChanged = true;
+        }
+        const selectedTask = await this.stateManager.selectedTask(input.prepared.paths, input.selectedTask.id);
+        return {
+            artifact: {
+                ...artifactBase,
+                status: 'applied',
+                warnings
+            },
+            selectedTask,
+            progressChanged,
+            taskFileChanged,
+            warnings
+        };
     }
     async preparePrompt(workspaceFolder, progress) {
         const prepared = await this.prepareIterationContext(workspaceFolder, progress, false);
@@ -484,13 +785,15 @@ class RalphIterationEngine {
             phaseTimestamps.executionFinishedAt = phaseTimestamps.executionStartedAt;
         }
         phaseTimestamps.resultCollectedAt = new Date().toISOString();
-        const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
+        const afterCoreStateBeforeReconciliation = await (0, verifier_1.captureCoreState)(prepared.paths);
         const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
         const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
         progress.report({ message: 'Running Ralph verifiers' });
         const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
             ? await (0, verifier_1.runValidationCommandVerifier)({
                 command: prepared.validationCommand,
+                taskValidationHint: prepared.taskValidationHint,
+                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
                 rootPath: prepared.rootPolicy.verificationRootPath,
                 artifactDir: artifactPaths.directory
             })
@@ -510,28 +813,6 @@ class RalphIterationEngine {
                     command: prepared.validationCommand ?? undefined
                 }
             };
-        const taskStateVerification = prepared.config.verifierModes.includes('taskState')
-            ? await (0, verifier_1.runTaskStateVerifier)({
-                selectedTaskId: prepared.selectedTask?.id ?? null,
-                before: prepared.beforeCoreState,
-                after: afterCoreState,
-                artifactDir: artifactPaths.directory
-            })
-            : {
-                selectedTaskAfter: prepared.selectedTask,
-                selectedTaskCompleted: false,
-                selectedTaskBlocked: false,
-                humanReviewNeeded: false,
-                progressChanged: false,
-                taskFileChanged: false,
-                result: {
-                    verifier: 'taskState',
-                    status: 'skipped',
-                    summary: 'Task-state verifier disabled for this iteration.',
-                    warnings: [],
-                    errors: []
-                }
-            };
         const shouldRunFileChangeVerifier = prepared.selectedTask !== null
             && (prepared.config.verifierModes.includes('gitDiff')
                 || prepared.config.gitCheckpointMode === 'snapshotAndDiff');
@@ -542,7 +823,7 @@ class RalphIterationEngine {
                 beforeGit: prepared.beforeGit,
                 afterGit,
                 before: prepared.beforeCoreState,
-                after: afterCoreState
+                after: afterCoreStateBeforeReconciliation
             })
             : {
                 diffSummary: null,
@@ -556,6 +837,57 @@ class RalphIterationEngine {
                     errors: []
                 }
             };
+        const preliminaryVerificationStatus = (0, loopLogic_1.classifyVerificationStatus)([
+            validationVerification.result.status,
+            fileChangeVerification.result.status
+        ]);
+        const preliminaryOutcome = (0, loopLogic_1.classifyIterationOutcome)({
+            selectedTaskId: prepared.selectedTask?.id ?? null,
+            selectedTaskCompleted: false,
+            selectedTaskBlocked: false,
+            humanReviewNeeded: false,
+            remainingSubtaskCount: (0, taskFile_1.remainingSubtasks)(afterCoreStateBeforeReconciliation.taskFile, prepared.selectedTask?.id ?? null).length,
+            remainingTaskCount: (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).todo
+                + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).in_progress
+                + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).blocked,
+            executionStatus,
+            verificationStatus: preliminaryVerificationStatus,
+            validationFailureSignature: validationVerification.result.failureSignature ?? null,
+            relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
+            progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
+            taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
+            previousIterations: prepared.state.iterationHistory
+        });
+        const completionReconciliation = await this.reconcileCompletionReport({
+            prepared,
+            selectedTask: prepared.selectedTask,
+            verificationStatus: preliminaryVerificationStatus,
+            preliminaryClassification: preliminaryOutcome.classification,
+            lastMessage
+        });
+        const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
+        const taskStateVerification = prepared.config.verifierModes.includes('taskState')
+            ? await (0, verifier_1.runTaskStateVerifier)({
+                selectedTaskId: prepared.selectedTask?.id ?? null,
+                before: prepared.beforeCoreState,
+                after: afterCoreState,
+                artifactDir: artifactPaths.directory
+            })
+            : {
+                selectedTaskAfter: completionReconciliation.selectedTask ?? prepared.selectedTask,
+                selectedTaskCompleted: false,
+                selectedTaskBlocked: false,
+                humanReviewNeeded: false,
+                progressChanged: completionReconciliation.progressChanged,
+                taskFileChanged: completionReconciliation.taskFileChanged,
+                result: {
+                    verifier: 'taskState',
+                    status: 'skipped',
+                    summary: 'Task-state verifier disabled for this iteration.',
+                    warnings: [],
+                    errors: []
+                }
+            };
         phaseTimestamps.verificationFinishedAt = new Date().toISOString();
         const verifierResults = [
             validationVerification.result,
@@ -563,7 +895,9 @@ class RalphIterationEngine {
             taskStateVerification.result
         ];
         const verificationStatus = (0, loopLogic_1.classifyVerificationStatus)(verifierResults.map((item) => item.status));
-        const selectedTaskAfter = taskStateVerification.selectedTaskAfter ?? prepared.selectedTask;
+        const selectedTaskAfter = taskStateVerification.selectedTaskAfter
+            ?? completionReconciliation.selectedTask
+            ?? prepared.selectedTask;
         const remainingSubtaskList = (0, taskFile_1.remainingSubtasks)(afterCoreState.taskFile, prepared.selectedTask?.id ?? null);
         const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(afterCoreState.taskFile);
         const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
@@ -609,6 +943,7 @@ class RalphIterationEngine {
         ].join(' | ');
         const warnings = [
             ...executionWarnings,
+            ...completionReconciliation.warnings,
             ...verifierResults.flatMap((item) => item.warnings)
         ];
         const errors = [
@@ -630,6 +965,9 @@ class RalphIterationEngine {
                 promptTarget: prepared.executionPlan.promptTarget,
                 rootPolicy: prepared.rootPolicy,
                 templatePath: prepared.executionPlan.templatePath,
+                taskValidationHint: prepared.taskValidationHint,
+                effectiveValidationCommand: prepared.effectiveValidationCommand,
+                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
                 executionPlanPath: prepared.executionPlanPath,
                 executionPlanHash: prepared.executionPlanHash,
                 promptArtifactPath: prepared.executionPlan.promptArtifactPath,
@@ -663,6 +1001,9 @@ class RalphIterationEngine {
                 stderrPath: artifactPaths.stderrPath
             },
             verification: {
+                taskValidationHint: prepared.taskValidationHint,
+                effectiveValidationCommand: prepared.effectiveValidationCommand,
+                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
                 primaryCommand: validationVerification.command ?? null,
                 validationFailureSignature: validationVerification.result.failureSignature ?? null,
                 verifiers: verifierResults
@@ -673,9 +1014,11 @@ class RalphIterationEngine {
             },
             diffSummary: fileChangeVerification.diffSummary,
             noProgressSignals: outcome.noProgressSignals,
+            completionReportStatus: completionReconciliation.artifact.status,
+            reconciliationWarnings: completionReconciliation.warnings,
             stopReason: null
         };
-        const loopDecision = (0, loopLogic_1.decideLoopContinuation)({
+        let loopDecision = (0, loopLogic_1.decideLoopContinuation)({
             currentResult: result,
             selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
             remainingSubtaskCount: remainingSubtaskList.length,
@@ -687,9 +1030,20 @@ class RalphIterationEngine {
             reachedIterationCap: options.reachedIterationCap,
             previousIterations: prepared.state.iterationHistory
         });
+        const runtimeChanges = controlPlaneRuntimeChanges(fileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
         if (!loopDecision.shouldContinue) {
             result.stopReason = loopDecision.stopReason;
             result.followUpAction = 'stop';
+        }
+        else if (runtimeChanges.length > 0) {
+            loopDecision = {
+                shouldContinue: false,
+                stopReason: 'control_plane_reload_required',
+                message: 'Control-plane runtime files changed; rerun Ralph in a fresh process before continuing.'
+            };
+            result.stopReason = 'control_plane_reload_required';
+            result.followUpAction = 'stop';
+            result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
         }
         phaseTimestamps.persistedAt = new Date().toISOString();
         await (0, artifactStore_1.writeIterationArtifacts)({
@@ -697,6 +1051,7 @@ class RalphIterationEngine {
             artifactRootDir: prepared.paths.artifactDir,
             prompt: prepared.prompt,
             promptEvidence: prepared.promptEvidence,
+            completionReport: completionReconciliation.artifact,
             stdout: execStdout,
             stderr: execStderr,
             executionSummary: {
@@ -706,6 +1061,9 @@ class RalphIterationEngine {
                 promptTarget: prepared.executionPlan.promptTarget,
                 rootPolicy: prepared.rootPolicy,
                 templatePath: prepared.executionPlan.templatePath,
+                taskValidationHint: prepared.taskValidationHint,
+                effectiveValidationCommand: prepared.effectiveValidationCommand,
+                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
                 executionPlanPath: prepared.executionPlanPath,
                 executionPlanHash: prepared.executionPlanHash,
                 promptArtifactPath: prepared.executionPlan.promptArtifactPath,
@@ -718,7 +1076,8 @@ class RalphIterationEngine {
                 message: executionErrors[0] ?? null,
                 transcriptPath,
                 lastMessagePath,
-                lastMessage: summarizeLastMessage(lastMessage, execExitCode)
+                lastMessage: summarizeLastMessage(lastMessage, execExitCode),
+                completionReportStatus: completionReconciliation.artifact.status
             },
             verifierSummary: verifierResults,
             diffSummary: fileChangeVerification.diffSummary,
@@ -756,6 +1115,7 @@ class RalphIterationEngine {
         }
         const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
         await this.stateManager.recordIteration(prepared.rootPath, prepared.paths, prepared.state, result, prepared.objectiveText, runRecord);
+        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
         this.logger.info('Completed Ralph iteration.', {
             iteration: prepared.iteration,
             selectedTaskId: prepared.selectedTask?.id ?? null,
@@ -836,11 +1196,24 @@ class RalphIterationEngine {
             taskCounts: effectiveTaskCounts
         });
         const promptKind = promptDecision.kind;
-        const validationCommand = promptKind === 'replenish-backlog'
+        const taskValidationHint = selectedTask?.validation?.trim() || null;
+        const selectedValidationCommand = promptKind === 'replenish-backlog'
             ? null
             : (0, verifier_1.chooseValidationCommand)(summary, selectedTask, config.validationCommandOverride);
+        const effectiveValidationCommand = promptKind === 'replenish-backlog'
+            ? null
+            : (0, verifier_1.normalizeValidationCommand)({
+                command: selectedValidationCommand,
+                workspaceRootPath: workspaceFolder.uri.fsPath,
+                verificationRootPath: rootPolicy.verificationRootPath
+            });
+        const normalizedValidationCommandFrom = selectedValidationCommand
+            && effectiveValidationCommand
+            && selectedValidationCommand !== effectiveValidationCommand
+            ? selectedValidationCommand
+            : null;
         const validationCommandReadiness = await (0, verifier_1.inspectValidationCommandReadiness)({
-            command: validationCommand,
+            command: effectiveValidationCommand,
             rootPath: rootPolicy.verificationRootPath
         });
         const trustLevel = trustLevelForTarget(promptTarget);
@@ -867,7 +1240,9 @@ class RalphIterationEngine {
             taskInspection,
             taskCounts: effectiveTaskCounts,
             selectedTask,
-            validationCommand,
+            taskValidationHint,
+            validationCommand: effectiveValidationCommand,
+            normalizedValidationCommandFrom,
             validationCommandReadiness,
             fileStatus: snapshot.fileStatus,
             createdPaths: snapshot.createdPaths,
@@ -886,7 +1261,10 @@ class RalphIterationEngine {
             report: preflightReport,
             selectedTaskId: selectedTask?.id ?? null,
             selectedTaskTitle: selectedTask?.title ?? null,
-            validationCommand
+            taskValidationHint,
+            effectiveValidationCommand,
+            normalizedValidationCommandFrom,
+            validationCommand: effectiveValidationCommand
         });
         progress.report({ message: preflightReport.summary });
         this.logger.appendText((0, preflight_1.renderPreflightReport)(preflightReport));
@@ -906,7 +1284,8 @@ class RalphIterationEngine {
                 promptKind,
                 promptTarget,
                 trustLevel,
-                retentionCount: config.provenanceBundleRetentionCount,
+                provenanceRetentionCount: config.provenanceBundleRetentionCount,
+                generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
                 selectedTask,
                 rootPolicy,
                 persistedPreflightReport,
@@ -930,7 +1309,10 @@ class RalphIterationEngine {
             paths: snapshot.paths,
             taskFile,
             selectedTask,
-            validationCommand,
+            taskValidationHint,
+            effectiveValidationCommand,
+            normalizedValidationCommandFrom,
+            validationCommand: effectiveValidationCommand,
             preflightReport,
             config
         });
@@ -953,6 +1335,9 @@ class RalphIterationEngine {
             iteration,
             selectedTaskId: selectedTask?.id ?? null,
             selectedTaskTitle: selectedTask?.title ?? null,
+            taskValidationHint,
+            effectiveValidationCommand,
+            normalizedValidationCommandFrom,
             promptKind,
             promptTarget,
             selectionReason: promptDecision.reason,
@@ -990,7 +1375,9 @@ class RalphIterationEngine {
             executionPlanPath: artifactPaths.executionPlanPath,
             promptEvidence,
             selectedTaskId: selectedTask?.id ?? null,
-            validationCommand
+            taskValidationHint,
+            effectiveValidationCommand,
+            normalizedValidationCommandFrom
         });
         const preparedContext = {
             config,
@@ -1018,7 +1405,10 @@ class RalphIterationEngine {
             taskCounts: effectiveTaskCounts,
             summary,
             selectedTask,
-            validationCommand,
+            taskValidationHint,
+            effectiveValidationCommand,
+            normalizedValidationCommandFrom,
+            validationCommand: effectiveValidationCommand,
             preflightReport,
             persistedPreflightReport,
             preflightSummaryText,

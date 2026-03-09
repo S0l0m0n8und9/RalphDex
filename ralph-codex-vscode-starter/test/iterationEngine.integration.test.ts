@@ -77,6 +77,10 @@ async function updateTaskFile(rootPath: string, transform: (taskFile: RalphTaskF
   await fs.writeFile(target, `${JSON.stringify(transform(taskFile), null, 2)}\n`, 'utf8');
 }
 
+function completionReport(report: Record<string, unknown>, preamble = 'Structured completion report follows.'): string {
+  return `${preamble}\n\n\`\`\`json\n${JSON.stringify(report, null, 2)}\n\`\`\``;
+}
+
 async function seedWorkspace(rootPath: string, taskFile: RalphTaskFile): Promise<void> {
   await fs.mkdir(path.join(rootPath, 'src'), { recursive: true });
   await fs.writeFile(path.join(rootPath, 'package.json'), JSON.stringify({
@@ -207,6 +211,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    generatedArtifactRetentionCount: 1,
     verifierModes: ['gitDiff', 'taskState'],
     gitCheckpointMode: 'snapshotAndDiff'
   });
@@ -216,11 +221,15 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   const first = createEngine([
     {
       run: async () => {
-        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "iteration-one";\n', 'utf8');
-        await appendProgress(rootPath, 'Iteration one changed src/feature.ts.');
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# iteration one\n', 'utf8');
         return {
-          stdout: 'changed feature.ts',
-          lastMessage: 'Iteration one made progress.'
+          stdout: 'updated README.md',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'in_progress',
+            progressNote: 'Iteration one updated README.md.',
+            validationRan: 'npm test'
+          }, 'Iteration one made progress.')
         };
       }
     }
@@ -233,6 +242,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.equal(firstRun.result.completionClassification, 'partial_progress');
   assert.equal(firstRun.result.verificationStatus, 'passed');
   assert.equal(firstRun.loopDecision.shouldContinue, true);
+  assert.equal(firstRun.result.completionReportStatus, 'applied');
   assert.equal(firstRun.result.selectedTaskId, 'T1');
   assert.equal(firstRun.result.selectedTaskTitle, 'Implement parent task');
 
@@ -284,11 +294,24 @@ test('runCliIteration records successful progress, artifacts, and state persiste
     stdinHash: string;
     promptHash: string;
     promptArtifactPath: string;
+    transcriptPath: string;
+    lastMessagePath: string;
   };
   assert.equal(cliInvocation.stdinHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptArtifactPath, executionPlan.promptArtifactPath);
   assert.equal(cliInvocation.provenanceId, executionPlan.provenanceId);
+
+  const latestResult = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    promptPath: string;
+    transcriptPath: string | null;
+    lastMessagePath: string | null;
+    artifactDir: string;
+  };
+  assert.equal(latestResult.artifactDir, iterationDir);
+  assert.equal(latestResult.promptPath, path.join(iterationDir, 'prompt.md'));
+  assert.equal(latestResult.transcriptPath, cliInvocation.transcriptPath);
+  assert.equal(latestResult.lastMessagePath, cliInvocation.lastMessagePath);
 
   const bundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
     provenanceId: string;
@@ -313,18 +336,25 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.equal(reloadedState.iterationHistory.length, 1);
   assert.equal(reloadedState.lastIteration?.selectedTaskTitle, 'Implement parent task');
   assert.equal(reloadedState.lastIteration?.executionIntegrity?.executionPayloadMatched, true);
+  assert.equal(reloadedState.lastIteration?.completionReportStatus, 'applied');
+
+  const firstTaskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  assert.equal(firstTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
+  const firstProgress = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+  assert.match(firstProgress, /Iteration one updated README\.md\./);
 
   const second = createEngine([
     {
       run: async () => {
-        await updateTaskFile(rootPath, (taskFile) => ({
-          ...taskFile,
-          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
-        }));
-        await appendProgress(rootPath, 'Iteration two completed T1.');
+        await fs.writeFile(path.join(rootPath, 'docs-notes.md'), 'Iteration two docs update.\n', 'utf8');
         return {
           stdout: 'completed parent task',
-          lastMessage: 'Iteration two completed the selected task.'
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'done',
+            progressNote: 'Iteration two completed T1.',
+            validationRan: 'npm test'
+          }, 'Iteration two completed the selected task.')
         };
       }
     }
@@ -341,10 +371,34 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.equal(secondRun.result.backlog.remainingTaskCount, 1);
   assert.equal(secondRun.result.backlog.actionableTaskAvailable, true);
   assert.equal(secondRun.loopDecision.shouldContinue, true);
+  assert.equal(secondRun.result.completionReportStatus, 'applied');
+
+  await assert.doesNotReject(fs.access(firstRun.prepared.promptPath));
+  await assert.doesNotReject(fs.access(firstRun.result.artifactDir));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.transcriptPath!));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.lastMessagePath!));
+  await assert.doesNotReject(fs.access(secondRun.prepared.promptPath));
+  await assert.doesNotReject(fs.access(secondRun.result.artifactDir));
+  await assert.doesNotReject(fs.access(secondRun.result.execution.transcriptPath!));
+  await assert.doesNotReject(fs.access(secondRun.result.execution.lastMessagePath!));
+
+  const reloadedFinalState = await second.stateManager.loadState(rootPath, second.stateManager.resolvePaths(rootPath, DEFAULT_CONFIG));
+  assert.equal(reloadedFinalState.runHistory.length, 2);
+  assert.equal(reloadedFinalState.iterationHistory.length, 2);
+  assert.equal(reloadedFinalState.runHistory[0]?.transcriptPath, firstRun.result.execution.transcriptPath);
+  assert.equal(reloadedFinalState.runHistory[1]?.transcriptPath, secondRun.result.execution.transcriptPath);
+  assert.equal(reloadedFinalState.iterationHistory[0]?.artifactDir, firstRun.result.artifactDir);
+  assert.equal(reloadedFinalState.iterationHistory[1]?.artifactDir, secondRun.result.artifactDir);
 
   const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
   assert.match(latestSummary, /Backlog remaining: 1/);
   assert.doesNotMatch(latestSummary, /Stop reason: task_marked_complete/);
+
+  const finalTaskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+  const finalProgress = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+  assert.match(finalProgress, /Iteration one updated README\.md\./);
+  assert.match(finalProgress, /Iteration two completed T1\./);
 });
 
 test('runCliIteration persists blocked preflight evidence before throwing', async () => {
@@ -396,6 +450,163 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
   assert.equal(latestBundle.promptArtifactPath, null);
 });
 
+test('runCliIteration keeps state-referenced generated artifacts when blocked preflight cleanup runs', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Advance a task before a blocked retry', status: 'todo' }
+    ]
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    generatedArtifactRetentionCount: 1,
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const first = createEngine([
+    {
+      run: async () => ({
+        stdout: 'first iteration changed src/feature.ts',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'in_progress',
+          progressNote: 'Iteration one made durable progress.',
+          validationRan: 'npm test'
+        }, 'Iteration one made progress.')
+      })
+    }
+  ], sharedMemento);
+
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(firstRun.result.iteration, 1);
+  assert.equal(firstRun.result.completionClassification, 'partial_progress');
+  await assert.doesNotReject(fs.access(firstRun.prepared.promptPath));
+  await assert.doesNotReject(fs.access(firstRun.result.artifactDir));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.transcriptPath!));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.lastMessagePath!));
+
+  harness.setConfiguration({
+    generatedArtifactRetentionCount: 1,
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off',
+    codexCommandPath: '/tmp/ralph-codex-missing/bin/codex'
+  });
+
+  const second = createEngine([], sharedMemento);
+
+  await assert.rejects(
+    () => second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Ralph preflight blocked iteration start/
+  );
+
+  const blockedIterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-002');
+  await assert.doesNotReject(fs.access(blockedIterationDir));
+  await assert.doesNotReject(fs.access(path.join(blockedIterationDir, 'preflight-report.json')));
+  await assert.doesNotReject(fs.access(path.join(blockedIterationDir, 'preflight-summary.md')));
+
+  await assert.doesNotReject(fs.access(firstRun.prepared.promptPath));
+  await assert.doesNotReject(fs.access(firstRun.result.artifactDir));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.transcriptPath!));
+  await assert.doesNotReject(fs.access(firstRun.result.execution.lastMessagePath!));
+
+  const state = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'state.json'), 'utf8')) as {
+    lastPromptPath: string;
+    lastRun: { transcriptPath: string; lastMessagePath: string };
+    lastIteration: { artifactDir: string };
+  };
+  assert.equal(state.lastPromptPath, firstRun.prepared.promptPath);
+  assert.equal(state.lastRun.transcriptPath, firstRun.result.execution.transcriptPath);
+  assert.equal(state.lastRun.lastMessagePath, firstRun.result.execution.lastMessagePath);
+  assert.equal(state.lastIteration.artifactDir, firstRun.result.artifactDir);
+});
+
+test('runCliIteration keeps an older blocked integrity iteration when latest provenance failure still references it', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Recover from launch-integrity failure', status: 'todo' }
+    ]
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    generatedArtifactRetentionCount: 1,
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const failingRun = createEngine([
+    { run: async () => ({ lastMessage: 'Should not execute.' }) }
+  ], sharedMemento, {
+    beforeCliExecutionIntegrityCheck: async (prepared) => {
+      const executionPlan = JSON.parse(await fs.readFile(prepared.executionPlanPath, 'utf8')) as Record<string, unknown>;
+      executionPlan.selectedTaskTitle = 'Tampered after planning';
+      await fs.writeFile(prepared.executionPlanPath, `${JSON.stringify(executionPlan, null, 2)}\n`, 'utf8');
+    }
+  });
+
+  await assert.rejects(
+    () => failingRun.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /execution plan hash/
+  );
+
+  const firstIterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  await assert.doesNotReject(fs.access(firstIterationDir));
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), `${JSON.stringify({
+    version: 2,
+    nextIteration: 2,
+    runHistory: [],
+    iterationHistory: []
+  }, null, 2)}\n`, 'utf8');
+
+  const recoveryRun = createEngine([
+    {
+      run: async () => ({
+        stdout: 'recovered after integrity failure',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'Recovered after integrity failure.',
+          validationRan: 'npm test'
+        }, 'Recovery iteration completed the task.')
+      })
+    }
+  ], sharedMemento);
+
+  const recovered = await recoveryRun.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(recovered.result.iteration, 2);
+  assert.equal(recovered.result.executionStatus, 'succeeded');
+  await assert.doesNotReject(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002')));
+  await assert.doesNotReject(fs.access(firstIterationDir));
+
+  const latestFailurePointer = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-failure.json'), 'utf8')
+  ) as {
+    stage: string;
+    artifactDir: string;
+  };
+  assert.equal(latestFailurePointer.stage, 'executionPlanHash');
+  assert.equal(latestFailurePointer.artifactDir, firstIterationDir);
+});
+
 test('runCliIteration aligns nested execution and verifier roots while keeping Ralph artifacts at the workspace root', async () => {
   const rootPath = await makeTempRoot();
   const nestedRoot = await seedNestedWorkspace(rootPath, 'ralph-codex-vscode-starter', {
@@ -419,14 +630,14 @@ test('runCliIteration aligns nested execution and verifier roots while keeping R
         assert.equal(request.workspaceRoot, rootPath);
         assert.equal(request.executionRoot, nestedRoot);
         await fs.writeFile(path.join(nestedRoot, 'src', 'feature.ts'), 'export const ready = "nested";\n', 'utf8');
-        await appendProgress(rootPath, 'Nested execution root updated child repo files.');
-        await updateTaskFile(rootPath, (taskFile) => ({
-          ...taskFile,
-          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
-        }));
         return {
           stdout: 'updated nested feature',
-          lastMessage: 'Nested execution root completed the task.'
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'done',
+            progressNote: 'Nested execution root updated child repo files.',
+            validationRan: 'npm run validate'
+          }, 'Nested execution root completed the task.')
         };
       }
     }
@@ -473,6 +684,12 @@ test('runCliIteration aligns nested execution and verifier roots while keeping R
       verificationRootPath: string;
     };
   };
+  const completionArtifact = JSON.parse(await fs.readFile(path.join(iterationDir, 'completion-report.json'), 'utf8')) as {
+    status: string;
+    report: { selectedTaskId: string; requestedStatus: string } | null;
+  };
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
 
   assert.equal(promptEvidence.inputs.rootPolicy.workspaceRootPath, rootPath);
   assert.equal(promptEvidence.inputs.rootPolicy.executionRootPath, nestedRoot);
@@ -487,6 +704,435 @@ test('runCliIteration aligns nested execution and verifier roots while keeping R
   assert.equal(bundle.rootPolicy.workspaceRootPath, rootPath);
   assert.equal(bundle.rootPolicy.executionRootPath, nestedRoot);
   assert.equal(bundle.rootPolicy.verificationRootPath, nestedRoot);
+  assert.equal(completionArtifact.status, 'applied');
+  assert.equal(completionArtifact.report?.selectedTaskId, 'T1');
+  assert.equal(completionArtifact.report?.requestedStatus, 'done');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+  assert.match(progressText, /Nested execution root updated child repo files\./);
+});
+
+test('runCliIteration normalizes a legacy task validation command that redundantly cds into the selected nested verifier root', async () => {
+  const rootPath = await makeTempRoot();
+  const nestedRoot = await seedNestedWorkspace(rootPath, 'ralph-codex-vscode-starter', {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Keep legacy validation hints working',
+        status: 'todo',
+        validation: 'cd ralph-codex-vscode-starter && npm run validate'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async (request) => {
+        assert.equal(request.executionRoot, nestedRoot);
+        await fs.writeFile(path.join(nestedRoot, 'src', 'feature.ts'), 'export const ready = "legacy-validation";\n', 'utf8');
+        await appendProgress(rootPath, 'Legacy nested validation hint stayed runnable.');
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
+        }));
+        return {
+          stdout: 'updated nested feature',
+          lastMessage: 'Legacy validation hint completed the task.'
+        };
+      }
+    }
+  ]);
+
+  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(runSummary.result.executionStatus, 'succeeded');
+  assert.equal(runSummary.result.verificationStatus, 'passed');
+  assert.equal(runSummary.result.verification.primaryCommand, 'npm run validate');
+  assert.equal(await fs.readFile(path.join(nestedRoot, 'validate.cwd.txt'), 'utf8'), nestedRoot);
+});
+
+test('runCliIteration normalizes a legacy task validation command when the opened workspace is already the repo root', async () => {
+  const parentRoot = await makeTempRoot();
+  const rootPath = path.join(parentRoot, 'ralph-codex-vscode-starter');
+  await fs.mkdir(rootPath, { recursive: true });
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Keep direct repo validation hints working',
+        status: 'todo',
+        validation: 'cd ralph-codex-vscode-starter && npm run validate'
+      }
+    ]
+  });
+  await fs.writeFile(path.join(rootPath, 'package.json'), JSON.stringify({
+    name: 'direct-root-fixture',
+    version: '1.0.0',
+    scripts: {
+      validate: 'node -e "require(\'node:fs\').writeFileSync(\'validate.cwd.txt\', process.cwd())"',
+      test: 'node -e "process.exit(0)"'
+    }
+  }, null, 2), 'utf8');
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async (request) => {
+        assert.equal(request.workspaceRoot, rootPath);
+        assert.equal(request.executionRoot, rootPath);
+        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "direct-root-validation";\n', 'utf8');
+        await appendProgress(rootPath, 'Legacy direct-root validation hint stayed runnable.');
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'done' } : task)
+        }));
+        return {
+          stdout: 'updated direct-root feature',
+          lastMessage: 'Legacy direct-root validation hint completed the task.'
+        };
+      }
+    }
+  ]);
+
+  const runSummary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(runSummary.result.executionStatus, 'succeeded');
+  assert.equal(runSummary.result.verificationStatus, 'passed');
+  assert.equal(runSummary.result.verification.primaryCommand, 'npm run validate');
+  assert.equal(await fs.readFile(path.join(rootPath, 'validate.cwd.txt'), 'utf8'), rootPath);
+});
+
+test('runCliIteration rejects a completion report for the wrong selected task id without mutating durable state', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Ship durable reconciliation', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# changed\n', 'utf8');
+        return {
+          stdout: 'updated README',
+          lastMessage: completionReport({
+            selectedTaskId: 'T999',
+            requestedStatus: 'done',
+            progressNote: 'This should be ignored.',
+            validationRan: 'npm test'
+          }, 'Attempted to complete the wrong task.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+  const completionArtifact = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'completion-report.json'), 'utf8')) as {
+    status: string;
+    warnings: string[];
+  };
+
+  assert.equal(summary.result.verificationStatus, 'passed');
+  assert.equal(summary.result.completionReportStatus, 'rejected');
+  assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /did not match the selected task T1/);
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.doesNotMatch(progressText, /This should be ignored\./);
+  assert.equal(completionArtifact.status, 'rejected');
+});
+
+for (const scenario of [
+  {
+    name: 'missing',
+    lastMessage: 'No structured completion report was emitted.',
+    parsePattern: /No completion report JSON block was found/
+  },
+  {
+    name: 'invalid',
+    lastMessage: completionReport({
+      selectedTaskId: 'T1',
+      requestedStatus: 'ship-it'
+    }, 'Malformed report.'),
+    parsePattern: /requestedStatus must be one of done, blocked, or in_progress/
+  }
+] as const) {
+  test(`runCliIteration records ${scenario.name} completion reports without mutating durable state`, async () => {
+    const rootPath = await makeTempRoot();
+    await seedWorkspace(rootPath, {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Require a structured completion report', status: 'todo' }
+      ]
+    });
+    await initGitRepo(rootPath);
+
+    const harness = vscodeTestHarness();
+    harness.setConfiguration({
+      verifierModes: ['validationCommand', 'taskState'],
+      gitCheckpointMode: 'off'
+    });
+    harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+    const run = createEngine([
+      {
+        run: async () => {
+          await fs.writeFile(path.join(rootPath, 'README.md'), `# ${scenario.name}\n`, 'utf8');
+          return {
+            stdout: `updated ${scenario.name}`,
+            lastMessage: scenario.lastMessage
+          };
+        }
+      }
+    ]);
+
+    const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+      reachedIterationCap: false
+    });
+
+    const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+    const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+    const completionArtifact = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'completion-report.json'), 'utf8')) as {
+      status: string;
+      parseError: string | null;
+      warnings: string[];
+    };
+
+    assert.equal(summary.result.verificationStatus, 'passed');
+    assert.equal(summary.result.completionReportStatus, scenario.name);
+    assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+    assert.doesNotMatch(progressText, /structured completion report/i);
+    assert.equal(completionArtifact.status, scenario.name);
+    assert.match((completionArtifact.parseError ?? '') || completionArtifact.warnings.join('\n'), scenario.parsePattern);
+  });
+}
+
+test('runCliIteration does not mark a task done when the completion report requests done but verification fails', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Only reconcile done after verification passes',
+        status: 'todo',
+        validation: 'node -e "process.exit(1)"'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# failed validation\n', 'utf8');
+        return {
+          stdout: 'updated README',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'done',
+            progressNote: 'This should not be persisted.',
+            validationRan: 'node -e "process.exit(1)"'
+          }, 'Reported done despite failing verification.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+
+  assert.equal(summary.result.verificationStatus, 'failed');
+  assert.equal(summary.result.completionReportStatus, 'rejected');
+  assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /verification status was failed/);
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.doesNotMatch(progressText, /This should not be persisted\./);
+});
+
+test('runCliIteration applies blocked completion reports through control-plane reconciliation', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Persist blockers safely', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'blocked on dependency',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'blocked',
+          progressNote: 'Blocked while waiting for the upstream schema.',
+          blocker: 'Waiting on API contract.'
+        }, 'Blocked on an external dependency.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const selectedTask = taskFile.tasks.find((task) => task.id === 'T1');
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(summary.result.completionClassification, 'blocked');
+  assert.equal(summary.result.verificationStatus, 'failed');
+  assert.equal(selectedTask?.status, 'blocked');
+  assert.equal(selectedTask?.blocker, 'Waiting on API contract.');
+  assert.equal(selectedTask?.notes, 'Blocked while waiting for the upstream schema.');
+  assert.match(progressText, /Blocked while waiting for the upstream schema\./);
+});
+
+test('runCliIteration stops loop continuation when control-plane runtime files change', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Trigger the reload barrier', status: 'todo' },
+      { id: 'T1.1', title: 'Keep iterating after progress', status: 'todo', parentId: 'T1' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['gitDiff', 'taskState'],
+    gitCheckpointMode: 'snapshotAndDiff'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "reload-barrier";\n', 'utf8');
+        return {
+          stdout: 'updated src/feature.ts',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'in_progress',
+            progressNote: 'Updated src/feature.ts.',
+            validationRan: 'npm test'
+          }, 'Changed control-plane runtime files.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(summary.result.verificationStatus, 'passed');
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(summary.loopDecision.shouldContinue, false);
+  assert.equal(summary.loopDecision.stopReason, 'control_plane_reload_required');
+  assert.equal(summary.result.stopReason, 'control_plane_reload_required');
+  assert.match(summary.result.warnings.join('\n'), /src\/feature\.ts/);
+});
+
+test('runCliIteration keeps looping after test-only changes because they do not modify the control plane runtime', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Allow safe non-runtime edits', status: 'todo' },
+      { id: 'T1.1', title: 'Keep iterating after tests', status: 'todo', parentId: 'T1' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['gitDiff', 'taskState'],
+    gitCheckpointMode: 'snapshotAndDiff'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.mkdir(path.join(rootPath, 'test'), { recursive: true });
+        await fs.writeFile(path.join(rootPath, 'test', 'feature.test.ts'), 'export {};\n', 'utf8');
+        return {
+          stdout: 'updated test/feature.test.ts',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'in_progress',
+            progressNote: 'Added a test-only change.',
+            validationRan: 'npm test'
+          }, 'Changed only test files.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(summary.result.verificationStatus, 'passed');
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(summary.loopDecision.shouldContinue, true);
+  assert.equal(summary.loopDecision.stopReason, null);
+  assert.equal(summary.result.stopReason, null);
 });
 
 test('runCliIteration honors inspectionRootOverride for ambiguous multi-repo workspaces', async () => {

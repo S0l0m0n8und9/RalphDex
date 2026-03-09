@@ -96,11 +96,13 @@ The control plane stays deterministic:
 
 - prompt kinds are `bootstrap`, `iteration`, `replenish-backlog`, `fix-failure`, `continue-progress`, and `human-review-handoff`
 - when the durable backlog is exhausted, Ralph may run a dedicated replenishment prompt that updates `.ralph/tasks.json`; it must still leave the task file explicit, flat, and version 2
+- during normal CLI task execution, Ralph reconciles the model's structured completion report locally; the model does not directly persist `.ralph/tasks.json` or `.ralph/progress.md`
 - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
 - the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
 - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
 - execution must bind to persisted artifacts before launch
 - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
+- machine-readable results must also record completion-report reconciliation status and warnings when that contract applies
 - status surfaces must remain readable without forcing users to inspect raw JSON
 
 Selected-task completion is not the same as backlog completion. Summaries and status surfaces must keep remaining backlog explicit.
@@ -115,6 +117,7 @@ Each iteration directory is predictable and should include the artifacts that ap
 - `prompt-evidence.json`
 - `execution-plan.json`
 - `cli-invocation.json` for CLI runs
+- `completion-report.json` for CLI runs
 - `summary.md`
 - `execution-summary.json`
 - `verifier-summary.json`
@@ -148,6 +151,28 @@ Run-bundle cleanup stays deterministic and file-based:
 
 - keep the newest bundle plus the newest `N` bundles configured by retention
 - never delete a bundle still referenced by any latest pointer
+- allow `0` to disable automatic cleanup
+
+Generated non-provenance artifact cleanup also stays deterministic and file-based:
+
+- `ralphCodex.generatedArtifactRetentionCount` bounds `.ralph/prompts/`, `.ralph/runs/`, and `.ralph/artifacts/iteration-###/`
+- cleanup keeps the newest `N` generated prompts, run artifact pairs, and iteration directories by parsed iteration number
+- cleanup resolves each generated-artifact category independently: keep the newest `N` entries first, then union in any protected references, and report retained entries in newest-first iteration order
+- when retention and protection conflict, protection only adds the referenced older entries; it does not evict or reorder the newer `N` entries already retained by iteration precedence
+- cleanup summaries and logs must also report which retained entries were added only because of protected references, so precedence conflicts remain inspectable without re-deriving the set difference by hand
+- cleanup only treats the following records as protected roots for generated artifacts:
+- `.ralph/state.json`: `lastPromptPath`, `lastRun.promptPath`, `lastRun.transcriptPath`, `lastRun.lastMessagePath`, `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, `lastIteration.execution.lastMessagePath`, and the same prompt, transcript, last-message, and iteration-directory fields within every `runHistory[]` and `iterationHistory[]` entry
+- those direct state path references stay protected even when an older raw state record omits the matching run `iteration`; iteration-directory protection is only derived when an iteration number is present
+- when persisted state omits `lastIteration` or `iterationHistory[]`, cleanup derives the equivalent protected iteration-directory, prompt, transcript, and last-message references from the stored `lastRun` or `runHistory[]` iteration numbers
+- stable latest-pointer JSON artifacts: `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`
+- stable latest-summary surfaces: `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the implied iteration directory when their persisted heading, iteration line, or artifact-path lines still point at an older retained iteration
+- `latest-result.json` can independently protect an older iteration directory, prompt file, and transcript/last-message pair through its persisted `artifactDir`, `summaryPath`, `promptPath`, `promptArtifactPath`, `transcriptPath`, and `lastMessagePath`
+- `latest-preflight-report.json` can independently protect an older iteration directory through its persisted `artifactDir`, `reportPath`, and `summaryPath`; it does not protect prompt or run artifacts by itself
+- `latest-execution-plan.json` can independently protect an older iteration directory and prompt file through its persisted `artifactDir`, `promptPath`, `promptArtifactPath`, and `executionPlanPath`; `latest-cli-invocation.json` can independently protect an older iteration directory plus its transcript/last-message pair through `promptArtifactPath`, `cliInvocationPath`, `transcriptPath`, and `lastMessagePath`
+- `latest-prompt-evidence.json` protects the prompt file and iteration directory implied by its persisted `kind` plus `iteration`; it does not protect transcript or last-message files by itself
+- `latest-provenance-bundle.json` and `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths; they do not protect prompt files in `.ralph/prompts/` or transcript/last-message pairs in `.ralph/runs/`
+- within those latest-pointer JSON artifacts, only the prompt, transcript/last-message, iteration-directory, preflight, summary, execution-plan, CLI-invocation, iteration-result, and provenance-failure path fields count as protected references
+- cleanup runs after Ralph persists prompt or iteration provenance so prompt-only and executed paths converge on the same retention rule
 - allow `0` to disable automatic cleanup
 
 Git handling is detection/reporting only. Do not add branch orchestration, worktree orchestration, or destructive git behavior as part of the control plane.

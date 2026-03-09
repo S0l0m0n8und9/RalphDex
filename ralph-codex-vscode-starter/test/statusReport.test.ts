@@ -128,6 +128,9 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
         promptTarget: 'cliExec',
         rootPolicy: nestedRootPolicy,
         templatePath: '/workspace/prompt-templates/iteration.md',
+        taskValidationHint: 'cd nested && npm run validate',
+        effectiveValidationCommand: 'npm run validate',
+        normalizedValidationCommandFrom: 'cd nested && npm run validate',
         executionPlanPath: '/workspace/.ralph/artifacts/iteration-002/execution-plan.json',
         promptArtifactPath: '/workspace/.ralph/artifacts/iteration-002/prompt.md',
         promptHash: 'sha256:abc123',
@@ -160,6 +163,9 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
         message: 'codex exec completed successfully.'
       },
       verification: {
+        taskValidationHint: 'cd nested && npm run validate',
+        effectiveValidationCommand: 'pytest',
+        normalizedValidationCommandFrom: null,
         primaryCommand: 'pytest',
         validationFailureSignature: 'pytest::exit:127::not found',
         verifiers: []
@@ -170,6 +176,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       },
       diffSummary: null,
       noProgressSignals: [],
+      completionReportStatus: 'applied',
+      reconciliationWarnings: [],
       stopReason: null
     },
     latestSummaryPath: '/workspace/.ralph/artifacts/latest-summary.md',
@@ -195,6 +203,9 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       iteration: 3,
       selectedTaskId: 'T2',
       selectedTaskTitle: 'Next task',
+      taskValidationHint: 'cd nested && npm run validate',
+      effectiveValidationCommand: 'npm run validate',
+      normalizedValidationCommandFrom: 'cd nested && npm run validate',
       promptKind: 'fix-failure',
       promptTarget: 'cliExec',
       selectionReason: 'Prior verification failed.',
@@ -258,6 +269,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       createdAt: '2026-03-07T00:06:00.000Z',
       updatedAt: '2026-03-07T00:06:00.000Z'
     },
+    generatedArtifactRetentionCount: 25,
     provenanceBundleRetentionCount: 25,
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     gitCheckpointMode: 'off',
@@ -297,8 +309,19 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Package manager indicators: package\.json/);
   assert.match(report, /- Trust level: prepared prompt only/);
   assert.match(report, /Prepared prompt provenance only; later IDE execution may differ/);
-  assert.match(report, /- Bundle retention on write: keep latest 25/);
+  assert.match(report, /- Generated artifact retention on write: keep newest 25 prompts, runs, and iterations first; then add older protected references without evicting them/);
+  assert.match(report, /- Bundle retention on write: keep newest 25 bundles first; then add older protected references without evicting them/);
   assert.match(report, /Ralph Codex: Reveal Latest Provenance Bundle Directory/);
+});
+
+test('buildStatusReport shows disabled retention settings explicitly', () => {
+  const report = buildStatusReport(snapshot({
+    generatedArtifactRetentionCount: 0,
+    provenanceBundleRetentionCount: 0
+  }));
+
+  assert.match(report, /- Generated artifact retention on write: disabled/);
+  assert.match(report, /- Bundle retention on write: disabled/);
 });
 
 test('buildStatusReport shows preflight task-graph diagnostics from schema drift', () => {

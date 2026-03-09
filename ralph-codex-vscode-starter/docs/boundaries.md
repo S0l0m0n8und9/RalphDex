@@ -40,9 +40,12 @@ Ralph is intentionally deterministic. It does not try to become a general autono
 
 The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
 
+Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
+
 It does not:
 
 - let the model freely choose implementation work outside the durable task file; backlog replenishment must still write explicit next tasks back into `.ralph/tasks.json`
+- let the model arbitrarily rewrite durable Ralph state during normal CLI task execution
 - replace deterministic stop logic with freeform intent inference
 - inject raw transcript dumps into future prompts
 - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping

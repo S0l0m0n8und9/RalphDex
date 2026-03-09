@@ -155,6 +155,318 @@
       ],
       "notes": "Satisfied by the `ralphCodex.inspectionRootOverride` implementation completed under T8.4; retained here only as the previously-recorded duplicate follow-on item.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T11",
+      "title": "Add bounded retention for iteration, prompt, and transcript artifacts so repeated Ralph loops do not grow unbounded",
+      "status": "done",
+      "notes": "Surfaced generated artifact retention in Show Status, added explicit enabled/disabled coverage, and aligned testing docs with the existing prompt/run/iteration cleanup behavior.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T12",
+      "title": "Protect latest-linked artifacts and state-referenced run files when non-provenance retention cleanup executes",
+      "status": "done",
+      "dependsOn": [
+        "T11"
+      ],
+      "notes": "Added explicit regression and doc coverage proving latest-preflight-report.json protects only the referenced iteration directory during generated-artifact cleanup; npm test passed.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T12.1",
+      "title": "Identify the protected latest pointers and state references that non-provenance cleanup must honor",
+      "status": "done",
+      "parentId": "T12",
+      "dependsOn": [
+        "T11"
+      ],
+      "notes": "Enumerate exactly which latest-pointer JSON artifacts and `.ralph/state.json` references count as protected roots for generated prompts, run transcripts/last-message pairs, and iteration directories.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T12.2",
+      "title": "Define deterministic retention precedence rules when generated-artifact cleanup and protected references conflict",
+      "status": "done",
+      "parentId": "T12",
+      "dependsOn": [
+        "T12.1"
+      ],
+      "notes": "Made generated-artifact retention precedence explicit in the high-level README and architecture docs: Ralph keeps the newest parsed-iteration window first, then adds older protected references without evicting newer retained entries.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T12.3",
+      "title": "Implement protected-artifact retention for latest-linked prompts, summaries, transcripts, and iteration directories",
+      "status": "done",
+      "parentId": "T12",
+      "dependsOn": [
+        "T12.2"
+      ],
+      "notes": "Update non-provenance cleanup so it preserves the newest prompt, transcript/last-message pair, preflight/summary surface, or iteration directory still referenced by stable latest pointers or workspace state.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T12.4",
+      "title": "Add targeted regression coverage for protected latest-linked and state-referenced generated artifacts",
+      "status": "todo",
+      "parentId": "T12",
+      "dependsOn": [
+        "T12.3"
+      ],
+      "notes": "Cover protected prompts, summaries, preflight snapshots, transcripts, last-message artifacts, and iteration directories so cleanup cannot regress silently.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T13",
+      "title": "Detect and repair stale latest-artifact pointers when operators manually delete generated Ralph files",
+      "status": "todo",
+      "dependsOn": [
+        "T12"
+      ],
+      "notes": "The current status and open-latest flows largely treat missing files as absence; Ralph should recover or surface deterministic repair guidance when state or latest pointers outlive deleted artifacts.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T14",
+      "title": "Expand Show Status with recent iteration and run history plus artifact-retention summaries",
+      "status": "todo",
+      "dependsOn": [
+        "T13"
+      ],
+      "notes": "Status already summarizes the latest iteration, but operators still lack a compact durable view of recent loop history, retention cleanup, and missing-artifact recovery state.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T15",
+      "title": "Add direct commands to open the latest prompt evidence and latest CLI transcript or last-message artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T13"
+      ],
+      "notes": "Operators can already open the latest summary and provenance bundle, but prompt-evidence and run-transcript inspection still require manual file navigation.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T16",
+      "title": "Surface stale-artifact and retention-readiness diagnostics in preflight before a loop starts",
+      "status": "todo",
+      "dependsOn": [
+        "T13"
+      ],
+      "notes": "Preflight should warn when latest pointers are stale, cleanup cannot run safely, or retention settings would leave the workspace in a confusing state.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T17",
+      "title": "Add a scoped cleanup workflow that prunes generated runtime artifacts without fully resetting durable loop state",
+      "status": "todo",
+      "dependsOn": [
+        "T16"
+      ],
+      "notes": "Reset Runtime State is all-or-nothing; operators need a safer maintenance path for pruning generated clutter while preserving the current Ralph state and latest evidence.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T18",
+      "title": "Cover retention, stale-pointer recovery, latest-artifact commands, and scoped cleanup with regression tests",
+      "status": "todo",
+      "dependsOn": [
+        "T14",
+        "T15",
+        "T17"
+      ],
+      "notes": "This slice changes retention and recovery semantics across artifacts, commands, and state, so it needs integration and command-shell coverage rather than only unit tests.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T19",
+      "title": "Document artifact lifecycle, retention, recovery, and cleanup workflows for long-running Ralph loops",
+      "status": "todo",
+      "dependsOn": [
+        "T14",
+        "T15",
+        "T17"
+      ],
+      "notes": "README plus focused docs should explain what Ralph retains, what cleanup may delete, how stale artifacts are repaired, and which inspection commands to use during a long loop.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T20",
+      "title": "Remove the remaining `.vsix` packaging warnings and revalidate the release-build workflow after artifact-lifecycle changes",
+      "status": "todo",
+      "dependsOn": [
+        "T19"
+      ],
+      "notes": "After the control-plane cleanup slice lands, finish the outstanding package hygiene by shipping the missing LICENSE file and an extension file allowlist or `.vscodeignore`, then prove `npm run package` stays clean.",
+      "validation": "cd ralph-codex-vscode-starter && npm run package"
+    },
+    {
+      "id": "T21",
+      "title": "Add a bounded task-remediation pass for repeatedly failing or no-progress Ralph tasks",
+      "status": "todo",
+      "dependsOn": [
+        "T18",
+        "T19"
+      ],
+      "notes": "When the same task repeatedly ends in no_progress, repeated_failure, or stable blocked outcomes, Ralph should propose a narrow remediation action instead of thrashing. Keep this deterministic, evidence-backed, and human-review-first.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T21.1",
+      "title": "Define deterministic triggers and outcomes for task remediation",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T18"
+      ],
+      "notes": "Specify when remediation activates, such as repeated no_progress, repeated identical failure signatures, or repeated blocked starts on the same task. Define allowed outcomes: decompose_task, reframe_task, mark_blocked, request_human_review, or no_action.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T21.2",
+      "title": "Add remediation evidence artifacts and status reporting",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T21.1"
+      ],
+      "notes": "Persist a remediation proposal artifact with the triggering history, rationale, proposed action, and any suggested child tasks. Surface the latest remediation status in Show Status and latest-summary flows.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T21.3",
+      "title": "Implement bounded task-decomposition proposals for overly broad failed tasks",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T21.1",
+        "T21.2"
+      ],
+      "notes": "When the parent task is clearly compound and repeated no-progress suggests decomposition, generate a small proposed child-task set with dependencies. Keep it one level deep, with a hard limit on the number of children and no automatic backlog rewrites.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T21.4",
+      "title": "Add a human-reviewed apply path for accepted decomposition proposals",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T21.3"
+      ],
+      "notes": "Provide a command or workflow that applies a proposed decomposition into tasks.json only after explicit operator approval. Default behavior should remain propose-only.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T21.5",
+      "title": "Add regression coverage for remediation triggers, proposal artifacts, and approved task decomposition",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T21.4"
+      ],
+      "notes": "Cover repeated no_progress, repeated failure signatures, blocked-start cases, proposal generation, non-decomposition cases, and approved application into tasks.json.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T21.6",
+      "title": "Document task remediation, decomposition limits, and human-approval boundaries",
+      "status": "todo",
+      "parentId": "T21",
+      "dependsOn": [
+        "T21.4",
+        "T21.5"
+      ],
+      "notes": "Explain triggers, outcomes, proposal artifacts, operator approval flow, and the hard limits that keep remediation bounded and non-chaotic.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T22",
+      "title": "Add token-budgeted prompt and context generation for Ralph CLI and IDE handoff flows",
+      "status": "todo",
+      "dependsOn": [
+        "T19"
+      ],
+      "notes": "Ralph currently over-spends context on repeated orchestration prose, broad repo summaries, and full objective/progress snapshots. Add deterministic prompt budgeting so prompts stay traceable while using less quota.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T22.1",
+      "title": "Define prompt-budget policy and minimum required context for each prompt kind",
+      "status": "todo",
+      "parentId": "T22",
+      "notes": "Specify target prompt budgets for bootstrap, iteration, fix-failure, continue-progress, and IDE handoff. Define which sections are mandatory, optional, or drop-first under budget pressure.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T22.2",
+      "title": "Implement compact objective, progress, and prior-evidence summarization for prompt rendering",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.1"
+      ],
+      "notes": "Replace full PRD snapshots and long progress histories with bounded summaries. Include prior-iteration evidence only when relevant to the selected task or recent failure pattern.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T22.3",
+      "title": "Make repo-context sections task-aware and omit irrelevant fields by default",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.1"
+      ],
+      "notes": "Prompt repo-context should include only the fields relevant to the selected task, handoff mode, and current failure state. Avoid broad repeated enumerations when the task does not need them.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T22.4",
+      "title": "Add prompt-size accounting and prompt-budget evidence artifacts",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.2",
+        "T22.3"
+      ],
+      "notes": "Persist prompt byte count, estimated token range, selected sections, omitted sections, and budget mode in prompt-evidence so operators can inspect why a prompt was the size it was.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T22.5",
+      "title": "Default CLI reasoning effort to medium and make high an explicit escalation path",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.1"
+      ],
+      "notes": "Reduce token burn by making medium the default reasoning level for normal tasks. Reserve high for architecture, hard debugging, remediation, or explicitly configured escalation cases.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T22.6",
+      "title": "Add regression coverage for prompt budgeting, section omission, and reasoning-effort defaults",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.4",
+        "T22.5"
+      ],
+      "notes": "Cover oversized prompt trimming, relevance-based section inclusion, evidence persistence, and default-versus-escalated reasoning behavior.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T22.7",
+      "title": "Document prompt-budget policy, context selection rules, and quota-saving operator guidance",
+      "status": "todo",
+      "parentId": "T22",
+      "dependsOn": [
+        "T22.4",
+        "T22.5",
+        "T22.6"
+      ],
+      "notes": "Explain how Ralph decides what to include, what gets omitted first, how reasoning effort is chosen, and what operators can do when quota pressure is high.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     }
   ]
 }

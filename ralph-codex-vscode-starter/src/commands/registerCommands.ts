@@ -10,7 +10,12 @@ import { buildStatusReport, resolveLatestStatusArtifacts, RalphStatusSnapshot } 
 import { RalphStateManager } from '../ralph/stateManager';
 import { selectNextTask } from '../ralph/taskFile';
 import { RalphCliInvocation, RalphExecutionPlan, RalphProvenanceBundle } from '../ralph/types';
-import { captureGitStatus, chooseValidationCommand, inspectValidationCommandReadiness } from '../ralph/verifier';
+import {
+  captureGitStatus,
+  chooseValidationCommand,
+  inspectValidationCommandReadiness,
+  normalizeValidationCommand
+} from '../ralph/verifier';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { scanWorkspace } from '../services/workspaceScanner';
@@ -184,7 +189,18 @@ async function collectStatusSnapshot(
     newChatCommandId: config.newChatCommandId,
     availableCommands
   });
-  const validationCommand = chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride);
+  const validationCommand = normalizeValidationCommand({
+    command: chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride),
+    workspaceRootPath: workspaceFolder.uri.fsPath,
+    verificationRootPath: rootPolicy.verificationRootPath
+  });
+  const taskValidationHint = selectedTask?.validation?.trim() || null;
+  const rawSelectedValidationCommand = chooseValidationCommand(workspaceScan, selectedTask, config.validationCommandOverride);
+  const normalizedValidationCommandFrom = rawSelectedValidationCommand
+    && validationCommand
+    && rawSelectedValidationCommand !== validationCommand
+    ? rawSelectedValidationCommand
+    : null;
   const validationCommandReadiness = await inspectValidationCommandReadiness({
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
@@ -196,7 +212,9 @@ async function collectStatusSnapshot(
     taskInspection,
     taskCounts,
     selectedTask,
+    taskValidationHint,
     validationCommand,
+    normalizedValidationCommandFrom,
     validationCommandReadiness,
     fileStatus: inspection.fileStatus,
     codexCliSupport,
@@ -236,6 +254,7 @@ async function collectStatusSnapshot(
     latestExecutionPlan,
     latestCliInvocation,
     latestProvenanceBundle,
+    generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
     provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
     verifierModes: config.verifierModes,
     gitCheckpointMode: config.gitCheckpointMode,

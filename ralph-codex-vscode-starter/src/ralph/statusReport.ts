@@ -44,6 +44,7 @@ export interface RalphStatusSnapshot {
   latestExecutionPlan: RalphExecutionPlan | null;
   latestCliInvocation: RalphCliInvocation | null;
   latestProvenanceBundle: RalphProvenanceBundle | null;
+  generatedArtifactRetentionCount: number;
   provenanceBundleRetentionCount: number;
   verifierModes: RalphCodexConfig['verifierModes'];
   gitCheckpointMode: RalphCodexConfig['gitCheckpointMode'];
@@ -198,6 +199,9 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,
     `- Current prompt artifact: ${relativeFromRoot(snapshot.rootPath, latestPlan?.promptArtifactPath ?? null)}`,
     `- Current prompt hash: ${shortHash(latestPlan?.promptHash)}`,
+    `- Task validation hint: ${latestPlan?.taskValidationHint ?? 'none'}`,
+    `- Effective validation command: ${latestPlan?.effectiveValidationCommand ?? 'none'}`,
+    `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
     `- Current provenance ID: ${latestProvenance?.provenanceId ?? 'none'}`,
     `- Task counts: ${snapshot.taskCounts
       ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
@@ -250,9 +254,12 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Bundle summary path: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
     `- Bundle directory: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundle?.bundleDir ?? null)}`,
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
+    `- Generated artifact retention on write: ${snapshot.generatedArtifactRetentionCount <= 0
+      ? 'disabled'
+      : `keep newest ${snapshot.generatedArtifactRetentionCount} prompts, runs, and iterations first; then add older protected references without evicting them`}`,
     `- Bundle retention on write: ${snapshot.provenanceBundleRetentionCount <= 0
       ? 'disabled'
-      : `keep latest ${snapshot.provenanceBundleRetentionCount}`}`,
+      : `keep newest ${snapshot.provenanceBundleRetentionCount} bundles first; then add older protected references without evicting them`}`,
     '',
     '## Latest Iteration',
     `- Last task: ${lastTaskLabel}`,
@@ -267,6 +274,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Execution: ${lastIteration?.executionStatus ?? 'none'}`,
     `- Execution message: ${lastIteration?.execution.message ?? lastIteration?.errors[0] ?? 'none'}`,
     `- Verification: ${lastIteration?.verificationStatus ?? 'none'}`,
+    `- Completion report status: ${lastIteration?.completionReportStatus ?? 'none'}`,
+    `- Reconciliation warnings: ${lastIteration?.reconciliationWarnings?.join(' | ') || 'none'}`,
     `- Stop reason: ${lastIteration?.stopReason ?? 'none'}`,
     `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,
     `- Prompt: ${relativeFromRoot(snapshot.rootPath, snapshot.promptPath)}`,
@@ -274,6 +283,9 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     '## Verifiers',
     `- Enabled: ${snapshot.verifierModes.join(', ') || 'none'}`,
     `- Validation override: ${snapshot.validationCommandOverride ?? 'none'}`,
+    `- Last task validation hint: ${lastIteration?.verification.taskValidationHint ?? 'none'}`,
+    `- Last effective validation command: ${lastIteration?.verification.effectiveValidationCommand ?? 'none'}`,
+    `- Last validation normalized from: ${lastIteration?.verification.normalizedValidationCommandFrom ?? 'none'}`,
     verifierSummaries.length > 0 ? verifierSummaries.join('\n') : '- none',
     '',
     '## Artifacts',

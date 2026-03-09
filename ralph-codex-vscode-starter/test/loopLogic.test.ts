@@ -43,6 +43,9 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
       exitCode: 0
     },
     verification: {
+      taskValidationHint: null,
+      effectiveValidationCommand: 'npm test',
+      normalizedValidationCommandFrom: null,
       primaryCommand: 'npm test',
       validationFailureSignature: 'npm test::exit:1::same failure',
       verifiers: []
@@ -62,6 +65,8 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
       statusTransitions: []
     },
     noProgressSignals: ['same_task_selected_repeatedly'],
+    completionReportStatus: 'missing',
+    reconciliationWarnings: [],
     stopReason: null,
     ...overrides
   };

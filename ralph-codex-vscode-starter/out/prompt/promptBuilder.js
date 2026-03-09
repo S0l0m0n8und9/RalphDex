@@ -235,7 +235,7 @@ function buildRuntimeContext(state, paths, iteration, target) {
     }
     return lines;
 }
-function buildTaskContext(kind, taskFile, taskCounts, selectedTask, validationCommand) {
+function buildTaskContext(kind, taskFile, taskCounts, selectedTask, taskValidationHint, effectiveValidationCommand, normalizedValidationCommandFrom, validationCommand) {
     const nextActionable = (0, taskFile_1.selectNextTask)(taskFile);
     const baseLines = [
         `- Backlog counts: todo ${taskCounts.todo}, in_progress ${taskCounts.in_progress}, blocked ${taskCounts.blocked}, done ${taskCounts.done}`,
@@ -248,7 +248,7 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, validationCo
             '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, optional `parentId`, and optional `dependsOn`.',
             '- Do not duplicate already-completed work or mark speculative tasks done.',
             '- Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.',
-            `- Validation command: ${validationCommand ?? 'none selected for backlog replenishment'}`
+            `- Validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none selected for backlog replenishment'}`
         ];
     }
     if (!selectedTask) {
@@ -269,8 +269,9 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, validationCo
         `- Dependencies: ${taskDependencySummary(taskFile, selectedTask)}`,
         `- Direct children: ${childTaskSummary(taskFile, selectedTask)}`,
         `- Remaining descendants: ${remainingChildren.length > 0 ? compactList(remainingChildren, 4) : 'none'}`,
-        `- Task validation hint: ${selectedTask.validation ?? 'none'}`,
-        `- Selected validation command: ${validationCommand ?? 'none detected'}`,
+        `- Task validation hint: ${taskValidationHint ?? selectedTask.validation ?? 'none'}`,
+        `- Effective validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none detected'}`,
+        `- Validation command normalized from: ${normalizedValidationCommandFrom ?? 'none'}`,
         `- Notes: ${selectedTask.notes ?? 'none'}`,
         `- Blocker: ${selectedTask.blocker ?? 'none'}`
     ];
@@ -311,7 +312,8 @@ function buildOperatingRules() {
         '- Keep architecture thin, deterministic, and file-backed.',
         '- Make the smallest coherent change that materially advances the selected Ralph task.',
         '- Prefer the repository’s real validation commands when they exist.',
-        '- Update durable Ralph progress/tasks when the task state materially changes.'
+        '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
+        '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
 }
 function buildExecutionContract(target, kind) {
@@ -336,11 +338,11 @@ function buildExecutionContract(target, kind) {
         '1. Inspect the workspace facts and selected Ralph task before editing.',
         '2. Execute only the selected task, or explain deterministically why no safe task is available.',
         '3. Implement the smallest coherent improvement that advances the task.',
-        '4. Update durable Ralph files when task state or progress changes.'
+        '4. Do not edit `.ralph/tasks.json` or `.ralph/progress.md` for normal task execution; Ralph will reconcile selected-task state from your completion report.'
     ];
     if (target === 'cliExec') {
         contract.push('5. Run the selected validation command when available and report the concrete result.');
-        contract.push('6. End with a compact result Ralph can pair with verifier and artifact evidence.');
+        contract.push('6. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, and optional `needsHumanReview`.');
     }
     else {
         contract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');
@@ -362,7 +364,8 @@ function buildFinalResponseContract(target, kind) {
             '- Changed files.',
             '- Validation results.',
             '- Assumptions or blockers.',
-            '- Known limitations or follow-up work.'
+            '- Known limitations or follow-up work.',
+            '- End with a fenced `json` completion report block for the selected task.'
         ];
     }
     return [
@@ -498,6 +501,9 @@ async function buildPrompt(input) {
         templatePath,
         selectionReason: input.selectionReason,
         selectedTaskId: input.selectedTask?.id ?? null,
+        taskValidationHint: input.taskValidationHint,
+        effectiveValidationCommand: input.effectiveValidationCommand,
+        normalizedValidationCommandFrom: input.normalizedValidationCommandFrom,
         validationCommand: input.validationCommand,
         inputs: {
             rootPolicy: (0, rootPolicy_1.deriveRootPolicy)(input.summary),
@@ -507,7 +513,7 @@ async function buildPrompt(input) {
             repoContext: buildRepoContext(input.summary),
             repoContextSnapshot: input.summary,
             runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target),
-            taskContext: buildTaskContext(input.kind, input.taskFile, input.taskCounts, input.selectedTask, input.validationCommand),
+            taskContext: buildTaskContext(input.kind, input.taskFile, input.taskCounts, input.selectedTask, input.taskValidationHint, input.effectiveValidationCommand, input.normalizedValidationCommandFrom, input.validationCommand),
             progressContext: clipText(input.progressText, 10, 1200, true)
                 .split('\n')
                 .map((line) => line.trimEnd())

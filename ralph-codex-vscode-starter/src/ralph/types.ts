@@ -81,6 +81,9 @@ export interface RalphPersistedPreflightReport {
   summary: string;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
+  taskValidationHint: string | null;
+  effectiveValidationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
   artifactDir: string;
   reportPath: string;
@@ -122,6 +125,7 @@ export type RalphStopReason =
   | 'iteration_cap_reached'
   | 'task_marked_complete'
   | 'verification_passed_no_remaining_subtasks'
+  | 'control_plane_reload_required'
   | 'repeated_no_progress'
   | 'repeated_identical_failure'
   | 'human_review_needed'
@@ -165,6 +169,9 @@ export interface RalphPromptEvidence {
   templatePath: string;
   selectionReason: string;
   selectedTaskId: string | null;
+  taskValidationHint: string | null;
+  effectiveValidationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
   inputs: {
     rootPolicy: RalphRootPolicy;
@@ -200,6 +207,9 @@ export interface RalphExecutionPlan {
   iteration: number;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
+  taskValidationHint: string | null;
+  effectiveValidationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   promptKind: RalphPromptKind;
   promptTarget: RalphPromptTarget;
   selectionReason: string;
@@ -237,6 +247,9 @@ export interface RalphExecutionIntegritySummary {
   promptTarget: RalphPromptTarget;
   rootPolicy: RalphRootPolicy | null;
   templatePath: string;
+  taskValidationHint: string | null;
+  effectiveValidationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   executionPlanPath: string;
   executionPlanHash?: string;
   promptArtifactPath: string;
@@ -276,6 +289,9 @@ export interface RalphIterationPhaseTimestamps {
 }
 
 export interface RalphIterationVerificationSummary {
+  taskValidationHint: string | null;
+  effectiveValidationCommand: string | null;
+  normalizedValidationCommandFrom: string | null;
   primaryCommand: string | null;
   validationFailureSignature: string | null;
   verifiers: RalphVerificationResult[];
@@ -294,6 +310,19 @@ export interface RalphIterationBacklogSummary {
   remainingTaskCount: number;
   actionableTaskAvailable: boolean;
 }
+
+export type RalphCompletionReportRequestedStatus = 'done' | 'blocked' | 'in_progress';
+
+export interface RalphCompletionReport {
+  selectedTaskId: string;
+  requestedStatus: RalphCompletionReportRequestedStatus;
+  progressNote?: string;
+  blocker?: string;
+  validationRan?: string;
+  needsHumanReview?: boolean;
+}
+
+export type RalphCompletionReportStatus = 'applied' | 'rejected' | 'missing' | 'invalid';
 
 export interface RalphIterationResult {
   schemaVersion: 1;
@@ -321,6 +350,8 @@ export interface RalphIterationResult {
   backlog: RalphIterationBacklogSummary;
   diffSummary: RalphDiffSummary | null;
   noProgressSignals: string[];
+  completionReportStatus?: RalphCompletionReportStatus;
+  reconciliationWarnings?: string[];
   stopReason: RalphStopReason | null;
 }
 

@@ -1,7 +1,0 @@
-{
-  "command": "npm run validate",
-  "exitCode": 254,
-  "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-010/validation-command.stdout.log",
-  "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-010/validation-command.stderr.log",
-  "failureSignature": "npm run validate::exit:254::npm error code ENOENT | npm error syscall open | npm error path /home/admin/Documents/repos/Ralph/package.json"
-}
