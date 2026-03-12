@@ -253,6 +253,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
     },
     diffSummary: null,
     noProgressSignals: [],
+    remediation: null,
     stopReason: null
   };
 
@@ -268,4 +269,207 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
   assert.equal(reloaded.lastIteration?.backlog.remainingTaskCount, 1);
   assert.equal(reloaded.iterationHistory.length, 1);
   assert.equal(reloaded.nextIteration, 2);
+});
+
+test('cleanupRuntimeArtifacts prunes historical generated artifacts while preserving durable state and latest evidence', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+  const latestSummaryPath = path.join(snapshot.paths.artifactDir, 'latest-summary.md');
+  const latestPromptEvidencePath = path.join(snapshot.paths.artifactDir, 'latest-prompt-evidence.json');
+  const latestCliInvocationPath = path.join(snapshot.paths.artifactDir, 'latest-cli-invocation.json');
+  const latestProvenanceSummaryPath = path.join(snapshot.paths.artifactDir, 'latest-provenance-summary.md');
+
+  await fs.mkdir(path.join(snapshot.paths.artifactDir, 'iteration-001'), { recursive: true });
+  await fs.mkdir(path.join(snapshot.paths.artifactDir, 'iteration-002'), { recursive: true });
+  await fs.writeFile(path.join(snapshot.paths.artifactDir, 'iteration-001', 'summary.md'), 'old\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.artifactDir, 'iteration-002', 'summary.md'), 'current\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.promptDir, 'iteration-001.prompt.md'), 'old prompt\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'), 'current prompt\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.runDir, 'iteration-001.transcript.md'), 'old transcript\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.runDir, 'iteration-002.transcript.md'), 'current transcript\n', 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.logDir, 'old.log'), 'old log\n', 'utf8');
+  await fs.mkdir(path.join(snapshot.paths.artifactDir, 'runs', 'run-i001-cli-20260307T000000Z'), { recursive: true });
+  await fs.mkdir(path.join(snapshot.paths.artifactDir, 'runs', 'run-i002-cli-20260307T000500Z'), { recursive: true });
+  await fs.writeFile(latestSummaryPath, '# Ralph Iteration 2\n\ncurrent\n', 'utf8');
+  await fs.writeFile(latestPromptEvidencePath, JSON.stringify({
+    kind: 'promptEvidence',
+    iteration: 2,
+    promptKind: 'iteration'
+  }, null, 2), 'utf8');
+  await fs.writeFile(latestCliInvocationPath, JSON.stringify({
+    kind: 'cliInvocation',
+    iteration: 2,
+    transcriptPath: path.join(snapshot.paths.runDir, 'iteration-002.transcript.md')
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(snapshot.paths.artifactDir, 'latest-provenance-bundle.json'), JSON.stringify({
+    kind: 'provenanceBundle',
+    provenanceId: 'run-i002-cli-20260307T000500Z',
+    iteration: 2,
+    promptKind: 'iteration',
+    promptTarget: 'cliExec',
+    trustLevel: 'verifiedCliExecution',
+    status: 'executed',
+    summary: 'current bundle',
+    bundleDir: path.join(snapshot.paths.artifactDir, 'runs', 'run-i002-cli-20260307T000500Z')
+  }, null, 2), 'utf8');
+  await fs.writeFile(latestProvenanceSummaryPath, '# Ralph Provenance run-i002-cli-20260307T000500Z\n\ncurrent\n', 'utf8');
+  await fs.writeFile(snapshot.paths.stateFilePath, `${JSON.stringify({
+    version: 2,
+    objectivePreview: 'Keep current Ralph evidence only.',
+    nextIteration: 3,
+    lastPromptKind: 'iteration',
+    lastPromptPath: path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'),
+    lastRun: {
+      iteration: 2,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:05:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'),
+      transcriptPath: path.join(snapshot.paths.runDir, 'iteration-002.transcript.md'),
+      summary: 'current'
+    },
+    runHistory: [
+      {
+        iteration: 1,
+        mode: 'singleExec',
+        promptKind: 'iteration',
+        startedAt: '2026-03-07T00:00:00.000Z',
+        finishedAt: '2026-03-07T00:01:00.000Z',
+        status: 'succeeded',
+        exitCode: 0,
+        promptPath: path.join(snapshot.paths.promptDir, 'iteration-001.prompt.md'),
+        transcriptPath: path.join(snapshot.paths.runDir, 'iteration-001.transcript.md'),
+        summary: 'old'
+      },
+      {
+        iteration: 2,
+        mode: 'singleExec',
+        promptKind: 'iteration',
+        startedAt: '2026-03-07T00:02:00.000Z',
+        finishedAt: '2026-03-07T00:05:00.000Z',
+        status: 'succeeded',
+        exitCode: 0,
+        promptPath: path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'),
+        transcriptPath: path.join(snapshot.paths.runDir, 'iteration-002.transcript.md'),
+        summary: 'current'
+      }
+    ],
+    lastIteration: {
+      schemaVersion: 1,
+      iteration: 2,
+      selectedTaskId: 'T2',
+      selectedTaskTitle: 'Current task',
+      promptKind: 'iteration',
+      promptPath: path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'),
+      artifactDir: path.join(snapshot.paths.artifactDir, 'iteration-002'),
+      adapterUsed: 'cliExec',
+      executionStatus: 'succeeded',
+      verificationStatus: 'passed',
+      completionClassification: 'partial_progress',
+      followUpAction: 'continue_same_task',
+      startedAt: '2026-03-07T00:02:00.000Z',
+      finishedAt: '2026-03-07T00:05:00.000Z',
+      phaseTimestamps: {},
+      summary: 'current',
+      warnings: [],
+      errors: [],
+      execution: {
+        exitCode: 0,
+        message: 'ok',
+        stdoutPath: path.join(snapshot.paths.artifactDir, 'iteration-002', 'stdout.log'),
+        stderrPath: path.join(snapshot.paths.artifactDir, 'iteration-002', 'stderr.log'),
+        transcriptPath: path.join(snapshot.paths.runDir, 'iteration-002.transcript.md')
+      },
+      verification: {
+        taskValidationHint: null,
+        effectiveValidationCommand: 'npm test',
+        normalizedValidationCommandFrom: null,
+        primaryCommand: 'npm test',
+        validationFailureSignature: null,
+        verifiers: []
+      },
+      backlog: {
+        remainingTaskCount: 1,
+        actionableTaskAvailable: true
+      },
+      diffSummary: null,
+      noProgressSignals: [],
+      remediation: null,
+      stopReason: null
+    },
+    iterationHistory: [
+      {
+        schemaVersion: 1,
+        iteration: 1,
+        selectedTaskId: 'T1',
+        selectedTaskTitle: 'Old task',
+        promptKind: 'iteration',
+        promptPath: path.join(snapshot.paths.promptDir, 'iteration-001.prompt.md'),
+        artifactDir: path.join(snapshot.paths.artifactDir, 'iteration-001'),
+        adapterUsed: 'cliExec',
+        executionStatus: 'succeeded',
+        verificationStatus: 'passed',
+        completionClassification: 'partial_progress',
+        followUpAction: 'continue_same_task',
+        startedAt: '2026-03-07T00:00:00.000Z',
+        finishedAt: '2026-03-07T00:01:00.000Z',
+        phaseTimestamps: {},
+        summary: 'old',
+        warnings: [],
+        errors: [],
+        execution: {
+          exitCode: 0,
+          message: 'old',
+          stdoutPath: path.join(snapshot.paths.artifactDir, 'iteration-001', 'stdout.log'),
+          stderrPath: path.join(snapshot.paths.artifactDir, 'iteration-001', 'stderr.log'),
+          transcriptPath: path.join(snapshot.paths.runDir, 'iteration-001.transcript.md')
+        },
+        verification: {
+          taskValidationHint: null,
+          effectiveValidationCommand: 'npm test',
+          normalizedValidationCommandFrom: null,
+          primaryCommand: 'npm test',
+          validationFailureSignature: null,
+          verifiers: []
+        },
+        backlog: {
+          remainingTaskCount: 2,
+          actionableTaskAvailable: true
+        },
+        diffSummary: null,
+        noProgressSignals: [],
+        remediation: null,
+        stopReason: null
+      }
+    ],
+    updatedAt: '2026-03-07T00:05:00.000Z'
+  }, null, 2)}\n`, 'utf8');
+
+  const result = await stateManager.cleanupRuntimeArtifacts(rootPath, DEFAULT_CONFIG);
+
+  assert.equal(result.snapshot.state.nextIteration, 3);
+  assert.equal(result.snapshot.state.lastIteration?.iteration, 2);
+  assert.deepEqual(result.cleanup.generatedArtifacts.deletedIterationDirectories, ['iteration-001']);
+  assert.deepEqual(result.cleanup.generatedArtifacts.deletedPromptFiles, ['iteration-001.prompt.md']);
+  assert.deepEqual(result.cleanup.generatedArtifacts.deletedRunArtifactBaseNames, ['iteration-001']);
+  assert.deepEqual(result.cleanup.provenanceBundles.deletedBundleIds, ['run-i001-cli-20260307T000000Z']);
+  assert.deepEqual(result.cleanup.deletedLogFiles, ['old.log']);
+  await assert.rejects(fs.access(path.join(snapshot.paths.artifactDir, 'iteration-001')));
+  await assert.rejects(fs.access(path.join(snapshot.paths.promptDir, 'iteration-001.prompt.md')));
+  await assert.rejects(fs.access(path.join(snapshot.paths.runDir, 'iteration-001.transcript.md')));
+  await assert.rejects(fs.access(path.join(snapshot.paths.artifactDir, 'runs', 'run-i001-cli-20260307T000000Z')));
+  await fs.access(path.join(snapshot.paths.artifactDir, 'iteration-002'));
+  await fs.access(path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'));
+  await fs.access(path.join(snapshot.paths.runDir, 'iteration-002.transcript.md'));
+  await fs.access(path.join(snapshot.paths.artifactDir, 'runs', 'run-i002-cli-20260307T000500Z'));
+  await fs.access(latestSummaryPath);
+  await fs.access(latestPromptEvidencePath);
+  await fs.access(latestCliInvocationPath);
+  await fs.access(path.join(snapshot.paths.artifactDir, 'latest-provenance-bundle.json'));
+  await fs.access(latestProvenanceSummaryPath);
+  await fs.access(snapshot.paths.stateFilePath);
 });

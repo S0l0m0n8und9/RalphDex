@@ -46,6 +46,33 @@ async function makeGeneratedArtifactDirs(): Promise<{
   return { rootPath, artifactRootDir, promptDir, runDir, stateFilePath };
 }
 
+async function seedGeneratedArtifacts(input: {
+  artifactRootDir: string;
+  promptDir: string;
+  runDir: string;
+  iterations: string[];
+}): Promise<void> {
+  for (const iteration of input.iterations) {
+    const iterationDir = path.join(input.artifactRootDir, `iteration-${iteration}`);
+    await fs.mkdir(iterationDir, { recursive: true });
+    await Promise.all([
+      fs.writeFile(path.join(iterationDir, 'summary.md'), `summary ${iteration}\n`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'preflight-report.json'), `{"iteration":"${iteration}"}`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'preflight-summary.md'), `preflight ${iteration}\n`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'prompt.md'), `prompt ${iteration}\n`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'prompt-evidence.json'), `{"iteration":"${iteration}"}`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'execution-plan.json'), `{"iteration":"${iteration}"}`, 'utf8'),
+      fs.writeFile(path.join(iterationDir, 'cli-invocation.json'), `{"iteration":"${iteration}"}`, 'utf8')
+    ]);
+  }
+
+  await Promise.all(input.iterations.flatMap((iteration) => [
+    fs.writeFile(path.join(input.promptDir, `iteration-${iteration}.prompt.md`), `iteration ${iteration}\n`, 'utf8'),
+    fs.writeFile(path.join(input.runDir, `iteration-${iteration}.transcript.md`), `transcript ${iteration}\n`, 'utf8'),
+    fs.writeFile(path.join(input.runDir, `iteration-${iteration}.last-message.md`), `message ${iteration}\n`, 'utf8')
+  ]));
+}
+
 function rootPolicy(rootPath: string) {
   return deriveRootPolicy({
     workspaceName: path.basename(rootPath),
@@ -373,6 +400,188 @@ test('artifactStore exposes the protected generated-artifact roots explicitly', 
       'provenanceFailureSummaryPath'
     ]
   });
+});
+
+test('cleanupGeneratedArtifacts preserves each targeted latest/state protected root independently', async (t) => {
+  const cases: Array<{
+    name: string;
+    writeState: (
+      stateFilePath: string,
+      dirs: { artifactRootDir: string; runDir: string }
+    ) => Promise<void>;
+    writePointer: (artifactRootDir: string) => Promise<void>;
+    expected: {
+      retainedIterationDirectories: string[];
+      protectedRetainedIterationDirectories: string[];
+      retainedPromptFiles: string[];
+      protectedRetainedPromptFiles: string[];
+      retainedRunArtifactBaseNames: string[];
+      protectedRetainedRunArtifactBaseNames: string[];
+    };
+  }> = [
+    {
+      name: 'latest prompt evidence protects the implied prompt and iteration dir',
+      writeState: async (stateFilePath: string) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({ version: 2 }), 'utf8');
+      },
+      writePointer: async (artifactRootDir: string) => {
+        await fs.writeFile(path.join(artifactRootDir, 'latest-prompt-evidence.json'), JSON.stringify({
+          kind: 'iteration',
+          iteration: 9
+        }), 'utf8');
+      },
+      expected: {
+        retainedIterationDirectories: ['iteration-010', 'iteration-009'],
+        protectedRetainedIterationDirectories: ['iteration-009'],
+        retainedPromptFiles: ['iteration-010.prompt.md', 'iteration-009.prompt.md'],
+        protectedRetainedPromptFiles: ['iteration-009.prompt.md'],
+        retainedRunArtifactBaseNames: ['iteration-010'],
+        protectedRetainedRunArtifactBaseNames: []
+      }
+    },
+    {
+      name: 'latest result summary path protects only the iteration dir',
+      writeState: async (stateFilePath: string) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({ version: 2 }), 'utf8');
+      },
+      writePointer: async (artifactRootDir: string) => {
+        await fs.writeFile(path.join(artifactRootDir, 'latest-result.json'), JSON.stringify({
+          summaryPath: path.join(artifactRootDir, 'iteration-009', 'summary.md')
+        }), 'utf8');
+      },
+      expected: {
+        retainedIterationDirectories: ['iteration-010', 'iteration-009'],
+        protectedRetainedIterationDirectories: ['iteration-009'],
+        retainedPromptFiles: ['iteration-010.prompt.md'],
+        protectedRetainedPromptFiles: [],
+        retainedRunArtifactBaseNames: ['iteration-010'],
+        protectedRetainedRunArtifactBaseNames: []
+      }
+    },
+    {
+      name: 'latest preflight report path protects only the iteration dir',
+      writeState: async (stateFilePath: string) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({ version: 2 }), 'utf8');
+      },
+      writePointer: async (artifactRootDir: string) => {
+        await fs.writeFile(path.join(artifactRootDir, 'latest-preflight-report.json'), JSON.stringify({
+          reportPath: path.join(artifactRootDir, 'iteration-009', 'preflight-report.json')
+        }), 'utf8');
+      },
+      expected: {
+        retainedIterationDirectories: ['iteration-010', 'iteration-009'],
+        protectedRetainedIterationDirectories: ['iteration-009'],
+        retainedPromptFiles: ['iteration-010.prompt.md'],
+        protectedRetainedPromptFiles: [],
+        retainedRunArtifactBaseNames: ['iteration-010'],
+        protectedRetainedRunArtifactBaseNames: []
+      }
+    },
+    {
+      name: 'state lastRun transcript path protects only the transcript and last-message pair',
+      writeState: async (stateFilePath: string, dirs: { runDir: string }) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({
+          version: 2,
+          lastRun: {
+            transcriptPath: path.join(dirs.runDir, 'iteration-009.transcript.md')
+          }
+        }), 'utf8');
+      },
+      writePointer: async () => {},
+      expected: {
+        retainedIterationDirectories: ['iteration-010'],
+        protectedRetainedIterationDirectories: [],
+        retainedPromptFiles: ['iteration-010.prompt.md'],
+        protectedRetainedPromptFiles: [],
+        retainedRunArtifactBaseNames: ['iteration-010', 'iteration-009'],
+        protectedRetainedRunArtifactBaseNames: ['iteration-009']
+      }
+    },
+    {
+      name: 'state lastRun last-message path protects only the transcript and last-message pair',
+      writeState: async (stateFilePath: string, dirs: { runDir: string }) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({
+          version: 2,
+          lastRun: {
+            lastMessagePath: path.join(dirs.runDir, 'iteration-009.last-message.md')
+          }
+        }), 'utf8');
+      },
+      writePointer: async () => {},
+      expected: {
+        retainedIterationDirectories: ['iteration-010'],
+        protectedRetainedIterationDirectories: [],
+        retainedPromptFiles: ['iteration-010.prompt.md'],
+        protectedRetainedPromptFiles: [],
+        retainedRunArtifactBaseNames: ['iteration-010', 'iteration-009'],
+        protectedRetainedRunArtifactBaseNames: ['iteration-009']
+      }
+    },
+    {
+      name: 'state lastIteration artifact dir protects only the iteration dir',
+      writeState: async (stateFilePath: string, dirs: { artifactRootDir: string }) => {
+        await fs.writeFile(stateFilePath, JSON.stringify({
+          version: 2,
+          lastIteration: {
+            artifactDir: path.join(dirs.artifactRootDir, 'iteration-009')
+          }
+        }), 'utf8');
+      },
+      writePointer: async () => {},
+      expected: {
+        retainedIterationDirectories: ['iteration-010', 'iteration-009'],
+        protectedRetainedIterationDirectories: ['iteration-009'],
+        retainedPromptFiles: ['iteration-010.prompt.md'],
+        protectedRetainedPromptFiles: [],
+        retainedRunArtifactBaseNames: ['iteration-010'],
+        protectedRetainedRunArtifactBaseNames: []
+      }
+    }
+  ];
+
+  for (const testCase of cases) {
+    await t.test(testCase.name, async () => {
+      const { artifactRootDir, promptDir, runDir, stateFilePath } = await makeGeneratedArtifactDirs();
+      await seedGeneratedArtifacts({
+        artifactRootDir,
+        promptDir,
+        runDir,
+        iterations: ['009', '010']
+      });
+      await testCase.writeState(stateFilePath, { artifactRootDir, runDir });
+      await testCase.writePointer(artifactRootDir);
+
+      const retention = await cleanupGeneratedArtifacts({
+        artifactRootDir,
+        promptDir,
+        runDir,
+        stateFilePath,
+        retentionCount: 1
+      });
+
+      assert.deepEqual(retention.deletedIterationDirectories, testCase.expected.retainedIterationDirectories.includes('iteration-009')
+        ? []
+        : ['iteration-009']);
+      assert.deepEqual(retention.retainedIterationDirectories, testCase.expected.retainedIterationDirectories);
+      assert.deepEqual(
+        retention.protectedRetainedIterationDirectories,
+        testCase.expected.protectedRetainedIterationDirectories
+      );
+      assert.deepEqual(retention.deletedPromptFiles, testCase.expected.retainedPromptFiles.includes('iteration-009.prompt.md')
+        ? []
+        : ['iteration-009.prompt.md']);
+      assert.deepEqual(retention.retainedPromptFiles, testCase.expected.retainedPromptFiles);
+      assert.deepEqual(retention.protectedRetainedPromptFiles, testCase.expected.protectedRetainedPromptFiles);
+      assert.deepEqual(retention.deletedRunArtifactBaseNames, testCase.expected.retainedRunArtifactBaseNames.includes('iteration-009')
+        ? []
+        : ['iteration-009']);
+      assert.deepEqual(retention.retainedRunArtifactBaseNames, testCase.expected.retainedRunArtifactBaseNames);
+      assert.deepEqual(
+        retention.protectedRetainedRunArtifactBaseNames,
+        testCase.expected.protectedRetainedRunArtifactBaseNames
+      );
+    });
+  }
 });
 
 test('cleanupGeneratedArtifacts keeps the newest iteration, prompt, and run artifacts by parsed iteration order', async () => {

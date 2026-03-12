@@ -50,7 +50,11 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Show Status`
 - `Ralph Codex: Open Latest Ralph Summary`
 - `Ralph Codex: Open Latest Provenance Bundle`
+- `Ralph Codex: Open Latest Prompt Evidence`
+- `Ralph Codex: Open Latest CLI Transcript`
+- `Ralph Codex: Apply Latest Task Decomposition Proposal`
 - `Ralph Codex: Reveal Latest Provenance Bundle Directory`
+- `Ralph Codex: Cleanup Runtime Artifacts`
 - `Ralph Codex: Reset Runtime State`
 
 Validation entry points:

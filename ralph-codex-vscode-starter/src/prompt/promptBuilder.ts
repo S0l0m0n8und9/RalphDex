@@ -45,6 +45,215 @@ RalphCodexConfig,
 'promptTemplateDirectory' | 'promptIncludeVerifierFeedback' | 'promptPriorContextBudget'
 >;
 
+type PromptSectionName =
+  | 'strategyContext'
+  | 'preflightContext'
+  | 'objectiveContext'
+  | 'repoContext'
+  | 'runtimeContext'
+  | 'taskContext'
+  | 'progressContext'
+  | 'priorIterationContext'
+  | 'operatingRules'
+  | 'executionContract'
+  | 'finalResponseContract';
+
+interface PromptBudgetPolicy {
+  name: string;
+  targetTokens: number;
+  minimumContextBias: string;
+  objectiveLines: number;
+  objectiveChars: number;
+  progressLines: number;
+  progressChars: number;
+  priorBudget: number;
+  repoDetail: 'minimal' | 'standard' | 'expanded';
+  runtimeDetail: 'minimal' | 'standard';
+  requiredSections: PromptSectionName[];
+  optionalSectionOrder: PromptSectionName[];
+}
+
+const REQUIRED_PROMPT_SECTIONS: PromptSectionName[] = [
+  'strategyContext',
+  'preflightContext',
+  'objectiveContext',
+  'taskContext',
+  'operatingRules',
+  'executionContract',
+  'finalResponseContract'
+];
+
+const PROMPT_BUDGET_POLICIES: Record<`${RalphPromptKind}:${RalphPromptTarget}`, PromptBudgetPolicy> = {
+  'bootstrap:cliExec': {
+    name: 'bootstrap:cliExec',
+    targetTokens: 2100,
+    minimumContextBias: 'broad objective, expanded repo scan, standard runtime pointers',
+    objectiveLines: 12,
+    objectiveChars: 1400,
+    progressLines: 6,
+    progressChars: 640,
+    priorBudget: 4,
+    repoDetail: 'expanded',
+    runtimeDetail: 'standard',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['priorIterationContext']
+  },
+  'bootstrap:ideHandoff': {
+    name: 'bootstrap:ideHandoff',
+    targetTokens: 1500,
+    minimumContextBias: 'broad objective, lighter runtime and repo detail for human review',
+    objectiveLines: 10,
+    objectiveChars: 1000,
+    progressLines: 4,
+    progressChars: 320,
+    priorBudget: 3,
+    repoDetail: 'standard',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+  },
+  'iteration:cliExec': {
+    name: 'iteration:cliExec',
+    targetTokens: 1600,
+    minimumContextBias: 'selected task plus compact repo/runtime context',
+    objectiveLines: 9,
+    objectiveChars: 960,
+    progressLines: 5,
+    progressChars: 420,
+    priorBudget: 5,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+  },
+  'iteration:ideHandoff': {
+    name: 'iteration:ideHandoff',
+    targetTokens: 1000,
+    minimumContextBias: 'selected task plus compact review-oriented context',
+    objectiveLines: 8,
+    objectiveChars: 720,
+    progressLines: 4,
+    progressChars: 300,
+    priorBudget: 4,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
+  },
+  'replenish-backlog:cliExec': {
+    name: 'replenish-backlog:cliExec',
+    targetTokens: 1800,
+    minimumContextBias: 'PRD, backlog counts, and expanded repo/runtime context for task generation',
+    objectiveLines: 10,
+    objectiveChars: 1100,
+    progressLines: 6,
+    progressChars: 560,
+    priorBudget: 4,
+    repoDetail: 'expanded',
+    runtimeDetail: 'standard',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['priorIterationContext']
+  },
+  'replenish-backlog:ideHandoff': {
+    name: 'replenish-backlog:ideHandoff',
+    targetTokens: 1300,
+    minimumContextBias: 'PRD, backlog counts, and explicit next-task generation context',
+    objectiveLines: 9,
+    objectiveChars: 900,
+    progressLines: 5,
+    progressChars: 420,
+    priorBudget: 4,
+    repoDetail: 'expanded',
+    runtimeDetail: 'standard',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['priorIterationContext']
+  },
+  'fix-failure:cliExec': {
+    name: 'fix-failure:cliExec',
+    targetTokens: 1700,
+    minimumContextBias: 'failure signature, blocker, remediation, validation context',
+    objectiveLines: 9,
+    objectiveChars: 900,
+    progressLines: 5,
+    progressChars: 420,
+    priorBudget: 6,
+    repoDetail: 'standard',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+  },
+  'fix-failure:ideHandoff': {
+    name: 'fix-failure:ideHandoff',
+    targetTokens: 1100,
+    minimumContextBias: 'failure signature and blocker summary for manual inspection',
+    objectiveLines: 8,
+    objectiveChars: 760,
+    progressLines: 4,
+    progressChars: 320,
+    priorBudget: 6,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+  },
+  'continue-progress:cliExec': {
+    name: 'continue-progress:cliExec',
+    targetTokens: 1600,
+    minimumContextBias: 'selected task plus compact recent progress and prior iteration state',
+    objectiveLines: 9,
+    objectiveChars: 960,
+    progressLines: 5,
+    progressChars: 420,
+    priorBudget: 5,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+  },
+  'continue-progress:ideHandoff': {
+    name: 'continue-progress:ideHandoff',
+    targetTokens: 1000,
+    minimumContextBias: 'selected task plus compact carry-forward state for human review',
+    objectiveLines: 8,
+    objectiveChars: 720,
+    progressLines: 4,
+    progressChars: 300,
+    priorBudget: 4,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
+  },
+  'human-review-handoff:cliExec': {
+    name: 'human-review-handoff:cliExec',
+    targetTokens: 1500,
+    minimumContextBias: 'blocker, remediation, and current task state over broad history',
+    objectiveLines: 8,
+    objectiveChars: 820,
+    progressLines: 4,
+    progressChars: 320,
+    priorBudget: 6,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+  },
+  'human-review-handoff:ideHandoff': {
+    name: 'human-review-handoff:ideHandoff',
+    targetTokens: 1100,
+    minimumContextBias: 'blocker and review decision points over broad history',
+    objectiveLines: 8,
+    objectiveChars: 760,
+    progressLines: 4,
+    progressChars: 320,
+    priorBudget: 6,
+    repoDetail: 'minimal',
+    runtimeDetail: 'minimal',
+    requiredSections: REQUIRED_PROMPT_SECTIONS,
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+  }
+};
+
 export interface PromptGenerationInput {
   kind: RalphPromptKind;
   target: RalphPromptTarget;
@@ -125,6 +334,36 @@ function compactList(values: string[], limit: number): string {
   return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
 }
 
+function estimateTokenCount(text: string): number {
+  return Math.max(1, Math.ceil(Buffer.byteLength(text, 'utf8') / 4));
+}
+
+function estimateTokenRange(estimatedTokens: number): {
+  min: number;
+  max: number;
+} {
+  const spread = Math.max(16, Math.ceil(estimatedTokens * 0.12));
+  return {
+    min: Math.max(1, estimatedTokens - spread),
+    max: estimatedTokens + spread
+  };
+}
+
+function taskKeywords(task: RalphTask | null): string {
+  return [
+    task?.title ?? '',
+    task?.notes ?? '',
+    task?.validation ?? '',
+    task?.blocker ?? ''
+  ].join(' ').toLowerCase();
+}
+
+function buildPromptBudgetPolicy(kind: RalphPromptKind, target: RalphPromptTarget): PromptBudgetPolicy {
+  const key = `${kind}:${target}`;
+  return PROMPT_BUDGET_POLICIES[key as keyof typeof PROMPT_BUDGET_POLICIES]
+    ?? PROMPT_BUDGET_POLICIES['iteration:cliExec'];
+}
+
 function trimContextLines(lines: string[], budget: number): string[] {
   if (budget <= 0 || lines.length <= budget) {
     return lines;
@@ -137,6 +376,62 @@ function trimContextLines(lines: string[], budget: number): string[] {
   const visible = lines.slice(0, budget - 1);
   visible.push(`- Additional prior-context signals omitted: ${lines.length - visible.length}.`);
   return visible;
+}
+
+function keywordTokens(value: string): string[] {
+  return Array.from(new Set(
+    value
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 4)
+  ));
+}
+
+function matchesTaskFocus(
+  value: string | null | undefined,
+  selectedTask: RalphTask | null,
+  taskTokens: string[]
+): boolean {
+  if (!selectedTask || !value) {
+    return Boolean(value);
+  }
+
+  const normalized = value.toLowerCase();
+  if (normalized.includes(selectedTask.id.toLowerCase())) {
+    return true;
+  }
+
+  return taskTokens.some((token) => normalized.includes(token));
+}
+
+function fileMatchesTaskFocus(
+  filePath: string,
+  selectedTask: RalphTask | null,
+  taskTokens: string[]
+): boolean {
+  if (!selectedTask) {
+    return true;
+  }
+
+  const normalized = filePath.toLowerCase();
+  if (matchesTaskFocus(normalized, selectedTask, taskTokens)) {
+    return true;
+  }
+
+  if ((taskTokens.includes('doc') || taskTokens.includes('docs') || taskTokens.includes('readme'))
+    && (normalized.includes('docs/') || normalized.endsWith('readme.md') || normalized.endsWith('agents.md'))) {
+    return true;
+  }
+  if ((taskTokens.includes('test') || taskTokens.includes('tests') || taskTokens.includes('validate') || taskTokens.includes('validation'))
+    && (normalized.includes('test/') || normalized.includes('tests/') || normalized.includes('spec'))) {
+    return true;
+  }
+  if ((taskTokens.includes('prompt') || taskTokens.includes('cli') || taskTokens.includes('code') || taskTokens.includes('typescript'))
+    && normalized.includes('src/')) {
+    return true;
+  }
+
+  return false;
 }
 
 function taskDependencySummary(taskFile: RalphTaskFile, task: RalphTask): string {
@@ -223,8 +518,27 @@ function buildPreflightContext(report: RalphPreflightReport): string[] {
   return salientDiagnostics.length > 0 ? [...lines, ...salientDiagnostics] : lines;
 }
 
-function buildRepoContext(summary: WorkspaceScan): string[] {
+function buildRepoContext(
+  summary: WorkspaceScan,
+  kind: RalphPromptKind,
+  target: RalphPromptTarget,
+  selectedTask: RalphTask | null,
+  detail: PromptBudgetPolicy['repoDetail']
+): string[] {
   const rootPolicy = deriveRootPolicy(summary);
+  const keywords = taskKeywords(selectedTask);
+  const includeExpanded = detail === 'expanded' || kind === 'bootstrap' || kind === 'replenish-backlog';
+  const includeDocs = includeExpanded
+    || /doc|readme|agents|workflow|architecture|guide|prompt/.test(keywords);
+  const includePackage = includeExpanded
+    || kind === 'fix-failure'
+    || /package|install|workspace|root|build|cli|extension|manifest|npm|node/.test(keywords);
+  const includeSources = includeExpanded
+    || /src|code|implement|refactor|feature|typescript|prompt|cli|codex|command|extension/.test(keywords);
+  const includeValidation = includeExpanded
+    || kind === 'fix-failure'
+    || includeSources
+    || /test|validat|verif|smoke|coverage|regression|failure|debug/.test(keywords);
   const lines = [
     `- Workspace: ${summary.workspaceName}`,
     `- Workspace root: ${summary.workspaceRootPath}`,
@@ -232,24 +546,34 @@ function buildRepoContext(summary: WorkspaceScan): string[] {
     `- Execution root: ${rootPolicy.executionRootPath}`,
     `- Verifier root: ${rootPolicy.verificationRootPath}`,
     `- Root selection: ${summary.rootSelection.summary}`,
-    `- Root policy: ${rootPolicy.policySummary}`,
-    `- Manifests: ${compactList(summary.manifests, 5)}`,
-    `- Source roots: ${compactList(summary.sourceRoots, 5)}`,
-    `- Test roots: ${compactList(summary.tests, 5)}`,
-    `- Package managers: ${compactList(summary.packageManagers, 4)}`,
-    `- Package manager indicators: ${compactList(summary.packageManagerIndicators, 5)}`,
-    `- Validation commands: ${compactList(summary.validationCommands, 4)}`,
-    `- Lifecycle commands: ${compactList(summary.lifecycleCommands, 4)}`,
-    `- CI files: ${compactList(summary.ciFiles, 4)}`,
-    `- CI commands: ${compactList(summary.ciCommands, 4)}`,
-    `- Docs: ${compactList(summary.docs, 4)}`,
-    `- Test signals: ${compactList(summary.testSignals, 3)}`
+    `- Root policy: ${rootPolicy.policySummary}`
   ];
 
-  if (summary.packageJson?.name) {
+  if (includePackage) {
+    lines.push(`- Manifests: ${compactList(summary.manifests, 5)}`);
+    lines.push(`- Package managers: ${compactList(summary.packageManagers, 4)}`);
+    lines.push(`- Package manager indicators: ${compactList(summary.packageManagerIndicators, 5)}`);
+  }
+  if (includeSources) {
+    lines.push(`- Source roots: ${compactList(summary.sourceRoots, 5)}`);
+  }
+  if (includeValidation) {
+    lines.push(`- Test roots: ${compactList(summary.tests, 5)}`);
+    lines.push(`- Validation commands: ${compactList(summary.validationCommands, 4)}`);
+    if (detail !== 'minimal') {
+      lines.push(`- Lifecycle commands: ${compactList(summary.lifecycleCommands, 4)}`);
+      lines.push(`- CI files: ${compactList(summary.ciFiles, 4)}`);
+      lines.push(`- CI commands: ${compactList(summary.ciCommands, 4)}`);
+    }
+    lines.push(`- Test signals: ${compactList(summary.testSignals, 3)}`);
+  }
+  if (includeDocs) {
+    lines.push(`- Docs: ${compactList(summary.docs, 4)}`);
+  }
+  if (includePackage && summary.packageJson?.name) {
     lines.push(`- package.json name: ${summary.packageJson.name}`);
   }
-  if (summary.packageJson?.hasWorkspaces) {
+  if (includePackage && summary.packageJson?.hasWorkspaces) {
     lines.push('- package.json workspaces: yes');
   }
   if (summary.notes.length > 0) {
@@ -263,7 +587,8 @@ function buildRuntimeContext(
   state: RalphWorkspaceState,
   paths: RalphPaths,
   iteration: number,
-  target: RalphPromptTarget
+  target: RalphPromptTarget,
+  detail: PromptBudgetPolicy['runtimeDetail']
 ): string[] {
   const lines = [
     `- Prompt target: ${target}`,
@@ -272,13 +597,16 @@ function buildRuntimeContext(
     `- Last prompt kind: ${state.lastPromptKind ?? 'none yet'}`,
     `- Last prompt path: ${toRelativePath(paths.rootPath, state.lastPromptPath)}`,
     `- Last run: ${state.lastRun ? `${state.lastRun.status} at iteration ${state.lastRun.iteration}` : 'none yet'}`,
-    `- Last iteration outcome: ${state.lastIteration ? `${state.lastIteration.completionClassification} at iteration ${state.lastIteration.iteration}` : 'none yet'}`,
-    `- PRD path: ${toRelativePath(paths.rootPath, paths.prdPath)}`,
-    `- Progress path: ${toRelativePath(paths.rootPath, paths.progressPath)}`,
-    `- Task file path: ${toRelativePath(paths.rootPath, paths.taskFilePath)}`,
-    `- Runtime state path: ${toRelativePath(paths.rootPath, paths.stateFilePath)}`,
-    `- Artifact root: ${toRelativePath(paths.rootPath, paths.artifactDir)}`
+    `- Last iteration outcome: ${state.lastIteration ? `${state.lastIteration.completionClassification} at iteration ${state.lastIteration.iteration}` : 'none yet'}`
   ];
+
+  if (detail === 'standard') {
+    lines.push(`- PRD path: ${toRelativePath(paths.rootPath, paths.prdPath)}`);
+    lines.push(`- Progress path: ${toRelativePath(paths.rootPath, paths.progressPath)}`);
+    lines.push(`- Task file path: ${toRelativePath(paths.rootPath, paths.taskFilePath)}`);
+    lines.push(`- Runtime state path: ${toRelativePath(paths.rootPath, paths.stateFilePath)}`);
+    lines.push(`- Artifact root: ${toRelativePath(paths.rootPath, paths.artifactDir)}`);
+  }
 
   if (state.lastIteration?.summary) {
     lines.push(`- Last iteration summary: ${state.lastIteration.summary}`);
@@ -292,21 +620,38 @@ function buildTaskContext(
   taskFile: RalphTaskFile,
   taskCounts: RalphTaskCounts,
   selectedTask: RalphTask | null,
+  preflightReport: RalphPreflightReport,
   taskValidationHint: string | null,
   effectiveValidationCommand: string | null,
   normalizedValidationCommandFrom: string | null,
   validationCommand: string | null
 ): string[] {
   const nextActionable = selectNextTask(taskFile);
+  const taskGraphErrors = preflightReport.diagnostics.filter((diagnostic) => (
+    diagnostic.category === 'taskGraph' && diagnostic.severity === 'error'
+  ));
+  const taskLedgerDriftMessages = taskGraphErrors
+    .slice(0, 2)
+    .map((diagnostic) => diagnostic.message);
   const baseLines = [
     `- Backlog counts: todo ${taskCounts.todo}, in_progress ${taskCounts.in_progress}, blocked ${taskCounts.blocked}, done ${taskCounts.done}`,
     `- Next actionable task: ${nextActionable ? `${nextActionable.id} (${nextActionable.status})` : 'none'}`
   ];
 
   if (kind === 'replenish-backlog') {
+    const driftLines = taskLedgerDriftMessages.length > 0
+      ? [
+          '- The durable task ledger is inconsistent. Do not treat this as clean backlog exhaustion.',
+          ...taskLedgerDriftMessages.map((message) => `- Task-ledger drift: ${message}`),
+          '- Repair the task-ledger drift in `.ralph/tasks.json` before adding new follow-up tasks.'
+        ]
+      : [
+          '- The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.'
+        ];
+
     return [
       ...baseLines,
-      '- The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.',
+      ...driftLines,
       '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, optional `parentId`, and optional `dependsOn`.',
       '- Do not duplicate already-completed work or mark speculative tasks done.',
       '- Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.',
@@ -315,6 +660,15 @@ function buildTaskContext(
   }
 
   if (!selectedTask) {
+    if (taskLedgerDriftMessages.length > 0) {
+      return [
+        ...baseLines,
+        '- No actionable Ralph task was selected because the durable task ledger is inconsistent.',
+        ...taskLedgerDriftMessages.map((message) => `- Task-ledger drift: ${message}`),
+        '- Repair the task-ledger drift instead of inventing a new task.'
+      ];
+    }
+
     return [
       ...baseLines,
       '- No actionable Ralph task was selected.',
@@ -346,7 +700,8 @@ function buildPriorIterationContext(
   state: RalphWorkspaceState,
   includeVerifierFeedback: boolean,
   budget: number,
-  rootPath: string
+  rootPath: string,
+  selectedTask: RalphTask | null
 ): string[] {
   const prior = state.lastIteration;
 
@@ -357,28 +712,93 @@ function buildPriorIterationContext(
     return ['- Prior verifier feedback is disabled by configuration.'];
   }
 
-  const lines = [
-    `- Prior iteration: ${prior.iteration}`,
-    `- Prior outcome classification: ${prior.completionClassification}`,
-    `- Prior execution / verification: ${prior.executionStatus} / ${prior.verificationStatus}`,
-    `- Prior follow-up action: ${prior.followUpAction}`,
-    `- Prior summary: ${prior.summary}`,
-    `- Prior stop reason: ${formatOptional(prior.stopReason)}`,
-    `- Prior validation failure signature: ${formatOptional(prior.verification.validationFailureSignature)}`,
-    `- Prior verifier statuses: ${prior.verification.verifiers.map((verifier) => `${verifier.verifier}=${verifier.status}`).join(', ') || 'none'}`,
-    `- Prior no-progress signals: ${prior.noProgressSignals.join(', ') || 'none'}`,
-    `- Prior prompt artifact: ${toRelativePath(rootPath, prior.promptPath)}`,
-    `- Prior iteration artifact dir: ${toRelativePath(rootPath, prior.artifactDir)}`
+  const taskTokens = keywordTokens(taskKeywords(selectedTask));
+  const validationFocusedTask = taskTokens.some((token) => [
+    'test',
+    'tests',
+    'validate',
+    'validation',
+    'verifier',
+    'failure',
+    'debug',
+    'regression',
+    'smoke'
+  ].includes(token));
+  const remediationRelevant = prior.remediation
+    ? prior.remediation.taskId === null
+      || !selectedTask
+      || prior.remediation.taskId === selectedTask.id
+      || matchesTaskFocus(prior.remediation.summary, selectedTask, taskTokens)
+    : false;
+  const failureSignatureRelevant = Boolean(prior.verification.validationFailureSignature)
+    && (!selectedTask
+      || validationFocusedTask
+      || prior.executionStatus === 'failed'
+      || (prior.verificationStatus === 'failed'
+        && (prior.completionClassification === 'failed'
+          || prior.completionClassification === 'blocked'
+          || remediationRelevant))
+      || matchesTaskFocus(prior.summary, selectedTask, taskTokens));
+  const noProgressRelevant = prior.noProgressSignals.length > 0
+    && (remediationRelevant || validationFocusedTask || !selectedTask);
+  const relevantChangedFiles = prior.diffSummary?.relevantChangedFiles.filter((filePath) => (
+    fileMatchesTaskFocus(filePath, selectedTask, taskTokens)
+  )) ?? [];
+  const diffRelevant = Boolean(prior.diffSummary)
+    && (!selectedTask
+      || matchesTaskFocus(prior.diffSummary?.summary, selectedTask, taskTokens)
+      || relevantChangedFiles.length > 0);
+  const lineEntries: Array<{ priority: number; text: string; }> = [
+    { priority: 100, text: `- Prior iteration: ${prior.iteration}` },
+    { priority: 95, text: `- Prior outcome classification: ${prior.completionClassification}` },
+    { priority: 94, text: `- Prior execution / verification: ${prior.executionStatus} / ${prior.verificationStatus}` },
+    { priority: 91, text: `- Prior summary: ${prior.summary}` }
   ];
 
-  if (prior.diffSummary) {
-    lines.push(`- Prior diff summary: ${prior.diffSummary.summary}`);
-    if (prior.diffSummary.relevantChangedFiles.length > 0) {
-      lines.push(`- Prior relevant changed files: ${compactList(prior.diffSummary.relevantChangedFiles, 5)}`);
+  if (remediationRelevant) {
+    lineEntries.push({ priority: 93, text: `- Prior remediation: ${prior.remediation?.summary ?? 'none'}` });
+  }
+  if (failureSignatureRelevant) {
+    lineEntries.push({
+      priority: 92,
+      text: `- Prior validation failure signature: ${formatOptional(prior.verification.validationFailureSignature)}`
+    });
+  }
+  if (prior.stopReason && (remediationRelevant || prior.completionClassification !== 'complete')) {
+    lineEntries.push({ priority: 90, text: `- Prior stop reason: ${formatOptional(prior.stopReason)}` });
+  }
+  if (prior.followUpAction !== 'stop' || remediationRelevant) {
+    lineEntries.push({ priority: 89, text: `- Prior follow-up action: ${prior.followUpAction}` });
+  }
+  if (prior.verification.verifiers.length > 0 && (failureSignatureRelevant || prior.verificationStatus === 'failed' || !selectedTask)) {
+    lineEntries.push({
+      priority: 88,
+      text: `- Prior verifier statuses: ${prior.verification.verifiers.map((verifier) => `${verifier.verifier}=${verifier.status}`).join(', ')}`
+    });
+  }
+  if (noProgressRelevant) {
+    lineEntries.push({ priority: 87, text: `- Prior no-progress signals: ${prior.noProgressSignals.join(', ')}` });
+  }
+  if (diffRelevant && prior.diffSummary) {
+    lineEntries.push({ priority: 72, text: `- Prior diff summary: ${prior.diffSummary.summary}` });
+    if (relevantChangedFiles.length > 0) {
+      lineEntries.push({
+        priority: 71,
+        text: `- Prior relevant changed files: ${compactList(relevantChangedFiles, 5)}`
+      });
     }
   }
+  if (!selectedTask || budget >= 8) {
+    lineEntries.push({ priority: 20, text: `- Prior prompt artifact: ${toRelativePath(rootPath, prior.promptPath)}` });
+    lineEntries.push({ priority: 19, text: `- Prior iteration artifact dir: ${toRelativePath(rootPath, prior.artifactDir)}` });
+  }
 
-  return trimContextLines(lines, budget);
+  return trimContextLines(
+    lineEntries
+      .sort((left, right) => right.priority - left.priority)
+      .map((entry) => entry.text),
+    budget
+  );
 }
 
 function buildOperatingRules(): string[] {
@@ -619,6 +1039,105 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     input.config.promptTemplateDirectory
   );
 
+  const budgetPolicy = buildPromptBudgetPolicy(input.kind, input.target);
+  const sectionBodies = {
+    strategyContext: buildStrategyContext(input.target, input.kind),
+    preflightContext: buildPreflightContext(input.preflightReport),
+    objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
+    repoContext: buildRepoContext(
+      input.summary,
+      input.kind,
+      input.target,
+      input.selectedTask,
+      budgetPolicy.repoDetail
+    ),
+    runtimeContext: buildRuntimeContext(
+      input.state,
+      input.paths,
+      input.iteration,
+      input.target,
+      budgetPolicy.runtimeDetail
+    ),
+    taskContext: buildTaskContext(
+      input.kind,
+      input.taskFile,
+      input.taskCounts,
+      input.selectedTask,
+      input.preflightReport,
+      input.taskValidationHint,
+      input.effectiveValidationCommand,
+      input.normalizedValidationCommandFrom,
+      input.validationCommand
+    ),
+    progressContext: clipText(input.progressText, budgetPolicy.progressLines, budgetPolicy.progressChars, true)
+      .split('\n')
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 0),
+    priorIterationContext: buildPriorIterationContext(
+      input.state,
+      input.config.promptIncludeVerifierFeedback,
+      Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
+      input.paths.rootPath,
+      input.selectedTask
+    ),
+    operatingRules: buildOperatingRules(),
+    executionContract: buildExecutionContract(input.target, input.kind),
+    finalResponseContract: buildFinalResponseContract(input.target, input.kind)
+  };
+
+  const omittedSections = new Set<PromptSectionName>();
+  const placeholderFor = (name: PromptSectionName): string => {
+    if (!omittedSections.has(name)) {
+      const value = sectionBodies[name];
+      return Array.isArray(value) ? value.join('\n') : value;
+    }
+
+    switch (name) {
+      case 'repoContext':
+        return '- Omitted by prompt budget policy after core root and task context were captured in prompt evidence.';
+      case 'runtimeContext':
+        return '- Omitted by prompt budget policy after stable runtime pointers were captured in prompt evidence.';
+      case 'progressContext':
+        return '- Omitted by prompt budget policy because recent progress did not fit within the target prompt budget.';
+      case 'priorIterationContext':
+        return '- Omitted by prompt budget policy after the current failure/task context was kept.';
+      default:
+        return '- Omitted by prompt budget policy.';
+    }
+  };
+
+  const renderPrompt = (): string => renderTemplate(templateText, {
+    prompt_title: `# Ralph Prompt: ${input.kind} (${input.target})`,
+    prompt_intro: PROMPT_INTRO_BY_KIND[input.kind],
+    strategy_context: placeholderFor('strategyContext'),
+    preflight_context: placeholderFor('preflightContext'),
+    objective_context: placeholderFor('objectiveContext'),
+    repo_context: placeholderFor('repoContext'),
+    runtime_context: placeholderFor('runtimeContext'),
+    task_context: placeholderFor('taskContext'),
+    progress_context: placeholderFor('progressContext'),
+    prior_iteration_context: placeholderFor('priorIterationContext'),
+    operating_rules: placeholderFor('operatingRules'),
+    execution_contract: placeholderFor('executionContract'),
+    final_response_contract: placeholderFor('finalResponseContract'),
+    template_selection_reason: input.selectionReason
+  });
+
+  let prompt = renderPrompt();
+  let estimatedTokens = estimateTokenCount(prompt);
+  for (const sectionName of budgetPolicy.optionalSectionOrder) {
+    if (estimatedTokens <= budgetPolicy.targetTokens) {
+      break;
+    }
+
+    omittedSections.add(sectionName);
+    prompt = renderPrompt();
+    estimatedTokens = estimateTokenCount(prompt);
+  }
+
+  const withinTarget = estimatedTokens <= budgetPolicy.targetTokens;
+  const budgetDeltaTokens = estimatedTokens - budgetPolicy.targetTokens;
+
   const evidence: RalphPromptEvidence = {
     schemaVersion: 1,
     iteration: input.iteration,
@@ -631,56 +1150,39 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     effectiveValidationCommand: input.effectiveValidationCommand,
     normalizedValidationCommandFrom: input.normalizedValidationCommandFrom,
     validationCommand: input.validationCommand,
+    promptByteLength: Buffer.byteLength(prompt, 'utf8'),
+    promptBudget: {
+      policyName: budgetPolicy.name,
+      budgetMode: omittedSections.size > 0 ? 'trimmed' : 'within_budget',
+      targetTokens: budgetPolicy.targetTokens,
+      minimumContextBias: budgetPolicy.minimumContextBias,
+      estimatedTokens,
+      withinTarget,
+      budgetDeltaTokens,
+      estimatedTokenRange: estimateTokenRange(estimatedTokens),
+      requiredSections: budgetPolicy.requiredSections,
+      optionalSections: budgetPolicy.optionalSectionOrder,
+      omissionOrder: budgetPolicy.optionalSectionOrder,
+      selectedSections: (Object.keys(sectionBodies) as PromptSectionName[])
+        .filter((name) => !omittedSections.has(name)),
+      omittedSections: Array.from(omittedSections)
+    },
     inputs: {
       rootPolicy: deriveRootPolicy(input.summary),
-      strategyContext: buildStrategyContext(input.target, input.kind),
-      preflightContext: buildPreflightContext(input.preflightReport),
-      objectiveContext: clipText(input.objectiveText, 14, 1600),
-      repoContext: buildRepoContext(input.summary),
+      strategyContext: sectionBodies.strategyContext,
+      preflightContext: sectionBodies.preflightContext,
+      objectiveContext: sectionBodies.objectiveContext,
+      repoContext: sectionBodies.repoContext,
       repoContextSnapshot: input.summary,
-      runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target),
-      taskContext: buildTaskContext(
-        input.kind,
-        input.taskFile,
-        input.taskCounts,
-        input.selectedTask,
-        input.taskValidationHint,
-        input.effectiveValidationCommand,
-        input.normalizedValidationCommandFrom,
-        input.validationCommand
-      ),
-      progressContext: clipText(input.progressText, 10, 1200, true)
-        .split('\n')
-        .map((line) => line.trimEnd())
-        .filter((line) => line.length > 0),
-      priorIterationContext: buildPriorIterationContext(
-        input.state,
-        input.config.promptIncludeVerifierFeedback,
-        input.config.promptPriorContextBudget,
-        input.paths.rootPath
-      ),
-      operatingRules: buildOperatingRules(),
-      executionContract: buildExecutionContract(input.target, input.kind),
-      finalResponseContract: buildFinalResponseContract(input.target, input.kind)
+      runtimeContext: sectionBodies.runtimeContext,
+      taskContext: sectionBodies.taskContext,
+      progressContext: sectionBodies.progressContext,
+      priorIterationContext: sectionBodies.priorIterationContext,
+      operatingRules: sectionBodies.operatingRules,
+      executionContract: sectionBodies.executionContract,
+      finalResponseContract: sectionBodies.finalResponseContract
     }
   };
-
-  const prompt = renderTemplate(templateText, {
-    prompt_title: `# Ralph Prompt: ${input.kind} (${input.target})`,
-    prompt_intro: PROMPT_INTRO_BY_KIND[input.kind],
-    strategy_context: evidence.inputs.strategyContext.join('\n'),
-    preflight_context: evidence.inputs.preflightContext.join('\n'),
-    objective_context: evidence.inputs.objectiveContext,
-    repo_context: evidence.inputs.repoContext.join('\n'),
-    runtime_context: evidence.inputs.runtimeContext.join('\n'),
-    task_context: evidence.inputs.taskContext.join('\n'),
-    progress_context: evidence.inputs.progressContext.join('\n'),
-    prior_iteration_context: evidence.inputs.priorIterationContext.join('\n'),
-    operating_rules: evidence.inputs.operatingRules.join('\n'),
-    execution_contract: evidence.inputs.executionContract.join('\n'),
-    final_response_contract: evidence.inputs.finalResponseContract.join('\n'),
-    template_selection_reason: input.selectionReason
-  });
 
   return {
     prompt,

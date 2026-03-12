@@ -120,6 +120,7 @@ function readConfig(workspaceFolder) {
         promptPriorContextBudget: readNumber(config, 'promptPriorContextBudget', defaults_1.DEFAULT_CONFIG.promptPriorContextBudget, 1),
         clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', defaults_1.DEFAULT_CONFIG.clipboardAutoCopy),
         model: readString(config, 'model', defaults_1.DEFAULT_CONFIG.model),
+        reasoningEffort: readEnum(config, 'reasoningEffort', ['medium', 'high'], defaults_1.DEFAULT_CONFIG.reasoningEffort),
         approvalMode: readEnum(config, 'approvalMode', ['never', 'on-request', 'untrusted'], defaults_1.DEFAULT_CONFIG.approvalMode),
         sandboxMode: readEnum(config, 'sandboxMode', ['read-only', 'workspace-write', 'danger-full-access'], defaults_1.DEFAULT_CONFIG.sandboxMode),
         openSidebarCommandId: readString(config, 'openSidebarCommandId', defaults_1.DEFAULT_CONFIG.openSidebarCommandId),

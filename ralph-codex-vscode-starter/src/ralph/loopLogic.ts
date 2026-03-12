@@ -5,6 +5,8 @@ import {
   RalphIterationResult,
   RalphLoopDecision,
   RalphStopReason,
+  RalphTaskRemediation,
+  RalphTaskRemediationAction,
   RalphVerificationStatus
 } from './types';
 
@@ -238,6 +240,119 @@ function failureSignature(result: RalphIterationResult): string | null {
   ].join('::');
 }
 
+function countTrailingSameTaskClassifications(
+  results: RalphIterationResult[],
+  taskId: string | null,
+  classifications: RalphCompletionClassification[]
+): number {
+  if (!taskId) {
+    return 0;
+  }
+
+  const allowed = new Set(classifications);
+  return countTrailingMatches(results, (item) => item.selectedTaskId === taskId && allowed.has(item.completionClassification));
+}
+
+function remediationActionForResult(result: RalphIterationResult): RalphTaskRemediationAction {
+  if (result.completionClassification === 'blocked') {
+    return 'mark_blocked';
+  }
+
+  if (result.noProgressSignals.includes('same_validation_failure_signature')) {
+    return 'reframe_task';
+  }
+
+  if (result.completionClassification === 'failed') {
+    return 'request_human_review';
+  }
+
+  if (result.noProgressSignals.includes('same_task_selected_repeatedly')
+    && result.noProgressSignals.includes('no_relevant_file_changes')
+    && result.noProgressSignals.includes('task_and_progress_state_unchanged')) {
+    return 'decompose_task';
+  }
+
+  return 'no_action';
+}
+
+function remediationSummary(
+  action: RalphTaskRemediationAction,
+  result: RalphIterationResult,
+  attemptCount: number
+): string {
+  switch (action) {
+    case 'reframe_task':
+      return `Task ${result.selectedTaskId ?? 'none'} hit the same validation-backed failure pattern ${attemptCount} times; reframe the task around that deterministic failure before rerunning it.`;
+    case 'mark_blocked':
+      return `Task ${result.selectedTaskId ?? 'none'} remained blocked for ${attemptCount} consecutive iterations; mark it blocked and capture the dependency before retrying.`;
+    case 'request_human_review':
+      return `Task ${result.selectedTaskId ?? 'none'} failed in the same way ${attemptCount} times; request a human review before another retry.`;
+    case 'decompose_task':
+      return `Task ${result.selectedTaskId ?? 'none'} made no durable progress across ${attemptCount} consecutive attempts; decompose the task into a smaller deterministic unit before rerunning it.`;
+    case 'no_action':
+    default:
+      return `Task ${result.selectedTaskId ?? 'none'} repeated the same stop condition ${attemptCount} times, but the recorded evidence does not justify an automatic remediation change.`;
+  }
+}
+
+export function buildTaskRemediation(input: {
+  currentResult: RalphIterationResult;
+  stopReason: RalphStopReason | null;
+  previousIterations: RalphIterationResult[];
+}): RalphTaskRemediation | null {
+  const { currentResult, stopReason, previousIterations } = input;
+  if (!stopReason || !currentResult.selectedTaskId) {
+    return null;
+  }
+
+  const history = [...previousIterations, currentResult];
+  let attemptCount = 0;
+
+  if (stopReason === 'repeated_no_progress') {
+    attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['no_progress']);
+  } else if (stopReason === 'repeated_identical_failure') {
+    if (currentResult.completionClassification === 'blocked') {
+      attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['blocked']);
+    } else {
+      const signature = failureSignature(currentResult);
+      if (!signature) {
+        return null;
+      }
+
+      attemptCount = countTrailingMatches(history, (item) =>
+        item.selectedTaskId === currentResult.selectedTaskId && failureSignature(item) === signature
+      );
+    }
+  } else {
+    return null;
+  }
+
+  if (attemptCount < 2) {
+    return null;
+  }
+
+  const evidence = uniqueOrdered([
+    ...currentResult.noProgressSignals,
+    currentResult.completionClassification === 'blocked' ? 'same_task_blocked_repeatedly' : '',
+    currentResult.verification.validationFailureSignature
+      ? `validation_failure_signature:${currentResult.verification.validationFailureSignature}`
+      : '',
+    currentResult.stopReason ? `stop_reason:${currentResult.stopReason}` : '',
+    `classification:${currentResult.completionClassification}`
+  ]);
+  const action = remediationActionForResult(currentResult);
+
+  return {
+    trigger: stopReason,
+    taskId: currentResult.selectedTaskId,
+    attemptCount,
+    action,
+    humanReviewRecommended: action === 'mark_blocked' || action === 'request_human_review',
+    summary: remediationSummary(action, currentResult, attemptCount),
+    evidence
+  };
+}
+
 export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoopDecision {
   const history = [...input.previousIterations, input.currentResult];
 
@@ -284,7 +399,10 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     };
   }
 
-  const noProgressCount = countTrailingMatches(history, (item) => item.completionClassification === 'no_progress');
+  const noProgressCount = countTrailingMatches(
+    history,
+    (item) => item.selectedTaskId === input.currentResult.selectedTaskId && item.completionClassification === 'no_progress'
+  );
   if (noProgressCount >= input.noProgressThreshold) {
     return {
       shouldContinue: false,

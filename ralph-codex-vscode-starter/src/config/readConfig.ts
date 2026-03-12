@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG } from './defaults';
 import {
   CodexApprovalMode,
   CodexHandoffMode,
+  CodexReasoningEffort,
   CodexSandboxMode,
   RalphCodexConfig,
   RalphGitCheckpointMode,
@@ -199,6 +200,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ),
     clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', DEFAULT_CONFIG.clipboardAutoCopy),
     model: readString(config, 'model', DEFAULT_CONFIG.model),
+    reasoningEffort: readEnum<CodexReasoningEffort>(
+      config,
+      'reasoningEffort',
+      ['medium', 'high'],
+      DEFAULT_CONFIG.reasoningEffort
+    ),
     approvalMode: readEnum<CodexApprovalMode>(
       config,
       'approvalMode',

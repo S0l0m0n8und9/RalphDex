@@ -1,4 +1,4 @@
-import { CodexApprovalMode, CodexSandboxMode } from '../config/types';
+import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
 import { RalphPromptKind } from '../ralph/types';
 
 export type CodexStrategyId = 'ideCommand' | 'clipboard' | 'cliExec';
@@ -31,6 +31,7 @@ export interface CodexExecRequest {
   transcriptPath: string;
   lastMessagePath: string;
   model: string;
+  reasoningEffort: CodexReasoningEffort;
   sandboxMode: CodexSandboxMode;
   approvalMode: CodexApprovalMode;
   onStdoutChunk?: (chunk: string) => void;

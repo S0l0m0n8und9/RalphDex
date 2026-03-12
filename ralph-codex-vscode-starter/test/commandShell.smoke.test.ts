@@ -96,7 +96,11 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
   assert.ok(commands.includes('ralphCodex.openLatestRalphSummary'));
   assert.ok(commands.includes('ralphCodex.openLatestProvenanceBundle'));
+  assert.ok(commands.includes('ralphCodex.openLatestPromptEvidence'));
+  assert.ok(commands.includes('ralphCodex.openLatestCliTranscript'));
+  assert.ok(commands.includes('ralphCodex.applyLatestTaskDecompositionProposal'));
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
+  assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
 });
 
 test('Show Ralph Status reports preflight details and can open the latest summary artifact', async () => {
@@ -152,6 +156,347 @@ test('Open Latest Ralph Summary falls back to the latest preflight summary artif
   assert.deepEqual(harness.state.shownDocuments, [latestPreflightSummaryPath]);
 });
 
+test('Open Latest Ralph Summary repairs a deleted latest summary from latest-result metadata', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const latestSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), JSON.stringify({
+    iteration: 3,
+    provenanceId: 'run-i003-cli-20260307T000600Z',
+    selectedTaskId: 'T3',
+    selectedTaskTitle: 'Repair stale latest pointers',
+    promptKind: 'iteration',
+    promptTarget: 'cliExec',
+    templatePath: '/tmp/iteration-template.md',
+    executionStatus: 'succeeded',
+    executionMessage: 'codex exec completed successfully.',
+    verificationStatus: 'passed',
+    completionClassification: 'complete',
+    backlog: {
+      remainingTaskCount: 2,
+      actionableTaskAvailable: true
+    },
+    followUpAction: 'continue_next_task',
+    stopReason: null,
+    remediation: {
+      trigger: 'repeated_no_progress',
+      taskId: 'T3',
+      attemptCount: 2,
+      action: 'decompose_task',
+      humanReviewRecommended: false,
+      summary: 'Task T3 made no durable progress across 2 consecutive attempts; decompose the task into a smaller deterministic unit before rerunning it.',
+      evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes']
+    },
+    summary: 'Selected T3: Repair stale latest pointers | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2',
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003'),
+    summaryPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'summary.md'),
+    promptPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt.md'),
+    promptEvidencePath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt-evidence.json'),
+    executionPlanPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'execution-plan.json'),
+    cliInvocationPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'cli-invocation.json'),
+    promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt.md'),
+    promptHash: 'sha256:prompt',
+    executionPlanHash: 'sha256:plan',
+    executionPayloadMatched: true,
+    transcriptPath: path.join(rootPath, '.ralph', 'runs', 'iteration-003.transcript.md'),
+    lastMessagePath: path.join(rootPath, '.ralph', 'runs', 'iteration-003.last-message.md'),
+    executionSummaryPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'execution-summary.json'),
+    verifierSummaryPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'verifier-summary.json'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'iteration-result.json'),
+    remediationPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'task-remediation.json'),
+    diffSummaryPath: null,
+    stdoutPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'stdout.log'),
+    stderrPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'stderr.log'),
+    completionReportStatus: 'applied',
+    reconciliationWarnings: [],
+    warnings: [],
+    errors: []
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestRalphSummary');
+
+  assert.deepEqual(harness.state.shownDocuments, [latestSummaryPath]);
+  assert.match(await fs.readFile(latestSummaryPath, 'utf8'), /# Ralph Iteration 3/);
+  assert.match(await fs.readFile(latestSummaryPath, 'utf8'), /Remediation: Task T3 made no durable progress/);
+});
+
+test('Apply Latest Task Decomposition Proposal explains when no latest remediation artifact exists', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /No latest Ralph remediation proposal exists yet/
+  );
+});
+
+test('Apply Latest Task Decomposition Proposal explains when the latest remediation is not a decomposition proposal', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskRemediation',
+    provenanceId: 'run-i002-cli-20260310T091148Z',
+    iteration: 2,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Inspect guardrails',
+    trigger: 'repeated_identical_failure',
+    attemptCount: 2,
+    action: 'request_human_review',
+    humanReviewRecommended: true,
+    summary: 'Task T1 failed in the same way 2 times; request a human review before another retry.',
+    rationale: 'The task needs a person to review the repeated failure.',
+    proposedAction: 'Request human review.',
+    evidence: ['validation_failure_signature:npm test::exit:1::deterministic'],
+    triggeringHistory: [],
+    suggestedChildTasks: [],
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'iteration-result.json'),
+    createdAt: '2026-03-10T09:11:48.574Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /does not contain an applicable task-decomposition proposal/
+  );
+});
+
+test('Apply Latest Task Decomposition Proposal explains when the latest decomposition remediation has no child tasks to apply', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskRemediation',
+    provenanceId: 'run-i002-cli-20260310T091148Z',
+    iteration: 2,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Inspect guardrails',
+    trigger: 'repeated_no_progress',
+    attemptCount: 2,
+    action: 'decompose_task',
+    humanReviewRecommended: false,
+    summary: 'Task T1 made no durable progress across 2 consecutive attempts; decompose the task into smaller bounded steps before rerunning it.',
+    rationale: 'The task is compound and needs a bounded first step.',
+    proposedAction: 'Accept the child-task proposal before retrying T1.',
+    evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes'],
+    triggeringHistory: [],
+    suggestedChildTasks: [],
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'iteration-result.json'),
+    createdAt: '2026-03-10T09:11:48.574Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /does not contain an applicable task-decomposition proposal/
+  );
+});
+
+test('Apply Latest Task Decomposition Proposal requires explicit approval before editing tasks.json', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskRemediation',
+    provenanceId: 'run-i002-cli-20260310T091148Z',
+    iteration: 2,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Inspect guardrails',
+    trigger: 'repeated_no_progress',
+    attemptCount: 2,
+    action: 'decompose_task',
+    humanReviewRecommended: false,
+    summary: 'Task T1 made no durable progress across 2 consecutive attempts; decompose the task into smaller bounded steps before rerunning it.',
+    rationale: 'The task is compound and needs a bounded first step.',
+    proposedAction: 'Accept the child-task proposal before retrying T1.',
+    evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes'],
+    triggeringHistory: [],
+    suggestedChildTasks: [
+      {
+        id: 'T1.1',
+        title: 'Reproduce the blocker',
+        parentId: 'T1',
+        dependsOn: [],
+        validation: 'npm test',
+        rationale: 'First bounded step.'
+      }
+    ],
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'iteration-result.json'),
+    createdAt: '2026-03-10T09:11:48.574Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string; dependsOn?: string[] }>;
+  };
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T1']);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /Apply the latest Ralph decomposition proposal for T1/);
+});
+
+test('Apply Latest Task Decomposition Proposal updates tasks.json after approval', async () => {
+  const rootPath = await makeTempRoot();
+  await fs.mkdir(path.join(rootPath, '.ralph', 'artifacts'), { recursive: true });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Product / project brief\n\nKeep the extension safe.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n\n- Ready.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Inspect guardrails', status: 'todo', dependsOn: ['T0'] }
+    ]
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskRemediation',
+    provenanceId: 'run-i002-cli-20260310T091148Z',
+    iteration: 2,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Inspect guardrails',
+    trigger: 'repeated_no_progress',
+    attemptCount: 2,
+    action: 'decompose_task',
+    humanReviewRecommended: false,
+    summary: 'Task T1 made no durable progress across 2 consecutive attempts; decompose the task into smaller bounded steps before rerunning it.',
+    rationale: 'The task is compound and needs a bounded first step.',
+    proposedAction: 'Accept the child-task proposal before retrying T1.',
+    evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes'],
+    triggeringHistory: [],
+    suggestedChildTasks: [
+      {
+        id: 'T1.1',
+        title: 'Reproduce the blocker',
+        parentId: 'T1',
+        dependsOn: [],
+        validation: 'npm test',
+        rationale: 'First bounded step.'
+      },
+      {
+        id: 'T1.2',
+        title: 'Implement the smallest fix',
+        parentId: 'T1',
+        dependsOn: [{ taskId: 'T1.1', reason: 'blocks_sequence' }],
+        validation: 'npm test',
+        rationale: 'Second bounded step.'
+      }
+    ],
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'iteration-result.json'),
+    createdAt: '2026-03-10T09:11:48.574Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Apply Proposal');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string; parentId?: string; dependsOn?: string[]; notes?: string }>;
+  };
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1', 'T1.2']);
+  assert.deepEqual(taskFile.tasks[1]?.dependsOn, ['T0', 'T1.1', 'T1.2']);
+  assert.equal(taskFile.tasks[2]?.parentId, 'T1');
+  assert.equal(taskFile.tasks[3]?.parentId, 'T1');
+  assert.equal(taskFile.tasks[2]?.notes, 'First bounded step.');
+  assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'tasks.json')]);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Applied the latest Ralph decomposition proposal/
+  );
+});
+
+test('Apply Latest Task Decomposition Proposal leaves tasks.json unchanged when the approved proposal is malformed', async () => {
+  const rootPath = await makeTempRoot();
+  await fs.mkdir(path.join(rootPath, '.ralph', 'artifacts'), { recursive: true });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Product / project brief\n\nKeep the extension safe.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n\n- Ready.\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Inspect guardrails', status: 'todo', dependsOn: ['T0'] }
+    ]
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskRemediation',
+    provenanceId: 'run-i002-cli-20260310T091148Z',
+    iteration: 2,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Inspect guardrails',
+    trigger: 'repeated_no_progress',
+    attemptCount: 2,
+    action: 'decompose_task',
+    humanReviewRecommended: false,
+    summary: 'Task T1 made no durable progress across 2 consecutive attempts; decompose the task into smaller bounded steps before rerunning it.',
+    rationale: 'The task is compound and needs a bounded first step.',
+    proposedAction: 'Accept the child-task proposal before retrying T1.',
+    evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes'],
+    triggeringHistory: [],
+    suggestedChildTasks: [
+      {
+        id: 'T1.1',
+        title: 'Reproduce the blocker',
+        parentId: 'T1',
+        dependsOn: [{ taskId: 'MISSING', reason: 'blocks_sequence' }],
+        validation: 'npm test',
+        rationale: 'First bounded step.'
+      }
+    ],
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'iteration-result.json'),
+    createdAt: '2026-03-10T09:11:48.574Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Apply Proposal');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string; dependsOn?: string[] }>;
+  };
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1']);
+  assert.deepEqual(taskFile.tasks[1]?.dependsOn, ['T0']);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(
+    harness.state.errorMessages.at(-1)?.message ?? '',
+    /child task T1\.1 depends on missing task MISSING/
+  );
+});
+
 test('Open Latest Provenance Bundle prefers the human-readable provenance summary', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
@@ -165,6 +510,305 @@ test('Open Latest Provenance Bundle prefers the human-readable provenance summar
   await vscode.commands.executeCommand('ralphCodex.openLatestProvenanceBundle');
 
   assert.deepEqual(harness.state.shownDocuments, [latestProvenanceSummaryPath]);
+});
+
+test('Open Latest Provenance Bundle repairs a deleted summary from the latest bundle manifest', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const latestProvenanceSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-summary.md');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), JSON.stringify({
+    kind: 'provenanceBundle',
+    schemaVersion: 1,
+    provenanceId: 'run-i003-cli-20260307T000600Z',
+    iteration: 3,
+    promptKind: 'iteration',
+    promptTarget: 'cliExec',
+    trustLevel: 'verifiedCliExecution',
+    status: 'executed',
+    summary: 'Bundle summary',
+    rootPolicy: {
+      workspaceRootPath: rootPath,
+      inspectionRootPath: rootPath,
+      executionRootPath: rootPath,
+      verificationRootPath: rootPath,
+      selectionStrategy: 'workspaceRoot',
+      selectionSummary: 'Using the workspace root.',
+      policySummary: 'Inspect, execute, and verify from the workspace root.'
+    },
+    selectedTaskId: 'T3',
+    selectedTaskTitle: 'Repair stale latest pointers',
+    artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003'),
+    bundleDir: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z'),
+    preflightReportPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'preflight-report.json'),
+    preflightSummaryPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'preflight-summary.md'),
+    promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'prompt.md'),
+    promptEvidencePath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'prompt-evidence.json'),
+    executionPlanPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'execution-plan.json'),
+    executionPlanHash: 'sha256:plan',
+    cliInvocationPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'cli-invocation.json'),
+    iterationResultPath: path.join(rootPath, '.ralph', 'artifacts', 'runs', 'run-i003-cli-20260307T000600Z', 'iteration-result.json'),
+    provenanceFailurePath: null,
+    provenanceFailureSummaryPath: null,
+    promptHash: 'sha256:prompt',
+    promptByteLength: 123,
+    executionPayloadHash: 'sha256:payload',
+    executionPayloadMatched: true,
+    mismatchReason: null,
+    createdAt: '2026-03-07T00:06:00.000Z',
+    updatedAt: '2026-03-07T00:06:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestProvenanceBundle');
+
+  assert.deepEqual(harness.state.shownDocuments, [latestProvenanceSummaryPath]);
+  assert.match(await fs.readFile(latestProvenanceSummaryPath, 'utf8'), /# Ralph Provenance run-i003-cli-20260307T000600Z/);
+});
+
+test('Open Latest Prompt Evidence opens the stable latest prompt evidence artifact', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const latestPromptEvidencePath = path.join(rootPath, '.ralph', 'artifacts', 'latest-prompt-evidence.json');
+  await fs.writeFile(latestPromptEvidencePath, JSON.stringify({
+    kind: 'promptEvidence',
+    schemaVersion: 1,
+    provenanceId: 'run-i001-ide-20260307T000100Z',
+    iteration: 1,
+    promptKind: 'iteration'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestPromptEvidence');
+
+  assert.deepEqual(harness.state.shownDocuments, [latestPromptEvidencePath]);
+});
+
+test('Open Latest Prompt Evidence explains when no prompt evidence exists yet', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestPromptEvidence');
+
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /No Ralph prompt evidence exists yet/);
+});
+
+test('Open Latest CLI Transcript prefers the transcript artifact from the latest CLI invocation', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const transcriptPath = path.join(runDir, 'iteration-003.transcript.md');
+  const lastMessagePath = path.join(runDir, 'iteration-003.last-message.md');
+  await fs.mkdir(runDir, { recursive: true });
+  await fs.writeFile(transcriptPath, '# Transcript\n\nok\n', 'utf8');
+  await fs.writeFile(lastMessagePath, 'ok\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-cli-invocation.json'), JSON.stringify({
+    kind: 'cliInvocation',
+    schemaVersion: 1,
+    provenanceId: 'run-i003-cli-20260307T000600Z',
+    iteration: 3,
+    commandPath: 'codex',
+    args: ['exec'],
+    workspaceRoot: rootPath,
+    rootPolicy: {
+      workspaceRootPath: rootPath,
+      inspectionRootPath: rootPath,
+      executionRootPath: rootPath,
+      verificationRootPath: rootPath,
+      selectionStrategy: 'workspaceRoot',
+      selectionSummary: 'Using the workspace root.',
+      policySummary: 'Inspect, execute, and verify from the workspace root.'
+    },
+    promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt.md'),
+    promptHash: 'sha256:prompt',
+    promptByteLength: 123,
+    stdinHash: 'sha256:stdin',
+    transcriptPath,
+    lastMessagePath,
+    createdAt: '2026-03-07T00:06:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestCliTranscript');
+
+  assert.deepEqual(harness.state.shownDocuments, [transcriptPath]);
+});
+
+test('Open Latest CLI Transcript falls back to the last-message artifact when the transcript path is absent', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const lastMessagePath = path.join(runDir, 'iteration-003.last-message.md');
+  await fs.mkdir(runDir, { recursive: true });
+  await fs.writeFile(lastMessagePath, 'ok\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: null,
+    nextIteration: 4,
+    lastPromptKind: 'iteration',
+    lastPromptPath: null,
+    lastRun: {
+      iteration: 3,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:05:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(rootPath, '.ralph', 'prompts', 'iteration-003.prompt.md'),
+      lastMessagePath,
+      summary: 'Iteration 3 succeeded.'
+    },
+    runHistory: [],
+    lastIteration: null,
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:05:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestCliTranscript');
+
+  assert.deepEqual(harness.state.shownDocuments, [lastMessagePath]);
+});
+
+test('Open Latest CLI Transcript falls back to the last-message artifact when the transcript file was deleted', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const transcriptPath = path.join(runDir, 'iteration-003.transcript.md');
+  const lastMessagePath = path.join(runDir, 'iteration-003.last-message.md');
+  await fs.mkdir(runDir, { recursive: true });
+  await fs.writeFile(lastMessagePath, 'ok\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-cli-invocation.json'), JSON.stringify({
+    kind: 'cliInvocation',
+    schemaVersion: 1,
+    provenanceId: 'run-i003-cli-20260307T000600Z',
+    iteration: 3,
+    commandPath: 'codex',
+    args: ['exec'],
+    workspaceRoot: rootPath,
+    rootPolicy: {
+      workspaceRootPath: rootPath,
+      inspectionRootPath: rootPath,
+      executionRootPath: rootPath,
+      verificationRootPath: rootPath,
+      selectionStrategy: 'workspaceRoot',
+      selectionSummary: 'Using the workspace root.',
+      policySummary: 'Inspect, execute, and verify from the workspace root.'
+    },
+    promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt.md'),
+    promptHash: 'sha256:prompt',
+    promptByteLength: 123,
+    stdinHash: 'sha256:stdin',
+    transcriptPath,
+    lastMessagePath,
+    createdAt: '2026-03-07T00:06:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestCliTranscript');
+
+  assert.deepEqual(harness.state.shownDocuments, [lastMessagePath]);
+});
+
+test('Open Latest CLI Transcript falls back to state-backed run artifacts when latest invocation paths are stale', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const staleTranscriptPath = path.join(runDir, 'iteration-003.transcript.md');
+  const staleLastMessagePath = path.join(runDir, 'iteration-003.last-message.md');
+  const currentTranscriptPath = path.join(runDir, 'iteration-004.transcript.md');
+  await fs.mkdir(runDir, { recursive: true });
+  await fs.writeFile(currentTranscriptPath, '# Transcript\n\ncurrent\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-cli-invocation.json'), JSON.stringify({
+    kind: 'cliInvocation',
+    schemaVersion: 1,
+    provenanceId: 'run-i003-cli-20260307T000600Z',
+    iteration: 3,
+    commandPath: 'codex',
+    args: ['exec'],
+    workspaceRoot: rootPath,
+    rootPolicy: {
+      workspaceRootPath: rootPath,
+      inspectionRootPath: rootPath,
+      executionRootPath: rootPath,
+      verificationRootPath: rootPath,
+      selectionStrategy: 'workspaceRoot',
+      selectionSummary: 'Using the workspace root.',
+      policySummary: 'Inspect, execute, and verify from the workspace root.'
+    },
+    promptArtifactPath: path.join(rootPath, '.ralph', 'artifacts', 'iteration-003', 'prompt.md'),
+    promptHash: 'sha256:prompt',
+    promptByteLength: 123,
+    stdinHash: 'sha256:stdin',
+    transcriptPath: staleTranscriptPath,
+    lastMessagePath: staleLastMessagePath,
+    createdAt: '2026-03-07T00:06:00.000Z'
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: null,
+    nextIteration: 5,
+    lastPromptKind: 'iteration',
+    lastPromptPath: null,
+    lastRun: {
+      iteration: 4,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:10:00.000Z',
+      finishedAt: '2026-03-07T00:15:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(rootPath, '.ralph', 'prompts', 'iteration-004.prompt.md'),
+      transcriptPath: currentTranscriptPath,
+      summary: 'Iteration 4 succeeded.'
+    },
+    runHistory: [],
+    lastIteration: null,
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:15:00.000Z'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestCliTranscript');
+
+  assert.deepEqual(harness.state.shownDocuments, [currentTranscriptPath]);
+});
+
+test('Open Latest CLI Transcript explains when no CLI run artifacts exist yet', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openLatestCliTranscript');
+
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /No Ralph CLI transcript exists yet/);
 });
 
 test('Prepare Prompt copies the generated prompt when clipboard auto-copy is enabled', async () => {
@@ -332,5 +976,183 @@ test('Reveal Latest Provenance Bundle Directory explains when no bundle exists y
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /No Ralph provenance bundle exists yet/
+  );
+});
+
+test('Cleanup Runtime Artifacts preserves durable state while pruning older generated artifacts', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Cleanup');
+
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const artifactDir = path.join(rootPath, '.ralph', 'artifacts');
+  const logDir = path.join(rootPath, '.ralph', 'logs');
+  const latestSummaryPath = path.join(artifactDir, 'latest-summary.md');
+  const latestPromptEvidencePath = path.join(artifactDir, 'latest-prompt-evidence.json');
+  const latestCliInvocationPath = path.join(artifactDir, 'latest-cli-invocation.json');
+  const latestProvenanceBundlePath = path.join(artifactDir, 'latest-provenance-bundle.json');
+  const latestProvenanceSummaryPath = path.join(artifactDir, 'latest-provenance-summary.md');
+  await fs.mkdir(promptDir, { recursive: true });
+  await fs.mkdir(runDir, { recursive: true });
+  await fs.mkdir(path.join(artifactDir, 'iteration-001'), { recursive: true });
+  await fs.mkdir(path.join(artifactDir, 'iteration-002'), { recursive: true });
+  await fs.writeFile(path.join(promptDir, 'iteration-001.prompt.md'), 'old prompt\n', 'utf8');
+  await fs.writeFile(path.join(promptDir, 'iteration-002.prompt.md'), 'current prompt\n', 'utf8');
+  await fs.writeFile(path.join(runDir, 'iteration-001.transcript.md'), 'old transcript\n', 'utf8');
+  await fs.writeFile(path.join(runDir, 'iteration-002.transcript.md'), 'current transcript\n', 'utf8');
+  await fs.mkdir(logDir, { recursive: true });
+  await fs.writeFile(path.join(logDir, 'old.log'), 'old log\n', 'utf8');
+  await fs.writeFile(latestSummaryPath, '# Ralph Iteration 2\n\ncurrent\n', 'utf8');
+  await fs.writeFile(latestPromptEvidencePath, JSON.stringify({
+    kind: 'promptEvidence',
+    iteration: 2,
+    promptKind: 'iteration'
+  }, null, 2), 'utf8');
+  await fs.writeFile(latestCliInvocationPath, JSON.stringify({
+    kind: 'cliInvocation',
+    iteration: 2,
+    transcriptPath: path.join(runDir, 'iteration-002.transcript.md')
+  }, null, 2), 'utf8');
+  await fs.writeFile(latestProvenanceSummaryPath, '# Ralph Provenance run-i002-cli-20260307T000500Z\n\ncurrent\n', 'utf8');
+  await fs.writeFile(latestProvenanceBundlePath, JSON.stringify({
+    kind: 'provenanceBundle',
+    provenanceId: 'run-i002-cli-20260307T000500Z',
+    iteration: 2,
+    promptKind: 'iteration',
+    promptTarget: 'cliExec',
+    trustLevel: 'verifiedCliExecution',
+    status: 'executed',
+    summary: 'current bundle',
+    bundleDir: path.join(artifactDir, 'runs', 'run-i002-cli-20260307T000500Z')
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: 'Preserve current Ralph state.',
+    nextIteration: 3,
+    lastPromptKind: 'iteration',
+    lastPromptPath: path.join(promptDir, 'iteration-002.prompt.md'),
+    lastRun: {
+      iteration: 2,
+      mode: 'singleExec',
+      promptKind: 'iteration',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:05:00.000Z',
+      status: 'succeeded',
+      exitCode: 0,
+      promptPath: path.join(promptDir, 'iteration-002.prompt.md'),
+      transcriptPath: path.join(runDir, 'iteration-002.transcript.md'),
+      summary: 'current'
+    },
+    runHistory: [],
+    lastIteration: {
+      schemaVersion: 1,
+      iteration: 2,
+      selectedTaskId: 'T2',
+      selectedTaskTitle: 'Current task',
+      promptKind: 'iteration',
+      promptPath: path.join(promptDir, 'iteration-002.prompt.md'),
+      artifactDir: path.join(artifactDir, 'iteration-002'),
+      adapterUsed: 'cliExec',
+      executionIntegrity: null,
+      executionStatus: 'succeeded',
+      verificationStatus: 'passed',
+      completionClassification: 'partial_progress',
+      followUpAction: 'continue_same_task',
+      startedAt: '2026-03-07T00:00:00.000Z',
+      finishedAt: '2026-03-07T00:05:00.000Z',
+      phaseTimestamps: {
+        inspectStartedAt: '2026-03-07T00:00:00.000Z',
+        inspectFinishedAt: '2026-03-07T00:01:00.000Z',
+        taskSelectedAt: '2026-03-07T00:01:00.000Z',
+        promptGeneratedAt: '2026-03-07T00:02:00.000Z',
+        resultCollectedAt: '2026-03-07T00:04:00.000Z',
+        verificationFinishedAt: '2026-03-07T00:04:30.000Z',
+        classifiedAt: '2026-03-07T00:04:45.000Z'
+      },
+      summary: 'current',
+      warnings: [],
+      errors: [],
+      execution: {
+        exitCode: 0,
+        transcriptPath: path.join(runDir, 'iteration-002.transcript.md')
+      },
+      verification: {
+        taskValidationHint: null,
+        effectiveValidationCommand: 'npm test',
+        normalizedValidationCommandFrom: null,
+        primaryCommand: 'npm test',
+        validationFailureSignature: null,
+        verifiers: []
+      },
+      backlog: {
+        remainingTaskCount: 1,
+        actionableTaskAvailable: true
+      },
+      diffSummary: null,
+      noProgressSignals: [],
+      remediation: null,
+      stopReason: null
+    },
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:05:00.000Z'
+  }, null, 2), 'utf8');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.cleanupRalphRuntimeArtifacts');
+
+  await assert.rejects(fs.access(path.join(promptDir, 'iteration-001.prompt.md')));
+  await fs.access(path.join(promptDir, 'iteration-002.prompt.md'));
+  await fs.access(latestSummaryPath);
+  await fs.access(latestPromptEvidencePath);
+  await fs.access(latestCliInvocationPath);
+  await fs.access(latestProvenanceBundlePath);
+  await fs.access(latestProvenanceSummaryPath);
+  await fs.access(path.join(rootPath, '.ralph', 'state.json'));
+  assert.match(
+    harness.state.warningMessages[0]?.message ?? '',
+    /Cleanup Ralph runtime artifacts/
+  );
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Preserved durable state and latest evidence while pruning/
+  );
+});
+
+test('Cleanup Runtime Artifacts leaves files untouched when confirmation is dismissed', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const artifactDir = path.join(rootPath, '.ralph', 'artifacts');
+  await fs.mkdir(promptDir, { recursive: true });
+  await fs.mkdir(path.join(artifactDir, 'iteration-001'), { recursive: true });
+  await fs.writeFile(path.join(promptDir, 'iteration-001.prompt.md'), 'prompt\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'state.json'), JSON.stringify({
+    version: 2,
+    objectivePreview: null,
+    nextIteration: 2,
+    lastPromptKind: 'iteration',
+    lastPromptPath: path.join(promptDir, 'iteration-001.prompt.md'),
+    lastRun: null,
+    runHistory: [],
+    lastIteration: null,
+    iterationHistory: [],
+    updatedAt: '2026-03-07T00:05:00.000Z'
+  }, null, 2), 'utf8');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.cleanupRalphRuntimeArtifacts');
+
+  await fs.access(path.join(promptDir, 'iteration-001.prompt.md'));
+  await fs.access(path.join(rootPath, '.ralph', 'state.json'));
+  assert.equal(harness.state.infoMessages.length, 0);
+  assert.match(
+    harness.state.warningMessages[0]?.message ?? '',
+    /Cleanup Ralph runtime artifacts/
   );
 });

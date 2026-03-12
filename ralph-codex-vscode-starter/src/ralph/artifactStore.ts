@@ -15,6 +15,7 @@ import {
   RalphPromptTarget,
   RalphProvenanceBundle,
   RalphProvenanceTrustLevel,
+  RalphTaskRemediationArtifact,
   RalphVerificationResult
 } from './types';
 
@@ -31,6 +32,7 @@ export interface RalphIterationArtifactPaths {
   verifierSummaryPath: string;
   diffSummaryPath: string;
   iterationResultPath: string;
+  remediationPath: string;
   summaryPath: string;
   gitStatusBeforePath: string;
   gitStatusAfterPath: string;
@@ -60,6 +62,7 @@ export interface RalphLatestArtifactPaths {
   latestPromptEvidencePath: string;
   latestExecutionPlanPath: string;
   latestCliInvocationPath: string;
+  latestRemediationPath: string;
   latestProvenanceBundlePath: string;
   latestProvenanceSummaryPath: string;
   latestProvenanceFailurePath: string;
@@ -82,6 +85,38 @@ export interface RalphGeneratedArtifactRetentionSummary {
   retainedRunArtifactBaseNames: string[];
   protectedRetainedRunArtifactBaseNames: string[];
 }
+
+export interface RalphLatestArtifactRepairSummary {
+  repairedLatestArtifactPaths: string[];
+  staleLatestArtifactPaths: string[];
+}
+
+interface RalphBundleRetentionInspection {
+  bundleIds: string[];
+  retainedBundleIds: string[];
+  protectedBundleIds: string[];
+}
+
+interface RalphGeneratedArtifactRetentionInspection {
+  iterationDirectories: { iteration: number; name: string }[];
+  promptFiles: { iteration: number; name: string }[];
+  runArtifacts: { baseName: string; iteration: number; fileNames: string[] }[];
+  protectedArtifacts: RalphProtectedGeneratedArtifacts;
+  iterationDirectoryDecision: {
+    retainedNames: Set<string>;
+    protectedRetainedNames: string[];
+  };
+  promptFileDecision: {
+    retainedNames: Set<string>;
+    protectedRetainedNames: string[];
+  };
+  runArtifactDecision: {
+    retainedNames: Set<string>;
+    protectedRetainedNames: string[];
+  };
+}
+
+export type RalphGeneratedArtifactProtectionScope = 'currentAndLatest' | 'fullStateAndLatest';
 
 export const PROTECTED_GENERATED_STATE_ROOT_REFERENCES = [
   'lastPromptPath',
@@ -470,6 +505,7 @@ function derivedIterationDirectoryPath(artifactRootDir: string, iteration: numbe
 function currentStateArtifactReferences(input: {
   stateRecord: Record<string, unknown> | null;
   artifactRootDir: string;
+  includeHistory?: boolean;
 }): string[] {
   if (!input.stateRecord) {
     return [];
@@ -510,22 +546,24 @@ function currentStateArtifactReferences(input: {
     readPathReference(lastIterationExecution, 'lastMessagePath')
   ]);
 
-  for (const runRecord of runHistory) {
-    references.push(...compactPathReferences([
-      readPathReference(runRecord, 'promptPath'),
-      readPathReference(runRecord, 'transcriptPath'),
-      readPathReference(runRecord, 'lastMessagePath')
-    ]));
-  }
+  if (input.includeHistory ?? true) {
+    for (const runRecord of runHistory) {
+      references.push(...compactPathReferences([
+        readPathReference(runRecord, 'promptPath'),
+        readPathReference(runRecord, 'transcriptPath'),
+        readPathReference(runRecord, 'lastMessagePath')
+      ]));
+    }
 
-  for (const iterationRecord of effectiveIterationHistory) {
-    const executionRecord = readRecordReference(iterationRecord, 'execution');
-    references.push(...compactPathReferences([
-      readPathReference(iterationRecord, 'artifactDir'),
-      readPathReference(iterationRecord, 'promptPath'),
-      readPathReference(executionRecord, 'transcriptPath'),
-      readPathReference(executionRecord, 'lastMessagePath')
-    ]));
+    for (const iterationRecord of effectiveIterationHistory) {
+      const executionRecord = readRecordReference(iterationRecord, 'execution');
+      references.push(...compactPathReferences([
+        readPathReference(iterationRecord, 'artifactDir'),
+        readPathReference(iterationRecord, 'promptPath'),
+        readPathReference(executionRecord, 'transcriptPath'),
+        readPathReference(executionRecord, 'lastMessagePath')
+      ]));
+    }
   }
 
   return references;
@@ -571,6 +609,7 @@ function artifactReferenceLines(paths: RalphIterationArtifactPaths, diffSummary:
     `- Execution summary: ${paths.executionSummaryPath}`,
     `- Verifier summary: ${paths.verifierSummaryPath}`,
     `- Iteration result: ${paths.iterationResultPath}`,
+    `- Remediation proposal: ${paths.remediationPath}`,
     `- Stdout: ${paths.stdoutPath}`,
     `- Stderr: ${paths.stderrPath}`,
     `- CLI invocation: ${paths.cliInvocationPath}`
@@ -650,6 +689,7 @@ function renderIterationSummary(input: {
     `- Prompt kind: ${result.promptKind}`,
     `- Target mode: ${result.executionIntegrity?.promptTarget ?? 'unknown'}`,
     `- Template: ${result.executionIntegrity?.templatePath ?? 'unknown'}`,
+    `- Reasoning effort: ${result.executionIntegrity?.reasoningEffort ?? 'unknown'}`,
     `- Execution: ${result.executionStatus}`,
     `- Execution message: ${result.execution.message ?? 'none'}`,
     `- Verification: ${result.verificationStatus}`,
@@ -658,6 +698,7 @@ function renderIterationSummary(input: {
     `- Next actionable task available: ${result.backlog.actionableTaskAvailable ? 'yes' : 'no'}`,
     `- Follow-up action: ${result.followUpAction}`,
     `- Stop reason: ${formatOptional(result.stopReason)}`,
+    `- Remediation: ${result.remediation?.summary ?? 'none'}`,
     `- Summary: ${result.summary}`,
     '',
     '## Execution Integrity',
@@ -690,6 +731,9 @@ function renderIterationSummary(input: {
     '',
     '## Signals',
     `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,
+    `- Remediation action: ${result.remediation?.action ?? 'none'}`,
+    `- Remediation evidence: ${result.remediation?.evidence.join(' | ') || 'none'}`,
+    `- Remediation proposal artifact: ${result.remediation ? paths.remediationPath : 'none'}`,
     `- Completion report status: ${result.completionReportStatus ?? 'none'}`,
     `- Reconciliation warnings: ${result.reconciliationWarnings?.join(' | ') || 'none'}`,
     `- Warnings: ${result.warnings.join(' | ') || 'none'}`,
@@ -765,6 +809,120 @@ function renderProvenanceSummary(bundle: RalphProvenanceBundle): string {
   ].join('\n');
 }
 
+function renderLatestResultSummary(record: Record<string, unknown>): string | null {
+  if (typeof record.iteration !== 'number'
+    || typeof record.promptKind !== 'string'
+    || typeof record.executionStatus !== 'string'
+    || typeof record.verificationStatus !== 'string'
+    || typeof record.completionClassification !== 'string'
+    || typeof record.followUpAction !== 'string'
+    || typeof record.summary !== 'string') {
+    return null;
+  }
+
+  const selectedTaskId = typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null;
+  const selectedTaskTitle = typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null;
+  const promptTarget = typeof record.promptTarget === 'string' ? record.promptTarget : 'unknown';
+  const templatePath = typeof record.templatePath === 'string' ? record.templatePath : 'unknown';
+  const executionMessage = typeof record.executionMessage === 'string' ? record.executionMessage : 'none';
+  const stopReason = typeof record.stopReason === 'string' ? record.stopReason : 'none';
+  const taskValidationHint = typeof record.taskValidationHint === 'string' ? record.taskValidationHint : 'none';
+  const effectiveValidationCommand = typeof record.effectiveValidationCommand === 'string'
+    ? record.effectiveValidationCommand
+    : 'none';
+  const normalizedValidationCommandFrom = typeof record.normalizedValidationCommandFrom === 'string'
+    ? record.normalizedValidationCommandFrom
+    : 'none';
+  const promptArtifactPath = typeof record.promptArtifactPath === 'string' ? record.promptArtifactPath : 'none';
+  const executionPlanPath = typeof record.executionPlanPath === 'string' ? record.executionPlanPath : 'none';
+  const cliInvocationPath = typeof record.cliInvocationPath === 'string' ? record.cliInvocationPath : 'none';
+  const remediationSummary = typeof (record.remediation as Record<string, unknown> | null)?.summary === 'string'
+    ? (record.remediation as Record<string, unknown>).summary as string
+    : 'none';
+  const summaryPath = typeof record.summaryPath === 'string' ? record.summaryPath : 'none';
+  const transcriptPath = typeof record.transcriptPath === 'string' ? record.transcriptPath : 'none';
+  const lastMessagePath = typeof record.lastMessagePath === 'string' ? record.lastMessagePath : 'none';
+  const executionSummaryPath = typeof record.executionSummaryPath === 'string' ? record.executionSummaryPath : 'none';
+  const verifierSummaryPath = typeof record.verifierSummaryPath === 'string' ? record.verifierSummaryPath : 'none';
+  const iterationResultPath = typeof record.iterationResultPath === 'string' ? record.iterationResultPath : 'none';
+  const stdoutPath = typeof record.stdoutPath === 'string' ? record.stdoutPath : 'none';
+  const stderrPath = typeof record.stderrPath === 'string' ? record.stderrPath : 'none';
+  const diffSummaryPath = typeof record.diffSummaryPath === 'string' ? record.diffSummaryPath : 'none';
+  const remediationPath = typeof record.remediationPath === 'string' ? record.remediationPath : 'none';
+  const completionReportStatus = typeof record.completionReportStatus === 'string' ? record.completionReportStatus : 'none';
+  const promptHash = typeof record.promptHash === 'string' ? record.promptHash : 'none';
+  const executionPlanHash = typeof record.executionPlanHash === 'string' ? record.executionPlanHash : 'none';
+  const artifactDir = typeof record.artifactDir === 'string' ? record.artifactDir : 'none';
+  const backlog = typeof record.backlog === 'object' && record.backlog !== null
+    ? record.backlog as Record<string, unknown>
+    : null;
+  const remainingTaskCount = typeof backlog?.remainingTaskCount === 'number' ? Math.max(0, Math.floor(backlog.remainingTaskCount)) : 0;
+  const actionableTaskAvailable = Boolean(backlog?.actionableTaskAvailable);
+  const warnings = Array.isArray(record.warnings) ? record.warnings.filter((item): item is string => typeof item === 'string') : [];
+  const errors = Array.isArray(record.errors) ? record.errors.filter((item): item is string => typeof item === 'string') : [];
+  const reconciliationWarnings = Array.isArray(record.reconciliationWarnings)
+    ? record.reconciliationWarnings.filter((item): item is string => typeof item === 'string')
+    : [];
+
+  return [
+    `# Ralph Iteration ${Math.floor(record.iteration)}`,
+    '',
+    '## Outcome',
+    `- Provenance ID: ${typeof record.provenanceId === 'string' ? record.provenanceId : 'none'}`,
+    `- Selected task: ${selectedTaskId ?? 'none'}${selectedTaskTitle ? ` - ${selectedTaskTitle}` : ''}`,
+    `- Prompt kind: ${record.promptKind}`,
+    `- Target mode: ${promptTarget}`,
+    `- Template: ${templatePath}`,
+    `- Execution: ${record.executionStatus}`,
+    `- Execution message: ${executionMessage}`,
+    `- Verification: ${record.verificationStatus}`,
+    `- Classification: ${record.completionClassification} (selected task)`,
+    `- Backlog remaining: ${remainingTaskCount}`,
+    `- Next actionable task available: ${actionableTaskAvailable ? 'yes' : 'no'}`,
+    `- Follow-up action: ${record.followUpAction}`,
+    `- Stop reason: ${stopReason}`,
+    `- Remediation: ${remediationSummary}`,
+    `- Summary: ${record.summary}`,
+    '',
+    '## Execution Integrity',
+    `- Plan: ${executionPlanPath}`,
+    `- Plan hash: ${executionPlanHash}`,
+    `- Prompt artifact: ${promptArtifactPath}`,
+    `- Prompt hash: ${promptHash}`,
+    `- Payload matched rendered artifact: ${record.executionPayloadMatched == null
+      ? 'not recorded'
+      : record.executionPayloadMatched ? 'yes' : 'no'}`,
+    `- CLI invocation: ${cliInvocationPath}`,
+    '',
+    '## Validation',
+    `- Task validation hint: ${taskValidationHint}`,
+    `- Effective validation command: ${effectiveValidationCommand}`,
+    `- Validation command normalized from: ${normalizedValidationCommandFrom}`,
+    '',
+    '## Artifact Paths',
+    `- Prompt: ${typeof record.promptPath === 'string' ? record.promptPath : 'none'}`,
+    `- Prompt evidence: ${typeof record.promptEvidencePath === 'string' ? record.promptEvidencePath : 'none'}`,
+    `- Execution plan: ${executionPlanPath}`,
+    `- Execution summary: ${executionSummaryPath}`,
+    `- Verifier summary: ${verifierSummaryPath}`,
+    `- Iteration result: ${iterationResultPath}`,
+    `- Remediation proposal: ${remediationPath}`,
+    `- Summary: ${summaryPath}`,
+    `- Transcript: ${transcriptPath}`,
+    `- Last message: ${lastMessagePath}`,
+    `- Stdout: ${stdoutPath}`,
+    `- Stderr: ${stderrPath}`,
+    `- Diff summary: ${diffSummaryPath}`,
+    `- Iteration artifact dir: ${artifactDir}`,
+    '',
+    '## Signals',
+    `- Completion report status: ${completionReportStatus}`,
+    `- Reconciliation warnings: ${reconciliationWarnings.join(' | ') || 'none'}`,
+    `- Warnings: ${warnings.join(' | ') || 'none'}`,
+    `- Errors: ${errors.join(' | ') || 'none'}`
+  ].join('\n');
+}
+
 function latestResultFromIteration(input: {
   result: RalphIterationResult;
   paths: RalphIterationArtifactPaths;
@@ -789,6 +947,7 @@ function latestResultFromIteration(input: {
     backlog: input.result.backlog,
     followUpAction: input.result.followUpAction,
     stopReason: input.result.stopReason,
+    remediation: input.result.remediation,
     summary: input.result.summary,
     artifactDir: input.result.artifactDir,
     summaryPath: input.paths.summaryPath,
@@ -805,6 +964,7 @@ function latestResultFromIteration(input: {
     executionSummaryPath: input.paths.executionSummaryPath,
     verifierSummaryPath: input.paths.verifierSummaryPath,
     iterationResultPath: input.paths.iterationResultPath,
+    remediationPath: input.result.remediation ? input.paths.remediationPath : null,
     diffSummaryPath: input.diffSummary ? input.paths.diffSummaryPath : null,
     stdoutPath: input.paths.stdoutPath,
     stderrPath: input.paths.stderrPath,
@@ -831,6 +991,7 @@ export function resolveIterationArtifactPaths(artifactRootDir: string, iteration
     verifierSummaryPath: path.join(directory, 'verifier-summary.json'),
     diffSummaryPath: path.join(directory, 'diff-summary.json'),
     iterationResultPath: path.join(directory, 'iteration-result.json'),
+    remediationPath: path.join(directory, 'task-remediation.json'),
     summaryPath: path.join(directory, 'summary.md'),
     gitStatusBeforePath: path.join(directory, 'git-status-before.txt'),
     gitStatusAfterPath: path.join(directory, 'git-status-after.txt')
@@ -869,6 +1030,7 @@ export function resolveLatestArtifactPaths(artifactRootDir: string): RalphLatest
     latestPromptEvidencePath: path.join(artifactRootDir, 'latest-prompt-evidence.json'),
     latestExecutionPlanPath: path.join(artifactRootDir, 'latest-execution-plan.json'),
     latestCliInvocationPath: path.join(artifactRootDir, 'latest-cli-invocation.json'),
+    latestRemediationPath: path.join(artifactRootDir, 'latest-remediation.json'),
     latestProvenanceBundlePath: path.join(artifactRootDir, 'latest-provenance-bundle.json'),
     latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
     latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
@@ -909,6 +1071,64 @@ async function readTextRecord(target: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function looksLikePreflightRecord(record: Record<string, unknown> | null): boolean {
+  return record?.kind === 'preflight'
+    && typeof record.provenanceId === 'string'
+    && typeof record.iteration === 'number'
+    && typeof record.promptKind === 'string'
+    && typeof record.promptTarget === 'string'
+    && typeof record.trustLevel === 'string'
+    && typeof record.ready === 'boolean'
+    && typeof record.summary === 'string'
+    && typeof record.artifactDir === 'string'
+    && typeof record.reportPath === 'string'
+    && typeof record.createdAt === 'string'
+    && Array.isArray(record.diagnostics);
+}
+
+function looksLikeIntegrityFailure(record: Record<string, unknown> | null): boolean {
+  return record?.kind === 'integrityFailure'
+    && typeof record.provenanceId === 'string'
+    && typeof record.iteration === 'number'
+    && typeof record.promptKind === 'string'
+    && typeof record.promptTarget === 'string'
+    && typeof record.trustLevel === 'string'
+    && typeof record.stage === 'string'
+    && record.blocked === true
+    && typeof record.summary === 'string'
+    && typeof record.message === 'string'
+    && typeof record.artifactDir === 'string'
+    && typeof record.createdAt === 'string';
+}
+
+function looksLikeProvenanceBundle(record: Record<string, unknown> | null): boolean {
+  return record?.kind === 'provenanceBundle'
+    && typeof record.provenanceId === 'string'
+    && typeof record.iteration === 'number'
+    && typeof record.promptKind === 'string'
+    && typeof record.promptTarget === 'string'
+    && typeof record.trustLevel === 'string'
+    && typeof record.status === 'string'
+    && typeof record.summary === 'string'
+    && typeof record.artifactDir === 'string'
+    && typeof record.bundleDir === 'string'
+    && typeof record.preflightReportPath === 'string'
+    && typeof record.preflightSummaryPath === 'string'
+    && typeof record.createdAt === 'string'
+    && typeof record.updatedAt === 'string'
+    && typeof record.rootPolicy === 'object'
+    && record.rootPolicy !== null;
 }
 
 function provenanceIdFromRecord(record: Record<string, unknown> | null): string | null {
@@ -1000,11 +1220,72 @@ async function resolveProtectedBundleIds(artifactRootDir: string): Promise<Set<s
     .filter((value): value is string => Boolean(value)));
 }
 
+export async function repairLatestArtifactSurfaces(artifactRootDir: string): Promise<RalphLatestArtifactRepairSummary> {
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+  const repairedLatestArtifactPaths: string[] = [];
+  const staleLatestArtifactPaths: string[] = [];
+  const [
+    latestResultExists,
+    latestSummaryExists,
+    latestPreflightReportRecord,
+    latestPreflightSummaryExists,
+    latestProvenanceBundleRecord,
+    latestProvenanceSummaryExists
+  ] = await Promise.all([
+    pathExists(latestPaths.latestResultPath),
+    pathExists(latestPaths.latestSummaryPath),
+    readJsonRecord(latestPaths.latestPreflightReportPath),
+    pathExists(latestPaths.latestPreflightSummaryPath),
+    readJsonRecord(latestPaths.latestProvenanceBundlePath),
+    pathExists(latestPaths.latestProvenanceSummaryPath)
+  ]);
+
+  if (!latestSummaryExists && latestResultExists) {
+    const latestResultRecord = await readJsonRecord(latestPaths.latestResultPath);
+    const repairedSummary = looksLikePreflightRecord(latestResultRecord)
+      ? renderPreflightSummary(latestResultRecord as unknown as RalphPersistedPreflightReport)
+      : looksLikeIntegrityFailure(latestResultRecord)
+        ? renderIntegrityFailureSummary(latestResultRecord as unknown as RalphIntegrityFailure)
+        : latestResultRecord
+          ? renderLatestResultSummary(latestResultRecord)
+          : null;
+
+    if (repairedSummary) {
+      await fs.writeFile(latestPaths.latestSummaryPath, `${repairedSummary.trimEnd()}\n`, 'utf8');
+      repairedLatestArtifactPaths.push(latestPaths.latestSummaryPath);
+    } else {
+      staleLatestArtifactPaths.push(latestPaths.latestSummaryPath);
+    }
+  }
+
+  if (!latestPreflightSummaryExists && looksLikePreflightRecord(latestPreflightReportRecord)) {
+    const repairedSummary = renderPreflightSummary(latestPreflightReportRecord as unknown as RalphPersistedPreflightReport);
+    await fs.writeFile(latestPaths.latestPreflightSummaryPath, `${repairedSummary.trimEnd()}\n`, 'utf8');
+    repairedLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+  } else if (!latestPreflightSummaryExists && latestPreflightReportRecord) {
+    staleLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+  }
+
+  if (!latestProvenanceSummaryExists && looksLikeProvenanceBundle(latestProvenanceBundleRecord)) {
+    const repairedSummary = renderProvenanceSummary(latestProvenanceBundleRecord as unknown as RalphProvenanceBundle);
+    await fs.writeFile(latestPaths.latestProvenanceSummaryPath, `${repairedSummary.trimEnd()}\n`, 'utf8');
+    repairedLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
+  } else if (!latestProvenanceSummaryExists && latestProvenanceBundleRecord) {
+    staleLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
+  }
+
+  return {
+    repairedLatestArtifactPaths,
+    staleLatestArtifactPaths
+  };
+}
+
 async function resolveProtectedGeneratedArtifacts(input: {
   artifactRootDir: string;
   promptDir: string;
   runDir: string;
   stateFilePath: string;
+  protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphProtectedGeneratedArtifacts> {
   const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
   const [
@@ -1041,7 +1322,8 @@ async function resolveProtectedGeneratedArtifacts(input: {
 
   addProtectedGeneratedArtifactPaths(protectedArtifacts, pathInput, currentStateArtifactReferences({
     stateRecord,
-    artifactRootDir: input.artifactRootDir
+    artifactRootDir: input.artifactRootDir,
+    includeHistory: (input.protectionScope ?? 'fullStateAndLatest') === 'fullStateAndLatest'
   }));
   addProtectedGeneratedArtifactPaths(protectedArtifacts, pathInput, latestArtifactReferences({
     latestResult,
@@ -1063,26 +1345,20 @@ export async function cleanupProvenanceBundles(input: {
   artifactRootDir: string;
   retentionCount: number;
 }): Promise<RalphProvenanceRetentionSummary> {
-  const runsDir = path.join(input.artifactRootDir, 'runs');
+  const inspection = await collectProvenanceBundleRetentionInspection(input);
   if (input.retentionCount <= 0) {
     return {
       deletedBundleIds: [],
-      retainedBundleIds: [],
-      protectedBundleIds: []
+      retainedBundleIds: inspection.retainedBundleIds,
+      protectedBundleIds: inspection.protectedBundleIds
     };
   }
 
-  const entries = await fs.readdir(runsDir, { withFileTypes: true }).catch(() => []);
-  const bundleIds = entries
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith('run-'))
-    .map((entry) => entry.name)
-    .sort((left, right) => right.localeCompare(left));
-  const protectedIds = await resolveProtectedBundleIds(input.artifactRootDir);
-  const retainedIds = new Set(bundleIds.slice(0, input.retentionCount));
-  protectedIds.forEach((bundleId) => retainedIds.add(bundleId));
+  const runsDir = path.join(input.artifactRootDir, 'runs');
+  const retainedIds = new Set(inspection.retainedBundleIds);
 
   const deletedBundleIds: string[] = [];
-  for (const bundleId of bundleIds.slice(input.retentionCount)) {
+  for (const bundleId of inspection.bundleIds.slice(input.retentionCount)) {
     if (retainedIds.has(bundleId)) {
       continue;
     }
@@ -1093,8 +1369,20 @@ export async function cleanupProvenanceBundles(input: {
 
   return {
     deletedBundleIds,
-    retainedBundleIds: bundleIds.filter((bundleId) => retainedIds.has(bundleId)),
-    protectedBundleIds: Array.from(protectedIds).sort()
+    retainedBundleIds: inspection.retainedBundleIds,
+    protectedBundleIds: inspection.protectedBundleIds
+  };
+}
+
+export async function inspectProvenanceBundleRetention(input: {
+  artifactRootDir: string;
+  retentionCount: number;
+}): Promise<RalphProvenanceRetentionSummary> {
+  const inspection = await collectProvenanceBundleRetentionInspection(input);
+  return {
+    deletedBundleIds: [],
+    retainedBundleIds: inspection.retainedBundleIds,
+    protectedBundleIds: inspection.protectedBundleIds
   };
 }
 
@@ -1104,6 +1392,7 @@ export async function cleanupGeneratedArtifacts(input: {
   runDir: string;
   stateFilePath: string;
   retentionCount: number;
+  protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphGeneratedArtifactRetentionSummary> {
   if (input.retentionCount <= 0) {
     return {
@@ -1118,7 +1407,114 @@ export async function cleanupGeneratedArtifacts(input: {
       protectedRetainedRunArtifactBaseNames: []
     };
   }
+  const inspection = await collectGeneratedArtifactRetentionInspection(input);
 
+  const retainedIterationDirectories = inspection.iterationDirectoryDecision.retainedNames;
+  const deletedIterationDirectories: string[] = [];
+  for (const entry of inspection.iterationDirectories.slice(input.retentionCount)) {
+    if (retainedIterationDirectories.has(entry.name)) {
+      continue;
+    }
+    await fs.rm(path.join(input.artifactRootDir, entry.name), { recursive: true, force: true });
+    deletedIterationDirectories.push(entry.name);
+  }
+
+  const retainedPromptFiles = inspection.promptFileDecision.retainedNames;
+  const deletedPromptFiles: string[] = [];
+  for (const entry of inspection.promptFiles.slice(input.retentionCount)) {
+    if (retainedPromptFiles.has(entry.name)) {
+      continue;
+    }
+    await fs.rm(path.join(input.promptDir, entry.name), { force: true });
+    deletedPromptFiles.push(entry.name);
+  }
+
+  const retainedRunArtifactBaseNames = inspection.runArtifactDecision.retainedNames;
+  const deletedRunArtifactBaseNames: string[] = [];
+  for (const entry of inspection.runArtifacts.slice(input.retentionCount)) {
+    if (retainedRunArtifactBaseNames.has(entry.baseName)) {
+      continue;
+    }
+    await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
+    deletedRunArtifactBaseNames.push(entry.baseName);
+  }
+
+  return {
+    deletedIterationDirectories,
+    retainedIterationDirectories: inspection.iterationDirectories
+      .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedIterationDirectories: inspection.iterationDirectoryDecision.protectedRetainedNames,
+    deletedPromptFiles,
+    retainedPromptFiles: inspection.promptFiles
+      .filter((entry) => inspection.promptFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedPromptFiles: inspection.promptFileDecision.protectedRetainedNames,
+    deletedRunArtifactBaseNames,
+    retainedRunArtifactBaseNames: inspection.runArtifacts
+      .filter((entry) => inspection.runArtifactDecision.retainedNames.has(entry.baseName))
+      .map((entry) => entry.baseName),
+    protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
+  };
+}
+
+export async function inspectGeneratedArtifactRetention(input: {
+  artifactRootDir: string;
+  promptDir: string;
+  runDir: string;
+  stateFilePath: string;
+  retentionCount: number;
+  protectionScope?: RalphGeneratedArtifactProtectionScope;
+}): Promise<RalphGeneratedArtifactRetentionSummary> {
+  const inspection = await collectGeneratedArtifactRetentionInspection(input);
+  return {
+    deletedIterationDirectories: [],
+    retainedIterationDirectories: inspection.iterationDirectories
+      .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedIterationDirectories: inspection.iterationDirectoryDecision.protectedRetainedNames,
+    deletedPromptFiles: [],
+    retainedPromptFiles: inspection.promptFiles
+      .filter((entry) => inspection.promptFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name),
+    protectedRetainedPromptFiles: inspection.promptFileDecision.protectedRetainedNames,
+    deletedRunArtifactBaseNames: [],
+    retainedRunArtifactBaseNames: inspection.runArtifacts
+      .filter((entry) => inspection.runArtifactDecision.retainedNames.has(entry.baseName))
+      .map((entry) => entry.baseName),
+    protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
+  };
+}
+
+async function collectProvenanceBundleRetentionInspection(input: {
+  artifactRootDir: string;
+  retentionCount: number;
+}): Promise<RalphBundleRetentionInspection> {
+  const runsDir = path.join(input.artifactRootDir, 'runs');
+  const entries = await fs.readdir(runsDir, { withFileTypes: true }).catch(() => []);
+  const bundleIds = entries
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith('run-'))
+    .map((entry) => entry.name)
+    .sort((left, right) => right.localeCompare(left));
+  const protectedIds = Array.from(await resolveProtectedBundleIds(input.artifactRootDir)).sort();
+  const retainedIds = new Set(input.retentionCount <= 0 ? bundleIds : bundleIds.slice(0, input.retentionCount));
+  protectedIds.forEach((bundleId) => retainedIds.add(bundleId));
+
+  return {
+    bundleIds,
+    retainedBundleIds: bundleIds.filter((bundleId) => retainedIds.has(bundleId)),
+    protectedBundleIds: protectedIds
+  };
+}
+
+async function collectGeneratedArtifactRetentionInspection(input: {
+  artifactRootDir: string;
+  promptDir: string;
+  runDir: string;
+  stateFilePath: string;
+  retentionCount: number;
+  protectionScope?: RalphGeneratedArtifactProtectionScope;
+}): Promise<RalphGeneratedArtifactRetentionInspection> {
   const [artifactEntries, promptEntries, runEntries, protectedArtifacts] = await Promise.all([
     fs.readdir(input.artifactRootDir, { withFileTypes: true }).catch(() => []),
     fs.readdir(input.promptDir, { withFileTypes: true }).catch(() => []),
@@ -1127,7 +1523,8 @@ export async function cleanupGeneratedArtifacts(input: {
       artifactRootDir: input.artifactRootDir,
       promptDir: input.promptDir,
       runDir: input.runDir,
-      stateFilePath: input.stateFilePath
+      stateFilePath: input.stateFilePath,
+      protectionScope: input.protectionScope
     })
   ]);
 
@@ -1136,43 +1533,11 @@ export async function cleanupGeneratedArtifacts(input: {
     .map((entry) => parseIterationDirectoryName(entry.name))
     .filter((entry): entry is { iteration: number; name: string } => entry !== null)
     .sort(sortByIterationDesc);
-  const iterationDirectoryDecision = retentionDecisionByNewestAndProtected(
-    iterationDirectories,
-    input.retentionCount,
-    protectedArtifacts.iterationDirectories,
-    (entry) => entry.name
-  );
-  const retainedIterationDirectories = iterationDirectoryDecision.retainedNames;
-  const deletedIterationDirectories: string[] = [];
-  for (const entry of iterationDirectories.slice(input.retentionCount)) {
-    if (retainedIterationDirectories.has(entry.name)) {
-      continue;
-    }
-    await fs.rm(path.join(input.artifactRootDir, entry.name), { recursive: true, force: true });
-    deletedIterationDirectories.push(entry.name);
-  }
-
   const promptFiles = promptEntries
     .filter((entry) => entry.isFile())
     .map((entry) => parsePromptFileName(entry.name))
     .filter((entry): entry is { iteration: number; name: string } => entry !== null)
     .sort(sortByIterationDesc);
-  const promptFileDecision = retentionDecisionByNewestAndProtected(
-    promptFiles,
-    input.retentionCount,
-    protectedArtifacts.promptFiles,
-    (entry) => entry.name
-  );
-  const retainedPromptFiles = promptFileDecision.retainedNames;
-  const deletedPromptFiles: string[] = [];
-  for (const entry of promptFiles.slice(input.retentionCount)) {
-    if (retainedPromptFiles.has(entry.name)) {
-      continue;
-    }
-    await fs.rm(path.join(input.promptDir, entry.name), { force: true });
-    deletedPromptFiles.push(entry.name);
-  }
-
   const runArtifactGroups = new Map<string, { baseName: string; iteration: number; fileNames: string[] }>();
   for (const entry of runEntries.filter((candidate) => candidate.isFile())) {
     const parsed = parseRunArtifactFileName(entry.name);
@@ -1196,38 +1561,33 @@ export async function cleanupGeneratedArtifacts(input: {
   const runArtifacts = Array.from(runArtifactGroups.values()).sort((left, right) =>
     right.iteration - left.iteration || right.baseName.localeCompare(left.baseName)
   );
-  const runArtifactDecision = retentionDecisionByNewestAndProtected(
-    runArtifacts,
-    input.retentionCount,
-    protectedArtifacts.runArtifactBaseNames,
-    (entry) => entry.baseName
-  );
-  const retainedRunArtifactBaseNames = runArtifactDecision.retainedNames;
-  const deletedRunArtifactBaseNames: string[] = [];
-  for (const entry of runArtifacts.slice(input.retentionCount)) {
-    if (retainedRunArtifactBaseNames.has(entry.baseName)) {
-      continue;
-    }
-    await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
-    deletedRunArtifactBaseNames.push(entry.baseName);
-  }
+  const effectiveRetentionCount = input.retentionCount <= 0
+    ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length)
+    : input.retentionCount;
 
   return {
-    deletedIterationDirectories,
-    retainedIterationDirectories: iterationDirectories
-      .filter((entry) => retainedIterationDirectories.has(entry.name))
-      .map((entry) => entry.name),
-    protectedRetainedIterationDirectories: iterationDirectoryDecision.protectedRetainedNames,
-    deletedPromptFiles,
-    retainedPromptFiles: promptFiles
-      .filter((entry) => retainedPromptFiles.has(entry.name))
-      .map((entry) => entry.name),
-    protectedRetainedPromptFiles: promptFileDecision.protectedRetainedNames,
-    deletedRunArtifactBaseNames,
-    retainedRunArtifactBaseNames: runArtifacts
-      .filter((entry) => retainedRunArtifactBaseNames.has(entry.baseName))
-      .map((entry) => entry.baseName),
-    protectedRetainedRunArtifactBaseNames: runArtifactDecision.protectedRetainedNames
+    iterationDirectories,
+    promptFiles,
+    runArtifacts,
+    protectedArtifacts,
+    iterationDirectoryDecision: retentionDecisionByNewestAndProtected(
+      iterationDirectories,
+      effectiveRetentionCount,
+      protectedArtifacts.iterationDirectories,
+      (entry) => entry.name
+    ),
+    promptFileDecision: retentionDecisionByNewestAndProtected(
+      promptFiles,
+      effectiveRetentionCount,
+      protectedArtifacts.promptFiles,
+      (entry) => entry.name
+    ),
+    runArtifactDecision: retentionDecisionByNewestAndProtected(
+      runArtifacts,
+      effectiveRetentionCount,
+      protectedArtifacts.runArtifactBaseNames,
+      (entry) => entry.baseName
+    )
   };
 }
 
@@ -1361,6 +1721,7 @@ export async function writeIterationArtifacts(input: {
   verifierSummary: RalphVerificationResult[];
   diffSummary: RalphDiffSummary | null;
   result: RalphIterationResult;
+  remediationArtifact?: RalphTaskRemediationArtifact | null;
   gitStatusBefore?: string;
   gitStatusAfter?: string;
 }): Promise<{ latestPaths: RalphLatestArtifactPaths; humanSummary: string; latestResult: Record<string, unknown> }> {
@@ -1388,11 +1749,17 @@ export async function writeIterationArtifacts(input: {
     fs.writeFile(input.paths.executionSummaryPath, stableJson(input.executionSummary), 'utf8'),
     fs.writeFile(input.paths.verifierSummaryPath, stableJson(input.verifierSummary), 'utf8'),
     fs.writeFile(input.paths.iterationResultPath, stableJson(input.result), 'utf8'),
+    input.remediationArtifact
+      ? fs.writeFile(input.paths.remediationPath, stableJson(input.remediationArtifact), 'utf8')
+      : Promise.resolve(),
     fs.writeFile(input.paths.summaryPath, `${humanSummary.trimEnd()}\n`, 'utf8'),
     fs.writeFile(latestPaths.latestResultPath, stableJson(latestResult), 'utf8'),
     fs.writeFile(latestPaths.latestSummaryPath, `${humanSummary.trimEnd()}\n`, 'utf8'),
     fs.writeFile(latestPaths.latestPromptPath, `${input.prompt.trimEnd()}\n`, 'utf8'),
     fs.writeFile(latestPaths.latestPromptEvidencePath, stableJson(input.promptEvidence), 'utf8'),
+    input.remediationArtifact
+      ? fs.writeFile(latestPaths.latestRemediationPath, stableJson(input.remediationArtifact), 'utf8')
+      : fs.rm(latestPaths.latestRemediationPath, { force: true }),
     input.diffSummary
       ? fs.writeFile(input.paths.diffSummaryPath, stableJson(input.diffSummary), 'utf8')
       : Promise.resolve(),

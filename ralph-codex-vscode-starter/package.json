@@ -10,6 +10,15 @@
     "directory": "ralph-codex-vscode-starter"
   },
   "license": "MIT",
+  "files": [
+    "out/**",
+    "prompt-templates/**",
+    "docs/**",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20"
@@ -44,6 +53,7 @@
         "ralphCodex.promptPriorContextBudget",
         "ralphCodex.clipboardAutoCopy",
         "ralphCodex.model",
+        "ralphCodex.reasoningEffort",
         "ralphCodex.approvalMode",
         "ralphCodex.sandboxMode",
         "ralphCodex.openSidebarCommandId",
@@ -63,7 +73,11 @@
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
     "onCommand:ralphCodex.openLatestProvenanceBundle",
+    "onCommand:ralphCodex.openLatestPromptEvidence",
+    "onCommand:ralphCodex.openLatestCliTranscript",
+    "onCommand:ralphCodex.applyLatestTaskDecompositionProposal",
     "onCommand:ralphCodex.revealLatestProvenanceBundleDirectory",
+    "onCommand:ralphCodex.cleanupRalphRuntimeArtifacts",
     "onCommand:ralphCodex.resetRalphWorkspaceState"
   ],
   "main": "./out/extension.js",
@@ -98,8 +112,24 @@
         "title": "Ralph Codex: Open Latest Provenance Bundle"
       },
       {
+        "command": "ralphCodex.openLatestPromptEvidence",
+        "title": "Ralph Codex: Open Latest Prompt Evidence"
+      },
+      {
+        "command": "ralphCodex.openLatestCliTranscript",
+        "title": "Ralph Codex: Open Latest CLI Transcript"
+      },
+      {
+        "command": "ralphCodex.applyLatestTaskDecompositionProposal",
+        "title": "Ralph Codex: Apply Latest Task Decomposition Proposal"
+      },
+      {
         "command": "ralphCodex.revealLatestProvenanceBundleDirectory",
         "title": "Ralph Codex: Reveal Latest Provenance Bundle Directory"
+      },
+      {
+        "command": "ralphCodex.cleanupRalphRuntimeArtifacts",
+        "title": "Ralph Codex: Cleanup Runtime Artifacts"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
@@ -231,6 +261,12 @@
           "type": "string",
           "default": "gpt-5.4",
           "description": "Default model for codex exec runs."
+        },
+        "ralphCodex.reasoningEffort": {
+          "type": "string",
+          "enum": ["medium", "high"],
+          "default": "medium",
+          "description": "Reasoning effort to pass to Codex CLI for scripted runs. Keep the default medium for normal work and raise it to high only for deliberate escalation cases such as architecture, hard debugging, or remediation-heavy tasks."
         },
         "ralphCodex.approvalMode": {
           "type": "string",

@@ -284,6 +284,12 @@ Stable classifier rules live here.
 
 Stable no-progress rules live here.
 
+The first narrowed child should reproduce the blocker against the inherited validation command before a later child tries to fix it.
+
+the next narrowed child should implement the smallest bounded fix for that reproduced blocker.
+
+each child should describe one deterministic next step that can be validated with the parent's existing validation command.
+
 ## Stop Reasons
 
 - \`iteration_cap_reached\`
@@ -429,6 +435,68 @@ Stable prompt feedback rules live here.
 
   assert.equal(issues.some((issue) => issue.code === 'stale_documented_list' && issue.message.includes('Verifier Modes')), true);
   assert.equal(issues.some((issue) => issue.code === 'stale_documented_list' && issue.message.includes('Stop Reasons')), true);
+});
+
+test('validateRepositoryDocs reports missing bounded-fix verifier guidance', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'docs/verifier.md', `# Verifier
+
+This document owns verifier modes, outcome classifications, and how verification affects loop stopping and review behavior.
+
+## Verifier Modes
+
+Configured through \`ralphCodex.verifierModes\`:
+
+- \`validationCommand\`
+- \`gitDiff\`
+- \`taskState\`
+
+## Verifier Artifacts
+
+Stable verifier artifact rules live here.
+
+## Outcome Classifications
+
+Stable classifier rules live here.
+
+## No-Progress Detection
+
+Stable no-progress rules live here.
+
+The first narrowed child should reproduce the blocker against the inherited validation command before a later child tries to fix it.
+
+## Stop Reasons
+
+- \`iteration_cap_reached\`
+- \`task_marked_complete\`
+- \`verification_passed_no_remaining_subtasks\`
+- \`repeated_no_progress\`
+- \`repeated_identical_failure\`
+- \`human_review_needed\`
+- \`execution_failed\`
+- \`no_actionable_task\`
+
+## Precedence Rules
+
+Stable precedence rules live here.
+
+## Feedback Into The Next Prompt
+
+Stable prompt feedback rules live here.
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/verifier.md'
+        && issue.message.includes('the next narrowed child should implement the smallest bounded fix')
+    ),
+    true
+  );
 });
 
 test('validateRepositoryDocs keeps AGENTS.md on a small line budget', async () => {

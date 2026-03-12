@@ -18,6 +18,7 @@ export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepo
   const args = [
     'exec',
     '--model', request.model,
+    '--config', `model_reasoning_effort="${request.reasoningEffort}"`,
     '--sandbox', request.sandboxMode,
     '--config', `approval_policy="${request.approvalMode}"`,
     '--cd', request.executionRoot,
@@ -44,6 +45,7 @@ export function buildCodexExecTranscript(result: CodexExecResult, request: Codex
     `- Prompt path: ${request.promptPath}`,
     `- Prompt hash: ${request.promptHash}`,
     `- Prompt bytes: ${request.promptByteLength}`,
+    `- Reasoning effort: ${request.reasoningEffort}`,
     `- Stdin hash: ${result.stdinHash}`,
     `- Payload matched prompt artifact: ${payloadMatched}`,
     `- Last message path: ${request.lastMessagePath}`,

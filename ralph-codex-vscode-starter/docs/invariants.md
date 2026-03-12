@@ -71,6 +71,7 @@ It must detect:
 - orphaned parents
 - invalid dependencies
 - dependency cycles
+- done parents with unfinished descendants
 - impossible done-with-incomplete-dependencies states
 - likely schema drift such as `dependencies` instead of `dependsOn`
 
@@ -121,6 +122,7 @@ Each iteration directory is predictable and should include the artifacts that ap
 - `summary.md`
 - `execution-summary.json`
 - `verifier-summary.json`
+- `task-remediation.json` when repeated-stop remediation is emitted for that iteration
 - `iteration-result.json` when an iteration result exists
 
 Run-level provenance bundles are first-class artifacts, not optional debugging leftovers. Each bundle should include:
@@ -136,13 +138,18 @@ Stable latest pointers are part of the operator interface and must stay current:
 - `latest-preflight-report.json` and `latest-preflight-summary.md`
 - `latest-prompt.md` and `latest-prompt-evidence.json`
 - `latest-execution-plan.json` and `latest-cli-invocation.json`
+- `latest-remediation.json` when repeated-stop remediation exists for the latest applicable iteration
 - `latest-provenance-bundle.json` and `latest-provenance-summary.md`
 - `latest-provenance-failure.json` when a blocked integrity artifact exists
 
 Command behavior depends on those stable entry points:
 
 - `Open Latest Ralph Summary` prefers `latest-summary.md`
+- when a latest summary Markdown surface is manually deleted, Ralph should deterministically recreate it from the surviving latest JSON artifact before treating it as absent
 - `Open Latest Provenance Bundle` prefers `latest-provenance-summary.md`
+- `Open Latest Prompt Evidence` opens `latest-prompt-evidence.json`
+- `Open Latest CLI Transcript` prefers the transcript path referenced by `latest-cli-invocation.json` and falls back to the newest last-message artifact
+- `Show Status` should surface the newest remediation summary from `latest-remediation.json` when repeated-stop guidance exists, even if the latest iteration state is stale
 - `Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory
 
 ## Retention And Cleanup Invariants
@@ -170,6 +177,7 @@ Generated non-provenance artifact cleanup also stays deterministic and file-base
 - `latest-preflight-report.json` can independently protect an older iteration directory through its persisted `artifactDir`, `reportPath`, and `summaryPath`; it does not protect prompt or run artifacts by itself
 - `latest-execution-plan.json` can independently protect an older iteration directory and prompt file through its persisted `artifactDir`, `promptPath`, `promptArtifactPath`, and `executionPlanPath`; `latest-cli-invocation.json` can independently protect an older iteration directory plus its transcript/last-message pair through `promptArtifactPath`, `cliInvocationPath`, `transcriptPath`, and `lastMessagePath`
 - `latest-prompt-evidence.json` protects the prompt file and iteration directory implied by its persisted `kind` plus `iteration`; it does not protect transcript or last-message files by itself
+- manual maintenance cleanup may prune older generated prompts, runs, and iteration directories more aggressively than on-write retention, but it must still preserve the current state roots (`lastPromptPath`, `lastRun.*`, `lastIteration.*`), the stable latest-pointer artifacts, and the stable latest summary surfaces
 - `latest-provenance-bundle.json` and `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths; they do not protect prompt files in `.ralph/prompts/` or transcript/last-message pairs in `.ralph/runs/`
 - within those latest-pointer JSON artifacts, only the prompt, transcript/last-message, iteration-directory, preflight, summary, execution-plan, CLI-invocation, iteration-result, and provenance-failure path fields count as protected references
 - cleanup runs after Ralph persists prompt or iteration provenance so prompt-only and executed paths converge on the same retention rule

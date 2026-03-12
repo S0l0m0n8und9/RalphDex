@@ -1,5 +1,6 @@
 import {
   RalphPreflightDiagnostic,
+  RalphSuggestedChildTask,
   RalphTask,
   RalphTaskCounts,
   RalphTaskFile,
@@ -542,6 +543,28 @@ export function inspectTaskGraph(taskFile: RalphTaskFile): RalphPreflightDiagnos
       }
     }
 
+    if (task.status === 'done') {
+      const unfinishedDescendants = collectDescendants(taskFile, task.id)
+        .filter((descendant) => descendant.status !== 'done');
+
+      if (unfinishedDescendants.length > 0) {
+        diagnostics.push(createTaskGraphDiagnostic(
+          'completed_parent_with_incomplete_descendants',
+          `${taskLabel(task)} is marked done but descendant tasks are still unfinished: ${unfinishedDescendants
+            .map((descendant) => `${descendant.id} (${descendant.status})`)
+            .join(', ')}.`,
+          {
+            taskId: task.id,
+            relatedTaskIds: unfinishedDescendants.map((descendant) => descendant.id),
+            location: task.source,
+            relatedLocations: unfinishedDescendants
+              .map((descendant) => descendant.source)
+              .filter((location): location is RalphTaskSourceLocation => Boolean(location))
+          }
+        ));
+      }
+    }
+
     for (const dependencyId of task.dependsOn ?? []) {
       if (dependencyId === task.id) {
         diagnostics.push(createTaskGraphDiagnostic(
@@ -826,6 +849,97 @@ export function findTaskById(taskFile: RalphTaskFile, taskId: string | null): Ra
   }
 
   return taskFile.tasks.find((task) => task.id === taskId) ?? null;
+}
+
+export function applySuggestedChildTasks(
+  taskFile: RalphTaskFile,
+  parentTaskId: string,
+  suggestedChildTasks: RalphSuggestedChildTask[]
+): RalphTaskFile {
+  const parentTask = findTaskById(taskFile, parentTaskId);
+  if (!parentTask) {
+    throw new Error(`Cannot apply decomposition proposal because parent task ${parentTaskId} does not exist.`);
+  }
+
+  if (parentTask.status === 'done') {
+    throw new Error(`Cannot apply decomposition proposal because parent task ${parentTaskId} is already done.`);
+  }
+
+  if (suggestedChildTasks.length === 0) {
+    throw new Error(`Cannot apply decomposition proposal for ${parentTaskId} because no suggested child tasks were provided.`);
+  }
+
+  const knownTaskIds = new Set(taskFile.tasks.map((task) => task.id));
+  const proposedTaskIds = new Set<string>();
+
+  for (const child of suggestedChildTasks) {
+    if (child.parentId !== parentTaskId) {
+      throw new Error(
+        `Cannot apply decomposition proposal because suggested child task ${child.id} targets parent ${child.parentId} instead of ${parentTaskId}.`
+      );
+    }
+
+    if (child.id === parentTaskId) {
+      throw new Error(`Cannot apply decomposition proposal because child task id ${child.id} matches the parent task id.`);
+    }
+
+    if (proposedTaskIds.has(child.id)) {
+      throw new Error(`Cannot apply decomposition proposal because child task id ${child.id} is duplicated within the proposal.`);
+    }
+
+    if (knownTaskIds.has(child.id)) {
+      throw new Error(`Cannot apply decomposition proposal because task id ${child.id} already exists in tasks.json.`);
+    }
+
+    proposedTaskIds.add(child.id);
+  }
+
+  for (const child of suggestedChildTasks) {
+    for (const dependency of child.dependsOn) {
+      if (!knownTaskIds.has(dependency.taskId) && !proposedTaskIds.has(dependency.taskId)) {
+        throw new Error(
+          `Cannot apply decomposition proposal because child task ${child.id} depends on missing task ${dependency.taskId}.`
+        );
+      }
+    }
+  }
+
+  const proposedChildren: RalphTask[] = suggestedChildTasks.map((child) => ({
+    id: child.id,
+    title: child.title,
+    status: 'todo',
+    parentId: child.parentId,
+    dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
+    validation: child.validation ?? undefined,
+    notes: child.rationale
+  }));
+
+  const parentDependencies = Array.from(new Set([
+    ...(parentTask.dependsOn ?? []),
+    ...proposedChildren.map((child) => child.id)
+  ]));
+
+  const nextTaskFile: RalphTaskFile = {
+    ...taskFile,
+    tasks: [
+      ...taskFile.tasks.map((task) => (
+        task.id === parentTaskId
+          ? {
+            ...task,
+            dependsOn: parentDependencies
+          }
+          : task
+      )),
+      ...proposedChildren
+    ]
+  };
+
+  const diagnostics = inspectTaskGraph(nextTaskFile);
+  if (diagnostics.length > 0) {
+    throw new Error(formatTaskGraphDiagnostics(diagnostics));
+  }
+
+  return nextTaskFile;
 }
 
 export function remainingSubtasks(taskFile: RalphTaskFile, taskId: string | null): RalphTask[] {

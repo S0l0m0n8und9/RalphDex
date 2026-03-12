@@ -132,6 +132,69 @@ export type RalphStopReason =
   | 'execution_failed'
   | 'no_actionable_task';
 export type RalphVerifierId = 'validationCommand' | 'gitDiff' | 'taskState';
+export type RalphTaskRemediationAction =
+  | 'decompose_task'
+  | 'reframe_task'
+  | 'mark_blocked'
+  | 'request_human_review'
+  | 'no_action';
+
+export interface RalphTaskRemediation {
+  trigger: RalphStopReason;
+  taskId: string | null;
+  attemptCount: number;
+  action: RalphTaskRemediationAction;
+  humanReviewRecommended: boolean;
+  summary: string;
+  evidence: string[];
+}
+
+export interface RalphTaskRemediationHistoryEntry {
+  iteration: number;
+  completionClassification: RalphCompletionClassification;
+  executionStatus: RalphExecutionStatus;
+  verificationStatus: RalphVerificationStatus;
+  stopReason: RalphStopReason | null;
+  summary: string;
+  validationFailureSignature: string | null;
+  noProgressSignals: string[];
+}
+
+export interface RalphSuggestedTaskDependency {
+  taskId: string;
+  reason: 'blocks_sequence' | 'inherits_parent_dependency';
+}
+
+export interface RalphSuggestedChildTask {
+  id: string;
+  title: string;
+  parentId: string;
+  dependsOn: RalphSuggestedTaskDependency[];
+  validation: string | null;
+  rationale: string;
+}
+
+export interface RalphTaskRemediationArtifact {
+  schemaVersion: 1;
+  kind: 'taskRemediation';
+  provenanceId: string | null;
+  iteration: number;
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  trigger: RalphStopReason;
+  attemptCount: number;
+  action: RalphTaskRemediationAction;
+  humanReviewRecommended: boolean;
+  summary: string;
+  rationale: string;
+  proposedAction: string;
+  evidence: string[];
+  triggeringHistory: RalphTaskRemediationHistoryEntry[];
+  suggestedChildTasks: RalphSuggestedChildTask[];
+  artifactDir: string;
+  iterationResultPath: string;
+  createdAt: string;
+}
 
 export interface RalphRunRecord {
   provenanceId?: string;
@@ -173,6 +236,25 @@ export interface RalphPromptEvidence {
   effectiveValidationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
+  promptByteLength?: number;
+  promptBudget?: {
+    policyName: string;
+    budgetMode: 'within_budget' | 'trimmed';
+    targetTokens: number;
+    minimumContextBias: string;
+    estimatedTokens: number;
+    withinTarget: boolean;
+    budgetDeltaTokens: number;
+    estimatedTokenRange: {
+      min: number;
+      max: number;
+    };
+    requiredSections: string[];
+    optionalSections: string[];
+    omissionOrder: string[];
+    selectedSections: string[];
+    omittedSections: string[];
+  };
   inputs: {
     rootPolicy: RalphRootPolicy;
     strategyContext: string[];
@@ -231,6 +313,7 @@ export interface RalphCliInvocation {
   iteration: number;
   commandPath: string;
   args: string[];
+  reasoningEffort?: string | null;
   workspaceRoot: string;
   rootPolicy: RalphRootPolicy;
   promptArtifactPath: string;
@@ -247,6 +330,7 @@ export interface RalphExecutionIntegritySummary {
   promptTarget: RalphPromptTarget;
   rootPolicy: RalphRootPolicy | null;
   templatePath: string;
+  reasoningEffort?: string | null;
   taskValidationHint: string | null;
   effectiveValidationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
@@ -350,6 +434,7 @@ export interface RalphIterationResult {
   backlog: RalphIterationBacklogSummary;
   diffSummary: RalphDiffSummary | null;
   noProgressSignals: string[];
+  remediation: RalphTaskRemediation | null;
   completionReportStatus?: RalphCompletionReportStatus;
   reconciliationWarnings?: string[];
   stopReason: RalphStopReason | null;

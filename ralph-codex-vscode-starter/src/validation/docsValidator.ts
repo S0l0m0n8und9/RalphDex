@@ -141,7 +141,10 @@ const DOC_RULES: Record<string, DocRule> = {
       'verifier modes',
       'outcome classifications',
       'loop stopping',
-      'review behavior'
+      'review behavior',
+      'reproduce the blocker against the inherited validation command',
+      'the next narrowed child should implement the smallest bounded fix for that reproduced blocker',
+      'each child should describe one deterministic next step that can be validated with the parent\'s existing validation command'
     ]
   },
   'docs/boundaries.md': {

@@ -4,6 +4,8 @@ export type CodexApprovalMode = 'never' | 'on-request' | 'untrusted';
 
 export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
 
+export type CodexReasoningEffort = 'medium' | 'high';
+
 export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
 
 export type RalphGitCheckpointMode = 'off' | 'snapshot' | 'snapshotAndDiff';
@@ -30,6 +32,7 @@ export interface RalphCodexConfig {
   promptPriorContextBudget: number;
   clipboardAutoCopy: boolean;
   model: string;
+  reasoningEffort: CodexReasoningEffort;
   approvalMode: CodexApprovalMode;
   sandboxMode: CodexSandboxMode;
   openSidebarCommandId: string;

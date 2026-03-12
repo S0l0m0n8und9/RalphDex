@@ -68,6 +68,16 @@ function compactList(values, limit) {
     const remaining = values.length - visible.length;
     return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
 }
+function formatPromptBudgetSummary(promptEvidence) {
+    const budget = promptEvidence?.promptBudget;
+    if (!budget) {
+        return 'none';
+    }
+    const budgetOutcome = budget.withinTarget
+        ? `within target (${budget.budgetDeltaTokens >= 0 ? '+' : ''}${budget.budgetDeltaTokens})`
+        : `over target (+${budget.budgetDeltaTokens})`;
+    return `${budget.policyName} | ${budget.budgetMode} | target ${budget.targetTokens} | est ${budget.estimatedTokens} (${budget.estimatedTokenRange.min}-${budget.estimatedTokenRange.max}) | ${budgetOutcome}`;
+}
 function formatProvenanceTrustLevel(trustLevel) {
     if (trustLevel === 'verifiedCliExecution') {
         return 'verified CLI execution';
@@ -87,6 +97,7 @@ function describeProvenanceAssurance(bundle) {
     return 'Prepared prompt provenance only; later IDE execution may differ.';
 }
 async function resolveLatestStatusArtifacts(paths) {
+    const repair = await (0, artifactStore_1.repairLatestArtifactSurfaces)(paths.artifactDir);
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(paths.artifactDir);
     return {
         latestSummaryPath: await pathExists(latestPaths.latestSummaryPath) ? latestPaths.latestSummaryPath : null,
@@ -107,6 +118,9 @@ async function resolveLatestStatusArtifacts(paths) {
         latestCliInvocationPath: await pathExists(latestPaths.latestCliInvocationPath)
             ? latestPaths.latestCliInvocationPath
             : null,
+        latestRemediationPath: await pathExists(latestPaths.latestRemediationPath)
+            ? latestPaths.latestRemediationPath
+            : null,
         latestProvenanceBundlePath: await pathExists(latestPaths.latestProvenanceBundlePath)
             ? latestPaths.latestProvenanceBundlePath
             : null,
@@ -115,8 +129,26 @@ async function resolveLatestStatusArtifacts(paths) {
             : null,
         latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
             ? latestPaths.latestProvenanceFailurePath
-            : null
+            : null,
+        repair
     };
+}
+function summarizeRetentionNames(names, protectedNames, limit) {
+    if (names.length === 0) {
+        return 'none';
+    }
+    const protectedSet = new Set(protectedNames);
+    const labeled = names.map((name) => protectedSet.has(name) ? `${name} (protected)` : name);
+    return compactList(labeled, limit);
+}
+function formatRecentIteration(entry) {
+    const taskLabel = entry.selectedTaskId
+        ? `${entry.selectedTaskId}${entry.selectedTaskTitle ? ` - ${entry.selectedTaskTitle}` : ''}`
+        : 'none';
+    return `- #${entry.iteration}: ${taskLabel} | ${entry.executionStatus} / ${entry.verificationStatus} / ${entry.completionClassification}${entry.stopReason ? ` | stop ${entry.stopReason}` : ''}`;
+}
+function formatRecentRun(entry) {
+    return `- #${entry.iteration}: ${entry.mode} ${entry.promptKind} | ${entry.status} | exit ${entry.exitCode ?? 'none'}`;
 }
 function buildStatusReport(snapshot) {
     const renderDiagnostic = (diagnostic) => `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
@@ -131,6 +163,18 @@ function buildStatusReport(snapshot) {
     const preflightAdapter = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'codexAdapter');
     const preflightVerifier = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'validationVerifier');
     const latestPlan = snapshot.latestExecutionPlan;
+    const latestPromptEvidence = snapshot.latestPromptEvidence;
+    const latestRemediation = snapshot.latestRemediation ?? (lastIteration?.remediation
+        ? {
+            trigger: lastIteration.remediation.trigger,
+            attemptCount: lastIteration.remediation.attemptCount,
+            action: lastIteration.remediation.action,
+            humanReviewRecommended: lastIteration.remediation.humanReviewRecommended,
+            summary: lastIteration.remediation.summary,
+            evidence: lastIteration.remediation.evidence,
+            suggestedChildTasks: []
+        }
+        : null);
     const latestProvenance = snapshot.latestProvenanceBundle;
     const lastIntegrity = lastIteration?.executionIntegrity;
     const currentRootPolicy = latestPlan?.rootPolicy ?? (0, rootPolicy_1.deriveRootPolicy)(snapshot.workspaceScan);
@@ -144,7 +188,11 @@ function buildStatusReport(snapshot) {
     const payloadMatched = lastIntegrity?.executionPayloadMatched === null || lastIntegrity?.executionPayloadMatched === undefined
         ? 'not recorded'
         : lastIntegrity.executionPayloadMatched ? 'yes' : 'no';
+    const currentReasoningEffort = snapshot.latestCliInvocation?.reasoningEffort ?? 'n/a';
+    const lastReasoningEffort = lastIntegrity?.reasoningEffort ?? 'unknown';
     const scan = snapshot.workspaceScan;
+    const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
+    const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
     return [
         `# Ralph Status: ${snapshot.workspaceName}`,
         '',
@@ -157,6 +205,15 @@ function buildStatusReport(snapshot) {
         `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,
         `- Current prompt artifact: ${relativeFromRoot(snapshot.rootPath, latestPlan?.promptArtifactPath ?? null)}`,
         `- Current prompt hash: ${shortHash(latestPlan?.promptHash)}`,
+        `- Current prompt bytes: ${latestPlan?.promptByteLength ?? latestPromptEvidence?.promptByteLength ?? 'none'}`,
+        `- Current prompt budget: ${formatPromptBudgetSummary(latestPromptEvidence)}`,
+        `- Current prompt minimum-context bias: ${latestPromptEvidence?.promptBudget?.minimumContextBias ?? 'none'}`,
+        `- Current prompt required sections: ${compactList(latestPromptEvidence?.promptBudget?.requiredSections ?? [], 6)}`,
+        `- Current prompt optional sections: ${compactList(latestPromptEvidence?.promptBudget?.optionalSections ?? [], 6)}`,
+        `- Current prompt omission order: ${compactList(latestPromptEvidence?.promptBudget?.omissionOrder ?? [], 6)}`,
+        `- Current prompt selected sections: ${compactList(latestPromptEvidence?.promptBudget?.selectedSections ?? [], 6)}`,
+        `- Current prompt omitted sections: ${compactList(latestPromptEvidence?.promptBudget?.omittedSections ?? [], 6)}`,
+        `- Current reasoning effort: ${currentReasoningEffort}`,
         `- Task validation hint: ${latestPlan?.taskValidationHint ?? 'none'}`,
         `- Effective validation command: ${latestPlan?.effectiveValidationCommand ?? 'none'}`,
         `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
@@ -215,9 +272,14 @@ function buildStatusReport(snapshot) {
         `- Generated artifact retention on write: ${snapshot.generatedArtifactRetentionCount <= 0
             ? 'disabled'
             : `keep newest ${snapshot.generatedArtifactRetentionCount} prompts, runs, and iterations first; then add older protected references without evicting them`}`,
+        `- Generated artifacts currently retained: iterations ${snapshot.generatedArtifactRetention.retainedIterationDirectories.length}, prompts ${snapshot.generatedArtifactRetention.retainedPromptFiles.length}, runs ${snapshot.generatedArtifactRetention.retainedRunArtifactBaseNames.length}`,
+        `- Generated iteration directories: ${summarizeRetentionNames(snapshot.generatedArtifactRetention.retainedIterationDirectories, snapshot.generatedArtifactRetention.protectedRetainedIterationDirectories, 4)}`,
+        `- Generated prompt files: ${summarizeRetentionNames(snapshot.generatedArtifactRetention.retainedPromptFiles, snapshot.generatedArtifactRetention.protectedRetainedPromptFiles, 4)}`,
+        `- Generated run artifacts: ${summarizeRetentionNames(snapshot.generatedArtifactRetention.retainedRunArtifactBaseNames, snapshot.generatedArtifactRetention.protectedRetainedRunArtifactBaseNames, 4)}`,
         `- Bundle retention on write: ${snapshot.provenanceBundleRetentionCount <= 0
             ? 'disabled'
             : `keep newest ${snapshot.provenanceBundleRetentionCount} bundles first; then add older protected references without evicting them`}`,
+        `- Provenance bundles currently retained: ${summarizeRetentionNames(snapshot.provenanceBundleRetention.retainedBundleIds, snapshot.provenanceBundleRetention.protectedBundleIds, 4)}`,
         '',
         '## Latest Iteration',
         `- Last task: ${lastTaskLabel}`,
@@ -225,6 +287,8 @@ function buildStatusReport(snapshot) {
         `- Last template: ${relativeFromRoot(snapshot.rootPath, lastIntegrity?.templatePath ?? null)}`,
         `- Last execution root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.executionRootPath ?? null)}`,
         `- Last verifier root: ${relativeFromRoot(snapshot.rootPath, lastRootPolicy?.verificationRootPath ?? null)}`,
+        `- Last prompt bytes: ${lastIntegrity?.promptByteLength ?? 'none'}`,
+        `- Last reasoning effort: ${lastReasoningEffort}`,
         `- Payload matched rendered artifact: ${payloadMatched}`,
         `- Outcome: ${lastIteration ? `${lastIteration.completionClassification} (selected task)` : 'none'}`,
         `- Backlog remaining: ${lastIteration ? lastIteration.backlog.remainingTaskCount : 'none'}`,
@@ -235,8 +299,21 @@ function buildStatusReport(snapshot) {
         `- Completion report status: ${lastIteration?.completionReportStatus ?? 'none'}`,
         `- Reconciliation warnings: ${lastIteration?.reconciliationWarnings?.join(' | ') || 'none'}`,
         `- Stop reason: ${lastIteration?.stopReason ?? 'none'}`,
+        `- Remediation: ${latestRemediation?.summary ?? 'none'}`,
+        `- Remediation action: ${latestRemediation?.action ?? 'none'}`,
+        `- Remediation attempts: ${latestRemediation?.attemptCount ?? 'none'}`,
+        `- Remediation human review: ${latestRemediation === null ? 'none' : latestRemediation.humanReviewRecommended ? 'yes' : 'no'}`,
+        `- Remediation artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
+        `- Remediation proposed child tasks: ${latestRemediation?.suggestedChildTasks?.length ?? 0}`,
+        ...(latestRemediation?.suggestedChildTasks ?? []).map((task) => `- Proposed child ${task.id}: ${task.title} | depends on ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => dependency.taskId).join(', ') : 'none'}`),
         `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,
         `- Prompt: ${relativeFromRoot(snapshot.rootPath, snapshot.promptPath)}`,
+        '',
+        '## Recent History',
+        `- Iteration history entries: ${snapshot.iterationHistory.length}`,
+        recentIterations.length > 0 ? recentIterations.join('\n') : '- No recorded iterations yet.',
+        `- Run history entries: ${snapshot.runHistory.length}`,
+        recentRuns.length > 0 ? recentRuns.join('\n') : '- No recorded runs yet.',
         '',
         '## Verifiers',
         `- Enabled: ${snapshot.verifierModes.join(', ') || 'none'}`,
@@ -256,9 +333,12 @@ function buildStatusReport(snapshot) {
         `- Latest prompt evidence: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPromptEvidencePath)}`,
         `- Latest execution plan: ${relativeFromRoot(snapshot.rootPath, snapshot.latestExecutionPlanPath)}`,
         `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
+        `- Latest remediation proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
         `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
         `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
         `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
+        `- Latest artifact repairs this status run: ${compactList(snapshot.latestArtifactRepair.repairedLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
+        `- Latest artifact paths still stale: ${compactList(snapshot.latestArtifactRepair.staleLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
         '- Direct command: Ralph Codex: Open Latest Ralph Summary',
         '- Direct command: Ralph Codex: Open Latest Provenance Bundle',
         '- Direct command: Ralph Codex: Reveal Latest Provenance Bundle Directory',

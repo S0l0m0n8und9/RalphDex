@@ -45,6 +45,7 @@ const rootPolicy_1 = require("../ralph/rootPolicy");
 const statusReport_1 = require("../ralph/statusReport");
 const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
+const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const workspaceScanner_1 = require("../services/workspaceScanner");
@@ -60,6 +61,9 @@ function createdPathSummary(rootPath, createdPaths) {
         .map((target) => path.relative(rootPath, target) || path.basename(target))
         .join(', ');
     return `Initialized or repaired Ralph workspace paths: ${labels}.`;
+}
+function deletedCountSummary(count, singular, plural) {
+    return `${count} ${count === 1 ? singular : plural}`;
 }
 async function withWorkspaceFolder() {
     const folder = vscode.workspace.workspaceFolders?.[0];
@@ -89,6 +93,26 @@ async function readJsonArtifact(target) {
         return null;
     }
 }
+async function pathExists(target) {
+    if (!target) {
+        return false;
+    }
+    try {
+        await fs.access(target);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+async function firstExistingPath(candidates) {
+    for (const candidate of candidates) {
+        if (await pathExists(candidate)) {
+            return candidate ?? null;
+        }
+    }
+    return null;
+}
 function normalizeExecutionPlan(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -101,6 +125,20 @@ function normalizeExecutionPlan(candidate) {
         || typeof record.templatePath !== 'string'
         || typeof record.promptArtifactPath !== 'string'
         || typeof record.promptHash !== 'string') {
+        return null;
+    }
+    return record;
+}
+function normalizePromptEvidence(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.iteration !== 'number'
+        || typeof record.kind !== 'string'
+        || typeof record.target !== 'string'
+        || typeof record.templatePath !== 'string'
+        || typeof record.selectionReason !== 'string') {
         return null;
     }
     return record;
@@ -137,6 +175,91 @@ function normalizeProvenanceBundle(candidate) {
         return null;
     }
     return record;
+}
+function normalizeLatestRemediation(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.trigger !== 'string'
+        || typeof record.attemptCount !== 'number'
+        || typeof record.action !== 'string'
+        || typeof record.humanReviewRecommended !== 'boolean'
+        || typeof record.summary !== 'string'
+        || !Array.isArray(record.evidence)
+        || record.evidence.some((entry) => typeof entry !== 'string')) {
+        return null;
+    }
+    return {
+        trigger: record.trigger,
+        attemptCount: record.attemptCount,
+        action: record.action,
+        humanReviewRecommended: record.humanReviewRecommended,
+        summary: record.summary,
+        evidence: record.evidence,
+        suggestedChildTasks: Array.isArray(record.suggestedChildTasks)
+            ? record.suggestedChildTasks
+                .filter((entry) => {
+                if (typeof entry !== 'object' || entry === null) {
+                    return false;
+                }
+                const child = entry;
+                return typeof child.id === 'string'
+                    && typeof child.title === 'string'
+                    && typeof child.parentId === 'string'
+                    && (child.validation === null || typeof child.validation === 'string')
+                    && typeof child.rationale === 'string'
+                    && Array.isArray(child.dependsOn)
+                    && child.dependsOn.every((dependency) => {
+                        if (typeof dependency !== 'object' || dependency === null) {
+                            return false;
+                        }
+                        const record = dependency;
+                        return typeof record.taskId === 'string' && typeof record.reason === 'string';
+                    });
+            })
+            : []
+    };
+}
+function normalizeTaskRemediationArtifact(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (record.kind !== 'taskRemediation'
+        || typeof record.iteration !== 'number'
+        || (typeof record.selectedTaskId !== 'string' && record.selectedTaskId !== null)
+        || typeof record.action !== 'string'
+        || !Array.isArray(record.suggestedChildTasks)) {
+        return null;
+    }
+    const latestRemediation = normalizeLatestRemediation(candidate);
+    if (!latestRemediation) {
+        return null;
+    }
+    return {
+        schemaVersion: 1,
+        kind: 'taskRemediation',
+        provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : null,
+        iteration: record.iteration,
+        selectedTaskId: record.selectedTaskId,
+        selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,
+        trigger: latestRemediation.trigger,
+        attemptCount: latestRemediation.attemptCount,
+        action: latestRemediation.action,
+        humanReviewRecommended: latestRemediation.humanReviewRecommended,
+        summary: latestRemediation.summary,
+        rationale: typeof record.rationale === 'string' ? record.rationale : '',
+        proposedAction: typeof record.proposedAction === 'string' ? record.proposedAction : latestRemediation.summary,
+        evidence: latestRemediation.evidence,
+        triggeringHistory: Array.isArray(record.triggeringHistory)
+            ? record.triggeringHistory
+            : [],
+        suggestedChildTasks: latestRemediation.suggestedChildTasks ?? [],
+        artifactDir: typeof record.artifactDir === 'string' ? record.artifactDir : '',
+        iterationResultPath: typeof record.iterationResultPath === 'string' ? record.iterationResultPath : '',
+        createdAt: typeof record.createdAt === 'string' ? record.createdAt : ''
+    };
 }
 function iterationFailureMessage(result) {
     return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
@@ -200,6 +323,15 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         command: validationCommand,
         rootPath: rootPolicy.verificationRootPath
     });
+    const artifactReadinessDiagnostics = await (0, preflight_1.inspectPreflightArtifactReadiness)({
+        rootPath: workspaceFolder.uri.fsPath,
+        artifactRootDir: inspection.paths.artifactDir,
+        promptDir: inspection.paths.promptDir,
+        runDir: inspection.paths.runDir,
+        stateFilePath: inspection.paths.stateFilePath,
+        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+        provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
+    });
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath: workspaceFolder.uri.fsPath,
         workspaceTrusted: vscode.workspace.isTrusted,
@@ -213,12 +345,28 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         validationCommandReadiness,
         fileStatus: inspection.fileStatus,
         codexCliSupport,
-        ideCommandSupport
+        ideCommandSupport,
+        artifactReadinessDiagnostics
     });
-    const [latestExecutionPlan, latestCliInvocation, latestProvenanceBundle] = await Promise.all([
+    const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+        readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
         readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
         readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
+        readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
         readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
+    ]);
+    const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
+        (0, artifactStore_1.inspectGeneratedArtifactRetention)({
+            artifactRootDir: inspection.paths.artifactDir,
+            promptDir: inspection.paths.promptDir,
+            runDir: inspection.paths.runDir,
+            stateFilePath: inspection.paths.stateFilePath,
+            retentionCount: config.generatedArtifactRetentionCount
+        }),
+        (0, artifactStore_1.inspectProvenanceBundleRetention)({
+            artifactRootDir: inspection.paths.artifactDir,
+            retentionCount: config.provenanceBundleRetentionCount
+        })
     ]);
     return {
         workspaceName: workspaceFolder.name,
@@ -226,6 +374,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         workspaceTrusted: vscode.workspace.isTrusted,
         nextIteration: inspection.state.nextIteration,
         lastIteration: inspection.state.lastIteration,
+        runHistory: inspection.state.runHistory,
+        iterationHistory: inspection.state.iterationHistory,
         taskCounts,
         taskFileError,
         selectedTask,
@@ -237,6 +387,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestPromptEvidencePath: latestArtifacts.latestPromptEvidencePath,
         latestExecutionPlanPath: latestArtifacts.latestExecutionPlanPath,
         latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
+        latestRemediationPath: latestArtifacts.latestRemediationPath,
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
@@ -245,9 +396,14 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         progressPath: inspection.paths.progressPath,
         taskFilePath: inspection.paths.taskFilePath,
         promptPath: inspection.state.lastIteration?.promptPath ?? inspection.state.lastPromptPath,
+        latestPromptEvidence,
         latestExecutionPlan,
         latestCliInvocation,
+        latestRemediation,
         latestProvenanceBundle,
+        latestArtifactRepair: latestArtifacts.repair,
+        generatedArtifactRetention,
+        provenanceBundleRetention,
         generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
         provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
         verifierModes: config.verifierModes,
@@ -272,7 +428,7 @@ async function openLatestRalphSummary(workspaceFolder, stateManager, logger) {
         return true;
     }
     const reason = inspection.state.lastIteration
-        ? 'The latest Ralph summary artifact is missing from the artifact directory.'
+        ? 'The latest Ralph summary artifact is missing or stale and could not be repaired from persisted Ralph metadata.'
         : 'No Ralph summary exists yet because no CLI iteration has completed and no preflight has been persisted.';
     void vscode.window.showInformationMessage(`${reason} Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.`);
     return false;
@@ -290,7 +446,52 @@ async function openLatestProvenanceBundle(workspaceFolder, stateManager, logger)
         await openTextFile(latestArtifacts.latestExecutionPlanPath);
         return true;
     }
-    void vscode.window.showInformationMessage('No Ralph provenance bundle exists yet. Prepare a prompt or run a CLI iteration, then try again.');
+    void vscode.window.showInformationMessage(latestArtifacts.latestProvenanceBundlePath
+        ? 'The latest Ralph provenance summary artifact is missing or stale and could not be repaired from the persisted bundle manifest.'
+        : 'No Ralph provenance bundle exists yet. Prepare a prompt or run a CLI iteration, then try again.');
+    return false;
+}
+async function openLatestPromptEvidence(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    if (latestArtifacts.latestPromptEvidencePath) {
+        await openTextFile(latestArtifacts.latestPromptEvidencePath);
+        return true;
+    }
+    void vscode.window.showInformationMessage(inspection.state.lastPromptPath || latestArtifacts.latestPromptPath
+        ? 'The latest Ralph prompt evidence artifact is missing. Prepare a prompt or run a CLI iteration to regenerate prompt evidence, then try again.'
+        : 'No Ralph prompt evidence exists yet. Prepare a prompt or run a CLI iteration, then try again.');
+    return false;
+}
+async function openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    const latestCliInvocation = await readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation);
+    const transcriptPath = await firstExistingPath([
+        latestCliInvocation?.transcriptPath,
+        inspection.state.lastIteration?.execution.transcriptPath,
+        inspection.state.lastRun?.transcriptPath
+    ]);
+    const lastMessagePath = await firstExistingPath([
+        latestCliInvocation?.lastMessagePath,
+        inspection.state.lastIteration?.execution.lastMessagePath,
+        inspection.state.lastRun?.lastMessagePath
+    ]);
+    if (transcriptPath) {
+        await openTextFile(transcriptPath);
+        return true;
+    }
+    if (lastMessagePath) {
+        await openTextFile(lastMessagePath);
+        return true;
+    }
+    void vscode.window.showInformationMessage(latestArtifacts.latestCliInvocationPath || inspection.state.lastRun || inspection.state.lastIteration
+        ? 'The latest Ralph CLI transcript and last-message artifacts are missing. Run a CLI iteration to generate fresh execution output, then try again.'
+        : 'No Ralph CLI transcript exists yet because no CLI iteration has completed. Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.');
     return false;
 }
 async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger) {
@@ -311,6 +512,41 @@ async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManag
     else if (choice === 'Open Bundle Manifest') {
         await openTextFile(path.join(latestBundle.bundleDir, 'provenance-bundle.json'));
     }
+    return true;
+}
+async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    const remediationArtifact = await readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeTaskRemediationArtifact);
+    if (!remediationArtifact) {
+        void vscode.window.showInformationMessage('No latest Ralph remediation proposal exists yet. Run enough CLI iterations to record a remediation artifact, then try again.');
+        return false;
+    }
+    if (remediationArtifact.action !== 'decompose_task'
+        || !remediationArtifact.selectedTaskId
+        || remediationArtifact.suggestedChildTasks.length === 0) {
+        void vscode.window.showInformationMessage('The latest Ralph remediation artifact does not contain an applicable task-decomposition proposal.');
+        return false;
+    }
+    const childTaskIds = remediationArtifact.suggestedChildTasks.map((task) => task.id);
+    const confirmed = await vscode.window.showWarningMessage(`Apply the latest Ralph decomposition proposal for ${remediationArtifact.selectedTaskId}? This updates .ralph/tasks.json by adding ${childTaskIds.length} child task(s) and making the parent task depend on them.`, { modal: true }, 'Apply Proposal');
+    if (confirmed !== 'Apply Proposal') {
+        return false;
+    }
+    await stateManager.updateTaskFile(inspection.paths, (taskFile) => (0, taskFile_1.applySuggestedChildTasks)(taskFile, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks));
+    logger.info('Applied Ralph task decomposition proposal.', {
+        rootPath: workspaceFolder.uri.fsPath,
+        remediationPath: latestArtifacts.latestRemediationPath,
+        parentTaskId: remediationArtifact.selectedTaskId,
+        childTaskIds
+    });
+    await openTextFile(inspection.paths.taskFilePath);
+    const remediationLabel = latestArtifacts.latestRemediationPath
+        ? path.relative(workspaceFolder.uri.fsPath, latestArtifacts.latestRemediationPath)
+        : '.ralph/artifacts/latest-remediation.json';
+    void vscode.window.showInformationMessage(`Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${remediationArtifact.selectedTaskId}.`);
     return true;
 }
 function registerCommand(context, logger, spec) {
@@ -520,6 +756,35 @@ function registerCommands(context, logger) {
         }
     });
     registerCommand(context, logger, {
+        commandId: 'ralphCodex.openLatestPromptEvidence',
+        label: 'Ralph Codex: Open Latest Prompt Evidence',
+        requiresTrustedWorkspace: false,
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving latest Ralph prompt evidence' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await openLatestPromptEvidence(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openLatestCliTranscript',
+        label: 'Ralph Codex: Open Latest CLI Transcript',
+        requiresTrustedWorkspace: false,
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving latest Ralph CLI transcript' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.applyLatestTaskDecompositionProposal',
+        label: 'Ralph Codex: Apply Latest Task Decomposition Proposal',
+        handler: async (progress) => {
+            progress.report({ message: 'Applying the latest Ralph task decomposition proposal' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
         commandId: 'ralphCodex.revealLatestProvenanceBundleDirectory',
         label: 'Ralph Codex: Reveal Latest Provenance Bundle Directory',
         requiresTrustedWorkspace: false,
@@ -527,6 +792,37 @@ function registerCommands(context, logger) {
             progress.report({ message: 'Revealing latest Ralph provenance bundle directory' });
             const workspaceFolder = await withWorkspaceFolder();
             await revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.cleanupRalphRuntimeArtifacts',
+        label: 'Ralph Codex: Cleanup Runtime Artifacts',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const confirmed = await vscode.window.showWarningMessage('Cleanup Ralph runtime artifacts? This preserves .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence while pruning older generated prompts, runs, iteration artifacts, provenance bundles, and extension logs.', { modal: true }, 'Cleanup');
+            if (confirmed !== 'Cleanup') {
+                return;
+            }
+            progress.report({ message: 'Pruning generated Ralph runtime artifacts' });
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const result = await stateManager.cleanupRuntimeArtifacts(workspaceFolder.uri.fsPath, config);
+            await logger.setWorkspaceLogFile(result.snapshot.paths.logFilePath);
+            logger.info('Pruned Ralph runtime artifacts.', {
+                rootPath: workspaceFolder.uri.fsPath,
+                deletedIterationDirectories: result.cleanup.generatedArtifacts.deletedIterationDirectories,
+                deletedPromptFiles: result.cleanup.generatedArtifacts.deletedPromptFiles,
+                deletedRunArtifactBaseNames: result.cleanup.generatedArtifacts.deletedRunArtifactBaseNames,
+                deletedBundleIds: result.cleanup.provenanceBundles.deletedBundleIds,
+                deletedLogFiles: result.cleanup.deletedLogFiles
+            });
+            const deletedArtifacts = [
+                deletedCountSummary(result.cleanup.generatedArtifacts.deletedIterationDirectories.length, 'iteration directory', 'iteration directories'),
+                deletedCountSummary(result.cleanup.generatedArtifacts.deletedPromptFiles.length, 'prompt file', 'prompt files'),
+                deletedCountSummary(result.cleanup.generatedArtifacts.deletedRunArtifactBaseNames.length, 'run artifact set', 'run artifact sets'),
+                deletedCountSummary(result.cleanup.provenanceBundles.deletedBundleIds.length, 'bundle', 'bundles'),
+                deletedCountSummary(result.cleanup.deletedLogFiles.length, 'log file', 'log files')
+            ].join(', ');
+            void vscode.window.showInformationMessage(`Ralph runtime artifacts cleaned up. Preserved durable state and latest evidence while pruning ${deletedArtifacts}.`);
         }
     });
     registerCommand(context, logger, {

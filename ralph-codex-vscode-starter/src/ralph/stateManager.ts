@@ -5,6 +5,12 @@ import { RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
 import { resolveRalphPaths, RalphPaths } from './pathResolver';
 import {
+  cleanupGeneratedArtifacts,
+  cleanupProvenanceBundles,
+  RalphGeneratedArtifactRetentionSummary,
+  RalphProvenanceRetentionSummary
+} from './artifactStore';
+import {
   countTaskStatuses,
   createDefaultTaskFile,
   inspectTaskFileText,
@@ -20,6 +26,7 @@ import {
   RalphPromptKind,
   RalphRootPolicy,
   RalphRunRecord,
+  RalphTaskRemediation,
   RalphTask,
   RalphTaskCounts,
   RalphTaskFile,
@@ -219,6 +226,7 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
     promptTarget: record.promptTarget as RalphExecutionIntegritySummary['promptTarget'],
     rootPolicy: normalizeRootPolicy(record.rootPolicy),
     templatePath: record.templatePath,
+    reasoningEffort: typeof record.reasoningEffort === 'string' ? record.reasoningEffort : null,
     taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
     effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
       ? record.effectiveValidationCommand
@@ -291,7 +299,35 @@ function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
     },
     diffSummary: null,
     noProgressSignals: [],
+    remediation: null,
     stopReason: null
+  };
+}
+
+function normalizeTaskRemediation(candidate: unknown): RalphTaskRemediation | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.trigger !== 'string'
+    || typeof record.action !== 'string'
+    || typeof record.attemptCount !== 'number'
+    || typeof record.humanReviewRecommended !== 'boolean'
+    || typeof record.summary !== 'string') {
+    return null;
+  }
+
+  return {
+    trigger: record.trigger as RalphTaskRemediation['trigger'],
+    taskId: typeof record.taskId === 'string' ? record.taskId : null,
+    attemptCount: Math.max(1, Math.floor(record.attemptCount)),
+    action: record.action as RalphTaskRemediation['action'],
+    humanReviewRecommended: record.humanReviewRecommended,
+    summary: record.summary,
+    evidence: Array.isArray(record.evidence)
+      ? record.evidence.filter((item): item is string => typeof item === 'string')
+      : []
   };
 }
 
@@ -402,6 +438,7 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
     noProgressSignals: Array.isArray(record.noProgressSignals)
       ? record.noProgressSignals.filter((item): item is string => typeof item === 'string')
       : [],
+    remediation: normalizeTaskRemediation(record.remediation),
     completionReportStatus: record.completionReportStatus === 'applied'
       || record.completionReportStatus === 'rejected'
       || record.completionReportStatus === 'missing'
@@ -502,6 +539,17 @@ export interface RalphWorkspaceFileStatus {
   runDir: boolean;
   logDir: boolean;
   artifactDir: boolean;
+}
+
+export interface RalphRuntimeArtifactCleanupSummary {
+  generatedArtifacts: RalphGeneratedArtifactRetentionSummary;
+  provenanceBundles: RalphProvenanceRetentionSummary;
+  deletedLogFiles: string[];
+}
+
+export interface RalphRuntimeArtifactCleanupResult {
+  snapshot: RalphWorkspaceSnapshot;
+  cleanup: RalphRuntimeArtifactCleanupSummary;
 }
 
 export class RalphStateManager {
@@ -765,6 +813,37 @@ export class RalphStateManager {
 
     await this.workspaceState.update(stateKey(rootPath), undefined);
     return this.ensureWorkspace(rootPath, config);
+  }
+
+  public async cleanupRuntimeArtifacts(
+    rootPath: string,
+    config: RalphCodexConfig
+  ): Promise<RalphRuntimeArtifactCleanupResult> {
+    const paths = this.resolvePaths(rootPath, config);
+    const deletedLogFiles = await fs.readdir(paths.logDir).catch(() => []);
+    const generatedArtifacts = await cleanupGeneratedArtifacts({
+      artifactRootDir: paths.artifactDir,
+      promptDir: paths.promptDir,
+      runDir: paths.runDir,
+      stateFilePath: paths.stateFilePath,
+      retentionCount: 1,
+      protectionScope: 'currentAndLatest'
+    });
+    const provenanceBundles = await cleanupProvenanceBundles({
+      artifactRootDir: paths.artifactDir,
+      retentionCount: 1
+    });
+
+    await fs.rm(paths.logDir, { recursive: true, force: true });
+
+    return {
+      snapshot: await this.ensureWorkspace(rootPath, config),
+      cleanup: {
+        generatedArtifacts,
+        provenanceBundles,
+        deletedLogFiles
+      }
+    };
   }
 
   public isDefaultObjective(text: string): boolean {

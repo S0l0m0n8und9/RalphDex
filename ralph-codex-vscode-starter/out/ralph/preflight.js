@@ -33,10 +33,13 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
 exports.buildPreflightReport = buildPreflightReport;
 exports.renderPreflightReport = renderPreflightReport;
 exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
+const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const artifactStore_1 = require("./artifactStore");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
     workspaceRuntime: 'Workspace/runtime',
@@ -89,8 +92,209 @@ function sortDiagnostics(diagnostics) {
         return left.message.localeCompare(right.message);
     });
 }
+async function pathExists(target) {
+    try {
+        await fs.access(target);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+async function readJsonRecord(target) {
+    try {
+        const raw = await fs.readFile(target, 'utf8');
+        const parsed = JSON.parse(raw);
+        return typeof parsed === 'object' && parsed !== null ? parsed : null;
+    }
+    catch {
+        return null;
+    }
+}
+function pathOverlaps(left, right) {
+    const normalizedLeft = path.resolve(left);
+    const normalizedRight = path.resolve(right);
+    const leftRelative = path.relative(normalizedLeft, normalizedRight);
+    const rightRelative = path.relative(normalizedRight, normalizedLeft);
+    return (!leftRelative.startsWith('..') && !path.isAbsolute(leftRelative))
+        || (!rightRelative.startsWith('..') && !path.isAbsolute(rightRelative));
+}
+function derivedPromptEvidenceReferences(record, dirs) {
+    const kind = typeof record?.kind === 'string' ? record.kind : null;
+    const iteration = typeof record?.iteration === 'number' && Number.isFinite(record.iteration) && record.iteration >= 1
+        ? Math.floor(record.iteration)
+        : null;
+    if (!kind || iteration === null) {
+        return [];
+    }
+    const paddedIteration = String(iteration).padStart(3, '0');
+    return [
+        path.join(dirs.artifactRootDir, `iteration-${paddedIteration}`),
+        path.join(dirs.promptDir, `${kind}-${paddedIteration}.prompt.md`)
+    ];
+}
+function basenameList(rootPath, targets) {
+    return targets
+        .map((target) => relativePath(rootPath, target))
+        .join(', ');
+}
+async function inspectPreflightArtifactReadiness(input) {
+    const diagnostics = [];
+    const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(input.artifactRootDir);
+    const [latestResultRecord, latestPreflightRecord, latestPromptEvidenceRecord, latestExecutionPlanRecord, latestCliInvocationRecord, latestProvenanceBundleRecord, latestProvenanceFailureRecord, latestSummaryExists, latestPreflightSummaryExists, latestProvenanceSummaryExists, generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
+        readJsonRecord(latestPaths.latestResultPath),
+        readJsonRecord(latestPaths.latestPreflightReportPath),
+        readJsonRecord(latestPaths.latestPromptEvidencePath),
+        readJsonRecord(latestPaths.latestExecutionPlanPath),
+        readJsonRecord(latestPaths.latestCliInvocationPath),
+        readJsonRecord(latestPaths.latestProvenanceBundlePath),
+        readJsonRecord(latestPaths.latestProvenanceFailurePath),
+        pathExists(latestPaths.latestSummaryPath),
+        pathExists(latestPaths.latestPreflightSummaryPath),
+        pathExists(latestPaths.latestProvenanceSummaryPath),
+        (0, artifactStore_1.inspectGeneratedArtifactRetention)({
+            artifactRootDir: input.artifactRootDir,
+            promptDir: input.promptDir,
+            runDir: input.runDir,
+            stateFilePath: input.stateFilePath,
+            retentionCount: input.generatedArtifactRetentionCount
+        }),
+        (0, artifactStore_1.inspectProvenanceBundleRetention)({
+            artifactRootDir: input.artifactRootDir,
+            retentionCount: input.provenanceBundleRetentionCount
+        })
+    ]);
+    const staleLatestArtifactPaths = [];
+    if (latestResultRecord && !latestSummaryExists) {
+        staleLatestArtifactPaths.push(latestPaths.latestSummaryPath);
+    }
+    if (latestPreflightRecord && !latestPreflightSummaryExists) {
+        staleLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+    }
+    if (latestProvenanceBundleRecord && !latestProvenanceSummaryExists) {
+        staleLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
+    }
+    if (staleLatestArtifactPaths.length > 0) {
+        diagnostics.push({
+            severity: 'warning',
+            code: 'latest_artifact_surfaces_stale',
+            message: `Latest artifact surfaces are stale or missing: ${basenameList(input.rootPath, staleLatestArtifactPaths)}.`
+        });
+    }
+    const latestRecords = [
+        {
+            latestArtifactPath: latestPaths.latestResultPath,
+            record: latestResultRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-result.json']
+        },
+        {
+            latestArtifactPath: latestPaths.latestPreflightReportPath,
+            record: latestPreflightRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-preflight-report.json']
+        },
+        {
+            latestArtifactPath: latestPaths.latestExecutionPlanPath,
+            record: latestExecutionPlanRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-execution-plan.json']
+        },
+        {
+            latestArtifactPath: latestPaths.latestCliInvocationPath,
+            record: latestCliInvocationRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-cli-invocation.json']
+        },
+        {
+            latestArtifactPath: latestPaths.latestProvenanceBundlePath,
+            record: latestProvenanceBundleRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-bundle.json']
+        },
+        {
+            latestArtifactPath: latestPaths.latestProvenanceFailurePath,
+            record: latestProvenanceFailureRecord,
+            fields: artifactStore_1.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-failure.json']
+        }
+    ];
+    const missingPointerTargets = [];
+    await Promise.all(latestRecords.map(async ({ latestArtifactPath, record, fields }) => {
+        if (!record) {
+            return;
+        }
+        const targetPaths = fields
+            .map((field) => record[field])
+            .filter((value) => typeof value === 'string' && value.trim().length > 0);
+        const missingTargets = (await Promise.all(targetPaths.map(async (targetPath) => await pathExists(targetPath) ? null : targetPath))).filter((value) => value !== null);
+        if (missingTargets.length > 0) {
+            missingPointerTargets.push(`${path.basename(latestArtifactPath)} -> ${basenameList(input.rootPath, missingTargets)}`);
+        }
+    }));
+    const promptEvidenceTargets = derivedPromptEvidenceReferences(latestPromptEvidenceRecord, {
+        artifactRootDir: input.artifactRootDir,
+        promptDir: input.promptDir
+    });
+    const missingPromptEvidenceTargets = (await Promise.all(promptEvidenceTargets.map(async (targetPath) => await pathExists(targetPath) ? null : targetPath))).filter((value) => value !== null);
+    if (missingPromptEvidenceTargets.length > 0) {
+        missingPointerTargets.push(`latest-prompt-evidence.json -> ${basenameList(input.rootPath, missingPromptEvidenceTargets)}`);
+    }
+    if (missingPointerTargets.length > 0) {
+        diagnostics.push({
+            severity: 'warning',
+            code: 'latest_artifact_pointer_targets_missing',
+            message: `Latest artifact pointers reference missing files: ${missingPointerTargets.join(' | ')}.`
+        });
+    }
+    const overlappingRoots = [
+        ['artifact retention', input.artifactRootDir, 'prompt', input.promptDir],
+        ['artifact retention', input.artifactRootDir, 'run', input.runDir]
+    ].filter((entry) => pathOverlaps(entry[1], entry[3]));
+    if (overlappingRoots.length > 0) {
+        diagnostics.push({
+            severity: 'warning',
+            code: 'artifact_cleanup_root_overlap',
+            message: `Artifact cleanup roots overlap and cleanup cannot prune safely: ${overlappingRoots
+                .map(([leftLabel, leftPath, rightLabel, rightPath]) => `${leftLabel} ${relativePath(input.rootPath, leftPath)} with ${rightLabel} ${relativePath(input.rootPath, rightPath)}`)
+                .join(' | ')}.`
+        });
+    }
+    if (input.generatedArtifactRetentionCount <= 0
+        && (generatedArtifactRetention.retainedIterationDirectories.length > 0
+            || generatedArtifactRetention.retainedPromptFiles.length > 0
+            || generatedArtifactRetention.retainedRunArtifactBaseNames.length > 0)) {
+        diagnostics.push({
+            severity: 'warning',
+            code: 'generated_artifact_retention_disabled',
+            message: `Generated-artifact cleanup is disabled, so older prompts, runs, and iteration directories will accumulate under ${relativePath(input.rootPath, input.artifactRootDir)} and .ralph until removed manually.`
+        });
+    }
+    if (input.provenanceBundleRetentionCount <= 0 && provenanceBundleRetention.retainedBundleIds.length > 0) {
+        diagnostics.push({
+            severity: 'warning',
+            code: 'provenance_bundle_retention_disabled',
+            message: 'Provenance-bundle cleanup is disabled, so older run bundles will accumulate until removed manually.'
+        });
+    }
+    if (input.generatedArtifactRetentionCount > 0
+        && (generatedArtifactRetention.protectedRetainedIterationDirectories.length > 0
+            || generatedArtifactRetention.protectedRetainedPromptFiles.length > 0
+            || generatedArtifactRetention.protectedRetainedRunArtifactBaseNames.length > 0)) {
+        diagnostics.push({
+            severity: 'info',
+            code: 'generated_artifact_retention_protected_overflow',
+            message: `Generated-artifact retention currently keeps older protected references beyond the newest ${input.generatedArtifactRetentionCount}: iterations ${generatedArtifactRetention.protectedRetainedIterationDirectories.length}, prompts ${generatedArtifactRetention.protectedRetainedPromptFiles.length}, runs ${generatedArtifactRetention.protectedRetainedRunArtifactBaseNames.length}.`
+        });
+    }
+    if (input.provenanceBundleRetentionCount > 0 && provenanceBundleRetention.protectedBundleIds.length > 0) {
+        diagnostics.push({
+            severity: 'info',
+            code: 'provenance_bundle_retention_protected_overflow',
+            message: `Bundle retention currently keeps ${provenanceBundleRetention.protectedBundleIds.length} older protected run bundle${provenanceBundleRetention.protectedBundleIds.length === 1 ? '' : 's'} beyond the newest ${input.provenanceBundleRetentionCount}.`
+        });
+    }
+    return diagnostics;
+}
 function buildPreflightReport(input) {
     const diagnostics = [...input.taskInspection.diagnostics];
+    for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
+    }
     if (!input.workspaceTrusted) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'workspace_untrusted', 'Workspace is not trusted; only read-only Ralph status inspection is supported.'));
     }

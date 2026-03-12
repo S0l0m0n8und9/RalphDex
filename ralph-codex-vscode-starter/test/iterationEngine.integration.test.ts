@@ -204,7 +204,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
     version: 2,
     tasks: [
       { id: 'T1', title: 'Implement parent task', status: 'todo' },
-      { id: 'T1.1', title: 'Follow-up child task', status: 'todo', parentId: 'T1' }
+      { id: 'T2', title: 'Follow-up task', status: 'todo' }
     ]
   });
   await initGitRepo(rootPath);
@@ -241,7 +241,9 @@ test('runCliIteration records successful progress, artifacts, and state persiste
 
   assert.equal(firstRun.result.completionClassification, 'partial_progress');
   assert.equal(firstRun.result.verificationStatus, 'passed');
-  assert.equal(firstRun.loopDecision.shouldContinue, true);
+  assert.equal(firstRun.loopDecision.shouldContinue, false);
+  assert.equal(firstRun.loopDecision.stopReason, 'verification_passed_no_remaining_subtasks');
+  assert.equal(firstRun.result.stopReason, 'verification_passed_no_remaining_subtasks');
   assert.equal(firstRun.result.completionReportStatus, 'applied');
   assert.equal(firstRun.result.selectedTaskId, 'T1');
   assert.equal(firstRun.result.selectedTaskTitle, 'Implement parent task');
@@ -366,7 +368,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
 
   assert.equal(secondRun.result.iteration, 2);
   assert.equal(secondRun.result.completionClassification, 'complete');
-  assert.equal(secondRun.result.followUpAction, 'continue_same_task');
+  assert.equal(secondRun.result.followUpAction, 'continue_next_task');
   assert.equal(secondRun.result.stopReason, null);
   assert.equal(secondRun.result.backlog.remainingTaskCount, 1);
   assert.equal(secondRun.result.backlog.actionableTaskAvailable, true);
@@ -448,6 +450,49 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
   assert.equal(latestBundle.provenanceId, preflightReport.provenanceId);
   assert.equal(latestBundle.status, 'blocked');
   assert.equal(latestBundle.promptArtifactPath, null);
+  await assert.rejects(fs.access(path.join(iterationDir, 'task-remediation.json')));
+  await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json')));
+});
+
+test('runCliIteration does not emit remediation artifacts when repeated preflight blocks prevent execution from starting', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Broken dependency graph', status: 'todo', dependsOn: ['MISSING'] }
+    ]
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    codexCommandPath: '/tmp/ralph-codex-missing/bin/codex'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const first = createEngine([], sharedMemento);
+  await assert.rejects(
+    () => first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Ralph preflight blocked iteration start/
+  );
+
+  const second = createEngine([], sharedMemento);
+  await assert.rejects(
+    () => second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Ralph preflight blocked iteration start/
+  );
+
+  const iterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  await assert.doesNotReject(fs.access(path.join(iterationDir, 'preflight-report.json')));
+  await assert.rejects(fs.access(path.join(iterationDir, 'task-remediation.json')));
+  await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'preflight-report.json')));
+  await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json')));
+  const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+  assert.match(latestSummary, /Preflight blocked before Codex execution started/);
 });
 
 test('runCliIteration keeps state-referenced generated artifacts when blocked preflight cleanup runs', async () => {
@@ -1397,7 +1442,12 @@ test('runCliIteration stops after repeated no-progress iterations', async () => 
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Do the thing', status: 'todo' }
+      {
+        id: 'T1',
+        title: 'Implement prompt evidence and verifier reporting',
+        status: 'todo',
+        notes: 'Generate a small proposed child-task set with dependencies. Keep it one level deep.'
+      }
     ]
   });
 
@@ -1422,6 +1472,99 @@ test('runCliIteration stops after repeated no-progress iterations', async () => 
   });
 
   assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.ok(secondRun.result.remediation);
+  assert.equal(secondRun.result.remediation?.action, 'decompose_task');
+  assert.match(secondRun.result.remediation?.summary ?? '', /decompose the task/i);
+  const remediationPath = path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'task-remediation.json');
+  const latestRemediationPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json');
+  const remediationArtifact = JSON.parse(await fs.readFile(remediationPath, 'utf8')) as {
+    kind: string;
+    action: string;
+    rationale: string;
+    proposedAction: string;
+    triggeringHistory: Array<{ iteration: number }>;
+    suggestedChildTasks: Array<{
+      id: string;
+      title: string;
+      parentId: string;
+      dependsOn: Array<{ taskId: string; reason: string }>;
+    }>;
+  };
+  assert.equal(remediationArtifact.kind, 'taskRemediation');
+  assert.equal(remediationArtifact.action, 'decompose_task');
+  assert.match(remediationArtifact.rationale, /no relevant file changes/i);
+  assert.match(remediationArtifact.proposedAction, /decompose the task/i);
+  assert.deepEqual(remediationArtifact.triggeringHistory.map((entry) => entry.iteration), [1, 2]);
+  assert.equal(remediationArtifact.suggestedChildTasks.length, 2);
+  assert.deepEqual(remediationArtifact.suggestedChildTasks.map((task) => task.id), ['T1.1', 'T1.2']);
+  assert.equal(remediationArtifact.suggestedChildTasks[0]?.parentId, 'T1');
+  assert.deepEqual(remediationArtifact.suggestedChildTasks[1]?.dependsOn.map((dependency) => dependency.taskId), ['T1.1']);
+  const latestRemediation = JSON.parse(await fs.readFile(latestRemediationPath, 'utf8')) as {
+    action: string;
+    attemptCount: number;
+  };
+  assert.equal(latestRemediation.action, 'decompose_task');
+  assert.equal(latestRemediation.attemptCount, 2);
+});
+
+test('runCliIteration records no_action remediation for repeated no-progress on an already narrowed task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Parent task',
+        status: 'done'
+      },
+      {
+        id: 'T2',
+        title: 'Implement the smallest bounded fix for that reproduced blocker',
+        status: 'todo',
+        dependsOn: ['T1'],
+        notes: 'Keep the proposal one level deep by sequencing the next bounded step after T1.1.'
+      }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState', 'gitDiff'],
+    noProgressThreshold: 2,
+    gitCheckpointMode: 'off'
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const runOne = createEngine([{ run: async () => ({ lastMessage: 'No durable changes.' }) }], sharedMemento);
+  const firstRun = await runOne.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(firstRun.result.selectedTaskId, 'T2');
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const runTwo = createEngine([{ run: async () => ({ lastMessage: 'Still no durable changes.' }) }], sharedMemento);
+  const secondRun = await runTwo.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(secondRun.result.selectedTaskId, 'T2');
+  assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.equal(secondRun.result.remediation?.action, 'no_action');
+  assert.match(secondRun.result.remediation?.summary ?? '', /does not justify an automatic remediation change/i);
+
+  const remediationArtifact = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'task-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    rationale: string;
+    summary: string;
+    suggestedChildTasks: Array<{ id: string }>;
+  };
+  assert.equal(remediationArtifact.action, 'no_action');
+  assert.match(remediationArtifact.rationale, /did not justify a stronger automatic remediation/i);
+  assert.match(remediationArtifact.summary, /does not justify an automatic remediation change/i);
+  assert.deepEqual(remediationArtifact.suggestedChildTasks, []);
 });
 
 test('runCliIteration replenishes the durable backlog when no actionable task remains', async () => {
@@ -1526,6 +1669,223 @@ test('runCliIteration stops after repeated identical failure classifications', a
 
   assert.equal(secondRun.result.completionClassification, 'needs_human_review');
   assert.equal(secondRun.result.stopReason, 'repeated_identical_failure');
+});
+
+test('runCliIteration records a non-proposal remediation artifact for repeated identical human-review failures', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Escalate a repeated human-review requirement',
+        status: 'todo'
+      }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: false,
+    gitCheckpointMode: 'off'
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([
+    {
+      run: async () => {
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1'
+            ? { ...task, notes: '[human-review-needed] waiting on a person' }
+            : task)
+        }));
+        return { lastMessage: 'A person needs to review the result.' };
+      }
+    }
+  ], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'needs_human_review');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Still waiting on human review.' }) }], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(secondRun.result.stopReason, 'repeated_identical_failure');
+  assert.equal(secondRun.result.remediation?.action, 'no_action');
+  const remediationArtifact = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'task-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    trigger: string;
+    humanReviewRecommended: boolean;
+    summary: string;
+    rationale: string;
+    triggeringHistory: Array<{ iteration: number; completionClassification: string; validationFailureSignature: string | null }>;
+    suggestedChildTasks: Array<{ id: string }>;
+  };
+  assert.equal(remediationArtifact.action, 'no_action');
+  assert.equal(remediationArtifact.trigger, 'repeated_identical_failure');
+  assert.equal(remediationArtifact.humanReviewRecommended, false);
+  assert.match(remediationArtifact.summary, /does not justify an automatic remediation change/i);
+  assert.match(remediationArtifact.rationale, /did not justify a stronger automatic remediation/i);
+  assert.deepEqual(remediationArtifact.triggeringHistory, []);
+  assert.deepEqual(remediationArtifact.suggestedChildTasks, []);
+  const latestRemediation = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    suggestedChildTasks: Array<{ id: string }>;
+  };
+  assert.equal(latestRemediation.action, 'no_action');
+  assert.deepEqual(latestRemediation.suggestedChildTasks, []);
+});
+
+test('runCliIteration records a no-action remediation artifact for repeated identical human-review failures with durable state changes', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Escalate a repeated human-review requirement',
+        status: 'todo'
+      }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: false,
+    gitCheckpointMode: 'off'
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([
+    {
+      run: async () => {
+        await updateTaskFile(rootPath, (taskFile) => ({
+          ...taskFile,
+          tasks: taskFile.tasks.map((task) => task.id === 'T1'
+            ? { ...task, notes: '[human-review-needed] waiting on a person' }
+            : task)
+        }));
+        await appendProgress(rootPath, 'Iteration one still needs a person to review the result.');
+        return { lastMessage: 'A person needs to review the first attempt.' };
+      }
+    }
+  ], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'needs_human_review');
+
+  const second = createEngine([
+    {
+      run: async () => {
+        await appendProgress(rootPath, 'Iteration two still needs a person to review the result.');
+        return { lastMessage: 'A person still needs to review the second attempt.' };
+      }
+    }
+  ], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(secondRun.result.stopReason, 'repeated_identical_failure');
+  assert.equal(secondRun.result.remediation?.action, 'no_action');
+  const remediationArtifact = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'task-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    trigger: string;
+    humanReviewRecommended: boolean;
+    summary: string;
+    rationale: string;
+    evidence: string[];
+    triggeringHistory: Array<{ iteration: number; completionClassification: string; validationFailureSignature: string | null }>;
+    suggestedChildTasks: Array<{ id: string }>;
+  };
+  assert.equal(remediationArtifact.action, 'no_action');
+  assert.equal(remediationArtifact.trigger, 'repeated_identical_failure');
+  assert.equal(remediationArtifact.humanReviewRecommended, false);
+  assert.match(remediationArtifact.summary, /does not justify an automatic remediation change/i);
+  assert.match(remediationArtifact.rationale, /did not justify a stronger automatic remediation/i);
+  assert.ok(remediationArtifact.evidence.includes('classification:needs_human_review'));
+  assert.deepEqual(remediationArtifact.triggeringHistory, []);
+  assert.deepEqual(remediationArtifact.suggestedChildTasks, []);
+  const latestRemediation = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    suggestedChildTasks: Array<{ id: string }>;
+  };
+  assert.equal(latestRemediation.action, 'no_action');
+  assert.deepEqual(latestRemediation.suggestedChildTasks, []);
+});
+
+test('runCliIteration records a reframe remediation artifact for repeated validation-backed no-progress', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Stabilize the deterministic validation failure',
+        status: 'todo',
+        validation: 'node -e "console.error(\'deterministic failure\'); process.exit(1)"'
+      }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 2,
+    gitCheckpointMode: 'off',
+    stopOnHumanReviewNeeded: false
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([{ run: async () => ({ lastMessage: 'First retry preserved the failure.' }) }], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Second retry hit the same validation failure.' }) }], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.equal(secondRun.result.remediation?.action, 'reframe_task');
+  const remediationArtifact = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'task-remediation.json'), 'utf8')
+  ) as {
+    action: string;
+    trigger: string;
+    humanReviewRecommended: boolean;
+    triggeringHistory: Array<{ iteration: number; validationFailureSignature: string | null }>;
+    suggestedChildTasks: Array<{ id: string; parentId: string; validation: string | null }>;
+  };
+  assert.equal(remediationArtifact.action, 'reframe_task');
+  assert.equal(remediationArtifact.trigger, 'repeated_no_progress');
+  assert.equal(remediationArtifact.humanReviewRecommended, false);
+  assert.deepEqual(remediationArtifact.triggeringHistory.map((entry) => entry.iteration), [1, 2]);
+  assert.ok(remediationArtifact.triggeringHistory.every((entry) => entry.validationFailureSignature));
+  assert.equal(remediationArtifact.suggestedChildTasks.length, 1);
+  assert.equal(remediationArtifact.suggestedChildTasks[0]?.id, 'T1.1');
+  assert.equal(remediationArtifact.suggestedChildTasks[0]?.parentId, 'T1');
+  assert.equal(remediationArtifact.suggestedChildTasks[0]?.validation, 'node -e "console.error(\'deterministic failure\'); process.exit(1)"');
 });
 
 test('runCliIteration can stop on verifier-driven completion without an explicit done state', async () => {

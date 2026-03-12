@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  buildTaskRemediation,
   buildValidationFailureSignature,
   classifyIterationOutcome,
   decideLoopContinuation
@@ -65,6 +66,7 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
       statusTransitions: []
     },
     noProgressSignals: ['same_task_selected_repeatedly'],
+    remediation: null,
     completionReportStatus: 'missing',
     reconciliationWarnings: [],
     stopReason: null,
@@ -163,6 +165,26 @@ test('decideLoopContinuation stops on repeated no-progress iterations', () => {
   assert.equal(decision.stopReason, 'repeated_no_progress');
 });
 
+test('decideLoopContinuation ignores no-progress streaks across different tasks', () => {
+  const previous = iterationResult({ selectedTaskId: 'T0', selectedTaskTitle: 'Other task' });
+  const current = iterationResult({ iteration: 2, selectedTaskId: 'T1' });
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 3,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: [previous]
+  });
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
+});
+
 test('decideLoopContinuation stops on repeated identical failure classifications', () => {
   const previous = iterationResult({
     completionClassification: 'failed',
@@ -188,6 +210,151 @@ test('decideLoopContinuation stops on repeated identical failure classifications
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_identical_failure');
+});
+
+test('buildTaskRemediation reframes repeated no-progress with the same validation signature', () => {
+  const previous = iterationResult();
+  const current = iterationResult({
+    iteration: 2,
+    stopReason: 'repeated_no_progress',
+    noProgressSignals: ['same_task_selected_repeatedly', 'same_validation_failure_signature']
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_no_progress',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.taskId, 'T1');
+  assert.equal(remediation.action, 'reframe_task');
+  assert.equal(remediation.attemptCount, 2);
+  assert.equal(remediation.humanReviewRecommended, false);
+  assert.match(remediation.summary, /reframe the task/i);
+  assert.ok(remediation.evidence.includes('same_validation_failure_signature'));
+});
+
+test('buildTaskRemediation marks repeated blocked outcomes as blocked', () => {
+  const previous = iterationResult({
+    completionClassification: 'blocked',
+    verificationStatus: 'failed',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::first blocker'
+    }
+  });
+  const current = iterationResult({
+    iteration: 2,
+    completionClassification: 'blocked',
+    verificationStatus: 'failed',
+    stopReason: 'repeated_identical_failure',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::second blocker'
+    }
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_identical_failure',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.action, 'mark_blocked');
+  assert.equal(remediation.attemptCount, 2);
+  assert.equal(remediation.humanReviewRecommended, true);
+  assert.match(remediation.summary, /mark it blocked/i);
+  assert.ok(remediation.evidence.includes('same_task_blocked_repeatedly'));
+});
+
+test('buildTaskRemediation decomposes repeated no-progress with no durable changes', () => {
+  const previous = iterationResult({
+    noProgressSignals: ['same_task_selected_repeatedly', 'no_relevant_file_changes', 'task_and_progress_state_unchanged']
+  });
+  const current = iterationResult({
+    iteration: 2,
+    stopReason: 'repeated_no_progress',
+    noProgressSignals: ['same_task_selected_repeatedly', 'no_relevant_file_changes', 'task_and_progress_state_unchanged'],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: null
+    }
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_no_progress',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.action, 'decompose_task');
+  assert.equal(remediation.humanReviewRecommended, false);
+  assert.match(remediation.summary, /decompose the task/i);
+});
+
+test('buildTaskRemediation records no_action when repeated failures do not justify a narrower remediation', () => {
+  const previous = iterationResult({
+    completionClassification: 'needs_human_review',
+    verificationStatus: 'failed',
+    noProgressSignals: []
+  });
+  const current = iterationResult({
+    iteration: 2,
+    completionClassification: 'needs_human_review',
+    verificationStatus: 'failed',
+    stopReason: 'repeated_identical_failure',
+    noProgressSignals: []
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_identical_failure',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.action, 'no_action');
+  assert.equal(remediation.humanReviewRecommended, false);
+  assert.match(remediation.summary, /does not justify an automatic remediation change/i);
+});
+
+test('buildTaskRemediation requests human review for repeated identical failed signatures', () => {
+  const previous = iterationResult({
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: [],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::deterministic failure'
+    }
+  });
+  const current = iterationResult({
+    iteration: 2,
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    stopReason: 'repeated_identical_failure',
+    noProgressSignals: [],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::deterministic failure'
+    }
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_identical_failure',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.action, 'request_human_review');
+  assert.equal(remediation.attemptCount, 2);
+  assert.equal(remediation.humanReviewRecommended, true);
+  assert.match(remediation.summary, /request a human review/i);
+  assert.ok(remediation.evidence.includes('classification:failed'));
 });
 
 test('decideLoopContinuation continues after task completion when backlog remains', () => {

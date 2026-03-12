@@ -37,6 +37,7 @@ exports.RalphStateManager = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const pathResolver_1 = require("./pathResolver");
+const artifactStore_1 = require("./artifactStore");
 const taskFile_1 = require("./taskFile");
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
@@ -208,6 +209,7 @@ function normalizeExecutionIntegrity(candidate) {
         promptTarget: record.promptTarget,
         rootPolicy: normalizeRootPolicy(record.rootPolicy),
         templatePath: record.templatePath,
+        reasoningEffort: typeof record.reasoningEffort === 'string' ? record.reasoningEffort : null,
         taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
         effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
             ? record.effectiveValidationCommand
@@ -279,7 +281,32 @@ function iterationFromRunRecord(run) {
         },
         diffSummary: null,
         noProgressSignals: [],
+        remediation: null,
         stopReason: null
+    };
+}
+function normalizeTaskRemediation(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.trigger !== 'string'
+        || typeof record.action !== 'string'
+        || typeof record.attemptCount !== 'number'
+        || typeof record.humanReviewRecommended !== 'boolean'
+        || typeof record.summary !== 'string') {
+        return null;
+    }
+    return {
+        trigger: record.trigger,
+        taskId: typeof record.taskId === 'string' ? record.taskId : null,
+        attemptCount: Math.max(1, Math.floor(record.attemptCount)),
+        action: record.action,
+        humanReviewRecommended: record.humanReviewRecommended,
+        summary: record.summary,
+        evidence: Array.isArray(record.evidence)
+            ? record.evidence.filter((item) => typeof item === 'string')
+            : []
     };
 }
 function normalizeIterationResult(candidate) {
@@ -386,6 +413,7 @@ function normalizeIterationResult(candidate) {
         noProgressSignals: Array.isArray(record.noProgressSignals)
             ? record.noProgressSignals.filter((item) => typeof item === 'string')
             : [],
+        remediation: normalizeTaskRemediation(record.remediation),
         completionReportStatus: record.completionReportStatus === 'applied'
             || record.completionReportStatus === 'rejected'
             || record.completionReportStatus === 'missing'
@@ -669,6 +697,31 @@ class RalphStateManager {
         await fs.rm(paths.stateFilePath, { force: true });
         await this.workspaceState.update(stateKey(rootPath), undefined);
         return this.ensureWorkspace(rootPath, config);
+    }
+    async cleanupRuntimeArtifacts(rootPath, config) {
+        const paths = this.resolvePaths(rootPath, config);
+        const deletedLogFiles = await fs.readdir(paths.logDir).catch(() => []);
+        const generatedArtifacts = await (0, artifactStore_1.cleanupGeneratedArtifacts)({
+            artifactRootDir: paths.artifactDir,
+            promptDir: paths.promptDir,
+            runDir: paths.runDir,
+            stateFilePath: paths.stateFilePath,
+            retentionCount: 1,
+            protectionScope: 'currentAndLatest'
+        });
+        const provenanceBundles = await (0, artifactStore_1.cleanupProvenanceBundles)({
+            artifactRootDir: paths.artifactDir,
+            retentionCount: 1
+        });
+        await fs.rm(paths.logDir, { recursive: true, force: true });
+        return {
+            snapshot: await this.ensureWorkspace(rootPath, config),
+            cleanup: {
+                generatedArtifacts,
+                provenanceBundles,
+                deletedLogFiles
+            }
+        };
     }
     isDefaultObjective(text) {
         return text.trim() === DEFAULT_PRD.trim();

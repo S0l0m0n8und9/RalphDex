@@ -225,6 +225,7 @@ function baseIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
       suggestedCheckpointRef: 'ralph/iter-iteration-001'
     },
     noProgressSignals: [],
+    remediation: null,
     completionReportStatus: 'applied',
     reconciliationWarnings: [],
     stopReason: null,
@@ -348,6 +349,10 @@ test('decidePromptKind selects specialized prompt kinds deterministically', () =
     })
   });
   assert.equal(decidePromptKind(humanReview, 'ideHandoff').kind, 'human-review-handoff');
+  assert.deepEqual(decidePromptKind(humanReview, 'cliExec'), {
+    kind: 'human-review-handoff',
+    reason: 'The previous iteration requested human review, so the next prompt should preserve that blocker explicitly.'
+  });
 });
 
 test('buildPrompt renders a file-based template with structured inputs', async () => {
@@ -426,6 +431,11 @@ test('buildPrompt renders a file-based template with structured inputs', async (
   assert.equal(render.evidence.inputs.rootPolicy.executionRootPath, '/workspace');
   assert.equal(render.evidence.inputs.repoContextSnapshot.rootPath, '/workspace');
   assert.deepEqual(render.evidence.inputs.repoContextSnapshot.tests, ['test']);
+  assert.equal(typeof render.evidence.promptByteLength, 'number');
+  assert.equal(render.evidence.promptBudget?.policyName, 'fix-failure:cliExec');
+  assert.ok((render.evidence.promptBudget?.estimatedTokens ?? 0) > 0);
+  assert.equal(render.evidence.promptBudget?.withinTarget, true);
+  assert.ok((render.evidence.promptBudget?.budgetDeltaTokens ?? Number.POSITIVE_INFINITY) <= 0);
 });
 
 test('buildPrompt renders backlog-replenishment instructions when the task list is exhausted', async () => {
@@ -480,6 +490,67 @@ test('buildPrompt renders backlog-replenishment instructions when the task list 
   assert.match(render.prompt, /The actionable backlog is exhausted\./);
   assert.equal(render.evidence.kind, 'replenish-backlog');
   assert.equal(render.evidence.selectedTaskId, null);
+});
+
+test('buildPrompt warns when replenish-backlog context is caused by task-ledger drift', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'replenish-backlog',
+    target: 'cliExec',
+    iteration: 3,
+    selectionReason: 'The durable Ralph backlog appears exhausted, but the task ledger drift must be repaired first.',
+    objectiveText: '# Product / project brief\n\nKeep Ralph moving without masking task-ledger drift.\n',
+    progressText: '# Progress\n\n- Finished the current backlog.\n',
+    taskCounts: {
+      todo: 0,
+      in_progress: 0,
+      blocked: 0,
+      done: 4
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'complete',
+        stopReason: 'no_actionable_task'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Completed parent', status: 'done' },
+        { id: 'T1.1', title: 'Active child', status: 'in_progress', parentId: 'T1' }
+      ]
+    },
+    selectedTask: null,
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: {
+      ready: false,
+      summary: 'Preflight blocked.',
+      diagnostics: [
+        {
+          category: 'taskGraph',
+          severity: 'error',
+          code: 'completed_parent_with_incomplete_descendants',
+          message: 'Task T1 is marked done but descendant tasks are still unfinished: T1.1 (in_progress).'
+        }
+      ]
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.match(render.prompt, /The durable task ledger is inconsistent\. Do not treat this as clean backlog exhaustion\./);
+  assert.match(render.prompt, /Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished: T1\.1 \(in_progress\)\./);
+  assert.match(render.prompt, /Repair the task-ledger drift in `\.ralph\/tasks\.json` before adding new follow-up tasks\./);
+  assert.doesNotMatch(render.prompt, /The actionable backlog is exhausted\./);
 });
 
 test('buildPrompt uses real scan results from a nested repo instead of rendering empty repo context', async () => {
@@ -660,6 +731,708 @@ test('buildPrompt trims prior verifier context to the configured budget', async 
 
   assert.equal(render.evidence.inputs.priorIterationContext.length, 4);
   assert.match(render.evidence.inputs.priorIterationContext.join('\n'), /sig:validate:1|Additional prior-context signals omitted/);
+});
+
+test('buildPrompt includes prior remediation guidance when present', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'fix-failure',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Previous attempts stalled.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 0,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'no_progress',
+        stopReason: 'repeated_no_progress',
+        remediation: {
+          trigger: 'repeated_no_progress',
+          taskId: 'T1',
+          attemptCount: 2,
+          action: 'decompose_task',
+          humanReviewRecommended: false,
+          summary: 'Task T1 made no durable progress across 2 consecutive attempts; decompose the task into a smaller deterministic unit before rerunning it.',
+          evidence: ['same_task_selected_repeatedly', 'no_relevant_file_changes']
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Ship prompt system', status: 'todo' }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Ship prompt system',
+      status: 'todo'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 12
+    }
+  });
+
+  assert.match(render.prompt, /Prior remediation: Task T1 made no durable progress across 2 consecutive attempts/);
+});
+
+test('buildPrompt omits unrelated prior-iteration signals for the selected task', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'continue-progress',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Continue task-focused work.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 1,
+      blocked: 0,
+      done: 2
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'partial_progress',
+        summary: 'Updated docs for an unrelated onboarding task.',
+        remediation: {
+          trigger: 'repeated_no_progress',
+          taskId: 'T99',
+          attemptCount: 2,
+          action: 'request_human_review',
+          humanReviewRecommended: true,
+          summary: 'Task T99 stalled in a separate onboarding workflow.',
+          evidence: ['unrelated']
+        },
+        verificationStatus: 'failed',
+        verification: {
+          taskValidationHint: validationProvenance.taskValidationHint,
+          effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+          normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+          primaryCommand: 'npm run validate',
+          validationFailureSignature: 'sig:onboarding:1',
+          verifiers: [
+            {
+              verifier: 'validationCommand',
+              status: 'failed',
+              summary: 'Unrelated docs validation failed.',
+              warnings: [],
+              errors: ['docs drift']
+            }
+          ]
+        },
+        diffSummary: {
+          available: true,
+          gitAvailable: true,
+          summary: 'Updated onboarding docs only.',
+          changedFileCount: 2,
+          relevantChangedFileCount: 1,
+          changedFiles: ['docs/onboarding.md', 'README.md'],
+          relevantChangedFiles: ['docs/onboarding.md'],
+          statusTransitions: ['docs/onboarding.md: clean -> M'],
+          suggestedCheckpointRef: 'ralph/iter-iteration-001'
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Ship prompt system', status: 'in_progress' }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Ship prompt system',
+      status: 'in_progress'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 10
+    }
+  });
+
+  const priorContext = render.evidence.inputs.priorIterationContext.join('\n');
+  assert.doesNotMatch(priorContext, /Task T99 stalled/);
+  assert.doesNotMatch(priorContext, /sig:onboarding:1/);
+  assert.doesNotMatch(priorContext, /Prior diff summary: Updated onboarding docs only/);
+  assert.match(priorContext, /Prior outcome classification: partial_progress/);
+  assert.match(priorContext, /Prior summary: Updated docs for an unrelated onboarding task\./);
+});
+
+test('buildPrompt keeps source roots for prompt-focused code tasks while staying task-aware', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'continue-progress',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Continue prompt-builder implementation work.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 1,
+      blocked: 0,
+      done: 2
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'partial_progress',
+        summary: 'Updated prompt-builder budgeting heuristics.'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T22', title: 'Add token-budgeted prompt and context generation', status: 'in_progress' }]
+    },
+    selectedTask: {
+      id: 'T22',
+      title: 'Add token-budgeted prompt and context generation for Ralph CLI and IDE handoff flows',
+      status: 'in_progress',
+      notes: 'Keep the prompt-builder repo context task-aware.'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  const repoContext = render.evidence.inputs.repoContext.join('\n');
+  assert.match(repoContext, /- Source roots: src/);
+  assert.match(repoContext, /- Docs: README\.md, AGENTS\.md/);
+  assert.match(repoContext, /- Validation commands: npm run validate, npm run test/);
+});
+
+test('buildPrompt omits irrelevant repo inventory for docs-focused CLI tasks', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'continue-progress',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Continue workflow documentation updates.',
+    objectiveText: '# Product / project brief\n\nDocument the operator workflow clearly.',
+    progressText: '# Progress\n\n- Workflow docs need another pass.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 1,
+      blocked: 0,
+      done: 2
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'partial_progress',
+        summary: 'Updated workflow documentation headings.'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T5', title: 'Document IDE handoff workflow', status: 'in_progress' }]
+    },
+    selectedTask: {
+      id: 'T5',
+      title: 'Document IDE handoff workflow',
+      status: 'in_progress',
+      notes: 'Keep the workflow guide concise for operators.'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  const repoContext = render.evidence.inputs.repoContext.join('\n');
+  assert.match(repoContext, /- Docs: README\.md, AGENTS\.md/);
+  assert.doesNotMatch(repoContext, /- Source roots:/);
+  assert.doesNotMatch(repoContext, /- Test roots:/);
+  assert.doesNotMatch(repoContext, /- Validation commands:/);
+  assert.doesNotMatch(repoContext, /- Package managers:/);
+  assert.doesNotMatch(repoContext, /- Package manager indicators:/);
+});
+
+test('buildPrompt keeps task-relevant prior validation and remediation signals near the top of the context', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'fix-failure',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Repair the failed validation path.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 0,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'failed',
+        verificationStatus: 'failed',
+        stopReason: 'execution_failed',
+        summary: 'Validation failed while updating the prompt builder.',
+        remediation: {
+          trigger: 'repeated_identical_failure',
+          taskId: 'T1',
+          attemptCount: 2,
+          action: 'decompose_task',
+          humanReviewRecommended: false,
+          summary: 'Task T1 kept failing the validation path; isolate the prompt builder regression.',
+          evidence: ['same_failure_signature']
+        },
+        verification: {
+          taskValidationHint: validationProvenance.taskValidationHint,
+          effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+          normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+          primaryCommand: 'npm run validate',
+          validationFailureSignature: 'sig:validate:prompt-builder',
+          verifiers: [
+            {
+              verifier: 'validationCommand',
+              status: 'failed',
+              summary: 'Validation failed.',
+              warnings: [],
+              errors: ['promptBuilder regression']
+            }
+          ]
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Validate prompt builder regression', status: 'todo' }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Validate prompt builder regression',
+      status: 'todo'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 7
+    }
+  });
+
+  assert.deepEqual(render.evidence.inputs.priorIterationContext.slice(0, 6), [
+    '- Prior iteration: 1',
+    '- Prior outcome classification: failed',
+    '- Prior execution / verification: succeeded / failed',
+    '- Prior remediation: Task T1 kept failing the validation path; isolate the prompt builder regression.',
+    '- Prior validation failure signature: sig:validate:prompt-builder',
+    '- Additional prior-context signals omitted: 6.'
+  ]);
+});
+
+test('buildPrompt records the prompt-budget matrix for each prompt kind and target', async () => {
+  const templateDir = await createTemplateDir();
+  const expectedPolicies = [
+    ['bootstrap', 'cliExec', 'bootstrap:cliExec', 2100, 'broad objective, expanded repo scan, standard runtime pointers', ['priorIterationContext']],
+    ['bootstrap', 'ideHandoff', 'bootstrap:ideHandoff', 1500, 'broad objective, lighter runtime and repo detail for human review', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
+    ['iteration', 'cliExec', 'iteration:cliExec', 1600, 'selected task plus compact repo/runtime context', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
+    ['iteration', 'ideHandoff', 'iteration:ideHandoff', 1000, 'selected task plus compact review-oriented context', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']],
+    ['continue-progress', 'cliExec', 'continue-progress:cliExec', 1600, 'selected task plus compact recent progress and prior iteration state', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
+    ['continue-progress', 'ideHandoff', 'continue-progress:ideHandoff', 1000, 'selected task plus compact carry-forward state for human review', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']],
+    ['fix-failure', 'cliExec', 'fix-failure:cliExec', 1700, 'failure signature, blocker, remediation, validation context', ['runtimeContext', 'repoContext', 'progressContext']],
+    ['fix-failure', 'ideHandoff', 'fix-failure:ideHandoff', 1100, 'failure signature and blocker summary for manual inspection', ['runtimeContext', 'repoContext', 'progressContext']],
+    ['human-review-handoff', 'cliExec', 'human-review-handoff:cliExec', 1500, 'blocker, remediation, and current task state over broad history', ['runtimeContext', 'repoContext', 'progressContext']],
+    ['human-review-handoff', 'ideHandoff', 'human-review-handoff:ideHandoff', 1100, 'blocker and review decision points over broad history', ['runtimeContext', 'repoContext', 'progressContext']],
+    ['replenish-backlog', 'cliExec', 'replenish-backlog:cliExec', 1800, 'PRD, backlog counts, and expanded repo/runtime context for task generation', ['priorIterationContext']],
+    ['replenish-backlog', 'ideHandoff', 'replenish-backlog:ideHandoff', 1300, 'PRD, backlog counts, and explicit next-task generation context', ['priorIterationContext']]
+  ] as const;
+
+  for (const [kind, target, policyName, targetTokens, minimumContextBias, optionalSections] of expectedPolicies) {
+    const render = await buildPrompt({
+      kind,
+      target,
+      iteration: 2,
+      selectionReason: `Policy check for ${policyName}.`,
+      objectiveText: '# Product / project brief\n\nShip prompt-budgeted context deterministically.\n',
+      progressText: '# Progress\n\n- Prompt budgets are recorded in evidence.\n',
+      taskCounts: {
+        todo: 2,
+        in_progress: 1,
+        blocked: 0,
+        done: 3
+      },
+      summary,
+      state: workspaceState(),
+      paths,
+      taskFile: {
+        version: 2,
+        tasks: [
+          { id: 'T22', title: 'Define prompt-budget policy', status: kind === 'replenish-backlog' ? 'done' : 'in_progress' }
+        ]
+      },
+      selectedTask: kind === 'replenish-backlog'
+        ? null
+        : {
+            id: 'T22',
+            title: 'Define prompt-budget policy',
+            status: 'in_progress'
+          },
+      taskValidationHint: validationProvenance.taskValidationHint,
+      effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+      normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+      validationCommand: 'npm run validate',
+      preflightReport: {
+        ready: true,
+        summary: 'Preflight completed without blocking errors.',
+        diagnostics: []
+      },
+      config: {
+        promptTemplateDirectory: templateDir,
+        promptIncludeVerifierFeedback: true,
+        promptPriorContextBudget: 8
+      }
+    });
+
+    assert.equal(render.evidence.promptBudget?.policyName, policyName);
+    assert.equal(render.evidence.promptBudget?.targetTokens, targetTokens);
+    assert.equal(render.evidence.promptBudget?.minimumContextBias, minimumContextBias);
+    assert.deepEqual(render.evidence.promptBudget?.requiredSections, [
+      'strategyContext',
+      'preflightContext',
+      'objectiveContext',
+      'taskContext',
+      'operatingRules',
+      'executionContract',
+      'finalResponseContract'
+    ]);
+    assert.deepEqual(render.evidence.promptBudget?.optionalSections, optionalSections);
+    assert.deepEqual(render.evidence.promptBudget?.omissionOrder, optionalSections);
+  }
+});
+
+test('buildPrompt omits lower-priority sections when the prompt budget would otherwise be exceeded', async () => {
+  const templateDir = await createTemplateDir();
+  const largeParagraph = 'Budget pressure evidence. '.repeat(120);
+  const render = await buildPrompt({
+    kind: 'continue-progress',
+    target: 'ideHandoff',
+    iteration: 2,
+    selectionReason: 'Continue with a compact IDE handoff.',
+    objectiveText: `# Product / project brief\n\n${largeParagraph}\n${largeParagraph}\n${largeParagraph}`,
+    progressText: `# Progress\n\n- ${largeParagraph}\n- ${largeParagraph}\n- ${largeParagraph}`,
+    taskCounts: {
+      todo: 2,
+      in_progress: 1,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'partial_progress',
+        summary: largeParagraph
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Ship prompt system', status: 'in_progress', notes: largeParagraph }
+      ]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Ship prompt system',
+      status: 'in_progress',
+      notes: largeParagraph
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight completed without blocking errors.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.policyName, 'continue-progress:ideHandoff');
+  assert.equal(render.evidence.promptBudget?.budgetMode, 'trimmed');
+  assert.equal(render.evidence.promptBudget?.withinTarget, false);
+  assert.ok((render.evidence.promptBudget?.budgetDeltaTokens ?? 0) > 0);
+  assert.ok((render.evidence.promptBudget?.omittedSections.length ?? 0) > 0);
+  assert.match(render.prompt, /Omitted by prompt budget policy/);
+});
+
+test('buildPrompt can omit progress context for oversized continue-progress CLI prompts', async () => {
+  const templateDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-prompt-budget-template-'));
+  const fullTemplate = [
+    '{{prompt_title}}',
+    '',
+    'Selection: {{template_selection_reason}}',
+    'Strategy:',
+    '{{strategy_context}}',
+    'Preflight:',
+    '{{preflight_context}}',
+    'Objective:',
+    '{{objective_context}}',
+    'Repo:',
+    '{{repo_context}}',
+    'Runtime:',
+    '{{runtime_context}}',
+    'Task:',
+    '{{task_context}}',
+    'Progress:',
+    '{{progress_context}}',
+    'Prior:',
+    '{{prior_iteration_context}}',
+    'Rules:',
+    '{{operating_rules}}',
+    'Exec:',
+    '{{execution_contract}}',
+    'Final:',
+    '{{final_response_contract}}'
+  ].join('\n');
+  await fs.writeFile(path.join(templateDir, 'continue-progress.md'), fullTemplate, 'utf8');
+  const largeParagraph = 'Progress budget pressure evidence. '.repeat(220);
+  const priorHeavySummary = 'Prior iteration detail that still matters for the current task. '.repeat(45);
+  const largeObjective = 'Objective detail that still matters for the delivery goal. '.repeat(80);
+  const render = await buildPrompt({
+    kind: 'continue-progress',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Continue from partial progress without overrunning the CLI prompt budget.',
+    objectiveText: `# Product / project brief\n\n${largeObjective}\n${largeObjective}`,
+    progressText: `# Progress\n\n- ${largeParagraph}\n- ${largeParagraph}\n- ${largeParagraph}`,
+    taskCounts: {
+      todo: 2,
+      in_progress: 1,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'partial_progress',
+        summary: priorHeavySummary
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T22', title: 'Keep the CLI prompt budgeted', status: 'in_progress' }
+      ]
+    },
+    selectedTask: {
+      id: 'T22',
+      title: 'Keep the CLI prompt budgeted',
+      status: 'in_progress'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight completed without blocking errors.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.policyName, 'continue-progress:cliExec');
+  assert.equal(render.evidence.promptBudget?.withinTarget, true);
+  assert.deepEqual(render.evidence.promptBudget?.requiredSections, [
+    'strategyContext',
+    'preflightContext',
+    'objectiveContext',
+    'taskContext',
+    'operatingRules',
+    'executionContract',
+    'finalResponseContract'
+  ]);
+  assert.deepEqual(render.evidence.promptBudget?.optionalSections, [
+    'runtimeContext',
+    'repoContext',
+    'progressContext',
+    'priorIterationContext'
+  ]);
+  assert.deepEqual(render.evidence.promptBudget?.omissionOrder, [
+    'runtimeContext',
+    'repoContext',
+    'progressContext',
+    'priorIterationContext'
+  ]);
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
+  assert.match(render.prompt, /recent progress did not fit within the target prompt budget/);
+});
+
+test('buildPrompt preserves prior blocker context before progress for oversized human-review CLI prompts', async () => {
+  const templateDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-human-review-budget-template-'));
+  const fullTemplate = [
+    '{{prompt_title}}',
+    '',
+    'Selection: {{template_selection_reason}}',
+    'Strategy:',
+    '{{strategy_context}}',
+    'Preflight:',
+    '{{preflight_context}}',
+    'Objective:',
+    '{{objective_context}}',
+    'Repo:',
+    '{{repo_context}}',
+    'Runtime:',
+    '{{runtime_context}}',
+    'Task:',
+    '{{task_context}}',
+    'Progress:',
+    '{{progress_context}}',
+    'Prior:',
+    '{{prior_iteration_context}}',
+    'Rules:',
+    '{{operating_rules}}',
+    'Exec:',
+    '{{execution_contract}}',
+    'Final:',
+    '{{final_response_contract}}'
+  ].join('\n');
+  await fs.writeFile(path.join(templateDir, 'human-review-handoff.md'), fullTemplate, 'utf8');
+  const largeProgress = 'Recent attempt detail that can be summarized aggressively. '.repeat(260);
+  const largeObjective = 'Objective context that still matters for the human-review handoff. '.repeat(120);
+  const blockerSummary = 'A manual decision is needed before the task can continue safely. '.repeat(35);
+  const remediationSummary = 'Escalate the blocker to a human reviewer with the captured evidence. '.repeat(30);
+  const render = await buildPrompt({
+    kind: 'human-review-handoff',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Preserve the blocker without overrunning the CLI prompt budget.',
+    objectiveText: `# Product / project brief\n\n${largeObjective}\n${largeObjective}\n${largeObjective}`,
+    progressText: `# Progress\n\n- ${largeProgress}\n- ${largeProgress}\n- ${largeProgress}`,
+    taskCounts: {
+      todo: 2,
+      in_progress: 1,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        completionClassification: 'needs_human_review',
+        stopReason: 'human_review_needed',
+        summary: blockerSummary,
+        remediation: {
+          trigger: 'repeated_identical_failure',
+          attemptCount: 2,
+          summary: remediationSummary,
+          action: 'request_human_review',
+          taskId: 'T22',
+          humanReviewRecommended: true,
+          evidence: ['same_blocker_repeated']
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T22', title: 'Escalate blocker with durable evidence', status: 'in_progress' }
+      ]
+    },
+    selectedTask: {
+      id: 'T22',
+      title: 'Escalate blocker with durable evidence',
+      status: 'in_progress',
+      blocker: 'Needs human review before more CLI retries.'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight completed without blocking errors.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.policyName, 'human-review-handoff:cliExec');
+  assert.equal(render.evidence.promptBudget?.budgetMode, 'trimmed');
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
+  assert.ok(!render.evidence.promptBudget?.omittedSections.includes('priorIterationContext'));
+  assert.ok((render.evidence.promptBudget?.budgetDeltaTokens ?? 0) > 0);
+  assert.match(render.prompt, /Prior remediation: Escalate the blocker to a human reviewer with the captured evidence\./);
+  assert.match(render.prompt, /Additional prior-context signals omitted: 2\./);
+  assert.match(render.prompt, /recent progress did not fit within the target prompt budget/);
 });
 
 test('buildPrompt is deterministic across equivalent inputs', async () => {

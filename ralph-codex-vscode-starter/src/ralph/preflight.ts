@@ -1,8 +1,15 @@
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphWorkspaceFileStatus } from './stateManager';
 import { RalphTaskFileInspection } from './taskFile';
+import {
+  inspectGeneratedArtifactRetention,
+  inspectProvenanceBundleRetention,
+  PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
+  resolveLatestArtifactPaths
+} from './artifactStore';
 import {
   RalphPreflightCategory,
   RalphPreflightDiagnostic,
@@ -95,10 +102,280 @@ export interface RalphPreflightInput {
   createdPaths?: string[];
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
+  artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
+}
+
+export interface RalphPreflightExternalDiagnostic {
+  severity: RalphPreflightDiagnostic['severity'];
+  code: string;
+  message: string;
+}
+
+export interface RalphPreflightArtifactReadinessInput {
+  rootPath: string;
+  artifactRootDir: string;
+  promptDir: string;
+  runDir: string;
+  stateFilePath: string;
+  generatedArtifactRetentionCount: number;
+  provenanceBundleRetentionCount: number;
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readJsonRecord(target: string): Promise<Record<string, unknown> | null> {
+  try {
+    const raw = await fs.readFile(target, 'utf8');
+    const parsed = JSON.parse(raw);
+    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function pathOverlaps(left: string, right: string): boolean {
+  const normalizedLeft = path.resolve(left);
+  const normalizedRight = path.resolve(right);
+  const leftRelative = path.relative(normalizedLeft, normalizedRight);
+  const rightRelative = path.relative(normalizedRight, normalizedLeft);
+
+  return (!leftRelative.startsWith('..') && !path.isAbsolute(leftRelative))
+    || (!rightRelative.startsWith('..') && !path.isAbsolute(rightRelative));
+}
+
+function derivedPromptEvidenceReferences(record: Record<string, unknown> | null, dirs: {
+  artifactRootDir: string;
+  promptDir: string;
+}): string[] {
+  const kind = typeof record?.kind === 'string' ? record.kind : null;
+  const iteration = typeof record?.iteration === 'number' && Number.isFinite(record.iteration) && record.iteration >= 1
+    ? Math.floor(record.iteration)
+    : null;
+  if (!kind || iteration === null) {
+    return [];
+  }
+
+  const paddedIteration = String(iteration).padStart(3, '0');
+  return [
+    path.join(dirs.artifactRootDir, `iteration-${paddedIteration}`),
+    path.join(dirs.promptDir, `${kind}-${paddedIteration}.prompt.md`)
+  ];
+}
+
+function basenameList(rootPath: string, targets: string[]): string {
+  return targets
+    .map((target) => relativePath(rootPath, target))
+    .join(', ');
+}
+
+export async function inspectPreflightArtifactReadiness(
+  input: RalphPreflightArtifactReadinessInput
+): Promise<RalphPreflightExternalDiagnostic[]> {
+  const diagnostics: RalphPreflightExternalDiagnostic[] = [];
+  const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+  const [
+    latestResultRecord,
+    latestPreflightRecord,
+    latestPromptEvidenceRecord,
+    latestExecutionPlanRecord,
+    latestCliInvocationRecord,
+    latestProvenanceBundleRecord,
+    latestProvenanceFailureRecord,
+    latestSummaryExists,
+    latestPreflightSummaryExists,
+    latestProvenanceSummaryExists,
+    generatedArtifactRetention,
+    provenanceBundleRetention
+  ] = await Promise.all([
+    readJsonRecord(latestPaths.latestResultPath),
+    readJsonRecord(latestPaths.latestPreflightReportPath),
+    readJsonRecord(latestPaths.latestPromptEvidencePath),
+    readJsonRecord(latestPaths.latestExecutionPlanPath),
+    readJsonRecord(latestPaths.latestCliInvocationPath),
+    readJsonRecord(latestPaths.latestProvenanceBundlePath),
+    readJsonRecord(latestPaths.latestProvenanceFailurePath),
+    pathExists(latestPaths.latestSummaryPath),
+    pathExists(latestPaths.latestPreflightSummaryPath),
+    pathExists(latestPaths.latestProvenanceSummaryPath),
+    inspectGeneratedArtifactRetention({
+      artifactRootDir: input.artifactRootDir,
+      promptDir: input.promptDir,
+      runDir: input.runDir,
+      stateFilePath: input.stateFilePath,
+      retentionCount: input.generatedArtifactRetentionCount
+    }),
+    inspectProvenanceBundleRetention({
+      artifactRootDir: input.artifactRootDir,
+      retentionCount: input.provenanceBundleRetentionCount
+    })
+  ]);
+
+  const staleLatestArtifactPaths: string[] = [];
+  if (latestResultRecord && !latestSummaryExists) {
+    staleLatestArtifactPaths.push(latestPaths.latestSummaryPath);
+  }
+  if (latestPreflightRecord && !latestPreflightSummaryExists) {
+    staleLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+  }
+  if (latestProvenanceBundleRecord && !latestProvenanceSummaryExists) {
+    staleLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
+  }
+  if (staleLatestArtifactPaths.length > 0) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'latest_artifact_surfaces_stale',
+      message: `Latest artifact surfaces are stale or missing: ${basenameList(input.rootPath, staleLatestArtifactPaths)}.`
+    });
+  }
+
+  const latestRecords: Array<{
+    latestArtifactPath: string;
+    record: Record<string, unknown> | null;
+    fields: readonly string[];
+  }> = [
+    {
+      latestArtifactPath: latestPaths.latestResultPath,
+      record: latestResultRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-result.json']
+    },
+    {
+      latestArtifactPath: latestPaths.latestPreflightReportPath,
+      record: latestPreflightRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-preflight-report.json']
+    },
+    {
+      latestArtifactPath: latestPaths.latestExecutionPlanPath,
+      record: latestExecutionPlanRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-execution-plan.json']
+    },
+    {
+      latestArtifactPath: latestPaths.latestCliInvocationPath,
+      record: latestCliInvocationRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-cli-invocation.json']
+    },
+    {
+      latestArtifactPath: latestPaths.latestProvenanceBundlePath,
+      record: latestProvenanceBundleRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-bundle.json']
+    },
+    {
+      latestArtifactPath: latestPaths.latestProvenanceFailurePath,
+      record: latestProvenanceFailureRecord,
+      fields: PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-failure.json']
+    }
+  ];
+  const missingPointerTargets: string[] = [];
+  await Promise.all(latestRecords.map(async ({ latestArtifactPath, record, fields }) => {
+    if (!record) {
+      return;
+    }
+
+    const targetPaths = fields
+      .map((field) => record[field])
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+    const missingTargets = (await Promise.all(targetPaths.map(async (targetPath) =>
+      await pathExists(targetPath) ? null : targetPath
+    ))).filter((value): value is string => value !== null);
+    if (missingTargets.length > 0) {
+      missingPointerTargets.push(
+        `${path.basename(latestArtifactPath)} -> ${basenameList(input.rootPath, missingTargets)}`
+      );
+    }
+  }));
+  const promptEvidenceTargets = derivedPromptEvidenceReferences(latestPromptEvidenceRecord, {
+    artifactRootDir: input.artifactRootDir,
+    promptDir: input.promptDir
+  });
+  const missingPromptEvidenceTargets = (await Promise.all(promptEvidenceTargets.map(async (targetPath) =>
+    await pathExists(targetPath) ? null : targetPath
+  ))).filter((value): value is string => value !== null);
+  if (missingPromptEvidenceTargets.length > 0) {
+    missingPointerTargets.push(
+      `latest-prompt-evidence.json -> ${basenameList(input.rootPath, missingPromptEvidenceTargets)}`
+    );
+  }
+  if (missingPointerTargets.length > 0) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'latest_artifact_pointer_targets_missing',
+      message: `Latest artifact pointers reference missing files: ${missingPointerTargets.join(' | ')}.`
+    });
+  }
+
+  const overlappingRoots = [
+    ['artifact retention', input.artifactRootDir, 'prompt', input.promptDir],
+    ['artifact retention', input.artifactRootDir, 'run', input.runDir]
+  ].filter((entry) => pathOverlaps(entry[1], entry[3]));
+  if (overlappingRoots.length > 0) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'artifact_cleanup_root_overlap',
+      message: `Artifact cleanup roots overlap and cleanup cannot prune safely: ${overlappingRoots
+        .map(([leftLabel, leftPath, rightLabel, rightPath]) =>
+          `${leftLabel} ${relativePath(input.rootPath, leftPath)} with ${rightLabel} ${relativePath(input.rootPath, rightPath)}`)
+        .join(' | ')}.`
+    });
+  }
+
+  if (input.generatedArtifactRetentionCount <= 0
+    && (generatedArtifactRetention.retainedIterationDirectories.length > 0
+      || generatedArtifactRetention.retainedPromptFiles.length > 0
+      || generatedArtifactRetention.retainedRunArtifactBaseNames.length > 0)) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'generated_artifact_retention_disabled',
+      message: `Generated-artifact cleanup is disabled, so older prompts, runs, and iteration directories will accumulate under ${relativePath(input.rootPath, input.artifactRootDir)} and .ralph until removed manually.`
+    });
+  }
+
+  if (input.provenanceBundleRetentionCount <= 0 && provenanceBundleRetention.retainedBundleIds.length > 0) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'provenance_bundle_retention_disabled',
+      message: 'Provenance-bundle cleanup is disabled, so older run bundles will accumulate until removed manually.'
+    });
+  }
+
+  if (input.generatedArtifactRetentionCount > 0
+    && (generatedArtifactRetention.protectedRetainedIterationDirectories.length > 0
+      || generatedArtifactRetention.protectedRetainedPromptFiles.length > 0
+      || generatedArtifactRetention.protectedRetainedRunArtifactBaseNames.length > 0)) {
+    diagnostics.push({
+      severity: 'info',
+      code: 'generated_artifact_retention_protected_overflow',
+      message: `Generated-artifact retention currently keeps older protected references beyond the newest ${input.generatedArtifactRetentionCount}: iterations ${generatedArtifactRetention.protectedRetainedIterationDirectories.length}, prompts ${generatedArtifactRetention.protectedRetainedPromptFiles.length}, runs ${generatedArtifactRetention.protectedRetainedRunArtifactBaseNames.length}.`
+    });
+  }
+
+  if (input.provenanceBundleRetentionCount > 0 && provenanceBundleRetention.protectedBundleIds.length > 0) {
+    diagnostics.push({
+      severity: 'info',
+      code: 'provenance_bundle_retention_protected_overflow',
+      message: `Bundle retention currently keeps ${provenanceBundleRetention.protectedBundleIds.length} older protected run bundle${provenanceBundleRetention.protectedBundleIds.length === 1 ? '' : 's'} beyond the newest ${input.provenanceBundleRetentionCount}.`
+    });
+  }
+
+  return diagnostics;
 }
 
 export function buildPreflightReport(input: RalphPreflightInput): RalphPreflightReport {
   const diagnostics: RalphPreflightDiagnostic[] = [...input.taskInspection.diagnostics];
+
+  for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      diagnostic.severity,
+      diagnostic.code,
+      diagnostic.message
+    ));
+  }
 
   if (!input.workspaceTrusted) {
     diagnostics.push(createDiagnostic(
