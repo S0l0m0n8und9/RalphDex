@@ -1782,7 +1782,8 @@ export class RalphIterationEngine {
     const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const promptDecision = decidePromptKind(snapshot.state, promptTarget, {
       selectedTask,
-      taskCounts: effectiveTaskCounts
+      taskCounts: effectiveTaskCounts,
+      taskInspectionDiagnostics: taskInspection.diagnostics
     });
     const promptKind = promptDecision.kind;
     const taskValidationHint = selectedTask?.validation?.trim() || null;

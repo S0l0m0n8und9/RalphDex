@@ -727,6 +727,7 @@ test('buildStatusReport shows tracker drift when a done parent still has unfinis
   }));
 
   assert.match(report, /completed_parent_with_incomplete_descendants/);
+  assert.match(report, /- Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished/);
   assert.match(report, /Task T1 is marked done but descendant tasks are still unfinished/);
 });
 

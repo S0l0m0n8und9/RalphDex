@@ -87,6 +87,25 @@ function sortDiagnostics(diagnostics: RalphPreflightDiagnostic[]): RalphPrefligh
   });
 }
 
+function summarizeTaskSelection(
+  selectedTask: RalphTask | null,
+  diagnostics: readonly RalphPreflightDiagnostic[]
+): string {
+  if (selectedTask) {
+    return `Selected task ${selectedTask.id}.`;
+  }
+
+  const taskLedgerDrift = diagnostics.find((diagnostic) => (
+    diagnostic.category === 'taskGraph' && diagnostic.severity === 'error'
+  ));
+
+  if (taskLedgerDrift) {
+    return `No task selected because task-ledger drift blocks safe selection: ${taskLedgerDrift.message}`;
+  }
+
+  return 'No task selected.';
+}
+
 export interface RalphPreflightInput {
   rootPath: string;
   workspaceTrusted: boolean;
@@ -533,9 +552,7 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     sectionSummary('codexAdapter', byCategory('codexAdapter')),
     sectionSummary('validationVerifier', byCategory('validationVerifier'))
   ].join(' | ');
-  const selectionSummary = input.selectedTask
-    ? `Selected task ${input.selectedTask.id}.`
-    : 'No task selected.';
+  const selectionSummary = summarizeTaskSelection(input.selectedTask, orderedDiagnostics);
   const validationSummary = input.validationCommand
     ? [
       `Validation ${input.validationCommand}.`,

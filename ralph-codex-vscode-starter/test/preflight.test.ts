@@ -87,6 +87,8 @@ test('buildPreflightReport blocks tracker drift when a done parent still has unf
 
   assert.equal(report.ready, false);
   assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants'));
+  assert.match(report.summary, /No task selected because task-ledger drift blocks safe selection/);
+  assert.match(report.summary, /Task T1 .*is marked done but descendant tasks are still unfinished/);
   assert.match(report.summary, /Task graph: 1 error/);
 });
 

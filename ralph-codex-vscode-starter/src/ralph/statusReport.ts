@@ -154,6 +154,18 @@ function describeProvenanceAssurance(bundle: RalphProvenanceBundle | null): stri
   return 'Prepared prompt provenance only; later IDE execution may differ.';
 }
 
+function taskLedgerDriftSummary(snapshot: RalphStatusSnapshot): string {
+  const taskGraphErrors = snapshot.preflightReport.diagnostics.filter((diagnostic) => (
+    diagnostic.category === 'taskGraph' && diagnostic.severity === 'error'
+  ));
+
+  if (taskGraphErrors.length === 0) {
+    return 'none';
+  }
+
+  return compactList(taskGraphErrors.map((diagnostic) => diagnostic.message), 2);
+}
+
 export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestSummaryPath: string | null;
   latestResultPath: string | null;
@@ -302,6 +314,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
       ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
       : 'unavailable'}`,
     `- Task file error: ${snapshot.taskFileError ?? 'none'}`,
+    `- Task-ledger drift: ${taskLedgerDriftSummary(snapshot)}`,
     '',
     '## Preflight',
     `- Ready: ${snapshot.preflightReport.ready ? 'yes' : 'no'}`,

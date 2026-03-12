@@ -547,10 +547,38 @@ test('buildPrompt warns when replenish-backlog context is caused by task-ledger 
     }
   });
 
+  assert.match(render.prompt, /The task ledger is inconsistent; repair `\.ralph\/tasks\.json` before treating this as clean backlog exhaustion\./);
   assert.match(render.prompt, /The durable task ledger is inconsistent\. Do not treat this as clean backlog exhaustion\./);
   assert.match(render.prompt, /Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished: T1\.1 \(in_progress\)\./);
   assert.match(render.prompt, /Repair the task-ledger drift in `\.ralph\/tasks\.json` before adding new follow-up tasks\./);
   assert.doesNotMatch(render.prompt, /The actionable backlog is exhausted\./);
+});
+
+test('decidePromptKind explains replenish-backlog drift instead of clean exhaustion', () => {
+  const decision = decidePromptKind(workspaceState({
+    lastPromptKind: 'iteration',
+    nextIteration: 3
+  }), 'cliExec', {
+    selectedTask: null,
+    taskCounts: {
+      todo: 0,
+      in_progress: 0,
+      blocked: 0,
+      done: 2
+    },
+    taskInspectionDiagnostics: [
+      {
+        category: 'taskGraph',
+        severity: 'error',
+        code: 'completed_parent_with_incomplete_descendants',
+        message: 'Task T1 is marked done but descendant tasks are still unfinished: T1.1 (in_progress).'
+      }
+    ]
+  });
+
+  assert.equal(decision.kind, 'replenish-backlog');
+  assert.match(decision.reason, /task-ledger drift blocks safe task selection first/);
+  assert.match(decision.reason, /Task T1 is marked done but descendant tasks are still unfinished/);
 });
 
 test('buildPrompt uses real scan results from a nested repo instead of rendering empty repo context', async () => {

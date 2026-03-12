@@ -593,12 +593,12 @@
     {
       "id": "T23.2",
       "title": "Surface task-ledger drift in preflight, status, and backlog-replenishment context",
-      "status": "todo",
+      "status": "done",
       "parentId": "T23",
       "dependsOn": [
         "T22"
       ],
-      "notes": "Carry the new tracker-drift signal into operator-visible summaries so backlog exhaustion and next-task selection do not look clean when the durable task ledger is internally inconsistent.",
+      "notes": "Surfaced task-ledger drift explicitly in preflight summaries, status output, and replenish-backlog prompt selection/strategy so inconsistent ledgers no longer read as clean backlog exhaustion. Added regression coverage for the new wording and prompt decision path.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

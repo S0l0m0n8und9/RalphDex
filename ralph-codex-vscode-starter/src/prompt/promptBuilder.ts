@@ -5,6 +5,7 @@ import { deriveRootPolicy } from '../ralph/rootPolicy';
 import { RalphPaths } from '../ralph/pathResolver';
 import { findTaskById, remainingSubtasks, selectNextTask } from '../ralph/taskFile';
 import {
+  RalphPreflightDiagnostic,
   RalphPreflightReport,
   RalphPromptEvidence,
   RalphPromptKind,
@@ -283,6 +284,7 @@ export interface PromptKindDecision {
 export interface PromptKindContext {
   selectedTask?: RalphTask | null;
   taskCounts?: RalphTaskCounts | null;
+  taskInspectionDiagnostics?: RalphPreflightDiagnostic[];
 }
 
 export interface PromptRenderResult {
@@ -457,6 +459,20 @@ function childTaskSummary(taskFile: RalphTaskFile, task: RalphTask): string {
   return compactList(children.map((child) => `${child.id} (${child.status})`), 4);
 }
 
+function taskLedgerDriftMessagesFromDiagnostics(
+  diagnostics: readonly RalphPreflightDiagnostic[] | undefined,
+  limit = 2
+): string[] {
+  if (!diagnostics) {
+    return [];
+  }
+
+  return diagnostics
+    .filter((diagnostic) => diagnostic.category === 'taskGraph' && diagnostic.severity === 'error')
+    .slice(0, limit)
+    .map((diagnostic) => diagnostic.message);
+}
+
 function isBacklogExhausted(context?: PromptKindContext): boolean {
   return context?.selectedTask === null
     && Boolean(context.taskCounts)
@@ -465,12 +481,19 @@ function isBacklogExhausted(context?: PromptKindContext): boolean {
     && context.taskCounts!.blocked === 0;
 }
 
-function buildStrategyContext(target: RalphPromptTarget, kind: RalphPromptKind): string[] {
+function buildStrategyContext(
+  target: RalphPromptTarget,
+  kind: RalphPromptKind,
+  taskLedgerDriftMessages: string[] = []
+): string[] {
   if (target === 'cliExec') {
     if (kind === 'replenish-backlog') {
+      const backlogStateLine = taskLedgerDriftMessages.length > 0
+        ? '- The task ledger is inconsistent; repair `.ralph/tasks.json` before treating this as clean backlog exhaustion.'
+        : '- The current durable Ralph backlog is exhausted; this run should replenish `.ralph/tasks.json`, not start broad feature work.';
       return [
         '- Target: Codex CLI execution via `codex exec`.',
-        '- The current durable Ralph backlog is exhausted; this run should replenish `.ralph/tasks.json`, not start broad feature work.',
+        backlogStateLine,
         '- Generate only the next coherent task slice grounded in the PRD, repo state, and recent durable progress.',
         '- Leave the task file explicit, flat, version 2, and immediately actionable.'
       ];
@@ -957,11 +980,14 @@ export function decidePromptKind(
   context?: PromptKindContext
 ): PromptKindDecision {
   const lastIteration = state.lastIteration;
+  const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(context?.taskInspectionDiagnostics, 1);
 
   if (isBacklogExhausted(context)) {
     return {
       kind: 'replenish-backlog',
-      reason: 'The current durable Ralph backlog is exhausted, so the next prompt should replenish `.ralph/tasks.json` before normal task execution resumes.'
+      reason: taskLedgerDriftMessages.length > 0
+        ? `The durable Ralph backlog appears exhausted, but task-ledger drift blocks safe task selection first: ${taskLedgerDriftMessages[0]}`
+        : 'The current durable Ralph backlog is exhausted, so the next prompt should replenish `.ralph/tasks.json` before normal task execution resumes.'
     };
   }
 
@@ -1039,9 +1065,10 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     input.config.promptTemplateDirectory
   );
 
+  const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(input.preflightReport.diagnostics);
   const budgetPolicy = buildPromptBudgetPolicy(input.kind, input.target);
   const sectionBodies = {
-    strategyContext: buildStrategyContext(input.target, input.kind),
+    strategyContext: buildStrategyContext(input.target, input.kind, taskLedgerDriftMessages),
     preflightContext: buildPreflightContext(input.preflightReport),
     objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
     repoContext: buildRepoContext(

@@ -92,6 +92,16 @@ function sortDiagnostics(diagnostics) {
         return left.message.localeCompare(right.message);
     });
 }
+function summarizeTaskSelection(selectedTask, diagnostics) {
+    if (selectedTask) {
+        return `Selected task ${selectedTask.id}.`;
+    }
+    const taskLedgerDrift = diagnostics.find((diagnostic) => (diagnostic.category === 'taskGraph' && diagnostic.severity === 'error'));
+    if (taskLedgerDrift) {
+        return `No task selected because task-ledger drift blocks safe selection: ${taskLedgerDrift.message}`;
+    }
+    return 'No task selected.';
+}
 async function pathExists(target) {
     try {
         await fs.access(target);
@@ -368,9 +378,7 @@ function buildPreflightReport(input) {
         sectionSummary('codexAdapter', byCategory('codexAdapter')),
         sectionSummary('validationVerifier', byCategory('validationVerifier'))
     ].join(' | ');
-    const selectionSummary = input.selectedTask
-        ? `Selected task ${input.selectedTask.id}.`
-        : 'No task selected.';
+    const selectionSummary = summarizeTaskSelection(input.selectedTask, orderedDiagnostics);
     const validationSummary = input.validationCommand
         ? [
             `Validation ${input.validationCommand}.`,
