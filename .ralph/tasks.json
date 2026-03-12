@@ -581,13 +581,13 @@
     {
       "id": "T23.1",
       "title": "Detect done parent tasks that still have unfinished descendants",
-      "status": "todo",
+      "status": "done",
       "parentId": "T23",
       "dependsOn": [
         "T22",
         "T23.2"
       ],
-      "notes": "Extend task-graph inspection so a parent marked done while any descendant remains todo, in_progress, or blocked is treated as durable tracker drift instead of a clean graph.",
+      "notes": "Re-inspected durable repo state and confirmed T23.1 is already implemented: done parents with unfinished descendants are reported as task-ledger drift in task-file inspection, surfaced through preflight/status consumers, and covered by regression tests. No code edits were necessary.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
