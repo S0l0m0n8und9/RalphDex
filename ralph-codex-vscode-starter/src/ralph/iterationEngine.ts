@@ -37,7 +37,7 @@ import {
   RalphTaskRemediationHistoryEntry,
   RalphWorkspaceState
 } from './types';
-import { countTaskStatuses, findTaskById, remainingSubtasks, selectNextTask } from './taskFile';
+import { autoCompleteSatisfiedAncestors, countTaskStatuses, findTaskById, remainingSubtasks, selectNextTask } from './taskFile';
 import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
 import {
   buildBlockingPreflightMessage,
@@ -1117,35 +1117,44 @@ export class RalphIterationEngine {
     let progressChanged = false;
 
     await this.stateManager.updateTaskFile(input.prepared.paths, (taskFile) => {
-      const nextTasks = taskFile.tasks.map((task) => {
-        if (task.id !== input.selectedTask!.id) {
-          return task;
-        }
-
-        const nextTask: RalphTask = {
-          ...task,
-          status: requestedStatus,
-          notes: parsed.report!.progressNote ?? task.notes,
-          blocker: requestedStatus === 'blocked'
-            ? parsed.report!.blocker ?? task.blocker
-            : task.blocker
-        };
-
-        if (requestedStatus !== 'blocked' && parsed.report!.blocker) {
-          nextTask.blocker = parsed.report!.blocker;
-        }
-
-        taskFileChanged = nextTask.status !== task.status
-          || nextTask.notes !== task.notes
-          || nextTask.blocker !== task.blocker;
-
-        return nextTask;
-      });
-
-      return {
+      const selectedTaskUpdated: RalphTaskFile = {
         ...taskFile,
-        tasks: nextTasks
+        tasks: taskFile.tasks.map((task) => {
+          if (task.id !== input.selectedTask!.id) {
+            return task;
+          }
+
+          const nextTask: RalphTask = {
+            ...task,
+            status: requestedStatus,
+            notes: parsed.report!.progressNote ?? task.notes,
+            blocker: requestedStatus === 'blocked'
+              ? parsed.report!.blocker ?? task.blocker
+              : task.blocker
+          };
+
+          if (requestedStatus !== 'blocked' && parsed.report!.blocker) {
+            nextTask.blocker = parsed.report!.blocker;
+          }
+
+          taskFileChanged = nextTask.status !== task.status
+            || nextTask.notes !== task.notes
+            || nextTask.blocker !== task.blocker;
+
+          return nextTask;
+        })
       };
+
+      if (requestedStatus !== 'done') {
+        return selectedTaskUpdated;
+      }
+
+      const ancestorCompletion = autoCompleteSatisfiedAncestors(selectedTaskUpdated, input.selectedTask!.id);
+      if (ancestorCompletion.completedAncestorIds.length > 0) {
+        taskFileChanged = true;
+      }
+
+      return ancestorCompletion.taskFile;
     });
 
     if (parsed.report.progressNote) {

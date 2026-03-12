@@ -56,6 +56,8 @@ Required rules:
 - Use `dependsOn` for prerequisites.
 - Keep the file flat and inspectable.
 - Task selection stays deterministic: first actionable `in_progress`, then first actionable `todo`.
+- Parent-versus-descendant completion must stay monotonic: a task may be `done` only when every explicit descendant is also `done`.
+- If a parent still has unfinished descendants, reopen the parent or complete/block the descendants explicitly; do not hide remaining work by leaving the parent `done`.
 - Do not reintroduce implicit subtask inference as the main task model.
 - `remainingSubtasks` and backlog logic must use explicit descendants and dependencies, not task-id prefix guesses.
 
@@ -79,6 +81,8 @@ Task diagnostics should preserve lightweight source metadata from the raw task f
 
 Severe preflight findings must block CLI execution before `codex exec` starts.
 
+Task-ledger drift is one of those blocking findings. When a persisted parent is `done` while any descendant remains `todo`, `in_progress`, or `blocked`, Ralph must treat the backlog as inconsistent rather than exhausted. In that state, status and preflight surfaces should keep the drift explicit with messages like `No task selected because task-ledger drift blocks safe selection: ...` and `Task-ledger drift: ...` so operators repair the ledger instead of assuming Ralph needs new work.
+
 ## Iteration Model Invariants
 
 The Ralph loop phases are fixed:
@@ -96,7 +100,8 @@ The Ralph loop phases are fixed:
 The control plane stays deterministic:
 
 - prompt kinds are `bootstrap`, `iteration`, `replenish-backlog`, `fix-failure`, `continue-progress`, and `human-review-handoff`
-- when the durable backlog is exhausted, Ralph may run a dedicated replenishment prompt that updates `.ralph/tasks.json`; it must still leave the task file explicit, flat, and version 2
+- when the durable backlog is exhausted and the task ledger is internally consistent, Ralph may run a dedicated replenishment prompt that updates `.ralph/tasks.json`; it must still leave the task file explicit, flat, and version 2
+- when the task ledger is inconsistent, replenish-backlog context must preserve that distinction and direct the operator or model to repair `.ralph/tasks.json` before adding new tasks
 - during normal CLI task execution, Ralph reconciles the model's structured completion report locally; the model does not directly persist `.ralph/tasks.json` or `.ralph/progress.md`
 - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
 - the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence

@@ -1086,6 +1086,57 @@ test('runCliIteration applies blocked completion reports through control-plane r
   assert.match(progressText, /Blocked while waiting for the upstream schema\./);
 });
 
+test('runCliIteration auto-completes aggregate parents after the final child slice reports done', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'Completed slice', status: 'done', parentId: 'T1' },
+      { id: 'T1.2', title: 'Final slice', status: 'todo', parentId: 'T1', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# aggregate parent completed via child slices\n', 'utf8');
+        return {
+          stdout: 'completed final slice',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1.2',
+            requestedStatus: 'done',
+            progressNote: 'Completed the final T1 slice.',
+            validationRan: 'npm test'
+          }, 'Completed the final aggregate child slice.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+
+  assert.equal(summary.result.selectedTaskId, 'T1.2');
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(summary.result.completionClassification, 'complete');
+  assert.equal(summary.result.backlog.remainingTaskCount, 0);
+  assert.equal(summary.result.backlog.actionableTaskAvailable, false);
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1.2')?.status, 'done');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+});
+
 test('runCliIteration stops loop continuation when control-plane runtime files change', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
@@ -1620,6 +1671,55 @@ test('runCliIteration replenishes the durable backlog when no actionable task re
   assert.ok(gitDiffVerifier);
   assert.equal(gitDiffVerifier.status, 'skipped');
   assert.match(gitDiffVerifier.summary, /no Ralph task was selected/i);
+});
+
+test('runCliIteration blocks before execution when a done parent hides the remaining blocked work', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Completed parent', status: 'done' },
+      { id: 'T1.1', title: 'Blocked child', status: 'blocked', parentId: 'T1', blocker: 'Waiting on ledger repair.' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    codexCommandPath: '/tmp/ralph-codex-missing/bin/codex',
+    verifierModes: ['validationCommand', 'taskState', 'gitDiff'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({ lastMessage: 'Should not execute.' })
+    }
+  ]);
+
+  await assert.rejects(
+    () => run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Ralph preflight blocked iteration start/
+  );
+
+  const iterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  const preflightReport = JSON.parse(await fs.readFile(path.join(iterationDir, 'preflight-report.json'), 'utf8')) as {
+    ready: boolean;
+    blocked: boolean;
+    summary: string;
+    diagnostics: Array<{ code: string; message: string }>;
+  };
+  const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
+
+  assert.equal(preflightReport.ready, false);
+  assert.equal(preflightReport.blocked, true);
+  assert.match(preflightReport.summary, /task-ledger drift blocks safe selection/i);
+  assert.ok(preflightReport.diagnostics.some((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants'));
+  assert.ok(preflightReport.diagnostics.some((diagnostic) => /descendant tasks are still unfinished: T1\.1 \(blocked\)\./.test(diagnostic.message)));
+  assert.match(latestSummary, /Preflight blocked before Codex execution started/);
+  await assert.rejects(fs.access(path.join(iterationDir, 'prompt.md')));
 });
 
 test('runCliIteration stops after repeated identical failure classifications', async () => {

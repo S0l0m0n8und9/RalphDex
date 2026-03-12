@@ -841,30 +841,37 @@ class RalphIterationEngine {
         let taskFileChanged = false;
         let progressChanged = false;
         await this.stateManager.updateTaskFile(input.prepared.paths, (taskFile) => {
-            const nextTasks = taskFile.tasks.map((task) => {
-                if (task.id !== input.selectedTask.id) {
-                    return task;
-                }
-                const nextTask = {
-                    ...task,
-                    status: requestedStatus,
-                    notes: parsed.report.progressNote ?? task.notes,
-                    blocker: requestedStatus === 'blocked'
-                        ? parsed.report.blocker ?? task.blocker
-                        : task.blocker
-                };
-                if (requestedStatus !== 'blocked' && parsed.report.blocker) {
-                    nextTask.blocker = parsed.report.blocker;
-                }
-                taskFileChanged = nextTask.status !== task.status
-                    || nextTask.notes !== task.notes
-                    || nextTask.blocker !== task.blocker;
-                return nextTask;
-            });
-            return {
+            const selectedTaskUpdated = {
                 ...taskFile,
-                tasks: nextTasks
+                tasks: taskFile.tasks.map((task) => {
+                    if (task.id !== input.selectedTask.id) {
+                        return task;
+                    }
+                    const nextTask = {
+                        ...task,
+                        status: requestedStatus,
+                        notes: parsed.report.progressNote ?? task.notes,
+                        blocker: requestedStatus === 'blocked'
+                            ? parsed.report.blocker ?? task.blocker
+                            : task.blocker
+                    };
+                    if (requestedStatus !== 'blocked' && parsed.report.blocker) {
+                        nextTask.blocker = parsed.report.blocker;
+                    }
+                    taskFileChanged = nextTask.status !== task.status
+                        || nextTask.notes !== task.notes
+                        || nextTask.blocker !== task.blocker;
+                    return nextTask;
+                })
             };
+            if (requestedStatus !== 'done') {
+                return selectedTaskUpdated;
+            }
+            const ancestorCompletion = (0, taskFile_1.autoCompleteSatisfiedAncestors)(selectedTaskUpdated, input.selectedTask.id);
+            if (ancestorCompletion.completedAncestorIds.length > 0) {
+                taskFileChanged = true;
+            }
+            return ancestorCompletion.taskFile;
         });
         if (parsed.report.progressNote) {
             await this.stateManager.appendProgressBullet(input.prepared.paths, parsed.report.progressNote);

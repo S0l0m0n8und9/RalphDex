@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  autoCompleteSatisfiedAncestors,
   applySuggestedChildTasks,
   countTaskStatuses,
   inspectTaskFileText,
@@ -90,6 +91,38 @@ test('selectNextTask skips todo work until dependencies are done', () => {
   }));
 
   assert.equal(selectNextTask(taskFile)?.id, 'T1');
+});
+
+test('autoCompleteSatisfiedAncestors closes aggregate parents once every child slice is done', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'First slice', status: 'done', parentId: 'T1' },
+      { id: 'T1.2', title: 'Second slice', status: 'done', parentId: 'T1' }
+    ]
+  }));
+
+  const completed = autoCompleteSatisfiedAncestors(taskFile, 'T1.2');
+
+  assert.deepEqual(completed.completedAncestorIds, ['T1']);
+  assert.equal(completed.taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+});
+
+test('autoCompleteSatisfiedAncestors keeps decomposed parents open when they still have standalone validation', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Original task', status: 'todo', dependsOn: ['T1.1', 'T1.2'], validation: 'npm test' },
+      { id: 'T1.1', title: 'Reproduce', status: 'done', parentId: 'T1' },
+      { id: 'T1.2', title: 'Fix', status: 'done', parentId: 'T1' }
+    ]
+  }));
+
+  const completed = autoCompleteSatisfiedAncestors(taskFile, 'T1.2');
+
+  assert.deepEqual(completed.completedAncestorIds, []);
+  assert.equal(completed.taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
 });
 
 test('applySuggestedChildTasks appends approved child tasks and gates the parent behind them', () => {

@@ -181,6 +181,8 @@ Before treating `decompose_task` as the next move, confirm the proposal still fi
 - the children form a short sequential chain and reuse the parent's validation command rather than inventing a new validation path
 - if the recorded evidence cannot justify that small deterministic set, Ralph should prefer `reframe_task`, `request_human_review`, or `no_action`
 
+Backlog replenishment is a different path. Use it only when the durable task ledger is consistent and there is genuinely no actionable work left. If a parent task is marked `done` while descendants are still `todo`, `in_progress`, or `blocked`, that is task-ledger drift, not clean exhaustion, and the next step is to repair `.ralph/tasks.json` instead of adding fresh tasks.
+
 If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
 
 Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
@@ -232,6 +234,11 @@ Use the inspection commands by question, not just by file name:
 - `Ralph Codex: Show Status` writes a readable summary to the `Ralph Codex` output channel.
 - The status summary includes the current loop/preflight snapshot, the latest iteration, the latest prompt-budget policy, required versus optional prompt sections plus omission order and kept versus omitted sections, current planned prompt byte count, current CLI reasoning effort when available, recent iteration and run history from `.ralph/state.json`, the latest remediation summary plus action, attempt count, human-review flag, proposed child-task count and dependency sketch when available, and proposal path when repeated-stop guidance exists, the current generated-artifact and provenance-bundle retention windows including protected retained entries, and whether any missing latest-summary/latest-provenance surfaces were repaired or remain stale during the status refresh.
 - If preflight blocks on task-ledger drift such as a parent marked `done` while any descendant remains `todo`, `in_progress`, or `blocked`, repair `.ralph/tasks.json` first instead of retrying Codex on the same stale graph.
+- A clean repair usually means one of two changes:
+- reopen the parent to `todo` or `in_progress` so the unfinished descendants remain visible under an active parent
+- or, if the parent is truly complete, finish or deliberately block each remaining descendant so the tree no longer contradicts itself
+- Do not replenish the backlog while that contradiction exists. The replenish-backlog prompt kind can appear because the selector found no actionable task, but when the summary says `No task selected because task-ledger drift blocks safe selection: ...`, treat it as a repair instruction, not permission to invent more work.
+- After the repair, rerun `Show Status` or preflight. Replenish the backlog only if task counts still show no actionable `todo` or `in_progress` work on a now-consistent graph.
 - `Ralph Codex: Open Latest Ralph Summary` opens the newest human-readable summary surface.
 - `Ralph Codex: Open Latest Provenance Bundle` opens the newest provenance summary surface.
 - `Ralph Codex: Open Latest Prompt Evidence` opens `latest-prompt-evidence.json` for direct prompt-context inspection.
@@ -265,5 +272,11 @@ Preflight and status reporting surface:
 - Codex CLI path verification state
 - IDE command availability
 - validation-command readiness
+
+Use this operator decision rule when those surfaces mention backlog exhaustion and drift together:
+
+- `The current durable Ralph backlog is exhausted...`: replenish `.ralph/tasks.json` with the next bounded task slice.
+- `The task ledger is inconsistent...` or `No task selected because task-ledger drift blocks safe selection...`: repair `.ralph/tasks.json` first.
+- `Task-ledger drift: Task <parent> is marked done but descendant tasks are still unfinished...`: inspect the parent/descendant statuses directly and make them agree before running another normal iteration.
 
 Detailed semantics for those diagnostics live in [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) and [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md).

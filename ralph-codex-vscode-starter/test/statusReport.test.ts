@@ -731,6 +731,59 @@ test('buildStatusReport shows tracker drift when a done parent still has unfinis
   assert.match(report, /Task T1 is marked done but descendant tasks are still unfinished/);
 });
 
+test('buildStatusReport keeps replenish-backlog drift exhaustion explicit in loop and latest-iteration sections', () => {
+  const report = buildStatusReport(snapshot({
+    taskCounts: { todo: 0, in_progress: 0, blocked: 1, done: 1 },
+    taskFileError: 'Task T1 is marked done but descendant tasks are still unfinished: T1.1 (blocked).',
+    selectedTask: null,
+    lastIteration: {
+      ...snapshot().lastIteration!,
+      selectedTaskId: null,
+      selectedTaskTitle: null,
+      promptKind: 'replenish-backlog',
+      completionClassification: 'complete',
+      followUpAction: 'stop',
+      summary: 'Replenishing exhausted Ralph backlog. | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1',
+      backlog: {
+        remainingTaskCount: 1,
+        actionableTaskAvailable: false
+      },
+      stopReason: 'no_actionable_task'
+    },
+    latestPromptEvidence: {
+      ...latestPromptEvidence,
+      kind: 'replenish-backlog',
+      selectionReason: 'The durable Ralph backlog appears exhausted, but task-ledger drift blocks safe task selection first.'
+    },
+    latestExecutionPlan: {
+      ...snapshot().latestExecutionPlan!,
+      selectedTaskId: null,
+      selectedTaskTitle: null,
+      promptKind: 'replenish-backlog',
+      selectionReason: 'The durable Ralph backlog appears exhausted, but task-ledger drift blocks safe task selection first.'
+    },
+    preflightReport: {
+      ready: false,
+      summary: 'No task selected because task-ledger drift blocks safe selection: Task T1 is marked done but descendant tasks are still unfinished: T1.1 (blocked).',
+      diagnostics: [
+        {
+          category: 'taskGraph',
+          severity: 'error',
+          code: 'completed_parent_with_incomplete_descendants',
+          message: 'Task T1 is marked done but descendant tasks are still unfinished: T1.1 (blocked).'
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /- Current prompt kind: replenish-backlog/);
+  assert.match(report, /- Summary: No task selected because task-ledger drift blocks safe selection/);
+  assert.match(report, /- Last task: none/);
+  assert.match(report, /- Next actionable task available: no/);
+  assert.match(report, /- Stop reason: no_actionable_task/);
+  assert.match(report, /- Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished: T1\.1 \(blocked\)\./);
+});
+
 test('buildStatusReport distinguishes verified CLI execution provenance from prepared-only handoff', () => {
   const report = buildStatusReport(snapshot({
     latestProvenanceBundle: {

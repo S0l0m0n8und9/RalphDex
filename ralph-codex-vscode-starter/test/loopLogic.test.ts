@@ -382,3 +382,33 @@ test('decideLoopContinuation continues after task completion when backlog remain
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
 });
+
+test('decideLoopContinuation stops when no actionable task remains even if blocked work is still recorded', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    completionClassification: 'blocked',
+    followUpAction: 'request_human_review',
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: false,
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: []
+  });
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /No executable Ralph task remains/i);
+});

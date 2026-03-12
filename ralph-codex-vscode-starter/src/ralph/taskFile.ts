@@ -843,6 +843,80 @@ export function selectNextTask(taskFile: RalphTaskFile): RalphTask | null {
     ?? null;
 }
 
+function collectAncestors(taskFile: RalphTaskFile, taskId: string): RalphTask[] {
+  const ancestors: RalphTask[] = [];
+  const seen = new Set<string>();
+  let currentTask = findTaskById(taskFile, taskId);
+
+  while (currentTask?.parentId) {
+    if (seen.has(currentTask.parentId)) {
+      break;
+    }
+
+    const parentTask = findTaskById(taskFile, currentTask.parentId);
+    if (!parentTask) {
+      break;
+    }
+
+    ancestors.push(parentTask);
+    seen.add(parentTask.id);
+    currentTask = parentTask;
+  }
+
+  return ancestors;
+}
+
+function isSatisfiedAggregateParent(taskFile: RalphTaskFile, task: RalphTask): boolean {
+  if (task.status === 'done' || task.validation) {
+    return false;
+  }
+
+  const descendants = collectDescendants(taskFile, task.id);
+  if (descendants.length === 0 || descendants.some((descendant) => descendant.status !== 'done')) {
+    return false;
+  }
+
+  const descendantIds = new Set(descendants.map((descendant) => descendant.id));
+  return (task.dependsOn ?? []).every((dependencyId) => descendantIds.has(dependencyId));
+}
+
+export function autoCompleteSatisfiedAncestors(
+  taskFile: RalphTaskFile,
+  completedTaskId: string | null
+): { taskFile: RalphTaskFile; completedAncestorIds: string[] } {
+  if (!completedTaskId) {
+    return {
+      taskFile,
+      completedAncestorIds: []
+    };
+  }
+
+  let nextTaskFile = taskFile;
+  const completedAncestorIds: string[] = [];
+
+  for (const ancestor of collectAncestors(taskFile, completedTaskId)) {
+    const currentAncestor = findTaskById(nextTaskFile, ancestor.id);
+    if (!currentAncestor || !isSatisfiedAggregateParent(nextTaskFile, currentAncestor)) {
+      continue;
+    }
+
+    nextTaskFile = {
+      ...nextTaskFile,
+      tasks: nextTaskFile.tasks.map((task) => (
+        task.id === currentAncestor.id
+          ? { ...task, status: 'done' }
+          : task
+      ))
+    };
+    completedAncestorIds.push(currentAncestor.id);
+  }
+
+  return {
+    taskFile: nextTaskFile,
+    completedAncestorIds
+  };
+}
+
 export function findTaskById(taskFile: RalphTaskFile, taskId: string | null): RalphTask | null {
   if (!taskId) {
     return null;

@@ -8,6 +8,7 @@ exports.normalizeTaskFileText = normalizeTaskFileText;
 exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
 exports.selectNextTask = selectNextTask;
+exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.findTaskById = findTaskById;
 exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.remainingSubtasks = remainingSubtasks;
@@ -668,6 +669,62 @@ function selectNextTask(taskFile) {
     return taskFile.tasks.find((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task))
         ?? taskFile.tasks.find((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
         ?? null;
+}
+function collectAncestors(taskFile, taskId) {
+    const ancestors = [];
+    const seen = new Set();
+    let currentTask = findTaskById(taskFile, taskId);
+    while (currentTask?.parentId) {
+        if (seen.has(currentTask.parentId)) {
+            break;
+        }
+        const parentTask = findTaskById(taskFile, currentTask.parentId);
+        if (!parentTask) {
+            break;
+        }
+        ancestors.push(parentTask);
+        seen.add(parentTask.id);
+        currentTask = parentTask;
+    }
+    return ancestors;
+}
+function isSatisfiedAggregateParent(taskFile, task) {
+    if (task.status === 'done' || task.validation) {
+        return false;
+    }
+    const descendants = collectDescendants(taskFile, task.id);
+    if (descendants.length === 0 || descendants.some((descendant) => descendant.status !== 'done')) {
+        return false;
+    }
+    const descendantIds = new Set(descendants.map((descendant) => descendant.id));
+    return (task.dependsOn ?? []).every((dependencyId) => descendantIds.has(dependencyId));
+}
+function autoCompleteSatisfiedAncestors(taskFile, completedTaskId) {
+    if (!completedTaskId) {
+        return {
+            taskFile,
+            completedAncestorIds: []
+        };
+    }
+    let nextTaskFile = taskFile;
+    const completedAncestorIds = [];
+    for (const ancestor of collectAncestors(taskFile, completedTaskId)) {
+        const currentAncestor = findTaskById(nextTaskFile, ancestor.id);
+        if (!currentAncestor || !isSatisfiedAggregateParent(nextTaskFile, currentAncestor)) {
+            continue;
+        }
+        nextTaskFile = {
+            ...nextTaskFile,
+            tasks: nextTaskFile.tasks.map((task) => (task.id === currentAncestor.id
+                ? { ...task, status: 'done' }
+                : task))
+        };
+        completedAncestorIds.push(currentAncestor.id);
+    }
+    return {
+        taskFile: nextTaskFile,
+        completedAncestorIds
+    };
 }
 function findTaskById(taskFile, taskId) {
     if (!taskId) {

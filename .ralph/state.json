@@ -1,66 +1,24 @@
 {
   "version": 2,
   "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
-  "nextIteration": 27,
+  "nextIteration": 30,
   "lastPromptKind": "iteration",
-  "lastPromptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-026.prompt.md",
+  "lastPromptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-029.prompt.md",
   "lastRun": {
-    "provenanceId": "run-i026-cli-20260312T081708Z",
-    "iteration": 26,
+    "provenanceId": "run-i029-cli-20260312T084052Z",
+    "iteration": 29,
     "mode": "loop",
     "promptKind": "iteration",
-    "startedAt": "2026-03-12T08:17:08.063Z",
-    "finishedAt": "2026-03-12T08:22:57.904Z",
+    "startedAt": "2026-03-12T08:40:52.662Z",
+    "finishedAt": "2026-03-12T08:50:07.398Z",
     "status": "succeeded",
     "exitCode": 0,
-    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-026.prompt.md",
-    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.transcript.md",
-    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.last-message.md",
-    "summary": "Selected T23.1: Detect done parent tasks that still have unfinished descendants | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 3"
+    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-029.prompt.md",
+    "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.transcript.md",
+    "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.last-message.md",
+    "summary": "Selected T23: Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 0"
   },
   "runHistory": [
-    {
-      "provenanceId": "run-i007-cli-20260311T082831Z",
-      "iteration": 7,
-      "mode": "loop",
-      "promptKind": "continue-progress",
-      "startedAt": "2026-03-11T08:28:31.406Z",
-      "finishedAt": "2026-03-11T08:45:26.272Z",
-      "status": "succeeded",
-      "exitCode": 0,
-      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/continue-progress-007.prompt.md",
-      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-007.transcript.md",
-      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-007.last-message.md",
-      "summary": "Selected T22: Add token-budgeted prompt and context generation for Ralph CLI and IDE handoff flows | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14"
-    },
-    {
-      "provenanceId": "run-i008-cli-20260311T084526Z",
-      "iteration": 8,
-      "mode": "loop",
-      "promptKind": "continue-progress",
-      "startedAt": "2026-03-11T08:45:26.311Z",
-      "finishedAt": "2026-03-11T08:56:30.831Z",
-      "status": "succeeded",
-      "exitCode": 0,
-      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/continue-progress-008.prompt.md",
-      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-008.transcript.md",
-      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-008.last-message.md",
-      "summary": "Selected T22: Add token-budgeted prompt and context generation for Ralph CLI and IDE handoff flows | Execution: succeeded | Verification: passed | Outcome: partial_progress | Backlog remaining: 14"
-    },
-    {
-      "provenanceId": "run-i009-cli-20260311T085631Z",
-      "iteration": 9,
-      "mode": "loop",
-      "promptKind": "continue-progress",
-      "startedAt": "2026-03-11T08:56:30.877Z",
-      "finishedAt": "2026-03-11T09:08:24.576Z",
-      "status": "succeeded",
-      "exitCode": 0,
-      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/continue-progress-009.prompt.md",
-      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.transcript.md",
-      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/continue-progress-009.last-message.md",
-      "summary": "Selected T22: Add token-budgeted prompt and context generation for Ralph CLI and IDE handoff flows | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14"
-    },
     {
       "provenanceId": "run-i010-cli-20260311T090824Z",
       "iteration": 10,
@@ -298,20 +256,62 @@
       "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.transcript.md",
       "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.last-message.md",
       "summary": "Selected T23.1: Detect done parent tasks that still have unfinished descendants | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 3"
+    },
+    {
+      "provenanceId": "run-i027-cli-20260312T082352Z",
+      "iteration": 27,
+      "mode": "loop",
+      "promptKind": "iteration",
+      "startedAt": "2026-03-12T08:23:52.797Z",
+      "finishedAt": "2026-03-12T08:35:03.642Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-027.prompt.md",
+      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-027.transcript.md",
+      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-027.last-message.md",
+      "summary": "Selected T23.3: Add regression coverage for ledger-drift diagnostics and exhausted-backlog handling | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2"
+    },
+    {
+      "provenanceId": "run-i028-cli-20260312T083503Z",
+      "iteration": 28,
+      "mode": "loop",
+      "promptKind": "iteration",
+      "startedAt": "2026-03-12T08:35:03.682Z",
+      "finishedAt": "2026-03-12T08:40:52.631Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-028.prompt.md",
+      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-028.transcript.md",
+      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-028.last-message.md",
+      "summary": "Selected T23.4: Document task-ledger integrity rules and the repair path for drifted backlogs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1"
+    },
+    {
+      "provenanceId": "run-i029-cli-20260312T084052Z",
+      "iteration": 29,
+      "mode": "loop",
+      "promptKind": "iteration",
+      "startedAt": "2026-03-12T08:40:52.662Z",
+      "finishedAt": "2026-03-12T08:50:07.398Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-029.prompt.md",
+      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.transcript.md",
+      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.last-message.md",
+      "summary": "Selected T23: Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 0"
     }
   ],
   "lastIteration": {
     "schemaVersion": 1,
-    "provenanceId": "run-i026-cli-20260312T081708Z",
-    "iteration": 26,
-    "selectedTaskId": "T23.1",
-    "selectedTaskTitle": "Detect done parent tasks that still have unfinished descendants",
+    "provenanceId": "run-i029-cli-20260312T084052Z",
+    "iteration": 29,
+    "selectedTaskId": "T23",
+    "selectedTaskTitle": "Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog",
     "promptKind": "iteration",
-    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-026.prompt.md",
-    "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026",
+    "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-029.prompt.md",
+    "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029",
     "adapterUsed": "cliExec",
     "executionIntegrity": {
-      "provenanceId": "run-i026-cli-20260312T081708Z",
+      "provenanceId": "run-i029-cli-20260312T084052Z",
       "promptTarget": "cliExec",
       "rootPolicy": {
         "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
@@ -324,212 +324,145 @@
       },
       "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
       "reasoningEffort": "medium",
-      "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
-      "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+      "taskValidationHint": null,
+      "effectiveValidationCommand": null,
       "normalizedValidationCommandFrom": null,
-      "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/execution-plan.json",
-      "executionPlanHash": "sha256:4f0be5426c4a17d8702644e07b62844fa83bb83d8a2602ef851c5f3894a5bf0c",
-      "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/prompt.md",
-      "promptHash": "sha256:4be8673435ff2fb711d0939b61465152f4c7abefb0e2edf9ebc3e912803a28ed",
-      "promptByteLength": 6056,
-      "executionPayloadHash": "sha256:4be8673435ff2fb711d0939b61465152f4c7abefb0e2edf9ebc3e912803a28ed",
+      "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/execution-plan.json",
+      "executionPlanHash": "sha256:b21fa94c5144ba88bf84ca68243a39e1b098d694071e96e0f2cde7af301f9c0f",
+      "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/prompt.md",
+      "promptHash": "sha256:1c33e7c6334bf921479a14e18dde6ce11db7d7d310aacbbaa7531dbcb9ff18c6",
+      "promptByteLength": 6144,
+      "executionPayloadHash": "sha256:1c33e7c6334bf921479a14e18dde6ce11db7d7d310aacbbaa7531dbcb9ff18c6",
       "executionPayloadMatched": true,
       "mismatchReason": null,
-      "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/cli-invocation.json"
+      "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/cli-invocation.json"
     },
     "executionStatus": "succeeded",
     "verificationStatus": "passed",
     "completionClassification": "complete",
     "followUpAction": "stop",
-    "startedAt": "2026-03-12T08:17:08.063Z",
-    "finishedAt": "2026-03-12T08:22:57.904Z",
+    "startedAt": "2026-03-12T08:40:52.662Z",
+    "finishedAt": "2026-03-12T08:50:07.398Z",
     "phaseTimestamps": {
-      "inspectStartedAt": "2026-03-12T08:17:08.063Z",
-      "inspectFinishedAt": "2026-03-12T08:17:08.120Z",
-      "taskSelectedAt": "2026-03-12T08:17:08.120Z",
-      "promptGeneratedAt": "2026-03-12T08:17:08.187Z",
-      "executionStartedAt": "2026-03-12T08:17:08.239Z",
-      "executionFinishedAt": "2026-03-12T08:22:51.879Z",
-      "resultCollectedAt": "2026-03-12T08:22:51.880Z",
-      "verificationFinishedAt": "2026-03-12T08:22:57.904Z",
-      "classifiedAt": "2026-03-12T08:22:57.904Z",
-      "persistedAt": "2026-03-12T08:22:57.904Z"
+      "inspectStartedAt": "2026-03-12T08:40:52.662Z",
+      "inspectFinishedAt": "2026-03-12T08:40:52.704Z",
+      "taskSelectedAt": "2026-03-12T08:40:52.704Z",
+      "promptGeneratedAt": "2026-03-12T08:40:52.736Z",
+      "resultCollectedAt": "2026-03-12T08:50:07.337Z",
+      "verificationFinishedAt": "2026-03-12T08:50:07.398Z",
+      "classifiedAt": "2026-03-12T08:50:07.398Z",
+      "executionStartedAt": "2026-03-12T08:40:52.822Z",
+      "executionFinishedAt": "2026-03-12T08:50:07.336Z",
+      "persistedAt": "2026-03-12T08:50:07.399Z"
     },
-    "summary": "Selected T23.1: Detect done parent tasks that still have unfinished descendants | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 3",
-    "warnings": [
-      "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/out/prompt/promptBuilder.js, ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map, ralph-codex-vscode-starter/out/ralph/iterationEngine.js, ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map, ralph-codex-vscode-starter/out/ralph/preflight.js, ralph-codex-vscode-starter/out/ralph/preflight.js.map, ralph-codex-vscode-starter/out/ralph/statusReport.js, ralph-codex-vscode-starter/out/ralph/statusReport.js.map, ralph-codex-vscode-starter/src/prompt/promptBuilder.ts, ralph-codex-vscode-starter/src/ralph/iterationEngine.ts, ralph-codex-vscode-starter/src/ralph/preflight.ts, ralph-codex-vscode-starter/src/ralph/statusReport.ts)"
-    ],
+    "summary": "Selected T23: Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 0",
+    "warnings": [],
     "errors": [],
     "execution": {
       "exitCode": 0,
-      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.transcript.md",
-      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-026.last-message.md",
-      "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/stdout.log",
-      "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/stderr.log"
+      "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.transcript.md",
+      "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.last-message.md",
+      "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/stdout.log",
+      "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/stderr.log"
     },
     "verification": {
-      "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
-      "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+      "taskValidationHint": null,
+      "effectiveValidationCommand": null,
       "normalizedValidationCommandFrom": null,
-      "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+      "primaryCommand": null,
       "validationFailureSignature": null,
       "verifiers": [
         {
           "verifier": "validationCommand",
-          "status": "passed",
-          "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm test",
+          "status": "skipped",
+          "summary": "No validation command was selected for this iteration.",
           "warnings": [],
-          "errors": [],
-          "command": "cd ralph-codex-vscode-starter && npm test",
-          "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/validation-command.json",
-          "failureSignature": null,
-          "metadata": {
-            "exitCode": 0,
-            "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
-            "normalizedValidationCommandFrom": null,
-            "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/validation-command.stdout.log",
-            "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/validation-command.stderr.log"
-          }
+          "errors": []
         },
         {
           "verifier": "gitDiff",
           "status": "passed",
-          "summary": "Detected 17 relevant changed file(s) out of 18 total changes.",
+          "summary": "Detected 7 relevant changed file(s) out of 7 total changes.",
           "warnings": [],
           "errors": [],
-          "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/git-diff.json",
-          "failureSignature": null,
+          "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-diff.json",
           "metadata": {
             "changedFiles": [
-              ".ralph/progress.md",
-              ".ralph/state.json",
-              ".ralph/tasks.json",
-              "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
-              "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
               "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
               "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
-              "ralph-codex-vscode-starter/out/ralph/preflight.js",
-              "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
-              "ralph-codex-vscode-starter/out/ralph/statusReport.js",
-              "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
-              "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
+              "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+              "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
               "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
-              "ralph-codex-vscode-starter/src/ralph/preflight.ts",
-              "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
-              "ralph-codex-vscode-starter/test/preflight.test.ts",
-              "ralph-codex-vscode-starter/test/promptBuilder.test.ts",
-              "ralph-codex-vscode-starter/test/statusReport.test.ts"
+              "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+              "ralph-codex-vscode-starter/test/taskFile.test.ts"
             ],
             "relevantChangedFiles": [
-              ".ralph/progress.md",
-              ".ralph/tasks.json",
-              "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
-              "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
               "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
               "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
-              "ralph-codex-vscode-starter/out/ralph/preflight.js",
-              "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
-              "ralph-codex-vscode-starter/out/ralph/statusReport.js",
-              "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
-              "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
+              "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+              "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
               "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
-              "ralph-codex-vscode-starter/src/ralph/preflight.ts",
-              "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
-              "ralph-codex-vscode-starter/test/preflight.test.ts",
-              "ralph-codex-vscode-starter/test/promptBuilder.test.ts",
-              "ralph-codex-vscode-starter/test/statusReport.test.ts"
+              "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+              "ralph-codex-vscode-starter/test/taskFile.test.ts"
             ]
           }
         },
         {
           "verifier": "taskState",
           "status": "passed",
-          "summary": "Selected task T23.1 is marked done.",
+          "summary": "Selected task T23 is marked done.",
           "warnings": [],
           "errors": [],
-          "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/task-state.json",
-          "failureSignature": null
+          "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/task-state.json"
         }
       ]
     },
     "backlog": {
-      "remainingTaskCount": 3,
-      "actionableTaskAvailable": true
+      "remainingTaskCount": 0,
+      "actionableTaskAvailable": false
     },
     "diffSummary": {
       "available": true,
       "gitAvailable": true,
-      "summary": "Detected 17 relevant changed file(s) out of 18 total changes.",
-      "changedFileCount": 18,
-      "relevantChangedFileCount": 17,
+      "summary": "Detected 7 relevant changed file(s) out of 7 total changes.",
+      "changedFileCount": 7,
+      "relevantChangedFileCount": 7,
       "changedFiles": [
-        ".ralph/progress.md",
-        ".ralph/state.json",
-        ".ralph/tasks.json",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
         "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
         "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
-        "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
         "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
-        "ralph-codex-vscode-starter/src/ralph/preflight.ts",
-        "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
-        "ralph-codex-vscode-starter/test/preflight.test.ts",
-        "ralph-codex-vscode-starter/test/promptBuilder.test.ts",
-        "ralph-codex-vscode-starter/test/statusReport.test.ts"
+        "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+        "ralph-codex-vscode-starter/test/taskFile.test.ts"
       ],
       "relevantChangedFiles": [
-        ".ralph/progress.md",
-        ".ralph/tasks.json",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
         "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
         "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
-        "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
         "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
-        "ralph-codex-vscode-starter/src/ralph/preflight.ts",
-        "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
-        "ralph-codex-vscode-starter/test/preflight.test.ts",
-        "ralph-codex-vscode-starter/test/promptBuilder.test.ts",
-        "ralph-codex-vscode-starter/test/statusReport.test.ts"
+        "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+        "ralph-codex-vscode-starter/test/taskFile.test.ts"
       ],
       "statusTransitions": [
-        ".ralph/progress.md: M -> clean",
-        ".ralph/state.json: M -> clean",
-        ".ralph/tasks.json: M -> clean",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js: M -> clean",
-        "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/iterationEngine.js: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/preflight.js.map: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js: M -> clean",
-        "ralph-codex-vscode-starter/out/ralph/statusReport.js.map: M -> clean",
-        "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts: M -> clean",
-        "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts: M -> clean",
-        "ralph-codex-vscode-starter/src/ralph/preflight.ts: M -> clean",
-        "ralph-codex-vscode-starter/src/ralph/statusReport.ts: M -> clean",
-        "ralph-codex-vscode-starter/test/preflight.test.ts: M -> clean",
-        "ralph-codex-vscode-starter/test/promptBuilder.test.ts: M -> clean",
-        "ralph-codex-vscode-starter/test/statusReport.test.ts: M -> clean"
+        "ralph-codex-vscode-starter/out/ralph/iterationEngine.js: clean -> M",
+        "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map: clean -> M",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js: clean -> M",
+        "ralph-codex-vscode-starter/out/ralph/taskFile.js.map: clean -> M",
+        "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts: clean -> M",
+        "ralph-codex-vscode-starter/src/ralph/taskFile.ts: clean -> M",
+        "ralph-codex-vscode-starter/test/taskFile.test.ts: clean -> M"
       ],
-      "suggestedCheckpointRef": "ralph/iter-iteration-026",
-      "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/git-status-before.txt",
-      "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-026/git-status-after.txt"
+      "suggestedCheckpointRef": "ralph/iter-iteration-029",
+      "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-status-before.txt",
+      "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-status-after.txt"
     },
     "noProgressSignals": [],
     "remediation": null,
     "completionReportStatus": "applied",
     "reconciliationWarnings": [],
-    "stopReason": "control_plane_reload_required"
+    "stopReason": "no_actionable_task"
   },
   "iterationHistory": [
     {
@@ -5836,7 +5769,491 @@
       "completionReportStatus": "applied",
       "reconciliationWarnings": [],
       "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i027-cli-20260312T082352Z",
+      "iteration": 27,
+      "selectedTaskId": "T23.3",
+      "selectedTaskTitle": "Add regression coverage for ledger-drift diagnostics and exhausted-backlog handling",
+      "promptKind": "iteration",
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-027.prompt.md",
+      "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i027-cli-20260312T082352Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+          "inspectionRootPath": "/home/admin/Documents/repos/Ralph",
+          "executionRootPath": "/home/admin/Documents/repos/Ralph",
+          "verificationRootPath": "/home/admin/Documents/repos/Ralph",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm run validate",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm run validate",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/execution-plan.json",
+        "executionPlanHash": "sha256:098334c9f2c996780a62bf6bc6ff1d81a205a01ff2c477614e080bfacd636d89",
+        "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/prompt.md",
+        "promptHash": "sha256:1aad8941f5ee4081168c92e3f59cdbe4cac1043d99f7f82c95f56b496a073cfc",
+        "promptByteLength": 6050,
+        "executionPayloadHash": "sha256:1aad8941f5ee4081168c92e3f59cdbe4cac1043d99f7f82c95f56b496a073cfc",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "passed",
+      "completionClassification": "complete",
+      "followUpAction": "continue_next_task",
+      "startedAt": "2026-03-12T08:23:52.797Z",
+      "finishedAt": "2026-03-12T08:35:03.642Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-12T08:23:52.797Z",
+        "inspectFinishedAt": "2026-03-12T08:23:52.846Z",
+        "taskSelectedAt": "2026-03-12T08:23:52.846Z",
+        "promptGeneratedAt": "2026-03-12T08:23:52.966Z",
+        "executionStartedAt": "2026-03-12T08:23:53.023Z",
+        "executionFinishedAt": "2026-03-12T08:34:52.175Z",
+        "resultCollectedAt": "2026-03-12T08:34:52.176Z",
+        "verificationFinishedAt": "2026-03-12T08:35:03.641Z",
+        "classifiedAt": "2026-03-12T08:35:03.642Z",
+        "persistedAt": "2026-03-12T08:35:03.642Z"
+      },
+      "summary": "Selected T23.3: Add regression coverage for ledger-drift diagnostics and exhausted-backlog handling | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 2",
+      "warnings": [],
+      "errors": [],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-027.transcript.md",
+        "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-027.last-message.md",
+        "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/stdout.log",
+        "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm run validate",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm run validate",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm run validate",
+        "validationFailureSignature": null,
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "passed",
+            "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm run validate",
+            "warnings": [],
+            "errors": [],
+            "command": "cd ralph-codex-vscode-starter && npm run validate",
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/validation-command.json",
+            "failureSignature": null,
+            "metadata": {
+              "exitCode": 0,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm run validate",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/validation-command.stdout.log",
+              "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 5 relevant changed file(s) out of 6 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                ".ralph/progress.md",
+                ".ralph/state.json",
+                ".ralph/tasks.json",
+                "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+                "ralph-codex-vscode-starter/test/loopLogic.test.ts",
+                "ralph-codex-vscode-starter/test/statusReport.test.ts"
+              ],
+              "relevantChangedFiles": [
+                ".ralph/progress.md",
+                ".ralph/tasks.json",
+                "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+                "ralph-codex-vscode-starter/test/loopLogic.test.ts",
+                "ralph-codex-vscode-starter/test/statusReport.test.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "passed",
+            "summary": "Selected task T23.3 is marked done.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 2,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 5 relevant changed file(s) out of 6 total changes.",
+        "changedFileCount": 6,
+        "relevantChangedFileCount": 5,
+        "changedFiles": [
+          ".ralph/progress.md",
+          ".ralph/state.json",
+          ".ralph/tasks.json",
+          "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts",
+          "ralph-codex-vscode-starter/test/statusReport.test.ts"
+        ],
+        "relevantChangedFiles": [
+          ".ralph/progress.md",
+          ".ralph/tasks.json",
+          "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts",
+          "ralph-codex-vscode-starter/test/statusReport.test.ts"
+        ],
+        "statusTransitions": [
+          ".ralph/progress.md: M -> clean",
+          ".ralph/state.json: M -> clean",
+          ".ralph/tasks.json: M -> clean",
+          "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts: clean -> M",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts: clean -> M",
+          "ralph-codex-vscode-starter/test/statusReport.test.ts: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-027",
+        "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/git-status-before.txt",
+        "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-027/git-status-after.txt"
+      },
+      "noProgressSignals": [],
+      "remediation": null,
+      "completionReportStatus": "applied",
+      "reconciliationWarnings": [],
+      "stopReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i028-cli-20260312T083503Z",
+      "iteration": 28,
+      "selectedTaskId": "T23.4",
+      "selectedTaskTitle": "Document task-ledger integrity rules and the repair path for drifted backlogs",
+      "promptKind": "iteration",
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-028.prompt.md",
+      "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i028-cli-20260312T083503Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+          "inspectionRootPath": "/home/admin/Documents/repos/Ralph",
+          "executionRootPath": "/home/admin/Documents/repos/Ralph",
+          "verificationRootPath": "/home/admin/Documents/repos/Ralph",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm run check:docs",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm run check:docs",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/execution-plan.json",
+        "executionPlanHash": "sha256:27f1a20cc5c4157b59640ce692ea7ddaa151fdf659fb8099877cbfd7278ac321",
+        "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/prompt.md",
+        "promptHash": "sha256:683ddf81c31694015fbf17dee59b5aa2b80d8cfa0bea10c30c2b195da46f9353",
+        "promptByteLength": 6115,
+        "executionPayloadHash": "sha256:683ddf81c31694015fbf17dee59b5aa2b80d8cfa0bea10c30c2b195da46f9353",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "passed",
+      "completionClassification": "complete",
+      "followUpAction": "continue_next_task",
+      "startedAt": "2026-03-12T08:35:03.682Z",
+      "finishedAt": "2026-03-12T08:40:52.631Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-12T08:35:03.682Z",
+        "inspectFinishedAt": "2026-03-12T08:35:03.712Z",
+        "taskSelectedAt": "2026-03-12T08:35:03.712Z",
+        "promptGeneratedAt": "2026-03-12T08:35:03.767Z",
+        "executionStartedAt": "2026-03-12T08:35:03.884Z",
+        "executionFinishedAt": "2026-03-12T08:40:52.422Z",
+        "resultCollectedAt": "2026-03-12T08:40:52.423Z",
+        "verificationFinishedAt": "2026-03-12T08:40:52.631Z",
+        "classifiedAt": "2026-03-12T08:40:52.631Z",
+        "persistedAt": "2026-03-12T08:40:52.631Z"
+      },
+      "summary": "Selected T23.4: Document task-ledger integrity rules and the repair path for drifted backlogs | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 1",
+      "warnings": [],
+      "errors": [],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-028.transcript.md",
+        "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-028.last-message.md",
+        "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/stdout.log",
+        "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm run check:docs",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm run check:docs",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm run check:docs",
+        "validationFailureSignature": null,
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "passed",
+            "summary": "Validation command passed: cd ralph-codex-vscode-starter && npm run check:docs",
+            "warnings": [],
+            "errors": [],
+            "command": "cd ralph-codex-vscode-starter && npm run check:docs",
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/validation-command.json",
+            "failureSignature": null,
+            "metadata": {
+              "exitCode": 0,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm run check:docs",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/validation-command.stdout.log",
+              "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/docs/invariants.md",
+                "ralph-codex-vscode-starter/docs/workflows.md"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/docs/invariants.md",
+                "ralph-codex-vscode-starter/docs/workflows.md"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "passed",
+            "summary": "Selected task T23.4 is marked done.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 1,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
+        "changedFileCount": 2,
+        "relevantChangedFileCount": 2,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/docs/invariants.md",
+          "ralph-codex-vscode-starter/docs/workflows.md"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/docs/invariants.md",
+          "ralph-codex-vscode-starter/docs/workflows.md"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/docs/invariants.md: clean -> M",
+          "ralph-codex-vscode-starter/docs/workflows.md: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-028",
+        "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/git-status-before.txt",
+        "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-028/git-status-after.txt"
+      },
+      "noProgressSignals": [],
+      "remediation": null,
+      "completionReportStatus": "applied",
+      "reconciliationWarnings": [],
+      "stopReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i029-cli-20260312T084052Z",
+      "iteration": 29,
+      "selectedTaskId": "T23",
+      "selectedTaskTitle": "Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog",
+      "promptKind": "iteration",
+      "promptPath": "/home/admin/Documents/repos/Ralph/.ralph/prompts/iteration-029.prompt.md",
+      "artifactDir": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i029-cli-20260312T084052Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "/home/admin/Documents/repos/Ralph",
+          "inspectionRootPath": "/home/admin/Documents/repos/Ralph",
+          "executionRootPath": "/home/admin/Documents/repos/Ralph",
+          "verificationRootPath": "/home/admin/Documents/repos/Ralph",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/prompt-templates/iteration.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": null,
+        "effectiveValidationCommand": null,
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/execution-plan.json",
+        "executionPlanHash": "sha256:b21fa94c5144ba88bf84ca68243a39e1b098d694071e96e0f2cde7af301f9c0f",
+        "promptArtifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/prompt.md",
+        "promptHash": "sha256:1c33e7c6334bf921479a14e18dde6ce11db7d7d310aacbbaa7531dbcb9ff18c6",
+        "promptByteLength": 6144,
+        "executionPayloadHash": "sha256:1c33e7c6334bf921479a14e18dde6ce11db7d7d310aacbbaa7531dbcb9ff18c6",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "passed",
+      "completionClassification": "complete",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-12T08:40:52.662Z",
+      "finishedAt": "2026-03-12T08:50:07.398Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-12T08:40:52.662Z",
+        "inspectFinishedAt": "2026-03-12T08:40:52.704Z",
+        "taskSelectedAt": "2026-03-12T08:40:52.704Z",
+        "promptGeneratedAt": "2026-03-12T08:40:52.736Z",
+        "resultCollectedAt": "2026-03-12T08:50:07.337Z",
+        "verificationFinishedAt": "2026-03-12T08:50:07.398Z",
+        "classifiedAt": "2026-03-12T08:50:07.398Z",
+        "executionStartedAt": "2026-03-12T08:40:52.822Z",
+        "executionFinishedAt": "2026-03-12T08:50:07.336Z",
+        "persistedAt": "2026-03-12T08:50:07.399Z"
+      },
+      "summary": "Selected T23: Harden task-ledger integrity so tracker drift cannot silently exhaust or misstate the backlog | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 0",
+      "warnings": [],
+      "errors": [],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.transcript.md",
+        "lastMessagePath": "/home/admin/Documents/repos/Ralph/.ralph/runs/iteration-029.last-message.md",
+        "stdoutPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/stdout.log",
+        "stderrPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": null,
+        "effectiveValidationCommand": null,
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": null,
+        "validationFailureSignature": null,
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "skipped",
+            "summary": "No validation command was selected for this iteration.",
+            "warnings": [],
+            "errors": []
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 7 relevant changed file(s) out of 7 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-diff.json",
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+                "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+                "ralph-codex-vscode-starter/test/taskFile.test.ts"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+                "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+                "ralph-codex-vscode-starter/test/taskFile.test.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "passed",
+            "summary": "Selected task T23 is marked done.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/task-state.json"
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 0,
+        "actionableTaskAvailable": false
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 7 relevant changed file(s) out of 7 total changes.",
+        "changedFileCount": 7,
+        "relevantChangedFileCount": 7,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+          "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+          "ralph-codex-vscode-starter/test/taskFile.test.ts"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+          "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+          "ralph-codex-vscode-starter/test/taskFile.test.ts"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js: clean -> M",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map: clean -> M",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js: clean -> M",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map: clean -> M",
+          "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts: clean -> M",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts: clean -> M",
+          "ralph-codex-vscode-starter/test/taskFile.test.ts: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-029",
+        "beforeStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-status-before.txt",
+        "afterStatusPath": "/home/admin/Documents/repos/Ralph/.ralph/artifacts/iteration-029/git-status-after.txt"
+      },
+      "noProgressSignals": [],
+      "remediation": null,
+      "completionReportStatus": "applied",
+      "reconciliationWarnings": [],
+      "stopReason": "no_actionable_task"
     }
   ],
-  "updatedAt": "2026-03-12T08:23:52.803Z"
+  "updatedAt": "2026-03-12T08:50:07.414Z"
 }
