@@ -230,7 +230,9 @@ function buildTaskRemediation(input) {
             if (!signature) {
                 return null;
             }
-            attemptCount = countTrailingMatches(history, (item) => item.selectedTaskId === currentResult.selectedTaskId && failureSignature(item) === signature);
+            attemptCount = countTrailingMatches(history, (item) => item.selectedTaskId === currentResult.selectedTaskId
+                && (item.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID) === agentId
+                && failureSignature(item) === signature);
         }
     }
     else {
