@@ -154,6 +154,8 @@ export type RalphTaskRemediationAction =
   | 'request_human_review'
   | 'no_action';
 
+export const DEFAULT_RALPH_AGENT_ID = 'default';
+
 export interface RalphTaskRemediation {
   trigger: RalphStopReason;
   taskId: string | null;
@@ -212,6 +214,7 @@ export interface RalphTaskRemediationArtifact {
 }
 
 export interface RalphRunRecord {
+  agentId?: string;
   provenanceId?: string;
   iteration: number;
   mode: RalphRunMode;
@@ -425,6 +428,7 @@ export type RalphCompletionReportStatus = 'applied' | 'rejected' | 'missing' | '
 
 export interface RalphIterationResult {
   schemaVersion: 1;
+  agentId?: string;
   provenanceId?: string;
   iteration: number;
   selectedTaskId: string | null;

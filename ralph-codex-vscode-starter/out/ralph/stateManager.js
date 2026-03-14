@@ -39,6 +39,7 @@ const path = __importStar(require("path"));
 const pathResolver_1 = require("./pathResolver");
 const artifactStore_1 = require("./artifactStore");
 const taskFile_1 = require("./taskFile");
+const types_1 = require("./types");
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
 const DEFAULT_PRD = [
@@ -97,6 +98,7 @@ function normalizeRunRecord(candidate) {
         return null;
     }
     return {
+        agentId: typeof record.agentId === 'string' ? record.agentId : types_1.DEFAULT_RALPH_AGENT_ID,
         provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         iteration: Math.max(1, Math.floor(record.iteration)),
         mode: record.mode,
@@ -233,6 +235,7 @@ function normalizeExecutionIntegrity(candidate) {
 function iterationFromRunRecord(run) {
     return {
         schemaVersion: 1,
+        agentId: run.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID,
         provenanceId: run.provenanceId,
         iteration: run.iteration,
         selectedTaskId: null,
@@ -344,6 +347,7 @@ function normalizeIterationResult(candidate) {
         : [];
     return {
         schemaVersion: 1,
+        agentId: typeof record.agentId === 'string' ? record.agentId : types_1.DEFAULT_RALPH_AGENT_ID,
         provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
         iteration: Math.max(1, Math.floor(record.iteration)),
         selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,

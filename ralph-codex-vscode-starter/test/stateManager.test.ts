@@ -189,6 +189,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
   const objectiveText = await stateManager.readObjectiveText(snapshot.paths);
   const result: RalphIterationResult = {
     schemaVersion: 1,
+    agentId: 'default',
     iteration: 1,
     selectedTaskId: 'T1',
     selectedTaskTitle: 'Seed task',
@@ -263,6 +264,7 @@ test('recordIteration serializes and reloads the machine-readable iteration resu
   assert.equal(reloaded.version, 2);
   assert.equal(reloaded.lastIteration?.selectedTaskId, 'T1');
   assert.equal(reloaded.lastIteration?.selectedTaskTitle, 'Seed task');
+  assert.equal(reloaded.lastIteration?.agentId, 'default');
   assert.equal(reloaded.lastIteration?.executionIntegrity?.executionPayloadMatched, true);
   assert.equal(reloaded.lastIteration?.execution.message, 'codex exec completed successfully.');
   assert.equal(reloaded.lastIteration?.verification.primaryCommand, 'npm test');
@@ -321,6 +323,7 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
     lastPromptKind: 'iteration',
     lastPromptPath: path.join(snapshot.paths.promptDir, 'iteration-002.prompt.md'),
     lastRun: {
+      agentId: 'default',
       iteration: 2,
       mode: 'singleExec',
       promptKind: 'iteration',
@@ -334,6 +337,7 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
     },
     runHistory: [
       {
+        agentId: 'default',
         iteration: 1,
         mode: 'singleExec',
         promptKind: 'iteration',
@@ -346,6 +350,7 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
         summary: 'old'
       },
       {
+        agentId: 'default',
         iteration: 2,
         mode: 'singleExec',
         promptKind: 'iteration',
@@ -360,6 +365,7 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
     ],
     lastIteration: {
       schemaVersion: 1,
+      agentId: 'default',
       iteration: 2,
       selectedTaskId: 'T2',
       selectedTaskTitle: 'Current task',
@@ -404,6 +410,7 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
     iterationHistory: [
       {
         schemaVersion: 1,
+        agentId: 'default',
         iteration: 1,
         selectedTaskId: 'T1',
         selectedTaskTitle: 'Old task',

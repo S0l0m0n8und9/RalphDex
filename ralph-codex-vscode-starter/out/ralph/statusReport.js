@@ -52,7 +52,7 @@ function relativeFromRoot(rootPath, target) {
     if (!target) {
         return 'none';
     }
-    return path.relative(rootPath, target) || '.';
+    return (path.relative(rootPath, target) || '.').replace(/\\/g, '/');
 }
 function shortHash(hash) {
     if (!hash) {

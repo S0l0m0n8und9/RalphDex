@@ -20,6 +20,7 @@ import {
   stringifyTaskFile
 } from './taskFile';
 import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphDiffSummary,
   RalphExecutionIntegritySummary,
   RalphIterationResult,
@@ -101,6 +102,7 @@ function normalizeRunRecord(candidate: unknown): RalphRunRecord | null {
   }
 
   return {
+    agentId: typeof record.agentId === 'string' ? record.agentId : DEFAULT_RALPH_AGENT_ID,
     provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
     iteration: Math.max(1, Math.floor(record.iteration)),
     mode: record.mode as RalphRunRecord['mode'],
@@ -251,6 +253,7 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
 function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
   return {
     schemaVersion: 1,
+    agentId: run.agentId ?? DEFAULT_RALPH_AGENT_ID,
     provenanceId: run.provenanceId,
     iteration: run.iteration,
     selectedTaskId: null,
@@ -369,6 +372,7 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
 
     return {
       schemaVersion: 1,
+      agentId: typeof record.agentId === 'string' ? record.agentId : DEFAULT_RALPH_AGENT_ID,
       provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : undefined,
       iteration: Math.max(1, Math.floor(record.iteration)),
       selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,

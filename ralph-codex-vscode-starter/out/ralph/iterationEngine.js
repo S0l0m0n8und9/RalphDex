@@ -42,6 +42,7 @@ const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
+const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const loopLogic_1 = require("./loopLogic");
 const preflight_1 = require("./preflight");
@@ -534,6 +535,7 @@ function runRecordFromIteration(mode, prepared, startedAt, result) {
         return undefined;
     }
     return {
+        agentId: result.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID,
         provenanceId: prepared.provenanceId,
         iteration: prepared.iteration,
         mode,
@@ -1182,6 +1184,7 @@ class RalphIterationEngine {
         ];
         const result = {
             schemaVersion: 1,
+            agentId: types_1.DEFAULT_RALPH_AGENT_ID,
             provenanceId: prepared.provenanceId,
             iteration: prepared.iteration,
             selectedTaskId: prepared.selectedTask?.id ?? null,

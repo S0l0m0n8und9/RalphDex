@@ -369,7 +369,7 @@ async function validateLocalMarkdownLinks(input) {
                 });
                 continue;
             }
-            const targetRelativePath = path.relative(input.repoRoot, resolved.absoluteFilePath);
+            const targetRelativePath = toRepoRelativePath(input.repoRoot, resolved.absoluteFilePath);
             let target = input.markdownCache.get(targetRelativePath);
             if (!target) {
                 const text = await fs.readFile(resolved.absoluteFilePath, 'utf8');
@@ -492,7 +492,7 @@ async function validateRequiredSectionLinks(input) {
         if (resolved === null) {
             continue;
         }
-        resolvedTargets.add(path.relative(input.repoRoot, resolved.absoluteFilePath));
+        resolvedTargets.add(toRepoRelativePath(input.repoRoot, resolved.absoluteFilePath));
     }
     for (const requiredTarget of input.requiredTargets) {
         if (!resolvedTargets.has(requiredTarget)) {
@@ -649,6 +649,9 @@ function sameMembers(left, right) {
 }
 function formatList(values) {
     return values.map((value) => `"${value}"`).join(', ');
+}
+function toRepoRelativePath(rootDir, targetPath) {
+    return path.relative(rootDir, targetPath).replace(/\\/g, '/');
 }
 function toMarkdownSlug(value) {
     return value

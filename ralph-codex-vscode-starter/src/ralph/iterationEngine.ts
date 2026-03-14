@@ -11,6 +11,7 @@ import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
 import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphCompletionReport,
   RalphCompletionReportRequestedStatus,
   RalphCliInvocation,
@@ -738,6 +739,7 @@ function runRecordFromIteration(
   }
 
   return {
+    agentId: result.agentId ?? DEFAULT_RALPH_AGENT_ID,
     provenanceId: prepared.provenanceId,
     iteration: prepared.iteration,
     mode,
@@ -1502,6 +1504,7 @@ export class RalphIterationEngine {
 
     const result: RalphIterationResult = {
       schemaVersion: 1,
+      agentId: DEFAULT_RALPH_AGENT_ID,
       provenanceId: prepared.provenanceId,
       iteration: prepared.iteration,
       selectedTaskId: prepared.selectedTask?.id ?? null,

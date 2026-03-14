@@ -663,7 +663,9 @@
       "status": "todo",
       "parentId": "T24.1",
       "dependsOn": [
-        "T24.1.1"
+        "T24.1.1",
+        "T24.1.2.1",
+        "T24.1.2.2"
       ],
       "notes": "Add acquireClaim(taskId, agentId, provenanceId) and releaseClaim(taskId, agentId) to src/ralph/taskFile.ts. Use a write-then-verify pattern: write the claim record, re-read the file, confirm the claim is still the canonical holder. If another claim exists for the same taskId, return a contested result without writing. Release must be idempotent. Stale claims older than a configurable TTL should be detectable but not auto-released — that is an operator decision.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
@@ -750,12 +752,12 @@
     {
       "id": "T24.3.1",
       "title": "Add agentId to RalphIterationResult and RalphRunRecord in types.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.3",
       "dependsOn": [
         "T24.1.1"
       ],
-      "notes": "Add optional agentId: string field to RalphIterationResult and RalphRunRecord in src/ralph/types.ts. Default to a sentinel value (e.g. 'default') for single-agent runs so existing state files remain valid without migration. The agentId should match the value used in the task-claim record for the same provenanceId, creating a join key between the claim and the iteration history.",
+      "notes": "Added optional agentId to RalphIterationResult and RalphRunRecord, defaulted legacy/missing records to the 'default' sentinel in state normalization, and persisted the sentinel on newly created single-agent iteration/run records. Compile passed.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
@@ -779,6 +781,29 @@
       ],
       "notes": "Add tests in test/loopLogic.test.ts covering: interleaved history from two agents on the same task does not trigger repeated_no_progress for either agent, a single agent accumulating the threshold count on the same task still triggers correctly, and the default sentinel preserves existing single-agent behaviour. Update docs/verifier.md to note that repeated-stop detection is scoped per agent and that multi-agent deployments should assign distinct agentId values.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.1.2.1",
+      "title": "Claim acquisition",
+      "status": "todo",
+      "parentId": "T24.1.2",
+      "dependsOn": [
+        "T24.1.1"
+      ],
+      "notes": "Narrow T24.1.2 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.1.2.2",
+      "title": "Release in taskFile.ts with file-level locking",
+      "status": "todo",
+      "parentId": "T24.1.2",
+      "dependsOn": [
+        "T24.1.1",
+        "T24.1.2.1"
+      ],
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T24.1.2.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
     }
   ]
 }

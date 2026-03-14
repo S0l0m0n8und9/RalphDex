@@ -64,3 +64,4 @@
 - Documented task-ledger integrity rules, explicit drift warnings, and the operator repair-vs-replenish decision path in the invariant and workflow docs. Validation passed with npm run check:docs.
 - Auto-completed satisfied aggregate parent tasks during completion-report reconciliation so child-complete ledger drift no longer leaves stale backlog items behind.
 - Added RalphTaskClaimStatus, RalphTaskClaim, and RalphTaskClaimFile to src/ralph/types.ts for a flat, inspectable task-claim schema consistent with tasks.json.
+- Added optional agentId to RalphIterationResult and RalphRunRecord, defaulted legacy/missing records to the 'default' sentinel in state normalization, and persisted the sentinel on newly created single-agent iteration/run records. Compile passed.
