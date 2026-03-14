@@ -1,25 +1,27 @@
 {
   "version": 2,
   "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
-  "nextIteration": 17,
-  "lastPromptKind": "iteration",
-  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\iteration-016.prompt.md",
+  "nextIteration": 20,
+  "lastPromptKind": "fix-failure",
+  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-019.prompt.md",
   "lastRun": {
-    "provenanceId": "run-i016-cli-20260314T050803Z",
-    "iteration": 16,
+    "agentId": "default",
+    "provenanceId": "run-i019-cli-20260314T055550Z",
+    "iteration": 19,
     "mode": "loop",
-    "promptKind": "iteration",
-    "startedAt": "2026-03-14T05:08:03.159Z",
-    "finishedAt": "2026-03-14T05:15:04.420Z",
+    "promptKind": "fix-failure",
+    "startedAt": "2026-03-14T05:55:50.005Z",
+    "finishedAt": "2026-03-14T06:02:32.346Z",
     "status": "succeeded",
     "exitCode": 0,
-    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\iteration-016.prompt.md",
-    "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.transcript.md",
-    "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.last-message.md",
-    "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14"
+    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-019.prompt.md",
+    "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.transcript.md",
+    "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.last-message.md",
+    "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14"
   },
   "runHistory": [
     {
+      "agentId": "default",
       "provenanceId": "run-i001-cli-20260313T191251Z",
       "iteration": 1,
       "mode": "loop",
@@ -34,6 +36,7 @@
       "summary": "Selected T24.1.1: Define task-claim schema and add it to types.ts | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i002-cli-20260313T201623Z",
       "iteration": 2,
       "mode": "loop",
@@ -48,6 +51,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i003-cli-20260313T202458Z",
       "iteration": 3,
       "mode": "loop",
@@ -62,6 +66,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i004-cli-20260314T004020Z",
       "iteration": 4,
       "mode": "loop",
@@ -76,6 +81,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i005-cli-20260314T005044Z",
       "iteration": 5,
       "mode": "loop",
@@ -90,6 +96,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i006-cli-20260314T010037Z",
       "iteration": 6,
       "mode": "loop",
@@ -104,6 +111,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i007-cli-20260314T015340Z",
       "iteration": 7,
       "mode": "loop",
@@ -118,6 +126,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i008-cli-20260314T022601Z",
       "iteration": 8,
       "mode": "loop",
@@ -132,6 +141,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i009-cli-20260314T023504Z",
       "iteration": 9,
       "mode": "loop",
@@ -146,6 +156,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i010-cli-20260314T024122Z",
       "iteration": 10,
       "mode": "loop",
@@ -160,6 +171,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i011-cli-20260314T025511Z",
       "iteration": 11,
       "mode": "loop",
@@ -174,6 +186,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i012-cli-20260314T033745Z",
       "iteration": 12,
       "mode": "loop",
@@ -188,6 +201,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i013-cli-20260314T034413Z",
       "iteration": 13,
       "mode": "loop",
@@ -202,6 +216,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i014-cli-20260314T035237Z",
       "iteration": 14,
       "mode": "loop",
@@ -216,6 +231,7 @@
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i015-cli-20260314T035943Z",
       "iteration": 15,
       "mode": "loop",
@@ -230,6 +246,7 @@
       "summary": "Selected T24.3.1: Add agentId to RalphIterationResult and RalphRunRecord in types.ts | Execution: succeeded | Verification: passed | Outcome: complete | Backlog remaining: 14"
     },
     {
+      "agentId": "default",
       "provenanceId": "run-i016-cli-20260314T050803Z",
       "iteration": 16,
       "mode": "loop",
@@ -242,20 +259,66 @@
       "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.transcript.md",
       "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.last-message.md",
       "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14"
+    },
+    {
+      "agentId": "default",
+      "provenanceId": "run-i017-cli-20260314T052939Z",
+      "iteration": 17,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T05:29:39.235Z",
+      "finishedAt": "2026-03-14T05:37:10.101Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-017.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-017.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-017.last-message.md",
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14"
+    },
+    {
+      "agentId": "default",
+      "provenanceId": "run-i018-cli-20260314T054853Z",
+      "iteration": 18,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T05:48:53.513Z",
+      "finishedAt": "2026-03-14T05:55:49.897Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-018.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-018.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-018.last-message.md",
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14"
+    },
+    {
+      "agentId": "default",
+      "provenanceId": "run-i019-cli-20260314T055550Z",
+      "iteration": 19,
+      "mode": "loop",
+      "promptKind": "fix-failure",
+      "startedAt": "2026-03-14T05:55:50.005Z",
+      "finishedAt": "2026-03-14T06:02:32.346Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-019.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.last-message.md",
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14"
     }
   ],
   "lastIteration": {
     "schemaVersion": 1,
-    "provenanceId": "run-i016-cli-20260314T050803Z",
-    "iteration": 16,
+    "agentId": "default",
+    "provenanceId": "run-i019-cli-20260314T055550Z",
+    "iteration": 19,
     "selectedTaskId": "T24.3.2",
     "selectedTaskTitle": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
-    "promptKind": "iteration",
-    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\iteration-016.prompt.md",
-    "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016",
+    "promptKind": "fix-failure",
+    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-019.prompt.md",
+    "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019",
     "adapterUsed": "cliExec",
     "executionIntegrity": {
-      "provenanceId": "run-i016-cli-20260314T050803Z",
+      "provenanceId": "run-i019-cli-20260314T055550Z",
       "promptTarget": "cliExec",
       "rootPolicy": {
         "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
@@ -266,61 +329,61 @@
         "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
         "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
       },
-      "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\iteration.md",
+      "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\fix-failure.md",
       "reasoningEffort": "medium",
       "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
       "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
       "normalizedValidationCommandFrom": null,
-      "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\execution-plan.json",
-      "executionPlanHash": "sha256:6fa8798b9308ac1f14181947d360e35cc3a761ac3506a216439ad8eb8741b90f",
-      "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\prompt.md",
-      "promptHash": "sha256:cb80bcd62a6790e0baac8930d55c1854273b33434216664951831d2e70e7bcdd",
-      "promptByteLength": 6139,
-      "executionPayloadHash": "sha256:cb80bcd62a6790e0baac8930d55c1854273b33434216664951831d2e70e7bcdd",
+      "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\execution-plan.json",
+      "executionPlanHash": "sha256:522cc5d337a52da4701274cb2b1f391f0f68ffdbb9690ea5f7ba788d9e61af04",
+      "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\prompt.md",
+      "promptHash": "sha256:9b300bd54a072d43f5fd6acd7104e9130e3309d61bb062d87879490cf3401b9d",
+      "promptByteLength": 6759,
+      "executionPayloadHash": "sha256:9b300bd54a072d43f5fd6acd7104e9130e3309d61bb062d87879490cf3401b9d",
       "executionPayloadMatched": true,
       "mismatchReason": null,
-      "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\cli-invocation.json"
+      "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\cli-invocation.json"
     },
     "executionStatus": "succeeded",
     "verificationStatus": "failed",
-    "completionClassification": "partial_progress",
+    "completionClassification": "no_progress",
     "followUpAction": "stop",
-    "startedAt": "2026-03-14T05:08:03.159Z",
-    "finishedAt": "2026-03-14T05:15:04.420Z",
+    "startedAt": "2026-03-14T05:55:50.005Z",
+    "finishedAt": "2026-03-14T06:02:32.346Z",
     "phaseTimestamps": {
-      "inspectStartedAt": "2026-03-14T05:08:03.159Z",
-      "inspectFinishedAt": "2026-03-14T05:08:03.440Z",
-      "taskSelectedAt": "2026-03-14T05:08:03.440Z",
-      "promptGeneratedAt": "2026-03-14T05:08:04.442Z",
-      "resultCollectedAt": "2026-03-14T05:12:07.112Z",
-      "verificationFinishedAt": "2026-03-14T05:15:04.420Z",
-      "classifiedAt": "2026-03-14T05:15:04.420Z",
-      "executionStartedAt": "2026-03-14T05:08:06.801Z",
-      "executionFinishedAt": "2026-03-14T05:12:07.104Z",
-      "persistedAt": "2026-03-14T05:15:04.421Z"
+      "inspectStartedAt": "2026-03-14T05:55:50.005Z",
+      "inspectFinishedAt": "2026-03-14T05:55:50.131Z",
+      "taskSelectedAt": "2026-03-14T05:55:50.131Z",
+      "promptGeneratedAt": "2026-03-14T05:55:50.671Z",
+      "executionStartedAt": "2026-03-14T05:55:51.844Z",
+      "executionFinishedAt": "2026-03-14T05:59:33.913Z",
+      "resultCollectedAt": "2026-03-14T05:59:33.917Z",
+      "verificationFinishedAt": "2026-03-14T06:02:32.346Z",
+      "classifiedAt": "2026-03-14T06:02:32.346Z",
+      "persistedAt": "2026-03-14T06:02:32.348Z"
     },
-    "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14",
+    "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14",
     "warnings": [
-      "Completion report requested done, but verification status was failed.",
-      "Task and progress files were unchanged during the iteration.",
-      "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/src/ralph/loopLogic.ts)"
+      "No completion report JSON block was found at the end of the Codex last message.",
+      "No relevant workspace changes were detected.",
+      "Task and progress files were unchanged during the iteration."
     ],
     "errors": [
       "Validation command exited with 1."
     ],
     "execution": {
       "exitCode": 0,
-      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.transcript.md",
-      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\iteration-016.last-message.md",
-      "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\stdout.log",
-      "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\stderr.log"
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.last-message.md",
+      "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\stdout.log",
+      "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\stderr.log"
     },
     "verification": {
       "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
       "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
       "normalizedValidationCommandFrom": null,
       "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
-      "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:20216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+      "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
       "verifiers": [
         {
           "verifier": "validationCommand",
@@ -331,32 +394,29 @@
             "Validation command exited with 1."
           ],
           "command": "cd ralph-codex-vscode-starter && npm test",
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\validation-command.json",
-          "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:20216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.json",
+          "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
           "metadata": {
             "exitCode": 1,
             "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
             "normalizedValidationCommandFrom": null,
-            "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\validation-command.stdout.log",
-            "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\validation-command.stderr.log"
+            "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.stdout.log",
+            "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.stderr.log"
           }
         },
         {
           "verifier": "gitDiff",
-          "status": "passed",
-          "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
-          "warnings": [],
+          "status": "failed",
+          "summary": "No relevant file changes were detected.",
+          "warnings": [
+            "No relevant workspace changes were detected."
+          ],
           "errors": [],
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\git-diff.json",
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-diff.json",
+          "failureSignature": null,
           "metadata": {
-            "changedFiles": [
-              "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
-              "ralph-codex-vscode-starter/test/loopLogic.test.ts"
-            ],
-            "relevantChangedFiles": [
-              "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
-              "ralph-codex-vscode-starter/test/loopLogic.test.ts"
-            ]
+            "changedFiles": [],
+            "relevantChangedFiles": []
           }
         },
         {
@@ -367,7 +427,8 @@
             "Task and progress files were unchanged during the iteration."
           ],
           "errors": [],
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\task-state.json"
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\task-state.json",
+          "failureSignature": null
         }
       ]
     },
@@ -378,38 +439,48 @@
     "diffSummary": {
       "available": true,
       "gitAvailable": true,
-      "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
-      "changedFileCount": 2,
-      "relevantChangedFileCount": 2,
-      "changedFiles": [
-        "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
-        "ralph-codex-vscode-starter/test/loopLogic.test.ts"
-      ],
-      "relevantChangedFiles": [
-        "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
-        "ralph-codex-vscode-starter/test/loopLogic.test.ts"
-      ],
-      "statusTransitions": [
-        "ralph-codex-vscode-starter/src/ralph/loopLogic.ts: clean -> M",
-        "ralph-codex-vscode-starter/test/loopLogic.test.ts: clean -> M"
-      ],
-      "suggestedCheckpointRef": "ralph/iter-iteration-016",
-      "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\git-status-before.txt",
-      "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\git-status-after.txt"
+      "summary": "No relevant file changes were detected.",
+      "changedFileCount": 0,
+      "relevantChangedFileCount": 0,
+      "changedFiles": [],
+      "relevantChangedFiles": [],
+      "statusTransitions": [],
+      "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-status-before.txt",
+      "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-status-after.txt"
     },
     "noProgressSignals": [
-      "task_and_progress_state_unchanged"
+      "same_task_selected_repeatedly",
+      "no_relevant_file_changes",
+      "task_and_progress_state_unchanged",
+      "same_failure_classification"
     ],
-    "remediation": null,
-    "completionReportStatus": "rejected",
+    "remediation": {
+      "trigger": "repeated_no_progress",
+      "taskId": "T24.3.2",
+      "attemptCount": 2,
+      "action": "decompose_task",
+      "humanReviewRecommended": false,
+      "summary": "Task T24.3.2 made no durable progress across 2 consecutive attempts; decompose the task into a smaller deterministic unit before rerunning it.",
+      "evidence": [
+        "same_task_selected_repeatedly",
+        "no_relevant_file_changes",
+        "task_and_progress_state_unchanged",
+        "same_failure_classification",
+        "validation_failure_signature:cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "stop_reason:repeated_no_progress",
+        "classification:no_progress"
+      ]
+    },
+    "completionReportStatus": "missing",
     "reconciliationWarnings": [
-      "Completion report requested done, but verification status was failed."
+      "No completion report JSON block was found at the end of the Codex last message."
     ],
-    "stopReason": "control_plane_reload_required"
+    "stopReason": "repeated_no_progress"
   },
   "iterationHistory": [
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i001-cli-20260313T191251Z",
       "iteration": 1,
       "selectedTaskId": "T24.1.1",
@@ -558,6 +629,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i002-cli-20260313T201623Z",
       "iteration": 2,
       "selectedTaskId": "T24.1.2",
@@ -710,6 +782,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i003-cli-20260313T202458Z",
       "iteration": 3,
       "selectedTaskId": "T24.1.2",
@@ -872,6 +945,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i004-cli-20260314T004020Z",
       "iteration": 4,
       "selectedTaskId": "T24.1.2",
@@ -1043,6 +1117,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i005-cli-20260314T005044Z",
       "iteration": 5,
       "selectedTaskId": "T24.1.2",
@@ -1197,6 +1272,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i006-cli-20260314T010037Z",
       "iteration": 6,
       "selectedTaskId": "T24.1.2",
@@ -1358,6 +1434,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i007-cli-20260314T015340Z",
       "iteration": 7,
       "selectedTaskId": "T24.1.2",
@@ -1727,6 +1804,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i008-cli-20260314T022601Z",
       "iteration": 8,
       "selectedTaskId": "T24.1.2",
@@ -1887,6 +1965,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i009-cli-20260314T023504Z",
       "iteration": 9,
       "selectedTaskId": "T24.1.2",
@@ -2040,6 +2119,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i010-cli-20260314T024122Z",
       "iteration": 10,
       "selectedTaskId": "T24.1.2",
@@ -2211,6 +2291,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i011-cli-20260314T025511Z",
       "iteration": 11,
       "selectedTaskId": "T24.1.2",
@@ -2372,6 +2453,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i012-cli-20260314T033745Z",
       "iteration": 12,
       "selectedTaskId": "T24.1.2",
@@ -2525,6 +2607,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i013-cli-20260314T034413Z",
       "iteration": 13,
       "selectedTaskId": "T24.1.2",
@@ -2695,6 +2778,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i014-cli-20260314T035237Z",
       "iteration": 14,
       "selectedTaskId": "T24.1.2",
@@ -2865,6 +2949,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i015-cli-20260314T035943Z",
       "iteration": 15,
       "selectedTaskId": "T24.3.1",
@@ -3098,6 +3183,7 @@
     },
     {
       "schemaVersion": 1,
+      "agentId": "default",
       "provenanceId": "run-i016-cli-20260314T050803Z",
       "iteration": 16,
       "selectedTaskId": "T24.3.2",
@@ -3144,11 +3230,11 @@
         "inspectFinishedAt": "2026-03-14T05:08:03.440Z",
         "taskSelectedAt": "2026-03-14T05:08:03.440Z",
         "promptGeneratedAt": "2026-03-14T05:08:04.442Z",
+        "executionStartedAt": "2026-03-14T05:08:06.801Z",
+        "executionFinishedAt": "2026-03-14T05:12:07.104Z",
         "resultCollectedAt": "2026-03-14T05:12:07.112Z",
         "verificationFinishedAt": "2026-03-14T05:15:04.420Z",
         "classifiedAt": "2026-03-14T05:15:04.420Z",
-        "executionStartedAt": "2026-03-14T05:08:06.801Z",
-        "executionFinishedAt": "2026-03-14T05:12:07.104Z",
         "persistedAt": "2026-03-14T05:15:04.421Z"
       },
       "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14",
@@ -3200,6 +3286,7 @@
             "warnings": [],
             "errors": [],
             "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\git-diff.json",
+            "failureSignature": null,
             "metadata": {
               "changedFiles": [
                 "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
@@ -3219,7 +3306,8 @@
               "Task and progress files were unchanged during the iteration."
             ],
             "errors": [],
-            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\task-state.json"
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-016\\task-state.json",
+            "failureSignature": null
           }
         ]
       },
@@ -3258,7 +3346,499 @@
         "Completion report requested done, but verification status was failed."
       ],
       "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "agentId": "default",
+      "provenanceId": "run-i017-cli-20260314T052939Z",
+      "iteration": 17,
+      "selectedTaskId": "T24.3.2",
+      "selectedTaskTitle": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-017.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i017-cli-20260314T052939Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\execution-plan.json",
+        "executionPlanHash": "sha256:626ae71d2007ff705a85d6c79367196f1227e915b3a74089cfa3cdcb64fefeb0",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\prompt.md",
+        "promptHash": "sha256:cd9f425d7e5cbbe58973f34766ed087bab2d9d14fe487072076c585f5e2c8477",
+        "promptByteLength": 5867,
+        "executionPayloadHash": "sha256:cd9f425d7e5cbbe58973f34766ed087bab2d9d14fe487072076c585f5e2c8477",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "partial_progress",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-14T05:29:39.235Z",
+      "finishedAt": "2026-03-14T05:37:10.101Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T05:29:39.235Z",
+        "inspectFinishedAt": "2026-03-14T05:29:39.345Z",
+        "taskSelectedAt": "2026-03-14T05:29:39.345Z",
+        "promptGeneratedAt": "2026-03-14T05:29:40.456Z",
+        "executionStartedAt": "2026-03-14T05:29:41.674Z",
+        "executionFinishedAt": "2026-03-14T05:33:39.818Z",
+        "resultCollectedAt": "2026-03-14T05:33:39.822Z",
+        "verificationFinishedAt": "2026-03-14T05:37:10.101Z",
+        "classifiedAt": "2026-03-14T05:37:10.101Z",
+        "persistedAt": "2026-03-14T05:37:10.101Z"
+      },
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 14",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "Task and progress files were unchanged during the iteration.",
+        "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/src/ralph/loopLogic.ts)"
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-017.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-017.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:62436) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:62436) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
+                "ralph-codex-vscode-starter/test/loopLogic.test.ts"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
+                "ralph-codex-vscode-starter/test/loopLogic.test.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 14,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 2 relevant changed file(s) out of 2 total changes.",
+        "changedFileCount": 2,
+        "relevantChangedFileCount": 2,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/src/ralph/loopLogic.ts: clean -> M",
+          "ralph-codex-vscode-starter/test/loopLogic.test.ts: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-017",
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-017\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "agentId": "default",
+      "provenanceId": "run-i018-cli-20260314T054853Z",
+      "iteration": 18,
+      "selectedTaskId": "T24.3.2",
+      "selectedTaskTitle": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-018.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i018-cli-20260314T054853Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\execution-plan.json",
+        "executionPlanHash": "sha256:428e76823e6d7d26d7c71a8894f72e7d98a9d99a8b3da73064c9034c78f1966d",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\prompt.md",
+        "promptHash": "sha256:be15115a8e6c95b3dfc6c4ce61d0805571a51052ca861706f77e310c7ffe64ff",
+        "promptByteLength": 5867,
+        "executionPayloadHash": "sha256:be15115a8e6c95b3dfc6c4ce61d0805571a51052ca861706f77e310c7ffe64ff",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "no_progress",
+      "followUpAction": "retry_same_task",
+      "startedAt": "2026-03-14T05:48:53.513Z",
+      "finishedAt": "2026-03-14T05:55:49.897Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T05:48:53.513Z",
+        "inspectFinishedAt": "2026-03-14T05:48:53.750Z",
+        "taskSelectedAt": "2026-03-14T05:48:53.750Z",
+        "promptGeneratedAt": "2026-03-14T05:48:54.649Z",
+        "executionStartedAt": "2026-03-14T05:48:57.266Z",
+        "executionFinishedAt": "2026-03-14T05:52:51.828Z",
+        "resultCollectedAt": "2026-03-14T05:52:51.831Z",
+        "verificationFinishedAt": "2026-03-14T05:55:49.897Z",
+        "classifiedAt": "2026-03-14T05:55:49.897Z",
+        "persistedAt": "2026-03-14T05:55:49.898Z"
+      },
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "No relevant workspace changes were detected.",
+        "Task and progress files were unchanged during the iteration."
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-018.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-018.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:22760) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:22760) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "failed",
+            "summary": "No relevant file changes were detected.",
+            "warnings": [
+              "No relevant workspace changes were detected."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [],
+              "relevantChangedFiles": []
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 14,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "No relevant file changes were detected.",
+        "changedFileCount": 0,
+        "relevantChangedFileCount": 0,
+        "changedFiles": [],
+        "relevantChangedFiles": [],
+        "statusTransitions": [],
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-018\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "no_relevant_file_changes",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "agentId": "default",
+      "provenanceId": "run-i019-cli-20260314T055550Z",
+      "iteration": 19,
+      "selectedTaskId": "T24.3.2",
+      "selectedTaskTitle": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
+      "promptKind": "fix-failure",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-019.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i019-cli-20260314T055550Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\fix-failure.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\execution-plan.json",
+        "executionPlanHash": "sha256:522cc5d337a52da4701274cb2b1f391f0f68ffdbb9690ea5f7ba788d9e61af04",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\prompt.md",
+        "promptHash": "sha256:9b300bd54a072d43f5fd6acd7104e9130e3309d61bb062d87879490cf3401b9d",
+        "promptByteLength": 6759,
+        "executionPayloadHash": "sha256:9b300bd54a072d43f5fd6acd7104e9130e3309d61bb062d87879490cf3401b9d",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "no_progress",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-14T05:55:50.005Z",
+      "finishedAt": "2026-03-14T06:02:32.346Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T05:55:50.005Z",
+        "inspectFinishedAt": "2026-03-14T05:55:50.131Z",
+        "taskSelectedAt": "2026-03-14T05:55:50.131Z",
+        "promptGeneratedAt": "2026-03-14T05:55:50.671Z",
+        "executionStartedAt": "2026-03-14T05:55:51.844Z",
+        "executionFinishedAt": "2026-03-14T05:59:33.913Z",
+        "resultCollectedAt": "2026-03-14T05:59:33.917Z",
+        "verificationFinishedAt": "2026-03-14T06:02:32.346Z",
+        "classifiedAt": "2026-03-14T06:02:32.346Z",
+        "persistedAt": "2026-03-14T06:02:32.348Z"
+      },
+      "summary": "Selected T24.3.2: Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 14",
+      "warnings": [
+        "No completion report JSON block was found at the end of the Codex last message.",
+        "No relevant workspace changes were detected.",
+        "Task and progress files were unchanged during the iteration."
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-019.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "failed",
+            "summary": "No relevant file changes were detected.",
+            "warnings": [
+              "No relevant workspace changes were detected."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [],
+              "relevantChangedFiles": []
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 14,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "No relevant file changes were detected.",
+        "changedFileCount": 0,
+        "relevantChangedFileCount": 0,
+        "changedFiles": [],
+        "relevantChangedFiles": [],
+        "statusTransitions": [],
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-019\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "no_relevant_file_changes",
+        "task_and_progress_state_unchanged",
+        "same_failure_classification"
+      ],
+      "remediation": {
+        "trigger": "repeated_no_progress",
+        "taskId": "T24.3.2",
+        "attemptCount": 2,
+        "action": "decompose_task",
+        "humanReviewRecommended": false,
+        "summary": "Task T24.3.2 made no durable progress across 2 consecutive attempts; decompose the task into a smaller deterministic unit before rerunning it.",
+        "evidence": [
+          "same_task_selected_repeatedly",
+          "no_relevant_file_changes",
+          "task_and_progress_state_unchanged",
+          "same_failure_classification",
+          "validation_failure_signature:cd ralph-codex-vscode-starter && npm test::exit:1::(node:65056) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+          "stop_reason:repeated_no_progress",
+          "classification:no_progress"
+        ]
+      },
+      "completionReportStatus": "missing",
+      "reconciliationWarnings": [
+        "No completion report JSON block was found at the end of the Codex last message."
+      ],
+      "stopReason": "repeated_no_progress"
     }
   ],
-  "updatedAt": "2026-03-14T05:15:04.529Z"
+  "updatedAt": "2026-03-14T06:32:56.578Z"
 }

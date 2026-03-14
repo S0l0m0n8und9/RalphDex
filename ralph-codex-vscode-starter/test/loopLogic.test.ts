@@ -186,6 +186,27 @@ test('decideLoopContinuation ignores no-progress streaks across different tasks'
   assert.equal(decision.stopReason, null);
 });
 
+test('decideLoopContinuation ignores interleaved no-progress history from another agent on the same task', () => {
+  const previous = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const interleaved = iterationResult({ iteration: 2, agentId: 'agent-b' });
+  const current = iterationResult({ iteration: 3, agentId: 'agent-a' });
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 3,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: [previous, interleaved]
+  });
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
+});
+
 test('decideLoopContinuation stops on repeated identical failure classifications', () => {
   const previous = iterationResult({
     completionClassification: 'failed',
@@ -211,6 +232,42 @@ test('decideLoopContinuation stops on repeated identical failure classifications
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_identical_failure');
+});
+
+test('decideLoopContinuation ignores interleaved identical failures from another agent on the same task', () => {
+  const previous = iterationResult({
+    iteration: 1,
+    agentId: 'agent-a',
+    completionClassification: 'failed',
+    verificationStatus: 'failed'
+  });
+  const interleaved = iterationResult({
+    iteration: 2,
+    agentId: 'agent-b',
+    completionClassification: 'failed',
+    verificationStatus: 'failed'
+  });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-a',
+    completionClassification: 'failed',
+    verificationStatus: 'failed'
+  });
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 1,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    noProgressThreshold: 5,
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: [previous, interleaved]
+  });
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
 });
 
 test('buildTaskRemediation reframes repeated no-progress with the same validation signature', () => {
@@ -309,6 +366,51 @@ test('buildTaskRemediation ignores interleaved no-progress history from another 
   const remediation = buildTaskRemediation({
     currentResult: current,
     stopReason: 'repeated_no_progress',
+    previousIterations: [previous, interleaved]
+  });
+
+  assert.equal(remediation, null);
+});
+
+test('buildTaskRemediation ignores interleaved identical failures from another agent on the same task', () => {
+  const previous = iterationResult({
+    iteration: 1,
+    agentId: 'agent-a',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: [],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::deterministic failure'
+    }
+  });
+  const interleaved = iterationResult({
+    iteration: 2,
+    agentId: 'agent-b',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: [],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::deterministic failure'
+    }
+  });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-a',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    stopReason: 'repeated_identical_failure',
+    noProgressSignals: [],
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::deterministic failure'
+    }
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_identical_failure',
     previousIterations: [previous, interleaved]
   });
 

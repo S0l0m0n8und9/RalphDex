@@ -7,6 +7,7 @@ exports.detectNoProgressSignals = detectNoProgressSignals;
 exports.classifyIterationOutcome = classifyIterationOutcome;
 exports.buildTaskRemediation = buildTaskRemediation;
 exports.decideLoopContinuation = decideLoopContinuation;
+const types_1 = require("./types");
 function uniqueOrdered(values) {
     const seen = new Set();
     const ordered = [];
@@ -160,12 +161,22 @@ function failureSignature(result) {
         result.verification.validationFailureSignature ?? 'none'
     ].join('::');
 }
-function countTrailingSameTaskClassifications(results, taskId, classifications) {
+function countTrailingSameTaskClassifications(results, taskId, agentId, classifications) {
     if (!taskId) {
         return 0;
     }
     const allowed = new Set(classifications);
-    return countTrailingMatches(results, (item) => item.selectedTaskId === taskId && allowed.has(item.completionClassification));
+    return countTrailingMatches(results, (item) => item.selectedTaskId === taskId
+        && (item.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID) === agentId
+        && allowed.has(item.completionClassification));
+}
+function countTrailingSameTaskFailures(results, taskId, agentId, signature) {
+    if (!taskId) {
+        return 0;
+    }
+    return countTrailingMatches(results, (item) => item.selectedTaskId === taskId
+        && (item.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID) === agentId
+        && failureSignature(item) === signature);
 }
 function remediationActionForResult(result) {
     if (result.completionClassification === 'blocked') {
@@ -206,12 +217,13 @@ function buildTaskRemediation(input) {
     }
     const history = [...previousIterations, currentResult];
     let attemptCount = 0;
+    const agentId = currentResult.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID;
     if (stopReason === 'repeated_no_progress') {
-        attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['no_progress']);
+        attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, agentId, ['no_progress']);
     }
     else if (stopReason === 'repeated_identical_failure') {
         if (currentResult.completionClassification === 'blocked') {
-            attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['blocked']);
+            attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, agentId, ['blocked']);
         }
         else {
             const signature = failureSignature(currentResult);
@@ -249,6 +261,7 @@ function buildTaskRemediation(input) {
 }
 function decideLoopContinuation(input) {
     const history = [...input.previousIterations, input.currentResult];
+    const agentId = input.currentResult.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID;
     if (!input.hasActionableTask) {
         return {
             shouldContinue: false,
@@ -287,7 +300,7 @@ function decideLoopContinuation(input) {
             message: 'The current outcome requires explicit human review.'
         };
     }
-    const noProgressCount = countTrailingMatches(history, (item) => item.selectedTaskId === input.currentResult.selectedTaskId && item.completionClassification === 'no_progress');
+    const noProgressCount = countTrailingSameTaskClassifications(history, input.currentResult.selectedTaskId, agentId, ['no_progress']);
     if (noProgressCount >= input.noProgressThreshold) {
         return {
             shouldContinue: false,
@@ -297,7 +310,7 @@ function decideLoopContinuation(input) {
     }
     const currentFailureSignature = failureSignature(input.currentResult);
     if (currentFailureSignature) {
-        const repeatedFailureCount = countTrailingMatches(history, (item) => failureSignature(item) === currentFailureSignature);
+        const repeatedFailureCount = countTrailingSameTaskFailures(history, input.currentResult.selectedTaskId, agentId, currentFailureSignature);
         if (repeatedFailureCount >= input.repeatedFailureThreshold) {
             return {
                 shouldContinue: false,

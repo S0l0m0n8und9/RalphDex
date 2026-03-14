@@ -261,6 +261,25 @@ function countTrailingSameTaskClassifications(
   );
 }
 
+function countTrailingSameTaskFailures(
+  results: RalphIterationResult[],
+  taskId: string | null,
+  agentId: string,
+  signature: string
+): number {
+  if (!taskId) {
+    return 0;
+  }
+
+  return countTrailingMatches(
+    results,
+    (item) =>
+      item.selectedTaskId === taskId
+      && (item.agentId ?? DEFAULT_RALPH_AGENT_ID) === agentId
+      && failureSignature(item) === signature
+  );
+}
+
 function remediationActionForResult(result: RalphIterationResult): RalphTaskRemediationAction {
   if (result.completionClassification === 'blocked') {
     return 'mark_blocked';
@@ -339,7 +358,9 @@ export function buildTaskRemediation(input: {
       }
 
       attemptCount = countTrailingMatches(history, (item) =>
-        item.selectedTaskId === currentResult.selectedTaskId && failureSignature(item) === signature
+        item.selectedTaskId === currentResult.selectedTaskId
+        && (item.agentId ?? DEFAULT_RALPH_AGENT_ID) === agentId
+        && failureSignature(item) === signature
       );
     }
   } else {
@@ -374,6 +395,7 @@ export function buildTaskRemediation(input: {
 
 export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoopDecision {
   const history = [...input.previousIterations, input.currentResult];
+  const agentId = input.currentResult.agentId ?? DEFAULT_RALPH_AGENT_ID;
 
   if (!input.hasActionableTask) {
     return {
@@ -418,9 +440,11 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     };
   }
 
-  const noProgressCount = countTrailingMatches(
+  const noProgressCount = countTrailingSameTaskClassifications(
     history,
-    (item) => item.selectedTaskId === input.currentResult.selectedTaskId && item.completionClassification === 'no_progress'
+    input.currentResult.selectedTaskId,
+    agentId,
+    ['no_progress']
   );
   if (noProgressCount >= input.noProgressThreshold) {
     return {
@@ -432,7 +456,12 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
 
   const currentFailureSignature = failureSignature(input.currentResult);
   if (currentFailureSignature) {
-    const repeatedFailureCount = countTrailingMatches(history, (item) => failureSignature(item) === currentFailureSignature);
+    const repeatedFailureCount = countTrailingSameTaskFailures(
+      history,
+      input.currentResult.selectedTaskId,
+      agentId,
+      currentFailureSignature
+    );
     if (repeatedFailureCount >= input.repeatedFailureThreshold) {
       return {
         shouldContinue: false,
