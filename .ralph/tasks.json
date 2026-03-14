@@ -992,16 +992,17 @@
       "dependsOn": [
         "T28.1",
         "T28.2",
-        "T28.3"
+        "T28.3",
+        "T24"
       ],
       "notes": "EXECUTE AFTER T24. The done-task audit that caught T21's tracker drift was a manually-run one-off. Ralph shipped with a done parent and all-todo children — the exact condition T23 was written to detect — and no automated gate caught it before commit. T23 added preflight blocking at runtime, but preflight only runs when Ralph executes inside VS Code. A check:ledger script that validates tasks.json at npm run validate time would have caught T21 before it was committed. Placing this after T24 means the ledger check can also validate claim records once T24.1's claims.json schema exists."
     },
     {
       "id": "T28.1",
       "title": "Add scripts/check-ledger.js that validates tasks.json for drift, cycles, and orphaned parents",
-      "status": "todo",
+      "status": "done",
       "parentId": "T28",
-      "notes": "Create ralph-codex-vscode-starter/scripts/check-ledger.js as a standalone Node.js script that reads .ralph/tasks.json relative to the workspace root (defaulting to the script's grandparent directory if no argument is given). It must detect and report: (1) done parents with any descendant in todo, in_progress, or blocked status (the T21 class of drift); (2) tasks whose dependsOn references a non-existent task id; (3) tasks whose parentId references a non-existent task id; (4) dependency cycles using a DFS traversal; (5) tasks in in_progress status with no corresponding entry in .ralph/claims.json once that file exists (skip this check if claims.json is absent, for backward compatibility). Exit code 0 on clean, 1 on any finding. Print each finding with the offending task id and a one-line description.",
+      "notes": "Added a standalone scripts/check-ledger.js with drift, missing-reference, dependency-cycle, and optional claims validation plus a focused regression test file. The task validation command passes on the current workspace.",
       "validation": "node ralph-codex-vscode-starter/scripts/check-ledger.js && echo 'ledger clean'"
     },
     {
@@ -1010,7 +1011,8 @@
       "status": "todo",
       "parentId": "T28",
       "dependsOn": [
-        "T28.1"
+        "T28.1",
+        "T24"
       ],
       "notes": "Add a check:ledger script to package.json: 'node scripts/check-ledger.js'. Update the validate script to run check:ledger after check:docs and before the test suite so a drifted ledger blocks the full validation gate before running tests. Update docs/testing.md under Authoritative Commands to list npm run check:ledger and describe what it validates. Add the required fragment 'check:ledger' to the DOC_RULES entry for docs/testing.md in src/validation/docsValidator.ts.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:ledger && npm run check:docs"
@@ -1021,7 +1023,8 @@
       "status": "todo",
       "parentId": "T28",
       "dependsOn": [
-        "T28.2"
+        "T28.2",
+        "T24"
       ],
       "notes": "Add test/checkLedger.test.ts with test fixtures covering: a clean tasks.json exits 0; a done parent with a todo child exits 1 with the parent's id in the output; a missing dependsOn target exits 1; a missing parentId target exits 1; a dependency cycle exits 1; a valid in_progress task with a matching claims.json entry exits 0; a valid in_progress task with no claims.json present exits 0 (backward-compatible). Use child_process.spawnSync to invoke the script directly so the test covers the real exit-code contract rather than a mocked internal. Run npm run validate to confirm all gates pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1033,7 +1036,8 @@
       "dependsOn": [
         "T29.1",
         "T29.2",
-        "T29.3"
+        "T29.3",
+        "T24"
       ],
       "notes": "EXECUTE AFTER T24. The provenance bundle is presented as the flagship audit artifact, but it proves only that a specific string of text was handed to a black box. The completion-report.json artifact already captures the model's self-report, and reconciliationWarnings on RalphIterationResult already captures divergence between that self-report and what the verifier found — but neither is surfaced in the provenance bundle itself, and the documentation does not label the epistemic gap explicitly. In a multi-agent deployment this gap is more consequential: an audit trail that does not distinguish model claims from verifier evidence is harder to use for compliance purposes when multiple agents are producing interleaved artifacts."
     },
@@ -1051,7 +1055,8 @@
       "status": "todo",
       "parentId": "T29",
       "dependsOn": [
-        "T29.1"
+        "T29.1",
+        "T24"
       ],
       "notes": "Add an Epistemic Gap section to docs/provenance.md between What Operators Can Verify and the existing closing content. The section must state explicitly: (1) the CLI provenance chain proves prompt integrity up to the codex exec boundary; (2) the completion report is the model's self-report and is labelled as unverified in the bundle — the field name completionReportStatus makes the epistemic status machine-readable; (3) reconciliationWarnings records cases where the model's claimed status diverged from what preflight and verifier evidence found; (4) the absence of reconciliation warnings does not prove model reasoning was correct — it proves the model's claimed status was consistent with the observable verifier signals; (5) operators requiring stronger guarantees should treat the verifier artifacts (validationCommand, gitDiff, taskState) as the authoritative evidence and treat the completion report as supplementary context.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
@@ -1062,7 +1067,8 @@
       "status": "todo",
       "parentId": "T29",
       "dependsOn": [
-        "T29.2"
+        "T29.2",
+        "T24"
       ],
       "notes": "Add requiredFragments to the DOC_RULES entry for docs/provenance.md in src/validation/docsValidator.ts: 'model self-report', 'unverified', 'reconciliationWarnings', and 'authoritative evidence'. Add 'Epistemic Gap' to the requiredHeadings list for docs/provenance.md. This ensures the epistemic gap documentation cannot be silently removed during future edits without breaking the validation gate. Run npm run validate to confirm.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1074,7 +1080,8 @@
       "dependsOn": [
         "T30.1",
         "T30.2",
-        "T30.3"
+        "T30.3",
+        "T24"
       ],
       "notes": "EXECUTE AFTER T24. Every token target in the prompt budget policy matrix was derived empirically against Codex CLI with no documented methodology. If Codex CLI changes its context behaviour, or if Ralph is used with a different model (which T24 makes structurally possible), every budget number becomes wrong in ways that are silent — prompts will be trimmed according to a stale policy and the evidence records will show within budget against a target that was never re-validated. This task documents the derivation methodology, adds a calibration helper, and introduces a model-configurable budget profile so different adapters can carry different policies."
     },
@@ -1083,6 +1090,9 @@
       "title": "Create docs/prompt-calibration.md documenting how token targets were derived and how to re-derive them",
       "status": "todo",
       "parentId": "T30",
+      "dependsOn": [
+        "T24"
+      ],
       "notes": "Create ralph-codex-vscode-starter/docs/prompt-calibration.md. It must document: (1) the target model and context window size that the current policy matrix was calibrated against; (2) the methodology used to arrive at each token target — specifically whether targets were set by observing real truncation behaviour, by estimating from section sizes, or by a different method; (3) a step-by-step recalibration procedure an operator could follow when switching to a different model or after a Codex CLI context-window change; (4) the mapping between ralphCodex.reasoningEffort values and their expected token overhead so operators can account for reasoning tokens when setting targets. Add the doc to REQUIRED_DOCS, REQUIRED_AGENTS_DOC_MAP_TARGETS, and REQUIRED_README_DOC_MAP_TARGETS in docsValidator.ts, and add a link in AGENTS.md and README.md.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
@@ -1115,7 +1125,8 @@
       "dependsOn": [
         "T31.1",
         "T31.2",
-        "T31.3"
+        "T31.3",
+        "T24"
       ],
       "notes": "EXECUTE LAST. The 801-line test/promptBuilder.test.ts verifies that sections are included or omitted according to the budget policy — zero assertions exist about whether the rendered text would cause a model to do the right thing. This is the most consequential untested output Ralph produces. This task is placed last because it benefits from: (1) the clean module boundaries from T27 making promptBuilder.ts easier to test in isolation; (2) the model-configurable budget profiles from T30 providing test dimensions; (3) T24's agentId fields giving the prompt fixture framework an additional variable to cover. Golden snapshot tests are the pragmatic first step — they do not prove prompt quality but they make regressions visible and force authors to consciously update snapshots when prompt content changes."
     },
@@ -1124,6 +1135,11 @@
       "title": "Build a prompt test fixture framework with representative workspace and task scenarios",
       "status": "todo",
       "parentId": "T31",
+      "dependsOn": [
+        "T24",
+        "T29",
+        "T30"
+      ],
       "notes": "Create test/fixtures/promptScenarios.ts exporting a set of at least five named scenario objects, each containing: a minimal RalphTaskFile, a prd.md string, a progress.md string, a WorkspaceScan snapshot, and a prior iteration result (or null for bootstrap). The scenarios should cover: (1) a fresh workspace with no prior iterations; (2) a workspace mid-task with a prior partial_progress iteration; (3) a workspace with a repeated_no_progress stop and a pending decompose_task remediation; (4) a workspace with a blocked task; (5) a fix-failure scenario with a non-null validationFailureSignature. These fixtures are the inputs that T31.2 and T31.3 render prompts against. Keep each fixture minimal — the goal is controlled, reproducible inputs, not realistic project content.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
@@ -1133,7 +1149,10 @@
       "status": "todo",
       "parentId": "T31",
       "dependsOn": [
-        "T31.1"
+        "T31.1",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "Add test/promptBuilder.snapshot.test.ts. For each combination of prompt kind and fixture scenario that is valid (e.g. fix-failure only against scenarios with a prior failed iteration), render the prompt using the existing promptBuilder logic and compare the output against a stored snapshot in test/fixtures/snapshots/. Use Jest's toMatchSnapshot or a custom snapshot mechanism that writes plain .md files so snapshot diffs are readable in code review. The first run should write the snapshots. Subsequent runs detect regressions. Add a note to docs/testing.md that snapshot updates require running npm test -- --updateSnapshot and that reviewers should read snapshot diffs as carefully as code diffs.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
@@ -1144,7 +1163,10 @@
       "status": "todo",
       "parentId": "T31",
       "dependsOn": [
-        "T31.2"
+        "T31.2",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "Add content assertions to test/promptBuilder.test.ts (or a new test/promptBuilder.content.test.ts) that go beyond section-presence checks to assert on rendered text. At minimum: (1) a fix-failure cliExec prompt rendered against the repeated-failure fixture must contain the task's validation command string in the rendered text, not just assert that the execution section is included; (2) a human-review-handoff prompt rendered against the blocked fixture must contain the blocker text from the task; (3) a replenish-backlog prompt must contain the PRD objective text; (4) an iteration prompt rendered against the remediation fixture must contain a substring from the remediation summary; (5) a bootstrap prompt must not contain any prior-iteration context. These assertions are brittle by design — they should fail if the template rendering logic accidentally drops critical content under budget pressure.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1156,7 +1178,10 @@
       "dependsOn": [
         "T32.1",
         "T32.2",
-        "T32.3"
+        "T32.3",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "EXECUTE AFTER T27 (iterationEngine decomposition), BEFORE T33. control_plane_reload_required is not an error — the iteration completed cleanly before the stop. The only reason a human is involved is that Ralph has no mechanism to trigger an extension host restart itself. VS Code exposes vscode.commands.executeCommand('workbench.action.reloadWindow') which restarts the extension host without closing the window. In loop mode this stop reason should auto-trigger that command after persisting the iteration result, rather than surfacing it as an operator decision point. This is the lowest-risk human-removal change in the codebase because the state is already clean when the reload fires."
     },
@@ -1165,6 +1190,11 @@
       "title": "Add ralphCodex.autoReloadOnControlPlaneChange boolean setting defaulting to false",
       "status": "todo",
       "parentId": "T32",
+      "dependsOn": [
+        "T24",
+        "T29",
+        "T30"
+      ],
       "notes": "Add ralphCodex.autoReloadOnControlPlaneChange to package.json contributes.configuration as a boolean with default false and a description stating that when enabled, Ralph will automatically execute workbench.action.reloadWindow after a control_plane_reload_required stop in loop mode instead of waiting for operator action. Add the corresponding field to the config type in src/config/types.ts and the read path in src/config/readConfig.ts. Default is false so existing behaviour is unchanged until the operator explicitly opts in.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
@@ -1174,7 +1204,10 @@
       "status": "todo",
       "parentId": "T32",
       "dependsOn": [
-        "T32.1"
+        "T32.1",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "In src/commands/registerCommands.ts, in the Run CLI Loop command handler, after an iteration returns with stopReason === 'control_plane_reload_required': if autoReloadOnControlPlaneChange is true, log a message to the output channel stating Ralph is reloading the extension host to apply control-plane changes, wait 1500ms to ensure the iteration result artifact has been flushed to disk, then call vscode.commands.executeCommand('workbench.action.reloadWindow'). The wait is intentional — do not skip it. If autoReloadOnControlPlaneChange is false, preserve the existing behaviour of surfacing the stop to the operator. Do not trigger auto-reload from the Run CLI Iteration single-shot command — only from the loop path.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
@@ -1185,7 +1218,10 @@
       "status": "todo",
       "parentId": "T32",
       "dependsOn": [
-        "T32.2"
+        "T32.2",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "Add tests in test/commandShell.smoke.test.ts covering: auto-reload is not triggered when autoReloadOnControlPlaneChange is false; auto-reload is not triggered from the single-shot iteration command even when the setting is true; the reload command is invoked with the correct VS Code command id when the setting is true and the stop reason is control_plane_reload_required. Mock vscode.commands.executeCommand in the test environment. Add a Control-Plane Reload subsection to the Run The Ralph Loop section of docs/workflows.md explaining the setting, the 1500ms flush delay, and that reloadWindow is only safe here because the iteration result was already persisted before the reload fires. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1198,7 +1234,10 @@
         "T33.1",
         "T33.2",
         "T33.3",
-        "T33.4"
+        "T33.4",
+        "T24",
+        "T29",
+        "T30"
       ],
       "notes": "EXECUTE AFTER T28 (ledger gate) and T24.1 (task claiming). The manual Apply Latest Task Decomposition Proposal command exists because writing to tasks.json felt consequential at the time. But buildRemediationArtifact already validates proposals at construction: child tasks are one level deep, capped at three, inherit only the parent validation command, and are rejected at write time if they create duplicates or graph invalidity. The human in this loop is not adding judgment — they are running a command that Ralph could run itself. decompose_task auto-application is safe under those hard constraints. mark_blocked is safer still — it is additive, setting a status and blocker field without restructuring the graph. reframe_task is explicitly excluded from auto-application because it changes the semantic meaning of a task title and scope, which requires human intent. request_human_review is a hard stop by definition and must never be auto-applied."
     },
@@ -1207,6 +1246,11 @@
       "title": "Add ralphCodex.autoApplyRemediation setting with decompose_task and mark_blocked as opt-in actions",
       "status": "todo",
       "parentId": "T33",
+      "dependsOn": [
+        "T24",
+        "T29",
+        "T30"
+      ],
       "notes": "Add ralphCodex.autoApplyRemediation to package.json contributes.configuration as an array of strings with items enum ['decompose_task', 'mark_blocked'] and default empty array. This means auto-application is fully opt-in — an operator who wants both actions automated sets ['decompose_task', 'mark_blocked']; an operator who only wants mark_blocked sets ['mark_blocked']; the default empty array preserves current behaviour exactly. Do not include reframe_task or request_human_review in the enum — they must not be auto-applicable. Add the field to src/config/types.ts and src/config/readConfig.ts.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },

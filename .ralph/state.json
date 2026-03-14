@@ -3,7 +3,7 @@
   "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
   "nextIteration": 28,
   "lastPromptKind": "fix-failure",
-  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-027.prompt.md",
+  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-028.prompt.md",
   "lastRun": {
     "agentId": "default",
     "provenanceId": "run-i027-cli-20260314T075052Z",
@@ -370,11 +370,11 @@
       "inspectFinishedAt": "2026-03-14T07:50:52.506Z",
       "taskSelectedAt": "2026-03-14T07:50:52.506Z",
       "promptGeneratedAt": "2026-03-14T07:50:53.800Z",
+      "executionStartedAt": "2026-03-14T07:50:56.716Z",
+      "executionFinishedAt": "2026-03-14T07:56:56.238Z",
       "resultCollectedAt": "2026-03-14T07:56:56.261Z",
       "verificationFinishedAt": "2026-03-14T08:02:14.545Z",
       "classifiedAt": "2026-03-14T08:02:14.545Z",
-      "executionStartedAt": "2026-03-14T07:50:56.716Z",
-      "executionFinishedAt": "2026-03-14T07:56:56.238Z",
       "persistedAt": "2026-03-14T08:02:14.545Z"
     },
     "summary": "Selected T27.1: Extract completion-report parsing into src/ralph/completionReportParser.ts | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 58",
@@ -425,6 +425,7 @@
           "warnings": [],
           "errors": [],
           "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\git-diff.json",
+          "failureSignature": null,
           "metadata": {
             "changedFiles": [
               "ralph-codex-vscode-starter/src/ralph/completionReportParser.ts",
@@ -444,7 +445,8 @@
           "errors": [
             "Full npm test run is blocked by existing environment-level child-process failures: multiple tests fail with spawn EPERM when launching git or verifier commands."
           ],
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\task-state.json"
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\task-state.json",
+          "failureSignature": null
         }
       ]
     },
@@ -5024,11 +5026,11 @@
         "inspectFinishedAt": "2026-03-14T07:50:52.506Z",
         "taskSelectedAt": "2026-03-14T07:50:52.506Z",
         "promptGeneratedAt": "2026-03-14T07:50:53.800Z",
+        "executionStartedAt": "2026-03-14T07:50:56.716Z",
+        "executionFinishedAt": "2026-03-14T07:56:56.238Z",
         "resultCollectedAt": "2026-03-14T07:56:56.261Z",
         "verificationFinishedAt": "2026-03-14T08:02:14.545Z",
         "classifiedAt": "2026-03-14T08:02:14.545Z",
-        "executionStartedAt": "2026-03-14T07:50:56.716Z",
-        "executionFinishedAt": "2026-03-14T07:56:56.238Z",
         "persistedAt": "2026-03-14T08:02:14.545Z"
       },
       "summary": "Selected T27.1: Extract completion-report parsing into src/ralph/completionReportParser.ts | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 58",
@@ -5079,6 +5081,7 @@
             "warnings": [],
             "errors": [],
             "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\git-diff.json",
+            "failureSignature": null,
             "metadata": {
               "changedFiles": [
                 "ralph-codex-vscode-starter/src/ralph/completionReportParser.ts",
@@ -5098,7 +5101,8 @@
             "errors": [
               "Full npm test run is blocked by existing environment-level child-process failures: multiple tests fail with spawn EPERM when launching git or verifier commands."
             ],
-            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\task-state.json"
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-027\\task-state.json",
+            "failureSignature": null
           }
         ]
       },
@@ -5137,5 +5141,5 @@
       "stopReason": "control_plane_reload_required"
     }
   ],
-  "updatedAt": "2026-03-14T08:02:14.601Z"
+  "updatedAt": "2026-03-14T08:06:22.046Z"
 }
