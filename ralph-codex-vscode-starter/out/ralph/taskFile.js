@@ -145,8 +145,14 @@ function claimIdentityMatches(left, right) {
     return left.taskId === right.taskId
         && left.agentId === right.agentId
         && left.provenanceId === right.provenanceId
-        && left.claimedAt === right.claimedAt
+        && left.claimedAt === right.claimedAt;
+}
+function claimRecordMatches(left, right) {
+    return claimIdentityMatches(left, right)
         && left.status === right.status;
+}
+function findClaim(claimFile, candidate) {
+    return claimFile.claims.find((claim) => claimRecordMatches(claim, candidate)) ?? null;
 }
 function resolveClaimTtlMs(options) {
     return Math.max(0, Math.floor(options?.ttlMs ?? DEFAULT_CLAIM_TTL_MS));
@@ -1017,7 +1023,7 @@ async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, option
         await writeTaskClaimFile(claimFilePath, nextClaimFile);
         const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
         const verifiedCanonicalClaim = canonicalClaimForTask(verifiedClaimFile, taskId);
-        if (!verifiedCanonicalClaim || !claimIdentityMatches(verifiedCanonicalClaim, nextClaim)) {
+        if (!verifiedCanonicalClaim || !claimRecordMatches(verifiedCanonicalClaim, nextClaim)) {
             return {
                 outcome: 'contested',
                 claim: null,
@@ -1049,7 +1055,7 @@ async function releaseClaim(claimFilePath, taskId, agentId, options) {
         const nextClaimFile = {
             version: 1,
             claims: claimFile.claims.map((claim) => {
-                if (claimIdentityMatches(claim, canonicalClaim)) {
+                if (claimRecordMatches(claim, canonicalClaim)) {
                     releasedClaim = {
                         ...claim,
                         status: 'released'
@@ -1061,9 +1067,13 @@ async function releaseClaim(claimFilePath, taskId, agentId, options) {
         };
         await writeTaskClaimFile(claimFilePath, nextClaimFile);
         const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+        const verifiedReleasedClaim = releasedClaim ? findClaim(verifiedClaimFile, releasedClaim) : null;
+        if (!releasedClaim || !verifiedReleasedClaim) {
+            throw new Error(`Failed to verify released claim for task ${taskId} held by agent ${agentId}.`);
+        }
         return {
             outcome: 'released',
-            releasedClaim: describeClaim(releasedClaim, options),
+            releasedClaim: describeClaim(verifiedReleasedClaim, options),
             canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
             claimFile: verifiedClaimFile
         };

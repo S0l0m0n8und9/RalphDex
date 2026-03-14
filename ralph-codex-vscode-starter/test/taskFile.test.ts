@@ -594,3 +594,66 @@ test('acquireClaim surfaces stale canonical claims without auto-releasing them',
   const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ status: string }> };
   assert.deepEqual(persisted.claims.map((claim) => claim.status), ['active']);
 });
+
+test('acquireClaim uses the file lock so concurrent claim attempts leave one canonical holder', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  const [first, second] = await Promise.all([
+    acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', {
+      now,
+      lockRetryCount: 50,
+      lockRetryDelayMs: 10
+    }),
+    acquireClaim(claimFilePath, 'T24.1.2', 'agent-b', 'run-002', {
+      now,
+      lockRetryCount: 50,
+      lockRetryDelayMs: 10
+    })
+  ]);
+
+  const outcomes = [first, second].map((result) => result.outcome).sort();
+  assert.deepEqual(outcomes, ['acquired', 'contested']);
+
+  const acquired = [first, second].find((result) => result.outcome === 'acquired');
+  const contested = [first, second].find((result) => result.outcome === 'contested');
+  assert.ok(acquired);
+  assert.ok(contested);
+  assert.equal(contested.canonicalClaim?.claim.agentId, acquired.claim?.claim.agentId);
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; provenanceId: string; claimedAt: string; status: string }>;
+  };
+  assert.equal(persisted.claims.length, 1);
+  assert.deepEqual(
+    {
+      taskId: persisted.claims[0]?.taskId,
+      agentId: persisted.claims[0]?.agentId,
+      provenanceId: persisted.claims[0]?.provenanceId,
+      status: persisted.claims[0]?.status
+    },
+    {
+      taskId: 'T24.1.2',
+      agentId: acquired.claim?.claim.agentId,
+      provenanceId: acquired.claim?.claim.provenanceId,
+      status: 'active'
+    }
+  );
+  assert.equal(persisted.claims[0]?.claimedAt, now.toISOString());
+});
+
+test('claim file mutations do not leave temporary write or lock artifacts behind', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+  await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', { now });
+
+  const remainingEntries = (await fs.readdir(tempRoot))
+    .filter((entry) => entry !== path.basename(claimFilePath))
+    .sort();
+
+  assert.deepEqual(remainingEntries, []);
+});

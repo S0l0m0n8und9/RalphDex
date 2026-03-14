@@ -405,7 +405,7 @@ async function validateLocalMarkdownLinks(input: {
         continue;
       }
 
-      const targetRelativePath = path.relative(input.repoRoot, resolved.absoluteFilePath);
+      const targetRelativePath = toRepoRelativePath(input.repoRoot, resolved.absoluteFilePath);
       let target = input.markdownCache.get(targetRelativePath);
       if (!target) {
         const text = await fs.readFile(resolved.absoluteFilePath, 'utf8');
@@ -578,7 +578,7 @@ async function validateRequiredSectionLinks(input: {
       continue;
     }
 
-    resolvedTargets.add(path.relative(input.repoRoot, resolved.absoluteFilePath));
+    resolvedTargets.add(toRepoRelativePath(input.repoRoot, resolved.absoluteFilePath));
   }
 
   for (const requiredTarget of input.requiredTargets) {
@@ -782,6 +782,10 @@ function sameMembers(left: string[], right: string[]): boolean {
 
 function formatList(values: string[]): string {
   return values.map((value) => `"${value}"`).join(', ');
+}
+
+function toRepoRelativePath(rootDir: string, targetPath: string): string {
+  return path.relative(rootDir, targetPath).replace(/\\/g, '/');
 }
 
 function toMarkdownSlug(value: string): string {

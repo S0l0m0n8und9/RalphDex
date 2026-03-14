@@ -97,7 +97,7 @@ function relativeFromRoot(rootPath: string, target: string | null): string {
     return 'none';
   }
 
-  return path.relative(rootPath, target) || '.';
+  return (path.relative(rootPath, target) || '.').replace(/\\/g, '/');
 }
 
 function shortHash(hash: string | null | undefined): string {

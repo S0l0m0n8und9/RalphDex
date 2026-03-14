@@ -1,22 +1,22 @@
 {
   "version": 2,
   "objectivePreview": "Build Ralph into a durable, file-backed multi-agent delivery framework that can move a repository from requirements analysis through implementation, testing, an",
-  "nextIteration": 7,
-  "lastPromptKind": "fix-failure",
-  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-006.prompt.md",
+  "nextIteration": 13,
+  "lastPromptKind": "continue-progress",
+  "lastPromptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-012.prompt.md",
   "lastRun": {
-    "provenanceId": "run-i006-cli-20260314T010037Z",
-    "iteration": 6,
+    "provenanceId": "run-i012-cli-20260314T033745Z",
+    "iteration": 12,
     "mode": "loop",
-    "promptKind": "fix-failure",
-    "startedAt": "2026-03-14T01:00:37.365Z",
-    "finishedAt": "2026-03-14T01:09:55.739Z",
+    "promptKind": "continue-progress",
+    "startedAt": "2026-03-14T03:37:45.561Z",
+    "finishedAt": "2026-03-14T03:44:13.185Z",
     "status": "succeeded",
     "exitCode": 0,
-    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-006.prompt.md",
-    "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.transcript.md",
-    "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.last-message.md",
-    "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-012.prompt.md",
+    "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.transcript.md",
+    "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.last-message.md",
+    "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
   },
   "runHistory": [
     {
@@ -102,20 +102,104 @@
       "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.transcript.md",
       "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.last-message.md",
       "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i007-cli-20260314T015340Z",
+      "iteration": 7,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T01:53:40.189Z",
+      "finishedAt": "2026-03-14T02:05:32.661Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-007.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-007.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-007.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i008-cli-20260314T022601Z",
+      "iteration": 8,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T02:26:01.541Z",
+      "finishedAt": "2026-03-14T02:35:04.361Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-008.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-008.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-008.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i009-cli-20260314T023504Z",
+      "iteration": 9,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T02:35:04.423Z",
+      "finishedAt": "2026-03-14T02:41:22.115Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-009.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-009.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-009.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i010-cli-20260314T024122Z",
+      "iteration": 10,
+      "mode": "loop",
+      "promptKind": "fix-failure",
+      "startedAt": "2026-03-14T02:41:22.175Z",
+      "finishedAt": "2026-03-14T02:52:35.493Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-010.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-010.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-010.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i011-cli-20260314T025511Z",
+      "iteration": 11,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T02:55:10.892Z",
+      "finishedAt": "2026-03-14T03:03:50.081Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-011.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-011.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-011.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13"
+    },
+    {
+      "provenanceId": "run-i012-cli-20260314T033745Z",
+      "iteration": 12,
+      "mode": "loop",
+      "promptKind": "continue-progress",
+      "startedAt": "2026-03-14T03:37:45.561Z",
+      "finishedAt": "2026-03-14T03:44:13.185Z",
+      "status": "succeeded",
+      "exitCode": 0,
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-012.prompt.md",
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.last-message.md",
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13"
     }
   ],
   "lastIteration": {
     "schemaVersion": 1,
-    "provenanceId": "run-i006-cli-20260314T010037Z",
-    "iteration": 6,
+    "provenanceId": "run-i012-cli-20260314T033745Z",
+    "iteration": 12,
     "selectedTaskId": "T24.1.2",
     "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
-    "promptKind": "fix-failure",
-    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-006.prompt.md",
-    "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006",
+    "promptKind": "continue-progress",
+    "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-012.prompt.md",
+    "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012",
     "adapterUsed": "cliExec",
     "executionIntegrity": {
-      "provenanceId": "run-i006-cli-20260314T010037Z",
+      "provenanceId": "run-i012-cli-20260314T033745Z",
       "promptTarget": "cliExec",
       "rootPolicy": {
         "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
@@ -126,61 +210,61 @@
         "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
         "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
       },
-      "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\fix-failure.md",
+      "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
       "reasoningEffort": "medium",
       "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
       "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
       "normalizedValidationCommandFrom": null,
-      "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\execution-plan.json",
-      "executionPlanHash": "sha256:68e57b50d68e2c69c63ea1e1e9e583c75eef0d7cf94c574b019d0921d67e60f1",
-      "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\prompt.md",
-      "promptHash": "sha256:bd6e0006c143194f1200381cda2f5a06df0bdde7e63182c689940b77f50a9117",
-      "promptByteLength": 6749,
-      "executionPayloadHash": "sha256:bd6e0006c143194f1200381cda2f5a06df0bdde7e63182c689940b77f50a9117",
+      "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\execution-plan.json",
+      "executionPlanHash": "sha256:762e899657004818751f418f5b76c1a3bbd46fe7ef081936c8c52e04e4531691",
+      "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\prompt.md",
+      "promptHash": "sha256:d6db1dcd5b708af3292d0a9d4d2225005b54c0cab069d264bc00da7cfcb70fe4",
+      "promptByteLength": 5914,
+      "executionPayloadHash": "sha256:d6db1dcd5b708af3292d0a9d4d2225005b54c0cab069d264bc00da7cfcb70fe4",
       "executionPayloadMatched": true,
       "mismatchReason": null,
-      "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\cli-invocation.json"
+      "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\cli-invocation.json"
     },
     "executionStatus": "succeeded",
     "verificationStatus": "failed",
-    "completionClassification": "partial_progress",
-    "followUpAction": "stop",
-    "startedAt": "2026-03-14T01:00:37.365Z",
-    "finishedAt": "2026-03-14T01:09:55.739Z",
+    "completionClassification": "no_progress",
+    "followUpAction": "retry_same_task",
+    "startedAt": "2026-03-14T03:37:45.561Z",
+    "finishedAt": "2026-03-14T03:44:13.185Z",
     "phaseTimestamps": {
-      "inspectStartedAt": "2026-03-14T01:00:37.365Z",
-      "inspectFinishedAt": "2026-03-14T01:00:37.479Z",
-      "taskSelectedAt": "2026-03-14T01:00:37.479Z",
-      "promptGeneratedAt": "2026-03-14T01:00:38.440Z",
-      "executionStartedAt": "2026-03-14T01:00:40.494Z",
-      "executionFinishedAt": "2026-03-14T01:06:26.427Z",
-      "resultCollectedAt": "2026-03-14T01:06:26.431Z",
-      "verificationFinishedAt": "2026-03-14T01:09:55.738Z",
-      "classifiedAt": "2026-03-14T01:09:55.739Z",
-      "persistedAt": "2026-03-14T01:09:55.739Z"
+      "inspectStartedAt": "2026-03-14T03:37:45.561Z",
+      "inspectFinishedAt": "2026-03-14T03:37:45.686Z",
+      "taskSelectedAt": "2026-03-14T03:37:45.686Z",
+      "promptGeneratedAt": "2026-03-14T03:37:46.670Z",
+      "executionStartedAt": "2026-03-14T03:37:47.860Z",
+      "executionFinishedAt": "2026-03-14T03:41:09.228Z",
+      "resultCollectedAt": "2026-03-14T03:41:09.232Z",
+      "verificationFinishedAt": "2026-03-14T03:44:13.184Z",
+      "classifiedAt": "2026-03-14T03:44:13.184Z",
+      "persistedAt": "2026-03-14T03:44:13.185Z"
     },
-    "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13",
+    "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13",
     "warnings": [
       "Completion report requested done, but verification status was failed.",
-      "Task and progress files were unchanged during the iteration.",
-      "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/package.json)"
+      "No relevant workspace changes were detected.",
+      "Task and progress files were unchanged during the iteration."
     ],
     "errors": [
       "Validation command exited with 1."
     ],
     "execution": {
       "exitCode": 0,
-      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.transcript.md",
-      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-006.last-message.md",
-      "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\stdout.log",
-      "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\stderr.log"
+      "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.transcript.md",
+      "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.last-message.md",
+      "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\stdout.log",
+      "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\stderr.log"
     },
     "verification": {
       "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
       "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
       "normalizedValidationCommandFrom": null,
       "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
-      "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:16656) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+      "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:12216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
       "verifiers": [
         {
           "verifier": "validationCommand",
@@ -191,31 +275,29 @@
             "Validation command exited with 1."
           ],
           "command": "cd ralph-codex-vscode-starter && npm test",
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\validation-command.json",
-          "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:16656) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.json",
+          "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:12216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
           "metadata": {
             "exitCode": 1,
             "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
             "normalizedValidationCommandFrom": null,
-            "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\validation-command.stdout.log",
-            "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\validation-command.stderr.log"
+            "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.stdout.log",
+            "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.stderr.log"
           }
         },
         {
           "verifier": "gitDiff",
-          "status": "passed",
-          "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
-          "warnings": [],
+          "status": "failed",
+          "summary": "No relevant file changes were detected.",
+          "warnings": [
+            "No relevant workspace changes were detected."
+          ],
           "errors": [],
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\git-diff.json",
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-diff.json",
           "failureSignature": null,
           "metadata": {
-            "changedFiles": [
-              "ralph-codex-vscode-starter/package.json"
-            ],
-            "relevantChangedFiles": [
-              "ralph-codex-vscode-starter/package.json"
-            ]
+            "changedFiles": [],
+            "relevantChangedFiles": []
           }
         },
         {
@@ -226,7 +308,7 @@
             "Task and progress files were unchanged during the iteration."
           ],
           "errors": [],
-          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\task-state.json",
+          "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\task-state.json",
           "failureSignature": null
         }
       ]
@@ -238,24 +320,18 @@
     "diffSummary": {
       "available": true,
       "gitAvailable": true,
-      "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
-      "changedFileCount": 1,
-      "relevantChangedFileCount": 1,
-      "changedFiles": [
-        "ralph-codex-vscode-starter/package.json"
-      ],
-      "relevantChangedFiles": [
-        "ralph-codex-vscode-starter/package.json"
-      ],
-      "statusTransitions": [
-        "ralph-codex-vscode-starter/package.json: clean -> M"
-      ],
-      "suggestedCheckpointRef": "ralph/iter-iteration-006",
-      "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\git-status-before.txt",
-      "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-006\\git-status-after.txt"
+      "summary": "No relevant file changes were detected.",
+      "changedFileCount": 0,
+      "relevantChangedFileCount": 0,
+      "changedFiles": [],
+      "relevantChangedFiles": [],
+      "statusTransitions": [],
+      "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-status-before.txt",
+      "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-status-after.txt"
     },
     "noProgressSignals": [
       "same_task_selected_repeatedly",
+      "no_relevant_file_changes",
       "task_and_progress_state_unchanged"
     ],
     "remediation": null,
@@ -263,7 +339,7 @@
     "reconciliationWarnings": [
       "Completion report requested done, but verification status was failed."
     ],
-    "stopReason": "control_plane_reload_required"
+    "stopReason": null
   },
   "iterationHistory": [
     {
@@ -1213,7 +1289,1174 @@
         "Completion report requested done, but verification status was failed."
       ],
       "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i007-cli-20260314T015340Z",
+      "iteration": 7,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-007.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i007-cli-20260314T015340Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\execution-plan.json",
+        "executionPlanHash": "sha256:b7dbd54d856105c01b6bec4e3a07e05d78fc7b39ac012b4d1a049c9d97c0650d",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\prompt.md",
+        "promptHash": "sha256:724204a28752b77611856cf78fb7e8bc24411f7caa0245c5e8da6b2b1982c536",
+        "promptByteLength": 5913,
+        "executionPayloadHash": "sha256:724204a28752b77611856cf78fb7e8bc24411f7caa0245c5e8da6b2b1982c536",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "partial_progress",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-14T01:53:40.189Z",
+      "finishedAt": "2026-03-14T02:05:32.661Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T01:53:40.189Z",
+        "inspectFinishedAt": "2026-03-14T01:53:40.318Z",
+        "taskSelectedAt": "2026-03-14T01:53:40.318Z",
+        "promptGeneratedAt": "2026-03-14T01:53:41.589Z",
+        "executionStartedAt": "2026-03-14T01:53:44.287Z",
+        "executionFinishedAt": "2026-03-14T02:00:48.475Z",
+        "resultCollectedAt": "2026-03-14T02:00:48.482Z",
+        "verificationFinishedAt": "2026-03-14T02:05:32.660Z",
+        "classifiedAt": "2026-03-14T02:05:32.661Z",
+        "persistedAt": "2026-03-14T02:05:32.662Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "Task and progress files were unchanged during the iteration.",
+        "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/out/codex/cliExecStrategy.js, ralph-codex-vscode-starter/out/codex/clipboardStrategy.js, ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js, ralph-codex-vscode-starter/out/codex/providerFactory.js, ralph-codex-vscode-starter/out/codex/types.js, ralph-codex-vscode-starter/out/commands/registerCommands.js, ralph-codex-vscode-starter/out/commands/workspaceSupport.js, ralph-codex-vscode-starter/out/config/defaults.js, ralph-codex-vscode-starter/out/config/readConfig.js, ralph-codex-vscode-starter/out/config/types.js, ralph-codex-vscode-starter/out/extension.js, ralph-codex-vscode-starter/out/prompt/promptBuilder.js, ralph-codex-vscode-starter/out/ralph/artifactStore.js, ralph-codex-vscode-starter/out/ralph/integrity.js, ralph-codex-vscode-starter/out/ralph/iterationEngine.js, ralph-codex-vscode-starter/out/ralph/loopLogic.js, ralph-codex-vscode-starter/out/ralph/pathResolver.js, ralph-codex-vscode-starter/out/ralph/preflight.js, ralph-codex-vscode-starter/out/ralph/rootPolicy.js, ralph-codex-vscode-starter/out/ralph/stateManager.js, ralph-codex-vscode-starter/out/ralph/statusReport.js, ralph-codex-vscode-starter/out/ralph/taskFile.js, ralph-codex-vscode-starter/out/ralph/taskFile.js.map, ralph-codex-vscode-starter/out/ralph/types.js, ralph-codex-vscode-starter/out/ralph/verifier.js, ralph-codex-vscode-starter/out/services/codexCliSupport.js, ralph-codex-vscode-starter/out/services/logger.js, ralph-codex-vscode-starter/out/services/processRunner.js, ralph-codex-vscode-starter/out/services/workspaceInspection.js, ralph-codex-vscode-starter/out/services/workspaceScanner.js, ralph-codex-vscode-starter/out/validation/checkDocs.js, ralph-codex-vscode-starter/out/validation/docsValidator.js, ralph-codex-vscode-starter/package.json, ralph-codex-vscode-starter/src/ralph/taskFile.ts, ralph-codex-vscode-starter/src/ralph/types.ts)"
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-007.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-007.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:31400) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:31400) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 42 relevant changed file(s) out of 43 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                ".ralph/progress.md",
+                ".ralph/state.json",
+                ".ralph/tasks.json",
+                ".vscode/launch.json",
+                ".vscode/tasks.json",
+                "ralph-codex-vscode-starter/docs/architecture.md",
+                "ralph-codex-vscode-starter/docs/invariants.md",
+                "ralph-codex-vscode-starter/docs/testing.md",
+                "ralph-codex-vscode-starter/out/codex/cliExecStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/clipboardStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/providerFactory.js",
+                "ralph-codex-vscode-starter/out/codex/types.js",
+                "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+                "ralph-codex-vscode-starter/out/commands/workspaceSupport.js",
+                "ralph-codex-vscode-starter/out/config/defaults.js",
+                "ralph-codex-vscode-starter/out/config/readConfig.js",
+                "ralph-codex-vscode-starter/out/config/types.js",
+                "ralph-codex-vscode-starter/out/extension.js",
+                "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
+                "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+                "ralph-codex-vscode-starter/out/ralph/integrity.js",
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+                "ralph-codex-vscode-starter/out/ralph/loopLogic.js",
+                "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
+                "ralph-codex-vscode-starter/out/ralph/preflight.js",
+                "ralph-codex-vscode-starter/out/ralph/rootPolicy.js",
+                "ralph-codex-vscode-starter/out/ralph/stateManager.js",
+                "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+                "ralph-codex-vscode-starter/out/ralph/types.js",
+                "ralph-codex-vscode-starter/out/ralph/verifier.js",
+                "ralph-codex-vscode-starter/out/services/codexCliSupport.js",
+                "ralph-codex-vscode-starter/out/services/logger.js",
+                "ralph-codex-vscode-starter/out/services/processRunner.js",
+                "ralph-codex-vscode-starter/out/services/workspaceInspection.js",
+                "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+                "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+                "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+                "ralph-codex-vscode-starter/package.json",
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+                "ralph-codex-vscode-starter/src/ralph/types.ts"
+              ],
+              "relevantChangedFiles": [
+                ".ralph/progress.md",
+                ".ralph/tasks.json",
+                ".vscode/launch.json",
+                ".vscode/tasks.json",
+                "ralph-codex-vscode-starter/docs/architecture.md",
+                "ralph-codex-vscode-starter/docs/invariants.md",
+                "ralph-codex-vscode-starter/docs/testing.md",
+                "ralph-codex-vscode-starter/out/codex/cliExecStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/clipboardStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js",
+                "ralph-codex-vscode-starter/out/codex/providerFactory.js",
+                "ralph-codex-vscode-starter/out/codex/types.js",
+                "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+                "ralph-codex-vscode-starter/out/commands/workspaceSupport.js",
+                "ralph-codex-vscode-starter/out/config/defaults.js",
+                "ralph-codex-vscode-starter/out/config/readConfig.js",
+                "ralph-codex-vscode-starter/out/config/types.js",
+                "ralph-codex-vscode-starter/out/extension.js",
+                "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
+                "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+                "ralph-codex-vscode-starter/out/ralph/integrity.js",
+                "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+                "ralph-codex-vscode-starter/out/ralph/loopLogic.js",
+                "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
+                "ralph-codex-vscode-starter/out/ralph/preflight.js",
+                "ralph-codex-vscode-starter/out/ralph/rootPolicy.js",
+                "ralph-codex-vscode-starter/out/ralph/stateManager.js",
+                "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+                "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+                "ralph-codex-vscode-starter/out/ralph/types.js",
+                "ralph-codex-vscode-starter/out/ralph/verifier.js",
+                "ralph-codex-vscode-starter/out/services/codexCliSupport.js",
+                "ralph-codex-vscode-starter/out/services/logger.js",
+                "ralph-codex-vscode-starter/out/services/processRunner.js",
+                "ralph-codex-vscode-starter/out/services/workspaceInspection.js",
+                "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+                "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+                "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+                "ralph-codex-vscode-starter/package.json",
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+                "ralph-codex-vscode-starter/src/ralph/types.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 42 relevant changed file(s) out of 43 total changes.",
+        "changedFileCount": 43,
+        "relevantChangedFileCount": 42,
+        "changedFiles": [
+          ".ralph/progress.md",
+          ".ralph/state.json",
+          ".ralph/tasks.json",
+          ".vscode/launch.json",
+          ".vscode/tasks.json",
+          "ralph-codex-vscode-starter/docs/architecture.md",
+          "ralph-codex-vscode-starter/docs/invariants.md",
+          "ralph-codex-vscode-starter/docs/testing.md",
+          "ralph-codex-vscode-starter/out/codex/cliExecStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/clipboardStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/providerFactory.js",
+          "ralph-codex-vscode-starter/out/codex/types.js",
+          "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+          "ralph-codex-vscode-starter/out/commands/workspaceSupport.js",
+          "ralph-codex-vscode-starter/out/config/defaults.js",
+          "ralph-codex-vscode-starter/out/config/readConfig.js",
+          "ralph-codex-vscode-starter/out/config/types.js",
+          "ralph-codex-vscode-starter/out/extension.js",
+          "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
+          "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+          "ralph-codex-vscode-starter/out/ralph/integrity.js",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+          "ralph-codex-vscode-starter/out/ralph/loopLogic.js",
+          "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
+          "ralph-codex-vscode-starter/out/ralph/preflight.js",
+          "ralph-codex-vscode-starter/out/ralph/rootPolicy.js",
+          "ralph-codex-vscode-starter/out/ralph/stateManager.js",
+          "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+          "ralph-codex-vscode-starter/out/ralph/types.js",
+          "ralph-codex-vscode-starter/out/ralph/verifier.js",
+          "ralph-codex-vscode-starter/out/services/codexCliSupport.js",
+          "ralph-codex-vscode-starter/out/services/logger.js",
+          "ralph-codex-vscode-starter/out/services/processRunner.js",
+          "ralph-codex-vscode-starter/out/services/workspaceInspection.js",
+          "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+          "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+          "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+          "ralph-codex-vscode-starter/package.json",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+          "ralph-codex-vscode-starter/src/ralph/types.ts"
+        ],
+        "relevantChangedFiles": [
+          ".ralph/progress.md",
+          ".ralph/tasks.json",
+          ".vscode/launch.json",
+          ".vscode/tasks.json",
+          "ralph-codex-vscode-starter/docs/architecture.md",
+          "ralph-codex-vscode-starter/docs/invariants.md",
+          "ralph-codex-vscode-starter/docs/testing.md",
+          "ralph-codex-vscode-starter/out/codex/cliExecStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/clipboardStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js",
+          "ralph-codex-vscode-starter/out/codex/providerFactory.js",
+          "ralph-codex-vscode-starter/out/codex/types.js",
+          "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+          "ralph-codex-vscode-starter/out/commands/workspaceSupport.js",
+          "ralph-codex-vscode-starter/out/config/defaults.js",
+          "ralph-codex-vscode-starter/out/config/readConfig.js",
+          "ralph-codex-vscode-starter/out/config/types.js",
+          "ralph-codex-vscode-starter/out/extension.js",
+          "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
+          "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+          "ralph-codex-vscode-starter/out/ralph/integrity.js",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+          "ralph-codex-vscode-starter/out/ralph/loopLogic.js",
+          "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
+          "ralph-codex-vscode-starter/out/ralph/preflight.js",
+          "ralph-codex-vscode-starter/out/ralph/rootPolicy.js",
+          "ralph-codex-vscode-starter/out/ralph/stateManager.js",
+          "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+          "ralph-codex-vscode-starter/out/ralph/types.js",
+          "ralph-codex-vscode-starter/out/ralph/verifier.js",
+          "ralph-codex-vscode-starter/out/services/codexCliSupport.js",
+          "ralph-codex-vscode-starter/out/services/logger.js",
+          "ralph-codex-vscode-starter/out/services/processRunner.js",
+          "ralph-codex-vscode-starter/out/services/workspaceInspection.js",
+          "ralph-codex-vscode-starter/out/services/workspaceScanner.js",
+          "ralph-codex-vscode-starter/out/validation/checkDocs.js",
+          "ralph-codex-vscode-starter/out/validation/docsValidator.js",
+          "ralph-codex-vscode-starter/package.json",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+          "ralph-codex-vscode-starter/src/ralph/types.ts"
+        ],
+        "statusTransitions": [
+          ".ralph/progress.md: M -> clean",
+          ".ralph/state.json: M -> clean",
+          ".ralph/tasks.json: M -> clean",
+          ".vscode/launch.json: M -> clean",
+          ".vscode/tasks.json: ?? -> clean",
+          "ralph-codex-vscode-starter/docs/architecture.md: M -> clean",
+          "ralph-codex-vscode-starter/docs/invariants.md: M -> clean",
+          "ralph-codex-vscode-starter/docs/testing.md: M -> clean",
+          "ralph-codex-vscode-starter/out/codex/cliExecStrategy.js: M -> clean",
+          "ralph-codex-vscode-starter/out/codex/clipboardStrategy.js: M -> clean",
+          "ralph-codex-vscode-starter/out/codex/ideCommandStrategy.js: M -> clean",
+          "ralph-codex-vscode-starter/out/codex/providerFactory.js: M -> clean",
+          "ralph-codex-vscode-starter/out/codex/types.js: M -> clean",
+          "ralph-codex-vscode-starter/out/commands/registerCommands.js: M -> clean",
+          "ralph-codex-vscode-starter/out/commands/workspaceSupport.js: M -> clean",
+          "ralph-codex-vscode-starter/out/config/defaults.js: M -> clean",
+          "ralph-codex-vscode-starter/out/config/readConfig.js: M -> clean",
+          "ralph-codex-vscode-starter/out/config/types.js: M -> clean",
+          "ralph-codex-vscode-starter/out/extension.js: M -> clean",
+          "ralph-codex-vscode-starter/out/prompt/promptBuilder.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/artifactStore.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/integrity.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/iterationEngine.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/loopLogic.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/pathResolver.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/preflight.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/rootPolicy.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/stateManager.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/statusReport.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/taskFile.js.map: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/types.js: M -> clean",
+          "ralph-codex-vscode-starter/out/ralph/verifier.js: M -> clean",
+          "ralph-codex-vscode-starter/out/services/codexCliSupport.js: M -> clean",
+          "ralph-codex-vscode-starter/out/services/logger.js: M -> clean",
+          "ralph-codex-vscode-starter/out/services/processRunner.js: M -> clean",
+          "ralph-codex-vscode-starter/out/services/workspaceInspection.js: M -> clean",
+          "ralph-codex-vscode-starter/out/services/workspaceScanner.js: M -> clean",
+          "ralph-codex-vscode-starter/out/validation/checkDocs.js: M -> clean",
+          "ralph-codex-vscode-starter/out/validation/docsValidator.js: M -> clean",
+          "ralph-codex-vscode-starter/package.json: M -> clean",
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts: M -> clean",
+          "ralph-codex-vscode-starter/src/ralph/types.ts: M -> clean"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-007",
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-007\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i008-cli-20260314T022601Z",
+      "iteration": 8,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-008.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i008-cli-20260314T022601Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\execution-plan.json",
+        "executionPlanHash": "sha256:492514c06e30c22e80e45bcb9cefd39e566c0d64c3b78155e581dd3f75ed5f63",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\prompt.md",
+        "promptHash": "sha256:cb4324c2b5e2ee22378833ed5859091cd3615da60a9ab81dfb33f4e14347c1d6",
+        "promptByteLength": 5913,
+        "executionPayloadHash": "sha256:cb4324c2b5e2ee22378833ed5859091cd3615da60a9ab81dfb33f4e14347c1d6",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "partial_progress",
+      "followUpAction": "continue_same_task",
+      "startedAt": "2026-03-14T02:26:01.541Z",
+      "finishedAt": "2026-03-14T02:35:04.361Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T02:26:01.541Z",
+        "inspectFinishedAt": "2026-03-14T02:26:01.740Z",
+        "taskSelectedAt": "2026-03-14T02:26:01.740Z",
+        "promptGeneratedAt": "2026-03-14T02:26:03.367Z",
+        "executionStartedAt": "2026-03-14T02:26:05.675Z",
+        "executionFinishedAt": "2026-03-14T02:32:02.945Z",
+        "resultCollectedAt": "2026-03-14T02:32:02.950Z",
+        "verificationFinishedAt": "2026-03-14T02:35:04.361Z",
+        "classifiedAt": "2026-03-14T02:35:04.361Z",
+        "persistedAt": "2026-03-14T02:35:04.362Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "Task and progress files were unchanged during the iteration."
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-008.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-008.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:36744) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:36744) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/docs/testing.md"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/docs/testing.md"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
+        "changedFileCount": 1,
+        "relevantChangedFileCount": 1,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/docs/testing.md"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/docs/testing.md"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/docs/testing.md: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-008",
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-008\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i009-cli-20260314T023504Z",
+      "iteration": 9,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-009.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i009-cli-20260314T023504Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\execution-plan.json",
+        "executionPlanHash": "sha256:56c2b508d9c27ad82b3b8dac5773130cc934658bd6791cc2105428403a99bea0",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\prompt.md",
+        "promptHash": "sha256:194789e53e98c46285dca94e9b28dcf2e6fe1bddfd3452f82b67131a14ccf5d5",
+        "promptByteLength": 5913,
+        "executionPayloadHash": "sha256:194789e53e98c46285dca94e9b28dcf2e6fe1bddfd3452f82b67131a14ccf5d5",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "no_progress",
+      "followUpAction": "retry_same_task",
+      "startedAt": "2026-03-14T02:35:04.423Z",
+      "finishedAt": "2026-03-14T02:41:22.115Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T02:35:04.423Z",
+        "inspectFinishedAt": "2026-03-14T02:35:04.483Z",
+        "taskSelectedAt": "2026-03-14T02:35:04.483Z",
+        "promptGeneratedAt": "2026-03-14T02:35:04.946Z",
+        "executionStartedAt": "2026-03-14T02:35:06.900Z",
+        "executionFinishedAt": "2026-03-14T02:38:23.113Z",
+        "resultCollectedAt": "2026-03-14T02:38:23.116Z",
+        "verificationFinishedAt": "2026-03-14T02:41:22.114Z",
+        "classifiedAt": "2026-03-14T02:41:22.114Z",
+        "persistedAt": "2026-03-14T02:41:22.115Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "No relevant workspace changes were detected.",
+        "Task and progress files were unchanged during the iteration."
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-009.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-009.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:51856) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:51856) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "failed",
+            "summary": "No relevant file changes were detected.",
+            "warnings": [
+              "No relevant workspace changes were detected."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [],
+              "relevantChangedFiles": []
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "No relevant file changes were detected.",
+        "changedFileCount": 0,
+        "relevantChangedFileCount": 0,
+        "changedFiles": [],
+        "relevantChangedFiles": [],
+        "statusTransitions": [],
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-009\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "no_relevant_file_changes",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": null
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i010-cli-20260314T024122Z",
+      "iteration": 10,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "fix-failure",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\fix-failure-010.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i010-cli-20260314T024122Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\fix-failure.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\execution-plan.json",
+        "executionPlanHash": "sha256:472c7fb9dad1cc7006c08d102868f5e57474b669ef98551cf0e1152f7d3ad592",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\prompt.md",
+        "promptHash": "sha256:38bab796e8ed45739590632846eb861910ab6403f4f7df320ef0267fb7da3510",
+        "promptByteLength": 6135,
+        "executionPayloadHash": "sha256:38bab796e8ed45739590632846eb861910ab6403f4f7df320ef0267fb7da3510",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "partial_progress",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-14T02:41:22.175Z",
+      "finishedAt": "2026-03-14T02:52:35.493Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T02:41:22.175Z",
+        "inspectFinishedAt": "2026-03-14T02:41:22.256Z",
+        "taskSelectedAt": "2026-03-14T02:41:22.256Z",
+        "promptGeneratedAt": "2026-03-14T02:41:22.794Z",
+        "executionStartedAt": "2026-03-14T02:41:24.133Z",
+        "executionFinishedAt": "2026-03-14T02:49:28.206Z",
+        "resultCollectedAt": "2026-03-14T02:49:28.210Z",
+        "verificationFinishedAt": "2026-03-14T02:52:35.493Z",
+        "classifiedAt": "2026-03-14T02:52:35.493Z",
+        "persistedAt": "2026-03-14T02:52:35.493Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "Task and progress files were unchanged during the iteration.",
+        "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/src/ralph/statusReport.ts, ralph-codex-vscode-starter/src/ralph/verifier.ts, ralph-codex-vscode-starter/src/validation/docsValidator.ts)"
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-010.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\fix-failure-010.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:52532) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:52532) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 3 relevant changed file(s) out of 3 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+                "ralph-codex-vscode-starter/src/ralph/verifier.ts",
+                "ralph-codex-vscode-starter/src/validation/docsValidator.ts"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+                "ralph-codex-vscode-starter/src/ralph/verifier.ts",
+                "ralph-codex-vscode-starter/src/validation/docsValidator.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 3 relevant changed file(s) out of 3 total changes.",
+        "changedFileCount": 3,
+        "relevantChangedFileCount": 3,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+          "ralph-codex-vscode-starter/src/ralph/verifier.ts",
+          "ralph-codex-vscode-starter/src/validation/docsValidator.ts"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+          "ralph-codex-vscode-starter/src/ralph/verifier.ts",
+          "ralph-codex-vscode-starter/src/validation/docsValidator.ts"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/src/ralph/statusReport.ts: clean -> M",
+          "ralph-codex-vscode-starter/src/ralph/verifier.ts: clean -> M",
+          "ralph-codex-vscode-starter/src/validation/docsValidator.ts: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-010",
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-010\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i011-cli-20260314T025511Z",
+      "iteration": 11,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-011.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i011-cli-20260314T025511Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\execution-plan.json",
+        "executionPlanHash": "sha256:27dcc90c2b487d1139203f7f964789e5b79b1b5c7cc77e675f0d2854372e369a",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\prompt.md",
+        "promptHash": "sha256:d6fb03317b52456c081eb3836a92aa7ef1e58659eed259ac0835cfce527101ae",
+        "promptByteLength": 5914,
+        "executionPayloadHash": "sha256:d6fb03317b52456c081eb3836a92aa7ef1e58659eed259ac0835cfce527101ae",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "partial_progress",
+      "followUpAction": "stop",
+      "startedAt": "2026-03-14T02:55:10.892Z",
+      "finishedAt": "2026-03-14T03:03:50.081Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T02:55:10.892Z",
+        "inspectFinishedAt": "2026-03-14T02:55:11.017Z",
+        "taskSelectedAt": "2026-03-14T02:55:11.017Z",
+        "promptGeneratedAt": "2026-03-14T02:55:12.292Z",
+        "executionStartedAt": "2026-03-14T02:55:14.406Z",
+        "executionFinishedAt": "2026-03-14T03:00:48.927Z",
+        "resultCollectedAt": "2026-03-14T03:00:48.930Z",
+        "verificationFinishedAt": "2026-03-14T03:03:50.080Z",
+        "classifiedAt": "2026-03-14T03:03:50.080Z",
+        "persistedAt": "2026-03-14T03:03:50.081Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: partial_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "Task and progress files were unchanged during the iteration.",
+        "Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (ralph-codex-vscode-starter/src/ralph/taskFile.ts)"
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-011.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-011.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:48528) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:48528) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "passed",
+            "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
+            "warnings": [],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts"
+              ],
+              "relevantChangedFiles": [
+                "ralph-codex-vscode-starter/src/ralph/taskFile.ts"
+              ]
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "Detected 1 relevant changed file(s) out of 1 total changes.",
+        "changedFileCount": 1,
+        "relevantChangedFileCount": 1,
+        "changedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts"
+        ],
+        "relevantChangedFiles": [
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts"
+        ],
+        "statusTransitions": [
+          "ralph-codex-vscode-starter/src/ralph/taskFile.ts: clean -> M"
+        ],
+        "suggestedCheckpointRef": "ralph/iter-iteration-011",
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-011\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": "control_plane_reload_required"
+    },
+    {
+      "schemaVersion": 1,
+      "provenanceId": "run-i012-cli-20260314T033745Z",
+      "iteration": 12,
+      "selectedTaskId": "T24.1.2",
+      "selectedTaskTitle": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "promptKind": "continue-progress",
+      "promptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\prompts\\continue-progress-012.prompt.md",
+      "artifactDir": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012",
+      "adapterUsed": "cliExec",
+      "executionIntegrity": {
+        "provenanceId": "run-i012-cli-20260314T033745Z",
+        "promptTarget": "cliExec",
+        "rootPolicy": {
+          "workspaceRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "inspectionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "executionRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "verificationRootPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex",
+          "selectionStrategy": "workspaceRoot",
+          "selectionSummary": "Using the workspace root because it already exposes shallow repo markers.",
+          "policySummary": "Inspect, execute, and verify at the workspace root while storing Ralph artifacts under .ralph there."
+        },
+        "templatePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\ralph-codex-vscode-starter\\prompt-templates\\continue-progress.md",
+        "reasoningEffort": "medium",
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "executionPlanPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\execution-plan.json",
+        "executionPlanHash": "sha256:762e899657004818751f418f5b76c1a3bbd46fe7ef081936c8c52e04e4531691",
+        "promptArtifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\prompt.md",
+        "promptHash": "sha256:d6db1dcd5b708af3292d0a9d4d2225005b54c0cab069d264bc00da7cfcb70fe4",
+        "promptByteLength": 5914,
+        "executionPayloadHash": "sha256:d6db1dcd5b708af3292d0a9d4d2225005b54c0cab069d264bc00da7cfcb70fe4",
+        "executionPayloadMatched": true,
+        "mismatchReason": null,
+        "cliInvocationPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\cli-invocation.json"
+      },
+      "executionStatus": "succeeded",
+      "verificationStatus": "failed",
+      "completionClassification": "no_progress",
+      "followUpAction": "retry_same_task",
+      "startedAt": "2026-03-14T03:37:45.561Z",
+      "finishedAt": "2026-03-14T03:44:13.185Z",
+      "phaseTimestamps": {
+        "inspectStartedAt": "2026-03-14T03:37:45.561Z",
+        "inspectFinishedAt": "2026-03-14T03:37:45.686Z",
+        "taskSelectedAt": "2026-03-14T03:37:45.686Z",
+        "promptGeneratedAt": "2026-03-14T03:37:46.670Z",
+        "executionStartedAt": "2026-03-14T03:37:47.860Z",
+        "executionFinishedAt": "2026-03-14T03:41:09.228Z",
+        "resultCollectedAt": "2026-03-14T03:41:09.232Z",
+        "verificationFinishedAt": "2026-03-14T03:44:13.184Z",
+        "classifiedAt": "2026-03-14T03:44:13.184Z",
+        "persistedAt": "2026-03-14T03:44:13.185Z"
+      },
+      "summary": "Selected T24.1.2: Implement claim acquisition and release in taskFile.ts with file-level locking | Execution: succeeded | Verification: failed | Outcome: no_progress | Backlog remaining: 13",
+      "warnings": [
+        "Completion report requested done, but verification status was failed.",
+        "No relevant workspace changes were detected.",
+        "Task and progress files were unchanged during the iteration."
+      ],
+      "errors": [
+        "Validation command exited with 1."
+      ],
+      "execution": {
+        "exitCode": 0,
+        "transcriptPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.transcript.md",
+        "lastMessagePath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\runs\\continue-progress-012.last-message.md",
+        "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\stdout.log",
+        "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\stderr.log"
+      },
+      "verification": {
+        "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+        "effectiveValidationCommand": "cd ralph-codex-vscode-starter && npm test",
+        "normalizedValidationCommandFrom": null,
+        "primaryCommand": "cd ralph-codex-vscode-starter && npm test",
+        "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:12216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+        "verifiers": [
+          {
+            "verifier": "validationCommand",
+            "status": "failed",
+            "summary": "Validation command failed with exit code 1: cd ralph-codex-vscode-starter && npm test",
+            "warnings": [],
+            "errors": [
+              "Validation command exited with 1."
+            ],
+            "command": "cd ralph-codex-vscode-starter && npm test",
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.json",
+            "failureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::(node:12216) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated. | (Use `node --trace-deprecation ...` to show where",
+            "metadata": {
+              "exitCode": 1,
+              "taskValidationHint": "cd ralph-codex-vscode-starter && npm test",
+              "normalizedValidationCommandFrom": null,
+              "stdoutPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.stdout.log",
+              "stderrPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\validation-command.stderr.log"
+            }
+          },
+          {
+            "verifier": "gitDiff",
+            "status": "failed",
+            "summary": "No relevant file changes were detected.",
+            "warnings": [
+              "No relevant workspace changes were detected."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-diff.json",
+            "failureSignature": null,
+            "metadata": {
+              "changedFiles": [],
+              "relevantChangedFiles": []
+            }
+          },
+          {
+            "verifier": "taskState",
+            "status": "skipped",
+            "summary": "No task-state progress was detected.",
+            "warnings": [
+              "Task and progress files were unchanged during the iteration."
+            ],
+            "errors": [],
+            "artifactPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\task-state.json",
+            "failureSignature": null
+          }
+        ]
+      },
+      "backlog": {
+        "remainingTaskCount": 13,
+        "actionableTaskAvailable": true
+      },
+      "diffSummary": {
+        "available": true,
+        "gitAvailable": true,
+        "summary": "No relevant file changes were detected.",
+        "changedFileCount": 0,
+        "relevantChangedFileCount": 0,
+        "changedFiles": [],
+        "relevantChangedFiles": [],
+        "statusTransitions": [],
+        "beforeStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-status-before.txt",
+        "afterStatusPath": "c:\\Users\\ben.jones\\source\\repos\\Ralph\\RalphDex\\.ralph\\artifacts\\iteration-012\\git-status-after.txt"
+      },
+      "noProgressSignals": [
+        "same_task_selected_repeatedly",
+        "no_relevant_file_changes",
+        "task_and_progress_state_unchanged"
+      ],
+      "remediation": null,
+      "completionReportStatus": "rejected",
+      "reconciliationWarnings": [
+        "Completion report requested done, but verification status was failed."
+      ],
+      "stopReason": null
     }
   ],
-  "updatedAt": "2026-03-14T01:53:40.204Z"
+  "updatedAt": "2026-03-14T03:44:13.440Z"
 }

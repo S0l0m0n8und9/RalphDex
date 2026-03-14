@@ -212,8 +212,32 @@ function canonicalClaimForTask(claimFile: RalphTaskClaimFile, taskId: string): R
 }
 
 async function writeTaskClaimFile(claimFilePath: string, claimFile: RalphTaskClaimFile): Promise<void> {
-  await fs.mkdir(path.dirname(claimFilePath), { recursive: true });
-  await fs.writeFile(claimFilePath, stringifyTaskClaimFile(claimFile), 'utf8');
+  const directoryPath = path.dirname(claimFilePath);
+  const tempFilePath = path.join(
+    directoryPath,
+    `${path.basename(claimFilePath)}.${process.pid}.${Date.now()}.tmp`
+  );
+  const contents = stringifyTaskClaimFile(claimFile);
+
+  await fs.mkdir(directoryPath, { recursive: true });
+
+  let tempHandle: Awaited<ReturnType<typeof fs.open>> | null = null;
+  try {
+    tempHandle = await fs.open(tempFilePath, 'w');
+    await tempHandle.writeFile(contents, 'utf8');
+    await tempHandle.sync();
+    await tempHandle.close();
+    tempHandle = null;
+
+    await fs.rm(claimFilePath, { force: true });
+    await fs.rename(tempFilePath, claimFilePath);
+  } finally {
+    if (tempHandle) {
+      await tempHandle.close().catch(() => undefined);
+    }
+
+    await fs.rm(tempFilePath, { force: true }).catch(() => undefined);
+  }
 }
 
 async function withClaimFileLock<T>(

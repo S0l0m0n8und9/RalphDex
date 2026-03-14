@@ -136,7 +136,11 @@ function tokenizeShellCommand(command: string): string[] {
     }
 
     if (char === '\\') {
-      escaped = true;
+      if (process.platform === 'win32') {
+        current += char;
+      } else {
+        escaped = true;
+      }
       continue;
     }
 
@@ -353,7 +357,7 @@ export async function inspectValidationCommandReadiness(input: {
   } catch {
     return {
       command: input.command,
-      status: 'selected',
+      status: 'executableNotConfirmed',
       executable
     };
   }
