@@ -6,11 +6,12 @@ import {
   classifyIterationOutcome,
   decideLoopContinuation
 } from '../src/ralph/loopLogic';
-import { RalphIterationResult } from '../src/ralph/types';
+import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult } from '../src/ralph/types';
 
 function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
   return {
     schemaVersion: 1,
+    agentId: DEFAULT_RALPH_AGENT_ID,
     iteration: 1,
     selectedTaskId: 'T1',
     selectedTaskTitle: 'Task one',
@@ -293,6 +294,25 @@ test('buildTaskRemediation decomposes repeated no-progress with no durable chang
   assert.equal(remediation.action, 'decompose_task');
   assert.equal(remediation.humanReviewRecommended, false);
   assert.match(remediation.summary, /decompose the task/i);
+});
+
+test('buildTaskRemediation ignores interleaved no-progress history from another agent on the same task', () => {
+  const previous = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const interleaved = iterationResult({ iteration: 2, agentId: 'agent-b' });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-a',
+    stopReason: 'repeated_no_progress',
+    noProgressSignals: ['same_task_selected_repeatedly', 'same_validation_failure_signature']
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_no_progress',
+    previousIterations: [previous, interleaved]
+  });
+
+  assert.equal(remediation, null);
 });
 
 test('buildTaskRemediation records no_action when repeated failures do not justify a narrower remediation', () => {

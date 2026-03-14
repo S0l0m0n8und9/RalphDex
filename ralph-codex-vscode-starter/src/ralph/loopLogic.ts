@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphCompletionClassification,
   RalphExecutionStatus,
   RalphFollowUpAction,
@@ -243,6 +244,7 @@ function failureSignature(result: RalphIterationResult): string | null {
 function countTrailingSameTaskClassifications(
   results: RalphIterationResult[],
   taskId: string | null,
+  agentId: string,
   classifications: RalphCompletionClassification[]
 ): number {
   if (!taskId) {
@@ -250,7 +252,13 @@ function countTrailingSameTaskClassifications(
   }
 
   const allowed = new Set(classifications);
-  return countTrailingMatches(results, (item) => item.selectedTaskId === taskId && allowed.has(item.completionClassification));
+  return countTrailingMatches(
+    results,
+    (item) =>
+      item.selectedTaskId === taskId
+      && (item.agentId ?? DEFAULT_RALPH_AGENT_ID) === agentId
+      && allowed.has(item.completionClassification)
+  );
 }
 
 function remediationActionForResult(result: RalphIterationResult): RalphTaskRemediationAction {
@@ -307,12 +315,23 @@ export function buildTaskRemediation(input: {
 
   const history = [...previousIterations, currentResult];
   let attemptCount = 0;
+  const agentId = currentResult.agentId ?? DEFAULT_RALPH_AGENT_ID;
 
   if (stopReason === 'repeated_no_progress') {
-    attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['no_progress']);
+    attemptCount = countTrailingSameTaskClassifications(
+      history,
+      currentResult.selectedTaskId,
+      agentId,
+      ['no_progress']
+    );
   } else if (stopReason === 'repeated_identical_failure') {
     if (currentResult.completionClassification === 'blocked') {
-      attemptCount = countTrailingSameTaskClassifications(history, currentResult.selectedTaskId, ['blocked']);
+      attemptCount = countTrailingSameTaskClassifications(
+        history,
+        currentResult.selectedTaskId,
+        agentId,
+        ['blocked']
+      );
     } else {
       const signature = failureSignature(currentResult);
       if (!signature) {
