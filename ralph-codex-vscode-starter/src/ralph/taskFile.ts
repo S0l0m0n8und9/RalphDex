@@ -1,7 +1,11 @@
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import {
   RalphPreflightDiagnostic,
   RalphSuggestedChildTask,
   RalphTask,
+  RalphTaskClaim,
+  RalphTaskClaimFile,
   RalphTaskCounts,
   RalphTaskFile,
   RalphTaskSourceLocation,
@@ -14,6 +18,10 @@ const EMPTY_COUNTS: RalphTaskCounts = {
   blocked: 0,
   done: 0
 };
+
+const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
+const DEFAULT_LOCK_RETRY_COUNT = 10;
+const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 
 const SUPPORTED_TASK_FIELDS = new Set([
   'id',
@@ -40,8 +48,209 @@ export interface RalphTaskFileInspection {
   diagnostics: RalphPreflightDiagnostic[];
 }
 
+export interface RalphTaskClaimOptions {
+  ttlMs?: number;
+  now?: Date;
+  lockRetryCount?: number;
+  lockRetryDelayMs?: number;
+}
+
+export interface RalphTaskClaimDetails {
+  claim: RalphTaskClaim;
+  stale: boolean;
+}
+
+export interface RalphAcquireClaimResult {
+  outcome: 'acquired' | 'already_held' | 'contested';
+  claim: RalphTaskClaimDetails | null;
+  canonicalClaim: RalphTaskClaimDetails | null;
+  claimFile: RalphTaskClaimFile;
+}
+
+export interface RalphReleaseClaimResult {
+  outcome: 'released' | 'not_held';
+  releasedClaim: RalphTaskClaimDetails | null;
+  canonicalClaim: RalphTaskClaimDetails | null;
+  claimFile: RalphTaskClaimFile;
+}
+
 function isTaskStatus(value: unknown): value is RalphTaskStatus {
   return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
+}
+
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+function normalizeClaimStatus(value: unknown): RalphTaskClaim['status'] {
+  return value === 'active' || value === 'released' || value === 'stale'
+    ? value
+    : 'active';
+}
+
+function normalizeClaim(candidate: unknown): RalphTaskClaim | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.agentId !== 'string'
+    || typeof record.taskId !== 'string'
+    || typeof record.claimedAt !== 'string'
+    || typeof record.provenanceId !== 'string') {
+    return null;
+  }
+
+  return {
+    agentId: record.agentId,
+    taskId: record.taskId,
+    claimedAt: record.claimedAt,
+    provenanceId: record.provenanceId,
+    status: normalizeClaimStatus(record.status)
+  };
+}
+
+function createDefaultTaskClaimFile(): RalphTaskClaimFile {
+  return {
+    version: 1,
+    claims: []
+  };
+}
+
+function stringifyTaskClaimFile(claimFile: RalphTaskClaimFile): string {
+  return `${JSON.stringify(claimFile, null, 2)}\n`;
+}
+
+async function readTaskClaimFile(claimFilePath: string): Promise<RalphTaskClaimFile> {
+  let raw = '';
+  try {
+    raw = await fs.readFile(claimFilePath, 'utf8');
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+    if (code === 'ENOENT') {
+      return createDefaultTaskClaimFile();
+    }
+
+    throw error;
+  }
+
+  if (!raw.trim()) {
+    return createDefaultTaskClaimFile();
+  }
+
+  const parsed = JSON.parse(raw) as Record<string, unknown>;
+  const claims = Array.isArray(parsed.claims)
+    ? parsed.claims
+      .map((claim) => normalizeClaim(claim))
+      .filter((claim): claim is RalphTaskClaim => claim !== null)
+    : [];
+
+  return {
+    version: 1,
+    claims
+  };
+}
+
+function claimIdentityMatches(left: RalphTaskClaim, right: RalphTaskClaim): boolean {
+  return left.taskId === right.taskId
+    && left.agentId === right.agentId
+    && left.provenanceId === right.provenanceId
+    && left.claimedAt === right.claimedAt;
+}
+
+function claimRecordMatches(left: RalphTaskClaim, right: RalphTaskClaim): boolean {
+  return claimIdentityMatches(left, right)
+    && left.status === right.status;
+}
+
+function findClaim(claimFile: RalphTaskClaimFile, candidate: RalphTaskClaim): RalphTaskClaim | null {
+  return claimFile.claims.find((claim) => claimRecordMatches(claim, candidate)) ?? null;
+}
+
+function resolveClaimTtlMs(options?: RalphTaskClaimOptions): number {
+  return Math.max(0, Math.floor(options?.ttlMs ?? DEFAULT_CLAIM_TTL_MS));
+}
+
+function claimIsStale(claim: RalphTaskClaim, ttlMs: number, now: Date): boolean {
+  if (claim.status !== 'active') {
+    return false;
+  }
+
+  if (ttlMs === 0) {
+    return false;
+  }
+
+  const claimedAt = Date.parse(claim.claimedAt);
+  if (Number.isNaN(claimedAt)) {
+    return false;
+  }
+
+  return now.getTime() - claimedAt > ttlMs;
+}
+
+function describeClaim(claim: RalphTaskClaim | null, options?: RalphTaskClaimOptions): RalphTaskClaimDetails | null {
+  if (!claim) {
+    return null;
+  }
+
+  const now = options?.now ?? new Date();
+  return {
+    claim,
+    stale: claimIsStale(claim, resolveClaimTtlMs(options), now)
+  };
+}
+
+function activeClaimsForTask(claimFile: RalphTaskClaimFile, taskId: string): RalphTaskClaim[] {
+  return claimFile.claims.filter((claim) => claim.taskId === taskId && claim.status === 'active');
+}
+
+function canonicalClaimForTask(claimFile: RalphTaskClaimFile, taskId: string): RalphTaskClaim | null {
+  const activeClaims = activeClaimsForTask(claimFile, taskId);
+  return activeClaims.length > 0 ? activeClaims[activeClaims.length - 1] : null;
+}
+
+async function writeTaskClaimFile(claimFilePath: string, claimFile: RalphTaskClaimFile): Promise<void> {
+  await fs.mkdir(path.dirname(claimFilePath), { recursive: true });
+  await fs.writeFile(claimFilePath, stringifyTaskClaimFile(claimFile), 'utf8');
+}
+
+async function withClaimFileLock<T>(
+  claimFilePath: string,
+  options: RalphTaskClaimOptions | undefined,
+  fn: () => Promise<T>
+): Promise<T> {
+  const lockPath = `${claimFilePath}.lock`;
+  const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
+  const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
+
+  for (let attempt = 0; ; attempt += 1) {
+    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
+    try {
+      await fs.mkdir(path.dirname(lockPath), { recursive: true });
+      handle = await fs.open(lockPath, 'wx');
+      try {
+        return await fn();
+      } finally {
+        await handle.close();
+        await fs.rm(lockPath, { force: true });
+      }
+    } catch (error) {
+      if (handle) {
+        await handle.close().catch(() => undefined);
+      }
+
+      const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : '';
+      if (code !== 'EEXIST' || attempt >= retryCount) {
+        throw error;
+      }
+
+      await sleep(retryDelayMs);
+    }
+  }
 }
 
 function normalizeOptionalString(record: Record<string, unknown>, key: string): string | undefined {
@@ -1022,4 +1231,121 @@ export function remainingSubtasks(taskFile: RalphTaskFile, taskId: string | null
   }
 
   return collectDescendants(taskFile, taskId).filter((task) => task.status !== 'done');
+}
+
+export async function acquireClaim(
+  claimFilePath: string,
+  taskId: string,
+  agentId: string,
+  provenanceId: string,
+  options?: RalphTaskClaimOptions
+): Promise<RalphAcquireClaimResult> {
+  return withClaimFileLock(claimFilePath, options, async () => {
+    const claimFile = await readTaskClaimFile(claimFilePath);
+    const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+
+    if (canonicalClaim) {
+      if (canonicalClaim.agentId === agentId && canonicalClaim.provenanceId === provenanceId) {
+        return {
+          outcome: 'already_held',
+          claim: describeClaim(canonicalClaim, options),
+          canonicalClaim: describeClaim(canonicalClaim, options),
+          claimFile
+        };
+      }
+
+      return {
+        outcome: 'contested',
+        claim: null,
+        canonicalClaim: describeClaim(canonicalClaim, options),
+        claimFile
+      };
+    }
+
+    const nextClaim: RalphTaskClaim = {
+      taskId,
+      agentId,
+      provenanceId,
+      claimedAt: (options?.now ?? new Date()).toISOString(),
+      status: 'active'
+    };
+    const nextClaimFile: RalphTaskClaimFile = {
+      version: 1,
+      claims: [...claimFile.claims, nextClaim]
+    };
+
+    await writeTaskClaimFile(claimFilePath, nextClaimFile);
+
+    const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+    const verifiedCanonicalClaim = canonicalClaimForTask(verifiedClaimFile, taskId);
+    if (!verifiedCanonicalClaim || !claimRecordMatches(verifiedCanonicalClaim, nextClaim)) {
+      return {
+        outcome: 'contested',
+        claim: null,
+        canonicalClaim: describeClaim(verifiedCanonicalClaim, options),
+        claimFile: verifiedClaimFile
+      };
+    }
+
+    return {
+      outcome: 'acquired',
+      claim: describeClaim(nextClaim, options),
+      canonicalClaim: describeClaim(verifiedCanonicalClaim, options),
+      claimFile: verifiedClaimFile
+    };
+  });
+}
+
+export async function releaseClaim(
+  claimFilePath: string,
+  taskId: string,
+  agentId: string,
+  options?: RalphTaskClaimOptions
+): Promise<RalphReleaseClaimResult> {
+  return withClaimFileLock(claimFilePath, options, async () => {
+    const claimFile = await readTaskClaimFile(claimFilePath);
+    const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+
+    if (!canonicalClaim || canonicalClaim.agentId !== agentId) {
+      return {
+        outcome: 'not_held',
+        releasedClaim: null,
+        canonicalClaim: describeClaim(canonicalClaim, options),
+        claimFile
+      };
+    }
+
+    let releasedClaim: RalphTaskClaim | null = null;
+
+    const nextClaimFile: RalphTaskClaimFile = {
+      version: 1,
+      claims: claimFile.claims.map((claim) => {
+        if (claimRecordMatches(claim, canonicalClaim)) {
+          releasedClaim = {
+            ...claim,
+            status: 'released'
+          };
+          return releasedClaim;
+        }
+
+        return claim;
+      })
+    };
+
+    await writeTaskClaimFile(claimFilePath, nextClaimFile);
+
+    const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+    const verifiedReleasedClaim = releasedClaim ? findClaim(verifiedClaimFile, releasedClaim) : null;
+
+    if (!releasedClaim || !verifiedReleasedClaim) {
+      throw new Error(`Failed to verify released claim for task ${taskId} held by agent ${agentId}.`);
+    }
+
+    return {
+      outcome: 'released',
+      releasedClaim: describeClaim(verifiedReleasedClaim, options),
+      canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
+      claimFile: verifiedClaimFile
+    };
+  });
 }

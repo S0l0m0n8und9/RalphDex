@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import test from 'node:test';
 import {
+  acquireClaim,
   autoCompleteSatisfiedAncestors,
   applySuggestedChildTasks,
   countTaskStatuses,
   inspectTaskFileText,
   normalizeTaskFileText,
   parseTaskFile,
+  releaseClaim,
   remainingSubtasks,
   selectNextTask
 } from '../src/ralph/taskFile';
@@ -396,4 +401,196 @@ test('inspectTaskFileText reports done parents with unfinished inferred descenda
     inspection.diagnostics.map((diagnostic) => diagnostic.taskId),
     ['T1', 'T1.1']
   );
+});
+
+test('acquireClaim writes a canonical active claim and releaseClaim marks it released', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  const acquired = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+
+  assert.equal(acquired.outcome, 'acquired');
+  assert.equal(acquired.claim?.claim.status, 'active');
+  assert.equal(acquired.canonicalClaim?.claim.agentId, 'agent-a');
+
+  const released = await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', { now });
+
+  assert.equal(released.outcome, 'released');
+  assert.equal(released.releasedClaim?.claim.status, 'released');
+  assert.equal(released.canonicalClaim, null);
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ status: string }> };
+  assert.deepEqual(persisted.claims.map((claim) => claim.status), ['released']);
+});
+
+test('acquireClaim returns contested without writing when another active claim already exists', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', {
+    now: new Date('2026-03-14T00:00:00.000Z')
+  });
+
+  const contested = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-b', 'run-002', {
+    now: new Date('2026-03-14T00:05:00.000Z')
+  });
+
+  assert.equal(contested.outcome, 'contested');
+  assert.equal(contested.claim, null);
+  assert.equal(contested.canonicalClaim?.claim.agentId, 'agent-a');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ agentId: string }> };
+  assert.deepEqual(persisted.claims.map((claim) => claim.agentId), ['agent-a']);
+});
+
+test('acquireClaim is idempotent for the same agent and provenance', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  const first = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+  const second = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+
+  assert.equal(first.outcome, 'acquired');
+  assert.equal(second.outcome, 'already_held');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ agentId: string }> };
+  assert.equal(persisted.claims.length, 1);
+});
+
+test('releaseClaim is idempotent when the agent no longer holds the task', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+
+  const firstRelease = await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', { now });
+  const secondRelease = await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', { now });
+
+  assert.equal(firstRelease.outcome, 'released');
+  assert.equal(secondRelease.outcome, 'not_held');
+  assert.equal(secondRelease.canonicalClaim, null);
+});
+
+test('releaseClaim does not mutate the file when another agent is the canonical holder', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-14T00:00:00.000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-b',
+        provenanceId: 'run-002',
+        claimedAt: '2026-03-14T00:05:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const before = await fs.readFile(claimFilePath, 'utf8');
+  const released = await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a');
+  const after = await fs.readFile(claimFilePath, 'utf8');
+
+  assert.equal(released.outcome, 'not_held');
+  assert.equal(released.releasedClaim, null);
+  assert.equal(released.canonicalClaim?.claim.agentId, 'agent-b');
+  assert.equal(after, before);
+});
+
+test('releaseClaim only releases the canonical active claim held by the agent', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-14T00:00:00.000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-002',
+        claimedAt: '2026-03-14T00:05:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const released = await releaseClaim(claimFilePath, 'T24.1.2', 'agent-a');
+
+  assert.equal(released.outcome, 'released');
+  assert.equal(released.releasedClaim?.claim.provenanceId, 'run-002');
+  assert.equal(released.releasedClaim?.claim.status, 'released');
+  assert.equal(released.canonicalClaim?.claim.provenanceId, 'run-001');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; provenanceId: string; status: string }>;
+  };
+  assert.deepEqual(
+    persisted.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-002',
+        status: 'released'
+      }
+    ]
+  );
+});
+
+test('acquireClaim surfaces stale canonical claims without auto-releasing them', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-13T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const contested = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-b', 'run-002', {
+    now: new Date('2026-03-14T12:00:00.000Z'),
+    ttlMs: 1000 * 60 * 60
+  });
+
+  assert.equal(contested.outcome, 'contested');
+  assert.equal(contested.canonicalClaim?.stale, true);
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ status: string }> };
+  assert.deepEqual(persisted.claims.map((claim) => claim.status), ['active']);
 });

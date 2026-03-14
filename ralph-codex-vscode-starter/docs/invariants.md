@@ -63,6 +63,15 @@ Required rules:
 
 Legacy normalization is allowed for simple older task files, but persisted output should still end as version 2.
 
+Task claims are a separate, file-backed coordination surface:
+
+- claim records live in a version `1` JSON file with an append-only `claims` array
+- active ownership for a task is the canonical latest active claim for that `taskId`
+- acquisition must not overwrite an existing canonical holder; it returns a contested result instead
+- acquisition writes the new active claim, rereads the file, and only succeeds if that reread still shows the same canonical holder
+- release is idempotent and only marks the canonical active claim held by the requesting agent as `released`
+- stale claims are detectable from `claimedAt` plus a configurable TTL, but Ralph must not auto-release them without an operator decision
+
 ## Preflight Invariants
 
 Before CLI execution starts, preflight must run and remain deterministic.

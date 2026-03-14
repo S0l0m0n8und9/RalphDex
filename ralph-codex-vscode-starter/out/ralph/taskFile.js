@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectTaskGraph = inspectTaskGraph;
 exports.inspectTaskFileText = inspectTaskFileText;
@@ -12,12 +45,19 @@ exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.findTaskById = findTaskById;
 exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.remainingSubtasks = remainingSubtasks;
+exports.acquireClaim = acquireClaim;
+exports.releaseClaim = releaseClaim;
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
 const EMPTY_COUNTS = {
     todo: 0,
     in_progress: 0,
     blocked: 0,
     done: 0
 };
+const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
+const DEFAULT_LOCK_RETRY_COUNT = 10;
+const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 const SUPPORTED_TASK_FIELDS = new Set([
     'id',
     'title',
@@ -36,6 +76,145 @@ const LIKELY_TASK_FIELD_MISTAKES = new Map([
 ]);
 function isTaskStatus(value) {
     return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
+}
+function sleep(delayMs) {
+    return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+function normalizeClaimStatus(value) {
+    return value === 'active' || value === 'released' || value === 'stale'
+        ? value
+        : 'active';
+}
+function normalizeClaim(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.agentId !== 'string'
+        || typeof record.taskId !== 'string'
+        || typeof record.claimedAt !== 'string'
+        || typeof record.provenanceId !== 'string') {
+        return null;
+    }
+    return {
+        agentId: record.agentId,
+        taskId: record.taskId,
+        claimedAt: record.claimedAt,
+        provenanceId: record.provenanceId,
+        status: normalizeClaimStatus(record.status)
+    };
+}
+function createDefaultTaskClaimFile() {
+    return {
+        version: 1,
+        claims: []
+    };
+}
+function stringifyTaskClaimFile(claimFile) {
+    return `${JSON.stringify(claimFile, null, 2)}\n`;
+}
+async function readTaskClaimFile(claimFilePath) {
+    let raw = '';
+    try {
+        raw = await fs.readFile(claimFilePath, 'utf8');
+    }
+    catch (error) {
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? String(error.code)
+            : '';
+        if (code === 'ENOENT') {
+            return createDefaultTaskClaimFile();
+        }
+        throw error;
+    }
+    if (!raw.trim()) {
+        return createDefaultTaskClaimFile();
+    }
+    const parsed = JSON.parse(raw);
+    const claims = Array.isArray(parsed.claims)
+        ? parsed.claims
+            .map((claim) => normalizeClaim(claim))
+            .filter((claim) => claim !== null)
+        : [];
+    return {
+        version: 1,
+        claims
+    };
+}
+function claimIdentityMatches(left, right) {
+    return left.taskId === right.taskId
+        && left.agentId === right.agentId
+        && left.provenanceId === right.provenanceId
+        && left.claimedAt === right.claimedAt
+        && left.status === right.status;
+}
+function resolveClaimTtlMs(options) {
+    return Math.max(0, Math.floor(options?.ttlMs ?? DEFAULT_CLAIM_TTL_MS));
+}
+function claimIsStale(claim, ttlMs, now) {
+    if (claim.status !== 'active') {
+        return false;
+    }
+    if (ttlMs === 0) {
+        return false;
+    }
+    const claimedAt = Date.parse(claim.claimedAt);
+    if (Number.isNaN(claimedAt)) {
+        return false;
+    }
+    return now.getTime() - claimedAt > ttlMs;
+}
+function describeClaim(claim, options) {
+    if (!claim) {
+        return null;
+    }
+    const now = options?.now ?? new Date();
+    return {
+        claim,
+        stale: claimIsStale(claim, resolveClaimTtlMs(options), now)
+    };
+}
+function activeClaimsForTask(claimFile, taskId) {
+    return claimFile.claims.filter((claim) => claim.taskId === taskId && claim.status === 'active');
+}
+function canonicalClaimForTask(claimFile, taskId) {
+    const activeClaims = activeClaimsForTask(claimFile, taskId);
+    return activeClaims.length > 0 ? activeClaims[activeClaims.length - 1] : null;
+}
+async function writeTaskClaimFile(claimFilePath, claimFile) {
+    await fs.mkdir(path.dirname(claimFilePath), { recursive: true });
+    await fs.writeFile(claimFilePath, stringifyTaskClaimFile(claimFile), 'utf8');
+}
+async function withClaimFileLock(claimFilePath, options, fn) {
+    const lockPath = `${claimFilePath}.lock`;
+    const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
+    const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
+    for (let attempt = 0;; attempt += 1) {
+        let handle = null;
+        try {
+            await fs.mkdir(path.dirname(lockPath), { recursive: true });
+            handle = await fs.open(lockPath, 'wx');
+            try {
+                return await fn();
+            }
+            finally {
+                await handle.close();
+                await fs.rm(lockPath, { force: true });
+            }
+        }
+        catch (error) {
+            if (handle) {
+                await handle.close().catch(() => undefined);
+            }
+            const code = typeof error === 'object' && error !== null && 'code' in error
+                ? String(error.code)
+                : '';
+            if (code !== 'EEXIST' || attempt >= retryCount) {
+                throw error;
+            }
+            await sleep(retryDelayMs);
+        }
+    }
 }
 function normalizeOptionalString(record, key) {
     return typeof record[key] === 'string' && record[key].trim().length > 0
@@ -803,5 +982,91 @@ function remainingSubtasks(taskFile, taskId) {
         return [];
     }
     return collectDescendants(taskFile, taskId).filter((task) => task.status !== 'done');
+}
+async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+        if (canonicalClaim) {
+            if (canonicalClaim.agentId === agentId && canonicalClaim.provenanceId === provenanceId) {
+                return {
+                    outcome: 'already_held',
+                    claim: describeClaim(canonicalClaim, options),
+                    canonicalClaim: describeClaim(canonicalClaim, options),
+                    claimFile
+                };
+            }
+            return {
+                outcome: 'contested',
+                claim: null,
+                canonicalClaim: describeClaim(canonicalClaim, options),
+                claimFile
+            };
+        }
+        const nextClaim = {
+            taskId,
+            agentId,
+            provenanceId,
+            claimedAt: (options?.now ?? new Date()).toISOString(),
+            status: 'active'
+        };
+        const nextClaimFile = {
+            version: 1,
+            claims: [...claimFile.claims, nextClaim]
+        };
+        await writeTaskClaimFile(claimFilePath, nextClaimFile);
+        const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+        const verifiedCanonicalClaim = canonicalClaimForTask(verifiedClaimFile, taskId);
+        if (!verifiedCanonicalClaim || !claimIdentityMatches(verifiedCanonicalClaim, nextClaim)) {
+            return {
+                outcome: 'contested',
+                claim: null,
+                canonicalClaim: describeClaim(verifiedCanonicalClaim, options),
+                claimFile: verifiedClaimFile
+            };
+        }
+        return {
+            outcome: 'acquired',
+            claim: describeClaim(nextClaim, options),
+            canonicalClaim: describeClaim(verifiedCanonicalClaim, options),
+            claimFile: verifiedClaimFile
+        };
+    });
+}
+async function releaseClaim(claimFilePath, taskId, agentId, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+        if (!canonicalClaim || canonicalClaim.agentId !== agentId) {
+            return {
+                outcome: 'not_held',
+                releasedClaim: null,
+                canonicalClaim: describeClaim(canonicalClaim, options),
+                claimFile
+            };
+        }
+        let releasedClaim = null;
+        const nextClaimFile = {
+            version: 1,
+            claims: claimFile.claims.map((claim) => {
+                if (claimIdentityMatches(claim, canonicalClaim)) {
+                    releasedClaim = {
+                        ...claim,
+                        status: 'released'
+                    };
+                    return releasedClaim;
+                }
+                return claim;
+            })
+        };
+        await writeTaskClaimFile(claimFilePath, nextClaimFile);
+        const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+        return {
+            outcome: 'released',
+            releasedClaim: describeClaim(releasedClaim, options),
+            canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
+            claimFile: verifiedClaimFile
+        };
+    });
 }
 //# sourceMappingURL=taskFile.js.map

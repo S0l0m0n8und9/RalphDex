@@ -25,6 +25,21 @@ export interface RalphTaskFile {
   tasks: RalphTask[];
 }
 
+export type RalphTaskClaimStatus = 'active' | 'released' | 'stale';
+
+export interface RalphTaskClaim {
+  agentId: string;
+  taskId: string;
+  claimedAt: string;
+  provenanceId: string;
+  status: RalphTaskClaimStatus;
+}
+
+export interface RalphTaskClaimFile {
+  version: 1;
+  claims: RalphTaskClaim[];
+}
+
 export interface RalphTaskCounts {
   todo: number;
   in_progress: number;

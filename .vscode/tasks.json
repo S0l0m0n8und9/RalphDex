@@ -1,0 +1,16 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ralphdex: compile",
+            "type": "npm",
+            "script": "compile",
+            "path": "ralph-codex-vscode-starter",
+            "problemMatcher": "$tsc",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}

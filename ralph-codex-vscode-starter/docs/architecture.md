@@ -22,7 +22,7 @@ Related docs:
 - `src/prompt/promptBuilder.ts`: deterministic prompt-kind selection, template rendering, strategy-aware prompt shaping, and prompt-evidence generation
 - `prompt-templates/`: bundled Markdown templates keyed by prompt kind
 - `src/ralph/stateManager.ts`: durable Ralph state persistence and path management
-- `src/ralph/taskFile.ts`: explicit task-schema parsing, normalization, deterministic selection, and graph diagnostics
+- `src/ralph/taskFile.ts`: explicit task-schema parsing, normalization, deterministic selection, graph diagnostics, and task-claim file coordination
 - `src/ralph/preflight.ts`: categorized readiness diagnostics before CLI execution
 - `src/ralph/iterationEngine.ts`: explicit Ralph loop orchestration
 - `src/ralph/verifier.ts`: validation-command, git/file-change, and task-state verifiers
@@ -49,6 +49,8 @@ Related docs:
 Stable state and artifact locations live under `.ralph/`. The durable file model, latest-pointer contract, and iteration artifact requirements are defined in [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md).
 
 The execution trust chain, run-bundle contract, and blocked integrity-failure behavior are defined in [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md).
+
+`src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
 ## Runtime Constraints
 

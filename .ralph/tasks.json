@@ -624,6 +624,161 @@
       ],
       "notes": "Documented task-ledger integrity rules, explicit drift warnings, and the operator repair-vs-replenish decision path in the invariant and workflow docs. Validation passed with npm run check:docs.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T24",
+      "title": "Multi-agent readiness: task ownership, concurrent reconciliation, and remediation isolation",
+      "status": "todo",
+      "dependsOn": [
+        "T24.1",
+        "T24.2",
+        "T24.3"
+      ],
+      "notes": "Three concrete gaps block safe multi-agent operation: tasks.json has no locking so concurrent agents corrupt on last-write-wins; iterationEngine reconciles completion reports sequentially with no concurrency guard; buildTaskRemediation counts trailing classifications from a shared history so cross-agent signals produce false positives. All three must be addressed before the multi-agent deferral in docs/boundaries.md can be lifted."
+    },
+    {
+      "id": "T24.1",
+      "title": "Add atomic task-claim mechanism so agents cannot concurrently select the same task",
+      "status": "todo",
+      "parentId": "T24",
+      "dependsOn": [
+        "T24.1.1",
+        "T24.1.2",
+        "T24.1.3",
+        "T24.1.4"
+      ],
+      "notes": "tasks.json is a flat file with a single-writer assumption. Two agents selecting the same task produce last-write-wins corruption that T23 drift detection catches only after damage is done. The fix is an atomic claim step: an agent writes a claim record before execution begins, the control plane validates the claim is still current before reconciling the completion report, and stale or contested claims are surfaced in preflight."
+    },
+    {
+      "id": "T24.1.1",
+      "title": "Define task-claim schema and add it to types.ts",
+      "status": "done",
+      "parentId": "T24.1",
+      "notes": "Added RalphTaskClaimStatus, RalphTaskClaim, and RalphTaskClaimFile to src/ralph/types.ts for a flat, inspectable task-claim schema consistent with tasks.json.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T24.1.2",
+      "title": "Implement claim acquisition and release in taskFile.ts with file-level locking",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.1"
+      ],
+      "notes": "Add acquireClaim(taskId, agentId, provenanceId) and releaseClaim(taskId, agentId) to src/ralph/taskFile.ts. Use a write-then-verify pattern: write the claim record, re-read the file, confirm the claim is still the canonical holder. If another claim exists for the same taskId, return a contested result without writing. Release must be idempotent. Stale claims older than a configurable TTL should be detectable but not auto-released — that is an operator decision.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.1.3",
+      "title": "Gate task selection and completion-report reconciliation on current claim ownership",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.2"
+      ],
+      "notes": "In src/ralph/iterationEngine.ts, call acquireClaim immediately after task selection and before prompt generation. In the completion-report reconciliation step, verify the claim is still active and owned by the current provenanceId before writing to tasks.json. If the claim has been released or superseded, surface a new stop reason: claim_contested, and persist the iteration result without mutating task state.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.1.4",
+      "title": "Surface stale and contested claims in preflight and Show Status",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.3"
+      ],
+      "notes": "Add a claimGraph category to preflight diagnostics in src/ralph/preflight.ts. Detect: tasks claimed by an agent with no corresponding active iteration (stale), tasks claimed by multiple agents (contested), and tasks whose claim provenanceId does not match the current iteration provenanceId. Surface claim state in src/ralph/statusReport.ts alongside the existing task-selection summary. Add regression coverage and update docs/invariants.md with the claim ownership rules.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.2",
+      "title": "Serialise concurrent completion-report reconciliation writes to tasks.json",
+      "status": "todo",
+      "parentId": "T24",
+      "dependsOn": [
+        "T24.2.1",
+        "T24.2.2",
+        "T24.2.3"
+      ],
+      "notes": "iterationEngine.ts reconciles one completion report at a time against tasks.json with no concurrency guard. Concurrent writes from multiple agents hitting the reconciliation path simultaneously will produce last-write-wins corruption even if claims are correctly acquired. The reconciliation path needs a write-serialisation layer that is deterministic, file-backed, and does not require an external lock server."
+    },
+    {
+      "id": "T24.2.1",
+      "title": "Add a file-backed write-serialisation helper for tasks.json mutations",
+      "status": "todo",
+      "parentId": "T24.2",
+      "dependsOn": [
+        "T24.1.2"
+      ],
+      "notes": "Add a withTaskFileLock(fn) helper in src/ralph/taskFile.ts that acquires an exclusive advisory lock on tasks.json before calling fn, then releases it. Use Node's fs.open with O_EXCL on a sibling .ralph/tasks.lock file as the advisory mechanism. Lock acquisition must be non-blocking with a configurable retry count and backoff so a waiting agent does not spin. If the lock cannot be acquired within the retry window, return a lock_timeout result that the caller can surface as a preflight warning rather than silently corrupting state.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.2.2",
+      "title": "Wrap all tasks.json mutation paths in the write-serialisation helper",
+      "status": "todo",
+      "parentId": "T24.2",
+      "dependsOn": [
+        "T24.2.1"
+      ],
+      "notes": "Identify every call site in iterationEngine.ts, taskFile.ts, and registerCommands.ts that writes to tasks.json: completion-report reconciliation, Apply Latest Task Decomposition Proposal, and any direct task-status updates. Wrap each in withTaskFileLock. The lock scope should be as narrow as possible: acquire immediately before the read-modify-write cycle, release immediately after. Do not hold the lock across codex exec execution.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.2.3",
+      "title": "Add regression coverage and document the serialisation contract in docs/invariants.md",
+      "status": "todo",
+      "parentId": "T24.2",
+      "dependsOn": [
+        "T24.2.2"
+      ],
+      "notes": "Add tests in test/taskFile.test.ts covering: concurrent write attempts where the second waits and succeeds after lock release, lock_timeout behaviour when the lock is held beyond the retry window, and lock cleanup on process exit. Document the write-serialisation contract in docs/invariants.md under a new Task Graph Write Serialisation section: which paths hold the lock, maximum hold duration, and what happens on timeout.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.3",
+      "title": "Isolate remediation history per agent so cross-agent classifications do not trigger false repeated-stop signals",
+      "status": "todo",
+      "parentId": "T24",
+      "dependsOn": [
+        "T24.3.1",
+        "T24.3.2",
+        "T24.3.3"
+      ],
+      "notes": "buildTaskRemediation() in loopLogic.ts counts trailing same-task classifications from a shared iterationHistory. With multiple agents, a repeated_no_progress signal on a task could come from two different agents alternating — the trigger logic misreads interleaved history as one agent spinning. The remediation window must be scoped to a single agent's contiguous run on a given task, not the global history."
+    },
+    {
+      "id": "T24.3.1",
+      "title": "Add agentId to RalphIterationResult and RalphRunRecord in types.ts",
+      "status": "todo",
+      "parentId": "T24.3",
+      "dependsOn": [
+        "T24.1.1"
+      ],
+      "notes": "Add optional agentId: string field to RalphIterationResult and RalphRunRecord in src/ralph/types.ts. Default to a sentinel value (e.g. 'default') for single-agent runs so existing state files remain valid without migration. The agentId should match the value used in the task-claim record for the same provenanceId, creating a join key between the claim and the iteration history.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T24.3.2",
+      "title": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
+      "status": "todo",
+      "parentId": "T24.3",
+      "dependsOn": [
+        "T24.3.1"
+      ],
+      "notes": "Modify countTrailingSameTaskClassifications in src/ralph/loopLogic.ts to include agentId in the trailing-match predicate alongside selectedTaskId and classification. The trailing window breaks as soon as a history entry for the same task has a different agentId, preventing interleaved multi-agent history from accumulating into a false repeated-stop trigger. Single-agent runs using the default sentinel are unaffected.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T24.3.3",
+      "title": "Add regression coverage for multi-agent remediation isolation and update docs",
+      "status": "todo",
+      "parentId": "T24.3",
+      "dependsOn": [
+        "T24.3.2"
+      ],
+      "notes": "Add tests in test/loopLogic.test.ts covering: interleaved history from two agents on the same task does not trigger repeated_no_progress for either agent, a single agent accumulating the threshold count on the same task still triggers correctly, and the default sentinel preserves existing single-agent behaviour. Update docs/verifier.md to note that repeated-stop detection is scoped per agent and that multi-agent deployments should assign distinct agentId values.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ]
 }

@@ -5,6 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "command": "npm start",
+            "name": "Run npm start",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "runtimeExecutable": "${execPath}",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/ralph-codex-vscode-starter"
+            ],
+            "name": "Launch RalphDex Extension",
+            "outFiles": [
+                "${workspaceFolder}/ralph-codex-vscode-starter/out/**/*.js"
+            ],
+            "preLaunchTask": "ralphdex: compile",
+            "timeout": 30000,
+            "request": "launch",
+            "type": "extensionHost"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Launch Program",

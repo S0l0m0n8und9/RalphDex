@@ -63,3 +63,4 @@
 - Added regression coverage for done-parent ledger-drift diagnostics, exhausted-backlog loop stopping, drift-specific preflight blocking, and status rendering.
 - Documented task-ledger integrity rules, explicit drift warnings, and the operator repair-vs-replenish decision path in the invariant and workflow docs. Validation passed with npm run check:docs.
 - Auto-completed satisfied aggregate parent tasks during completion-report reconciliation so child-complete ledger drift no longer leaves stale backlog items behind.
+- Added RalphTaskClaimStatus, RalphTaskClaim, and RalphTaskClaimFile to src/ralph/types.ts for a flat, inspectable task-claim schema consistent with tasks.json.
