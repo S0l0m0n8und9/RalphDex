@@ -796,7 +796,10 @@
       "status": "todo",
       "parentId": "T24.3",
       "dependsOn": [
-        "T24.3.1"
+        "T24.3.1",
+        "T25",
+        "T26",
+        "T27"
       ],
       "notes": "Modify countTrailingSameTaskClassifications in src/ralph/loopLogic.ts to include agentId in the trailing-match predicate alongside selectedTaskId and classification. The trailing window breaks as soon as a history entry for the same task has a different agentId, preventing interleaved multi-agent history from accumulating into a false repeated-stop trigger. Single-agent runs using the default sentinel are unaffected.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
@@ -858,10 +861,11 @@
     {
       "id": "T25.1",
       "title": "Extend .ralph/.gitignore to exclude runtime state and audit files, then remove tracked files",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T25",
-      "notes": "Add /state.json and /done-task-audit*.md to .ralph/.gitignore. Run git rm --cached .ralph/state.json .ralph/done-task-audit-current-worktree.md to stop tracking them without deleting local copies. Verify git status shows both files as untracked. The prd.md, tasks.json, and progress.md are intentional project artifacts and must remain tracked. The logs/ directory is already gitignored but logs/extension.log was committed once — confirm it is no longer tracked.",
-      "validation": "git ls-files .ralph/ | grep -v 'prd.md\\|tasks.json\\|progress.md\\|\\.gitignore' | wc -l | grep -q '^0$'"
+      "notes": "Updated .ralph/.gitignore to exclude /state.json and /done-task-audit*.md. Could not remove tracked runtime files from the Git index because the sandbox user is denied write access to .git, so .ralph/state.json, .ralph/done-task-audit-current-worktree.md, and .ralph/logs/extension.log remain tracked.",
+      "validation": "git ls-files .ralph/ | grep -v 'prd.md\\|tasks.json\\|progress.md\\|\\.gitignore' | wc -l | grep -q '^0$'",
+      "blocker": "Sandbox permissions deny writes to the repository .git directory, preventing git rm --cached from updating the index."
     },
     {
       "id": "T25.2",
@@ -899,10 +903,11 @@
     {
       "id": "T26.1",
       "title": "Create docs/multi-agent-readiness.md with explicit acceptance criteria mapped to T24's three gaps",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T26",
-      "notes": "Create ralph-codex-vscode-starter/docs/multi-agent-readiness.md. It must contain three sections, each with a binary done/not-done acceptance criterion: (1) Task Ownership — atomic task-claim mechanism exists in taskFile.ts with a .ralph/claims.json schema, preflight detects stale and contested claims, and claim validation gates completion-report reconciliation; (2) Write Serialisation — withTaskFileLock wraps all tasks.json mutation paths in taskFile.ts and iterationEngine.ts, lock-timeout is surfaced as a preflight warning rather than a silent failure, and regression coverage exists for concurrent write contention; (3) Remediation Isolation — agentId is a field on RalphIterationResult, countTrailingSameTaskClassifications scopes its window to a single agentId, and regression coverage confirms interleaved multi-agent history does not produce false repeated-stop triggers. Add a Lifting The Deferral section that states: when all three criteria are met and npm run validate passes, update docs/boundaries.md to remove the single-agent loop restriction and update this document to record the date the milestone was satisfied.",
-      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+      "notes": "Created ralph-codex-vscode-starter/docs/multi-agent-readiness.md with the required Task Ownership, Write Serialisation, Remediation Isolation, and Lifting The Deferral sections. The selected validation command still fails due to pre-existing absolute /home/admin/... links in the repository's existing docs, which the docs validator treats as outside-repo targets on this workspace.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs",
+      "blocker": "Pre-existing docs validation failure: core docs use absolute /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/... links, causing link_outside_repo and dependent missing_doc_map_entry errors during npm run check:docs."
     },
     {
       "id": "T26.2",
@@ -941,10 +946,11 @@
     {
       "id": "T27.1",
       "title": "Extract completion-report parsing into src/ralph/completionReportParser.ts",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T27",
-      "notes": "Move the following free functions from iterationEngine.ts into a new src/ralph/completionReportParser.ts: sanitizeCompletionText, isAllowedCompletionStatus, extractTrailingJsonObject, parseCompletionReport, and the ParsedCompletionReport and CompletionReportArtifact interfaces. Export all of them. Update iterationEngine.ts to import from the new module. The extracted module should have no imports from iterationEngine.ts — it depends only on types.ts and Node built-ins. Run npm test after the move to confirm no regressions.",
-      "validation": "cd ralph-codex-vscode-starter && npm test"
+      "notes": "Extracted completion-report parsing from iterationEngine.ts into src/ralph/completionReportParser.ts and updated iterationEngine imports. TypeScript test compilation passed.",
+      "validation": "cd ralph-codex-vscode-starter && npm test",
+      "blocker": "Full npm test run is blocked by existing environment-level child-process failures: multiple tests fail with spawn EPERM when launching git or verifier commands."
     },
     {
       "id": "T27.2",

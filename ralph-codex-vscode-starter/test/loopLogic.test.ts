@@ -207,6 +207,26 @@ test('decideLoopContinuation ignores interleaved no-progress history from anothe
   assert.equal(decision.stopReason, null);
 });
 
+test('decideLoopContinuation still counts a default-agent no-progress streak on the same task', () => {
+  const previous = iterationResult({ iteration: 1 });
+  const current = iterationResult({ iteration: 2 });
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 3,
+    stopOnHumanReviewNeeded: true,
+    reachedIterationCap: false,
+    previousIterations: [previous]
+  });
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'repeated_no_progress');
+});
+
 test('decideLoopContinuation stops on repeated identical failure classifications', () => {
   const previous = iterationResult({
     completionClassification: 'failed',
@@ -327,6 +347,48 @@ test('buildTaskRemediation marks repeated blocked outcomes as blocked', () => {
   assert.ok(remediation.evidence.includes('same_task_blocked_repeatedly'));
 });
 
+test('buildTaskRemediation ignores interleaved blocked history from another agent on the same task', () => {
+  const previous = iterationResult({
+    iteration: 1,
+    agentId: 'agent-a',
+    completionClassification: 'blocked',
+    verificationStatus: 'failed',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::first blocker'
+    }
+  });
+  const interleaved = iterationResult({
+    iteration: 2,
+    agentId: 'agent-b',
+    completionClassification: 'blocked',
+    verificationStatus: 'failed',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::second blocker'
+    }
+  });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-a',
+    completionClassification: 'blocked',
+    verificationStatus: 'failed',
+    stopReason: 'repeated_identical_failure',
+    verification: {
+      ...iterationResult().verification,
+      validationFailureSignature: 'npm test::exit:1::third blocker'
+    }
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_identical_failure',
+    previousIterations: [previous, interleaved]
+  });
+
+  assert.equal(remediation, null);
+});
+
 test('buildTaskRemediation decomposes repeated no-progress with no durable changes', () => {
   const previous = iterationResult({
     noProgressSignals: ['same_task_selected_repeatedly', 'no_relevant_file_changes', 'task_and_progress_state_unchanged']
@@ -370,6 +432,25 @@ test('buildTaskRemediation ignores interleaved no-progress history from another 
   });
 
   assert.equal(remediation, null);
+});
+
+test('buildTaskRemediation still counts a default-agent no-progress streak on the same task', () => {
+  const previous = iterationResult({ iteration: 1 });
+  const current = iterationResult({
+    iteration: 2,
+    stopReason: 'repeated_no_progress',
+    noProgressSignals: ['same_task_selected_repeatedly', 'same_validation_failure_signature']
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_no_progress',
+    previousIterations: [previous]
+  });
+
+  assert.ok(remediation);
+  assert.equal(remediation.attemptCount, 2);
+  assert.equal(remediation.taskId, 'T1');
 });
 
 test('buildTaskRemediation ignores interleaved identical failures from another agent on the same task', () => {
