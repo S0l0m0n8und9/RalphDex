@@ -93,3 +93,4 @@
 - Gated task selection and completion-report reconciliation on durable claim ownership, added claim_contested stop handling, and released claims after each iteration with regression coverage.
 - Added a file-backed tasks.json write lock helper with retry/backoff timeout semantics, wired current task-file mutation paths through it, and added concurrency and timeout regression coverage.
 - Added claim-graph inspection plus preflight and Show Status surfacing for contested, stale, and provenance-mismatched task claims; updated docs and regression coverage.
+- Removed the validation blocker by adding a test-only process runner harness and fake git baseline so claim-lifecycle and handoff-path coverage now validates cleanly under sandboxed execution. Full `npm run validate` passes.

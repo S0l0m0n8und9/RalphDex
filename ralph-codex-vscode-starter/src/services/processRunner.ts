@@ -14,6 +14,12 @@ export interface ProcessRunResult {
   stderr: string;
 }
 
+export type ProcessRunnerOverride = (
+  command: string,
+  args: string[],
+  options: ProcessRunOptions
+) => Promise<ProcessRunResult> | ProcessRunResult;
+
 export class ProcessLaunchError extends Error {
   public readonly command: string;
   public readonly args: string[];
@@ -29,7 +35,17 @@ export class ProcessLaunchError extends Error {
   }
 }
 
+let processRunnerOverride: ProcessRunnerOverride | null = null;
+
+export function setProcessRunnerOverride(override: ProcessRunnerOverride | null): void {
+  processRunnerOverride = override;
+}
+
 export async function runProcess(command: string, args: string[], options: ProcessRunOptions): Promise<ProcessRunResult> {
+  if (processRunnerOverride) {
+    return processRunnerOverride(command, args, options);
+  }
+
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,

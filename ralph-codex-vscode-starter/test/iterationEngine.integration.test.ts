@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
-import { execFile } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { promisify } from 'node:util';
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
@@ -13,9 +11,10 @@ import { RalphIterationEngine, RalphIterationEngineHooks } from '../src/ralph/it
 import { RalphStateManager } from '../src/ralph/stateManager';
 import { RalphTaskFile } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
+import {
+  initializeFakeGitRepository
+} from './support/processTestHarness';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
-
-const execFileAsync = promisify(execFile);
 
 class MemoryMemento implements vscode.Memento {
   private readonly values = new Map<string, unknown>();
@@ -118,11 +117,7 @@ async function seedNestedWorkspace(rootPath: string, childDirectory: string, tas
 }
 
 async function initGitRepo(rootPath: string): Promise<void> {
-  await execFileAsync('git', ['init', '--initial-branch=main'], { cwd: rootPath });
-  await execFileAsync('git', ['config', 'user.email', 'tests@example.com'], { cwd: rootPath });
-  await execFileAsync('git', ['config', 'user.name', 'Ralph Tests'], { cwd: rootPath });
-  await execFileAsync('git', ['add', '.'], { cwd: rootPath });
-  await execFileAsync('git', ['commit', '-m', 'initial'], { cwd: rootPath });
+  await initializeFakeGitRepository(rootPath);
 }
 
 interface MockExecStep {

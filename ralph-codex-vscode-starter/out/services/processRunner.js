@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProcessLaunchError = void 0;
+exports.setProcessRunnerOverride = setProcessRunnerOverride;
 exports.runProcess = runProcess;
 const child_process_1 = require("child_process");
 class ProcessLaunchError extends Error {
@@ -17,7 +18,14 @@ class ProcessLaunchError extends Error {
     }
 }
 exports.ProcessLaunchError = ProcessLaunchError;
+let processRunnerOverride = null;
+function setProcessRunnerOverride(override) {
+    processRunnerOverride = override;
+}
 async function runProcess(command, args, options) {
+    if (processRunnerOverride) {
+        return processRunnerOverride(command, args, options);
+    }
     return new Promise((resolve, reject) => {
         const child = (0, child_process_1.spawn)(command, args, {
             cwd: options.cwd,

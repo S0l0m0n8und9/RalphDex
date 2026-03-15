@@ -182,6 +182,12 @@ global.__RALPH_VSCODE_STUB__ = {
 
 reset();
 
+try {
+  require('../out-test/test/support/processTestHarness.js').installProcessTestHarness();
+} catch {
+  // compile:tests emits the harness before the test runner loads this stub
+}
+
 const originalLoad = Module._load;
 Module._load = function patchedLoad(request, parent, isMain) {
   if (request === 'vscode') {

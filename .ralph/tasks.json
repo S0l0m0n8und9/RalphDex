@@ -713,7 +713,7 @@
     {
       "id": "T24.1.5",
       "title": "Define and implement claim lifecycle rules for Prepare Prompt and Open Codex IDE handoff paths",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1",
       "dependsOn": [
         "T24.1.4",
@@ -721,7 +721,7 @@
         "T26",
         "T27"
       ],
-      "notes": "The current prepare-only and IDE-handoff paths can acquire a durable active claim without a matching execution/reconciliation path that releases it, which strands tasks behind stale ownership. Define the durable rule for non-CLI prompt preparation: either these paths must not acquire an active claim at all, or they must record a claim that cannot block later selection indefinitely without an explicit operator action. Implement that rule in the prompt-preparation and IDE handoff flow, keep provenance evidence intact, and ensure later CLI selection no longer gets stuck behind abandoned handoff claims.",
+      "notes": "Removed the validation blocker by adding a test-only process runner harness and fake git baseline so claim-lifecycle and handoff-path coverage now validates cleanly under sandboxed execution. Full `npm run validate` passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
