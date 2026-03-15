@@ -793,7 +793,7 @@
     {
       "id": "T24.3.2",
       "title": "Scope countTrailingSameTaskClassifications to a single agentId in loopLogic.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.3",
       "dependsOn": [
         "T24.3.1",
@@ -801,7 +801,7 @@
         "T26",
         "T27"
       ],
-      "notes": "Modify countTrailingSameTaskClassifications in src/ralph/loopLogic.ts to include agentId in the trailing-match predicate alongside selectedTaskId and classification. The trailing window breaks as soon as a history entry for the same task has a different agentId, preventing interleaved multi-agent history from accumulating into a false repeated-stop trigger. Single-agent runs using the default sentinel are unaffected.",
+      "notes": "Aligned repeated-failure remediation counting with the shared agent-scoped trailing-history helper in loopLogic.ts so interleaved history from another agent cannot accumulate into the same-task streak logic.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {

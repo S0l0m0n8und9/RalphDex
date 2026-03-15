@@ -84,3 +84,4 @@
 - Extracted completion-report reconciliation from RalphIterationEngine into src/ralph/reconciliation.ts with explicit inputs and updated the engine to call the standalone helper.
 - Verified that the code-owner entries, docs-validator updates, and architecture follow-on note are already present. `npm run validate` passes, but the task validation still fails because `src/ralph/iterationEngine.ts` is 1450 lines, so the remaining work is another extraction focused on the provenance-bundle and prepared-context assembly path.
 - Extracted prompt/preflight/prepared-context assembly from iterationEngine.ts into iterationPreparation.ts, updated shared PreparedIterationContext imports, and reduced iterationEngine.ts to 1073 lines while keeping full validation green.
+- Aligned repeated-failure remediation counting with the shared agent-scoped trailing-history helper in loopLogic.ts so interleaved history from another agent cannot accumulate into the same-task streak logic.
