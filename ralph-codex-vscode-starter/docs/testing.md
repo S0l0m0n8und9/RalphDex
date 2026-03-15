@@ -2,10 +2,10 @@
 
 Related docs:
 
-- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md)
-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md)
-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md)
-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
+- [README.md](../README.md)
+- [docs/architecture.md](architecture.md)
+- [docs/workflows.md](workflows.md)
+- [docs/verifier.md](verifier.md)
 
 ## Authoritative Commands
 

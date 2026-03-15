@@ -4,10 +4,10 @@ This document owns what Ralph Codex Workbench explicitly does not try to do and 
 
 Related docs:
 
-- [Architecture](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md) for module shape
-- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for trust-chain details
-- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for stop and review semantics
-- [Multi-Agent Readiness](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/multi-agent-readiness.md) for the explicit acceptance criteria that must be met before this boundary changes
+- [Architecture](architecture.md) for module shape
+- [Provenance](provenance.md) for trust-chain details
+- [Verifier](verifier.md) for stop and review semantics
+- [Multi-Agent Readiness](multi-agent-readiness.md) for the explicit acceptance criteria that must be met before this boundary changes
 
 ## Codex Product Boundary
 
@@ -39,7 +39,7 @@ Ralph does not prove:
 
 Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
 
-The current shipped control plane is a sequential single-agent iteration/loop runner. Multi-agent orchestration is a planned milestone, and the explicit acceptance criteria for lifting this boundary are defined in [docs/multi-agent-readiness.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/multi-agent-readiness.md).
+The current shipped control plane is a sequential single-agent iteration/loop runner. Multi-agent orchestration is a planned milestone, and the explicit acceptance criteria for lifting this boundary are defined in [docs/multi-agent-readiness.md](multi-agent-readiness.md).
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 

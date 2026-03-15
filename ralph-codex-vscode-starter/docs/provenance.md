@@ -4,9 +4,9 @@ This document owns how Ralph links plans, prompts, invocations, and run bundles 
 
 Related docs:
 
-- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for artifact-model rules
-- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for post-execution evaluation
-- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md) for trust limits
+- [Invariants](invariants.md) for artifact-model rules
+- [Verifier](verifier.md) for post-execution evaluation
+- [Boundaries](boundaries.md) for trust limits
 
 ## Provenance Unit
 

@@ -4,10 +4,10 @@ This document owns what must remain true in the Ralph control plane and artifact
 
 Related docs:
 
-- [Architecture](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md) for module layout
-- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for trust-chain details
-- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for verifier and stop semantics
-- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md) for explicit non-goals
+- [Architecture](architecture.md) for module layout
+- [Provenance](provenance.md) for trust-chain details
+- [Verifier](verifier.md) for verifier and stop semantics
+- [Boundaries](boundaries.md) for explicit non-goals
 
 ## Durable Workspace Model
 

@@ -4,10 +4,10 @@ This document owns operator-facing command flows. Semantic rules for invariants,
 
 Related docs:
 
-- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md)
-- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
-- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
-- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md)
+- [Invariants](invariants.md)
+- [Provenance](provenance.md)
+- [Verifier](verifier.md)
+- [Boundaries](boundaries.md)
 
 ## Develop The Extension
 
@@ -16,7 +16,7 @@ Related docs:
 3. Start the Extension Development Host with `F5`.
 4. Re-run `npm run compile` after TypeScript changes, or use `npm run watch`.
 
-Use [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the validation gate and test coverage.
+Use [docs/testing.md](testing.md) for the validation gate and test coverage.
 
 ## Package And Install A .vsix
 
@@ -67,7 +67,7 @@ Artifacts written on this path include:
 - a run bundle under `.ralph/artifacts/runs/<provenance-id>/`
 - stable latest prompt, plan, and provenance pointers
 
-Use this path when a human should inspect or edit the prompt before execution. See [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for the prepared-prompt-only trust distinction.
+Use this path when a human should inspect or edit the prompt before execution. See [docs/provenance.md](provenance.md) for the prepared-prompt-only trust distinction.
 
 When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph also prunes older generated prompt files, older iteration directories, and older transcript or last-message pairs after the prompt provenance write completes. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
 
@@ -197,7 +197,7 @@ Backlog replenishment is a different path. Use it only when the durable task led
 
 If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
 
-Stop reasons and precedence rules are defined in [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md).
+Stop reasons and precedence rules are defined in [docs/verifier.md](verifier.md).
 
 ## Artifact Lifecycle During Long Loops
 
@@ -266,7 +266,7 @@ For routine long-loop inspection, use these commands in order:
 3. `Open Latest Prompt Evidence` plus `Open Latest CLI Transcript` when you need to inspect what Ralph rendered and what Codex returned.
 4. `Open Latest Provenance Bundle` or `Reveal Latest Provenance Bundle Directory` when you need the full persisted proof set for the newest attempt.
 
-These commands rely on the stable latest-pointer contract described in [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md).
+These commands rely on the stable latest-pointer contract described in [docs/invariants.md](invariants.md).
 
 ## Reset State
 
@@ -291,4 +291,4 @@ Use this operator decision rule when those surfaces mention backlog exhaustion a
 - `The task ledger is inconsistent...` or `No task selected because task-ledger drift blocks safe selection...`: repair `.ralph/tasks.json` first.
 - `Task-ledger drift: Task <parent> is marked done but descendant tasks are still unfinished...`: inspect the parent/descendant statuses directly and make them agree before running another normal iteration.
 
-Detailed semantics for those diagnostics live in [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) and [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md).
+Detailed semantics for those diagnostics live in [docs/invariants.md](invariants.md) and [docs/boundaries.md](boundaries.md).

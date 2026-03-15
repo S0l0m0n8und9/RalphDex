@@ -4,9 +4,9 @@ This document records the acceptance criteria that must be satisfied before Ralp
 
 Related docs:
 
-- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md) for the currently enforced single-agent boundary
-- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for durable control-plane rules
-- [Testing](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md) for the authoritative validation gate
+- [Boundaries](boundaries.md) for the currently enforced single-agent boundary
+- [Invariants](invariants.md) for durable control-plane rules
+- [Testing](testing.md) for the authoritative validation gate
 
 ## Task Ownership
 

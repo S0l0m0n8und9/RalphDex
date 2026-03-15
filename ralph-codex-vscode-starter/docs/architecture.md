@@ -4,10 +4,10 @@ This document owns module boundaries and the end-to-end flow. It intentionally l
 
 Related docs:
 
-- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md)
-- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md)
-- [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md)
-- [Boundaries](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md)
+- [Invariants](invariants.md)
+- [Provenance](provenance.md)
+- [Verifier](verifier.md)
+- [Boundaries](boundaries.md)
 
 ## Entry Point
 
@@ -46,9 +46,9 @@ Related docs:
 
 ## State Surfaces
 
-Stable state and artifact locations live under `.ralph/`. The durable file model, latest-pointer contract, and iteration artifact requirements are defined in [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md).
+Stable state and artifact locations live under `.ralph/`. The durable file model, latest-pointer contract, and iteration artifact requirements are defined in [docs/invariants.md](invariants.md).
 
-The execution trust chain, run-bundle contract, and blocked integrity-failure behavior are defined in [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md).
+The execution trust chain, run-bundle contract, and blocked integrity-failure behavior are defined in [docs/provenance.md](provenance.md).
 
 `src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
@@ -63,4 +63,4 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 - Virtual workspaces are unsupported.
 - Git handling is detection/reporting only.
 
-See [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md) for the explicit non-goals and trust limits behind those constraints.
+See [docs/boundaries.md](boundaries.md) for the explicit non-goals and trust limits behind those constraints.

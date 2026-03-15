@@ -18,15 +18,15 @@ Ralph Codex Workbench is a VS Code extension that:
 
 ## Authoritative Doc Map
 
-- [README.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/README.md): product overview, quick start, and doc index
-- [docs/architecture.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md): module boundaries and end-to-end flow
-- [docs/workflows.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md): command-driven operator workflows
-- [docs/testing.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/testing.md): validation gate and test coverage
-- [docs/invariants.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md): control-plane, task-schema, and artifact-model invariants
-- [docs/provenance.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md): prompt/plan/invocation/run trust chain
-- [docs/verifier.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md): verifier modes, outcome classes, and stop implications
-- [docs/boundaries.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/boundaries.md): explicit non-goals, trust limits, and Codex boundaries
-- [docs/multi-agent-readiness.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
+- [README.md](README.md): product overview, quick start, and doc index
+- [docs/architecture.md](docs/architecture.md): module boundaries and end-to-end flow
+- [docs/workflows.md](docs/workflows.md): command-driven operator workflows
+- [docs/testing.md](docs/testing.md): validation gate and test coverage
+- [docs/invariants.md](docs/invariants.md): control-plane, task-schema, and artifact-model invariants
+- [docs/provenance.md](docs/provenance.md): prompt/plan/invocation/run trust chain
+- [docs/verifier.md](docs/verifier.md): verifier modes, outcome classes, and stop implications
+- [docs/boundaries.md](docs/boundaries.md): explicit non-goals, trust limits, and Codex boundaries
+- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
 
 ## Code Owners For Behavior
 

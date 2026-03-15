@@ -202,23 +202,9 @@ export async function prepareIterationContext(
     promptTarget,
     createdAt: taskSelectedAt
   });
-  let selectedTask = null as RalphTask | null;
-  if (promptTarget === 'cliExec') {
-    for (const candidate of listSelectableTasks(taskFile)) {
-      const claimResult = await acquireClaim(
-        snapshot.paths.claimFilePath,
-        candidate.id,
-        DEFAULT_RALPH_AGENT_ID,
-        provenanceId
-      );
-      if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
-        selectedTask = candidate;
-        break;
-      }
-    }
-  } else {
-    selectedTask = selectNextTask(taskFile);
-  }
+  const selectedTask = promptTarget === 'cliExec'
+    ? await selectClaimedTask(taskFile, snapshot.paths.claimFilePath, provenanceId)
+    : selectNextTask(taskFile);
   const rootPolicy = deriveRootPolicy(summary);
   const promptDecision = decidePromptKind(snapshot.state, promptTarget, {
     selectedTask,
@@ -473,4 +459,24 @@ export async function prepareIterationContext(
   await input.persistPreparedProvenanceBundle(preparedContext);
 
   return preparedContext;
+}
+
+async function selectClaimedTask(
+  taskFile: RalphTaskFile,
+  claimFilePath: string,
+  provenanceId: string
+): Promise<RalphTask | null> {
+  for (const candidate of listSelectableTasks(taskFile)) {
+    const claimResult = await acquireClaim(
+      claimFilePath,
+      candidate.id,
+      DEFAULT_RALPH_AGENT_ID,
+      provenanceId
+    );
+    if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+      return candidate;
+    }
+  }
+
+  return null;
 }

@@ -4,9 +4,9 @@ This document owns verifier modes, outcome classifications, and how verification
 
 Related docs:
 
-- [Invariants](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/invariants.md) for loop and artifact requirements
-- [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for execution trust
-- [Workflows](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/workflows.md) for operator-facing command paths
+- [Invariants](invariants.md) for loop and artifact requirements
+- [Provenance](provenance.md) for execution trust
+- [Workflows](workflows.md) for operator-facing command paths
 
 ## Verifier Modes
 
