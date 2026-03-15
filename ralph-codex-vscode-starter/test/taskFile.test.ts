@@ -459,6 +459,62 @@ test('acquireClaim is idempotent for the same agent and provenance', async () =>
   assert.equal(persisted.claims.length, 1);
 });
 
+test('acquireClaim surfaces a contested ledger even when the canonical holder matches the caller', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-b',
+        provenanceId: 'run-000',
+        claimedAt: '2026-03-14T00:00:00.000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-14T00:05:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const reacquired = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', {
+    now: new Date('2026-03-14T00:10:00.000Z')
+  });
+
+  assert.equal(reacquired.outcome, 'contested');
+  assert.equal(reacquired.claim, null);
+  assert.equal(reacquired.canonicalClaim?.claim.agentId, 'agent-a');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ agentId: string; provenanceId: string; status: string }>;
+  };
+  assert.deepEqual(
+    persisted.claims.map((claim) => ({
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        agentId: 'agent-b',
+        provenanceId: 'run-000',
+        status: 'active'
+      },
+      {
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        status: 'active'
+      }
+    ]
+  );
+});
+
 test('releaseClaim is idempotent when the agent no longer holds the task', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
   const claimFilePath = path.join(tempRoot, 'task-claims.json');

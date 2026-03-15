@@ -1266,9 +1266,20 @@ export async function acquireClaim(
 ): Promise<RalphAcquireClaimResult> {
   return withClaimFileLock(claimFilePath, options, async () => {
     const claimFile = await readTaskClaimFile(claimFilePath);
+    const activeClaims = activeClaimsForTask(claimFile, taskId);
     const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
 
     if (canonicalClaim) {
+      const contestedByAnotherActiveClaim = activeClaims.some((claim) => !claimIdentityMatches(claim, canonicalClaim));
+      if (contestedByAnotherActiveClaim) {
+        return {
+          outcome: 'contested',
+          claim: null,
+          canonicalClaim: describeClaim(canonicalClaim, options),
+          claimFile
+        };
+      }
+
       if (canonicalClaim.agentId === agentId && canonicalClaim.provenanceId === provenanceId) {
         return {
           outcome: 'already_held',

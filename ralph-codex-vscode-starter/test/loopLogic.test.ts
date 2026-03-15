@@ -213,9 +213,42 @@ test('decideLoopContinuation ignores interleaved no-progress history from anothe
   assert.equal(decision.stopReason, null);
 });
 
+test('decideLoopContinuation keeps repeated-no-progress tracking isolated for each agent on the same task', () => {
+  const agentAFirst = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const agentBFirst = iterationResult({ iteration: 2, agentId: 'agent-b' });
+  const agentASecond = iterationResult({ iteration: 3, agentId: 'agent-a' });
+  const agentBSecond = iterationResult({ iteration: 4, agentId: 'agent-b' });
+
+  const agentADecision = decideLoopContinuation(stopDecisionInput({
+    currentResult: agentASecond,
+    previousIterations: [agentAFirst, agentBFirst]
+  }));
+  const agentBDecision = decideLoopContinuation(stopDecisionInput({
+    currentResult: agentBSecond,
+    previousIterations: [agentAFirst, agentBFirst, agentASecond]
+  }));
+
+  assert.equal(agentADecision.shouldContinue, true);
+  assert.equal(agentADecision.stopReason, null);
+  assert.equal(agentBDecision.shouldContinue, true);
+  assert.equal(agentBDecision.stopReason, null);
+});
+
 test('decideLoopContinuation still counts a default-agent no-progress streak on the same task', () => {
   const previous = iterationResult({ iteration: 1 });
   const current = iterationResult({ iteration: 2 });
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [previous]
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'repeated_no_progress');
+});
+
+test('decideLoopContinuation stops when one agent alone reaches the no-progress threshold on the same task', () => {
+  const previous = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const current = iterationResult({ iteration: 2, agentId: 'agent-a' });
   const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
     previousIterations: [previous]

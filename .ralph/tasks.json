@@ -767,7 +767,7 @@
     {
       "id": "T24.3",
       "title": "Isolate remediation history per agent so cross-agent classifications do not trigger false repeated-stop signals",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24",
       "dependsOn": [
         "T24.3.1",
@@ -777,7 +777,7 @@
         "T26",
         "T27"
       ],
-      "notes": "buildTaskRemediation() in loopLogic.ts counts trailing same-task classifications from a shared iterationHistory. With multiple agents, a repeated_no_progress signal on a task could come from two different agents alternating — the trigger logic misreads interleaved history as one agent spinning. The remediation window must be scoped to a single agent's contiguous run on a given task, not the global history."
+      "notes": "Added dedicated regression coverage proving explicit agent-scoped remediation and stop detection do not inherit default-agent history, and verified with npm test."
     },
     {
       "id": "T24.3.1",
@@ -807,7 +807,7 @@
     {
       "id": "T24.3.3",
       "title": "Add regression coverage for multi-agent remediation isolation and update docs",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.3",
       "dependsOn": [
         "T24.3.2",
@@ -815,13 +815,13 @@
         "T26",
         "T27"
       ],
-      "notes": "Add tests in test/loopLogic.test.ts covering: interleaved history from two agents on the same task does not trigger repeated_no_progress for either agent, a single agent accumulating the threshold count on the same task still triggers correctly, and the default sentinel preserves existing single-agent behaviour. Update docs/verifier.md to note that repeated-stop detection is scoped per agent and that multi-agent deployments should assign distinct agentId values.",
+      "notes": "Added regression coverage for per-agent repeated-no-progress isolation, preserved default single-agent behavior coverage, and documented agentId-scoped repeated-stop detection in verifier docs.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T24.1.2.1",
       "title": "Claim acquisition",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1.2",
       "dependsOn": [
         "T24.1.1",
@@ -829,7 +829,7 @@
         "T26",
         "T27"
       ],
-      "notes": "Narrow T24.1.2 to a deterministic first step before retrying the parent task.",
+      "notes": "Hardened claim acquisition so an already-contested ledger returns contested even when the canonical latest claim matches the caller, and added regression coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
