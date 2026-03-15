@@ -14,6 +14,13 @@
       "claimedAt": "2026-03-15T16:57:10.216Z",
       "provenanceId": "run-i061-cli-20260315T165710Z",
       "status": "released"
+    },
+    {
+      "taskId": "T24.2.2",
+      "agentId": "default",
+      "provenanceId": "run-i062-ide-20260315T170831Z",
+      "claimedAt": "2026-03-15T17:08:31.435Z",
+      "status": "active"
     }
   ]
 }
