@@ -1005,6 +1005,82 @@ test('preparePrompt leaves the next task unclaimed so a later CLI iteration can 
   );
 });
 
+test('runCliIteration reclaims a legacy IDE handoff claim from the same agent before selecting the task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Previously handed off in the IDE', status: 'todo' },
+      { id: 'T2', title: 'Fallback task', status: 'todo' }
+    ]
+  });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), `${JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: 'run-i003-ide-20260315T010000Z',
+        claimedAt: '2026-03-15T01:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'reclaimed prepared task',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'in_progress',
+          progressNote: 'CLI reclaimed the legacy IDE handoff claim.'
+        }, 'CLI reclaimed the legacy IDE handoff claim.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const claimsFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; provenanceId: string; status: string }>;
+  };
+
+  assert.equal(summary.result.selectedTaskId, 'T1');
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.deepEqual(
+    claimsFile.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: 'run-i003-ide-20260315T010000Z',
+        status: 'released'
+      },
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: summary.result.provenanceId!,
+        status: 'released'
+      }
+    ]
+  );
+});
+
 test('runCliIteration rejects a completion report for the wrong selected task id without mutating durable state', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {

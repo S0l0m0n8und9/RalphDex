@@ -196,6 +196,10 @@ function claimIdentityMatches(left: RalphTaskClaim, right: RalphTaskClaim): bool
     && left.claimedAt === right.claimedAt;
 }
 
+function isIdeHandoffProvenance(provenanceId: string): boolean {
+  return /^run-i\d+-ide-/.test(provenanceId);
+}
+
 function claimRecordMatches(left: RalphTaskClaim, right: RalphTaskClaim): boolean {
   return claimIdentityMatches(left, right)
     && left.status === right.status;
@@ -1363,34 +1367,50 @@ export async function acquireClaim(
 ): Promise<RalphAcquireClaimResult> {
   return withClaimFileLock(claimFilePath, options, async () => {
     const claimFile = await readTaskClaimFile(claimFilePath);
-    const activeClaims = activeClaimsForTask(claimFile, taskId);
     const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+    const releasableLegacyIdeClaim = canonicalClaim
+      && canonicalClaim.agentId === agentId
+      && isIdeHandoffProvenance(canonicalClaim.provenanceId)
+      ? canonicalClaim
+      : null;
+    const effectiveClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaim
+      ? {
+        version: 1,
+        claims: claimFile.claims.map((claim) => (
+          claimRecordMatches(claim, releasableLegacyIdeClaim)
+            ? { ...claim, status: 'released' }
+            : claim
+        ))
+      }
+      : claimFile;
+    const activeClaims = activeClaimsForTask(effectiveClaimFile, taskId);
+    const effectiveCanonicalClaim = canonicalClaimForTask(effectiveClaimFile, taskId);
 
-    if (canonicalClaim) {
-      const contestedByAnotherActiveClaim = activeClaims.some((claim) => !claimIdentityMatches(claim, canonicalClaim));
+    if (effectiveCanonicalClaim) {
+      const contestedByAnotherActiveClaim = activeClaims.some((claim) => !claimIdentityMatches(claim, effectiveCanonicalClaim));
       if (contestedByAnotherActiveClaim) {
         return {
           outcome: 'contested',
           claim: null,
-          canonicalClaim: describeClaim(canonicalClaim, options),
-          claimFile
+          canonicalClaim: describeClaim(effectiveCanonicalClaim, options),
+          claimFile: effectiveClaimFile
         };
       }
 
-      if (canonicalClaim.agentId === agentId && canonicalClaim.provenanceId === provenanceId) {
+      if (effectiveCanonicalClaim.agentId === agentId && effectiveCanonicalClaim.provenanceId === provenanceId) {
         return {
           outcome: 'already_held',
-          claim: describeClaim(canonicalClaim, options),
-          canonicalClaim: describeClaim(canonicalClaim, options),
-          claimFile
+          claim: describeClaim(effectiveCanonicalClaim, options),
+          canonicalClaim: describeClaim(effectiveCanonicalClaim, options),
+          claimFile: effectiveClaimFile
         };
       }
 
       return {
         outcome: 'contested',
         claim: null,
-        canonicalClaim: describeClaim(canonicalClaim, options),
-        claimFile
+        canonicalClaim: describeClaim(effectiveCanonicalClaim, options),
+        claimFile: effectiveClaimFile
       };
     }
 
@@ -1403,7 +1423,7 @@ export async function acquireClaim(
     };
     const nextClaimFile: RalphTaskClaimFile = {
       version: 1,
-      claims: [...claimFile.claims, nextClaim]
+      claims: [...effectiveClaimFile.claims, nextClaim]
     };
 
     await writeTaskClaimFile(claimFilePath, nextClaimFile);

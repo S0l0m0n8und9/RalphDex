@@ -653,6 +653,54 @@ test('acquireClaim surfaces stale canonical claims without auto-releasing them',
   assert.deepEqual(persisted.claims.map((claim) => claim.status), ['active']);
 });
 
+test('acquireClaim replaces a legacy IDE handoff claim held by the same agent with a fresh CLI claim', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T12:00:00.000Z');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-i007-ide-20260314T110000Z',
+        claimedAt: '2026-03-14T11:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const acquired = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-i008-cli-20260314T120000Z', { now });
+
+  assert.equal(acquired.outcome, 'acquired');
+  assert.equal(acquired.claim?.claim.provenanceId, 'run-i008-cli-20260314T120000Z');
+  assert.equal(acquired.canonicalClaim?.claim.provenanceId, 'run-i008-cli-20260314T120000Z');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ provenanceId: string; status: string; claimedAt: string }>;
+  };
+  assert.deepEqual(
+    persisted.claims.map((claim) => ({
+      provenanceId: claim.provenanceId,
+      status: claim.status,
+      claimedAt: claim.claimedAt
+    })),
+    [
+      {
+        provenanceId: 'run-i007-ide-20260314T110000Z',
+        status: 'released',
+        claimedAt: '2026-03-14T11:00:00.000Z'
+      },
+      {
+        provenanceId: 'run-i008-cli-20260314T120000Z',
+        status: 'active',
+        claimedAt: now.toISOString()
+      }
+    ]
+  );
+});
+
 test('acquireClaim uses the file lock so concurrent claim attempts leave one canonical holder', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
   const claimFilePath = path.join(tempRoot, 'task-claims.json');
