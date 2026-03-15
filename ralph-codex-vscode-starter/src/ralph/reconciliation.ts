@@ -1,8 +1,15 @@
 import * as fs from 'fs/promises';
 import { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
-import { autoCompleteSatisfiedAncestors, findTaskById, parseTaskFile, stringifyTaskFile } from './taskFile';
 import {
+  autoCompleteSatisfiedAncestors,
+  findTaskById,
+  inspectClaimOwnership,
+  parseTaskFile,
+  stringifyTaskFile
+} from './taskFile';
+import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphCompletionClassification,
   RalphIterationResult,
   RalphTask,
@@ -15,6 +22,7 @@ export interface CompletionReconciliationOutcome {
   selectedTask: RalphTask | null;
   progressChanged: boolean;
   taskFileChanged: boolean;
+  claimContested: boolean;
   warnings: string[];
 }
 
@@ -50,6 +58,7 @@ export async function reconcileCompletionReport(
       selectedTask: input.selectedTask,
       progressChanged: false,
       taskFileChanged: false,
+      claimContested: false,
       warnings: []
     };
   }
@@ -69,6 +78,7 @@ export async function reconcileCompletionReport(
       selectedTask: input.selectedTask,
       progressChanged: false,
       taskFileChanged: false,
+      claimContested: false,
       warnings
     };
   }
@@ -86,6 +96,7 @@ export async function reconcileCompletionReport(
       selectedTask: input.selectedTask,
       progressChanged: false,
       taskFileChanged: false,
+      claimContested: false,
       warnings
     };
   }
@@ -107,6 +118,7 @@ export async function reconcileCompletionReport(
         selectedTask: input.selectedTask,
         progressChanged: false,
         taskFileChanged: false,
+        claimContested: false,
         warnings
       };
     }
@@ -122,12 +134,40 @@ export async function reconcileCompletionReport(
       selectedTask: input.selectedTask,
       progressChanged: false,
       taskFileChanged: false,
+      claimContested: false,
       warnings
     };
   }
 
   let taskFileChanged = false;
   let progressChanged = false;
+  const claimOwnership = await inspectClaimOwnership(
+    input.prepared.paths.claimFilePath,
+    input.selectedTask.id,
+    DEFAULT_RALPH_AGENT_ID,
+    input.prepared.provenanceId
+  );
+
+  if (!claimOwnership.holdsActiveClaim) {
+    const canonicalClaim = claimOwnership.canonicalClaim?.claim;
+    const canonicalHolder = canonicalClaim
+      ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
+      : 'none';
+    warnings.push(
+      `Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${canonicalHolder}.`
+    );
+    return {
+      artifact: {
+        ...artifactBase,
+        warnings
+      },
+      selectedTask: input.selectedTask,
+      progressChanged: false,
+      taskFileChanged: false,
+      claimContested: true,
+      warnings
+    };
+  }
 
   await updateTaskFile(input.taskFilePath, (taskFile) => {
     const selectedTaskUpdated: RalphTaskFile = {
@@ -193,6 +233,7 @@ export async function reconcileCompletionReport(
     selectedTask,
     progressChanged,
     taskFileChanged,
+    claimContested: false,
     warnings
   };
 }

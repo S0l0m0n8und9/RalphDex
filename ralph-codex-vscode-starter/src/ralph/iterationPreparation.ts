@@ -9,6 +9,7 @@ import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
 import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphExecutionPlan,
   RalphPersistedPreflightReport,
   RalphPreflightReport,
@@ -22,7 +23,7 @@ import {
   RalphTaskFile,
   RalphWorkspaceState
 } from './types';
-import { countTaskStatuses, selectNextTask } from './taskFile';
+import { acquireClaim, countTaskStatuses, listSelectableTasks } from './taskFile';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -193,8 +194,26 @@ export async function prepareIterationContext(
   const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
   const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
   const effectiveTaskCounts = taskCounts ?? countTaskStatuses(taskFile);
-  const selectedTask = selectNextTask(taskFile);
   const taskSelectedAt = new Date().toISOString();
+  const iteration = snapshot.state.nextIteration;
+  const provenanceId = createProvenanceId({
+    iteration,
+    promptTarget: includeVerifierContext ? 'cliExec' : 'ideHandoff',
+    createdAt: taskSelectedAt
+  });
+  let selectedTask = null as RalphTask | null;
+  for (const candidate of listSelectableTasks(taskFile)) {
+    const claimResult = await acquireClaim(
+      snapshot.paths.claimFilePath,
+      candidate.id,
+      DEFAULT_RALPH_AGENT_ID,
+      provenanceId
+    );
+    if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+      selectedTask = candidate;
+      break;
+    }
+  }
   const rootPolicy = deriveRootPolicy(summary);
   const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
   const promptDecision = decidePromptKind(snapshot.state, promptTarget, {
@@ -224,12 +243,6 @@ export async function prepareIterationContext(
     rootPath: rootPolicy.verificationRootPath
   });
   const trustLevel = trustLevelForTarget(promptTarget);
-  const iteration = snapshot.state.nextIteration;
-  const provenanceId = createProvenanceId({
-    iteration,
-    promptTarget,
-    createdAt: taskSelectedAt
-  });
   const [availableCommands, codexCliSupport] = await Promise.all([
     vscode.commands.getCommands(true),
     inspectCodexCliSupport(config.codexCommandPath)

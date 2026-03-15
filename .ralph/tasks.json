@@ -666,7 +666,7 @@
     {
       "id": "T24.1.2",
       "title": "Implement claim acquisition and release in taskFile.ts with file-level locking",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1",
       "dependsOn": [
         "T24.1.1",
@@ -676,13 +676,13 @@
         "T26",
         "T27"
       ],
-      "notes": "Add acquireClaim(taskId, agentId, provenanceId) and releaseClaim(taskId, agentId) to src/ralph/taskFile.ts. Use a write-then-verify pattern: write the claim record, re-read the file, confirm the claim is still the canonical holder. If another claim exists for the same taskId, return a contested result without writing. Release must be idempotent. Stale claims older than a configurable TTL should be detectable but not auto-released — that is an operator decision.",
+      "notes": "Added regression coverage proving concurrent releaseClaim calls serialize through the file lock and documented the expanded claim-lock coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T24.1.3",
       "title": "Gate task selection and completion-report reconciliation on current claim ownership",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1",
       "dependsOn": [
         "T24.1.2",
@@ -690,7 +690,7 @@
         "T26",
         "T27"
       ],
-      "notes": "In src/ralph/iterationEngine.ts, call acquireClaim immediately after task selection and before prompt generation. In the completion-report reconciliation step, verify the claim is still active and owned by the current provenanceId before writing to tasks.json. If the claim has been released or superseded, surface a new stop reason: claim_contested, and persist the iteration result without mutating task state.",
+      "notes": "Gated task selection and completion-report reconciliation on durable claim ownership, added claim_contested stop handling, and released claims after each iteration with regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
@@ -835,7 +835,7 @@
     {
       "id": "T24.1.2.2",
       "title": "Release in taskFile.ts with file-level locking",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1.2",
       "dependsOn": [
         "T24.1.1",
@@ -844,7 +844,7 @@
         "T26",
         "T27"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T24.1.2.1.",
+      "notes": "Added regression coverage proving releaseClaim uses file-level locking under concurrent release attempts, with one released outcome, one not_held outcome, and a single released ledger record. Validation passed with npm test (227 passed).",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {

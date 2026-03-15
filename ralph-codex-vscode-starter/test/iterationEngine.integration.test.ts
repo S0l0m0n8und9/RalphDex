@@ -867,6 +867,83 @@ test('runCliIteration normalizes a legacy task validation command when the opene
   assert.equal(await fs.readFile(path.join(rootPath, 'validate.cwd.txt'), 'utf8'), rootPath);
 });
 
+test('runCliIteration skips tasks claimed by another provenance when selecting the next task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Already claimed elsewhere', status: 'todo' },
+      { id: 'T2', title: 'Still claimable', status: 'todo' }
+    ]
+  });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), `${JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1',
+        agentId: 'other-agent',
+        provenanceId: 'run-i999-cli-20260315T000000Z',
+        claimedAt: '2026-03-15T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'claimed second task',
+        lastMessage: completionReport({
+          selectedTaskId: 'T2',
+          requestedStatus: 'in_progress',
+          progressNote: 'Claimed the next available task.'
+        }, 'Claimed the next available task.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const claimsFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; provenanceId: string; status: string }>;
+  };
+
+  assert.equal(summary.result.selectedTaskId, 'T2');
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.deepEqual(
+    claimsFile.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        taskId: 'T1',
+        agentId: 'other-agent',
+        provenanceId: 'run-i999-cli-20260315T000000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T2',
+        agentId: 'default',
+        provenanceId: summary.result.provenanceId!,
+        status: 'released'
+      }
+    ]
+  );
+});
+
 test('runCliIteration rejects a completion report for the wrong selected task id without mutating durable state', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
@@ -1036,6 +1113,70 @@ test('runCliIteration does not mark a task done when the completion report reque
   assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /verification status was failed/);
   assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
   assert.doesNotMatch(progressText, /This should not be persisted\./);
+});
+
+test('runCliIteration stops with claim_contested when the selected task claim is lost before reconciliation', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Require claim ownership at reconciliation', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), `${JSON.stringify({
+          version: 1,
+          claims: [
+            {
+              taskId: 'T1',
+              agentId: 'other-agent',
+              provenanceId: 'run-i999-cli-20260315T000100Z',
+              claimedAt: '2026-03-15T00:01:00.000Z',
+              status: 'active'
+            }
+          ]
+        }, null, 2)}\n`, 'utf8');
+        return {
+          stdout: 'reported done after losing claim',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'in_progress',
+            progressNote: 'This should not be persisted.'
+          }, 'Reported completion after claim ownership changed.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+  const completionArtifact = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'completion-report.json'), 'utf8')) as {
+    status: string;
+    warnings: string[];
+  };
+
+  assert.equal(summary.result.completionReportStatus, 'rejected');
+  assert.equal(summary.result.stopReason, 'claim_contested');
+  assert.equal(summary.loopDecision.stopReason, 'claim_contested');
+  assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /claim ownership check failed/);
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.doesNotMatch(progressText, /This should not be persisted\./);
+  assert.equal(completionArtifact.status, 'rejected');
 });
 
 test('runCliIteration applies blocked completion reports through control-plane reconciliation', async () => {

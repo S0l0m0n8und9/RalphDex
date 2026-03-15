@@ -74,6 +74,12 @@ export interface RalphReleaseClaimResult {
   claimFile: RalphTaskClaimFile;
 }
 
+export interface RalphClaimOwnershipStatus {
+  holdsActiveClaim: boolean;
+  canonicalClaim: RalphTaskClaimDetails | null;
+  claimFile: RalphTaskClaimFile;
+}
+
 function isTaskStatus(value: unknown): value is RalphTaskStatus {
   return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
 }
@@ -1070,10 +1076,15 @@ export function countTaskStatuses(taskFile: RalphTaskFile): RalphTaskCounts {
   return counts;
 }
 
+export function listSelectableTasks(taskFile: RalphTaskFile): RalphTask[] {
+  return [
+    ...taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task)),
+    ...taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
+  ];
+}
+
 export function selectNextTask(taskFile: RalphTaskFile): RalphTask | null {
-  return taskFile.tasks.find((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task))
-    ?? taskFile.tasks.find((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
-    ?? null;
+  return listSelectableTasks(taskFile)[0] ?? null;
 }
 
 function collectAncestors(taskFile: RalphTaskFile, taskId: string): RalphTask[] {
@@ -1381,6 +1392,28 @@ export async function releaseClaim(
       releasedClaim: describeClaim(verifiedReleasedClaim, options),
       canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
       claimFile: verifiedClaimFile
+    };
+  });
+}
+
+export async function inspectClaimOwnership(
+  claimFilePath: string,
+  taskId: string,
+  agentId: string,
+  provenanceId: string,
+  options?: RalphTaskClaimOptions
+): Promise<RalphClaimOwnershipStatus> {
+  return withClaimFileLock(claimFilePath, options, async () => {
+    const claimFile = await readTaskClaimFile(claimFilePath);
+    const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+
+    return {
+      holdsActiveClaim: canonicalClaim?.status === 'active'
+        && canonicalClaim.taskId === taskId
+        && canonicalClaim.agentId === agentId
+        && canonicalClaim.provenanceId === provenanceId,
+      canonicalClaim: describeClaim(canonicalClaim, options),
+      claimFile
     };
   });
 }

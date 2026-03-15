@@ -713,3 +713,54 @@ test('claim file mutations do not leave temporary write or lock artifacts behind
 
   assert.deepEqual(remainingEntries, []);
 });
+
+test('releaseClaim uses the file lock so concurrent releases leave one released record', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  const now = new Date('2026-03-14T00:00:00.000Z');
+
+  await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-001', { now });
+
+  const [first, second] = await Promise.all([
+    releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', {
+      now,
+      lockRetryCount: 50,
+      lockRetryDelayMs: 10
+    }),
+    releaseClaim(claimFilePath, 'T24.1.2', 'agent-a', {
+      now,
+      lockRetryCount: 50,
+      lockRetryDelayMs: 10
+    })
+  ]);
+
+  const outcomes = [first, second].map((result) => result.outcome).sort();
+  assert.deepEqual(outcomes, ['not_held', 'released']);
+
+  const released = [first, second].find((result) => result.outcome === 'released');
+  const notHeld = [first, second].find((result) => result.outcome === 'not_held');
+  assert.ok(released);
+  assert.ok(notHeld);
+  assert.equal(released.releasedClaim?.claim.agentId, 'agent-a');
+  assert.equal(notHeld.canonicalClaim, null);
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; provenanceId: string; status: string }>;
+  };
+  assert.deepEqual(
+    persisted.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        status: 'released'
+      }
+    ]
+  );
+});

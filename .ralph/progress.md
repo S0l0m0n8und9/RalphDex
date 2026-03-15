@@ -88,3 +88,6 @@
 - Added regression coverage for per-agent repeated-no-progress isolation, preserved default single-agent behavior coverage, and documented agentId-scoped repeated-stop detection in verifier docs.
 - Added dedicated regression coverage proving explicit agent-scoped remediation and stop detection do not inherit default-agent history, and verified with npm test.
 - Hardened claim acquisition so an already-contested ledger returns contested even when the canonical latest claim matches the caller, and added regression coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.
+- Added regression coverage proving releaseClaim uses file-level locking under concurrent release attempts, with one released outcome, one not_held outcome, and a single released ledger record. Validation passed with npm test (227 passed).
+- Added regression coverage proving concurrent releaseClaim calls serialize through the file lock and documented the expanded claim-lock coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.
+- Gated task selection and completion-report reconciliation on durable claim ownership, added claim_contested stop handling, and released claims after each iteration with regression coverage.

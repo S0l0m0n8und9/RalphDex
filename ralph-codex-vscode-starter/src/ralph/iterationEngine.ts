@@ -30,7 +30,7 @@ import {
   RalphTask,
   RalphTaskCounts,
 } from './types';
-import { countTaskStatuses, remainingSubtasks, selectNextTask } from './taskFile';
+import { countTaskStatuses, releaseClaim, remainingSubtasks, selectNextTask } from './taskFile';
 import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
 import {
   captureCoreState,
@@ -538,6 +538,7 @@ export class RalphIterationEngine {
       persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
       persistPreparedProvenanceBundle: (preparedContext) => this.persistPreparedProvenanceBundle(preparedContext)
     });
+    try {
     const artifactPaths = resolveIterationArtifactPaths(prepared.paths.artifactDir, prepared.iteration);
     const startedAt = prepared.phaseSeed.inspectStartedAt;
     const phaseTimestamps: RalphIterationResult['phaseTimestamps'] = {
@@ -931,7 +932,16 @@ export class RalphIterationEngine {
     });
     const runtimeChanges = controlPlaneRuntimeChanges(fileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
 
-    if (!loopDecision.shouldContinue) {
+    if (completionReconciliation.claimContested) {
+      loopDecision = {
+        shouldContinue: false,
+        stopReason: 'claim_contested',
+        message: `Selected task claim was no longer owned by ${prepared.provenanceId} during completion reconciliation.`
+      };
+      result.stopReason = 'claim_contested';
+      result.followUpAction = 'stop';
+      result.remediation = null;
+    } else if (!loopDecision.shouldContinue) {
       result.stopReason = loopDecision.stopReason;
       result.followUpAction = 'stop';
       result.remediation = buildTaskRemediation({
@@ -1068,6 +1078,21 @@ export class RalphIterationEngine {
       loopDecision,
       createdPaths: prepared.createdPaths
     };
+    } finally {
+      if (prepared.selectedTask) {
+        await releaseClaim(
+          prepared.paths.claimFilePath,
+          prepared.selectedTask.id,
+          DEFAULT_RALPH_AGENT_ID
+        ).catch((error: unknown) => {
+          this.logger.warn('Failed to release Ralph task claim after iteration.', {
+            selectedTaskId: prepared.selectedTask?.id ?? null,
+            provenanceId: prepared.provenanceId,
+            error: toErrorMessage(error)
+          });
+        });
+      }
+    }
   }
 
 }
