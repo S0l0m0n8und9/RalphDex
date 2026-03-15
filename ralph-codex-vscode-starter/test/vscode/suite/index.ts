@@ -31,6 +31,7 @@ export async function run(): Promise<void> {
 
   const commands = await vscode.commands.getCommands(true);
   for (const commandId of [
+    'ralphCodex.initializeWorkspace',
     'ralphCodex.generatePrompt',
     'ralphCodex.runRalphIteration',
     'ralphCodex.runRalphLoop',

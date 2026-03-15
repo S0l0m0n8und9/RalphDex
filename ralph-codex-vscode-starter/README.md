@@ -9,6 +9,17 @@ The extension has two execution paths:
 - prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
 - run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
 
+## Getting Started
+
+For a fresh clone that does not have a `.ralph/` directory yet, start with `Ralph Codex: Initialize Workspace`. The command creates:
+
+- `.ralph/prd.md` with a placeholder objective comment
+- `.ralph/tasks.json` with version `2` and an empty `tasks` array
+- `.ralph/progress.md` as an empty progress log
+- `.ralph/.gitignore` with the standard Ralph runtime ignores when that file is not already present
+
+The initializer refuses to run when `.ralph/prd.md` already exists so it does not overwrite an active Ralph workspace. After initialization, replace the placeholder comment in `.ralph/prd.md` with the real objective before preparing prompts or running CLI iterations.
+
 ## Quick Start
 
 1. Run `npm install`.
@@ -71,6 +82,7 @@ For day-to-day loop inspection, use the commands in this order:
 
 The extension contributes these commands:
 
+- `Ralph Codex: Initialize Workspace`
 - `Ralph Codex: Prepare Prompt`
 - `Ralph Codex: Open Codex IDE`
 - `Ralph Codex: Run CLI Iteration`
@@ -97,6 +109,7 @@ The extension contributes these commands:
 - [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
 - [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
+- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
 
 ## Product Notes
 
@@ -105,7 +118,7 @@ The extension contributes these commands:
 - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
 - CLI runs default `ralphCodex.reasoningEffort` to `medium` to control token burn. Raise it to `high` only as an explicit escalation for architecture, hard debugging, or remediation-heavy work; the chosen value is recorded in the CLI transcript and iteration integrity artifacts.
 - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
-- The shipped automation surface is still a sequential single-agent loop. Broad multi-agent orchestration stays deferred until nested root selection, execution, and verification behavior remains deterministic, test-backed, and visible in durable evidence.
+- The shipped automation surface is still a sequential single-agent loop, and multi-agent orchestration remains a planned milestone with explicit acceptance criteria in [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md).
 - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.
 - Generated artifact cleanup stays deterministic and file-backed: Ralph keeps the newest configured prompt/run/iteration artifacts by parsed iteration first, then adds any older state-linked or latest-pointer-protected entries without evicting the newer retained window.
 - CLI runs can prove prompt integrity up to the `codex exec` boundary. IDE handoff only proves the prepared prompt bundle.

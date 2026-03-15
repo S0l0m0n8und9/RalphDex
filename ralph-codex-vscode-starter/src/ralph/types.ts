@@ -507,6 +507,9 @@ export interface RalphProvenanceBundle {
   executionPlanHash: string | null;
   cliInvocationPath: string | null;
   iterationResultPath: string | null;
+  completionReportStatus?: RalphCompletionReportStatus | null;
+  reconciliationWarnings?: string[] | null;
+  completionReportPath?: string | null;
   provenanceFailurePath: string | null;
   provenanceFailureSummaryPath: string | null;
   promptHash: string | null;

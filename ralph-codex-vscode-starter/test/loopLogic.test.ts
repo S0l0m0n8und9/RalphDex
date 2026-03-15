@@ -6,7 +6,7 @@ import {
   classifyIterationOutcome,
   decideLoopContinuation
 } from '../src/ralph/loopLogic';
-import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult } from '../src/ralph/types';
+import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult, RalphPreflightDiagnostic } from '../src/ralph/types';
 
 function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
   return {
@@ -71,6 +71,36 @@ function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIt
     completionReportStatus: 'missing',
     reconciliationWarnings: [],
     stopReason: null,
+    ...overrides
+  };
+}
+
+function stopDecisionInput(
+  overrides: Partial<Parameters<typeof decideLoopContinuation>[0]> = {}
+): Parameters<typeof decideLoopContinuation>[0] {
+  return {
+    currentResult: iterationResult(),
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    preflightDiagnostics: [],
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 3,
+    stopOnHumanReviewNeeded: true,
+    autoReplenishBacklog: false,
+    reachedIterationCap: false,
+    previousIterations: [],
+    ...overrides
+  };
+}
+
+function diagnostic(overrides: Partial<RalphPreflightDiagnostic>): RalphPreflightDiagnostic {
+  return {
+    category: 'taskGraph',
+    severity: 'info',
+    code: 'info',
+    message: 'info',
     ...overrides
   };
 }
@@ -149,18 +179,10 @@ test('classifyIterationOutcome detects conservative no-progress signals', () => 
 test('decideLoopContinuation stops on repeated no-progress iterations', () => {
   const previous = iterationResult();
   const current = iterationResult({ iteration: 2 });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
-    remainingSubtaskCount: 0,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 3,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_no_progress');
@@ -169,18 +191,10 @@ test('decideLoopContinuation stops on repeated no-progress iterations', () => {
 test('decideLoopContinuation ignores no-progress streaks across different tasks', () => {
   const previous = iterationResult({ selectedTaskId: 'T0', selectedTaskTitle: 'Other task' });
   const current = iterationResult({ iteration: 2, selectedTaskId: 'T1' });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
-    remainingSubtaskCount: 0,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 3,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
@@ -190,18 +204,10 @@ test('decideLoopContinuation ignores interleaved no-progress history from anothe
   const previous = iterationResult({ iteration: 1, agentId: 'agent-a' });
   const interleaved = iterationResult({ iteration: 2, agentId: 'agent-b' });
   const current = iterationResult({ iteration: 3, agentId: 'agent-a' });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
-    remainingSubtaskCount: 0,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 3,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous, interleaved]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
@@ -210,18 +216,10 @@ test('decideLoopContinuation ignores interleaved no-progress history from anothe
 test('decideLoopContinuation still counts a default-agent no-progress streak on the same task', () => {
   const previous = iterationResult({ iteration: 1 });
   const current = iterationResult({ iteration: 2 });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
-    remainingSubtaskCount: 0,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 3,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_no_progress');
@@ -237,18 +235,13 @@ test('decideLoopContinuation stops on repeated identical failure classifications
     completionClassification: 'failed',
     verificationStatus: 'failed'
   });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
     remainingSubtaskCount: 1,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
     noProgressThreshold: 5,
     repeatedFailureThreshold: 2,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'repeated_identical_failure');
@@ -273,18 +266,13 @@ test('decideLoopContinuation ignores interleaved identical failures from another
     completionClassification: 'failed',
     verificationStatus: 'failed'
   });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
     remainingSubtaskCount: 1,
-    remainingTaskCount: 1,
-    hasActionableTask: true,
     noProgressThreshold: 5,
     repeatedFailureThreshold: 2,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
     previousIterations: [previous, interleaved]
-  });
+  }));
 
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
@@ -569,18 +557,12 @@ test('decideLoopContinuation continues after task completion when backlog remain
       actionableTaskAvailable: true
     }
   });
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
     selectedTaskCompleted: true,
-    remainingSubtaskCount: 0,
     remainingTaskCount: 2,
-    hasActionableTask: true,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 2,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
-    previousIterations: []
-  });
+    repeatedFailureThreshold: 2
+  }));
 
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
@@ -598,20 +580,63 @@ test('decideLoopContinuation stops when no actionable task remains even if block
     }
   });
 
-  const decision = decideLoopContinuation({
+  const decision = decideLoopContinuation(stopDecisionInput({
     currentResult: current,
-    selectedTaskCompleted: false,
-    remainingSubtaskCount: 0,
-    remainingTaskCount: 1,
     hasActionableTask: false,
-    noProgressThreshold: 2,
-    repeatedFailureThreshold: 2,
-    stopOnHumanReviewNeeded: true,
-    reachedIterationCap: false,
-    previousIterations: []
-  });
+    repeatedFailureThreshold: 2
+  }));
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'no_actionable_task');
   assert.match(decision.message, /No executable Ralph task remains/i);
+});
+
+test('decideLoopContinuation continues into backlog replenishment when enabled and no drift is present', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    stopReason: 'no_actionable_task',
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: true
+  }));
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
+  assert.match(decision.message, /continuing into backlog replenishment/i);
+});
+
+test('decideLoopContinuation does not auto-replenish when ledger drift is present', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    stopReason: 'no_actionable_task',
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: true,
+    preflightDiagnostics: [
+      diagnostic({
+        severity: 'error',
+        code: 'ledger_drift',
+        message: 'Ledger drift detected.'
+      })
+    ]
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
 });

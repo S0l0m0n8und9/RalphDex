@@ -49,6 +49,9 @@ async function seedValidRepository(rootPath: string): Promise<void> {
     'src/commands/registerCommands.ts',
     'src/prompt/promptBuilder.ts',
     'src/ralph/iterationEngine.ts',
+    'src/ralph/completionReportParser.ts',
+    'src/ralph/taskDecomposition.ts',
+    'src/ralph/reconciliation.ts',
     'src/ralph/preflight.ts',
     'src/ralph/taskFile.ts',
     'src/ralph/verifier.ts',
@@ -80,12 +83,16 @@ AGENTS.md is a routing/control document for the repo.
 - [docs/provenance.md](${absolute('docs/provenance.md')}): provenance
 - [docs/verifier.md](${absolute('docs/verifier.md')}): verifier
 - [docs/boundaries.md](${absolute('docs/boundaries.md')}): boundaries
+- [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
 
 ## Code Owners For Behavior
 
 - \`src/commands/registerCommands.ts\`: commands
 - \`src/prompt/promptBuilder.ts\`: prompts
 - \`src/ralph/iterationEngine.ts\`: engine
+- \`src/ralph/completionReportParser.ts\`: completion reports
+- \`src/ralph/taskDecomposition.ts\`: decomposition
+- \`src/ralph/reconciliation.ts\`: reconciliation
 - \`src/ralph/preflight.ts\`: preflight
 - \`src/ralph/taskFile.ts\`: tasks
 - \`src/ralph/verifier.ts\`: verifier
@@ -123,6 +130,7 @@ Validation entry points:
 - [docs/provenance.md](${absolute('docs/provenance.md')}): provenance
 - [docs/verifier.md](${absolute('docs/verifier.md')}): verifier
 - [docs/boundaries.md](${absolute('docs/boundaries.md')}): boundaries
+- [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
 `);
 
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
@@ -326,11 +334,15 @@ Stable trust boundary rules live here.
 
 Stable control-plane boundary rules live here.
 
-The shipped control plane is a single-agent iteration/loop runner.
+The shipped control plane is a sequential single-agent iteration/loop runner.
 
 ## Workspace And Runtime Boundary
 
 Stable workspace rules live here.
+
+## Repository Layout And Workspace State
+
+The rest of the runtime tree is operator-local runtime state and must not be committed.
 
 ## Git And Safety Boundary
 
@@ -339,6 +351,27 @@ Stable git boundary rules live here.
 ## Testing Boundary
 
 Stable testing boundary rules live here.
+`);
+
+  await writeFile(rootPath, 'docs/multi-agent-readiness.md', `# Multi-Agent Readiness
+
+This document records the acceptance criterion for lifting Ralph's single-agent execution deferral.
+
+## Task Ownership
+
+Each active task claim is recorded in \`claims.json\` with the owning \`agentId\`.
+
+## Write Serialisation
+
+Concurrent agents must serialize writes through the durable \`claims.json\` ledger before editing files.
+
+## Remediation Isolation
+
+Remediation slices should stay isolated so each \`agentId\` can validate its own bounded change safely.
+
+## Lifting The Deferral
+
+The deferral lifts only after the acceptance criterion is met and \`npm run validate\` passes for the repository.
 `);
 }
 

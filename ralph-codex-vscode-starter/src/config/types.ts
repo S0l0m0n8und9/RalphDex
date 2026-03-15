@@ -24,6 +24,7 @@ export interface RalphCodexConfig {
   gitCheckpointMode: RalphGitCheckpointMode;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;
+  autoReplenishBacklog: boolean;
   ralphTaskFilePath: string;
   prdPath: string;
   progressPath: string;

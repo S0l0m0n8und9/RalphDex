@@ -563,6 +563,7 @@ function renderIntegrityFailureSummary(failure) {
     ].join('\n');
 }
 function renderProvenanceSummary(bundle) {
+    const reconciliationWarnings = bundle.reconciliationWarnings ?? [];
     return [
         `# Ralph Provenance ${bundle.provenanceId}`,
         '',
@@ -595,7 +596,11 @@ function renderProvenanceSummary(bundle) {
         `- Execution plan: ${bundle.executionPlanPath ?? 'none'}`,
         `- CLI invocation: ${bundle.cliInvocationPath ?? 'none'}`,
         `- Iteration result: ${bundle.iterationResultPath ?? 'none'}`,
+        `- Completion report: ${bundle.completionReportPath ?? 'none'}`,
         `- Provenance failure: ${bundle.provenanceFailurePath ?? 'none'}`,
+        '',
+        '## Model Self-Report',
+        `- Model Self-Report: ${bundle.completionReportStatus ?? 'none'}; warnings: ${reconciliationWarnings.join(' | ') || 'none'}`,
         '',
         '## Canonical Iteration Artifacts',
         `- Iteration artifact dir: ${bundle.artifactDir}`
@@ -1369,14 +1374,30 @@ async function writeIterationArtifacts(input) {
 }
 async function writeProvenanceBundle(input) {
     await ensureProvenanceBundleDirectory(input.paths);
+    const resultIterationPaths = input.result
+        ? resolveIterationArtifactPaths(input.artifactRootDir, input.result.iteration)
+        : null;
+    const completionReportPath = resultIterationPaths
+        ? await fs.access(resultIterationPaths.completionReportPath)
+            .then(() => resultIterationPaths.completionReportPath)
+            .catch(() => null)
+        : null;
+    const bundle = input.result
+        ? {
+            ...input.bundle,
+            completionReportStatus: input.result.completionReportStatus ?? null,
+            reconciliationWarnings: input.result.reconciliationWarnings ?? null,
+            completionReportPath
+        }
+        : input.bundle;
     const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
-    const summary = renderProvenanceSummary(input.bundle);
+    const summary = renderProvenanceSummary(bundle);
     const writes = [
-        fs.writeFile(input.paths.bundlePath, (0, integrity_1.stableJson)(input.bundle), 'utf8'),
+        fs.writeFile(input.paths.bundlePath, (0, integrity_1.stableJson)(bundle), 'utf8'),
         fs.writeFile(input.paths.summaryPath, `${summary.trimEnd()}\n`, 'utf8'),
         fs.writeFile(input.paths.preflightReportPath, (0, integrity_1.stableJson)(input.preflightReport), 'utf8'),
         fs.writeFile(input.paths.preflightSummaryPath, `${input.preflightSummary.trimEnd()}\n`, 'utf8'),
-        fs.writeFile(latestPaths.latestProvenanceBundlePath, (0, integrity_1.stableJson)(input.bundle), 'utf8'),
+        fs.writeFile(latestPaths.latestProvenanceBundlePath, (0, integrity_1.stableJson)(bundle), 'utf8'),
         fs.writeFile(latestPaths.latestProvenanceSummaryPath, `${summary.trimEnd()}\n`, 'utf8')
     ];
     if (input.prompt !== undefined) {

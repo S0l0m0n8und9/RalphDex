@@ -8,6 +8,13 @@ exports.classifyIterationOutcome = classifyIterationOutcome;
 exports.buildTaskRemediation = buildTaskRemediation;
 exports.decideLoopContinuation = decideLoopContinuation;
 const types_1 = require("./types");
+const BACKLOG_REPLENISHMENT_DRIFT_CODES = new Set([
+    'ledger_drift',
+    'done_parent_unfinished_descendants'
+]);
+function hasBacklogReplenishmentLedgerDrift(diagnostics) {
+    return diagnostics.some((diagnostic) => diagnostic.severity === 'error' && BACKLOG_REPLENISHMENT_DRIFT_CODES.has(diagnostic.code));
+}
 function uniqueOrdered(values) {
     const seen = new Set();
     const ordered = [];
@@ -265,6 +272,17 @@ function decideLoopContinuation(input) {
     const history = [...input.previousIterations, input.currentResult];
     const agentId = input.currentResult.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID;
     if (!input.hasActionableTask) {
+        const canContinueIntoBacklogReplenishment = input.autoReplenishBacklog
+            && input.currentResult.stopReason === 'no_actionable_task'
+            && input.currentResult.backlog.actionableTaskAvailable === false
+            && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics);
+        if (canContinueIntoBacklogReplenishment) {
+            return {
+                shouldContinue: true,
+                stopReason: null,
+                message: 'No actionable Ralph task remains; continuing into backlog replenishment.'
+            };
+        }
         return {
             shouldContinue: false,
             stopReason: 'no_actionable_task',

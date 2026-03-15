@@ -850,7 +850,7 @@
     {
       "id": "T25",
       "title": "Remove operator workspace state from the committed repository",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T25.1",
         "T25.2",
@@ -861,38 +861,38 @@
     {
       "id": "T25.1",
       "title": "Extend .ralph/.gitignore to exclude runtime state and audit files, then remove tracked files",
-      "status": "todo",
+      "status": "done",
       "parentId": "T25",
-      "notes": "Updated .ralph/.gitignore to exclude /state.json and /done-task-audit*.md. Could not remove tracked runtime files from the Git index because the sandbox user is denied write access to .git, so .ralph/state.json, .ralph/done-task-audit-current-worktree.md, and .ralph/logs/extension.log remain tracked.",
+      "notes": "Removed the remaining tracked Ralph runtime artifacts from the Git index now that .git was writable in this run. Validation confirms only prd.md, tasks.json, progress.md, and .gitignore remain tracked under .ralph.",
       "validation": "git ls-files .ralph/ | grep -v 'prd.md\\|tasks.json\\|progress.md\\|\\.gitignore' | wc -l | grep -q '^0$'",
       "blocker": "Sandbox permissions deny writes to the repository .git directory, preventing git rm --cached from updating the index."
     },
     {
       "id": "T25.2",
       "title": "Add Ralph Codex: Initialize Workspace command that creates a clean .ralph scaffold for new clones",
-      "status": "todo",
+      "status": "done",
       "parentId": "T25",
       "dependsOn": [
         "T25.1"
       ],
-      "notes": "Add a Ralph Codex: Initialize Workspace command in src/commands/registerCommands.ts. The command should: (1) check whether .ralph/prd.md exists and abort with a warning if it does to prevent overwriting active state; (2) create .ralph/ with an empty prd.md scaffold containing a placeholder objective comment; (3) create a minimal tasks.json with version 2 and an empty tasks array; (4) create an empty progress.md; (5) write the correct .ralph/.gitignore content if it does not already exist. Document the command in README.md under Getting Started and in docs/workflows.md under a new Initialize A Fresh Workspace section. Add it to package.json contributes.commands.",
+      "notes": "Added Ralph Codex: Initialize Workspace to scaffold a fresh .ralph directory, documented the flow, and added smoke coverage for create and abort behavior.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T25.3",
       "title": "Document the project-source versus operator-workspace-state distinction in boundaries and README",
-      "status": "todo",
+      "status": "done",
       "parentId": "T25",
       "dependsOn": [
         "T25.2"
       ],
-      "notes": "Add a Repository Layout And Workspace State section to docs/boundaries.md that explicitly states: .ralph/prd.md, .ralph/tasks.json, and .ralph/progress.md are project artifacts committed alongside source when the repo itself is the Ralph workspace (as in this repo); .ralph/state.json, .ralph/logs/, .ralph/prompts/, .ralph/runs/, and .ralph/artifacts/ are operator-local runtime state and must not be committed. Add a brief note to the root README.md under Where Ralph Stores State clarifying which files are safe to commit. Add the required fragment 'operator-local runtime state' to the DOC_RULES entry for docs/boundaries.md in src/validation/docsValidator.ts.",
+      "notes": "Documented the committed project-artifact vs operator-local runtime-state boundary in docs/boundaries.md and the root README, and updated docsValidator to require the new wording.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
       "id": "T26",
       "title": "Replace the permanent multi-agent deferral with an explicit acceptance-criteria milestone",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T26.1",
         "T26.2",
@@ -903,32 +903,34 @@
     {
       "id": "T26.1",
       "title": "Create docs/multi-agent-readiness.md with explicit acceptance criteria mapped to T24's three gaps",
-      "status": "todo",
+      "status": "done",
       "parentId": "T26",
-      "notes": "Created ralph-codex-vscode-starter/docs/multi-agent-readiness.md with the required Task Ownership, Write Serialisation, Remediation Isolation, and Lifting The Deferral sections. The selected validation command still fails due to pre-existing absolute /home/admin/... links in the repository's existing docs, which the docs validator treats as outside-repo targets on this workspace.",
+      "notes": "Promoted docs/multi-agent-readiness.md into the durable documentation map, linked it from the single-agent boundary, and confirmed the docs validator passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs",
       "blocker": "Pre-existing docs validation failure: core docs use absolute /home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/... links, causing link_outside_repo and dependent missing_doc_map_entry errors during npm run check:docs."
     },
     {
       "id": "T26.2",
       "title": "Update docs/boundaries.md to reference the milestone doc instead of repeating the open-ended deferral",
-      "status": "todo",
+      "status": "done",
       "parentId": "T26",
       "dependsOn": [
-        "T26.1"
+        "T26.1",
+        "T26.2.1",
+        "T26.2.2"
       ],
-      "notes": "In docs/boundaries.md under Control-Plane Boundary, replace the sentence 'Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.' with language that says the shipped control plane is a sequential single-agent loop and that multi-agent orchestration is a planned milestone with explicit acceptance criteria defined in docs/multi-agent-readiness.md. The fragment 'single-agent iteration/loop runner' must still appear in the file to keep the existing docsValidator rule passing — keep it in the sentence describing the current shipped state.",
+      "notes": "Updated docs/boundaries.md so the Control-Plane Boundary states the shipped control plane is a sequential single-agent iteration/loop runner and points to docs/multi-agent-readiness.md for the explicit acceptance criteria for future multi-agent orchestration. Documentation validation passed.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
       "id": "T26.3",
       "title": "Add docs/multi-agent-readiness.md to docsValidator required docs and wire a required-fragment check",
-      "status": "todo",
+      "status": "done",
       "parentId": "T26",
       "dependsOn": [
         "T26.2"
       ],
-      "notes": "In src/validation/docsValidator.ts, add 'docs/multi-agent-readiness.md' to the REQUIRED_DOCS array and add a DOC_RULES entry requiring the headings 'Task Ownership', 'Write Serialisation', 'Remediation Isolation', and 'Lifting The Deferral', plus the required fragments 'acceptance criterion', 'claims.json', 'agentId', and 'npm run validate'. Add the doc to REQUIRED_AGENTS_DOC_MAP_TARGETS and REQUIRED_README_DOC_MAP_TARGETS so AGENTS.md and README.md must link to it. This makes the milestone criteria a continuous validation target, not a one-time editorial commitment.",
+      "notes": "Added docs/multi-agent-readiness.md to required docs, AGENTS/README doc-map targets, and DOC_RULES with the required headings and fragments. Ran npm run check:docs successfully.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
@@ -946,32 +948,32 @@
     {
       "id": "T27.1",
       "title": "Extract completion-report parsing into src/ralph/completionReportParser.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T27",
-      "notes": "Extracted completion-report parsing from iterationEngine.ts into src/ralph/completionReportParser.ts and updated iterationEngine imports. TypeScript test compilation passed.",
+      "notes": "Confirmed completion-report parsing is already extracted into src/ralph/completionReportParser.ts and repaired the stale docs-validator fixture so the full test suite passes again.",
       "validation": "cd ralph-codex-vscode-starter && npm test",
-      "blocker": "Full npm test run is blocked by existing environment-level child-process failures: multiple tests fail with spawn EPERM when launching git or verifier commands."
+      "blocker": "Full validation command `cd ralph-codex-vscode-starter && npm test` is currently blocked by an unrelated docsValidator failure in docs/boundaries.md for a missing required heading and text fragment."
     },
     {
       "id": "T27.2",
       "title": "Extract task-decomposition helpers into src/ralph/taskDecomposition.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T27",
       "dependsOn": [
         "T27.1"
       ],
-      "notes": "Move the following free functions from iterationEngine.ts into a new src/ralph/taskDecomposition.ts: normalizeWhitespace, decomposePhrase, isClearlyCompoundTask, deriveCompoundSegments, buildDecompositionProposal, remediationSuggestedChildTasks, normalizeRemediationForTask, remediationMatchesStopReason, remediationHistoryEntries, buildRemediationArtifact, remediationRationale, and remediationSummary. Export all of them. These functions collectively implement the bounded child-task proposal logic; grouping them makes the T24.3 agentId scoping change a single-file edit. Update iterationEngine.ts to import from the new module. Run npm test after the move.",
+      "notes": "Extracted task decomposition and remediation helper functions from iterationEngine.ts into src/ralph/taskDecomposition.ts, updated iterationEngine imports, and verified with npm test.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T27.3",
       "title": "Extract reconcileCompletionReport into src/ralph/reconciliation.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T27",
       "dependsOn": [
         "T27.2"
       ],
-      "notes": "Move the private reconcileCompletionReport method and its CompletionReconciliationOutcome return type from RalphIterationEngine into a new standalone async function in src/ralph/reconciliation.ts. The function signature should take an explicit input object containing prepared context, selected task, verification status, preliminary classification, last message, task file path, and logger — removing the implicit dependency on the engine's private state. Update RalphIterationEngine to call the extracted function. This is the method that T24.2 will wrap with withTaskFileLock; extracting it first makes that wrapping a focused single-function change rather than a surgery inside a 2050-line class. Run npm test after the move.",
+      "notes": "Extracted completion-report reconciliation from RalphIterationEngine into src/ralph/reconciliation.ts with explicit inputs and updated the engine to call the standalone helper.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
@@ -988,7 +990,7 @@
     {
       "id": "T28",
       "title": "Add a continuous automated ledger-integrity gate to npm run validate",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T28.1",
         "T28.2",
@@ -1008,7 +1010,7 @@
     {
       "id": "T28.2",
       "title": "Wire check:ledger into package.json scripts and npm run validate",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T28",
       "dependsOn": [
         "T28.1",
@@ -1020,7 +1022,7 @@
     {
       "id": "T28.3",
       "title": "Add regression tests for the ledger check script covering each drift class",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T28",
       "dependsOn": [
         "T28.2",
@@ -1032,7 +1034,7 @@
     {
       "id": "T29",
       "title": "Surface the trust-chain epistemic gap explicitly in the provenance bundle and documentation",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T29.1",
         "T29.2",
@@ -1044,15 +1046,15 @@
     {
       "id": "T29.1",
       "title": "Add completion-report divergence fields to RalphProvenanceBundle and persist them in the bundle artifact",
-      "status": "todo",
+      "status": "done",
       "parentId": "T29",
-      "notes": "Add three optional fields to RalphProvenanceBundle in src/ralph/types.ts: completionReportStatus (RalphCompletionReportStatus | null), reconciliationWarnings (string[] | null), and completionReportPath (string | null). In src/ralph/artifactStore.ts, populate these fields when persisting the run-level provenance bundle: copy completionReportStatus and reconciliationWarnings from the RalphIterationResult, and set completionReportPath to the completion-report.json path in the iteration artifact directory if it exists. The bundle summary.md should include a one-line Model Self-Report line stating the completion report status and listing any reconciliation warnings. Add regression coverage in test/artifactStore.test.ts for a bundle with a rejected completion report containing reconciliation warnings.",
+      "notes": "Added completion-report divergence fields to RalphProvenanceBundle, persisted them from executed iteration results including completion-report.json when present, added Model Self-Report summary output, and covered the rejected-report reconciliation case with regression tests.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T29.2",
       "title": "Add an Epistemic Gap section to docs/provenance.md documenting what the bundle cannot prove",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T29",
       "dependsOn": [
         "T29.1",
@@ -1064,7 +1066,7 @@
     {
       "id": "T29.3",
       "title": "Add docsValidator fragment enforcement for the epistemic gap language",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T29",
       "dependsOn": [
         "T29.2",
@@ -1076,7 +1078,7 @@
     {
       "id": "T30",
       "title": "Document the prompt budget methodology and make policies model-configurable",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T30.1",
         "T30.2",
@@ -1088,7 +1090,7 @@
     {
       "id": "T30.1",
       "title": "Create docs/prompt-calibration.md documenting how token targets were derived and how to re-derive them",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T30",
       "dependsOn": [
         "T24"
@@ -1099,7 +1101,7 @@
     {
       "id": "T30.2",
       "title": "Add ralphCodex.promptBudgetProfile setting and wire it into promptBuilder's policy selection",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T30",
       "dependsOn": [
         "T30.1"
@@ -1110,7 +1112,7 @@
     {
       "id": "T30.3",
       "title": "Add a budget calibration script that renders prompts across all kinds and reports estimated token counts",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T30",
       "dependsOn": [
         "T30.2"
@@ -1121,7 +1123,7 @@
     {
       "id": "T31",
       "title": "Add prompt quality tests that assert on rendered content, not just section inclusion policy",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T31.1",
         "T31.2",
@@ -1133,7 +1135,7 @@
     {
       "id": "T31.1",
       "title": "Build a prompt test fixture framework with representative workspace and task scenarios",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T31",
       "dependsOn": [
         "T24",
@@ -1146,7 +1148,7 @@
     {
       "id": "T31.2",
       "title": "Add golden snapshot tests for each prompt kind rendered against the fixture scenarios",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T31",
       "dependsOn": [
         "T31.1",
@@ -1160,7 +1162,7 @@
     {
       "id": "T31.3",
       "title": "Add content assertion tests for critical prompt sections across key scenarios",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T31",
       "dependsOn": [
         "T31.2",
@@ -1174,7 +1176,7 @@
     {
       "id": "T32",
       "title": "Auto-restart the extension host on control_plane_reload_required instead of waiting for operator action",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T32.1",
         "T32.2",
@@ -1188,7 +1190,7 @@
     {
       "id": "T32.1",
       "title": "Add ralphCodex.autoReloadOnControlPlaneChange boolean setting defaulting to false",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T32",
       "dependsOn": [
         "T24",
@@ -1201,7 +1203,7 @@
     {
       "id": "T32.2",
       "title": "Wire auto-reload into the loop command handler when the stop reason is control_plane_reload_required",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T32",
       "dependsOn": [
         "T32.1",
@@ -1215,7 +1217,7 @@
     {
       "id": "T32.3",
       "title": "Add regression coverage and document the auto-reload behaviour in docs/workflows.md",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T32",
       "dependsOn": [
         "T32.2",
@@ -1229,7 +1231,7 @@
     {
       "id": "T33",
       "title": "Auto-apply decompose_task and mark_blocked remediation actions without operator intervention",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T33.1",
         "T33.2",
@@ -1244,7 +1246,7 @@
     {
       "id": "T33.1",
       "title": "Add ralphCodex.autoApplyRemediation setting with decompose_task and mark_blocked as opt-in actions",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T33",
       "dependsOn": [
         "T24",
@@ -1257,7 +1259,7 @@
     {
       "id": "T33.2",
       "title": "Implement auto-application of mark_blocked in the iteration engine after a blocked stop",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T33",
       "dependsOn": [
         "T33.1",
@@ -1269,7 +1271,7 @@
     {
       "id": "T33.3",
       "title": "Implement auto-application of decompose_task using the existing apply-proposal write path",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T33",
       "dependsOn": [
         "T33.2"
@@ -1280,7 +1282,7 @@
     {
       "id": "T33.4",
       "title": "Add regression coverage for auto-remediation and document the behaviour in docs/verifier.md and docs/workflows.md",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T33",
       "dependsOn": [
         "T33.3"
@@ -1291,7 +1293,7 @@
     {
       "id": "T34",
       "title": "Automatically continue into replenish-backlog prompt when backlog is cleanly exhausted in loop mode",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T34.1",
         "T34.2"
@@ -1301,15 +1303,15 @@
     {
       "id": "T34.1",
       "title": "Add ralphCodex.autoReplenishBacklog boolean setting and wire it into the loop stop decision",
-      "status": "todo",
+      "status": "done",
       "parentId": "T34",
-      "notes": "Add ralphCodex.autoReplenishBacklog boolean to package.json contributes.configuration with default false. In src/ralph/loopLogic.ts, in the shouldContinue decision path: when stopReason is no_actionable_task and the iteration result backlog shows actionableTaskAvailable === false and no ledger drift was detected in preflight (preflight.diagnostics has no error-severity finding with code matching 'ledger_drift' or 'done_parent_unfinished_descendants'), and autoReplenishBacklog is true, return shouldContinue: true with a message indicating the loop is continuing into backlog replenishment. The ledger-drift check is the critical safety gate — if drift is present, do not auto-continue regardless of the setting. Add the field to src/config/types.ts and src/config/readConfig.ts.",
+      "notes": "Added ralphCodex.autoReplenishBacklog config plumbing and updated loop stop logic to continue into backlog replenishment only when no actionable task remains, backlog.actionableTaskAvailable is false, and preflight shows no ledger-drift safety errors. Added loop logic coverage for the enabled path and the ledger-drift gate.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T34.2",
       "title": "Add regression coverage and document auto-replenishment in docs/workflows.md",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T34",
       "dependsOn": [
         "T34.1"
@@ -1320,7 +1322,7 @@
     {
       "id": "T35",
       "title": "Add a fully-autonomous loop mode that composes T32, T33, and T34 with explicit hard stops preserved",
-      "status": "todo",
+      "status": "blocked",
       "dependsOn": [
         "T35.1",
         "T35.2"
@@ -1330,7 +1332,7 @@
     {
       "id": "T35.1",
       "title": "Add ralphCodex.autonomyMode setting and wire it as a shorthand for the three individual autonomy settings",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T35",
       "dependsOn": [
         "T32.1",
@@ -1343,13 +1345,36 @@
     {
       "id": "T35.2",
       "title": "Document autonomous mode, its hard stops, and the trust model in docs/boundaries.md and docs/workflows.md",
-      "status": "todo",
+      "status": "blocked",
       "parentId": "T35",
       "dependsOn": [
         "T35.1"
       ],
       "notes": "Add an Autonomous Loop Mode section to docs/workflows.md covering: what autonomyMode: autonomous enables; the hard stops that are never automated (needs_human_review, request_human_review, initial PRD authorship); the safety dependencies (T28 ledger gate must be passing, T24 claim ownership must be active for multi-agent use); a recommended pre-flight checklist before enabling autonomous mode (clean ledger, human-reviewed tasks.json, validation command confirmed executable). Add a brief paragraph to docs/boundaries.md under Control-Plane Boundary noting that autonomous mode does not change the principal-agent model — the operator remains the principal and the hard stops are enforced regardless of mode. Add 'autonomyMode' and 'hard stops' as required fragments to the DOC_RULES entry for docs/boundaries.md in docsValidator.ts. Add regression coverage in test/commandShell.smoke.test.ts confirming that needs_human_review stops the loop even when autonomyMode is autonomous. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T26.2.1",
+      "title": "Md under Control-Plane Boundary, replace the sentence 'Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed",
+      "status": "done",
+      "parentId": "T26.2",
+      "dependsOn": [
+        "T26.1"
+      ],
+      "notes": "Updated the Control-Plane Boundary wording to describe the shipped state as a sequential single-agent iteration/loop runner and kept the docs validator fixture aligned with that wording.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T26.2.2",
+      "title": "The fragment 'single-agent iteration/loop runner' must still appear in the file to keep the existing docsValidator rule passing — keep it in the sentence describing the current shipped state",
+      "status": "done",
+      "parentId": "T26.2",
+      "dependsOn": [
+        "T26.1",
+        "T26.2.1"
+      ],
+      "notes": "Updated the Control-Plane Boundary sentence to describe the current shipped state while retaining the required 'single-agent iteration/loop runner' fragment, and docs validation passed.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     }
   ]
 }

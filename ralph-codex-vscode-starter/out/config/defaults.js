@@ -15,6 +15,7 @@ exports.DEFAULT_CONFIG = {
     gitCheckpointMode: 'snapshotAndDiff',
     validationCommandOverride: '',
     stopOnHumanReviewNeeded: true,
+    autoReplenishBacklog: false,
     ralphTaskFilePath: '.ralph/tasks.json',
     prdPath: '.ralph/prd.md',
     progressPath: '.ralph/progress.md',

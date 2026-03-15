@@ -1,0 +1,89 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  extractTrailingJsonObject,
+  parseCompletionReport,
+  sanitizeCompletionText
+} from '../src/ralph/completionReportParser';
+
+test('sanitizeCompletionText normalizes bullets, whitespace, and empty values', () => {
+  assert.equal(sanitizeCompletionText('  -  shipped   parser coverage \n\n today  '), 'shipped parser coverage today');
+  assert.equal(sanitizeCompletionText('   \n\t   '), undefined);
+  assert.equal(sanitizeCompletionText(undefined), undefined);
+});
+
+test('extractTrailingJsonObject returns the last complete JSON object at the end of a message', () => {
+  const value = extractTrailingJsonObject('Progress update.\n{"selectedTaskId":"T27.1","requestedStatus":"in_progress"}');
+
+  assert.equal(value, '{"selectedTaskId":"T27.1","requestedStatus":"in_progress"}');
+});
+
+test('extractTrailingJsonObject ignores braces that appear inside JSON strings', () => {
+  const value = extractTrailingJsonObject('Done.\n{"progressNote":"Handled {braces} safely","selectedTaskId":"T27.1","requestedStatus":"done"}');
+
+  assert.equal(
+    value,
+    '{"progressNote":"Handled {braces} safely","selectedTaskId":"T27.1","requestedStatus":"done"}'
+  );
+});
+
+test('parseCompletionReport accepts a fenced JSON completion report and sanitizes text fields', () => {
+  const parsed = parseCompletionReport([
+    'Compact summary.',
+    '```json',
+    '{',
+    '  "selectedTaskId": "T27.1",',
+    '  "requestedStatus": "blocked",',
+    '  "progressNote": " - Waiting   on   verifier access. ",',
+    '  "blocker": "  Child process spawn EPERM  ",',
+    '  "validationRan": " cd ralph-codex-vscode-starter && npm test ",',
+    '  "needsHumanReview": true',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.deepEqual(parsed.report, {
+    selectedTaskId: 'T27.1',
+    requestedStatus: 'blocked',
+    progressNote: 'Waiting on verifier access.',
+    blocker: 'Child process spawn EPERM',
+    validationRan: 'cd ralph-codex-vscode-starter && npm test',
+    needsHumanReview: true
+  });
+  assert.equal(parsed.parseError, null);
+});
+
+test('parseCompletionReport accepts a trailing JSON object without a fence', () => {
+  const parsed = parseCompletionReport(
+    'Summary first.\n{"selectedTaskId":"T27.1","requestedStatus":"in_progress","progressNote":"Updated parser tests."}'
+  );
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.selectedTaskId, 'T27.1');
+  assert.equal(parsed.report?.requestedStatus, 'in_progress');
+  assert.equal(parsed.report?.progressNote, 'Updated parser tests.');
+});
+
+test('parseCompletionReport rejects invalid requestedStatus values', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{"selectedTaskId":"T27.1","requestedStatus":"ship-it"}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+  assert.equal(parsed.report, null);
+  assert.match(parsed.parseError ?? '', /requestedStatus must be one of done, blocked, or in_progress/);
+});
+
+test('parseCompletionReport reports missing when no trailing report block exists', () => {
+  const parsed = parseCompletionReport('No structured completion report was emitted.');
+
+  assert.deepEqual(parsed, {
+    status: 'missing',
+    report: null,
+    rawBlock: null,
+    parseError: null
+  });
+});

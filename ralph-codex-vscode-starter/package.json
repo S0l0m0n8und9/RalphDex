@@ -45,6 +45,7 @@
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
+        "ralphCodex.autoReplenishBacklog",
         "ralphCodex.ralphTaskFilePath",
         "ralphCodex.prdPath",
         "ralphCodex.progressPath",
@@ -66,6 +67,7 @@
     }
   },
   "activationEvents": [
+    "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
@@ -83,6 +85,10 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
+      {
+        "command": "ralphCodex.initializeWorkspace",
+        "title": "Ralph Codex: Initialize Workspace"
+      },
       {
         "command": "ralphCodex.generatePrompt",
         "title": "Ralph Codex: Prepare Prompt"
@@ -219,6 +225,11 @@
           "type": "boolean",
           "default": true,
           "description": "Stop the Ralph loop immediately when the task-state verifier classifies an iteration as needs_human_review."
+        },
+        "ralphCodex.autoReplenishBacklog": {
+          "type": "boolean",
+          "default": false,
+          "description": "Continue the Ralph loop into backlog replenishment when no actionable task remains and preflight found no ledger-drift safety errors."
         },
         "ralphCodex.ralphTaskFilePath": {
           "type": "string",

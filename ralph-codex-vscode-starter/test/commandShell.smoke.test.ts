@@ -91,6 +91,7 @@ test('activate registers the key Ralph commands', async () => {
   const commands = await vscode.commands.getCommands(true);
 
   assert.ok(commands.includes('ralphCodex.generatePrompt'));
+  assert.ok(commands.includes('ralphCodex.initializeWorkspace'));
   assert.ok(commands.includes('ralphCodex.runRalphIteration'));
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
@@ -101,6 +102,42 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.applyLatestTaskDecompositionProposal'));
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
+});
+
+test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missing-only .gitignore contract', async () => {
+  const rootPath = await makeTempRoot();
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeWorkspace');
+
+  assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'prd.md'), 'utf8'), '<!-- TODO: Replace with your Ralph objective before running iterations. -->\n');
+  assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8'), '');
+  assert.deepEqual(JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')), {
+    version: 2,
+    tasks: []
+  });
+  assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
+  assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'prd.md')]);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Initialized a fresh Ralph workspace scaffold/);
+});
+
+test('Initialize Workspace aborts with a warning when .ralph/prd.md already exists', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), '{"sentinel":true}\n', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeWorkspace');
+
+  assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'), '{"sentinel":true}\n');
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /\.ralph\/prd\.md already exists/);
 });
 
 test('Show Ralph Status reports preflight details and can open the latest summary artifact', async () => {

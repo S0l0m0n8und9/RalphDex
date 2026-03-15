@@ -7,6 +7,7 @@ Related docs:
 - [Architecture](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/architecture.md) for module shape
 - [Provenance](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/provenance.md) for trust-chain details
 - [Verifier](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/verifier.md) for stop and review semantics
+- [Multi-Agent Readiness](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/multi-agent-readiness.md) for the explicit acceptance criteria that must be met before this boundary changes
 
 ## Codex Product Boundary
 
@@ -38,7 +39,7 @@ Ralph does not prove:
 
 Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
 
-The shipped control plane is a single-agent iteration/loop runner. Broad multi-agent orchestration stays deferred until nested workspace, inspection, execution, and verification root policy remains deterministic, test-backed, and evidence-backed.
+The current shipped control plane is a sequential single-agent iteration/loop runner. Multi-agent orchestration is a planned milestone, and the explicit acceptance criteria for lifting this boundary are defined in [docs/multi-agent-readiness.md](/home/admin/Documents/repos/Ralph/ralph-codex-vscode-starter/docs/multi-agent-readiness.md).
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 
@@ -50,6 +51,24 @@ It does not:
 - inject raw transcript dumps into future prompts
 - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
 - spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+
+## Repository Layout And Workspace State
+
+When the repository itself is the Ralph workspace, as in this repo, some `.ralph` files are project artifacts that belong alongside source and are safe to commit:
+
+- `.ralph/prd.md`
+- `.ralph/tasks.json`
+- `.ralph/progress.md`
+
+The rest of the runtime tree is operator-local runtime state and must not be committed:
+
+- `.ralph/state.json`
+- `.ralph/logs/`
+- `.ralph/prompts/`
+- `.ralph/runs/`
+- `.ralph/artifacts/`
+
+This distinction keeps the durable project brief, task graph, and progress log reviewable in version control while leaving machine-local execution state, logs, prompts, transcripts, and generated evidence out of the committed source tree.
 
 ## Workspace And Runtime Boundary
 

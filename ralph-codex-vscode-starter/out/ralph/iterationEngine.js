@@ -48,7 +48,8 @@ const loopLogic_1 = require("./loopLogic");
 const preflight_1 = require("./preflight");
 const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
-const completionReportParser_1 = require("./completionReportParser");
+const reconciliation_1 = require("./reconciliation");
+const taskDecomposition_1 = require("./taskDecomposition");
 const EMPTY_GIT_STATUS = {
     available: false,
     raw: '',
@@ -63,227 +64,6 @@ function summarizeLastMessage(lastMessage, exitCode) {
         .map((line) => line.trim())
         .find((line) => line.length > 0)
         ?? (exitCode === null ? 'Execution skipped.' : `Exit code ${exitCode}`);
-}
-function remediationRationale(result) {
-    if (!result.remediation) {
-        return 'No remediation proposal was recorded.';
-    }
-    switch (result.remediation.action) {
-        case 'decompose_task':
-            return 'Ralph saw repeated same-task attempts with no relevant file changes and no durable task/progress movement.';
-        case 'reframe_task':
-            return 'Ralph saw the same validation-backed failure signature repeat on the same selected task.';
-        case 'mark_blocked':
-            return 'Ralph saw the selected task remain blocked across consecutive attempts.';
-        case 'request_human_review':
-            return 'Ralph saw the same selected task fail repeatedly without evidence for a safe automatic retry strategy.';
-        case 'no_action':
-        default:
-            return 'Ralph saw repeated stop evidence, but the recorded signals did not justify a stronger automatic remediation.';
-    }
-}
-const MAX_REMEDIATION_CHILD_TASKS = 3;
-function normalizeWhitespace(value) {
-    return value.replace(/\s+/g, ' ').trim();
-}
-function decomposePhrase(value) {
-    return value
-        .replace(/^(add|implement|build|create|fix|update|improve|refactor)\s+/i, '')
-        .replace(/\s+for\s+/i, ' for ')
-        .trim();
-}
-function isClearlyCompoundTask(task) {
-    const title = normalizeWhitespace(task.title.toLowerCase());
-    const notes = normalizeWhitespace(task.notes?.toLowerCase() ?? '');
-    const combined = [title, notes].filter(Boolean).join(' ');
-    return /\b(and|plus|along with|together with|then)\b/.test(combined)
-        || title.includes(',')
-        || /\bfrom\b.+\bthrough\b/.test(combined)
-        || /\bsmall proposed child-task set with dependencies\b/.test(combined);
-}
-function deriveCompoundSegments(task) {
-    const normalizedTitle = normalizeWhitespace(task.title);
-    const segments = normalizedTitle
-        .split(/\s+(?:and|plus|along with|together with|then)\s+/i)
-        .map((segment) => decomposePhrase(segment))
-        .filter((segment) => segment.length > 0);
-    if (segments.length >= 2) {
-        return segments.slice(0, MAX_REMEDIATION_CHILD_TASKS);
-    }
-    const notes = normalizeWhitespace(task.notes ?? '');
-    if (notes) {
-        const noteSegments = notes
-            .split(/[.;]/)
-            .map((segment) => normalizeWhitespace(segment))
-            .filter((segment) => /\b(generate|keep|limit|propose|dependency|deterministic|verification)\b/i.test(segment))
-            .slice(0, MAX_REMEDIATION_CHILD_TASKS);
-        if (noteSegments.length >= 2) {
-            return noteSegments.map((segment) => decomposePhrase(segment));
-        }
-    }
-    return [];
-}
-function buildDecompositionProposal(task, result) {
-    if (!isClearlyCompoundTask(task)) {
-        return [];
-    }
-    const validation = result.verification.effectiveValidationCommand ?? task.validation ?? null;
-    const inheritedDependencies = (task.dependsOn ?? []).map((taskId) => ({
-        taskId,
-        reason: 'inherits_parent_dependency'
-    }));
-    const taskPrefix = task.id;
-    const segments = deriveCompoundSegments(task);
-    const seedSegments = segments.length >= 2
-        ? segments
-        : [
-            'reproduce the blocker with a deterministic verification target',
-            'implement the smallest bounded fix for that reproduced blocker',
-            'rerun verification and capture the bounded evidence'
-        ];
-    const limitedSegments = seedSegments.slice(0, MAX_REMEDIATION_CHILD_TASKS);
-    return limitedSegments.map((segment, index) => ({
-        id: `${taskPrefix}.${index + 1}`,
-        title: segment.charAt(0).toUpperCase() + segment.slice(1),
-        parentId: task.id,
-        dependsOn: [
-            ...inheritedDependencies,
-            ...(index === 0 ? [] : [{ taskId: `${taskPrefix}.${index}`, reason: 'blocks_sequence' }])
-        ],
-        validation,
-        rationale: index === 0
-            ? `Narrow ${task.id} to a deterministic first step before retrying the parent task.`
-            : `Keep the proposal one level deep by sequencing the next bounded step after ${taskPrefix}.${index}.`
-    }));
-}
-function remediationSuggestedChildTasks(taskFile, result) {
-    const selectedTask = (0, taskFile_1.findTaskById)(taskFile, result.selectedTaskId);
-    const validationSignature = result.verification.validationFailureSignature;
-    switch (result.remediation?.action) {
-        case 'decompose_task':
-            return selectedTask ? buildDecompositionProposal(selectedTask, result) : [];
-        case 'reframe_task':
-            return selectedTask
-                ? [{
-                        id: `${selectedTask.id}.1`,
-                        title: `Reproduce and explain the validation failure for ${selectedTask.id}`,
-                        parentId: selectedTask.id,
-                        dependsOn: (selectedTask.dependsOn ?? []).map((taskId) => ({
-                            taskId,
-                            reason: 'inherits_parent_dependency'
-                        })),
-                        validation: result.verification.effectiveValidationCommand ?? selectedTask.validation ?? null,
-                        rationale: validationSignature
-                            ? `Focus the retry on the repeated validation signature ${validationSignature}.`
-                            : `Focus the retry on a single deterministic failure for ${selectedTask.id}.`
-                    }]
-                : [];
-        case 'mark_blocked':
-            return selectedTask
-                ? [{
-                        id: `${selectedTask.id}.1`,
-                        title: `Capture the missing unblocker for ${selectedTask.id}`,
-                        parentId: selectedTask.id,
-                        dependsOn: (selectedTask.dependsOn ?? []).map((taskId) => ({
-                            taskId,
-                            reason: 'inherits_parent_dependency'
-                        })),
-                        validation: null,
-                        rationale: `Document the external dependency or precondition before retrying ${selectedTask.id}.`
-                    }]
-                : [];
-        default:
-            return [];
-    }
-}
-function normalizeRemediationForTask(taskFile, result) {
-    const remediation = result.remediation;
-    if (!remediation) {
-        return null;
-    }
-    if (remediation.action !== 'decompose_task') {
-        return remediation;
-    }
-    const suggestedChildTasks = remediationSuggestedChildTasks(taskFile, result);
-    if (suggestedChildTasks.length > 0) {
-        return remediation;
-    }
-    return {
-        ...remediation,
-        action: 'no_action',
-        humanReviewRecommended: false,
-        summary: `Task ${result.selectedTaskId ?? 'none'} repeated the same stop condition ${remediation.attemptCount} times, but the recorded evidence does not justify an automatic remediation change.`
-    };
-}
-function remediationMatchesStopReason(result, stopReason, currentSignature) {
-    if (!stopReason || !result.selectedTaskId) {
-        return false;
-    }
-    if (stopReason === 'repeated_no_progress') {
-        return result.completionClassification === 'no_progress';
-    }
-    if (stopReason === 'repeated_identical_failure') {
-        if (result.completionClassification === 'blocked') {
-            return true;
-        }
-        return ['blocked', 'failed', 'needs_human_review'].includes(result.completionClassification)
-            && result.verification.validationFailureSignature !== null
-            && result.verification.validationFailureSignature === currentSignature;
-    }
-    return false;
-}
-function remediationHistoryEntries(currentResult, previousIterations) {
-    const stopReason = currentResult.stopReason;
-    const taskId = currentResult.selectedTaskId;
-    if (!currentResult.remediation || !stopReason || !taskId) {
-        return [];
-    }
-    const history = [...previousIterations, currentResult];
-    const collected = [];
-    const currentSignature = currentResult.verification.validationFailureSignature;
-    for (let index = history.length - 1; index >= 0; index -= 1) {
-        const entry = history[index];
-        if (entry.selectedTaskId !== taskId || !remediationMatchesStopReason(entry, stopReason, currentSignature)) {
-            break;
-        }
-        collected.push({
-            iteration: entry.iteration,
-            completionClassification: entry.completionClassification,
-            executionStatus: entry.executionStatus,
-            verificationStatus: entry.verificationStatus,
-            stopReason: entry.stopReason,
-            summary: entry.summary,
-            validationFailureSignature: entry.verification.validationFailureSignature,
-            noProgressSignals: entry.noProgressSignals
-        });
-    }
-    return collected.reverse();
-}
-function buildRemediationArtifact(input) {
-    if (!input.result.remediation || !input.result.stopReason) {
-        return null;
-    }
-    return {
-        schemaVersion: 1,
-        kind: 'taskRemediation',
-        provenanceId: input.result.provenanceId ?? null,
-        iteration: input.result.iteration,
-        selectedTaskId: input.result.selectedTaskId,
-        selectedTaskTitle: input.result.selectedTaskTitle,
-        trigger: input.result.remediation.trigger,
-        attemptCount: input.result.remediation.attemptCount,
-        action: input.result.remediation.action,
-        humanReviewRecommended: input.result.remediation.humanReviewRecommended,
-        summary: input.result.remediation.summary,
-        rationale: remediationRationale(input.result),
-        proposedAction: input.result.remediation.summary,
-        evidence: input.result.remediation.evidence,
-        triggeringHistory: remediationHistoryEntries(input.result, input.previousIterations),
-        suggestedChildTasks: remediationSuggestedChildTasks(input.taskFile, input.result),
-        artifactDir: input.artifactDir,
-        iterationResultPath: input.iterationResultPath,
-        createdAt: input.createdAt
-    };
 }
 function controlPlaneRuntimeChanges(changedFiles) {
     const matches = new Set();
@@ -622,146 +402,6 @@ class RalphIterationEngine {
             protectedRetainedRunArtifactBaseNames: retention.protectedRetainedRunArtifactBaseNames
         });
     }
-    async reconcileCompletionReport(input) {
-        const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
-        const artifactBase = {
-            schemaVersion: 1,
-            kind: 'completionReport',
-            status: parsed.status === 'parsed' ? 'rejected' : parsed.status,
-            selectedTaskId: input.selectedTask?.id ?? null,
-            report: parsed.report,
-            rawBlock: parsed.rawBlock,
-            parseError: parsed.parseError,
-            warnings: []
-        };
-        if (!input.selectedTask || input.prepared.promptKind === 'replenish-backlog') {
-            artifactBase.status = 'missing';
-            return {
-                artifact: artifactBase,
-                selectedTask: input.selectedTask,
-                progressChanged: false,
-                taskFileChanged: false,
-                warnings: []
-            };
-        }
-        if (parsed.status !== 'parsed' || !parsed.report) {
-            const warnings = parsed.status === 'invalid' && parsed.parseError
-                ? [parsed.parseError]
-                : parsed.status === 'missing'
-                    ? ['No completion report JSON block was found at the end of the Codex last message.']
-                    : [];
-            artifactBase.warnings = warnings;
-            return {
-                artifact: {
-                    ...artifactBase,
-                    warnings
-                },
-                selectedTask: input.selectedTask,
-                progressChanged: false,
-                taskFileChanged: false,
-                warnings
-            };
-        }
-        const warnings = [];
-        if (parsed.report.selectedTaskId !== input.selectedTask.id) {
-            warnings.push(`Completion report selectedTaskId ${parsed.report.selectedTaskId} did not match the selected task ${input.selectedTask.id}.`);
-            return {
-                artifact: {
-                    ...artifactBase,
-                    warnings
-                },
-                selectedTask: input.selectedTask,
-                progressChanged: false,
-                taskFileChanged: false,
-                warnings
-            };
-        }
-        let requestedStatus = parsed.report.requestedStatus;
-        if (requestedStatus === 'done') {
-            if (input.verificationStatus !== 'passed') {
-                warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
-            }
-            if (parsed.report.needsHumanReview) {
-                warnings.push('Completion report requested done while also declaring needsHumanReview.');
-            }
-            if (warnings.length > 0) {
-                return {
-                    artifact: {
-                        ...artifactBase,
-                        warnings
-                    },
-                    selectedTask: input.selectedTask,
-                    progressChanged: false,
-                    taskFileChanged: false,
-                    warnings
-                };
-            }
-        }
-        if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
-            warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
-            return {
-                artifact: {
-                    ...artifactBase,
-                    warnings
-                },
-                selectedTask: input.selectedTask,
-                progressChanged: false,
-                taskFileChanged: false,
-                warnings
-            };
-        }
-        let taskFileChanged = false;
-        let progressChanged = false;
-        await this.stateManager.updateTaskFile(input.prepared.paths, (taskFile) => {
-            const selectedTaskUpdated = {
-                ...taskFile,
-                tasks: taskFile.tasks.map((task) => {
-                    if (task.id !== input.selectedTask.id) {
-                        return task;
-                    }
-                    const nextTask = {
-                        ...task,
-                        status: requestedStatus,
-                        notes: parsed.report.progressNote ?? task.notes,
-                        blocker: requestedStatus === 'blocked'
-                            ? parsed.report.blocker ?? task.blocker
-                            : task.blocker
-                    };
-                    if (requestedStatus !== 'blocked' && parsed.report.blocker) {
-                        nextTask.blocker = parsed.report.blocker;
-                    }
-                    taskFileChanged = nextTask.status !== task.status
-                        || nextTask.notes !== task.notes
-                        || nextTask.blocker !== task.blocker;
-                    return nextTask;
-                })
-            };
-            if (requestedStatus !== 'done') {
-                return selectedTaskUpdated;
-            }
-            const ancestorCompletion = (0, taskFile_1.autoCompleteSatisfiedAncestors)(selectedTaskUpdated, input.selectedTask.id);
-            if (ancestorCompletion.completedAncestorIds.length > 0) {
-                taskFileChanged = true;
-            }
-            return ancestorCompletion.taskFile;
-        });
-        if (parsed.report.progressNote) {
-            await this.stateManager.appendProgressBullet(input.prepared.paths, parsed.report.progressNote);
-            progressChanged = true;
-        }
-        const selectedTask = await this.stateManager.selectedTask(input.prepared.paths, input.selectedTask.id);
-        return {
-            artifact: {
-                ...artifactBase,
-                status: 'applied',
-                warnings
-            },
-            selectedTask,
-            progressChanged,
-            taskFileChanged,
-            warnings
-        };
-    }
     async preparePrompt(workspaceFolder, progress) {
         const prepared = await this.prepareIterationContext(workspaceFolder, progress, false);
         return {
@@ -960,12 +600,14 @@ class RalphIterationEngine {
             taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
             previousIterations: prepared.state.iterationHistory
         });
-        const completionReconciliation = await this.reconcileCompletionReport({
+        const completionReconciliation = await (0, reconciliation_1.reconcileCompletionReport)({
             prepared,
             selectedTask: prepared.selectedTask,
             verificationStatus: preliminaryVerificationStatus,
             preliminaryClassification: preliminaryOutcome.classification,
-            lastMessage
+            lastMessage,
+            taskFilePath: prepared.paths.taskFilePath,
+            logger: this.logger
         });
         const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
         const taskStateVerification = prepared.config.verifierModes.includes('taskState')
@@ -1129,9 +771,11 @@ class RalphIterationEngine {
             remainingSubtaskCount: remainingSubtaskList.length,
             remainingTaskCount,
             hasActionableTask: Boolean(nextActionableTask),
+            preflightDiagnostics: prepared.preflightReport.diagnostics,
             noProgressThreshold: prepared.config.noProgressThreshold,
             repeatedFailureThreshold: prepared.config.repeatedFailureThreshold,
             stopOnHumanReviewNeeded: prepared.config.stopOnHumanReviewNeeded,
+            autoReplenishBacklog: prepared.config.autoReplenishBacklog,
             reachedIterationCap: options.reachedIterationCap,
             previousIterations: prepared.state.iterationHistory
         });
@@ -1144,7 +788,7 @@ class RalphIterationEngine {
                 stopReason: loopDecision.stopReason,
                 previousIterations: prepared.state.iterationHistory
             });
-            result.remediation = normalizeRemediationForTask(afterCoreState.taskFile, result);
+            result.remediation = (0, taskDecomposition_1.normalizeRemediationForTask)(afterCoreState.taskFile, result);
         }
         else if (runtimeChanges.length > 0) {
             loopDecision = {
@@ -1158,7 +802,7 @@ class RalphIterationEngine {
             result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
         }
         phaseTimestamps.persistedAt = new Date().toISOString();
-        const remediationArtifact = buildRemediationArtifact({
+        const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
             result,
             taskFile: afterCoreState.taskFile,
             previousIterations: prepared.state.iterationHistory,

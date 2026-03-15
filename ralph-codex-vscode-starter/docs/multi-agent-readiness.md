@@ -1,6 +1,6 @@
 # Multi-Agent Readiness
 
-This document records the acceptance criteria that must be satisfied before Ralph removes the current single-agent loop restriction.
+This document records the acceptance criteria that must be satisfied before Ralph removes the current single-agent loop restriction. Each acceptance criterion stays durable and file-backed.
 
 Related docs:
 

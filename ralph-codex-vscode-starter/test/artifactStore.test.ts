@@ -8,6 +8,7 @@ import {
   PROTECTED_GENERATED_LATEST_POINTER_FILES,
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
+  resolveIterationArtifactPaths,
   resolveProvenanceBundlePaths,
   writeProvenanceBundle
 } from '../src/ralph/artifactStore';
@@ -206,6 +207,9 @@ function bundle(input: {
     executionPlanHash: `sha256:plan-${input.iteration}`,
     cliInvocationPath: input.status === 'executed' ? paths.cliInvocationPath : null,
     iterationResultPath: input.status === 'executed' ? paths.iterationResultPath : null,
+    completionReportStatus: null,
+    reconciliationWarnings: null,
+    completionReportPath: null,
     provenanceFailurePath: input.failure ? paths.provenanceFailurePath : null,
     provenanceFailureSummaryPath: input.failure ? paths.provenanceFailureSummaryPath : null,
     promptHash: `sha256:prompt-${input.iteration}`,
@@ -315,6 +319,106 @@ test('writeProvenanceBundle keeps protected bundles when automatic retention cle
 
   assert.equal(latestBundle.provenanceId, 'run-i003-cli-20260307T000003Z');
   assert.equal(latestFailure.provenanceId, 'run-i001-cli-20260307T000001Z');
+});
+
+test('writeProvenanceBundle persists completion-report divergence fields and summary details', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const provenanceId = 'run-i004-cli-20260307T000004Z';
+  const iteration = 4;
+  const iterationPaths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const paths = resolveProvenanceBundlePaths(artifactRootDir, provenanceId);
+
+  await fs.mkdir(iterationPaths.directory, { recursive: true });
+  await fs.writeFile(
+    iterationPaths.completionReportPath,
+    JSON.stringify({ selectedTaskId: 'T1', requestedStatus: 'blocked' }, null, 2),
+    'utf8'
+  );
+
+  const result = {
+    schemaVersion: 1,
+    provenanceId,
+    iteration,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Task',
+    promptKind: 'iteration',
+    promptPath: iterationPaths.promptPath,
+    artifactDir: iterationPaths.directory,
+    adapterUsed: 'cliExec',
+    executionIntegrity: null,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    completionClassification: 'blocked',
+    followUpAction: 'request_human_review',
+    startedAt: '2026-03-07T00:00:04.000Z',
+    finishedAt: '2026-03-07T00:01:04.000Z',
+    phaseTimestamps: {
+      inspectStartedAt: '2026-03-07T00:00:04.000Z',
+      inspectFinishedAt: '2026-03-07T00:00:06.000Z',
+      taskSelectedAt: '2026-03-07T00:00:08.000Z',
+      promptGeneratedAt: '2026-03-07T00:00:10.000Z',
+      executionStartedAt: '2026-03-07T00:00:14.000Z',
+      executionFinishedAt: '2026-03-07T00:00:34.000Z',
+      resultCollectedAt: '2026-03-07T00:00:40.000Z',
+      verificationFinishedAt: '2026-03-07T00:00:54.000Z',
+      classifiedAt: '2026-03-07T00:00:58.000Z',
+      persistedAt: '2026-03-07T00:01:04.000Z'
+    },
+    summary: 'Rejected completion report required reconciliation.',
+    warnings: [],
+    errors: ['Completion report did not match verifier outcome.'],
+    execution: {
+      exitCode: 0
+    },
+    verification: {
+      taskValidationHint: null,
+      effectiveValidationCommand: null,
+      normalizedValidationCommandFrom: null,
+      primaryCommand: null,
+      validationFailureSignature: null,
+      verifiers: []
+    },
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: true
+    },
+    diffSummary: null,
+    noProgressSignals: [],
+    remediation: null,
+    completionReportStatus: 'rejected',
+    reconciliationWarnings: [
+      'Requested done but verifier failed.',
+      'Task status left unchanged pending review.'
+    ],
+    stopReason: 'human_review_needed'
+  } satisfies import('../src/ralph/types').RalphIterationResult;
+
+  await writeProvenanceBundle({
+    artifactRootDir,
+    paths,
+    bundle: bundle({
+      artifactRootDir,
+      provenanceId,
+      iteration,
+      status: 'executed'
+    }),
+    preflightReport: preflightReport({ provenanceId, iteration }),
+    preflightSummary: `Preflight summary for ${provenanceId}`,
+    result
+  });
+
+  const persistedBundle = JSON.parse(
+    await fs.readFile(paths.bundlePath, 'utf8')
+  ) as import('../src/ralph/types').RalphProvenanceBundle;
+  const summary = await fs.readFile(paths.summaryPath, 'utf8');
+
+  assert.equal(persistedBundle.completionReportStatus, 'rejected');
+  assert.deepEqual(persistedBundle.reconciliationWarnings, [
+    'Requested done but verifier failed.',
+    'Task status left unchanged pending review.'
+  ]);
+  assert.equal(persistedBundle.completionReportPath, iterationPaths.completionReportPath);
+  assert.match(summary, /Model Self-Report: rejected; warnings: Requested done but verifier failed\. \| Task status left unchanged pending review\./);
 });
 
 test('artifactStore exposes the protected generated-artifact roots explicitly', () => {

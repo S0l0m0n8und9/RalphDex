@@ -32,6 +32,16 @@ If you prefer a shell-driven local install, run `code --install-extension ./ralp
 
 This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
 
+## Initialize A Fresh Workspace
+
+1. Open a fresh clone in VS Code.
+2. Run `Ralph Codex: Initialize Workspace`.
+3. Replace the placeholder comment in `.ralph/prd.md` with the real repository objective before using any prompt or CLI workflow.
+
+This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
+
+The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ralph warns and aborts instead of overwriting the current workspace state. That keeps initialization for clean clones separate from runtime cleanup or reset flows on an active workspace.
+
 ## Prepare A Prompt For IDE Use
 
 1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.

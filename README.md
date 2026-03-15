@@ -45,11 +45,13 @@ Ralph persists durable workspace state under `.ralph/`:
 - `.ralph/prd.md`: objective
 - `.ralph/progress.md`: progress log
 - `.ralph/tasks.json`: task graph
-- `.ralph/state.json`: runtime state
-- `.ralph/prompts/`: generated prompts
-- `.ralph/runs/`: transcripts and last messages
-- `.ralph/artifacts/`: iteration artifacts and latest pointers
-- `.ralph/logs/extension.log`: extension log
+- `.ralph/state.json`: operator-local runtime state
+- `.ralph/prompts/`: operator-local generated prompts
+- `.ralph/runs/`: operator-local transcripts and last messages
+- `.ralph/artifacts/`: operator-local iteration artifacts and latest pointers
+- `.ralph/logs/extension.log`: operator-local extension log
+
+When the repository itself is the Ralph workspace, `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json` are safe to commit alongside source. The remaining `.ralph` files and directories are operator-local runtime state and should stay uncommitted.
 
 ## Project Structure
 

@@ -5,6 +5,7 @@ import {
   RalphFollowUpAction,
   RalphIterationResult,
   RalphLoopDecision,
+  RalphPreflightDiagnostic,
   RalphStopReason,
   RalphTaskRemediation,
   RalphTaskRemediationAction,
@@ -39,11 +40,24 @@ export interface RalphStopDecisionInput {
   remainingSubtaskCount: number;
   remainingTaskCount: number;
   hasActionableTask: boolean;
+  preflightDiagnostics: RalphPreflightDiagnostic[];
   noProgressThreshold: number;
   repeatedFailureThreshold: number;
   stopOnHumanReviewNeeded: boolean;
+  autoReplenishBacklog: boolean;
   reachedIterationCap: boolean;
   previousIterations: RalphIterationResult[];
+}
+
+const BACKLOG_REPLENISHMENT_DRIFT_CODES = new Set([
+  'ledger_drift',
+  'done_parent_unfinished_descendants'
+]);
+
+function hasBacklogReplenishmentLedgerDrift(diagnostics: RalphPreflightDiagnostic[]): boolean {
+  return diagnostics.some((diagnostic) =>
+    diagnostic.severity === 'error' && BACKLOG_REPLENISHMENT_DRIFT_CODES.has(diagnostic.code)
+  );
 }
 
 function uniqueOrdered(values: Iterable<string>): string[] {
@@ -398,6 +412,19 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
   const agentId = input.currentResult.agentId ?? DEFAULT_RALPH_AGENT_ID;
 
   if (!input.hasActionableTask) {
+    const canContinueIntoBacklogReplenishment = input.autoReplenishBacklog
+      && input.currentResult.stopReason === 'no_actionable_task'
+      && input.currentResult.backlog.actionableTaskAvailable === false
+      && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics);
+
+    if (canContinueIntoBacklogReplenishment) {
+      return {
+        shouldContinue: true,
+        stopReason: null,
+        message: 'No actionable Ralph task remains; continuing into backlog replenishment.'
+      };
+    }
+
     return {
       shouldContinue: false,
       stopReason: 'no_actionable_task',

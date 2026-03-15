@@ -179,6 +179,11 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'stopOnHumanReviewNeeded',
       DEFAULT_CONFIG.stopOnHumanReviewNeeded
     ),
+    autoReplenishBacklog: readBoolean(
+      config,
+      'autoReplenishBacklog',
+      DEFAULT_CONFIG.autoReplenishBacklog
+    ),
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
     progressPath: readString(config, 'progressPath', DEFAULT_CONFIG.progressPath),

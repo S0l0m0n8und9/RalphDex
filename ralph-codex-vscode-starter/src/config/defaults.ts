@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   gitCheckpointMode: 'snapshotAndDiff',
   validationCommandOverride: '',
   stopOnHumanReviewNeeded: true,
+  autoReplenishBacklog: false,
   ralphTaskFilePath: '.ralph/tasks.json',
   prdPath: '.ralph/prd.md',
   progressPath: '.ralph/progress.md',

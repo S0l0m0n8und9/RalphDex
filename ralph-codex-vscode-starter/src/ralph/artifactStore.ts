@@ -770,6 +770,8 @@ function renderIntegrityFailureSummary(failure: RalphIntegrityFailure): string {
 }
 
 function renderProvenanceSummary(bundle: RalphProvenanceBundle): string {
+  const reconciliationWarnings = bundle.reconciliationWarnings ?? [];
+
   return [
     `# Ralph Provenance ${bundle.provenanceId}`,
     '',
@@ -802,7 +804,11 @@ function renderProvenanceSummary(bundle: RalphProvenanceBundle): string {
     `- Execution plan: ${bundle.executionPlanPath ?? 'none'}`,
     `- CLI invocation: ${bundle.cliInvocationPath ?? 'none'}`,
     `- Iteration result: ${bundle.iterationResultPath ?? 'none'}`,
+    `- Completion report: ${bundle.completionReportPath ?? 'none'}`,
     `- Provenance failure: ${bundle.provenanceFailurePath ?? 'none'}`,
+    '',
+    '## Model Self-Report',
+    `- Model Self-Report: ${bundle.completionReportStatus ?? 'none'}; warnings: ${reconciliationWarnings.join(' | ') || 'none'}`,
     '',
     '## Canonical Iteration Artifacts',
     `- Iteration artifact dir: ${bundle.artifactDir}`
@@ -1798,14 +1804,31 @@ export async function writeProvenanceBundle(input: {
 }> {
   await ensureProvenanceBundleDirectory(input.paths);
 
+  const resultIterationPaths = input.result
+    ? resolveIterationArtifactPaths(input.artifactRootDir, input.result.iteration)
+    : null;
+  const completionReportPath = resultIterationPaths
+    ? await fs.access(resultIterationPaths.completionReportPath)
+      .then(() => resultIterationPaths.completionReportPath)
+      .catch(() => null)
+    : null;
+  const bundle: RalphProvenanceBundle = input.result
+    ? {
+      ...input.bundle,
+      completionReportStatus: input.result.completionReportStatus ?? null,
+      reconciliationWarnings: input.result.reconciliationWarnings ?? null,
+      completionReportPath
+    }
+    : input.bundle;
+
   const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
-  const summary = renderProvenanceSummary(input.bundle);
+  const summary = renderProvenanceSummary(bundle);
   const writes: Promise<unknown>[] = [
-    fs.writeFile(input.paths.bundlePath, stableJson(input.bundle), 'utf8'),
+    fs.writeFile(input.paths.bundlePath, stableJson(bundle), 'utf8'),
     fs.writeFile(input.paths.summaryPath, `${summary.trimEnd()}\n`, 'utf8'),
     fs.writeFile(input.paths.preflightReportPath, stableJson(input.preflightReport), 'utf8'),
     fs.writeFile(input.paths.preflightSummaryPath, `${input.preflightSummary.trimEnd()}\n`, 'utf8'),
-    fs.writeFile(latestPaths.latestProvenanceBundlePath, stableJson(input.bundle), 'utf8'),
+    fs.writeFile(latestPaths.latestProvenanceBundlePath, stableJson(bundle), 'utf8'),
     fs.writeFile(latestPaths.latestProvenanceSummaryPath, `${summary.trimEnd()}\n`, 'utf8')
   ];
 

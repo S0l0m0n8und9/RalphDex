@@ -61,6 +61,17 @@ function deletedCountSummary(count: number, singular: string, plural: string): s
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+const RALPH_GITIGNORE_CONTENT = [
+  '/artifacts',
+  '/done-task-audit*.md',
+  '/logs',
+  '/prompts',
+  '/runs',
+  '/state.json'
+].join('\n');
+
+const RALPH_PRD_PLACEHOLDER = '<!-- TODO: Replace with your Ralph objective before running iterations. -->\n';
+
 async function withWorkspaceFolder(): Promise<vscode.WorkspaceFolder> {
   const folder = vscode.workspace.workspaceFolders?.[0];
   if (!folder) {
@@ -106,6 +117,41 @@ async function pathExists(target: string | null | undefined): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function initializeFreshWorkspace(rootPath: string): Promise<{
+  ralphDir: string;
+  prdPath: string;
+  tasksPath: string;
+  progressPath: string;
+  gitignorePath: string;
+}> {
+  const ralphDir = path.join(rootPath, '.ralph');
+  const prdPath = path.join(ralphDir, 'prd.md');
+  const tasksPath = path.join(ralphDir, 'tasks.json');
+  const progressPath = path.join(ralphDir, 'progress.md');
+  const gitignorePath = path.join(ralphDir, '.gitignore');
+
+  if (await pathExists(prdPath)) {
+    throw new Error('Ralph workspace initialization aborted because .ralph/prd.md already exists.');
+  }
+
+  await fs.mkdir(ralphDir, { recursive: true });
+  await fs.writeFile(prdPath, RALPH_PRD_PLACEHOLDER, 'utf8');
+  await fs.writeFile(tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
+  await fs.writeFile(progressPath, '', 'utf8');
+
+  if (!(await pathExists(gitignorePath))) {
+    await fs.writeFile(gitignorePath, `${RALPH_GITIGNORE_CONTENT}\n`, 'utf8');
+  }
+
+  return {
+    ralphDir,
+    prdPath,
+    tasksPath,
+    progressPath,
+    gitignorePath
+  };
 }
 
 async function firstExistingPath(candidates: Array<string | null | undefined>): Promise<string | null> {
@@ -701,6 +747,38 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
   const stateManager = new RalphStateManager(context.workspaceState, logger);
   const strategies = new CodexStrategyRegistry(logger);
   const engine = new RalphIterationEngine(stateManager, strategies, logger);
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.initializeWorkspace',
+    label: 'Ralph Codex: Initialize Workspace',
+    handler: async (progress) => {
+      progress.report({ message: 'Creating a fresh .ralph workspace scaffold' });
+      const workspaceFolder = await withWorkspaceFolder();
+      const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
+
+      if (await pathExists(prdPath)) {
+        void vscode.window.showWarningMessage(
+          'Ralph workspace initialization aborted because .ralph/prd.md already exists. Refusing to overwrite active Ralph state.'
+        );
+        return;
+      }
+
+      const result = await initializeFreshWorkspace(workspaceFolder.uri.fsPath);
+      logger.info('Initialized a fresh Ralph workspace scaffold.', {
+        rootPath: workspaceFolder.uri.fsPath,
+        ralphDir: result.ralphDir,
+        prdPath: result.prdPath,
+        tasksPath: result.tasksPath,
+        progressPath: result.progressPath,
+        gitignorePath: result.gitignorePath
+      });
+
+      await openTextFile(result.prdPath);
+      void vscode.window.showInformationMessage(
+        'Initialized a fresh Ralph workspace scaffold under .ralph/. Fill in .ralph/prd.md before running Ralph commands.'
+      );
+    }
+  });
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.generatePrompt',

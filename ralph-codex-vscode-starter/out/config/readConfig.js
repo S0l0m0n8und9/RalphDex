@@ -112,6 +112,7 @@ function readConfig(workspaceFolder) {
         gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
         validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
         stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
+        autoReplenishBacklog: readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog),
         ralphTaskFilePath: readString(config, 'ralphTaskFilePath', defaults_1.DEFAULT_CONFIG.ralphTaskFilePath),
         prdPath: readString(config, 'prdPath', defaults_1.DEFAULT_CONFIG.prdPath),
         progressPath: readString(config, 'progressPath', defaults_1.DEFAULT_CONFIG.progressPath),

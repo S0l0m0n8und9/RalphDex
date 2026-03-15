@@ -52,6 +52,8 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 `src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
+`src/ralph/iterationEngine.ts` remains above the target line budget after parser, decomposition, and reconciliation extraction. The largest remaining follow-on candidate is the provenance-bundle and prepared-context assembly path, which still mixes bundle persistence, execution-plan wiring, and prompt-preparation orchestration in one module.
+
 ## Runtime Constraints
 
 - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.

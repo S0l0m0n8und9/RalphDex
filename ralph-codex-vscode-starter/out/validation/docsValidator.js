@@ -46,7 +46,8 @@ const REQUIRED_DOCS = [
     'docs/invariants.md',
     'docs/provenance.md',
     'docs/verifier.md',
-    'docs/boundaries.md'
+    'docs/boundaries.md',
+    'docs/multi-agent-readiness.md'
 ];
 const REQUIRED_AGENTS_HEADINGS = [
     'Purpose',
@@ -64,7 +65,8 @@ const REQUIRED_AGENTS_DOC_MAP_TARGETS = [
     'docs/invariants.md',
     'docs/provenance.md',
     'docs/verifier.md',
-    'docs/boundaries.md'
+    'docs/boundaries.md',
+    'docs/multi-agent-readiness.md'
 ];
 const REQUIRED_README_DOC_MAP_TARGETS = [
     'AGENTS.md',
@@ -74,12 +76,16 @@ const REQUIRED_README_DOC_MAP_TARGETS = [
     'docs/invariants.md',
     'docs/provenance.md',
     'docs/verifier.md',
-    'docs/boundaries.md'
+    'docs/boundaries.md',
+    'docs/multi-agent-readiness.md'
 ];
 const REQUIRED_CODE_OWNER_FILES = [
     'src/commands/registerCommands.ts',
     'src/prompt/promptBuilder.ts',
     'src/ralph/iterationEngine.ts',
+    'src/ralph/completionReportParser.ts',
+    'src/ralph/taskDecomposition.ts',
+    'src/ralph/reconciliation.ts',
     'src/ralph/preflight.ts',
     'src/ralph/taskFile.ts',
     'src/ralph/verifier.ts',
@@ -152,6 +158,7 @@ const DOC_RULES = {
             'Codex Product Boundary',
             'Trust Boundary',
             'Control-Plane Boundary',
+            'Repository Layout And Workspace State',
             'Workspace And Runtime Boundary',
             'Git And Safety Boundary',
             'Testing Boundary'
@@ -159,7 +166,8 @@ const DOC_RULES = {
         requiredFragments: [
             'explicitly does not try to do',
             'trust guarantees stop',
-            'single-agent iteration/loop runner'
+            'single-agent iteration/loop runner',
+            'operator-local runtime state'
         ]
     },
     'docs/workflows.md': {
@@ -192,6 +200,20 @@ const DOC_RULES = {
             '`npm run package`',
             'manual `.vsix` install',
             'Node 20+'
+        ]
+    },
+    'docs/multi-agent-readiness.md': {
+        requiredHeadings: [
+            'Task Ownership',
+            'Write Serialisation',
+            'Remediation Isolation',
+            'Lifting The Deferral'
+        ],
+        requiredFragments: [
+            'acceptance criterion',
+            'claims.json',
+            'agentId',
+            'npm run validate'
         ]
     }
 };
