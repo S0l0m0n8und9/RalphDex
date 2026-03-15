@@ -1367,17 +1367,14 @@ export async function acquireClaim(
 ): Promise<RalphAcquireClaimResult> {
   return withClaimFileLock(claimFilePath, options, async () => {
     const claimFile = await readTaskClaimFile(claimFilePath);
-    const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
-    const releasableLegacyIdeClaim = canonicalClaim
-      && canonicalClaim.agentId === agentId
-      && isIdeHandoffProvenance(canonicalClaim.provenanceId)
-      ? canonicalClaim
-      : null;
-    const effectiveClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaim
+    const releasableLegacyIdeClaims = activeClaimsForTask(claimFile, taskId).filter((claim) => (
+      claim.agentId === agentId && isIdeHandoffProvenance(claim.provenanceId)
+    ));
+    const effectiveClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaims.length > 0
       ? {
         version: 1,
         claims: claimFile.claims.map((claim) => (
-          claimRecordMatches(claim, releasableLegacyIdeClaim)
+          releasableLegacyIdeClaims.some((legacyClaim) => claimRecordMatches(claim, legacyClaim))
             ? { ...claim, status: 'released' }
             : claim
         ))

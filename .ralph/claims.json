@@ -56,6 +56,20 @@
       "claimedAt": "2026-03-15T20:39:30.162Z",
       "provenanceId": "run-i030-cli-20260315T203930Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T24.1.5",
+      "claimedAt": "2026-03-15T21:36:26.681Z",
+      "provenanceId": "run-i031-cli-20260315T213626Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T24.1.5",
+      "claimedAt": "2026-03-15T21:46:12.670Z",
+      "provenanceId": "run-i032-cli-20260315T214612Z",
+      "status": "released"
     }
   ]
 }

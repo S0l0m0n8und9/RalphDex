@@ -34,7 +34,7 @@ test('check-ledger exits cleanly for a consistent ledger without claims.json', a
   assert.deepEqual(runLedgerCheck(workspaceRoot), []);
 });
 
-test('check-ledger reports drift, missing references, cycles, and missing claims', async () => {
+test('check-ledger reports drift, missing references, cycles, and inconsistent active CLI claims', async () => {
   const workspaceRoot = await createWorkspace(
     {
       version: 2,
@@ -50,7 +50,7 @@ test('check-ledger reports drift, missing references, cycles, and missing claims
       version: 1,
       claims: [
         {
-          taskId: 'T8',
+          taskId: 'T2',
           agentId: 'agent-a',
           provenanceId: 'run-001',
           claimedAt: '2026-03-14T00:00:00.000Z',
@@ -65,16 +65,29 @@ test('check-ledger reports drift, missing references, cycles, and missing claims
   assert.match(findings, /^T1: is marked done but has unfinished descendants: T1\.1 \(in_progress\)$/m);
   assert.match(findings, /^T1\.1: references missing dependency MISSING$/m);
   assert.match(findings, /^T2: references missing parentId T9$/m);
+  assert.match(findings, /^T2: has an active CLI claim in \.ralph\/claims\.json but is not marked in_progress$/m);
   assert.match(findings, /^T4: dependency cycle detected: T3 -> T4 -> T3$/m);
-  assert.match(findings, /^T1\.1: is in_progress but has no active claim in \.ralph\/claims\.json$/m);
 });
 
-test('check-ledger accepts in-progress tasks when claims.json contains an active claim', async () => {
+test('check-ledger accepts in-progress tasks without an active claim after claim release', async () => {
   const workspaceRoot = await createWorkspace(
     {
       version: 2,
       tasks: [
         { id: 'T1', title: 'Claimed task', status: 'in_progress' }
+      ]
+    }
+  );
+
+  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
+});
+
+test('check-ledger ignores legacy IDE handoff claims because they are non-blocking', async () => {
+  const workspaceRoot = await createWorkspace(
+    {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Prepared task', status: 'todo' }
       ]
     },
     {
@@ -83,8 +96,8 @@ test('check-ledger accepts in-progress tasks when claims.json contains an active
         {
           taskId: 'T1',
           agentId: 'agent-a',
-          provenanceId: 'run-001',
-          claimedAt: '2026-03-14T00:00:00.000Z',
+          provenanceId: 'run-i007-ide-20260314T110000Z',
+          claimedAt: '2026-03-14T11:00:00.000Z',
           status: 'active'
         }
       ]

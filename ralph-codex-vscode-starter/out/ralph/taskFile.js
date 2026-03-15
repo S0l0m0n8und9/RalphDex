@@ -1067,16 +1067,11 @@ function remainingSubtasks(taskFile, taskId) {
 async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, options) {
     return withClaimFileLock(claimFilePath, options, async () => {
         const claimFile = await readTaskClaimFile(claimFilePath);
-        const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
-        const releasableLegacyIdeClaim = canonicalClaim
-            && canonicalClaim.agentId === agentId
-            && isIdeHandoffProvenance(canonicalClaim.provenanceId)
-            ? canonicalClaim
-            : null;
-        const effectiveClaimFile = releasableLegacyIdeClaim
+        const releasableLegacyIdeClaims = activeClaimsForTask(claimFile, taskId).filter((claim) => (claim.agentId === agentId && isIdeHandoffProvenance(claim.provenanceId)));
+        const effectiveClaimFile = releasableLegacyIdeClaims.length > 0
             ? {
                 version: 1,
-                claims: claimFile.claims.map((claim) => (claimRecordMatches(claim, releasableLegacyIdeClaim)
+                claims: claimFile.claims.map((claim) => (releasableLegacyIdeClaims.some((legacyClaim) => claimRecordMatches(claim, legacyClaim))
                     ? { ...claim, status: 'released' }
                     : claim))
             }

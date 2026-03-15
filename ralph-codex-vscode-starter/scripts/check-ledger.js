@@ -65,7 +65,14 @@ function loadClaims(claimFilePath) {
     .filter((claim) => claim && typeof claim === 'object')
     .filter((claim) => typeof claim.taskId === 'string' && claim.taskId.trim().length > 0)
     .filter((claim) => (claim.status ?? 'active') === 'active')
-    .map((claim) => claim.taskId.trim());
+    .map((claim) => ({
+      taskId: claim.taskId.trim(),
+      provenanceId: typeof claim.provenanceId === 'string' ? claim.provenanceId.trim() : ''
+    }));
+}
+
+function isBlockingCliClaim(claim) {
+  return claim.provenanceId.length > 0 && !/^run-i\d+-ide-/.test(claim.provenanceId);
 }
 
 function collectChildren(tasks) {
@@ -157,10 +164,13 @@ function detectDependencyCycles(tasksById) {
   return findings;
 }
 
-function validateLedger(tasks, activeClaimTaskIds) {
+function validateLedger(tasks, activeClaims) {
   const findings = [];
   const tasksById = new Map(tasks.map((task) => [task.id, task]));
   const childrenByParent = collectChildren(tasks);
+  const activeBlockingClaimTaskIds = activeClaims
+    ? new Set(activeClaims.filter((claim) => isBlockingCliClaim(claim)).map((claim) => claim.taskId))
+    : null;
 
   for (const task of tasks) {
     if (task.parentId && !tasksById.has(task.parentId)) {
@@ -191,10 +201,10 @@ function validateLedger(tasks, activeClaimTaskIds) {
       }
     }
 
-    if (activeClaimTaskIds && task.status === 'in_progress' && !activeClaimTaskIds.has(task.id)) {
+    if (activeBlockingClaimTaskIds && activeBlockingClaimTaskIds.has(task.id) && task.status !== 'in_progress') {
       findings.push({
         taskId: task.id,
-        message: 'is in_progress but has no active claim in .ralph/claims.json'
+        message: 'has an active CLI claim in .ralph/claims.json but is not marked in_progress'
       });
     }
   }
@@ -208,8 +218,8 @@ function runLedgerCheck(workspaceRoot) {
   const claimFilePath = path.join(workspaceRoot, '.ralph', 'claims.json');
 
   const tasks = loadTasks(taskFilePath);
-  const claimTaskIds = loadClaims(claimFilePath);
-  return validateLedger(tasks, claimTaskIds ? new Set(claimTaskIds) : null);
+  const activeClaims = loadClaims(claimFilePath);
+  return validateLedger(tasks, activeClaims);
 }
 
 function main() {
