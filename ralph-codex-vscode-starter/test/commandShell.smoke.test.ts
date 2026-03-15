@@ -75,6 +75,24 @@ async function readGeneratedPromptName(rootPath: string): Promise<string> {
   return generatedPrompt;
 }
 
+async function readClaimFile(rootPath: string): Promise<{ version: number; claims: Array<{ taskId: string; status: string }> } | null> {
+  try {
+    return JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+      version: number;
+      claims: Array<{ taskId: string; status: string }>;
+    };
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code)
+      : '';
+    if (code === 'ENOENT') {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 test.beforeEach(() => {
   const harness = vscodeTestHarness();
   harness.reset();
@@ -863,6 +881,21 @@ test('Prepare Prompt copies the generated prompt when clipboard auto-copy is ena
   assert.equal(harness.state.warningMessages.length, 0);
 });
 
+test('Prepare Prompt does not create a durable active claim for the selected task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.generatePrompt');
+
+  const claims = await readClaimFile(rootPath);
+  assert.ok(claims === null || claims.claims.every((claim) => claim.status !== 'active'));
+  assert.equal(harness.state.warningMessages.length, 0);
+});
+
 test('Open Codex IDE in clipboard mode copies the prompt without invoking VS Code handoff commands', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
@@ -885,6 +918,23 @@ test('Open Codex IDE in clipboard mode copies the prompt without invoking VS Cod
     harness.state.infoMessages.at(-1)?.message ?? '',
     `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
   );
+});
+
+test('Open Codex IDE does not create a durable active claim for the selected task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    preferredHandoffMode: 'clipboard'
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openCodexAndCopyPrompt');
+
+  const claims = await readClaimFile(rootPath);
+  assert.ok(claims === null || claims.claims.every((claim) => claim.status !== 'active'));
 });
 
 test('Open Codex IDE runs configured VS Code handoff commands when ideCommand mode is available', async () => {

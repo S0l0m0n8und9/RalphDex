@@ -107,21 +107,26 @@ async function prepareIterationContext(input) {
     const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
     const taskSelectedAt = new Date().toISOString();
     const iteration = snapshot.state.nextIteration;
+    const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const provenanceId = (0, integrity_1.createProvenanceId)({
         iteration,
-        promptTarget: includeVerifierContext ? 'cliExec' : 'ideHandoff',
+        promptTarget,
         createdAt: taskSelectedAt
     });
     let selectedTask = null;
-    for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
-        const claimResult = await (0, taskFile_1.acquireClaim)(snapshot.paths.claimFilePath, candidate.id, types_1.DEFAULT_RALPH_AGENT_ID, provenanceId);
-        if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
-            selectedTask = candidate;
-            break;
+    if (promptTarget === 'cliExec') {
+        for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
+            const claimResult = await (0, taskFile_1.acquireClaim)(snapshot.paths.claimFilePath, candidate.id, types_1.DEFAULT_RALPH_AGENT_ID, provenanceId);
+            if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+                selectedTask = candidate;
+                break;
+            }
         }
     }
+    else {
+        selectedTask = (0, taskFile_1.selectNextTask)(taskFile);
+    }
     const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);
-    const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget, {
         selectedTask,
         taskCounts: effectiveTaskCounts,

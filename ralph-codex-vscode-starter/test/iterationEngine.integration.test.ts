@@ -944,6 +944,67 @@ test('runCliIteration skips tasks claimed by another provenance when selecting t
   );
 });
 
+test('preparePrompt leaves the next task unclaimed so a later CLI iteration can still select it', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Prepared for manual review first', status: 'todo' },
+      { id: 'T2', title: 'Later task', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const sharedMemento = new MemoryMemento();
+  const preparedEngine = createEngine([{ run: async () => ({ lastMessage: 'Should not execute during prepare.' }) }], sharedMemento);
+  const prepared = await preparedEngine.engine.preparePrompt(workspaceFolder(rootPath), progressReporter());
+
+  assert.equal(prepared.selectedTask?.id, 'T1');
+  await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'claims.json')));
+
+  const runEngine = createEngine([
+    {
+      run: async () => ({
+        stdout: 'claimed prepared task',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'CLI run completed the task after IDE preparation.',
+          validationRan: 'npm test'
+        }, 'CLI run claimed the same task after prompt preparation.')
+      })
+    }
+  ], sharedMemento);
+  const summary = await runEngine.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(summary.result.selectedTaskId, 'T1');
+  const claimsFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ taskId: string; provenanceId: string; status: string }>;
+  };
+  assert.deepEqual(
+    claimsFile.claims.map((claim) => ({
+      taskId: claim.taskId,
+      provenanceId: claim.provenanceId,
+      status: claim.status
+    })),
+    [
+      {
+        taskId: 'T1',
+        provenanceId: summary.result.provenanceId!,
+        status: 'released'
+      }
+    ]
+  );
+});
+
 test('runCliIteration rejects a completion report for the wrong selected task id without mutating durable state', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {

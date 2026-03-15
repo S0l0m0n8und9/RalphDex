@@ -50,6 +50,8 @@ The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ral
 
 This path persists prepared-prompt evidence, not a full executed iteration result.
 
+Task ownership on this path is review-only, not blocking: Ralph may show the next selected task in the prepared prompt and provenance bundle, but it does not write an active durable claim to `.ralph/claims.json`. A later `Run CLI Iteration` must still be able to claim that same task if the operator abandons the handoff.
+
 Handoff behavior on this path is intentionally explicit:
 
 - `Prepare Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.

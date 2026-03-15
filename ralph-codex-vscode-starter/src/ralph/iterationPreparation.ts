@@ -23,7 +23,7 @@ import {
   RalphTaskFile,
   RalphWorkspaceState
 } from './types';
-import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks } from './taskFile';
+import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks, selectNextTask } from './taskFile';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -196,26 +196,30 @@ export async function prepareIterationContext(
   const effectiveTaskCounts = taskCounts ?? countTaskStatuses(taskFile);
   const taskSelectedAt = new Date().toISOString();
   const iteration = snapshot.state.nextIteration;
+  const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
   const provenanceId = createProvenanceId({
     iteration,
-    promptTarget: includeVerifierContext ? 'cliExec' : 'ideHandoff',
+    promptTarget,
     createdAt: taskSelectedAt
   });
   let selectedTask = null as RalphTask | null;
-  for (const candidate of listSelectableTasks(taskFile)) {
-    const claimResult = await acquireClaim(
-      snapshot.paths.claimFilePath,
-      candidate.id,
-      DEFAULT_RALPH_AGENT_ID,
-      provenanceId
-    );
-    if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
-      selectedTask = candidate;
-      break;
+  if (promptTarget === 'cliExec') {
+    for (const candidate of listSelectableTasks(taskFile)) {
+      const claimResult = await acquireClaim(
+        snapshot.paths.claimFilePath,
+        candidate.id,
+        DEFAULT_RALPH_AGENT_ID,
+        provenanceId
+      );
+      if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+        selectedTask = candidate;
+        break;
+      }
     }
+  } else {
+    selectedTask = selectNextTask(taskFile);
   }
   const rootPolicy = deriveRootPolicy(summary);
-  const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
   const promptDecision = decidePromptKind(snapshot.state, promptTarget, {
     selectedTask,
     taskCounts: effectiveTaskCounts,
