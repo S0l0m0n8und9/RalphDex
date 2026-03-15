@@ -761,6 +761,60 @@ test('acquireClaim reclaims every active legacy IDE handoff claim held by the sa
   );
 });
 
+test('acquireClaim persists release of legacy IDE handoff claims even when another agent still holds the task', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-i007-ide-20260314T110000Z',
+        claimedAt: '2026-03-14T11:00:00.000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-b',
+        provenanceId: 'run-i008-cli-20260314T113000Z',
+        claimedAt: '2026-03-14T11:30:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const acquired = await acquireClaim(claimFilePath, 'T24.1.2', 'agent-a', 'run-i009-cli-20260314T120000Z');
+
+  assert.equal(acquired.outcome, 'contested');
+  assert.equal(acquired.canonicalClaim?.claim.agentId, 'agent-b');
+  assert.equal(acquired.canonicalClaim?.claim.provenanceId, 'run-i008-cli-20260314T113000Z');
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ provenanceId: string; agentId: string; status: string }>;
+  };
+  assert.deepEqual(
+    persisted.claims.map((claim) => ({
+      provenanceId: claim.provenanceId,
+      agentId: claim.agentId,
+      status: claim.status
+    })),
+    [
+      {
+        provenanceId: 'run-i007-ide-20260314T110000Z',
+        agentId: 'agent-a',
+        status: 'released'
+      },
+      {
+        provenanceId: 'run-i008-cli-20260314T113000Z',
+        agentId: 'agent-b',
+        status: 'active'
+      }
+    ]
+  );
+});
+
 test('acquireClaim uses the file lock so concurrent claim attempts leave one canonical holder', async () => {
   const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
   const claimFilePath = path.join(tempRoot, 'task-claims.json');

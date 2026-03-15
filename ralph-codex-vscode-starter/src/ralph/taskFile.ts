@@ -1370,7 +1370,7 @@ export async function acquireClaim(
     const releasableLegacyIdeClaims = activeClaimsForTask(claimFile, taskId).filter((claim) => (
       claim.agentId === agentId && isIdeHandoffProvenance(claim.provenanceId)
     ));
-    const effectiveClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaims.length > 0
+    const releasedLegacyClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaims.length > 0
       ? {
         version: 1,
         claims: claimFile.claims.map((claim) => (
@@ -1380,6 +1380,12 @@ export async function acquireClaim(
         ))
       }
       : claimFile;
+    const effectiveClaimFile: RalphTaskClaimFile = releasableLegacyIdeClaims.length > 0
+      ? await (async (): Promise<RalphTaskClaimFile> => {
+        await writeTaskClaimFile(claimFilePath, releasedLegacyClaimFile);
+        return readTaskClaimFile(claimFilePath);
+      })()
+      : releasedLegacyClaimFile;
     const activeClaims = activeClaimsForTask(effectiveClaimFile, taskId);
     const effectiveCanonicalClaim = canonicalClaimForTask(effectiveClaimFile, taskId);
 

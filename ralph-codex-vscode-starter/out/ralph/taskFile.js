@@ -1068,7 +1068,7 @@ async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, option
     return withClaimFileLock(claimFilePath, options, async () => {
         const claimFile = await readTaskClaimFile(claimFilePath);
         const releasableLegacyIdeClaims = activeClaimsForTask(claimFile, taskId).filter((claim) => (claim.agentId === agentId && isIdeHandoffProvenance(claim.provenanceId)));
-        const effectiveClaimFile = releasableLegacyIdeClaims.length > 0
+        const releasedLegacyClaimFile = releasableLegacyIdeClaims.length > 0
             ? {
                 version: 1,
                 claims: claimFile.claims.map((claim) => (releasableLegacyIdeClaims.some((legacyClaim) => claimRecordMatches(claim, legacyClaim))
@@ -1076,6 +1076,12 @@ async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, option
                     : claim))
             }
             : claimFile;
+        const effectiveClaimFile = releasableLegacyIdeClaims.length > 0
+            ? await (async () => {
+                await writeTaskClaimFile(claimFilePath, releasedLegacyClaimFile);
+                return readTaskClaimFile(claimFilePath);
+            })()
+            : releasedLegacyClaimFile;
         const activeClaims = activeClaimsForTask(effectiveClaimFile, taskId);
         const effectiveCanonicalClaim = canonicalClaimForTask(effectiveClaimFile, taskId);
         if (effectiveCanonicalClaim) {
