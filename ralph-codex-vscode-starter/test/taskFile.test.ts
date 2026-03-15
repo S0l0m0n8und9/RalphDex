@@ -13,7 +13,9 @@ import {
   parseTaskFile,
   releaseClaim,
   remainingSubtasks,
-  selectNextTask
+  selectNextTask,
+  stringifyTaskFile,
+  withTaskFileLock
 } from '../src/ralph/taskFile';
 
 test('parseTaskFile normalizes the starter task schema and counts statuses', () => {
@@ -764,3 +766,118 @@ test('releaseClaim uses the file lock so concurrent releases leave one released 
     ]
   );
 });
+
+test('withTaskFileLock serializes concurrent tasks.json mutations through a sibling tasks.lock file', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-file-'));
+  const taskFilePath = path.join(tempRoot, 'tasks.json');
+  await fs.writeFile(taskFilePath, stringifyTaskFile(parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'First task', status: 'todo' }
+    ]
+  }))), 'utf8');
+
+  const startGate = deferred<void>();
+  const finishGate = deferred<void>();
+  let firstHasLock = false;
+
+  const first = withTaskFileLock(taskFilePath, {
+    lockRetryCount: 50,
+    lockRetryDelayMs: 10
+  }, async () => {
+    firstHasLock = true;
+    startGate.resolve();
+    await finishGate.promise;
+
+    const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+    const updated: typeof taskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, status: 'in_progress' } : task)
+    };
+    await fs.writeFile(taskFilePath, stringifyTaskFile(updated), 'utf8');
+    return 'first';
+  });
+
+  await startGate.promise;
+  assert.equal(firstHasLock, true);
+  assert.equal(await pathExists(path.join(tempRoot, 'tasks.lock')), true);
+
+  const second = withTaskFileLock(taskFilePath, {
+    lockRetryCount: 50,
+    lockRetryDelayMs: 10
+  }, async () => {
+    const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+    const updated: typeof taskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) => task.id === 'T1' ? { ...task, notes: 'serialized write' } : task)
+    };
+    await fs.writeFile(taskFilePath, stringifyTaskFile(updated), 'utf8');
+    return 'second';
+  });
+
+  await sleep(30);
+  assert.equal(await pathExists(path.join(tempRoot, 'tasks.lock')), true);
+
+  finishGate.resolve();
+
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+  assert.deepEqual([firstResult.outcome, secondResult.outcome], ['ok', 'ok']);
+  assert.equal(firstResult.outcome === 'ok' ? firstResult.value : '', 'first');
+  assert.equal(secondResult.outcome === 'ok' ? secondResult.value : '', 'second');
+
+  const persisted = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  assert.equal(persisted.tasks[0]?.status, 'in_progress');
+  assert.equal(persisted.tasks[0]?.notes, 'serialized write');
+  assert.equal(await pathExists(path.join(tempRoot, 'tasks.lock')), false);
+});
+
+test('withTaskFileLock returns lock_timeout after the configured retry window', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-file-'));
+  const taskFilePath = path.join(tempRoot, 'tasks.json');
+  const lockPath = path.join(tempRoot, 'tasks.lock');
+  await fs.writeFile(taskFilePath, stringifyTaskFile(parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: []
+  }))), 'utf8');
+  await fs.writeFile(lockPath, '', 'utf8');
+
+  const result = await withTaskFileLock(taskFilePath, {
+    lockRetryCount: 2,
+    lockRetryDelayMs: 1
+  }, async () => 'unreachable');
+
+  assert.deepEqual(result, {
+    outcome: 'lock_timeout',
+    lockPath,
+    attempts: 3
+  });
+  assert.equal(await pathExists(lockPath), true);
+});
+
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T | PromiseLike<T>) => void; reject: (reason?: unknown) => void } {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((innerResolve, innerReject) => {
+    resolve = innerResolve;
+    reject = innerReject;
+  });
+
+  return {
+    promise,
+    resolve,
+    reject
+  };
+}
+
+async function pathExists(target: string): Promise<boolean> {
+  try {
+    await fs.access(target);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}

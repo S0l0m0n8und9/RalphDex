@@ -210,8 +210,13 @@ async function reconcileCompletionReport(input) {
     };
 }
 async function updateTaskFile(taskFilePath, transform) {
-    const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
-    await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
+        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
 }
 async function appendProgressBullet(progressPath, bullet) {
     const trimmed = bullet.trim();

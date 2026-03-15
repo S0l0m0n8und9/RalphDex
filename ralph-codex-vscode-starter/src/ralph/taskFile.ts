@@ -55,6 +55,24 @@ export interface RalphTaskClaimOptions {
   lockRetryDelayMs?: number;
 }
 
+export interface RalphTaskFileLockOptions {
+  lockRetryCount?: number;
+  lockRetryDelayMs?: number;
+}
+
+export interface RalphTaskFileLockTimeout {
+  outcome: 'lock_timeout';
+  lockPath: string;
+  attempts: number;
+}
+
+export interface RalphTaskFileLockAcquired<T> {
+  outcome: 'ok';
+  value: T;
+}
+
+export type RalphTaskFileLockResult<T> = RalphTaskFileLockAcquired<T> | RalphTaskFileLockTimeout;
+
 export interface RalphTaskClaimDetails {
   claim: RalphTaskClaim;
   stale: boolean;
@@ -276,6 +294,54 @@ async function withClaimFileLock<T>(
         : '';
       if (code !== 'EEXIST' || attempt >= retryCount) {
         throw error;
+      }
+
+      await sleep(retryDelayMs);
+    }
+  }
+}
+
+export async function withTaskFileLock<T>(
+  taskFilePath: string,
+  options: RalphTaskFileLockOptions | undefined,
+  fn: () => Promise<T>
+): Promise<RalphTaskFileLockResult<T>> {
+  const lockPath = path.join(path.dirname(taskFilePath), 'tasks.lock');
+  const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
+  const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
+
+  for (let attempt = 0; ; attempt += 1) {
+    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
+    try {
+      await fs.mkdir(path.dirname(lockPath), { recursive: true });
+      handle = await fs.open(lockPath, 'wx');
+      try {
+        return {
+          outcome: 'ok',
+          value: await fn()
+        };
+      } finally {
+        await handle.close();
+        await fs.rm(lockPath, { force: true });
+      }
+    } catch (error) {
+      if (handle) {
+        await handle.close().catch(() => undefined);
+      }
+
+      const code = typeof error === 'object' && error !== null && 'code' in error
+        ? String((error as { code?: unknown }).code)
+        : '';
+      if (code !== 'EEXIST') {
+        throw error;
+      }
+
+      if (attempt >= retryCount) {
+        return {
+          outcome: 'lock_timeout',
+          lockPath,
+          attempts: attempt + 1
+        };
       }
 
       await sleep(retryDelayMs);

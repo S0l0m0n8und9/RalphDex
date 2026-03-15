@@ -725,7 +725,7 @@
     {
       "id": "T24.2.1",
       "title": "Add a file-backed write-serialisation helper for tasks.json mutations",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.2",
       "dependsOn": [
         "T24.1.2",
@@ -733,7 +733,7 @@
         "T26",
         "T27"
       ],
-      "notes": "Add a withTaskFileLock(fn) helper in src/ralph/taskFile.ts that acquires an exclusive advisory lock on tasks.json before calling fn, then releases it. Use Node's fs.open with O_EXCL on a sibling .ralph/tasks.lock file as the advisory mechanism. Lock acquisition must be non-blocking with a configurable retry count and backoff so a waiting agent does not spin. If the lock cannot be acquired within the retry window, return a lock_timeout result that the caller can surface as a preflight warning rather than silently corrupting state.",
+      "notes": "Added a file-backed tasks.json write lock helper with retry/backoff timeout semantics, wired current task-file mutation paths through it, and added concurrency and timeout regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {

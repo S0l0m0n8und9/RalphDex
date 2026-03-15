@@ -17,7 +17,8 @@ import {
   parseTaskFile,
   RalphTaskFileInspection,
   findTaskById,
-  stringifyTaskFile
+  stringifyTaskFile,
+  withTaskFileLock
 } from './taskFile';
 import {
   DEFAULT_RALPH_AGENT_ID,
@@ -697,9 +698,19 @@ export class RalphStateManager {
   }
 
   public async updateTaskFile(paths: RalphPaths, transform: (taskFile: RalphTaskFile) => RalphTaskFile): Promise<RalphTaskFile> {
-    const nextTaskFile = transform(await this.readTaskFile(paths));
-    await fs.writeFile(paths.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
-    return parseTaskFile(await this.readTaskFileText(paths));
+    const locked = await withTaskFileLock(paths.taskFilePath, undefined, async () => {
+      const nextTaskFile = transform(parseTaskFile(await fs.readFile(paths.taskFilePath, 'utf8')));
+      await fs.writeFile(paths.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+      return parseTaskFile(await fs.readFile(paths.taskFilePath, 'utf8'));
+    });
+
+    if (locked.outcome === 'lock_timeout') {
+      throw new Error(
+        `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+      );
+    }
+
+    return locked.value;
   }
 
   public async appendProgressBullet(paths: RalphPaths, bullet: string): Promise<void> {

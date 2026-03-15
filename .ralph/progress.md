@@ -91,3 +91,4 @@
 - Added regression coverage proving releaseClaim uses file-level locking under concurrent release attempts, with one released outcome, one not_held outcome, and a single released ledger record. Validation passed with npm test (227 passed).
 - Added regression coverage proving concurrent releaseClaim calls serialize through the file lock and documented the expanded claim-lock coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.
 - Gated task selection and completion-report reconciliation on durable claim ownership, added claim_contested stop handling, and released claims after each iteration with regression coverage.
+- Added a file-backed tasks.json write lock helper with retry/backoff timeout semantics, wired current task-file mutation paths through it, and added concurrency and timeout regression coverage.

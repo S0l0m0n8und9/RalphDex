@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.withTaskFileLock = withTaskFileLock;
 exports.inspectTaskGraph = inspectTaskGraph;
 exports.inspectTaskFileText = inspectTaskFileText;
 exports.createDefaultTaskFile = createDefaultTaskFile;
@@ -237,6 +238,47 @@ async function withClaimFileLock(claimFilePath, options, fn) {
                 : '';
             if (code !== 'EEXIST' || attempt >= retryCount) {
                 throw error;
+            }
+            await sleep(retryDelayMs);
+        }
+    }
+}
+async function withTaskFileLock(taskFilePath, options, fn) {
+    const lockPath = path.join(path.dirname(taskFilePath), 'tasks.lock');
+    const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
+    const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
+    for (let attempt = 0;; attempt += 1) {
+        let handle = null;
+        try {
+            await fs.mkdir(path.dirname(lockPath), { recursive: true });
+            handle = await fs.open(lockPath, 'wx');
+            try {
+                return {
+                    outcome: 'ok',
+                    value: await fn()
+                };
+            }
+            finally {
+                await handle.close();
+                await fs.rm(lockPath, { force: true });
+            }
+        }
+        catch (error) {
+            if (handle) {
+                await handle.close().catch(() => undefined);
+            }
+            const code = typeof error === 'object' && error !== null && 'code' in error
+                ? String(error.code)
+                : '';
+            if (code !== 'EEXIST') {
+                throw error;
+            }
+            if (attempt >= retryCount) {
+                return {
+                    outcome: 'lock_timeout',
+                    lockPath,
+                    attempts: attempt + 1
+                };
             }
             await sleep(retryDelayMs);
         }

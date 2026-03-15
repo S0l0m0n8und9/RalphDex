@@ -616,9 +616,15 @@ class RalphStateManager {
         return (0, taskFile_1.countTaskStatuses)(await this.readTaskFile(paths));
     }
     async updateTaskFile(paths, transform) {
-        const nextTaskFile = transform(await this.readTaskFile(paths));
-        await fs.writeFile(paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
-        return (0, taskFile_1.parseTaskFile)(await this.readTaskFileText(paths));
+        const locked = await (0, taskFile_1.withTaskFileLock)(paths.taskFilePath, undefined, async () => {
+            const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(paths.taskFilePath, 'utf8')));
+            await fs.writeFile(paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+            return (0, taskFile_1.parseTaskFile)(await fs.readFile(paths.taskFilePath, 'utf8'));
+        });
+        if (locked.outcome === 'lock_timeout') {
+            throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+        }
+        return locked.value;
     }
     async appendProgressBullet(paths, bullet) {
         const current = await this.readProgressText(paths);
