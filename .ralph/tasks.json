@@ -936,7 +936,7 @@
     {
       "id": "T27",
       "title": "Decompose iterationEngine.ts by extracting completion-report parsing, reconciliation, and task decomposition into focused modules",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T27.1",
         "T27.2",
@@ -979,12 +979,12 @@
     {
       "id": "T27.4",
       "title": "Add code-owner entries for the new modules and confirm iterationEngine.ts line count is materially reduced",
-      "status": "todo",
+      "status": "done",
       "parentId": "T27",
       "dependsOn": [
         "T27.3"
       ],
-      "notes": "Add src/ralph/completionReportParser.ts, src/ralph/taskDecomposition.ts, and src/ralph/reconciliation.ts to the Code Owners For Behavior section of AGENTS.md with one-line descriptions. Update src/validation/docsValidator.ts REQUIRED_CODE_OWNER_FILES to include the three new modules. Confirm iterationEngine.ts is below 1200 lines after extraction — if it is not, identify which remaining concern is the largest candidate for a follow-on extraction and add a note to docs/architecture.md. Run npm run validate to confirm docs, types, and tests all pass.",
+      "notes": "Extracted prompt/preflight/prepared-context assembly from iterationEngine.ts into iterationPreparation.ts, updated shared PreparedIterationContext imports, and reduced iterationEngine.ts to 1073 lines while keeping full validation green.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate && wc -l src/ralph/iterationEngine.ts | awk '{if ($1 > 1200) exit 1}'"
     },
     {

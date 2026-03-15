@@ -8,7 +8,7 @@ import {
   RalphTask,
   RalphTaskFile
 } from './types';
-import type { PreparedIterationContext } from './iterationEngine';
+import type { PreparedIterationContext } from './iterationPreparation';
 
 export interface CompletionReconciliationOutcome {
   artifact: CompletionReportArtifact;
