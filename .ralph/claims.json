@@ -6,7 +6,7 @@
       "taskId": "T24.1.4",
       "claimedAt": "2026-03-15T16:56:39.966Z",
       "provenanceId": "run-i061-ide-20260315T165639Z",
-      "status": "active"
+      "status": "released"
     },
     {
       "agentId": "default",
@@ -16,11 +16,18 @@
       "status": "released"
     },
     {
-      "taskId": "T24.2.2",
       "agentId": "default",
-      "provenanceId": "run-i062-ide-20260315T170831Z",
+      "taskId": "T24.2.2",
       "claimedAt": "2026-03-15T17:08:31.435Z",
-      "status": "active"
+      "provenanceId": "run-i062-ide-20260315T170831Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T24.1.4",
+      "claimedAt": "2026-03-15T19:02:01.580Z",
+      "provenanceId": "run-i070-cli-20260315T190201Z",
+      "status": "released"
     }
   ]
 }

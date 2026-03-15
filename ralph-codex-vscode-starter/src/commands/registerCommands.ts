@@ -13,7 +13,7 @@ import {
   RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
-import { applySuggestedChildTasks, selectNextTask } from '../ralph/taskFile';
+import { applySuggestedChildTasks, inspectTaskClaimGraph, selectNextTask } from '../ralph/taskFile';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -409,6 +409,18 @@ async function collectStatusSnapshot(
     generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
     provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
   });
+  const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
+  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+    readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
+    readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
+    readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
+    readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
+    readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
+  ]);
+  const currentProvenanceId = latestExecutionPlan?.provenanceId
+    ?? latestProvenanceBundle?.provenanceId
+    ?? inspection.state.lastIteration?.provenanceId
+    ?? null;
   const preflightReport = buildPreflightReport({
     rootPath: workspaceFolder.uri.fsPath,
     workspaceTrusted: vscode.workspace.isTrusted,
@@ -416,6 +428,8 @@ async function collectStatusSnapshot(
     taskInspection,
     taskCounts,
     selectedTask,
+    currentProvenanceId,
+    claimGraph,
     taskValidationHint,
     validationCommand,
     normalizedValidationCommandFrom,
@@ -425,13 +439,6 @@ async function collectStatusSnapshot(
     ideCommandSupport,
     artifactReadinessDiagnostics
   });
-  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
-    readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
-    readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
-    readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
-    readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
-    readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
-  ]);
   const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
     inspectGeneratedArtifactRetention({
       artifactRootDir: inspection.paths.artifactDir,
@@ -489,7 +496,9 @@ async function collectStatusSnapshot(
     validationCommandOverride: config.validationCommandOverride || null,
     workspaceScan,
     gitStatus,
-    preflightReport
+    preflightReport,
+    claimGraph,
+    currentProvenanceId
   };
 }
 

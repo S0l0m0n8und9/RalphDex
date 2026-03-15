@@ -649,6 +649,9 @@
         "T24.1.2",
         "T24.1.3",
         "T24.1.4",
+        "T24.1.5",
+        "T24.1.6",
+        "T24.1.7",
         "T25",
         "T26",
         "T27"
@@ -696,7 +699,7 @@
     {
       "id": "T24.1.4",
       "title": "Surface stale and contested claims in preflight and Show Status",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1",
       "dependsOn": [
         "T24.1.3",
@@ -704,7 +707,50 @@
         "T26",
         "T27"
       ],
-      "notes": "Add a claimGraph category to preflight diagnostics in src/ralph/preflight.ts. Detect: tasks claimed by an agent with no corresponding active iteration (stale), tasks claimed by multiple agents (contested), and tasks whose claim provenanceId does not match the current iteration provenanceId. Surface claim state in src/ralph/statusReport.ts alongside the existing task-selection summary. Add regression coverage and update docs/invariants.md with the claim ownership rules.",
+      "notes": "Added claim-graph inspection plus preflight and Show Status surfacing for contested, stale, and provenance-mismatched task claims; updated docs and regression coverage.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.1.5",
+      "title": "Define and implement claim lifecycle rules for Prepare Prompt and Open Codex IDE handoff paths",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.4",
+        "T25",
+        "T26",
+        "T27"
+      ],
+      "notes": "The current prepare-only and IDE-handoff paths can acquire a durable active claim without a matching execution/reconciliation path that releases it, which strands tasks behind stale ownership. Define the durable rule for non-CLI prompt preparation: either these paths must not acquire an active claim at all, or they must record a claim that cannot block later selection indefinitely without an explicit operator action. Implement that rule in the prompt-preparation and IDE handoff flow, keep provenance evidence intact, and ensure later CLI selection no longer gets stuck behind abandoned handoff claims.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.1.6",
+      "title": "Add an operator-approved stale-claim resolution workflow for claims.json",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.4",
+        "T24.1.5",
+        "T25",
+        "T26",
+        "T27"
+      ],
+      "notes": "Add an explicit operator recovery path for abandoned task claims instead of requiring manual JSON edits. The workflow should inspect the canonical claim, confirm no active CLI iteration still owns it, and then atomically mark the claim stale or released in .ralph/claims.json. Surface the action in status/reporting so operators can see which claim was resolved, why it was eligible, and which provenanceId it belonged to. Do not auto-release claims silently; keep the operator decision explicit.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T24.1.7",
+      "title": "Add regression coverage and docs for claim lifecycle across CLI execution, prompt preparation, and stale-claim recovery",
+      "status": "todo",
+      "parentId": "T24.1",
+      "dependsOn": [
+        "T24.1.6",
+        "T25",
+        "T26",
+        "T27"
+      ],
+      "notes": "Add integration and status/preflight coverage proving that: CLI execution still acquires and releases claims correctly; Prepare Prompt and Open Codex IDE no longer strand blocking claims; stale or contested claims are surfaced deterministically; and the operator recovery workflow safely frees a task for reselection. Update docs/invariants.md, docs/workflows.md, and any status-report wording so the claim lifecycle and operator recovery steps are explicit.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

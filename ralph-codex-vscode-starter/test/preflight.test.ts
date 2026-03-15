@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { buildPreflightReport, inspectPreflightArtifactReadiness } from '../src/ralph/preflight';
-import { inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
+import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
   prdPath: true,
@@ -122,6 +122,77 @@ test('buildPreflightReport distinguishes selected validation commands from confi
   assert.equal(report.ready, true);
   assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'validation_command_executable_not_confirmed'));
   assert.match(report.summary, /Validation pytest\. Executable not confirmed\./);
+});
+
+test('buildPreflightReport surfaces contested, stale, and mismatched claims in claim-graph diagnostics', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const claimFilePath = path.join(rootPath, '.ralph', 'claims.json');
+  await createDirectories([path.dirname(claimFilePath)]);
+  await writeUtf8Files([
+    [claimFilePath, JSON.stringify({
+      version: 1,
+      claims: [
+        {
+          taskId: 'T1',
+          agentId: 'agent-a',
+          provenanceId: 'run-001',
+          claimedAt: '2026-03-10T00:00:00.000Z',
+          status: 'active'
+        },
+        {
+          taskId: 'T1',
+          agentId: 'agent-b',
+          provenanceId: 'run-002',
+          claimedAt: '2026-03-10T00:10:00.000Z',
+          status: 'active'
+        },
+        {
+          taskId: 'T2',
+          agentId: 'agent-c',
+          provenanceId: 'run-003',
+          claimedAt: '2026-03-10T00:00:00.000Z',
+          status: 'active'
+        }
+      ]
+    })]
+  ]);
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Contested task', status: 'todo' },
+      { id: 'T2', title: 'Stale task', status: 'todo' }
+    ]
+  }));
+  const claimGraph = await inspectTaskClaimGraph(claimFilePath, {
+    now: new Date('2026-03-16T00:00:00.000Z')
+  });
+  const report = buildPreflightReport({
+    rootPath,
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 2, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    currentProvenanceId: 'run-current',
+    claimGraph,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'task_claim_contested'));
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'task_claim_stale'));
+  assert.equal(
+    report.diagnostics.filter((diagnostic) => diagnostic.code === 'task_claim_provenance_mismatch').length,
+    2
+  );
+  assert.match(report.summary, /Claim graph:/);
 });
 
 test('inspectPreflightArtifactReadiness reports stale latest surfaces and missing latest-pointer targets', async () => {

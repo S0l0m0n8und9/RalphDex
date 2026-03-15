@@ -13,6 +13,7 @@ import {
   resolveLatestArtifactPaths
 } from './artifactStore';
 import { RalphPaths } from './pathResolver';
+import { RalphTaskClaimGraphInspection } from './taskFile';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -81,6 +82,8 @@ export interface RalphStatusSnapshot {
   workspaceScan: WorkspaceScan;
   gitStatus: GitStatusSnapshot;
   preflightReport: RalphPreflightReport;
+  claimGraph: RalphTaskClaimGraphInspection | null;
+  currentProvenanceId: string | null;
 }
 
 async function pathExists(target: string): Promise<boolean> {
@@ -164,6 +167,37 @@ function taskLedgerDriftSummary(snapshot: RalphStatusSnapshot): string {
   }
 
   return compactList(taskGraphErrors.map((diagnostic) => diagnostic.message), 2);
+}
+
+function claimGraphSummary(snapshot: RalphStatusSnapshot): string {
+  const claimDiagnostics = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'claimGraph');
+  if (claimDiagnostics.length === 0) {
+    return 'none';
+  }
+
+  return compactList(claimDiagnostics.map((diagnostic) => diagnostic.message), 2);
+}
+
+function currentClaimHolderSummary(snapshot: RalphStatusSnapshot): string {
+  if (!snapshot.selectedTask) {
+    return 'none';
+  }
+
+  const claimEntry = snapshot.claimGraph?.tasks.find((task) => task.taskId === snapshot.selectedTask?.id);
+  if (!claimEntry?.canonicalClaim) {
+    return 'none';
+  }
+
+  const canonicalClaim = claimEntry.canonicalClaim;
+  const tags = [
+    canonicalClaim.stale ? 'stale' : null,
+    claimEntry.contested ? 'contested' : null,
+    snapshot.currentProvenanceId && canonicalClaim.claim.provenanceId !== snapshot.currentProvenanceId
+      ? 'different provenance'
+      : null
+  ].filter((value): value is string => value !== null);
+
+  return `${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId}${tags.length > 0 ? ` (${tags.join(', ')})` : ''}`;
 }
 
 export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
@@ -250,6 +284,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   }) ?? [];
   const gitEntryLines = snapshot.gitStatus.entries.slice(0, 10).map((entry) => `- ${entry.status} ${entry.path}`);
   const preflightTaskGraph = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'taskGraph');
+  const preflightClaimGraph = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'claimGraph');
   const preflightWorkspace = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'workspaceRuntime');
   const preflightAdapter = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'codexAdapter');
   const preflightVerifier = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'validationVerifier');
@@ -309,12 +344,14 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Task validation hint: ${latestPlan?.taskValidationHint ?? 'none'}`,
     `- Effective validation command: ${latestPlan?.effectiveValidationCommand ?? 'none'}`,
     `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
-    `- Current provenance ID: ${latestProvenance?.provenanceId ?? 'none'}`,
+    `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
+    `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
     `- Task counts: ${snapshot.taskCounts
       ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
       : 'unavailable'}`,
     `- Task file error: ${snapshot.taskFileError ?? 'none'}`,
     `- Task-ledger drift: ${taskLedgerDriftSummary(snapshot)}`,
+    `- Claim state: ${claimGraphSummary(snapshot)}`,
     '',
     '## Preflight',
     `- Ready: ${snapshot.preflightReport.ready ? 'yes' : 'no'}`,
@@ -322,6 +359,9 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     '',
     '### Task Graph',
     preflightTaskGraph.length > 0 ? preflightTaskGraph.map(renderDiagnostic).join('\n') : '- ok',
+    '',
+    '### Claim Graph',
+    preflightClaimGraph.length > 0 ? preflightClaimGraph.map(renderDiagnostic).join('\n') : '- ok',
     '',
     '### Workspace/Runtime',
     preflightWorkspace.length > 0 ? preflightWorkspace.map(renderDiagnostic).join('\n') : '- ok',

@@ -23,7 +23,7 @@ import {
   RalphTaskFile,
   RalphWorkspaceState
 } from './types';
-import { acquireClaim, countTaskStatuses, listSelectableTasks } from './taskFile';
+import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks } from './taskFile';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -269,6 +269,8 @@ export async function prepareIterationContext(
     taskInspection,
     taskCounts: effectiveTaskCounts,
     selectedTask,
+    currentProvenanceId: provenanceId,
+    claimGraph: await inspectTaskClaimGraph(snapshot.paths.claimFilePath),
     taskValidationHint,
     validationCommand: effectiveValidationCommand,
     normalizedValidationCommandFrom,

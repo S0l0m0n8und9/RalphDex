@@ -50,6 +50,7 @@ exports.remainingSubtasks = remainingSubtasks;
 exports.acquireClaim = acquireClaim;
 exports.releaseClaim = releaseClaim;
 exports.inspectClaimOwnership = inspectClaimOwnership;
+exports.inspectTaskClaimGraph = inspectTaskClaimGraph;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const EMPTY_COUNTS = {
@@ -189,6 +190,11 @@ function activeClaimsForTask(claimFile, taskId) {
 function canonicalClaimForTask(claimFile, taskId) {
     const activeClaims = activeClaimsForTask(claimFile, taskId);
     return activeClaims.length > 0 ? activeClaims[activeClaims.length - 1] : null;
+}
+function taskIdsWithActiveClaims(claimFile) {
+    return [...new Set(claimFile.claims
+            .filter((claim) => claim.status === 'active')
+            .map((claim) => claim.taskId))].sort((left, right) => left.localeCompare(right));
 }
 async function writeTaskClaimFile(claimFilePath, claimFile) {
     const directoryPath = path.dirname(claimFilePath);
@@ -1166,6 +1172,26 @@ async function inspectClaimOwnership(claimFilePath, taskId, agentId, provenanceI
                 && canonicalClaim.provenanceId === provenanceId,
             canonicalClaim: describeClaim(canonicalClaim, options),
             claimFile
+        };
+    });
+}
+async function inspectTaskClaimGraph(claimFilePath, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const tasks = taskIdsWithActiveClaims(claimFile).map((taskId) => {
+            const activeClaims = activeClaimsForTask(claimFile, taskId)
+                .map((claim) => describeClaim(claim, options))
+                .filter((claim) => claim !== null);
+            return {
+                taskId,
+                canonicalClaim: describeClaim(canonicalClaimForTask(claimFile, taskId), options),
+                activeClaims,
+                contested: activeClaims.length > 1
+            };
+        });
+        return {
+            claimFile,
+            tasks
         };
     });
 }

@@ -42,6 +42,7 @@ const path = __importStar(require("path"));
 const artifactStore_1 = require("./artifactStore");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
+    claimGraph: 'Claim graph',
     workspaceRuntime: 'Workspace/runtime',
     codexAdapter: 'Codex adapter',
     validationVerifier: 'Validation/verifier'
@@ -302,6 +303,24 @@ async function inspectPreflightArtifactReadiness(input) {
 }
 function buildPreflightReport(input) {
     const diagnostics = [...input.taskInspection.diagnostics];
+    const currentProvenanceId = input.currentProvenanceId?.trim() || null;
+    for (const claimEntry of input.claimGraph?.tasks ?? []) {
+        if (claimEntry.contested) {
+            diagnostics.push(createDiagnostic('claimGraph', 'warning', 'task_claim_contested', `Task ${claimEntry.taskId} has contested active claims: ${claimEntry.activeClaims
+                .map((activeClaim) => `${activeClaim.claim.agentId}/${activeClaim.claim.provenanceId}`)
+                .join(', ')}.`, { taskId: claimEntry.taskId }));
+        }
+        const canonicalClaim = claimEntry.canonicalClaim;
+        if (!canonicalClaim) {
+            continue;
+        }
+        if (canonicalClaim.stale) {
+            diagnostics.push(createDiagnostic('claimGraph', 'warning', 'task_claim_stale', `Task ${claimEntry.taskId} is held by ${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId} but the active claim is stale from ${canonicalClaim.claim.claimedAt}.`, { taskId: claimEntry.taskId }));
+        }
+        if (currentProvenanceId && canonicalClaim.claim.provenanceId !== currentProvenanceId) {
+            diagnostics.push(createDiagnostic('claimGraph', 'info', 'task_claim_provenance_mismatch', `Task ${claimEntry.taskId} is currently claimed by ${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId}, not the current iteration provenance ${currentProvenanceId}.`, { taskId: claimEntry.taskId }));
+        }
+    }
     for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
@@ -374,6 +393,7 @@ function buildPreflightReport(input) {
     const byCategory = (category) => orderedDiagnostics.filter((diagnostic) => diagnostic.category === category);
     const scopeSummary = [
         sectionSummary('taskGraph', byCategory('taskGraph')),
+        sectionSummary('claimGraph', byCategory('claimGraph')),
         sectionSummary('workspaceRuntime', byCategory('workspaceRuntime')),
         sectionSummary('codexAdapter', byCategory('codexAdapter')),
         sectionSummary('validationVerifier', byCategory('validationVerifier'))

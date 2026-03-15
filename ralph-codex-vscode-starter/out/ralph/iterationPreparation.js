@@ -175,6 +175,8 @@ async function prepareIterationContext(input) {
         taskInspection,
         taskCounts: effectiveTaskCounts,
         selectedTask,
+        currentProvenanceId: provenanceId,
+        claimGraph: await (0, taskFile_1.inspectTaskClaimGraph)(snapshot.paths.claimFilePath),
         taskValidationHint,
         validationCommand: effectiveValidationCommand,
         normalizedValidationCommandFrom,

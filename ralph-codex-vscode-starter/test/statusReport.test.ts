@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { buildStatusReport, RalphStatusSnapshot } from '../src/ralph/statusReport';
+import { RalphTaskClaimGraphInspection } from '../src/ralph/taskFile';
 import { RalphPromptEvidence } from '../src/ralph/types';
 
 const workspaceScan: RalphStatusSnapshot['workspaceScan'] = {
@@ -171,6 +172,49 @@ const latestPromptEvidence: RalphPromptEvidence = {
 };
 
 function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnapshot {
+  const claimGraph: RalphTaskClaimGraphInspection = {
+    claimFile: {
+      version: 1,
+      claims: [
+        {
+          taskId: 'T2',
+          agentId: 'default',
+          provenanceId: 'run-i003-cli-20260307T000600Z',
+          claimedAt: '2026-03-07T00:06:00.000Z',
+          status: 'active'
+        }
+      ]
+    },
+    tasks: [
+      {
+        taskId: 'T2',
+        canonicalClaim: {
+          claim: {
+            taskId: 'T2',
+            agentId: 'default',
+            provenanceId: 'run-i003-cli-20260307T000600Z',
+            claimedAt: '2026-03-07T00:06:00.000Z',
+            status: 'active'
+          },
+          stale: false
+        },
+        activeClaims: [
+          {
+            claim: {
+              taskId: 'T2',
+              agentId: 'default',
+              provenanceId: 'run-i003-cli-20260307T000600Z',
+              claimedAt: '2026-03-07T00:06:00.000Z',
+              status: 'active'
+            },
+            stale: false
+          }
+        ],
+        contested: false
+      }
+    ]
+  };
+
   return {
     workspaceName: 'workspace',
     rootPath: '/workspace',
@@ -509,6 +553,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       summary: 'Preflight ready.',
       diagnostics: []
     },
+    claimGraph,
+    currentProvenanceId: 'run-i003-cli-20260307T000600Z',
     ...overrides
   };
 }
@@ -729,6 +775,87 @@ test('buildStatusReport shows tracker drift when a done parent still has unfinis
   assert.match(report, /completed_parent_with_incomplete_descendants/);
   assert.match(report, /- Task-ledger drift: Task T1 is marked done but descendant tasks are still unfinished/);
   assert.match(report, /Task T1 is marked done but descendant tasks are still unfinished/);
+});
+
+test('buildStatusReport surfaces claim-state diagnostics and current holder summary', () => {
+  const report = buildStatusReport(snapshot({
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: [
+        {
+          category: 'claimGraph',
+          severity: 'warning',
+          code: 'task_claim_contested',
+          message: 'Task T2 has contested active claims: default/run-i003-cli-20260307T000600Z, agent-b/run-i999-cli-20260307T000700Z.'
+        }
+      ]
+    },
+    claimGraph: {
+      claimFile: {
+        version: 1,
+        claims: [
+          {
+            taskId: 'T2',
+            agentId: 'default',
+            provenanceId: 'run-i003-cli-20260307T000600Z',
+            claimedAt: '2026-03-07T00:06:00.000Z',
+            status: 'active'
+          },
+          {
+            taskId: 'T2',
+            agentId: 'agent-b',
+            provenanceId: 'run-i999-cli-20260307T000700Z',
+            claimedAt: '2026-03-07T00:07:00.000Z',
+            status: 'active'
+          }
+        ]
+      },
+      tasks: [
+        {
+          taskId: 'T2',
+          canonicalClaim: {
+            claim: {
+              taskId: 'T2',
+              agentId: 'agent-b',
+              provenanceId: 'run-i999-cli-20260307T000700Z',
+              claimedAt: '2026-03-07T00:07:00.000Z',
+              status: 'active'
+            },
+            stale: false
+          },
+          activeClaims: [
+            {
+              claim: {
+                taskId: 'T2',
+                agentId: 'default',
+                provenanceId: 'run-i003-cli-20260307T000600Z',
+                claimedAt: '2026-03-07T00:06:00.000Z',
+                status: 'active'
+              },
+              stale: false
+            },
+            {
+              claim: {
+                taskId: 'T2',
+                agentId: 'agent-b',
+                provenanceId: 'run-i999-cli-20260307T000700Z',
+                claimedAt: '2026-03-07T00:07:00.000Z',
+                status: 'active'
+              },
+              stale: false
+            }
+          ],
+          contested: true
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /- Claim holder for current task: agent-b\/run-i999-cli-20260307T000700Z \(contested, different provenance\)/);
+  assert.match(report, /- Claim state: Task T2 has contested active claims/);
+  assert.match(report, /### Claim Graph/);
+  assert.match(report, /task_claim_contested/);
 });
 
 test('buildStatusReport keeps replenish-backlog drift exhaustion explicit in loop and latest-iteration sections', () => {

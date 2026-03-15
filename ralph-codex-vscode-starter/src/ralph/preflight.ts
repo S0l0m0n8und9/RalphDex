@@ -3,7 +3,7 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphWorkspaceFileStatus } from './stateManager';
-import { RalphTaskFileInspection } from './taskFile';
+import { RalphTaskClaimGraphInspection, RalphTaskFileInspection } from './taskFile';
 import {
   inspectGeneratedArtifactRetention,
   inspectProvenanceBundleRetention,
@@ -21,6 +21,7 @@ import {
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
+  claimGraph: 'Claim graph',
   workspaceRuntime: 'Workspace/runtime',
   codexAdapter: 'Codex adapter',
   validationVerifier: 'Validation/verifier'
@@ -113,6 +114,8 @@ export interface RalphPreflightInput {
   taskInspection: RalphTaskFileInspection;
   taskCounts: RalphTaskCounts | null;
   selectedTask: RalphTask | null;
+  currentProvenanceId?: string | null;
+  claimGraph?: RalphTaskClaimGraphInspection | null;
   taskValidationHint: string | null;
   validationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
@@ -386,6 +389,46 @@ export async function inspectPreflightArtifactReadiness(
 
 export function buildPreflightReport(input: RalphPreflightInput): RalphPreflightReport {
   const diagnostics: RalphPreflightDiagnostic[] = [...input.taskInspection.diagnostics];
+  const currentProvenanceId = input.currentProvenanceId?.trim() || null;
+
+  for (const claimEntry of input.claimGraph?.tasks ?? []) {
+    if (claimEntry.contested) {
+      diagnostics.push(createDiagnostic(
+        'claimGraph',
+        'warning',
+        'task_claim_contested',
+        `Task ${claimEntry.taskId} has contested active claims: ${claimEntry.activeClaims
+          .map((activeClaim) => `${activeClaim.claim.agentId}/${activeClaim.claim.provenanceId}`)
+          .join(', ')}.`,
+        { taskId: claimEntry.taskId }
+      ));
+    }
+
+    const canonicalClaim = claimEntry.canonicalClaim;
+    if (!canonicalClaim) {
+      continue;
+    }
+
+    if (canonicalClaim.stale) {
+      diagnostics.push(createDiagnostic(
+        'claimGraph',
+        'warning',
+        'task_claim_stale',
+        `Task ${claimEntry.taskId} is held by ${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId} but the active claim is stale from ${canonicalClaim.claim.claimedAt}.`,
+        { taskId: claimEntry.taskId }
+      ));
+    }
+
+    if (currentProvenanceId && canonicalClaim.claim.provenanceId !== currentProvenanceId) {
+      diagnostics.push(createDiagnostic(
+        'claimGraph',
+        'info',
+        'task_claim_provenance_mismatch',
+        `Task ${claimEntry.taskId} is currently claimed by ${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId}, not the current iteration provenance ${currentProvenanceId}.`,
+        { taskId: claimEntry.taskId }
+      ));
+    }
+  }
 
   for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
     diagnostics.push(createDiagnostic(
@@ -548,6 +591,7 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
   const byCategory = (category: RalphPreflightCategory) => orderedDiagnostics.filter((diagnostic) => diagnostic.category === category);
   const scopeSummary = [
     sectionSummary('taskGraph', byCategory('taskGraph')),
+    sectionSummary('claimGraph', byCategory('claimGraph')),
     sectionSummary('workspaceRuntime', byCategory('workspaceRuntime')),
     sectionSummary('codexAdapter', byCategory('codexAdapter')),
     sectionSummary('validationVerifier', byCategory('validationVerifier'))

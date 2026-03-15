@@ -71,6 +71,7 @@ Task claims are a separate, file-backed coordination surface:
 - acquisition writes the new active claim, rereads the file, and only succeeds if that reread still shows the same canonical holder
 - release is idempotent and only marks the canonical active claim held by the requesting agent as `released`
 - stale claims are detectable from `claimedAt` plus a configurable TTL, but Ralph must not auto-release them without an operator decision
+- preflight and `Show Status` must surface claim-graph state separately from task-graph drift, including contested active claims, stale active claims, and canonical claims whose `provenanceId` differs from the current iteration provenance
 
 ## Preflight Invariants
 

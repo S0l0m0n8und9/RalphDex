@@ -80,6 +80,7 @@ The loop may stop for:
 - `verification_passed_no_remaining_subtasks`
 - `control_plane_reload_required`
 - `iteration_cap_reached`
+- `claim_contested`
 - `repeated_no_progress`
 - `repeated_identical_failure`
 - `human_review_needed`

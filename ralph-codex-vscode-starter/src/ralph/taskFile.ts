@@ -98,6 +98,18 @@ export interface RalphClaimOwnershipStatus {
   claimFile: RalphTaskClaimFile;
 }
 
+export interface RalphTaskClaimGraphEntry {
+  taskId: string;
+  canonicalClaim: RalphTaskClaimDetails | null;
+  activeClaims: RalphTaskClaimDetails[];
+  contested: boolean;
+}
+
+export interface RalphTaskClaimGraphInspection {
+  claimFile: RalphTaskClaimFile;
+  tasks: RalphTaskClaimGraphEntry[];
+}
+
 function isTaskStatus(value: unknown): value is RalphTaskStatus {
   return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
 }
@@ -233,6 +245,14 @@ function activeClaimsForTask(claimFile: RalphTaskClaimFile, taskId: string): Ral
 function canonicalClaimForTask(claimFile: RalphTaskClaimFile, taskId: string): RalphTaskClaim | null {
   const activeClaims = activeClaimsForTask(claimFile, taskId);
   return activeClaims.length > 0 ? activeClaims[activeClaims.length - 1] : null;
+}
+
+function taskIdsWithActiveClaims(claimFile: RalphTaskClaimFile): string[] {
+  return [...new Set(
+    claimFile.claims
+      .filter((claim) => claim.status === 'active')
+      .map((claim) => claim.taskId)
+  )].sort((left, right) => left.localeCompare(right));
 }
 
 async function writeTaskClaimFile(claimFilePath: string, claimFile: RalphTaskClaimFile): Promise<void> {
@@ -1480,6 +1500,32 @@ export async function inspectClaimOwnership(
         && canonicalClaim.provenanceId === provenanceId,
       canonicalClaim: describeClaim(canonicalClaim, options),
       claimFile
+    };
+  });
+}
+
+export async function inspectTaskClaimGraph(
+  claimFilePath: string,
+  options?: RalphTaskClaimOptions
+): Promise<RalphTaskClaimGraphInspection> {
+  return withClaimFileLock(claimFilePath, options, async () => {
+    const claimFile = await readTaskClaimFile(claimFilePath);
+    const tasks = taskIdsWithActiveClaims(claimFile).map((taskId) => {
+      const activeClaims = activeClaimsForTask(claimFile, taskId)
+        .map((claim) => describeClaim(claim, options))
+        .filter((claim): claim is RalphTaskClaimDetails => claim !== null);
+
+      return {
+        taskId,
+        canonicalClaim: describeClaim(canonicalClaimForTask(claimFile, taskId), options),
+        activeClaims,
+        contested: activeClaims.length > 1
+      };
+    });
+
+    return {
+      claimFile,
+      tasks
     };
   });
 }

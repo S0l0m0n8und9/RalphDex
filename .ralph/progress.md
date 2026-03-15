@@ -92,3 +92,4 @@
 - Added regression coverage proving concurrent releaseClaim calls serialize through the file lock and documented the expanded claim-lock coverage. Validation passed with `cd ralph-codex-vscode-starter && npm test`.
 - Gated task selection and completion-report reconciliation on durable claim ownership, added claim_contested stop handling, and released claims after each iteration with regression coverage.
 - Added a file-backed tasks.json write lock helper with retry/backoff timeout semantics, wired current task-file mutation paths through it, and added concurrency and timeout regression coverage.
+- Added claim-graph inspection plus preflight and Show Status surfacing for contested, stale, and provenance-mismatched task claims; updated docs and regression coverage.

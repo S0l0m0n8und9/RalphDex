@@ -49,6 +49,7 @@ export interface RalphTaskCounts {
 
 export type RalphPreflightCategory =
   | 'taskGraph'
+  | 'claimGraph'
   | 'workspaceRuntime'
   | 'codexAdapter'
   | 'validationVerifier';
