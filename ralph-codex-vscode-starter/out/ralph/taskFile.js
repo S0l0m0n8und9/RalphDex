@@ -40,6 +40,7 @@ exports.parseTaskFile = parseTaskFile;
 exports.normalizeTaskFileText = normalizeTaskFileText;
 exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
+exports.listSelectableTasks = listSelectableTasks;
 exports.selectNextTask = selectNextTask;
 exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.findTaskById = findTaskById;
@@ -47,6 +48,7 @@ exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.remainingSubtasks = remainingSubtasks;
 exports.acquireClaim = acquireClaim;
 exports.releaseClaim = releaseClaim;
+exports.inspectClaimOwnership = inspectClaimOwnership;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const EMPTY_COUNTS = {
@@ -868,10 +870,14 @@ function countTaskStatuses(taskFile) {
     }
     return counts;
 }
+function listSelectableTasks(taskFile) {
+    return [
+        ...taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task)),
+        ...taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
+    ];
+}
 function selectNextTask(taskFile) {
-    return taskFile.tasks.find((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task))
-        ?? taskFile.tasks.find((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
-        ?? null;
+    return listSelectableTasks(taskFile)[0] ?? null;
 }
 function collectAncestors(taskFile, taskId) {
     const ancestors = [];
@@ -1104,6 +1110,20 @@ async function releaseClaim(claimFilePath, taskId, agentId, options) {
             releasedClaim: describeClaim(verifiedReleasedClaim, options),
             canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
             claimFile: verifiedClaimFile
+        };
+    });
+}
+async function inspectClaimOwnership(claimFilePath, taskId, agentId, provenanceId, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+        return {
+            holdsActiveClaim: canonicalClaim?.status === 'active'
+                && canonicalClaim.taskId === taskId
+                && canonicalClaim.agentId === agentId
+                && canonicalClaim.provenanceId === provenanceId,
+            canonicalClaim: describeClaim(canonicalClaim, options),
+            claimFile
         };
     });
 }

@@ -41,6 +41,7 @@ const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
+const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const preflight_1 = require("./preflight");
 const verifier_1 = require("./verifier");
@@ -104,8 +105,21 @@ async function prepareIterationContext(input) {
     const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
     const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
     const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
-    const selectedTask = (0, taskFile_1.selectNextTask)(taskFile);
     const taskSelectedAt = new Date().toISOString();
+    const iteration = snapshot.state.nextIteration;
+    const provenanceId = (0, integrity_1.createProvenanceId)({
+        iteration,
+        promptTarget: includeVerifierContext ? 'cliExec' : 'ideHandoff',
+        createdAt: taskSelectedAt
+    });
+    let selectedTask = null;
+    for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
+        const claimResult = await (0, taskFile_1.acquireClaim)(snapshot.paths.claimFilePath, candidate.id, types_1.DEFAULT_RALPH_AGENT_ID, provenanceId);
+        if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+            selectedTask = candidate;
+            break;
+        }
+    }
     const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);
     const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget, {
@@ -135,12 +149,6 @@ async function prepareIterationContext(input) {
         rootPath: rootPolicy.verificationRootPath
     });
     const trustLevel = trustLevelForTarget(promptTarget);
-    const iteration = snapshot.state.nextIteration;
-    const provenanceId = (0, integrity_1.createProvenanceId)({
-        iteration,
-        promptTarget,
-        createdAt: taskSelectedAt
-    });
     const [availableCommands, codexCliSupport] = await Promise.all([
         vscode.commands.getCommands(true),
         (0, codexCliSupport_1.inspectCodexCliSupport)(config.codexCommandPath)

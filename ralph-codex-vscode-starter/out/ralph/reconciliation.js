@@ -37,6 +37,7 @@ exports.reconcileCompletionReport = reconcileCompletionReport;
 const fs = __importStar(require("fs/promises"));
 const completionReportParser_1 = require("./completionReportParser");
 const taskFile_1 = require("./taskFile");
+const types_1 = require("./types");
 async function reconcileCompletionReport(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
     const artifactBase = {
@@ -56,6 +57,7 @@ async function reconcileCompletionReport(input) {
             selectedTask: input.selectedTask,
             progressChanged: false,
             taskFileChanged: false,
+            claimContested: false,
             warnings: []
         };
     }
@@ -74,6 +76,7 @@ async function reconcileCompletionReport(input) {
             selectedTask: input.selectedTask,
             progressChanged: false,
             taskFileChanged: false,
+            claimContested: false,
             warnings
         };
     }
@@ -88,6 +91,7 @@ async function reconcileCompletionReport(input) {
             selectedTask: input.selectedTask,
             progressChanged: false,
             taskFileChanged: false,
+            claimContested: false,
             warnings
         };
     }
@@ -108,6 +112,7 @@ async function reconcileCompletionReport(input) {
                 selectedTask: input.selectedTask,
                 progressChanged: false,
                 taskFileChanged: false,
+                claimContested: false,
                 warnings
             };
         }
@@ -122,11 +127,31 @@ async function reconcileCompletionReport(input) {
             selectedTask: input.selectedTask,
             progressChanged: false,
             taskFileChanged: false,
+            claimContested: false,
             warnings
         };
     }
     let taskFileChanged = false;
     let progressChanged = false;
+    const claimOwnership = await (0, taskFile_1.inspectClaimOwnership)(input.prepared.paths.claimFilePath, input.selectedTask.id, types_1.DEFAULT_RALPH_AGENT_ID, input.prepared.provenanceId);
+    if (!claimOwnership.holdsActiveClaim) {
+        const canonicalClaim = claimOwnership.canonicalClaim?.claim;
+        const canonicalHolder = canonicalClaim
+            ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
+            : 'none';
+        warnings.push(`Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${canonicalHolder}.`);
+        return {
+            artifact: {
+                ...artifactBase,
+                warnings
+            },
+            selectedTask: input.selectedTask,
+            progressChanged: false,
+            taskFileChanged: false,
+            claimContested: true,
+            warnings
+        };
+    }
     await updateTaskFile(input.taskFilePath, (taskFile) => {
         const selectedTaskUpdated = {
             ...taskFile,
@@ -180,6 +205,7 @@ async function reconcileCompletionReport(input) {
         selectedTask,
         progressChanged,
         taskFileChanged,
+        claimContested: false,
         warnings
     };
 }

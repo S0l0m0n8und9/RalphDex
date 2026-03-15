@@ -418,497 +418,520 @@ class RalphIterationEngine {
             persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
             persistPreparedProvenanceBundle: (preparedContext) => this.persistPreparedProvenanceBundle(preparedContext)
         });
-        const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration);
-        const startedAt = prepared.phaseSeed.inspectStartedAt;
-        const phaseTimestamps = {
-            inspectStartedAt: prepared.phaseSeed.inspectStartedAt,
-            inspectFinishedAt: prepared.phaseSeed.inspectFinishedAt,
-            taskSelectedAt: prepared.phaseSeed.taskSelectedAt,
-            promptGeneratedAt: prepared.phaseSeed.promptGeneratedAt,
-            resultCollectedAt: startedAt,
-            verificationFinishedAt: startedAt,
-            classifiedAt: startedAt
-        };
-        progress.report({
-            message: `Executing Ralph iteration ${prepared.iteration}`
-        });
-        const execStrategy = this.strategies.getCliExecStrategy();
-        if (!execStrategy.runExec) {
-            throw new Error('The configured Codex CLI strategy does not support codex exec.');
-        }
-        let executionStatus = 'skipped';
-        let executionWarnings = [];
-        let executionErrors = [];
-        let execStdout = '';
-        let execStderr = '';
-        let execExitCode = null;
-        let execStdinHash = null;
-        let transcriptPath;
-        let lastMessagePath;
-        let lastMessage = '';
-        let invocation;
-        const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
-        if (shouldExecutePrompt) {
-            const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
-            const runArtifacts = this.stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
-            this.logger.info('Running Ralph iteration.', {
-                iteration: prepared.iteration,
-                mode,
-                promptPath: prepared.promptPath,
-                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-                promptHash: prepared.executionPlan.promptHash,
-                selectedTaskId: prepared.selectedTask?.id ?? null,
-                validationCommand: prepared.validationCommand
+        try {
+            const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration);
+            const startedAt = prepared.phaseSeed.inspectStartedAt;
+            const phaseTimestamps = {
+                inspectStartedAt: prepared.phaseSeed.inspectStartedAt,
+                inspectFinishedAt: prepared.phaseSeed.inspectFinishedAt,
+                taskSelectedAt: prepared.phaseSeed.taskSelectedAt,
+                promptGeneratedAt: prepared.phaseSeed.promptGeneratedAt,
+                resultCollectedAt: startedAt,
+                verificationFinishedAt: startedAt,
+                classifiedAt: startedAt
+            };
+            progress.report({
+                message: `Executing Ralph iteration ${prepared.iteration}`
             });
-            try {
-                if (this.hooks.beforeCliExecutionIntegrityCheck) {
-                    await this.hooks.beforeCliExecutionIntegrityCheck(prepared);
-                }
-                const verifiedPlan = await readVerifiedExecutionPlanArtifact(prepared.executionPlanPath, prepared.executionPlanHash);
-                const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
-                phaseTimestamps.executionStartedAt = new Date().toISOString();
-                const execResult = await execStrategy.runExec({
-                    commandPath: prepared.config.codexCommandPath,
-                    workspaceRoot: prepared.rootPath,
-                    executionRoot: prepared.rootPolicy.executionRootPath,
-                    prompt: promptArtifactText,
-                    promptPath: verifiedPlan.promptArtifactPath,
-                    promptHash: verifiedPlan.promptHash,
-                    promptByteLength: verifiedPlan.promptByteLength,
-                    transcriptPath: runArtifacts.transcriptPath,
-                    lastMessagePath: runArtifacts.lastMessagePath,
-                    model: prepared.config.model,
-                    reasoningEffort: prepared.config.reasoningEffort,
-                    sandboxMode: prepared.config.sandboxMode,
-                    approvalMode: prepared.config.approvalMode,
-                    onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
-                    onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
-                });
-                phaseTimestamps.executionFinishedAt = new Date().toISOString();
-                executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
-                executionWarnings = execResult.warnings;
-                executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
-                execStdout = execResult.stdout;
-                execStderr = execResult.stderr;
-                execExitCode = execResult.exitCode;
-                execStdinHash = execResult.stdinHash;
-                transcriptPath = execResult.transcriptPath;
-                lastMessagePath = execResult.lastMessagePath;
-                lastMessage = execResult.lastMessage;
-                invocation = {
-                    schemaVersion: 1,
-                    kind: 'cliInvocation',
-                    provenanceId: prepared.provenanceId,
+            const execStrategy = this.strategies.getCliExecStrategy();
+            if (!execStrategy.runExec) {
+                throw new Error('The configured Codex CLI strategy does not support codex exec.');
+            }
+            let executionStatus = 'skipped';
+            let executionWarnings = [];
+            let executionErrors = [];
+            let execStdout = '';
+            let execStderr = '';
+            let execExitCode = null;
+            let execStdinHash = null;
+            let transcriptPath;
+            let lastMessagePath;
+            let lastMessage = '';
+            let invocation;
+            const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
+            if (shouldExecutePrompt) {
+                const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
+                const runArtifacts = this.stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
+                this.logger.info('Running Ralph iteration.', {
                     iteration: prepared.iteration,
-                    commandPath: prepared.config.codexCommandPath,
-                    args: execResult.args,
-                    reasoningEffort: prepared.config.reasoningEffort,
-                    workspaceRoot: prepared.rootPath,
-                    rootPolicy: prepared.rootPolicy,
-                    promptArtifactPath: verifiedPlan.promptArtifactPath,
-                    promptHash: verifiedPlan.promptHash,
-                    promptByteLength: verifiedPlan.promptByteLength,
-                    stdinHash: execResult.stdinHash,
-                    transcriptPath: execResult.transcriptPath,
-                    lastMessagePath: execResult.lastMessagePath,
-                    createdAt: new Date().toISOString()
-                };
-                await (0, artifactStore_1.writeCliInvocationArtifact)({
-                    paths: artifactPaths,
-                    artifactRootDir: prepared.paths.artifactDir,
-                    invocation
+                    mode,
+                    promptPath: prepared.promptPath,
+                    promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                    promptHash: prepared.executionPlan.promptHash,
+                    selectedTaskId: prepared.selectedTask?.id ?? null,
+                    validationCommand: prepared.validationCommand
                 });
-            }
-            catch (error) {
-                const integrityFailure = toIntegrityFailureError(error, prepared);
-                if (integrityFailure) {
-                    phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+                try {
+                    if (this.hooks.beforeCliExecutionIntegrityCheck) {
+                        await this.hooks.beforeCliExecutionIntegrityCheck(prepared);
+                    }
+                    const verifiedPlan = await readVerifiedExecutionPlanArtifact(prepared.executionPlanPath, prepared.executionPlanHash);
+                    const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+                    phaseTimestamps.executionStartedAt = new Date().toISOString();
+                    const execResult = await execStrategy.runExec({
+                        commandPath: prepared.config.codexCommandPath,
+                        workspaceRoot: prepared.rootPath,
+                        executionRoot: prepared.rootPolicy.executionRootPath,
+                        prompt: promptArtifactText,
+                        promptPath: verifiedPlan.promptArtifactPath,
+                        promptHash: verifiedPlan.promptHash,
+                        promptByteLength: verifiedPlan.promptByteLength,
+                        transcriptPath: runArtifacts.transcriptPath,
+                        lastMessagePath: runArtifacts.lastMessagePath,
+                        model: prepared.config.model,
+                        reasoningEffort: prepared.config.reasoningEffort,
+                        sandboxMode: prepared.config.sandboxMode,
+                        approvalMode: prepared.config.approvalMode,
+                        onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
+                        onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
+                    });
                     phaseTimestamps.executionFinishedAt = new Date().toISOString();
-                    await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+                    executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
+                    executionWarnings = execResult.warnings;
+                    executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
+                    execStdout = execResult.stdout;
+                    execStderr = execResult.stderr;
+                    execExitCode = execResult.exitCode;
+                    execStdinHash = execResult.stdinHash;
+                    transcriptPath = execResult.transcriptPath;
+                    lastMessagePath = execResult.lastMessagePath;
+                    lastMessage = execResult.lastMessage;
+                    invocation = {
+                        schemaVersion: 1,
+                        kind: 'cliInvocation',
+                        provenanceId: prepared.provenanceId,
+                        iteration: prepared.iteration,
+                        commandPath: prepared.config.codexCommandPath,
+                        args: execResult.args,
+                        reasoningEffort: prepared.config.reasoningEffort,
+                        workspaceRoot: prepared.rootPath,
+                        rootPolicy: prepared.rootPolicy,
+                        promptArtifactPath: verifiedPlan.promptArtifactPath,
+                        promptHash: verifiedPlan.promptHash,
+                        promptByteLength: verifiedPlan.promptByteLength,
+                        stdinHash: execResult.stdinHash,
+                        transcriptPath: execResult.transcriptPath,
+                        lastMessagePath: execResult.lastMessagePath,
+                        createdAt: new Date().toISOString()
+                    };
+                    await (0, artifactStore_1.writeCliInvocationArtifact)({
+                        paths: artifactPaths,
+                        artifactRootDir: prepared.paths.artifactDir,
+                        invocation
+                    });
                 }
-                throw error;
+                catch (error) {
+                    const integrityFailure = toIntegrityFailureError(error, prepared);
+                    if (integrityFailure) {
+                        phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+                        phaseTimestamps.executionFinishedAt = new Date().toISOString();
+                        await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+                    }
+                    throw error;
+                }
             }
-        }
-        else {
-            executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];
-            phaseTimestamps.executionStartedAt = new Date().toISOString();
-            phaseTimestamps.executionFinishedAt = phaseTimestamps.executionStartedAt;
-        }
-        phaseTimestamps.resultCollectedAt = new Date().toISOString();
-        const afterCoreStateBeforeReconciliation = await (0, verifier_1.captureCoreState)(prepared.paths);
-        const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
-        const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
-        progress.report({ message: 'Running Ralph verifiers' });
-        const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
-            ? await (0, verifier_1.runValidationCommandVerifier)({
-                command: prepared.validationCommand,
-                taskValidationHint: prepared.taskValidationHint,
-                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
-                rootPath: prepared.rootPolicy.verificationRootPath,
-                artifactDir: artifactPaths.directory
-            })
-            : {
-                command: prepared.validationCommand,
-                stdout: '',
-                stderr: '',
-                exitCode: null,
-                result: {
-                    verifier: 'validationCommand',
-                    status: 'skipped',
-                    summary: executionStatus === 'succeeded'
-                        ? 'Validation-command verifier disabled for this iteration.'
-                        : 'Validation-command verifier skipped because Codex execution did not succeed.',
-                    warnings: [],
-                    errors: [],
-                    command: prepared.validationCommand ?? undefined
-                }
-            };
-        const shouldRunFileChangeVerifier = prepared.selectedTask !== null
-            && (prepared.config.verifierModes.includes('gitDiff')
-                || prepared.config.gitCheckpointMode === 'snapshotAndDiff');
-        const fileChangeVerification = shouldRunFileChangeVerifier
-            ? await (0, verifier_1.runFileChangeVerifier)({
-                rootPath: prepared.rootPolicy.verificationRootPath,
-                artifactDir: artifactPaths.directory,
-                beforeGit: prepared.beforeGit,
-                afterGit,
-                before: prepared.beforeCoreState,
-                after: afterCoreStateBeforeReconciliation
-            })
-            : {
-                diffSummary: null,
-                result: {
-                    verifier: 'gitDiff',
-                    status: 'skipped',
-                    summary: prepared.selectedTask
-                        ? 'Git-diff/file-change verifier disabled for this iteration.'
-                        : 'Git-diff/file-change verifier skipped because no Ralph task was selected.',
-                    warnings: [],
-                    errors: []
-                }
-            };
-        const preliminaryVerificationStatus = (0, loopLogic_1.classifyVerificationStatus)([
-            validationVerification.result.status,
-            fileChangeVerification.result.status
-        ]);
-        const preliminaryOutcome = (0, loopLogic_1.classifyIterationOutcome)({
-            selectedTaskId: prepared.selectedTask?.id ?? null,
-            selectedTaskCompleted: false,
-            selectedTaskBlocked: false,
-            humanReviewNeeded: false,
-            remainingSubtaskCount: (0, taskFile_1.remainingSubtasks)(afterCoreStateBeforeReconciliation.taskFile, prepared.selectedTask?.id ?? null).length,
-            remainingTaskCount: (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).todo
-                + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).in_progress
-                + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).blocked,
-            executionStatus,
-            verificationStatus: preliminaryVerificationStatus,
-            validationFailureSignature: validationVerification.result.failureSignature ?? null,
-            relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
-            progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
-            taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
-            previousIterations: prepared.state.iterationHistory
-        });
-        const completionReconciliation = await (0, reconciliation_1.reconcileCompletionReport)({
-            prepared,
-            selectedTask: prepared.selectedTask,
-            verificationStatus: preliminaryVerificationStatus,
-            preliminaryClassification: preliminaryOutcome.classification,
-            lastMessage,
-            taskFilePath: prepared.paths.taskFilePath,
-            logger: this.logger
-        });
-        const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
-        const taskStateVerification = prepared.config.verifierModes.includes('taskState')
-            ? await (0, verifier_1.runTaskStateVerifier)({
+            else {
+                executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];
+                phaseTimestamps.executionStartedAt = new Date().toISOString();
+                phaseTimestamps.executionFinishedAt = phaseTimestamps.executionStartedAt;
+            }
+            phaseTimestamps.resultCollectedAt = new Date().toISOString();
+            const afterCoreStateBeforeReconciliation = await (0, verifier_1.captureCoreState)(prepared.paths);
+            const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
+            const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
+            progress.report({ message: 'Running Ralph verifiers' });
+            const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
+                ? await (0, verifier_1.runValidationCommandVerifier)({
+                    command: prepared.validationCommand,
+                    taskValidationHint: prepared.taskValidationHint,
+                    normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+                    rootPath: prepared.rootPolicy.verificationRootPath,
+                    artifactDir: artifactPaths.directory
+                })
+                : {
+                    command: prepared.validationCommand,
+                    stdout: '',
+                    stderr: '',
+                    exitCode: null,
+                    result: {
+                        verifier: 'validationCommand',
+                        status: 'skipped',
+                        summary: executionStatus === 'succeeded'
+                            ? 'Validation-command verifier disabled for this iteration.'
+                            : 'Validation-command verifier skipped because Codex execution did not succeed.',
+                        warnings: [],
+                        errors: [],
+                        command: prepared.validationCommand ?? undefined
+                    }
+                };
+            const shouldRunFileChangeVerifier = prepared.selectedTask !== null
+                && (prepared.config.verifierModes.includes('gitDiff')
+                    || prepared.config.gitCheckpointMode === 'snapshotAndDiff');
+            const fileChangeVerification = shouldRunFileChangeVerifier
+                ? await (0, verifier_1.runFileChangeVerifier)({
+                    rootPath: prepared.rootPolicy.verificationRootPath,
+                    artifactDir: artifactPaths.directory,
+                    beforeGit: prepared.beforeGit,
+                    afterGit,
+                    before: prepared.beforeCoreState,
+                    after: afterCoreStateBeforeReconciliation
+                })
+                : {
+                    diffSummary: null,
+                    result: {
+                        verifier: 'gitDiff',
+                        status: 'skipped',
+                        summary: prepared.selectedTask
+                            ? 'Git-diff/file-change verifier disabled for this iteration.'
+                            : 'Git-diff/file-change verifier skipped because no Ralph task was selected.',
+                        warnings: [],
+                        errors: []
+                    }
+                };
+            const preliminaryVerificationStatus = (0, loopLogic_1.classifyVerificationStatus)([
+                validationVerification.result.status,
+                fileChangeVerification.result.status
+            ]);
+            const preliminaryOutcome = (0, loopLogic_1.classifyIterationOutcome)({
                 selectedTaskId: prepared.selectedTask?.id ?? null,
-                before: prepared.beforeCoreState,
-                after: afterCoreState,
-                artifactDir: artifactPaths.directory
-            })
-            : {
-                selectedTaskAfter: completionReconciliation.selectedTask ?? prepared.selectedTask,
                 selectedTaskCompleted: false,
                 selectedTaskBlocked: false,
                 humanReviewNeeded: false,
-                progressChanged: completionReconciliation.progressChanged,
-                taskFileChanged: completionReconciliation.taskFileChanged,
-                result: {
-                    verifier: 'taskState',
-                    status: 'skipped',
-                    summary: 'Task-state verifier disabled for this iteration.',
-                    warnings: [],
-                    errors: []
-                }
-            };
-        phaseTimestamps.verificationFinishedAt = new Date().toISOString();
-        const verifierResults = [
-            validationVerification.result,
-            fileChangeVerification.result,
-            taskStateVerification.result
-        ];
-        const verificationStatus = (0, loopLogic_1.classifyVerificationStatus)(verifierResults.map((item) => item.status));
-        const selectedTaskAfter = taskStateVerification.selectedTaskAfter
-            ?? completionReconciliation.selectedTask
-            ?? prepared.selectedTask;
-        const remainingSubtaskList = (0, taskFile_1.remainingSubtasks)(afterCoreState.taskFile, prepared.selectedTask?.id ?? null);
-        const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(afterCoreState.taskFile);
-        const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
-        const nextActionableTask = (0, taskFile_1.selectNextTask)(afterCoreState.taskFile);
-        const outcome = (0, loopLogic_1.classifyIterationOutcome)({
-            selectedTaskId: prepared.selectedTask?.id ?? null,
-            selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
-            selectedTaskBlocked: taskStateVerification.selectedTaskBlocked,
-            humanReviewNeeded: taskStateVerification.humanReviewNeeded,
-            remainingSubtaskCount: remainingSubtaskList.length,
-            remainingTaskCount,
-            executionStatus,
-            verificationStatus,
-            validationFailureSignature: validationVerification.result.failureSignature ?? null,
-            relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
-            progressChanged: taskStateVerification.progressChanged,
-            taskFileChanged: taskStateVerification.taskFileChanged,
-            previousIterations: prepared.state.iterationHistory
-        });
-        let completionClassification = outcome.classification;
-        let followUpAction = outcome.followUpAction;
-        if (!prepared.selectedTask) {
-            if (isBacklogExhausted(afterTaskCounts)) {
-                completionClassification = 'complete';
-                followUpAction = 'stop';
-            }
-            else if (afterTaskCounts.todo === 0 && afterTaskCounts.in_progress === 0 && afterTaskCounts.blocked > 0) {
-                completionClassification = 'blocked';
-                followUpAction = 'request_human_review';
-            }
-        }
-        phaseTimestamps.classifiedAt = new Date().toISOString();
-        const summary = [
-            prepared.selectedTask
-                ? `Selected ${prepared.selectedTask.id}: ${prepared.selectedTask.title}`
-                : prepared.promptKind === 'replenish-backlog'
-                    ? 'Replenishing exhausted Ralph backlog.'
-                    : 'No actionable Ralph task selected.',
-            `Execution: ${executionStatus}`,
-            `Verification: ${verificationStatus}`,
-            `Outcome: ${completionClassification}`,
-            `Backlog remaining: ${remainingTaskCount}`
-        ].join(' | ');
-        const warnings = [
-            ...executionWarnings,
-            ...completionReconciliation.warnings,
-            ...verifierResults.flatMap((item) => item.warnings)
-        ];
-        const errors = [
-            ...executionErrors,
-            ...verifierResults.flatMap((item) => item.errors)
-        ];
-        const result = {
-            schemaVersion: 1,
-            agentId: types_1.DEFAULT_RALPH_AGENT_ID,
-            provenanceId: prepared.provenanceId,
-            iteration: prepared.iteration,
-            selectedTaskId: prepared.selectedTask?.id ?? null,
-            selectedTaskTitle: prepared.selectedTask?.title ?? null,
-            promptKind: prepared.promptKind,
-            promptPath: prepared.promptPath,
-            artifactDir: artifactPaths.directory,
-            adapterUsed: 'cliExec',
-            executionIntegrity: {
-                provenanceId: prepared.provenanceId,
-                promptTarget: prepared.executionPlan.promptTarget,
-                rootPolicy: prepared.rootPolicy,
-                templatePath: prepared.executionPlan.templatePath,
-                reasoningEffort: prepared.config.reasoningEffort,
-                taskValidationHint: prepared.taskValidationHint,
-                effectiveValidationCommand: prepared.effectiveValidationCommand,
-                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
-                executionPlanPath: prepared.executionPlanPath,
-                executionPlanHash: prepared.executionPlanHash,
-                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-                promptHash: prepared.executionPlan.promptHash,
-                promptByteLength: prepared.executionPlan.promptByteLength,
-                executionPayloadHash: execStdinHash,
-                executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
-                mismatchReason: execStdinHash === null
-                    ? null
-                    : execStdinHash === prepared.executionPlan.promptHash
-                        ? null
-                        : `Executed stdin hash ${execStdinHash} did not match planned prompt hash ${prepared.executionPlan.promptHash}.`,
-                cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null
-            },
-            executionStatus,
-            verificationStatus,
-            completionClassification,
-            followUpAction,
-            startedAt,
-            finishedAt: new Date().toISOString(),
-            phaseTimestamps,
-            summary,
-            warnings,
-            errors,
-            execution: {
-                exitCode: execExitCode,
-                message: prepared.selectedTask ? executionErrors[0] ?? undefined : undefined,
-                transcriptPath,
-                lastMessagePath,
-                stdoutPath: artifactPaths.stdoutPath,
-                stderrPath: artifactPaths.stderrPath
-            },
-            verification: {
-                taskValidationHint: prepared.taskValidationHint,
-                effectiveValidationCommand: prepared.effectiveValidationCommand,
-                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
-                primaryCommand: validationVerification.command ?? null,
+                remainingSubtaskCount: (0, taskFile_1.remainingSubtasks)(afterCoreStateBeforeReconciliation.taskFile, prepared.selectedTask?.id ?? null).length,
+                remainingTaskCount: (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).todo
+                    + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).in_progress
+                    + (0, taskFile_1.countTaskStatuses)(afterCoreStateBeforeReconciliation.taskFile).blocked,
+                executionStatus,
+                verificationStatus: preliminaryVerificationStatus,
                 validationFailureSignature: validationVerification.result.failureSignature ?? null,
-                verifiers: verifierResults
-            },
-            backlog: {
-                remainingTaskCount,
-                actionableTaskAvailable: Boolean(nextActionableTask)
-            },
-            diffSummary: fileChangeVerification.diffSummary,
-            noProgressSignals: outcome.noProgressSignals,
-            remediation: null,
-            completionReportStatus: completionReconciliation.artifact.status,
-            reconciliationWarnings: completionReconciliation.warnings,
-            stopReason: null
-        };
-        let loopDecision = (0, loopLogic_1.decideLoopContinuation)({
-            currentResult: result,
-            selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
-            remainingSubtaskCount: remainingSubtaskList.length,
-            remainingTaskCount,
-            hasActionableTask: Boolean(nextActionableTask),
-            preflightDiagnostics: prepared.preflightReport.diagnostics,
-            noProgressThreshold: prepared.config.noProgressThreshold,
-            repeatedFailureThreshold: prepared.config.repeatedFailureThreshold,
-            stopOnHumanReviewNeeded: prepared.config.stopOnHumanReviewNeeded,
-            autoReplenishBacklog: prepared.config.autoReplenishBacklog,
-            reachedIterationCap: options.reachedIterationCap,
-            previousIterations: prepared.state.iterationHistory
-        });
-        const runtimeChanges = controlPlaneRuntimeChanges(fileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
-        if (!loopDecision.shouldContinue) {
-            result.stopReason = loopDecision.stopReason;
-            result.followUpAction = 'stop';
-            result.remediation = (0, loopLogic_1.buildTaskRemediation)({
-                currentResult: result,
-                stopReason: loopDecision.stopReason,
+                relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
+                progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
+                taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
                 previousIterations: prepared.state.iterationHistory
             });
-            result.remediation = (0, taskDecomposition_1.normalizeRemediationForTask)(afterCoreState.taskFile, result);
-        }
-        else if (runtimeChanges.length > 0) {
-            loopDecision = {
-                shouldContinue: false,
-                stopReason: 'control_plane_reload_required',
-                message: 'Control-plane runtime files changed; rerun Ralph in a fresh process before continuing.'
-            };
-            result.stopReason = 'control_plane_reload_required';
-            result.followUpAction = 'stop';
-            result.remediation = null;
-            result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
-        }
-        phaseTimestamps.persistedAt = new Date().toISOString();
-        const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
-            result,
-            taskFile: afterCoreState.taskFile,
-            previousIterations: prepared.state.iterationHistory,
-            artifactDir: artifactPaths.directory,
-            iterationResultPath: artifactPaths.iterationResultPath,
-            createdAt: phaseTimestamps.persistedAt
-        });
-        await (0, artifactStore_1.writeIterationArtifacts)({
-            paths: artifactPaths,
-            artifactRootDir: prepared.paths.artifactDir,
-            prompt: prepared.prompt,
-            promptEvidence: prepared.promptEvidence,
-            completionReport: completionReconciliation.artifact,
-            stdout: execStdout,
-            stderr: execStderr,
-            executionSummary: {
+            const completionReconciliation = await (0, reconciliation_1.reconcileCompletionReport)({
+                prepared,
+                selectedTask: prepared.selectedTask,
+                verificationStatus: preliminaryVerificationStatus,
+                preliminaryClassification: preliminaryOutcome.classification,
+                lastMessage,
+                taskFilePath: prepared.paths.taskFilePath,
+                logger: this.logger
+            });
+            const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
+            const taskStateVerification = prepared.config.verifierModes.includes('taskState')
+                ? await (0, verifier_1.runTaskStateVerifier)({
+                    selectedTaskId: prepared.selectedTask?.id ?? null,
+                    before: prepared.beforeCoreState,
+                    after: afterCoreState,
+                    artifactDir: artifactPaths.directory
+                })
+                : {
+                    selectedTaskAfter: completionReconciliation.selectedTask ?? prepared.selectedTask,
+                    selectedTaskCompleted: false,
+                    selectedTaskBlocked: false,
+                    humanReviewNeeded: false,
+                    progressChanged: completionReconciliation.progressChanged,
+                    taskFileChanged: completionReconciliation.taskFileChanged,
+                    result: {
+                        verifier: 'taskState',
+                        status: 'skipped',
+                        summary: 'Task-state verifier disabled for this iteration.',
+                        warnings: [],
+                        errors: []
+                    }
+                };
+            phaseTimestamps.verificationFinishedAt = new Date().toISOString();
+            const verifierResults = [
+                validationVerification.result,
+                fileChangeVerification.result,
+                taskStateVerification.result
+            ];
+            const verificationStatus = (0, loopLogic_1.classifyVerificationStatus)(verifierResults.map((item) => item.status));
+            const selectedTaskAfter = taskStateVerification.selectedTaskAfter
+                ?? completionReconciliation.selectedTask
+                ?? prepared.selectedTask;
+            const remainingSubtaskList = (0, taskFile_1.remainingSubtasks)(afterCoreState.taskFile, prepared.selectedTask?.id ?? null);
+            const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(afterCoreState.taskFile);
+            const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
+            const nextActionableTask = (0, taskFile_1.selectNextTask)(afterCoreState.taskFile);
+            const outcome = (0, loopLogic_1.classifyIterationOutcome)({
+                selectedTaskId: prepared.selectedTask?.id ?? null,
+                selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
+                selectedTaskBlocked: taskStateVerification.selectedTaskBlocked,
+                humanReviewNeeded: taskStateVerification.humanReviewNeeded,
+                remainingSubtaskCount: remainingSubtaskList.length,
+                remainingTaskCount,
+                executionStatus,
+                verificationStatus,
+                validationFailureSignature: validationVerification.result.failureSignature ?? null,
+                relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
+                progressChanged: taskStateVerification.progressChanged,
+                taskFileChanged: taskStateVerification.taskFileChanged,
+                previousIterations: prepared.state.iterationHistory
+            });
+            let completionClassification = outcome.classification;
+            let followUpAction = outcome.followUpAction;
+            if (!prepared.selectedTask) {
+                if (isBacklogExhausted(afterTaskCounts)) {
+                    completionClassification = 'complete';
+                    followUpAction = 'stop';
+                }
+                else if (afterTaskCounts.todo === 0 && afterTaskCounts.in_progress === 0 && afterTaskCounts.blocked > 0) {
+                    completionClassification = 'blocked';
+                    followUpAction = 'request_human_review';
+                }
+            }
+            phaseTimestamps.classifiedAt = new Date().toISOString();
+            const summary = [
+                prepared.selectedTask
+                    ? `Selected ${prepared.selectedTask.id}: ${prepared.selectedTask.title}`
+                    : prepared.promptKind === 'replenish-backlog'
+                        ? 'Replenishing exhausted Ralph backlog.'
+                        : 'No actionable Ralph task selected.',
+                `Execution: ${executionStatus}`,
+                `Verification: ${verificationStatus}`,
+                `Outcome: ${completionClassification}`,
+                `Backlog remaining: ${remainingTaskCount}`
+            ].join(' | ');
+            const warnings = [
+                ...executionWarnings,
+                ...completionReconciliation.warnings,
+                ...verifierResults.flatMap((item) => item.warnings)
+            ];
+            const errors = [
+                ...executionErrors,
+                ...verifierResults.flatMap((item) => item.errors)
+            ];
+            const result = {
+                schemaVersion: 1,
+                agentId: types_1.DEFAULT_RALPH_AGENT_ID,
+                provenanceId: prepared.provenanceId,
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,
+                selectedTaskTitle: prepared.selectedTask?.title ?? null,
                 promptKind: prepared.promptKind,
-                promptTarget: prepared.executionPlan.promptTarget,
-                rootPolicy: prepared.rootPolicy,
-                templatePath: prepared.executionPlan.templatePath,
-                taskValidationHint: prepared.taskValidationHint,
-                effectiveValidationCommand: prepared.effectiveValidationCommand,
-                normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
-                executionPlanPath: prepared.executionPlanPath,
-                executionPlanHash: prepared.executionPlanHash,
-                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-                promptHash: prepared.executionPlan.promptHash,
-                executionPayloadHash: execStdinHash,
-                executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
-                cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null,
+                promptPath: prepared.promptPath,
+                artifactDir: artifactPaths.directory,
+                adapterUsed: 'cliExec',
+                executionIntegrity: {
+                    provenanceId: prepared.provenanceId,
+                    promptTarget: prepared.executionPlan.promptTarget,
+                    rootPolicy: prepared.rootPolicy,
+                    templatePath: prepared.executionPlan.templatePath,
+                    reasoningEffort: prepared.config.reasoningEffort,
+                    taskValidationHint: prepared.taskValidationHint,
+                    effectiveValidationCommand: prepared.effectiveValidationCommand,
+                    normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+                    executionPlanPath: prepared.executionPlanPath,
+                    executionPlanHash: prepared.executionPlanHash,
+                    promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                    promptHash: prepared.executionPlan.promptHash,
+                    promptByteLength: prepared.executionPlan.promptByteLength,
+                    executionPayloadHash: execStdinHash,
+                    executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
+                    mismatchReason: execStdinHash === null
+                        ? null
+                        : execStdinHash === prepared.executionPlan.promptHash
+                            ? null
+                            : `Executed stdin hash ${execStdinHash} did not match planned prompt hash ${prepared.executionPlan.promptHash}.`,
+                    cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null
+                },
                 executionStatus,
-                exitCode: execExitCode,
-                message: executionErrors[0] ?? null,
-                transcriptPath,
-                lastMessagePath,
-                lastMessage: summarizeLastMessage(lastMessage, execExitCode),
-                completionReportStatus: completionReconciliation.artifact.status
-            },
-            verifierSummary: verifierResults,
-            diffSummary: fileChangeVerification.diffSummary,
-            result,
-            remediationArtifact,
-            gitStatusBefore: prepared.beforeGit.available ? prepared.beforeGit.raw : undefined,
-            gitStatusAfter: afterGit.available ? afterGit.raw : undefined
-        });
-        const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
-            artifactRootDir: prepared.paths.artifactDir,
-            paths: prepared.provenanceBundlePaths,
-            bundle: this.createProvenanceBundle({
-                prepared,
-                status: 'executed',
-                summary: result.summary,
-                executionPayloadHash: execStdinHash,
-                executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
-                mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
-                cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
-                iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath
-            }),
-            preflightReport: prepared.persistedPreflightReport,
-            preflightSummary: prepared.preflightSummaryText,
-            prompt: prepared.prompt,
-            promptEvidence: prepared.promptEvidence,
-            executionPlan: prepared.executionPlan,
-            cliInvocation: invocation,
-            result,
-            retentionCount: prepared.config.provenanceBundleRetentionCount
-        });
-        if (writeResult.retention.deletedBundleIds.length > 0) {
-            this.logger.info('Cleaned up old Ralph provenance bundles after execution.', {
-                deletedBundleIds: writeResult.retention.deletedBundleIds,
+                verificationStatus,
+                completionClassification,
+                followUpAction,
+                startedAt,
+                finishedAt: new Date().toISOString(),
+                phaseTimestamps,
+                summary,
+                warnings,
+                errors,
+                execution: {
+                    exitCode: execExitCode,
+                    message: prepared.selectedTask ? executionErrors[0] ?? undefined : undefined,
+                    transcriptPath,
+                    lastMessagePath,
+                    stdoutPath: artifactPaths.stdoutPath,
+                    stderrPath: artifactPaths.stderrPath
+                },
+                verification: {
+                    taskValidationHint: prepared.taskValidationHint,
+                    effectiveValidationCommand: prepared.effectiveValidationCommand,
+                    normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+                    primaryCommand: validationVerification.command ?? null,
+                    validationFailureSignature: validationVerification.result.failureSignature ?? null,
+                    verifiers: verifierResults
+                },
+                backlog: {
+                    remainingTaskCount,
+                    actionableTaskAvailable: Boolean(nextActionableTask)
+                },
+                diffSummary: fileChangeVerification.diffSummary,
+                noProgressSignals: outcome.noProgressSignals,
+                remediation: null,
+                completionReportStatus: completionReconciliation.artifact.status,
+                reconciliationWarnings: completionReconciliation.warnings,
+                stopReason: null
+            };
+            let loopDecision = (0, loopLogic_1.decideLoopContinuation)({
+                currentResult: result,
+                selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
+                remainingSubtaskCount: remainingSubtaskList.length,
+                remainingTaskCount,
+                hasActionableTask: Boolean(nextActionableTask),
+                preflightDiagnostics: prepared.preflightReport.diagnostics,
+                noProgressThreshold: prepared.config.noProgressThreshold,
+                repeatedFailureThreshold: prepared.config.repeatedFailureThreshold,
+                stopOnHumanReviewNeeded: prepared.config.stopOnHumanReviewNeeded,
+                autoReplenishBacklog: prepared.config.autoReplenishBacklog,
+                reachedIterationCap: options.reachedIterationCap,
+                previousIterations: prepared.state.iterationHistory
+            });
+            const runtimeChanges = controlPlaneRuntimeChanges(fileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
+            if (completionReconciliation.claimContested) {
+                loopDecision = {
+                    shouldContinue: false,
+                    stopReason: 'claim_contested',
+                    message: `Selected task claim was no longer owned by ${prepared.provenanceId} during completion reconciliation.`
+                };
+                result.stopReason = 'claim_contested';
+                result.followUpAction = 'stop';
+                result.remediation = null;
+            }
+            else if (!loopDecision.shouldContinue) {
+                result.stopReason = loopDecision.stopReason;
+                result.followUpAction = 'stop';
+                result.remediation = (0, loopLogic_1.buildTaskRemediation)({
+                    currentResult: result,
+                    stopReason: loopDecision.stopReason,
+                    previousIterations: prepared.state.iterationHistory
+                });
+                result.remediation = (0, taskDecomposition_1.normalizeRemediationForTask)(afterCoreState.taskFile, result);
+            }
+            else if (runtimeChanges.length > 0) {
+                loopDecision = {
+                    shouldContinue: false,
+                    stopReason: 'control_plane_reload_required',
+                    message: 'Control-plane runtime files changed; rerun Ralph in a fresh process before continuing.'
+                };
+                result.stopReason = 'control_plane_reload_required';
+                result.followUpAction = 'stop';
+                result.remediation = null;
+                result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
+            }
+            phaseTimestamps.persistedAt = new Date().toISOString();
+            const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
+                result,
+                taskFile: afterCoreState.taskFile,
+                previousIterations: prepared.state.iterationHistory,
+                artifactDir: artifactPaths.directory,
+                iterationResultPath: artifactPaths.iterationResultPath,
+                createdAt: phaseTimestamps.persistedAt
+            });
+            await (0, artifactStore_1.writeIterationArtifacts)({
+                paths: artifactPaths,
+                artifactRootDir: prepared.paths.artifactDir,
+                prompt: prepared.prompt,
+                promptEvidence: prepared.promptEvidence,
+                completionReport: completionReconciliation.artifact,
+                stdout: execStdout,
+                stderr: execStderr,
+                executionSummary: {
+                    iteration: prepared.iteration,
+                    selectedTaskId: prepared.selectedTask?.id ?? null,
+                    promptKind: prepared.promptKind,
+                    promptTarget: prepared.executionPlan.promptTarget,
+                    rootPolicy: prepared.rootPolicy,
+                    templatePath: prepared.executionPlan.templatePath,
+                    taskValidationHint: prepared.taskValidationHint,
+                    effectiveValidationCommand: prepared.effectiveValidationCommand,
+                    normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+                    executionPlanPath: prepared.executionPlanPath,
+                    executionPlanHash: prepared.executionPlanHash,
+                    promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                    promptHash: prepared.executionPlan.promptHash,
+                    executionPayloadHash: execStdinHash,
+                    executionPayloadMatched: execStdinHash === null ? null : execStdinHash === prepared.executionPlan.promptHash,
+                    cliInvocationPath: invocation ? artifactPaths.cliInvocationPath : null,
+                    executionStatus,
+                    exitCode: execExitCode,
+                    message: executionErrors[0] ?? null,
+                    transcriptPath,
+                    lastMessagePath,
+                    lastMessage: summarizeLastMessage(lastMessage, execExitCode),
+                    completionReportStatus: completionReconciliation.artifact.status
+                },
+                verifierSummary: verifierResults,
+                diffSummary: fileChangeVerification.diffSummary,
+                result,
+                remediationArtifact,
+                gitStatusBefore: prepared.beforeGit.available ? prepared.beforeGit.raw : undefined,
+                gitStatusAfter: afterGit.available ? afterGit.raw : undefined
+            });
+            const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
+                artifactRootDir: prepared.paths.artifactDir,
+                paths: prepared.provenanceBundlePaths,
+                bundle: this.createProvenanceBundle({
+                    prepared,
+                    status: 'executed',
+                    summary: result.summary,
+                    executionPayloadHash: execStdinHash,
+                    executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
+                    mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
+                    cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
+                    iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath
+                }),
+                preflightReport: prepared.persistedPreflightReport,
+                preflightSummary: prepared.preflightSummaryText,
+                prompt: prepared.prompt,
+                promptEvidence: prepared.promptEvidence,
+                executionPlan: prepared.executionPlan,
+                cliInvocation: invocation,
+                result,
                 retentionCount: prepared.config.provenanceBundleRetentionCount
             });
+            if (writeResult.retention.deletedBundleIds.length > 0) {
+                this.logger.info('Cleaned up old Ralph provenance bundles after execution.', {
+                    deletedBundleIds: writeResult.retention.deletedBundleIds,
+                    retentionCount: prepared.config.provenanceBundleRetentionCount
+                });
+            }
+            const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
+            await this.stateManager.recordIteration(prepared.rootPath, prepared.paths, prepared.state, result, prepared.objectiveText, runRecord);
+            await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
+            this.logger.info('Completed Ralph iteration.', {
+                iteration: prepared.iteration,
+                selectedTaskId: prepared.selectedTask?.id ?? null,
+                executionStatus,
+                verificationStatus,
+                completionClassification,
+                stopReason: result.stopReason,
+                promptPath: prepared.promptPath,
+                promptArtifactPath: prepared.executionPlan.promptArtifactPath,
+                promptHash: prepared.executionPlan.promptHash,
+                executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
+                artifactDir: artifactPaths.directory,
+                selectedTaskAfterStatus: selectedTaskAfter?.status ?? null
+            });
+            return {
+                prepared,
+                result,
+                loopDecision,
+                createdPaths: prepared.createdPaths
+            };
         }
-        const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
-        await this.stateManager.recordIteration(prepared.rootPath, prepared.paths, prepared.state, result, prepared.objectiveText, runRecord);
-        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
-        this.logger.info('Completed Ralph iteration.', {
-            iteration: prepared.iteration,
-            selectedTaskId: prepared.selectedTask?.id ?? null,
-            executionStatus,
-            verificationStatus,
-            completionClassification,
-            stopReason: result.stopReason,
-            promptPath: prepared.promptPath,
-            promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-            promptHash: prepared.executionPlan.promptHash,
-            executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
-            artifactDir: artifactPaths.directory,
-            selectedTaskAfterStatus: selectedTaskAfter?.status ?? null
-        });
-        return {
-            prepared,
-            result,
-            loopDecision,
-            createdPaths: prepared.createdPaths
-        };
+        finally {
+            if (prepared.selectedTask) {
+                await (0, taskFile_1.releaseClaim)(prepared.paths.claimFilePath, prepared.selectedTask.id, types_1.DEFAULT_RALPH_AGENT_ID).catch((error) => {
+                    this.logger.warn('Failed to release Ralph task claim after iteration.', {
+                        selectedTaskId: prepared.selectedTask?.id ?? null,
+                        provenanceId: prepared.provenanceId,
+                        error: toErrorMessage(error)
+                    });
+                });
+            }
+        }
     }
 }
 exports.RalphIterationEngine = RalphIterationEngine;
