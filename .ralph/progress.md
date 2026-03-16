@@ -95,3 +95,4 @@
 - Added claim-graph inspection plus preflight and Show Status surfacing for contested, stale, and provenance-mismatched task claims; updated docs and regression coverage.
 - Removed the validation blocker by adding a test-only process runner harness and fake git baseline so claim-lifecycle and handoff-path coverage now validates cleanly under sandboxed execution. Full `npm run validate` passes.
 - Added an explicit operator-approved stale-claim recovery command that atomically marks canonical stale claims in claims.json, records durable resolution metadata, and surfaces the resolved task/provenance/reason in status and preflight reporting. Added regression coverage and updated operator docs.
+- Added regression coverage for stale-claim recovery returning a task to CLI reselection and explicit status/doc wording for the claim lifecycle across CLI execution and IDE prompt preparation.

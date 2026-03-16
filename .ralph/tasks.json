@@ -742,7 +742,7 @@
     {
       "id": "T24.1.7",
       "title": "Add regression coverage and docs for claim lifecycle across CLI execution, prompt preparation, and stale-claim recovery",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24.1",
       "dependsOn": [
         "T24.1.6",
@@ -750,7 +750,7 @@
         "T26",
         "T27"
       ],
-      "notes": "Add integration and status/preflight coverage proving that: CLI execution still acquires and releases claims correctly; Prepare Prompt and Open Codex IDE no longer strand blocking claims; stale or contested claims are surfaced deterministically; and the operator recovery workflow safely frees a task for reselection. Update docs/invariants.md, docs/workflows.md, and any status-report wording so the claim lifecycle and operator recovery steps are explicit.",
+      "notes": "Added regression coverage for stale-claim recovery returning a task to CLI reselection and explicit status/doc wording for the claim lifecycle across CLI execution and IDE prompt preparation.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

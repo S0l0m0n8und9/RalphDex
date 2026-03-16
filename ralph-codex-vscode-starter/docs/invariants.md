@@ -74,6 +74,8 @@ Task claims are a separate, file-backed coordination surface:
 - preflight and `Show Status` must surface claim-graph state separately from task-graph drift, including contested active claims, stale active claims, and canonical claims whose `provenanceId` differs from the current iteration provenance
 - `Prepare Prompt` and `Open Codex IDE` must not acquire durable active claims; only the CLI execution path may hold a blocking task claim because it also owns reconciliation and release
 - when CLI selection encounters legacy active claims held by Ralph with an `-ide-` provenance id, it must release those non-blocking handoff claims and replace them with a fresh CLI claim so abandoned IDE handoffs cannot strand later selection
+- operator stale-claim recovery is explicit: `Resolve Stale Task Claim` may mark only the canonical stale active claim as `stale`, must record `resolvedAt`, `resolvedBy`, and `resolutionReason`, and must return that task to the normal CLI selection pool instead of silently reassigning it
+- status wording must keep the lifecycle explicit: CLI iterations own blocking claim acquire/release, IDE prompt preparation does not, and stale canonical claims require the operator recovery command rather than manual `claims.json` edits
 
 ## Preflight Invariants
 

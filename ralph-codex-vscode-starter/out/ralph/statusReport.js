@@ -259,6 +259,8 @@ function buildStatusReport(snapshot) {
         `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
         `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
         `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
+        '- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims.',
+        '- Claim recovery: Use Ralph Codex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active.',
         `- Latest claim resolution: ${latestClaimResolutionSummary(snapshot)}`,
         `- Task counts: ${snapshot.taskCounts
             ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`

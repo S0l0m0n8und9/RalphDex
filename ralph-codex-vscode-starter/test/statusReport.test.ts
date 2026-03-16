@@ -855,6 +855,8 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
   }));
 
   assert.match(report, /- Claim holder for current task: agent-b\/run-i999-cli-20260307T000700Z \(contested, different provenance\)/);
+  assert.match(report, /- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims\./);
+  assert.match(report, /- Claim recovery: Use Ralph Codex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active\./);
   assert.match(report, /- Claim state: Task T2 has contested active claims/);
   assert.match(report, /### Claim Graph/);
   assert.match(report, /task_claim_contested/);

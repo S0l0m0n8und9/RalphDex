@@ -9,6 +9,7 @@ import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { RalphIterationEngine, RalphIterationEngineHooks } from '../src/ralph/iterationEngine';
 import { RalphStateManager } from '../src/ralph/stateManager';
+import { resolveStaleClaim } from '../src/ralph/taskFile';
 import { RalphTaskFile } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
 import {
@@ -1071,6 +1072,114 @@ test('runCliIteration reclaims a legacy IDE handoff claim from the same agent be
         agentId: 'default',
         provenanceId: summary.result.provenanceId!,
         status: 'released'
+      }
+    ]
+  );
+});
+
+test('runCliIteration can reselect a task after operator stale-claim recovery and still release its CLI claim', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Recovered after stale claim resolution', status: 'todo' },
+      { id: 'T2', title: 'Fallback task', status: 'todo' }
+    ]
+  });
+  const claimFilePath = path.join(rootPath, '.ralph', 'claims.json');
+  await fs.writeFile(claimFilePath, `${JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1',
+        agentId: 'other-agent',
+        provenanceId: 'run-i003-cli-20260310T000000Z',
+        claimedAt: '2026-03-10T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+  await initGitRepo(rootPath);
+
+  const resolved = await resolveStaleClaim(claimFilePath, {
+    expectedClaim: {
+      taskId: 'T1',
+      agentId: 'other-agent',
+      provenanceId: 'run-i003-cli-20260310T000000Z',
+      claimedAt: '2026-03-10T00:00:00.000Z',
+      status: 'active'
+    },
+    now: new Date('2026-03-16T00:00:00.000Z'),
+    ttlMs: 1000 * 60 * 60,
+    resolvedBy: 'operator',
+    resolutionReason: 'eligible for operator recovery because the canonical claim was stale and no codex exec process was detected',
+    status: 'stale'
+  });
+  assert.equal(resolved.outcome, 'resolved');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'recovered task executed',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'in_progress',
+          progressNote: 'CLI recovered and resumed the task after stale-claim resolution.'
+        }, 'CLI recovered and resumed the task after stale-claim resolution.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const claimsFile = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{
+      taskId: string;
+      agentId: string;
+      provenanceId: string;
+      status: string;
+      resolvedBy?: string;
+      resolutionReason?: string;
+    }>;
+  };
+
+  assert.equal(summary.result.selectedTaskId, 'T1');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
+  assert.deepEqual(
+    claimsFile.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      provenanceId: claim.provenanceId,
+      status: claim.status,
+      resolvedBy: claim.resolvedBy ?? null,
+      resolutionReason: claim.resolutionReason ?? null
+    })),
+    [
+      {
+        taskId: 'T1',
+        agentId: 'other-agent',
+        provenanceId: 'run-i003-cli-20260310T000000Z',
+        status: 'stale',
+        resolvedBy: 'operator',
+        resolutionReason: 'eligible for operator recovery because the canonical claim was stale and no codex exec process was detected'
+      },
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: summary.result.provenanceId!,
+        status: 'released',
+        resolvedBy: null,
+        resolutionReason: null
       }
     ]
   );
