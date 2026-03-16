@@ -57,6 +57,7 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Open Latest Prompt Evidence`
 - `Ralph Codex: Open Latest CLI Transcript`
 - `Ralph Codex: Apply Latest Task Decomposition Proposal`
+- `Ralph Codex: Resolve Stale Task Claim`
 - `Ralph Codex: Reveal Latest Provenance Bundle Directory`
 - `Ralph Codex: Cleanup Runtime Artifacts`
 - `Ralph Codex: Reset Runtime State`

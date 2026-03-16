@@ -10,6 +10,7 @@ import {
 
 const GIT_SIM_DIR = '.git';
 const GIT_SIM_STATE_FILE = path.join(GIT_SIM_DIR, 'ralph-test-index.json');
+const ACTIVE_CODEX_PROCESS_FILE = path.join('.ralph', 'active-codex-processes.txt');
 
 interface GitSnapshotState {
   files: Record<string, string>;
@@ -151,6 +152,23 @@ async function fakeExecutableLookup(command: string, args: string[]): Promise<Pr
   };
 }
 
+async function fakeCodexExecProcessLookup(rootPath: string): Promise<ProcessRunResult> {
+  const processListPath = path.join(rootPath, ACTIVE_CODEX_PROCESS_FILE);
+  if (!(await pathExists(processListPath))) {
+    return {
+      code: 0,
+      stdout: '',
+      stderr: ''
+    };
+  }
+
+  return {
+    code: 0,
+    stdout: await fs.readFile(processListPath, 'utf8'),
+    stderr: ''
+  };
+}
+
 function stripLeadingCd(command: string, cwd: string): { command: string; cwd: string } {
   const match = /^\s*cd\s+("[^"]+"|'[^']+'|[^&|;]+?)\s*&&\s*(.+)\s*$/s.exec(command);
   if (!match) {
@@ -235,8 +253,16 @@ async function fakeProcessRunner(command: string, args: string[], options: Proce
     return fakeGitStatus(options.cwd);
   }
 
+  if (command === 'sh' && args[0] === '-lc' && (args[1] ?? '').includes('ps -eo command')) {
+    return fakeCodexExecProcessLookup(options.cwd);
+  }
+
   if (command === 'where' || (command === 'sh' && args[0] === '-lc')) {
     return fakeExecutableLookup(command, args);
+  }
+
+  if (command === 'powershell' && args.includes('-Command') && args.some((arg) => arg.includes('Get-CimInstance Win32_Process'))) {
+    return fakeCodexExecProcessLookup(options.cwd);
   }
 
   if (options.shell) {

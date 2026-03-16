@@ -200,6 +200,15 @@ function currentClaimHolderSummary(snapshot: RalphStatusSnapshot): string {
   return `${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId}${tags.length > 0 ? ` (${tags.join(', ')})` : ''}`;
 }
 
+function latestClaimResolutionSummary(snapshot: RalphStatusSnapshot): string {
+  const resolvedClaim = snapshot.claimGraph?.latestResolvedClaim?.claim;
+  if (!resolvedClaim?.resolvedAt || !resolvedClaim.resolutionReason) {
+    return 'none';
+  }
+
+  return `${resolvedClaim.taskId} ${resolvedClaim.agentId}/${resolvedClaim.provenanceId} -> ${resolvedClaim.status} at ${resolvedClaim.resolvedAt} because ${resolvedClaim.resolutionReason}`;
+}
+
 export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestSummaryPath: string | null;
   latestResultPath: string | null;
@@ -346,6 +355,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
     `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
     `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
+    `- Latest claim resolution: ${latestClaimResolutionSummary(snapshot)}`,
     `- Task counts: ${snapshot.taskCounts
       ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
       : 'unavailable'}`,

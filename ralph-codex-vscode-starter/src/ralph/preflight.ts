@@ -430,6 +430,17 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     }
   }
 
+  if (input.claimGraph?.latestResolvedClaim?.claim.resolvedAt && input.claimGraph.latestResolvedClaim.claim.resolutionReason) {
+    const resolvedClaim = input.claimGraph.latestResolvedClaim.claim;
+    diagnostics.push(createDiagnostic(
+      'claimGraph',
+      'info',
+      'stale_claim_resolved',
+      `Task ${resolvedClaim.taskId} claim ${resolvedClaim.agentId}/${resolvedClaim.provenanceId} was marked ${resolvedClaim.status} at ${resolvedClaim.resolvedAt} because ${resolvedClaim.resolutionReason}.`,
+      { taskId: resolvedClaim.taskId }
+    ));
+  }
+
   for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
     diagnostics.push(createDiagnostic(
       'workspaceRuntime',

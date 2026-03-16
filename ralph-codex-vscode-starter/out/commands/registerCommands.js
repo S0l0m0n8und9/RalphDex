@@ -47,6 +47,7 @@ const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
+const cliActivity_1 = require("../services/cliActivity");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const workspaceSupport_1 = require("./workspaceSupport");
@@ -591,6 +592,71 @@ async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManage
     void vscode.window.showInformationMessage(`Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${remediationArtifact.selectedTaskId}.`);
     return true;
 }
+async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const status = await collectStatusSnapshot(workspaceFolder, stateManager, logger);
+    const staleClaims = status.claimGraph?.tasks.filter((entry) => entry.canonicalClaim?.stale) ?? [];
+    if (staleClaims.length === 0) {
+        void vscode.window.showInformationMessage('No stale active task claim exists to resolve. Use Ralph Codex: Show Status to inspect the current claim graph.');
+        return false;
+    }
+    let targetClaim = staleClaims.find((entry) => entry.taskId === status.selectedTask?.id) ?? null;
+    if (!targetClaim && staleClaims.length === 1) {
+        targetClaim = staleClaims[0];
+    }
+    if (!targetClaim) {
+        const requestedTaskId = (await vscode.window.showInputBox({
+            prompt: `Multiple stale claims exist (${staleClaims.map((entry) => entry.taskId).join(', ')}). Enter the task id to resolve.`
+        }))?.trim();
+        if (!requestedTaskId) {
+            return false;
+        }
+        targetClaim = staleClaims.find((entry) => entry.taskId === requestedTaskId) ?? null;
+        if (!targetClaim) {
+            void vscode.window.showWarningMessage(`Task ${requestedTaskId} does not currently have a stale canonical claim. Use Ralph Codex: Show Status to inspect the current claim graph.`);
+            return false;
+        }
+    }
+    const canonicalClaim = targetClaim.canonicalClaim?.claim;
+    if (!canonicalClaim) {
+        void vscode.window.showWarningMessage(`Task ${targetClaim.taskId} no longer has a canonical active claim to resolve. Refresh Ralph status and try again.`);
+        return false;
+    }
+    const activity = await (0, cliActivity_1.inspectCodexExecActivity)(workspaceFolder.uri.fsPath);
+    if (activity.check !== 'clear') {
+        void vscode.window.showWarningMessage(activity.check === 'active'
+            ? `Cannot resolve stale claim for ${targetClaim.taskId} because a codex exec process is still running. Confirm the CLI iteration is gone before retrying.`
+            : `Cannot resolve stale claim for ${targetClaim.taskId} because Ralph could not confirm whether codex exec is still running. ${activity.summary}`);
+        return false;
+    }
+    const confirmed = await vscode.window.showWarningMessage(`Mark stale claim for ${targetClaim.taskId} held by ${canonicalClaim.agentId}/${canonicalClaim.provenanceId} as stale? This updates .ralph/claims.json and records the recovery reason durably.`, { modal: true }, 'Mark Claim Stale');
+    if (confirmed !== 'Mark Claim Stale') {
+        return false;
+    }
+    const resolutionReason = `eligible for operator recovery because the canonical claim was stale from ${canonicalClaim.claimedAt} and no running codex exec process was detected`;
+    const resolved = await (0, taskFile_1.resolveStaleClaim)(inspection.paths.claimFilePath, {
+        expectedClaim: canonicalClaim,
+        resolutionReason,
+        resolvedBy: 'operator',
+        status: 'stale'
+    });
+    if (resolved.outcome !== 'resolved' || !resolved.resolvedClaim) {
+        void vscode.window.showWarningMessage(`Task ${targetClaim.taskId} is no longer eligible for stale-claim resolution because its canonical claim changed. Refresh Ralph status and try again.`);
+        return false;
+    }
+    logger.info('Resolved stale Ralph task claim.', {
+        taskId: resolved.resolvedClaim.claim.taskId,
+        agentId: resolved.resolvedClaim.claim.agentId,
+        provenanceId: resolved.resolvedClaim.claim.provenanceId,
+        status: resolved.resolvedClaim.claim.status,
+        resolvedAt: resolved.resolvedClaim.claim.resolvedAt,
+        resolutionReason: resolved.resolvedClaim.claim.resolutionReason
+    });
+    void vscode.window.showInformationMessage(`Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`);
+    return true;
+}
 function registerCommand(context, logger, spec) {
     context.subscriptions.push(vscode.commands.registerCommand(spec.commandId, async () => {
         logger.info('Command started.', {
@@ -848,6 +914,15 @@ function registerCommands(context, logger) {
             progress.report({ message: 'Applying the latest Ralph task decomposition proposal' });
             const workspaceFolder = await withWorkspaceFolder();
             await applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.resolveStaleTaskClaim',
+        label: 'Ralph Codex: Resolve Stale Task Claim',
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving a stale Ralph task claim' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await resolveStaleTaskClaim(workspaceFolder, stateManager, logger);
         }
     });
     registerCommand(context, logger, {

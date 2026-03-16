@@ -11,6 +11,7 @@ import {
   inspectTaskFileText,
   normalizeTaskFileText,
   parseTaskFile,
+  resolveStaleClaim,
   releaseClaim,
   remainingSubtasks,
   selectNextTask,
@@ -651,6 +652,98 @@ test('acquireClaim surfaces stale canonical claims without auto-releasing them',
 
   const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as { claims: Array<{ status: string }> };
   assert.deepEqual(persisted.claims.map((claim) => claim.status), ['active']);
+});
+
+test('resolveStaleClaim atomically marks the expected stale canonical claim and records provenance', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-13T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const result = await resolveStaleClaim(claimFilePath, {
+    expectedClaim: {
+      taskId: 'T24.1.2',
+      agentId: 'agent-a',
+      provenanceId: 'run-001',
+      claimedAt: '2026-03-13T00:00:00.000Z',
+      status: 'active'
+    },
+    now: new Date('2026-03-14T12:00:00.000Z'),
+    ttlMs: 1000 * 60 * 60,
+    resolvedBy: 'operator',
+    resolutionReason: 'eligible for operator recovery after the stale claim check',
+    status: 'stale'
+  });
+
+  assert.equal(result.outcome, 'resolved');
+  assert.equal(result.resolvedClaim?.claim.status, 'stale');
+  assert.equal(result.resolvedClaim?.claim.provenanceId, 'run-001');
+  assert.equal(result.resolvedClaim?.claim.resolvedBy, 'operator');
+  assert.equal(result.resolvedClaim?.claim.resolutionReason, 'eligible for operator recovery after the stale claim check');
+  assert.equal(result.canonicalClaim, null);
+
+  const persisted = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{ status: string; resolvedBy?: string; resolutionReason?: string; resolvedAt?: string }>;
+  };
+  assert.deepEqual(persisted.claims.map((claim) => claim.status), ['stale']);
+  assert.equal(persisted.claims[0]?.resolvedBy, 'operator');
+  assert.equal(persisted.claims[0]?.resolutionReason, 'eligible for operator recovery after the stale claim check');
+  assert.equal(persisted.claims[0]?.resolvedAt, '2026-03-14T12:00:00.000Z');
+});
+
+test('resolveStaleClaim refuses to mutate claims when the canonical claim changed', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-claims-'));
+  const claimFilePath = path.join(tempRoot, 'task-claims.json');
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-a',
+        provenanceId: 'run-001',
+        claimedAt: '2026-03-13T00:00:00.000Z',
+        status: 'active'
+      },
+      {
+        taskId: 'T24.1.2',
+        agentId: 'agent-b',
+        provenanceId: 'run-002',
+        claimedAt: '2026-03-14T13:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const before = await fs.readFile(claimFilePath, 'utf8');
+  const result = await resolveStaleClaim(claimFilePath, {
+    expectedClaim: {
+      taskId: 'T24.1.2',
+      agentId: 'agent-a',
+      provenanceId: 'run-001',
+      claimedAt: '2026-03-13T00:00:00.000Z',
+      status: 'active'
+    },
+    now: new Date('2026-03-14T14:00:00.000Z'),
+    ttlMs: 1000 * 60 * 60,
+    resolvedBy: 'operator',
+    resolutionReason: 'eligible for operator recovery after the stale claim check'
+  });
+  const after = await fs.readFile(claimFilePath, 'utf8');
+
+  assert.equal(result.outcome, 'not_eligible');
+  assert.equal(result.resolvedClaim, null);
+  assert.equal(result.canonicalClaim?.claim.agentId, 'agent-b');
+  assert.equal(after, before);
 });
 
 test('acquireClaim replaces a legacy IDE handoff claim held by the same agent with a fresh CLI claim', async () => {

@@ -128,6 +128,13 @@ function currentClaimHolderSummary(snapshot) {
     ].filter((value) => value !== null);
     return `${canonicalClaim.claim.agentId}/${canonicalClaim.claim.provenanceId}${tags.length > 0 ? ` (${tags.join(', ')})` : ''}`;
 }
+function latestClaimResolutionSummary(snapshot) {
+    const resolvedClaim = snapshot.claimGraph?.latestResolvedClaim?.claim;
+    if (!resolvedClaim?.resolvedAt || !resolvedClaim.resolutionReason) {
+        return 'none';
+    }
+    return `${resolvedClaim.taskId} ${resolvedClaim.agentId}/${resolvedClaim.provenanceId} -> ${resolvedClaim.status} at ${resolvedClaim.resolvedAt} because ${resolvedClaim.resolutionReason}`;
+}
 async function resolveLatestStatusArtifacts(paths) {
     const repair = await (0, artifactStore_1.repairLatestArtifactSurfaces)(paths.artifactDir);
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(paths.artifactDir);
@@ -252,6 +259,7 @@ function buildStatusReport(snapshot) {
         `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
         `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
         `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
+        `- Latest claim resolution: ${latestClaimResolutionSummary(snapshot)}`,
         `- Task counts: ${snapshot.taskCounts
             ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
             : 'unavailable'}`,

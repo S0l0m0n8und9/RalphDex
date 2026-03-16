@@ -51,6 +51,7 @@ exports.acquireClaim = acquireClaim;
 exports.releaseClaim = releaseClaim;
 exports.inspectClaimOwnership = inspectClaimOwnership;
 exports.inspectTaskClaimGraph = inspectTaskClaimGraph;
+exports.resolveStaleClaim = resolveStaleClaim;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const EMPTY_COUNTS = {
@@ -105,7 +106,10 @@ function normalizeClaim(candidate) {
         taskId: record.taskId,
         claimedAt: record.claimedAt,
         provenanceId: record.provenanceId,
-        status: normalizeClaimStatus(record.status)
+        status: normalizeClaimStatus(record.status),
+        resolvedAt: typeof record.resolvedAt === 'string' ? record.resolvedAt : undefined,
+        resolvedBy: typeof record.resolvedBy === 'string' ? record.resolvedBy : undefined,
+        resolutionReason: typeof record.resolutionReason === 'string' ? record.resolutionReason : undefined
     };
 }
 function createDefaultTaskClaimFile() {
@@ -156,7 +160,10 @@ function isIdeHandoffProvenance(provenanceId) {
 }
 function claimRecordMatches(left, right) {
     return claimIdentityMatches(left, right)
-        && left.status === right.status;
+        && left.status === right.status
+        && left.resolvedAt === right.resolvedAt
+        && left.resolvedBy === right.resolvedBy
+        && left.resolutionReason === right.resolutionReason;
 }
 function findClaim(claimFile, candidate) {
     return claimFile.claims.find((claim) => claimRecordMatches(claim, candidate)) ?? null;
@@ -198,6 +205,28 @@ function taskIdsWithActiveClaims(claimFile) {
     return [...new Set(claimFile.claims
             .filter((claim) => claim.status === 'active')
             .map((claim) => claim.taskId))].sort((left, right) => left.localeCompare(right));
+}
+function latestResolvedClaim(claimFile) {
+    const resolvedClaims = claimFile.claims.filter((claim) => ((claim.status === 'stale' || claim.status === 'released')
+        && typeof claim.resolvedAt === 'string'
+        && claim.resolvedAt.trim().length > 0));
+    if (resolvedClaims.length === 0) {
+        return null;
+    }
+    return [...resolvedClaims].sort((left, right) => {
+        const leftTime = Date.parse(left.resolvedAt ?? '');
+        const rightTime = Date.parse(right.resolvedAt ?? '');
+        if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+            return 0;
+        }
+        if (Number.isNaN(leftTime)) {
+            return 1;
+        }
+        if (Number.isNaN(rightTime)) {
+            return -1;
+        }
+        return rightTime - leftTime;
+    })[0] ?? null;
 }
 async function writeTaskClaimFile(claimFilePath, claimFile) {
     const directoryPath = path.dirname(claimFilePath);
@@ -1209,7 +1238,57 @@ async function inspectTaskClaimGraph(claimFilePath, options) {
         });
         return {
             claimFile,
-            tasks
+            tasks,
+            latestResolvedClaim: describeClaim(latestResolvedClaim(claimFile), options)
+        };
+    });
+}
+async function resolveStaleClaim(claimFilePath, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const canonicalClaim = canonicalClaimForTask(claimFile, options.expectedClaim.taskId);
+        const describedCanonicalClaim = describeClaim(canonicalClaim, options);
+        if (!canonicalClaim
+            || !claimIdentityMatches(canonicalClaim, options.expectedClaim)
+            || canonicalClaim.status !== 'active'
+            || !describedCanonicalClaim?.stale) {
+            return {
+                outcome: 'not_eligible',
+                resolvedClaim: null,
+                canonicalClaim: describedCanonicalClaim,
+                claimFile
+            };
+        }
+        const resolvedAt = (options.now ?? new Date()).toISOString();
+        const nextStatus = options.status ?? 'stale';
+        let resolvedClaim = null;
+        const nextClaimFile = {
+            version: 1,
+            claims: claimFile.claims.map((claim) => {
+                if (!claimRecordMatches(claim, canonicalClaim)) {
+                    return claim;
+                }
+                resolvedClaim = {
+                    ...claim,
+                    status: nextStatus,
+                    resolvedAt,
+                    resolvedBy: options.resolvedBy?.trim() || undefined,
+                    resolutionReason: options.resolutionReason.trim()
+                };
+                return resolvedClaim;
+            })
+        };
+        await writeTaskClaimFile(claimFilePath, nextClaimFile);
+        const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+        const verifiedResolvedClaim = resolvedClaim ? findClaim(verifiedClaimFile, resolvedClaim) : null;
+        if (!resolvedClaim || !verifiedResolvedClaim) {
+            throw new Error(`Failed to verify resolved stale claim for task ${options.expectedClaim.taskId} held by ${options.expectedClaim.agentId}.`);
+        }
+        return {
+            outcome: 'resolved',
+            resolvedClaim: describeClaim(verifiedResolvedClaim, options),
+            canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, options.expectedClaim.taskId), options),
+            claimFile: verifiedClaimFile
         };
     });
 }

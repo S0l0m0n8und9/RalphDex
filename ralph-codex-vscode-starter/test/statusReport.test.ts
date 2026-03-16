@@ -212,7 +212,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
         ],
         contested: false
       }
-    ]
+    ],
+    latestResolvedClaim: null
   };
 
   return {
@@ -848,7 +849,8 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
           ],
           contested: true
         }
-      ]
+      ],
+      latestResolvedClaim: null
     }
   }));
 
@@ -856,6 +858,57 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
   assert.match(report, /- Claim state: Task T2 has contested active claims/);
   assert.match(report, /### Claim Graph/);
   assert.match(report, /task_claim_contested/);
+});
+
+test('buildStatusReport surfaces the latest stale-claim resolution details', () => {
+  const report = buildStatusReport(snapshot({
+    claimGraph: {
+      claimFile: {
+        version: 1,
+        claims: [
+          {
+            taskId: 'T2',
+            agentId: 'default',
+            provenanceId: 'run-i003-cli-20260307T000600Z',
+            claimedAt: '2026-03-07T00:06:00.000Z',
+            status: 'stale',
+            resolvedAt: '2026-03-09T00:00:00.000Z',
+            resolvedBy: 'operator',
+            resolutionReason: 'eligible for operator recovery because the canonical claim was stale from 2026-03-07T00:06:00.000Z and no running codex exec process was detected'
+          }
+        ]
+      },
+      tasks: [],
+      latestResolvedClaim: {
+        claim: {
+          taskId: 'T2',
+          agentId: 'default',
+          provenanceId: 'run-i003-cli-20260307T000600Z',
+          claimedAt: '2026-03-07T00:06:00.000Z',
+          status: 'stale',
+          resolvedAt: '2026-03-09T00:00:00.000Z',
+          resolvedBy: 'operator',
+          resolutionReason: 'eligible for operator recovery because the canonical claim was stale from 2026-03-07T00:06:00.000Z and no running codex exec process was detected'
+        },
+        stale: false
+      }
+    },
+    preflightReport: {
+      ready: true,
+      summary: 'Ready.',
+      diagnostics: [
+        {
+          category: 'claimGraph',
+          severity: 'info',
+          code: 'stale_claim_resolved',
+          message: 'Task T2 claim default/run-i003-cli-20260307T000600Z was marked stale at 2026-03-09T00:00:00.000Z because eligible for operator recovery because the canonical claim was stale from 2026-03-07T00:06:00.000Z and no running codex exec process was detected.'
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /Latest claim resolution: T2 default\/run-i003-cli-20260307T000600Z -> stale at 2026-03-09T00:00:00.000Z because eligible for operator recovery/);
+  assert.match(report, /stale_claim_resolved/);
 });
 
 test('buildStatusReport keeps replenish-backlog drift exhaustion explicit in loop and latest-iteration sections', () => {

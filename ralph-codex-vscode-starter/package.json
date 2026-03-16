@@ -78,6 +78,7 @@
     "onCommand:ralphCodex.openLatestPromptEvidence",
     "onCommand:ralphCodex.openLatestCliTranscript",
     "onCommand:ralphCodex.applyLatestTaskDecompositionProposal",
+    "onCommand:ralphCodex.resolveStaleTaskClaim",
     "onCommand:ralphCodex.revealLatestProvenanceBundleDirectory",
     "onCommand:ralphCodex.cleanupRalphRuntimeArtifacts",
     "onCommand:ralphCodex.resetRalphWorkspaceState"
@@ -128,6 +129,10 @@
       {
         "command": "ralphCodex.applyLatestTaskDecompositionProposal",
         "title": "Ralph Codex: Apply Latest Task Decomposition Proposal"
+      },
+      {
+        "command": "ralphCodex.resolveStaleTaskClaim",
+        "title": "Ralph Codex: Resolve Stale Task Claim"
       },
       {
         "command": "ralphCodex.revealLatestProvenanceBundleDirectory",

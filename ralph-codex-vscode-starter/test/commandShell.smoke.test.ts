@@ -118,6 +118,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.openLatestPromptEvidence'));
   assert.ok(commands.includes('ralphCodex.openLatestCliTranscript'));
   assert.ok(commands.includes('ralphCodex.applyLatestTaskDecompositionProposal'));
+  assert.ok(commands.includes('ralphCodex.resolveStaleTaskClaim'));
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
 });
@@ -549,6 +550,102 @@ test('Apply Latest Task Decomposition Proposal leaves tasks.json unchanged when 
   assert.match(
     harness.state.errorMessages.at(-1)?.message ?? '',
     /child task T1\.1 depends on missing task MISSING/
+  );
+});
+
+test('Resolve Stale Task Claim explains when no stale claim exists', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.resolveStaleTaskClaim');
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /No stale active task claim exists to resolve/
+  );
+});
+
+test('Resolve Stale Task Claim marks the canonical stale claim and surfaces the recovery in status output', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: 'run-i001-cli-20260307T000000Z',
+        claimedAt: '2026-03-07T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Mark Claim Stale');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.resolveStaleTaskClaim');
+
+  const claims = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{
+      status: string;
+      resolvedAt?: string;
+      resolutionReason?: string;
+      provenanceId: string;
+    }>;
+  };
+  assert.equal(claims.claims[0]?.status, 'stale');
+  assert.equal(claims.claims[0]?.provenanceId, 'run-i001-cli-20260307T000000Z');
+  assert.match(claims.claims[0]?.resolvedAt ?? '', /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(claims.claims[0]?.resolutionReason ?? '', /eligible for operator recovery because the canonical claim was stale/);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Marked stale claim for T1 held by default\/run-i001-cli-20260307T000000Z as stale/
+  );
+
+  await vscode.commands.executeCommand('ralphCodex.showRalphStatus');
+
+  const output = harness.getOutputLines('Ralph Codex').join('\n');
+  assert.match(output, /Latest claim resolution: T1 default\/run-i001-cli-20260307T000000Z -> stale/);
+  assert.match(output, /stale_claim_resolved/);
+});
+
+test('Resolve Stale Task Claim refuses to resolve while codex exec still appears active', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1',
+        agentId: 'default',
+        provenanceId: 'run-i001-cli-20260307T000000Z',
+        claimedAt: '2026-03-07T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'active-codex-processes.txt'), 'codex exec --model gpt-5.4\n', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.resolveStaleTaskClaim');
+
+  const claims = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ status: string }>;
+  };
+  assert.equal(claims.claims[0]?.status, 'active');
+  assert.match(
+    harness.state.warningMessages.at(-1)?.message ?? '',
+    /Cannot resolve stale claim for T1 because a codex exec process is still running/
   );
 });
 

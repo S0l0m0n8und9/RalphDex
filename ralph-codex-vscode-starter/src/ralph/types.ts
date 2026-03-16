@@ -33,6 +33,9 @@ export interface RalphTaskClaim {
   claimedAt: string;
   provenanceId: string;
   status: RalphTaskClaimStatus;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolutionReason?: string;
 }
 
 export interface RalphTaskClaimFile {

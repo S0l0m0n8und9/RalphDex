@@ -108,6 +108,21 @@ export interface RalphTaskClaimGraphEntry {
 export interface RalphTaskClaimGraphInspection {
   claimFile: RalphTaskClaimFile;
   tasks: RalphTaskClaimGraphEntry[];
+  latestResolvedClaim: RalphTaskClaimDetails | null;
+}
+
+export interface RalphResolveStaleClaimOptions extends RalphTaskClaimOptions {
+  expectedClaim: RalphTaskClaim;
+  resolutionReason: string;
+  resolvedBy?: string;
+  status?: Extract<RalphTaskClaim['status'], 'released' | 'stale'>;
+}
+
+export interface RalphResolveStaleClaimResult {
+  outcome: 'resolved' | 'not_eligible';
+  resolvedClaim: RalphTaskClaimDetails | null;
+  canonicalClaim: RalphTaskClaimDetails | null;
+  claimFile: RalphTaskClaimFile;
 }
 
 function isTaskStatus(value: unknown): value is RalphTaskStatus {
@@ -142,7 +157,10 @@ function normalizeClaim(candidate: unknown): RalphTaskClaim | null {
     taskId: record.taskId,
     claimedAt: record.claimedAt,
     provenanceId: record.provenanceId,
-    status: normalizeClaimStatus(record.status)
+    status: normalizeClaimStatus(record.status),
+    resolvedAt: typeof record.resolvedAt === 'string' ? record.resolvedAt : undefined,
+    resolvedBy: typeof record.resolvedBy === 'string' ? record.resolvedBy : undefined,
+    resolutionReason: typeof record.resolutionReason === 'string' ? record.resolutionReason : undefined
   };
 }
 
@@ -202,7 +220,10 @@ function isIdeHandoffProvenance(provenanceId: string): boolean {
 
 function claimRecordMatches(left: RalphTaskClaim, right: RalphTaskClaim): boolean {
   return claimIdentityMatches(left, right)
-    && left.status === right.status;
+    && left.status === right.status
+    && left.resolvedAt === right.resolvedAt
+    && left.resolvedBy === right.resolvedBy
+    && left.resolutionReason === right.resolutionReason;
 }
 
 function findClaim(claimFile: RalphTaskClaimFile, candidate: RalphTaskClaim): RalphTaskClaim | null {
@@ -257,6 +278,33 @@ function taskIdsWithActiveClaims(claimFile: RalphTaskClaimFile): string[] {
       .filter((claim) => claim.status === 'active')
       .map((claim) => claim.taskId)
   )].sort((left, right) => left.localeCompare(right));
+}
+
+function latestResolvedClaim(claimFile: RalphTaskClaimFile): RalphTaskClaim | null {
+  const resolvedClaims = claimFile.claims.filter((claim) => (
+    (claim.status === 'stale' || claim.status === 'released')
+    && typeof claim.resolvedAt === 'string'
+    && claim.resolvedAt.trim().length > 0
+  ));
+
+  if (resolvedClaims.length === 0) {
+    return null;
+  }
+
+  return [...resolvedClaims].sort((left, right) => {
+    const leftTime = Date.parse(left.resolvedAt ?? '');
+    const rightTime = Date.parse(right.resolvedAt ?? '');
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+      return 0;
+    }
+    if (Number.isNaN(leftTime)) {
+      return 1;
+    }
+    if (Number.isNaN(rightTime)) {
+      return -1;
+    }
+    return rightTime - leftTime;
+  })[0] ?? null;
 }
 
 async function writeTaskClaimFile(claimFilePath: string, claimFile: RalphTaskClaimFile): Promise<void> {
@@ -1548,7 +1596,69 @@ export async function inspectTaskClaimGraph(
 
     return {
       claimFile,
-      tasks
+      tasks,
+      latestResolvedClaim: describeClaim(latestResolvedClaim(claimFile), options)
+    };
+  });
+}
+
+export async function resolveStaleClaim(
+  claimFilePath: string,
+  options: RalphResolveStaleClaimOptions
+): Promise<RalphResolveStaleClaimResult> {
+  return withClaimFileLock(claimFilePath, options, async () => {
+    const claimFile = await readTaskClaimFile(claimFilePath);
+    const canonicalClaim = canonicalClaimForTask(claimFile, options.expectedClaim.taskId);
+    const describedCanonicalClaim = describeClaim(canonicalClaim, options);
+
+    if (!canonicalClaim
+      || !claimIdentityMatches(canonicalClaim, options.expectedClaim)
+      || canonicalClaim.status !== 'active'
+      || !describedCanonicalClaim?.stale) {
+      return {
+        outcome: 'not_eligible',
+        resolvedClaim: null,
+        canonicalClaim: describedCanonicalClaim,
+        claimFile
+      };
+    }
+
+    const resolvedAt = (options.now ?? new Date()).toISOString();
+    const nextStatus = options.status ?? 'stale';
+    let resolvedClaim: RalphTaskClaim | null = null;
+    const nextClaimFile: RalphTaskClaimFile = {
+      version: 1,
+      claims: claimFile.claims.map((claim) => {
+        if (!claimRecordMatches(claim, canonicalClaim)) {
+          return claim;
+        }
+
+        resolvedClaim = {
+          ...claim,
+          status: nextStatus,
+          resolvedAt,
+          resolvedBy: options.resolvedBy?.trim() || undefined,
+          resolutionReason: options.resolutionReason.trim()
+        };
+        return resolvedClaim;
+      })
+    };
+
+    await writeTaskClaimFile(claimFilePath, nextClaimFile);
+
+    const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+    const verifiedResolvedClaim = resolvedClaim ? findClaim(verifiedClaimFile, resolvedClaim) : null;
+    if (!resolvedClaim || !verifiedResolvedClaim) {
+      throw new Error(
+        `Failed to verify resolved stale claim for task ${options.expectedClaim.taskId} held by ${options.expectedClaim.agentId}.`
+      );
+    }
+
+    return {
+      outcome: 'resolved',
+      resolvedClaim: describeClaim(verifiedResolvedClaim, options),
+      canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, options.expectedClaim.taskId), options),
+      claimFile: verifiedClaimFile
     };
   });
 }
