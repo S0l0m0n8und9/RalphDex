@@ -57,7 +57,8 @@ async function seedValidRepository(rootPath: string): Promise<void> {
     'src/ralph/verifier.ts',
     'src/ralph/loopLogic.ts',
     'src/ralph/integrity.ts',
-    'src/ralph/artifactStore.ts'
+    'src/ralph/artifactStore.ts',
+    'src/codex/claudeCodeStrategy.ts'
   ]) {
     await writeFile(rootPath, relativePath, '// fixture\n');
   }
@@ -99,6 +100,7 @@ AGENTS.md is a routing/control document for the repo.
 - \`src/ralph/loopLogic.ts\`: loop logic
 - \`src/ralph/integrity.ts\`: integrity
 - \`src/ralph/artifactStore.ts\`: artifacts
+- \`src/codex/claudeCodeStrategy.ts\`: claude code strategy
 
 ## Command And Validation Entry Points
 

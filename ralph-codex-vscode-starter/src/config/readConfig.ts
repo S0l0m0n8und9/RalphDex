@@ -116,13 +116,17 @@ function readEnumArray<T extends string>(
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
+  const cliProvider = readEnum<CliProviderId>(
+    config,
+    'cliProvider',
+    ['codex', 'claude'],
+    DEFAULT_CONFIG.cliProvider
+  );
+  const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
+  const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
+
   return {
-    cliProvider: readEnum<CliProviderId>(
-      config,
-      'cliProvider',
-      ['codex', 'claude'],
-      DEFAULT_CONFIG.cliProvider
-    ),
+    cliProvider,
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
@@ -239,7 +243,14 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       ['read-only', 'workspace-write', 'danger-full-access'],
       DEFAULT_CONFIG.sandboxMode
     ),
-    openSidebarCommandId: readString(config, 'openSidebarCommandId', DEFAULT_CONFIG.openSidebarCommandId),
-    newChatCommandId: readString(config, 'newChatCommandId', DEFAULT_CONFIG.newChatCommandId)
+    openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
+    newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
+    claudeCodeCommandPath: readString(config, 'claudeCodeCommandPath', DEFAULT_CONFIG.claudeCodeCommandPath),
+    preferredExecutionAdapter: readEnum<'codex' | 'claudeCode'>(
+      config,
+      'preferredExecutionAdapter',
+      ['codex', 'claudeCode'],
+      DEFAULT_CONFIG.preferredExecutionAdapter
+    )
   };
 }

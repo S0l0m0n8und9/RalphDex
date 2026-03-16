@@ -414,6 +414,7 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    cliProvider: 'codex',
     codexCommandPath: '/tmp/ralph-codex-missing/bin/codex'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
@@ -539,6 +540,7 @@ test('runCliIteration keeps state-referenced generated artifacts when blocked pr
   await assert.doesNotReject(fs.access(firstRun.result.execution.lastMessagePath!));
 
   harness.setConfiguration({
+    cliProvider: 'codex',
     generatedArtifactRetentionCount: 1,
     verifierModes: ['taskState'],
     gitCheckpointMode: 'off',

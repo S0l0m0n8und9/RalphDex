@@ -827,7 +827,7 @@ function buildPriorIterationContext(
 function buildOperatingRules(): string[] {
   return [
     '- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.',
-    '- Do not invent unsupported Codex IDE APIs or hidden handoff channels.',
+    '- Do not invent unsupported IDE APIs or hidden handoff channels.',
     '- Keep architecture thin, deterministic, and file-backed.',
     '- Make the smallest coherent change that materially advances the selected Ralph task.',
     '- Prefer the repository’s real validation commands when they exist.',

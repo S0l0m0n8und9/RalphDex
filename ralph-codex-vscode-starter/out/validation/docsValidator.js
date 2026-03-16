@@ -91,7 +91,8 @@ const REQUIRED_CODE_OWNER_FILES = [
     'src/ralph/verifier.ts',
     'src/ralph/loopLogic.ts',
     'src/ralph/integrity.ts',
-    'src/ralph/artifactStore.ts'
+    'src/ralph/artifactStore.ts',
+    'src/codex/claudeCodeStrategy.ts'
 ];
 const DOC_RULES = {
     'AGENTS.md': {

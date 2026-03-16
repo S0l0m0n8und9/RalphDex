@@ -98,8 +98,11 @@ function readEnumArray(config, key, allowed, fallback) {
 }
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
+    const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
     return {
-        cliProvider: readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider),
+        cliProvider,
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
@@ -128,8 +131,10 @@ function readConfig(workspaceFolder) {
         reasoningEffort: readEnum(config, 'reasoningEffort', ['medium', 'high'], defaults_1.DEFAULT_CONFIG.reasoningEffort),
         approvalMode: readEnum(config, 'approvalMode', ['never', 'on-request', 'untrusted'], defaults_1.DEFAULT_CONFIG.approvalMode),
         sandboxMode: readEnum(config, 'sandboxMode', ['read-only', 'workspace-write', 'danger-full-access'], defaults_1.DEFAULT_CONFIG.sandboxMode),
-        openSidebarCommandId: readString(config, 'openSidebarCommandId', defaults_1.DEFAULT_CONFIG.openSidebarCommandId),
-        newChatCommandId: readString(config, 'newChatCommandId', defaults_1.DEFAULT_CONFIG.newChatCommandId)
+        openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
+        newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
+        claudeCodeCommandPath: readString(config, 'claudeCodeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCodeCommandPath),
+        preferredExecutionAdapter: readEnum(config, 'preferredExecutionAdapter', ['codex', 'claudeCode'], defaults_1.DEFAULT_CONFIG.preferredExecutionAdapter)
     };
 }
 //# sourceMappingURL=readConfig.js.map

@@ -46,4 +46,6 @@ export interface RalphCodexConfig {
   sandboxMode: CodexSandboxMode;
   openSidebarCommandId: string;
   newChatCommandId: string;
+  claudeCodeCommandPath: string;
+  preferredExecutionAdapter: 'codex' | 'claudeCode';
 }

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_CONFIG = void 0;
 exports.DEFAULT_CONFIG = {
-    cliProvider: 'codex',
+    cliProvider: 'claude',
     codexCommandPath: 'codex',
     claudeCommandPath: 'claude',
     claudeMaxTurns: 50,
@@ -27,11 +27,13 @@ exports.DEFAULT_CONFIG = {
     promptIncludeVerifierFeedback: true,
     promptPriorContextBudget: 8,
     clipboardAutoCopy: true,
-    model: 'gpt-5.4',
+    model: 'claude-sonnet-4-6',
     reasoningEffort: 'medium',
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
-    openSidebarCommandId: 'chatgpt.openSidebar',
-    newChatCommandId: 'chatgpt.newChat'
+    openSidebarCommandId: 'claude.openSidebar',
+    newChatCommandId: 'claude.newChat',
+    claudeCodeCommandPath: 'claude',
+    preferredExecutionAdapter: 'codex'
 };
 //# sourceMappingURL=defaults.js.map

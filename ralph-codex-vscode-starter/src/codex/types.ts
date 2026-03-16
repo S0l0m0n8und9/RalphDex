@@ -1,7 +1,7 @@
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
 import { RalphPromptKind } from '../ralph/types';
 
-export type CodexStrategyId = 'ideCommand' | 'clipboard' | 'cliExec';
+export type CodexStrategyId = 'ideCommand' | 'clipboard' | 'cliExec' | 'claudeCode';
 
 export interface CodexActionResult {
   strategy: CodexStrategyId;

@@ -30,6 +30,8 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   reasoningEffort: 'medium',
   approvalMode: 'never',
   sandboxMode: 'workspace-write',
-  openSidebarCommandId: 'chatgpt.openSidebar',
-  newChatCommandId: 'chatgpt.newChat'
+  openSidebarCommandId: 'claude.openSidebar',
+  newChatCommandId: 'claude.newChat',
+  claudeCodeCommandPath: 'claude',
+  preferredExecutionAdapter: 'codex'
 };
