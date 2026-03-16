@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.inspectCodexCliSupport = inspectCodexCliSupport;
+exports.inspectCliSupport = inspectCliSupport;
 exports.inspectIdeCommandSupport = inspectIdeCommandSupport;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -83,6 +84,14 @@ async function inspectCodexCliSupport(commandPath) {
             confidence: 'blocked'
         };
     }
+}
+async function inspectCliSupport(provider, commandPath) {
+    const base = await inspectCodexCliSupport(commandPath);
+    return {
+        ...base,
+        provider,
+        configKey: provider === 'claude' ? 'ralphCodex.claudeCommandPath' : 'ralphCodex.codexCommandPath'
+    };
 }
 function commandIsDisabled(commandId) {
     return !commandId || commandId === 'none';

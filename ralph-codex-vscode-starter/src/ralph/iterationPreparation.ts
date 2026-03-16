@@ -4,7 +4,7 @@ import { RalphCodexConfig } from '../config/types';
 import { buildPrompt, createPromptFileName, decidePromptKind } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
 import { scanWorkspace } from '../services/workspaceScanner';
-import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
+import { inspectCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
@@ -233,9 +233,12 @@ export async function prepareIterationContext(
     rootPath: rootPolicy.verificationRootPath
   });
   const trustLevel = trustLevelForTarget(promptTarget);
+  const cliCommandPath = config.cliProvider === 'claude'
+    ? config.claudeCommandPath
+    : config.codexCommandPath;
   const [availableCommands, codexCliSupport] = await Promise.all([
     vscode.commands.getCommands(true),
-    inspectCodexCliSupport(config.codexCommandPath)
+    inspectCliSupport(config.cliProvider, cliCommandPath)
   ]);
   const ideCommandSupport = inspectIdeCommandSupport({
     preferredHandoffMode: config.preferredHandoffMode,

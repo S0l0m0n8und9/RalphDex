@@ -135,6 +135,10 @@ class MockStrategyRegistry {
 
   public constructor(private readonly steps: MockExecStep[]) {}
 
+  public configureCliProvider(): void {
+    // No-op for mock — provider selection is not relevant in tests.
+  }
+
   public getCliExecStrategy(): { runExec: (request: CodexExecRequest) => Promise<CodexExecResult> } {
     return {
       runExec: async (request) => {

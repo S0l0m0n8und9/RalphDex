@@ -1,7 +1,11 @@
 import { RalphCodexConfig } from './types';
 
 export const DEFAULT_CONFIG: RalphCodexConfig = {
+  cliProvider: 'claude',
   codexCommandPath: 'codex',
+  claudeCommandPath: 'claude',
+  claudeMaxTurns: 50,
+  claudePermissionMode: 'dangerously-skip-permissions',
   preferredHandoffMode: 'ideCommand',
   inspectionRootOverride: '',
   ralphIterationCap: 20,
@@ -22,7 +26,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   promptIncludeVerifierFeedback: true,
   promptPriorContextBudget: 8,
   clipboardAutoCopy: true,
-  model: 'gpt-5.4',
+  model: 'claude-sonnet-4-6',
   reasoningEffort: 'medium',
   approvalMode: 'never',
   sandboxMode: 'workspace-write',

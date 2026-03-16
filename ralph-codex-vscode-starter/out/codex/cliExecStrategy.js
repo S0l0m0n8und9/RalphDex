@@ -42,6 +42,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("../ralph/integrity");
 const processRunner_1 = require("../services/processRunner");
+const codexCliProvider_1 = require("./codexCliProvider");
 async function hasGitMetadata(rootPath) {
     try {
         await fs.access(path.join(rootPath, '.git'));
@@ -51,128 +52,47 @@ async function hasGitMetadata(rootPath) {
         return false;
     }
 }
+// ---------------------------------------------------------------------------
+// Legacy exported functions — thin wrappers over CodexCliProvider for
+// backwards compatibility with existing tests and call sites.
+// ---------------------------------------------------------------------------
+const defaultCodexProvider = new codexCliProvider_1.CodexCliProvider({
+    reasoningEffort: 'medium',
+    sandboxMode: 'workspace-write',
+    approvalMode: 'never'
+});
 function buildCodexExecArgs(request, includeSkipGitRepoCheck) {
-    const args = [
-        'exec',
-        '--model', request.model,
-        '--config', `model_reasoning_effort="${request.reasoningEffort}"`,
-        '--sandbox', request.sandboxMode,
-        '--config', `approval_policy="${request.approvalMode}"`,
-        '--cd', request.executionRoot,
-        '--output-last-message', request.lastMessagePath
-    ];
-    if (includeSkipGitRepoCheck) {
-        args.push('--skip-git-repo-check');
-    }
-    args.push('-');
-    return args;
+    return defaultCodexProvider.buildArgs(request, includeSkipGitRepoCheck);
 }
 function buildCodexExecTranscript(result, request) {
-    const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
-    return [
-        '# Codex Exec Transcript',
-        '',
-        `- Command: ${request.commandPath} ${result.args.join(' ')}`,
-        `- Workspace root: ${request.workspaceRoot}`,
-        `- Execution root: ${request.executionRoot}`,
-        `- Prompt path: ${request.promptPath}`,
-        `- Prompt hash: ${request.promptHash}`,
-        `- Prompt bytes: ${request.promptByteLength}`,
-        `- Reasoning effort: ${request.reasoningEffort}`,
-        `- Stdin hash: ${result.stdinHash}`,
-        `- Payload matched prompt artifact: ${payloadMatched}`,
-        `- Last message path: ${request.lastMessagePath}`,
-        `- Exit code: ${result.exitCode}`,
-        '',
-        '## Stdout',
-        '',
-        result.stdout || '(empty)',
-        '',
-        '## Stderr',
-        '',
-        result.stderr || '(empty)',
-        '',
-        '## Last Message',
-        '',
-        result.lastMessage || '(empty)'
-    ].join('\n');
-}
-function firstNonEmptyLine(text) {
-    return text
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-        ?? null;
-}
-function truncateSummary(value, maxLength = 240) {
-    return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-}
-function isIgnorableStderrLine(line) {
-    return /^WARNING:/i.test(line)
-        || /^Reconnecting\.\.\./.test(line)
-        || /^mcp:/i.test(line)
-        || /^mcp startup:/i.test(line)
-        || /^OpenAI Codex\b/.test(line)
-        || /^-+$/.test(line)
-        || /^(workdir|model|provider|approval|sandbox|reasoning effort|reasoning summaries|session id):/i.test(line)
-        || /^user$/i.test(line)
-        || /^# Ralph Prompt:/.test(line)
-        || /^## /.test(line)
-        || /^- /.test(line);
-}
-function extractCodexExecFailureDetail(stderr, lastMessage) {
-    const stderrLines = stderr
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-    for (const line of [...stderrLines].reverse()) {
-        if (/^ERROR:/i.test(line)
-            && !/failed to shutdown rollout recorder/i.test(line)
-            && !/no last agent message/i.test(line)) {
-            return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
-        }
-    }
-    const lastMessageLine = firstNonEmptyLine(lastMessage);
-    if (lastMessageLine) {
-        return truncateSummary(lastMessageLine);
-    }
-    for (const line of [...stderrLines].reverse()) {
-        if (!isIgnorableStderrLine(line)) {
-            return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
-        }
-    }
-    return null;
+    return defaultCodexProvider.buildTranscript(result, request);
 }
 function summarizeCodexExecResultMessage(input) {
-    if (input.exitCode === 0) {
-        return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? 'codex exec completed successfully.');
-    }
-    const detail = extractCodexExecFailureDetail(input.stderr, input.lastMessage);
-    return detail
-        ? `codex exec exited with code ${input.exitCode}: ${detail}`
-        : `codex exec exited with code ${input.exitCode}.`;
+    return defaultCodexProvider.summarizeResult(input);
 }
 function describeCodexExecLaunchError(request, error) {
-    if (error.code === 'ENOENT') {
-        return `Codex CLI was not found at "${request.commandPath}". Install Codex CLI or update ralphCodex.codexCommandPath.`;
-    }
-    return `Failed to start codex exec with "${request.commandPath}": ${error.message}`;
+    return defaultCodexProvider.describeLaunchError(request.commandPath, error);
 }
+// ---------------------------------------------------------------------------
+// Strategy implementation — delegates to the injected CliProvider.
+// ---------------------------------------------------------------------------
 class CliExecCodexStrategy {
     logger;
     id = 'cliExec';
-    constructor(logger) {
+    provider;
+    constructor(logger, provider) {
         this.logger = logger;
+        this.provider = provider ?? defaultCodexProvider;
     }
     async runExec(request) {
         await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
         await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-        const args = buildCodexExecArgs(request, !(await hasGitMetadata(request.executionRoot)));
+        const args = this.provider.buildArgs(request, !(await hasGitMetadata(request.executionRoot)));
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
         if (stdinHash !== request.promptHash) {
             throw new Error(`Execution integrity check failed before launch: stdin payload hash ${stdinHash} did not match planned prompt hash ${request.promptHash}.`);
         }
-        this.logger.info('Starting codex exec.', {
+        this.logger.info(`Starting ${this.provider.id} CLI exec.`, {
             commandPath: request.commandPath,
             workspaceRoot: request.workspaceRoot,
             executionRoot: request.executionRoot,
@@ -190,15 +110,15 @@ class CliExecCodexStrategy {
         }
         catch (error) {
             if (error instanceof processRunner_1.ProcessLaunchError) {
-                throw new Error(describeCodexExecLaunchError(request, error), { cause: error });
+                throw new Error(this.provider.describeLaunchError(request.commandPath, error), { cause: error });
             }
             throw error;
         }
-        const lastMessage = await fs.readFile(request.lastMessagePath, 'utf8').catch(() => '');
+        const lastMessage = await this.provider.extractResponseText(processResult.stdout, processResult.stderr, request.lastMessagePath);
         const result = {
             strategy: this.id,
             success: processResult.code === 0,
-            message: summarizeCodexExecResultMessage({
+            message: this.provider.summarizeResult({
                 exitCode: processResult.code,
                 stderr: processResult.stderr,
                 lastMessage
@@ -213,7 +133,7 @@ class CliExecCodexStrategy {
             lastMessagePath: request.lastMessagePath,
             lastMessage
         };
-        await fs.writeFile(request.transcriptPath, `${buildCodexExecTranscript(result, request).trimEnd()}\n`, 'utf8');
+        await fs.writeFile(request.transcriptPath, `${this.provider.buildTranscript(result, request).trimEnd()}\n`, 'utf8');
         return result;
     }
 }

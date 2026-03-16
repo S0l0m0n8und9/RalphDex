@@ -150,10 +150,34 @@
     "configuration": {
       "title": "Ralph Codex Workbench",
       "properties": {
+        "ralphCodex.cliProvider": {
+          "type": "string",
+          "enum": ["codex", "claude"],
+          "default": "codex",
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
+        },
         "ralphCodex.codexCommandPath": {
           "type": "string",
           "default": "codex",
           "description": "Path or command name for the Codex CLI executable."
+        },
+        "ralphCodex.claudeCommandPath": {
+          "type": "string",
+          "default": "claude",
+          "description": "Path or command name for the Claude CLI executable."
+        },
+        "ralphCodex.claudeMaxTurns": {
+          "type": "number",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Maximum number of agentic turns per Claude CLI invocation."
+        },
+        "ralphCodex.claudePermissionMode": {
+          "type": "string",
+          "enum": ["dangerously-skip-permissions", "default"],
+          "default": "dangerously-skip-permissions",
+          "description": "Permission mode for Claude CLI runs. 'dangerously-skip-permissions' runs without approval prompts (suitable for unattended Ralph iterations). 'default' uses Claude's standard permission system."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",
@@ -276,7 +300,7 @@
         "ralphCodex.model": {
           "type": "string",
           "default": "gpt-5.4",
-          "description": "Default model for codex exec runs."
+          "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-20250514 for Claude)."
         },
         "ralphCodex.reasoningEffort": {
           "type": "string",
@@ -299,12 +323,12 @@
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
           "default": "chatgpt.openSidebar",
-          "description": "VS Code command id to use when attempting to reveal the Codex sidebar."
+          "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
           "default": "chatgpt.newChat",
-          "description": "VS Code command id to use when attempting to start a new Codex chat."
+          "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
         }
       }
     }

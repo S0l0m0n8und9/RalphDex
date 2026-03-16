@@ -1,17 +1,40 @@
-import { CodexHandoffMode } from '../config/types';
+import { CodexHandoffMode, RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
-import { ClipboardCodexStrategy } from './clipboardStrategy';
+import { ClaudeCliProvider } from './claudeCliProvider';
 import { CliExecCodexStrategy } from './cliExecStrategy';
+import { CliProvider } from './cliProvider';
+import { ClipboardCodexStrategy } from './clipboardStrategy';
+import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
+
+function createCliProvider(config: RalphCodexConfig): CliProvider {
+  if (config.cliProvider === 'claude') {
+    return new ClaudeCliProvider({
+      maxTurns: config.claudeMaxTurns,
+      permissionMode: config.claudePermissionMode
+    });
+  }
+
+  return new CodexCliProvider({
+    reasoningEffort: config.reasoningEffort,
+    sandboxMode: config.sandboxMode,
+    approvalMode: config.approvalMode
+  });
+}
 
 export class CodexStrategyRegistry {
   private readonly clipboardStrategy = new ClipboardCodexStrategy();
   private readonly ideStrategy = new IdeCommandCodexStrategy();
-  private readonly cliExecStrategy: CliExecCodexStrategy;
+  private cliExecStrategy: CliExecCodexStrategy;
 
-  public constructor(logger: Logger) {
-    this.cliExecStrategy = new CliExecCodexStrategy(logger);
+  public constructor(private readonly logger: Logger, config?: RalphCodexConfig) {
+    const provider = config ? createCliProvider(config) : undefined;
+    this.cliExecStrategy = new CliExecCodexStrategy(logger, provider);
+  }
+
+  public configureCliProvider(config: RalphCodexConfig): void {
+    this.cliExecStrategy = new CliExecCodexStrategy(this.logger, createCliProvider(config));
   }
 
   public getById(id: CodexStrategyId): CodexStrategy {

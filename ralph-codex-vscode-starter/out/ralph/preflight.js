@@ -349,17 +349,20 @@ function buildPreflightReport(input) {
         }
     }
     if (input.codexCliSupport) {
+        const cliSupport = input.codexCliSupport;
+        const providerLabel = cliSupport.provider === 'claude' ? 'Claude' : 'Codex';
+        const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
         if (input.codexCliSupport.check === 'pathMissing') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured Codex CLI path does not exist: ${input.codexCliSupport.commandPath}.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));
         }
         else if (input.codexCliSupport.check === 'pathNotExecutable') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_not_executable', `Configured Codex CLI path is not executable: ${input.codexCliSupport.commandPath}.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_not_executable', `Configured ${providerLabel} CLI path is not executable: ${input.codexCliSupport.commandPath}.`));
         }
         else if (input.codexCliSupport.check === 'pathLookupAssumed') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'codex_cli_path_lookup_assumed', `Codex CLI will be resolved from PATH at runtime: ${input.codexCliSupport.commandPath}. Availability is assumed until execution starts.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'codex_cli_path_lookup_assumed', `${providerLabel} CLI will be resolved from PATH at runtime: ${input.codexCliSupport.commandPath}. Availability is assumed until execution starts.`));
         }
         else if (input.codexCliSupport.check === 'pathVerifiedExecutable') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', `Configured Codex CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
         }
     }
     if (input.ideCommandSupport?.status === 'unavailable') {

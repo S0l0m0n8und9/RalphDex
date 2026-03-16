@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allowedTools": [
+      "Read", "Write", "Edit", "MultiEdit",
+      "Bash(cd ralph-codex-vscode-starter && npm *)",
+      "Bash(node scripts/*)",
+      "Glob", "Grep", "LS"
+    ]
+  }
+}

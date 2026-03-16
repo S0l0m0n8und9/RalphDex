@@ -2,7 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_CONFIG = void 0;
 exports.DEFAULT_CONFIG = {
+    cliProvider: 'codex',
     codexCommandPath: 'codex',
+    claudeCommandPath: 'claude',
+    claudeMaxTurns: 50,
+    claudePermissionMode: 'dangerously-skip-permissions',
     preferredHandoffMode: 'ideCommand',
     inspectionRootOverride: '',
     ralphIterationCap: 20,

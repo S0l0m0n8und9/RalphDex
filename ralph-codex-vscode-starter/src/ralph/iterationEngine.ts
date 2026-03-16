@@ -555,9 +555,10 @@ export class RalphIterationEngine {
       message: `Executing Ralph iteration ${prepared.iteration}`
     });
 
+    this.strategies.configureCliProvider(prepared.config);
     const execStrategy = this.strategies.getCliExecStrategy();
     if (!execStrategy.runExec) {
-      throw new Error('The configured Codex CLI strategy does not support codex exec.');
+      throw new Error('The configured CLI strategy does not support exec.');
     }
 
     let executionStatus: RalphIterationResult['executionStatus'] = 'skipped';
@@ -599,7 +600,9 @@ export class RalphIterationEngine {
         const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
         phaseTimestamps.executionStartedAt = new Date().toISOString();
         const execResult = await execStrategy.runExec({
-          commandPath: prepared.config.codexCommandPath,
+          commandPath: prepared.config.cliProvider === 'claude'
+            ? prepared.config.claudeCommandPath
+            : prepared.config.codexCommandPath,
           workspaceRoot: prepared.rootPath,
           executionRoot: prepared.rootPolicy.executionRootPath,
           prompt: promptArtifactText,
@@ -633,7 +636,9 @@ export class RalphIterationEngine {
           kind: 'cliInvocation',
           provenanceId: prepared.provenanceId,
           iteration: prepared.iteration,
-          commandPath: prepared.config.codexCommandPath,
+          commandPath: prepared.config.cliProvider === 'claude'
+            ? prepared.config.claudeCommandPath
+            : prepared.config.codexCommandPath,
           args: execResult.args,
           reasoningEffort: prepared.config.reasoningEffort,
           workspaceRoot: prepared.rootPath,

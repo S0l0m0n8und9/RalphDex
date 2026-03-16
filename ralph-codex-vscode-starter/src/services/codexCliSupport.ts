@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { CodexHandoffMode } from '../config/types';
+import { CliProviderId, CodexHandoffMode } from '../config/types';
 
 export interface CodexCliSupport {
   commandPath: string;
@@ -65,6 +65,23 @@ export async function inspectCodexCliSupport(commandPath: string): Promise<Codex
       confidence: 'blocked'
     };
   }
+}
+
+export interface CliSupportResult extends CodexCliSupport {
+  provider: CliProviderId;
+  configKey: string;
+}
+
+export async function inspectCliSupport(
+  provider: CliProviderId,
+  commandPath: string
+): Promise<CliSupportResult> {
+  const base = await inspectCodexCliSupport(commandPath);
+  return {
+    ...base,
+    provider,
+    configKey: provider === 'claude' ? 'ralphCodex.claudeCommandPath' : 'ralphCodex.codexCommandPath'
+  };
 }
 
 function commandIsDisabled(commandId: string): boolean {

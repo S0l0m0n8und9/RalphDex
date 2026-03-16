@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from './defaults';
 import {
+  ClaudePermissionMode,
+  CliProviderId,
   CodexApprovalMode,
   CodexHandoffMode,
   CodexReasoningEffort,
@@ -115,7 +117,21 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
   return {
+    cliProvider: readEnum<CliProviderId>(
+      config,
+      'cliProvider',
+      ['codex', 'claude'],
+      DEFAULT_CONFIG.cliProvider
+    ),
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
+    claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
+    claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
+    claudePermissionMode: readEnum<ClaudePermissionMode>(
+      config,
+      'claudePermissionMode',
+      ['dangerously-skip-permissions', 'default'],
+      DEFAULT_CONFIG.claudePermissionMode
+    ),
     preferredHandoffMode: readEnum<CodexHandoffMode>(
       config,
       'preferredHandoffMode',
