@@ -470,11 +470,9 @@ class RalphIterationEngine {
                     const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
                     const execResult = await execStrategy.runExec({
-                        commandPath: prepared.config.preferredExecutionAdapter === 'claudeCode'
-                            ? prepared.config.claudeCodeCommandPath
-                            : prepared.config.cliProvider === 'claude'
-                                ? prepared.config.claudeCommandPath
-                                : prepared.config.codexCommandPath,
+                        commandPath: prepared.config.cliProvider === 'claude'
+                            ? prepared.config.claudeCommandPath
+                            : prepared.config.codexCommandPath,
                         workspaceRoot: prepared.rootPath,
                         executionRoot: prepared.rootPolicy.executionRootPath,
                         prompt: promptArtifactText,
@@ -506,11 +504,9 @@ class RalphIterationEngine {
                         kind: 'cliInvocation',
                         provenanceId: prepared.provenanceId,
                         iteration: prepared.iteration,
-                        commandPath: prepared.config.preferredExecutionAdapter === 'claudeCode'
-                            ? prepared.config.claudeCodeCommandPath
-                            : prepared.config.cliProvider === 'claude'
-                                ? prepared.config.claudeCommandPath
-                                : prepared.config.codexCommandPath,
+                        commandPath: prepared.config.cliProvider === 'claude'
+                            ? prepared.config.claudeCommandPath
+                            : prepared.config.codexCommandPath,
                         args: execResult.args,
                         reasoningEffort: prepared.config.reasoningEffort,
                         workspaceRoot: prepared.rootPath,

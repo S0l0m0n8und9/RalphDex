@@ -233,17 +233,12 @@ export async function prepareIterationContext(
     rootPath: rootPolicy.verificationRootPath
   });
   const trustLevel = trustLevelForTarget(promptTarget);
-  const cliCommandPath = config.preferredExecutionAdapter === 'claudeCode'
-    ? config.claudeCodeCommandPath
-    : config.cliProvider === 'claude'
-      ? config.claudeCommandPath
-      : config.codexCommandPath;
-  const cliProviderForCheck = config.preferredExecutionAdapter === 'claudeCode'
-    ? 'claude' as const
-    : config.cliProvider;
+  const cliCommandPath = config.cliProvider === 'claude'
+    ? config.claudeCommandPath
+    : config.codexCommandPath;
   const [availableCommands, codexCliSupport] = await Promise.all([
     vscode.commands.getCommands(true),
-    inspectCliSupport(cliProviderForCheck, cliCommandPath)
+    inspectCliSupport(config.cliProvider, cliCommandPath)
   ]);
   const ideCommandSupport = inspectIdeCommandSupport({
     preferredHandoffMode: config.preferredHandoffMode,

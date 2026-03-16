@@ -375,7 +375,7 @@ async function collectStatusSnapshot(
       inspectionRootOverride: config.inspectionRootOverride
     }),
     resolveLatestStatusArtifacts(inspection.paths),
-    inspectCodexCliSupport(config.codexCommandPath)
+    inspectCodexCliSupport(config.cliProvider === 'claude' ? config.claudeCommandPath : config.codexCommandPath)
   ]);
   const rootPolicy = deriveRootPolicy(workspaceScan);
   const gitStatus = await captureGitStatus(rootPolicy.verificationRootPath);

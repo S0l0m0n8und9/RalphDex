@@ -329,17 +329,6 @@
           "type": "string",
           "default": "chatgpt.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
-        },
-        "ralphCodex.claudeCodeCommandPath": {
-          "type": "string",
-          "default": "claude",
-          "description": "Path to the Claude Code CLI executable."
-        },
-        "ralphCodex.preferredExecutionAdapter": {
-          "type": "string",
-          "enum": ["codex", "claudeCode"],
-          "default": "codex",
-          "description": "Which CLI adapter Ralph uses to execute iterations. 'codex' uses codex exec; 'claudeCode' uses claude -p."
         }
       }
     }

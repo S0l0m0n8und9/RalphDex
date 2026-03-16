@@ -244,13 +244,6 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       DEFAULT_CONFIG.sandboxMode
     ),
     openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
-    newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
-    claudeCodeCommandPath: readString(config, 'claudeCodeCommandPath', DEFAULT_CONFIG.claudeCodeCommandPath),
-    preferredExecutionAdapter: readEnum<'codex' | 'claudeCode'>(
-      config,
-      'preferredExecutionAdapter',
-      ['codex', 'claudeCode'],
-      DEFAULT_CONFIG.preferredExecutionAdapter
-    )
+    newChatCommandId: readString(config, 'newChatCommandId', newChatFallback)
   };
 }

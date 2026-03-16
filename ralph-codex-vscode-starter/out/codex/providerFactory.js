@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexStrategyRegistry = void 0;
 const claudeCliProvider_1 = require("./claudeCliProvider");
-const claudeCodeStrategy_1 = require("./claudeCodeStrategy");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
 const codexCliProvider_1 = require("./codexCliProvider");
@@ -25,21 +24,13 @@ class CodexStrategyRegistry {
     clipboardStrategy = new clipboardStrategy_1.ClipboardCodexStrategy();
     ideStrategy = new ideCommandStrategy_1.IdeCommandCodexStrategy();
     cliExecStrategy;
-    claudeCodeStrategy;
-    preferredExecutionAdapter = 'codex';
     constructor(logger, config) {
         this.logger = logger;
         const provider = config ? createCliProvider(config) : undefined;
         this.cliExecStrategy = new cliExecStrategy_1.CliExecCodexStrategy(logger, provider);
-        this.claudeCodeStrategy = new claudeCodeStrategy_1.ClaudeCodeCliExecStrategy(logger);
-        if (config) {
-            this.preferredExecutionAdapter = config.preferredExecutionAdapter;
-        }
     }
     configureCliProvider(config) {
         this.cliExecStrategy = new cliExecStrategy_1.CliExecCodexStrategy(this.logger, createCliProvider(config));
-        this.claudeCodeStrategy = new claudeCodeStrategy_1.ClaudeCodeCliExecStrategy(this.logger);
-        this.preferredExecutionAdapter = config.preferredExecutionAdapter;
     }
     getById(id) {
         switch (id) {
@@ -58,9 +49,7 @@ class CodexStrategyRegistry {
         return this.getById(mode);
     }
     getCliExecStrategy() {
-        return this.preferredExecutionAdapter === 'claudeCode'
-            ? this.claudeCodeStrategy
-            : this.cliExecStrategy;
+        return this.cliExecStrategy;
     }
 }
 exports.CodexStrategyRegistry = CodexStrategyRegistry;

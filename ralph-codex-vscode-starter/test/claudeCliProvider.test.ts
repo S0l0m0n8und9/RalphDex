@@ -38,6 +38,8 @@ test('buildArgs produces Claude CLI arguments with -p stdin marker', () => {
     '--output-format', 'json',
     '--max-turns', '50',
     '--verbose',
+    '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
+    '--no-session-persistence',
     '--dangerously-skip-permissions'
   ]);
 });
@@ -51,7 +53,9 @@ test('buildArgs omits --dangerously-skip-permissions in default permission mode'
     '--model', 'claude-sonnet-4-20250514',
     '--output-format', 'json',
     '--max-turns', '50',
-    '--verbose'
+    '--verbose',
+    '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
+    '--no-session-persistence'
   ]);
 });
 

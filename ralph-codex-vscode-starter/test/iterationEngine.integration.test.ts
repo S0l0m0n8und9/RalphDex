@@ -467,6 +467,7 @@ test('runCliIteration does not emit remediation artifacts when repeated prefligh
   const sharedMemento = new MemoryMemento();
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    cliProvider: 'codex',
     codexCommandPath: '/tmp/ralph-codex-missing/bin/codex'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
@@ -2073,6 +2074,7 @@ test('runCliIteration blocks before execution when a done parent hides the remai
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    cliProvider: 'codex',
     codexCommandPath: '/tmp/ralph-codex-missing/bin/codex',
     verifierModes: ['validationCommand', 'taskState', 'gitDiff'],
     gitCheckpointMode: 'off'

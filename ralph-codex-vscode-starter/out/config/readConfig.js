@@ -132,9 +132,7 @@ function readConfig(workspaceFolder) {
         approvalMode: readEnum(config, 'approvalMode', ['never', 'on-request', 'untrusted'], defaults_1.DEFAULT_CONFIG.approvalMode),
         sandboxMode: readEnum(config, 'sandboxMode', ['read-only', 'workspace-write', 'danger-full-access'], defaults_1.DEFAULT_CONFIG.sandboxMode),
         openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
-        newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
-        claudeCodeCommandPath: readString(config, 'claudeCodeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCodeCommandPath),
-        preferredExecutionAdapter: readEnum(config, 'preferredExecutionAdapter', ['codex', 'claudeCode'], defaults_1.DEFAULT_CONFIG.preferredExecutionAdapter)
+        newChatCommandId: readString(config, 'newChatCommandId', newChatFallback)
     };
 }
 //# sourceMappingURL=readConfig.js.map

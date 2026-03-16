@@ -42,7 +42,7 @@ Ralph Codex Workbench is a VS Code extension that:
 - `src/ralph/loopLogic.ts`: outcome classification and stop decisions
 - `src/ralph/integrity.ts`: hashing and execution-integrity helpers
 - `src/ralph/artifactStore.ts`: artifact layout, latest pointers, run bundles, and retention cleanup
-- `src/codex/claudeCodeStrategy.ts`: claude -p execution strategy and transcript builder
+- `src/codex/claudeCliProvider.ts`: claude -p execution strategy and transcript builder
 
 ## Command And Validation Entry Points
 

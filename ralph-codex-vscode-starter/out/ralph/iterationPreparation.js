@@ -144,17 +144,12 @@ async function prepareIterationContext(input) {
         rootPath: rootPolicy.verificationRootPath
     });
     const trustLevel = trustLevelForTarget(promptTarget);
-    const cliCommandPath = config.preferredExecutionAdapter === 'claudeCode'
-        ? config.claudeCodeCommandPath
-        : config.cliProvider === 'claude'
-            ? config.claudeCommandPath
-            : config.codexCommandPath;
-    const cliProviderForCheck = config.preferredExecutionAdapter === 'claudeCode'
-        ? 'claude'
-        : config.cliProvider;
+    const cliCommandPath = config.cliProvider === 'claude'
+        ? config.claudeCommandPath
+        : config.codexCommandPath;
     const [availableCommands, codexCliSupport] = await Promise.all([
         vscode.commands.getCommands(true),
-        (0, codexCliSupport_1.inspectCliSupport)(cliProviderForCheck, cliCommandPath)
+        (0, codexCliSupport_1.inspectCliSupport)(config.cliProvider, cliCommandPath)
     ]);
     const ideCommandSupport = (0, codexCliSupport_1.inspectIdeCommandSupport)({
         preferredHandoffMode: config.preferredHandoffMode,

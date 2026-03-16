@@ -31,7 +31,5 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   approvalMode: 'never',
   sandboxMode: 'workspace-write',
   openSidebarCommandId: 'claude.openSidebar',
-  newChatCommandId: 'claude.newChat',
-  claudeCodeCommandPath: 'claude',
-  preferredExecutionAdapter: 'codex'
+  newChatCommandId: 'claude.newChat'
 };

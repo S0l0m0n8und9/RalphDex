@@ -1,7 +1,6 @@
 import { CodexHandoffMode, RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
 import { ClaudeCliProvider } from './claudeCliProvider';
-import { ClaudeCodeCliExecStrategy } from './claudeCodeStrategy';
 import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
 import { ClipboardCodexStrategy } from './clipboardStrategy';
@@ -28,22 +27,14 @@ export class CodexStrategyRegistry {
   private readonly clipboardStrategy = new ClipboardCodexStrategy();
   private readonly ideStrategy = new IdeCommandCodexStrategy();
   private cliExecStrategy: CliExecCodexStrategy;
-  private claudeCodeStrategy: ClaudeCodeCliExecStrategy;
-  private preferredExecutionAdapter: 'codex' | 'claudeCode' = 'codex';
 
   public constructor(private readonly logger: Logger, config?: RalphCodexConfig) {
     const provider = config ? createCliProvider(config) : undefined;
     this.cliExecStrategy = new CliExecCodexStrategy(logger, provider);
-    this.claudeCodeStrategy = new ClaudeCodeCliExecStrategy(logger);
-    if (config) {
-      this.preferredExecutionAdapter = config.preferredExecutionAdapter;
-    }
   }
 
   public configureCliProvider(config: RalphCodexConfig): void {
     this.cliExecStrategy = new CliExecCodexStrategy(this.logger, createCliProvider(config));
-    this.claudeCodeStrategy = new ClaudeCodeCliExecStrategy(this.logger);
-    this.preferredExecutionAdapter = config.preferredExecutionAdapter;
   }
 
   public getById(id: CodexStrategyId): CodexStrategy {
@@ -66,8 +57,6 @@ export class CodexStrategyRegistry {
   }
 
   public getCliExecStrategy(): CodexStrategy {
-    return this.preferredExecutionAdapter === 'claudeCode'
-      ? this.claudeCodeStrategy
-      : this.cliExecStrategy;
+    return this.cliExecStrategy;
   }
 }

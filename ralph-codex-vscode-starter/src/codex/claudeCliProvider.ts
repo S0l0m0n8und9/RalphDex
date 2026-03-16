@@ -42,7 +42,9 @@ export class ClaudeCliProvider implements CliProvider {
       '--model', request.model,
       '--output-format', 'json',
       '--max-turns', String(this.options.maxTurns),
-      '--verbose'
+      '--verbose',
+      '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
+      '--no-session-persistence'
     ];
 
     if (this.options.permissionMode === 'dangerously-skip-permissions') {

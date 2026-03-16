@@ -32,8 +32,6 @@ exports.DEFAULT_CONFIG = {
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
     openSidebarCommandId: 'claude.openSidebar',
-    newChatCommandId: 'claude.newChat',
-    claudeCodeCommandPath: 'claude',
-    preferredExecutionAdapter: 'codex'
+    newChatCommandId: 'claude.newChat'
 };
 //# sourceMappingURL=defaults.js.map
