@@ -3,9 +3,11 @@
     "tasks": [
         {
             "label": "ralphdex: compile",
-            "type": "npm",
-            "script": "compile",
-            "path": "ralph-codex-vscode-starter",
+            "type": "shell",
+            "command": "npm run compile",
+            "options": {
+                "cwd": "${workspaceFolder}/ralph-codex-vscode-starter"
+            },
             "problemMatcher": "$tsc",
             "group": {
                 "kind": "build",

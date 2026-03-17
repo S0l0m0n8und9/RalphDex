@@ -7,7 +7,8 @@ import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { RalphStateManager } from '../src/ralph/stateManager';
-import { RalphIterationResult } from '../src/ralph/types';
+import { stringifyTaskFile } from '../src/ralph/taskFile';
+import { RalphIterationResult, RalphTaskFile } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
 
 class MemoryMemento implements vscode.Memento {
@@ -479,4 +480,68 @@ test('cleanupRuntimeArtifacts prunes historical generated artifacts while preser
   await fs.access(path.join(snapshot.paths.artifactDir, 'latest-provenance-bundle.json'));
   await fs.access(latestProvenanceSummaryPath);
   await fs.access(snapshot.paths.stateFilePath);
+});
+
+test('inspectTaskFile seeds an empty tasks.json through withTaskFileLock and returns the default structure', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  // Overwrite with empty content to trigger the seed path.
+  await fs.writeFile(snapshot.paths.taskFilePath, '', 'utf8');
+
+  const inspection = await stateManager.inspectTaskFile(snapshot.paths);
+
+  assert.ok(inspection.taskFile, 'Should return a valid task file after seeding');
+
+  const persisted = JSON.parse(await fs.readFile(snapshot.paths.taskFilePath, 'utf8')) as RalphTaskFile;
+  assert.equal(persisted.version, 2);
+  // The seeded file must contain the default seed tasks (T1, T2).
+  assert.ok(persisted.tasks.length >= 1, 'Seeded file should contain at least one seed task');
+  assert.equal(persisted.tasks[0]?.id, 'T1');
+});
+
+test('inspectTaskFile serializes concurrent seed calls so only one write wins', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  // Start with empty file so all concurrent callers hit the seed path.
+  await fs.writeFile(snapshot.paths.taskFilePath, '', 'utf8');
+
+  // Fire three concurrent inspects; all must resolve without error and
+  // the file must remain valid JSON afterwards.
+  const results = await Promise.all([
+    stateManager.inspectTaskFile(snapshot.paths),
+    stateManager.inspectTaskFile(snapshot.paths),
+    stateManager.inspectTaskFile(snapshot.paths)
+  ]);
+
+  for (const result of results) {
+    assert.ok(result.taskFile, 'Each concurrent inspect must return a valid task file');
+  }
+
+  const raw = await fs.readFile(snapshot.paths.taskFilePath, 'utf8');
+  const persisted = JSON.parse(raw) as RalphTaskFile;
+  assert.equal(persisted.version, 2);
+  assert.ok(persisted.tasks.length >= 1, 'Seeded file should contain seed tasks');
+});
+
+test('inspectTaskFile migrates a v1 tasks.json through withTaskFileLock and persists the normalised form', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  // Write a minimal v1-style file (no version field, triggers migration).
+  const v1Content = stringifyTaskFile({ version: 1 as 2, tasks: [{ id: 'T1', title: 'Old task', status: 'todo' }] });
+  await fs.writeFile(snapshot.paths.taskFilePath, v1Content, 'utf8');
+
+  const inspection = await stateManager.inspectTaskFile(snapshot.paths);
+
+  assert.ok(inspection.taskFile, 'Should return a valid task file after migration');
+  assert.equal(inspection.taskFile?.tasks[0]?.id, 'T1');
+  assert.equal(inspection.migrated, true);
+
+  const persisted = JSON.parse(await fs.readFile(snapshot.paths.taskFilePath, 'utf8')) as RalphTaskFile;
+  assert.equal(persisted.version, 2);
 });

@@ -13,7 +13,8 @@
         {
             "runtimeExecutable": "${execPath}",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}/ralph-codex-vscode-starter"
+                "--extensionDevelopmentPath=${workspaceFolder}/ralph-codex-vscode-starter",
+                "${workspaceFolder}"
             ],
             "name": "Launch RalphDex Extension",
             "outFiles": [

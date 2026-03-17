@@ -35,7 +35,7 @@ test('buildArgs produces Claude CLI arguments with -p stdin marker', () => {
   assert.deepEqual(args, [
     '-p', '-',
     '--model', 'claude-sonnet-4-20250514',
-    '--output-format', 'json',
+    '--output-format', 'stream-json',
     '--max-turns', '50',
     '--verbose',
     '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
@@ -51,7 +51,7 @@ test('buildArgs omits --dangerously-skip-permissions in default permission mode'
   assert.deepEqual(args, [
     '-p', '-',
     '--model', 'claude-sonnet-4-20250514',
-    '--output-format', 'json',
+    '--output-format', 'stream-json',
     '--max-turns', '50',
     '--verbose',
     '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',

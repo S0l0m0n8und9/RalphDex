@@ -597,17 +597,23 @@ class RalphStateManager {
         throw new Error(`Failed to parse Ralph task file at ${paths.taskFilePath}: ${inspection.diagnostics.map((item) => item.message).join(' ')}`);
     }
     async inspectTaskFile(paths) {
-        const raw = await readText(paths.taskFilePath);
-        if (!raw.trim()) {
-            const seeded = (0, taskFile_1.stringifyTaskFile)((0, taskFile_1.createDefaultTaskFile)());
-            await fs.writeFile(paths.taskFilePath, seeded, 'utf8');
-            return (0, taskFile_1.inspectTaskFileText)(seeded);
+        const locked = await (0, taskFile_1.withTaskFileLock)(paths.taskFilePath, undefined, async () => {
+            const raw = await readText(paths.taskFilePath);
+            if (!raw.trim()) {
+                const seeded = (0, taskFile_1.stringifyTaskFile)((0, taskFile_1.createDefaultTaskFile)());
+                await fs.writeFile(paths.taskFilePath, seeded, 'utf8');
+                return (0, taskFile_1.inspectTaskFileText)(seeded);
+            }
+            const inspection = (0, taskFile_1.inspectTaskFileText)(raw);
+            if (inspection.taskFile && inspection.text && inspection.migrated) {
+                await fs.writeFile(paths.taskFilePath, inspection.text, 'utf8');
+            }
+            return inspection;
+        });
+        if (locked.outcome === 'lock_timeout') {
+            throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
         }
-        const inspection = (0, taskFile_1.inspectTaskFileText)(raw);
-        if (inspection.taskFile && inspection.text && inspection.migrated) {
-            await fs.writeFile(paths.taskFilePath, inspection.text, 'utf8');
-        }
-        return inspection;
+        return locked.value;
     }
     async readTaskFile(paths) {
         return (0, taskFile_1.parseTaskFile)(await this.readTaskFileText(paths));

@@ -50,6 +50,40 @@ const EMPTY_GIT_STATUS = {
     raw: '',
     entries: []
 };
+function formatClaudeStreamLine(line) {
+    if (!line) {
+        return null;
+    }
+    try {
+        const event = JSON.parse(line);
+        switch (event.type) {
+            case 'assistant': {
+                const content = event.message?.content ?? [];
+                const toolUses = content.filter((c) => c.type === 'tool_use').map((c) => c.name ?? 'tool');
+                if (toolUses.length > 0) {
+                    return `claude [tool_use]: ${toolUses.join(', ')}`;
+                }
+                const textItem = content.find((c) => c.type === 'text');
+                if (textItem?.text) {
+                    const firstLine = textItem.text.trim().split('\n')[0].slice(0, 120);
+                    return firstLine ? `claude: ${firstLine}` : null;
+                }
+                return null;
+            }
+            case 'result': {
+                const status = event.is_error ? 'error' : (event.subtype ?? 'done');
+                const turns = event.num_turns != null ? ` (${event.num_turns} turns)` : '';
+                const cost = event.cost_usd != null ? ` $${event.cost_usd.toFixed(4)}` : '';
+                return `claude [result]: ${status}${turns}${cost}`;
+            }
+            default:
+                return null;
+        }
+    }
+    catch {
+        return null;
+    }
+}
 function toErrorMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
@@ -469,6 +503,7 @@ class RalphIterationEngine {
                     const verifiedPlan = await readVerifiedExecutionPlanArtifact(prepared.executionPlanPath, prepared.executionPlanHash);
                     const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
+                    let claudeLineBuffer = '';
                     const execResult = await execStrategy.runExec({
                         commandPath: prepared.config.cliProvider === 'claude'
                             ? prepared.config.claudeCommandPath
@@ -485,7 +520,19 @@ class RalphIterationEngine {
                         reasoningEffort: prepared.config.reasoningEffort,
                         sandboxMode: prepared.config.sandboxMode,
                         approvalMode: prepared.config.approvalMode,
-                        onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
+                        onStdoutChunk: prepared.config.cliProvider === 'claude'
+                            ? (chunk) => {
+                                claudeLineBuffer += chunk;
+                                const lines = claudeLineBuffer.split('\n');
+                                claudeLineBuffer = lines.pop() ?? '';
+                                for (const line of lines) {
+                                    const label = formatClaudeStreamLine(line.trim());
+                                    if (label) {
+                                        this.logger.appendText(label);
+                                    }
+                                }
+                            }
+                            : (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
                         onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
                     });
                     phaseTimestamps.executionFinishedAt = new Date().toISOString();

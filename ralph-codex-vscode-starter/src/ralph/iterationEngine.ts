@@ -57,6 +57,56 @@ const EMPTY_GIT_STATUS: GitStatusSnapshot = {
   entries: []
 };
 
+// ---------------------------------------------------------------------------
+// Claude stream-json output formatter
+// ---------------------------------------------------------------------------
+
+interface ClaudeStreamEvent {
+  type?: string;
+  subtype?: string;
+  is_error?: boolean;
+  result?: string;
+  cost_usd?: number;
+  num_turns?: number;
+  message?: {
+    content?: Array<{ type: string; text?: string; name?: string }>;
+  };
+}
+
+function formatClaudeStreamLine(line: string): string | null {
+  if (!line) {
+    return null;
+  }
+  try {
+    const event = JSON.parse(line) as ClaudeStreamEvent;
+    switch (event.type) {
+      case 'assistant': {
+        const content = event.message?.content ?? [];
+        const toolUses = content.filter((c) => c.type === 'tool_use').map((c) => c.name ?? 'tool');
+        if (toolUses.length > 0) {
+          return `claude [tool_use]: ${toolUses.join(', ')}`;
+        }
+        const textItem = content.find((c) => c.type === 'text');
+        if (textItem?.text) {
+          const firstLine = textItem.text.trim().split('\n')[0].slice(0, 120);
+          return firstLine ? `claude: ${firstLine}` : null;
+        }
+        return null;
+      }
+      case 'result': {
+        const status = event.is_error ? 'error' : (event.subtype ?? 'done');
+        const turns = event.num_turns != null ? ` (${event.num_turns} turns)` : '';
+        const cost = event.cost_usd != null ? ` $${event.cost_usd.toFixed(4)}` : '';
+        return `claude [result]: ${status}${turns}${cost}`;
+      }
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
 export interface RalphIterationEngineHooks {
   beforeCliExecutionIntegrityCheck?: (prepared: PreparedIterationContext) => Promise<void>;
 }
@@ -599,6 +649,7 @@ export class RalphIterationEngine {
         );
         const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
         phaseTimestamps.executionStartedAt = new Date().toISOString();
+        let claudeLineBuffer = '';
         const execResult = await execStrategy.runExec({
           commandPath: prepared.config.cliProvider === 'claude'
             ? prepared.config.claudeCommandPath
@@ -615,7 +666,19 @@ export class RalphIterationEngine {
           reasoningEffort: prepared.config.reasoningEffort,
           sandboxMode: prepared.config.sandboxMode,
           approvalMode: prepared.config.approvalMode,
-          onStdoutChunk: (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
+          onStdoutChunk: prepared.config.cliProvider === 'claude'
+            ? (chunk) => {
+                claudeLineBuffer += chunk;
+                const lines = claudeLineBuffer.split('\n');
+                claudeLineBuffer = lines.pop() ?? '';
+                for (const line of lines) {
+                  const label = formatClaudeStreamLine(line.trim());
+                  if (label) {
+                    this.logger.appendText(label);
+                  }
+                }
+              }
+            : (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
           onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
         });
         phaseTimestamps.executionFinishedAt = new Date().toISOString();

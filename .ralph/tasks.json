@@ -642,7 +642,7 @@
     {
       "id": "T24.1",
       "title": "Add atomic task-claim mechanism so agents cannot concurrently select the same task",
-      "status": "todo",
+      "status": "done",
       "parentId": "T24",
       "dependsOn": [
         "T24.1.1",

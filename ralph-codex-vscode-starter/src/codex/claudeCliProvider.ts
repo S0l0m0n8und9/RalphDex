@@ -40,7 +40,7 @@ export class ClaudeCliProvider implements CliProvider {
     const args = [
       '-p', '-',
       '--model', request.model,
-      '--output-format', 'json',
+      '--output-format', 'stream-json',
       '--max-turns', String(this.options.maxTurns),
       '--verbose',
       '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
@@ -60,15 +60,33 @@ export class ClaudeCliProvider implements CliProvider {
       return '';
     }
 
+    // With --output-format stream-json, stdout is NDJSON. Scan in reverse for
+    // the result event, which carries the final assistant response text.
+    const lines = trimmed.split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line) {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(line) as ClaudeJsonOutput;
+        if (parsed.type === 'result' && typeof parsed.result === 'string') {
+          return parsed.result;
+        }
+      } catch {
+        // skip unparseable lines
+      }
+    }
+
+    // Fallback: try parsing the whole stdout as a single JSON object in case
+    // --output-format json was used or the process wrote a single blob.
     try {
       const parsed = JSON.parse(trimmed) as ClaudeJsonOutput;
       if (typeof parsed.result === 'string') {
         return parsed.result;
       }
     } catch {
-      // If Claude output is not valid JSON, fall back to raw stdout.
-      // This can happen if --output-format json was not honoured or the
-      // process was interrupted.
+      // fall through to raw stdout
     }
 
     return trimmed;

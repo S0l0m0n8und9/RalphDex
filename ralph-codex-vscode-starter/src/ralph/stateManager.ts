@@ -674,19 +674,29 @@ export class RalphStateManager {
   }
 
   public async inspectTaskFile(paths: RalphPaths): Promise<RalphTaskFileInspection> {
-    const raw = await readText(paths.taskFilePath);
-    if (!raw.trim()) {
-      const seeded = stringifyTaskFile(createDefaultTaskFile());
-      await fs.writeFile(paths.taskFilePath, seeded, 'utf8');
-      return inspectTaskFileText(seeded);
+    const locked = await withTaskFileLock(paths.taskFilePath, undefined, async () => {
+      const raw = await readText(paths.taskFilePath);
+      if (!raw.trim()) {
+        const seeded = stringifyTaskFile(createDefaultTaskFile());
+        await fs.writeFile(paths.taskFilePath, seeded, 'utf8');
+        return inspectTaskFileText(seeded);
+      }
+
+      const inspection = inspectTaskFileText(raw);
+      if (inspection.taskFile && inspection.text && inspection.migrated) {
+        await fs.writeFile(paths.taskFilePath, inspection.text, 'utf8');
+      }
+
+      return inspection;
+    });
+
+    if (locked.outcome === 'lock_timeout') {
+      throw new Error(
+        `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+      );
     }
 
-    const inspection = inspectTaskFileText(raw);
-    if (inspection.taskFile && inspection.text && inspection.migrated) {
-      await fs.writeFile(paths.taskFilePath, inspection.text, 'utf8');
-    }
-
-    return inspection;
+    return locked.value;
   }
 
   public async readTaskFile(paths: RalphPaths): Promise<RalphTaskFile> {
