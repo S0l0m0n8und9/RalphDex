@@ -1038,6 +1038,7 @@
       "title": "Add a continuous automated ledger-integrity gate to npm run validate",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T28.1",
         "T28.2",
         "T28.3",
@@ -1059,6 +1060,7 @@
       "status": "todo",
       "parentId": "T28",
       "dependsOn": [
+        "T36",
         "T28.1",
         "T24"
       ],
@@ -1071,6 +1073,7 @@
       "status": "todo",
       "parentId": "T28",
       "dependsOn": [
+        "T36",
         "T28.2",
         "T24"
       ],
@@ -1082,6 +1085,7 @@
       "title": "Surface the trust-chain epistemic gap explicitly in the provenance bundle and documentation",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T29.1",
         "T29.2",
         "T29.3",
@@ -1100,13 +1104,13 @@
     {
       "id": "T29.2",
       "title": "Add an Epistemic Gap section to docs/provenance.md documenting what the bundle cannot prove",
-      "status": "todo",
+      "status": "done",
       "parentId": "T29",
       "dependsOn": [
         "T29.1",
         "T24"
       ],
-      "notes": "Add an Epistemic Gap section to docs/provenance.md between What Operators Can Verify and the existing closing content. The section must state explicitly: (1) the CLI provenance chain proves prompt integrity up to the codex exec boundary; (2) the completion report is the model's self-report and is labelled as unverified in the bundle — the field name completionReportStatus makes the epistemic status machine-readable; (3) reconciliationWarnings records cases where the model's claimed status diverged from what preflight and verifier evidence found; (4) the absence of reconciliation warnings does not prove model reasoning was correct — it proves the model's claimed status was consistent with the observable verifier signals; (5) operators requiring stronger guarantees should treat the verifier artifacts (validationCommand, gitDiff, taskState) as the authoritative evidence and treat the completion report as supplementary context.",
+      "notes": "Added Epistemic Gap section to docs/provenance.md covering the five required points: CLI provenance boundary, completionReportStatus machine-readable label, reconciliationWarnings semantics, absence-of-warnings meaning, and operator guidance to treat verifier artifacts as authoritative.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
@@ -1115,6 +1119,7 @@
       "status": "todo",
       "parentId": "T29",
       "dependsOn": [
+        "T36",
         "T29.2",
         "T24"
       ],
@@ -1126,6 +1131,7 @@
       "title": "Document the prompt budget methodology and make policies model-configurable",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T30.1",
         "T30.2",
         "T30.3",
@@ -1139,6 +1145,7 @@
       "status": "todo",
       "parentId": "T30",
       "dependsOn": [
+        "T36",
         "T24"
       ],
       "notes": "Create ralph-codex-vscode-starter/docs/prompt-calibration.md. It must document: (1) the target model and context window size that the current policy matrix was calibrated against; (2) the methodology used to arrive at each token target — specifically whether targets were set by observing real truncation behaviour, by estimating from section sizes, or by a different method; (3) a step-by-step recalibration procedure an operator could follow when switching to a different model or after a Codex CLI context-window change; (4) the mapping between ralphCodex.reasoningEffort values and their expected token overhead so operators can account for reasoning tokens when setting targets. Add the doc to REQUIRED_DOCS, REQUIRED_AGENTS_DOC_MAP_TARGETS, and REQUIRED_README_DOC_MAP_TARGETS in docsValidator.ts, and add a link in AGENTS.md and README.md.",
@@ -1171,6 +1178,7 @@
       "title": "Add prompt quality tests that assert on rendered content, not just section inclusion policy",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T31.1",
         "T31.2",
         "T31.3",
@@ -1184,6 +1192,7 @@
       "status": "todo",
       "parentId": "T31",
       "dependsOn": [
+        "T36",
         "T24",
         "T29",
         "T30"
@@ -1224,6 +1233,7 @@
       "title": "Auto-restart the extension host on control_plane_reload_required instead of waiting for operator action",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T32.1",
         "T32.2",
         "T32.3",
@@ -1239,6 +1249,7 @@
       "status": "todo",
       "parentId": "T32",
       "dependsOn": [
+        "T36",
         "T24",
         "T29",
         "T30"
@@ -1279,6 +1290,7 @@
       "title": "Auto-apply decompose_task and mark_blocked remediation actions without operator intervention",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T33.1",
         "T33.2",
         "T33.3",
@@ -1295,6 +1307,7 @@
       "status": "todo",
       "parentId": "T33",
       "dependsOn": [
+        "T36",
         "T24",
         "T29",
         "T30"
@@ -1341,6 +1354,7 @@
       "title": "Automatically continue into replenish-backlog prompt when backlog is cleanly exhausted in loop mode",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T34.1",
         "T34.2"
       ],
@@ -1360,6 +1374,7 @@
       "status": "todo",
       "parentId": "T34",
       "dependsOn": [
+        "T36",
         "T34.1"
       ],
       "notes": "Add tests in test/loopLogic.test.ts covering: auto-replenishment continues the loop when the backlog is clean and the setting is true; auto-replenishment does not continue when ledger drift is present in preflight diagnostics even if the setting is true; auto-replenishment does not continue when autoReplenishBacklog is false; the loop still stops when no_actionable_task is accompanied by an error-severity ledger-drift diagnostic regardless of the setting. In docs/workflows.md under Run The Ralph Loop, add a Backlog Replenishment subsection explaining that auto-replenishment is safe only when the ledger is consistent, why the drift check is the safety gate, and how to use the setting. Run npm run validate.",
@@ -1370,6 +1385,7 @@
       "title": "Add a fully-autonomous loop mode that composes T32, T33, and T34 with explicit hard stops preserved",
       "status": "todo",
       "dependsOn": [
+        "T36",
         "T35.1",
         "T35.2"
       ],
@@ -1421,6 +1437,260 @@
       ],
       "notes": "Updated the Control-Plane Boundary sentence to describe the current shipped state while retaining the required 'single-agent iteration/loop runner' fragment, and docs validation passed.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T36",
+      "title": "Fix concurrent-agent state.json collision — iteration numbers and artifact paths collide under concurrent starts",
+      "status": "todo",
+      "dependsOn": [
+        "T36.1",
+        "T36.2",
+        "T36.3"
+      ],
+      "notes": "EXECUTE FIRST, before any other todo work. When two or more Ralph loop instances start concurrently they both read the same nextIteration value from state.json before either writes it back, generating identical iteration numbers, artifact directories, and prompt paths — last writer wins and earlier agents' artifacts are silently overwritten. Observed in the first multi-agent runs: claims.json shows three run-i057 provenanceIds acquired by separate agents within 20 seconds, but only one iteration-057 artifact directory survives. state.json mutations have no lock analogous to withTaskFileLock on tasks.json. This task adds a withStateLock mechanism and makes nextIteration allocation atomic so each concurrent agent always receives a unique, collision-free iteration number before it generates any artifact paths."
+    },
+    {
+      "id": "T36.1",
+      "title": "Add withStateLock to stateManager.ts — a state.lock file mechanism wrapping every saveState call",
+      "status": "todo",
+      "parentId": "T36",
+      "notes": "In src/ralph/stateManager.ts, add a withStateLock function modelled on withTaskFileLock in src/ralph/taskFile.ts: acquire an exclusive wx-open on state.lock in the same directory as state.json; retry up to lockRetryCount times with lockRetryDelayMs delay; return a lock_timeout result if the lock cannot be acquired; always release in a finally block. Wrap every saveState call site in stateManager.ts inside withStateLock so no state.json mutation can proceed without holding the lock. The lock is not held across the entire iteration — only for the duration of each read-modify-write cycle. Update docs/invariants.md to document the state.lock contract alongside the existing tasks.lock section.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T36.2",
+      "title": "Atomic nextIteration allocation — acquire the state lock and increment nextIteration before any artifact paths are generated",
+      "status": "todo",
+      "parentId": "T36",
+      "dependsOn": [
+        "T36.1"
+      ],
+      "notes": "In src/ralph/iterationPreparation.ts the iteration number is currently read from snapshot.state.nextIteration — a snapshot captured before any lock is held, so two concurrent agents can read the same value. Change the flow so the very first step of prepareIterationContext (or a new allocateIteration helper it calls) acquires the state lock, reads the live state.json, increments nextIteration, writes it back, and releases the lock — returning the freshly allocated number. All artifact path construction must use this allocated number, not the pre-lock snapshot value. The allocation write is intentionally minimal (only nextIteration changes) so the lock is held for the shortest possible time.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T36.3",
+      "title": "Regression coverage and invariant docs for concurrent state.json writes",
+      "status": "todo",
+      "parentId": "T36",
+      "dependsOn": [
+        "T36.2"
+      ],
+      "notes": "Add tests in test/stateManager.test.ts covering: concurrent saveState calls produce unique nextIteration values with no collision; withStateLock returns lock_timeout when the lock cannot be acquired within the retry window; the lock file is cleaned up when saveState throws. Add an integration test in test/iterationEngine.integration.test.ts proving two concurrent runCliIteration calls against the same workspace generate different iteration numbers and non-overlapping artifact directories. Update docs/invariants.md under a new State File Write Serialisation section documenting the state.lock contract, the minimal-hold-time rule, and that abrupt process termination leaves a stale state.lock requiring manual operator removal.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T37",
+      "title": "Named agent identities — ralphCodex.agentId setting so each loop instance carries a distinct identity through claims and artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T36",
+        "T37.1",
+        "T37.2"
+      ],
+      "notes": "All multi-agent runs so far use agentId: 'default' for every loop instance. This means claims.json cannot distinguish which physical agent holds a task, Show Status cannot report which agent is active on what, and the remediation isolation that scopes history by agentId is always comparing the same value. A ralphCodex.agentId setting lets each VS Code window or CLI invocation carry a human-readable name (e.g. 'builder-1', 'builder-2', 'reviewer') that flows through claims, iteration results, and status output — making multi-agent operations observable and the claim graph interpretable without reading raw provenanceIds."
+    },
+    {
+      "id": "T37.1",
+      "title": "Add ralphCodex.agentId string setting and thread it through claims, iteration results, and run records",
+      "status": "todo",
+      "parentId": "T37",
+      "dependsOn": [
+        "T36"
+      ],
+      "notes": "Add ralphCodex.agentId to package.json contributes.configuration as a string with default 'default' and a description noting it should be unique per concurrent loop instance. Add it to src/config/types.ts and src/config/readConfig.ts. In src/ralph/iterationEngine.ts replace the hardcoded DEFAULT_RALPH_AGENT_ID with the configured value when creating claims via acquireClaim and when building RalphRunRecord and RalphIterationResult — the agentId field already exists on both types, this task wires the configured value through. Add a preflight warning when agentId is 'default' and another active claim with agentId 'default' already exists, since that indicates two loops sharing the same identity. Also write a durable identity record to .ralph/agents/<agentId>.json on first use, accumulating: agentId, firstSeenAt, completedTaskIds (append each time a task is reconciled done by this agent), and touchedFiles (union of changedFiles from diff summaries for this agent's iterations). This record is append-only and never cleared by cleanup — it is the start of a per-agent work history that will eventually support capability-based task routing.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T37.2",
+      "title": "Surface per-agent active-claim state in Show Status and preflight output",
+      "status": "todo",
+      "parentId": "T37",
+      "dependsOn": [
+        "T37.1"
+      ],
+      "notes": "In src/ralph/statusReport.ts and src/ralph/preflight.ts update the claim-state summary to group active claims by agentId and show: agent name, claimed task id and title, claimed-at timestamp, and whether the claim is stale. When multiple agents are active this makes it immediately visible which agent owns what without inspecting claims.json directly. Add a regression test in test/statusReport.test.ts proving the per-agent grouping renders correctly for a two-agent scenario. Add a Multi-Agent Team section to docs/workflows.md with a subsection describing the agentId setting and the multi-agent status view.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T38",
+      "title": "Review agent role — a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes",
+      "status": "todo",
+      "dependsOn": [
+        "T37",
+        "T38.1",
+        "T38.2",
+        "T38.3"
+      ],
+      "notes": "Build agents make code changes. A review agent does the opposite: reads the codebase, runs validation, identifies quality gaps or missing coverage, and emits structured findings as proposed backlog tasks — without modifying any source files. This creates a natural check on build-agent output: after a build agent completes a task, a review agent can independently verify the work and propose follow-up tasks if gaps remain. The review agent uses the same claims and completion-report machinery as build agents but its prompt instructs it to propose rather than implement, and its reconciliation path should surface any source-file modifications as an anomaly."
+    },
+    {
+      "id": "T38.1",
+      "title": "Add RalphAgentRole type and ralphCodex.agentRole setting; add review-agent prompt template",
+      "status": "todo",
+      "parentId": "T38",
+      "dependsOn": [
+        "T37"
+      ],
+      "notes": "Add RalphAgentRole = 'build' | 'review' | 'watchdog' | 'scm' to src/ralph/types.ts. Add ralphCodex.agentRole to package.json contributes.configuration as a string enum with default 'build'. In src/prompt/promptBuilder.ts branch on agentRole: when 'review', select a review-agent prompt template that instructs the model to: (1) run the validation command and report results; (2) inspect changed files since the last completed task; (3) identify missing test coverage, doc gaps, or invariant violations; (4) emit proposed follow-up tasks in the completion report's suggestedChildTasks field rather than making code changes; (5) set requestedStatus to 'done' when no gaps are found. The review template must contain no implementation instructions.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T38.2",
+      "title": "Register Run Review Agent command and wire role-aware single-pass stop behaviour",
+      "status": "todo",
+      "parentId": "T38",
+      "dependsOn": [
+        "T38.1"
+      ],
+      "notes": "Register 'Ralph: Run Review Agent' in src/commands/registerCommands.ts as a single-pass command with agentRole: 'review' and an agentId prefixed 'review-'. The review agent runs one iteration and stops — it does not loop. After the iteration completes, surface any proposed tasks (from suggestedChildTasks in the completion report) in the output channel and prompt the operator to run Apply Latest Task Decomposition Proposal if they want to commit them. Add the command to package.json contributes.commands. Do not add a Run Review Loop command — single-pass is intentional so the operator reviews proposals before a second pass.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T38.3",
+      "title": "Add regression coverage for review-agent prompt routing and command; document in docs/workflows.md",
+      "status": "todo",
+      "parentId": "T38",
+      "dependsOn": [
+        "T38.2"
+      ],
+      "notes": "Add tests in test/commandShell.smoke.test.ts: Run Review Agent command is registered; review-agent prompt selects the review template not the build template; single-pass stop fires after one iteration regardless of followUpAction. Add tests in test/promptBuilder.test.ts that the review template does not include implementation sections. Add a Review Agent subsection under Multi-Agent Team in docs/workflows.md describing: when to run a review pass, what the agent proposes vs implements, and the operator approval step before proposals become tasks. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T39",
+      "title": "Watchdog agent role — detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
+      "status": "todo",
+      "dependsOn": [
+        "T37",
+        "T39.1",
+        "T39.2",
+        "T39.3"
+      ],
+      "notes": "When a build agent gets stuck — stale claim, repeated no-progress, contested claim — the operator currently must intervene manually for each case. A watchdog agent runs independently, inspects claims.json and iterationHistory, identifies agents that have not made progress within a configurable TTL, and drives recovery: resolving stale claims, decomposing stuck tasks, or escalating to the operator with a structured report. The watchdog does not implement code — it manages the health of the agent team. It uses the same claims machinery but its reconciliation path permits cross-task recovery actions that are blocked for build agents."
+    },
+    {
+      "id": "T39.1",
+      "title": "Add watchdog agent prompt template that inspects claim health and emits structured recovery actions",
+      "status": "todo",
+      "parentId": "T39",
+      "dependsOn": [
+        "T36.4",
+        "T37"
+      ],
+      "notes": "Add 'watchdog' to RalphAgentRole in src/ralph/types.ts (alongside T38.1's additions). Add a watchdog prompt template to prompt-templates/ instructing the model to: (1) read the mechanical health signals already surfaced by T36.4's checkStaleState preflight (stale locks, stale claims, stuck iterations) rather than re-deriving them from raw files; (2) read the recent iterationHistory for each flagged task and count trailing no-progress or repeated-failure iterations; (3) for each stuck agent propose one of: resolve_stale_claim (claim past TTL with no iteration activity), decompose_task (repeated no-progress with no file changes), or escalate_to_human (contested claim or repeated human-review-needed stop) with a severity tag (MEDIUM | HIGH | CRITICAL); (4) emit recovery decisions in the completion report as a structured watchdog_actions array with severity. The template must not propose code changes. The watchdog interprets mechanical signals — it does not detect them.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T39.2",
+      "title": "Wire watchdog recovery actions into reconciliation — permit cross-task resolve and decompose for watchdog role only",
+      "status": "todo",
+      "parentId": "T39",
+      "dependsOn": [
+        "T39.1"
+      ],
+      "notes": "In src/ralph/reconciliation.ts extend the completion report schema with an optional watchdog_actions array. When the reconciling agent's role is 'watchdog', process each action: resolve_stale_claim calls resolveStaleClaim for the named task and agent without requiring the watchdog to hold a claim on that task; decompose_task calls applySuggestedChildTasks for the named task after validating the proposal; escalate_to_human appends a structured entry to progress.md and sets the target task's blocker field. Non-watchdog agents that include watchdog_actions in their completion report must have the actions silently ignored — the role guard is authoritative.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T39.3",
+      "title": "Register Run Watchdog Agent command; add regression coverage and docs",
+      "status": "todo",
+      "parentId": "T39",
+      "dependsOn": [
+        "T39.2"
+      ],
+      "notes": "Register 'Ralph: Run Watchdog Agent' in src/commands/registerCommands.ts as a single-pass command with agentRole: 'watchdog' and agentId: 'watchdog'. Add tests: command is registered; watchdog_actions from a non-watchdog agent are silently ignored; watchdog can resolve a stale claim without holding a claim on the target task; watchdog decompose proposal is applied when valid. Add a Watchdog Agent subsection under Multi-Agent Team in docs/workflows.md describing: when to run the watchdog, what recovery actions it can take autonomously, and the escalation path when it cannot recover. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T40",
+      "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
+      "status": "todo",
+      "dependsOn": [
+        "T37",
+        "T40.1",
+        "T40.2",
+        "T40.3"
+      ],
+      "notes": "Currently Ralph makes no git commits — all file changes accumulate on the working branch until a human commits them. In a multi-agent team this creates merge risk: two agents can make overlapping changes that conflict silently until a human intervenes. A source control agent introduces structured commits (one per completed task), optional branch-per-task isolation, and automated PR creation when a parent task's children are all done. All git operations are disabled by default (scmStrategy: 'none') to preserve existing behaviour — operators opt in explicitly."
+    },
+    {
+      "id": "T40.1",
+      "title": "Add ralphCodex.scmStrategy setting and implement commit-on-done — auto-commit after each task is reconciled done",
+      "status": "todo",
+      "parentId": "T40",
+      "dependsOn": [
+        "T37"
+      ],
+      "notes": "Add ralphCodex.scmStrategy to package.json contributes.configuration as a string enum with values 'none' (default), 'commit-on-done', and 'branch-per-task'. In src/ralph/iterationEngine.ts after a task is reconciled done and the iteration result is persisted, if scmStrategy is 'commit-on-done': run git add -A (excluding .ralph/state.json, .ralph/claims.json, .ralph/logs/ — add these to .gitignore if absent), generate a commit message 'ralph(T<id>): <task title>\\n\\nAgent: <agentId> | Iteration: <n> | Validation: <status>', and run git commit. Record whether the commit succeeded in iteration result warnings. Add the scm strategy field to src/config/types.ts and src/config/readConfig.ts.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T40.2",
+      "title": "Implement branch-per-task SCM strategy — integration branch per parent, feature branch per child, atomic merge on parent done",
+      "status": "todo",
+      "parentId": "T40",
+      "dependsOn": [
+        "T40.1"
+      ],
+      "notes": "When scmStrategy is 'branch-per-task': for tasks with a parentId, create or reuse a ralph/integration/<parentId> branch from main (the accumulation branch for that parent's work); create a child feature branch ralph/<taskId> from the integration branch, not from main. Record both the integration branch and the base branch (the branch active at claim time) in the claim metadata. When a child task is reconciled done, commit remaining changes (same message format as commit-on-done with GIT_AUTHOR_NAME='ralph/<agentId>'), merge ralph/<taskId> into ralph/integration/<parentId> with a merge commit. When the parent task auto-completes (all children done), merge ralph/integration/<parentId> into the base branch with a single atomic merge commit referencing the parent task id and title — one integration merge to main per parent, not one per child. For top-level tasks with no parentId, use ralph/<taskId> directly off the base branch. If any merge fails due to conflicts: leave the conflicting branch checked out, reset the affected task to in_progress with a blocker noting the merge conflict, release the claim, and surface the conflict path in iteration result warnings. Never auto-delete ralph/integration/* or ralph/<taskId> branches.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T40.3",
+      "title": "Add ralphCodex.scmPrOnParentDone setting and implement PR creation via gh CLI on parent task completion",
+      "status": "todo",
+      "parentId": "T40",
+      "dependsOn": [
+        "T40.2"
+      ],
+      "notes": "Add ralphCodex.scmPrOnParentDone boolean setting (default false). When enabled and a parent task auto-completes with scmStrategy 'branch-per-task': push the ralph/integration/<parentId> branch to the remote and open a PR using 'gh pr create' with the parent task title and a body listing child task ids and their completion summaries, targeting the base branch recorded when the first child claim was acquired. If gh is unavailable or the push fails, surface the failure in iteration result warnings and continue — PR creation failure must not roll back task completion. Add regression coverage for the gh invocation and the failure-tolerant path. Add a Source Control Agent subsection under Multi-Agent Team in docs/workflows.md. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T36.4",
+      "title": "Add mechanical checkStaleState preflight check — in-process detection of stale locks, stale claims, and stuck iterations without LLM involvement",
+      "status": "todo",
+      "parentId": "T36",
+      "dependsOn": [
+        "T36.1"
+      ],
+      "notes": "In src/ralph/preflight.ts add a checkStaleState() function that runs in-process (no LLM, no external process) as part of every preflight check. It must detect: (1) state.lock file older than a configurable threshold (default 5 min) — surface as a warning with the lock file age and the instruction to remove it manually if no iteration is in progress; (2) tasks.lock file older than threshold — same warning pattern; (3) any active claim in claims.json whose claimedAt is past the stale TTL and has no matching iteration result in .ralph/artifacts/ from after the claim time — surface as a warning per claim with agentId, taskId, and age; (4) any active claim whose claimedAt is past TTL with no recent state.json lastRun timestamp — surface as 'agent may be offline'. These are mechanical signals only — checkStaleState does not take recovery actions. Recovery is the watchdog's job (T39.1). Ensure checkStaleState results appear in the preflight artifact and in Show Status under a dedicated Agent Health section.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T41",
+      "title": "Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
+      "status": "todo",
+      "dependsOn": [
+        "T37",
+        "T41.1",
+        "T41.2"
+      ],
+      "notes": "Ralph loops terminate cleanly for many reasons that are not failures: context window exhaustion, control_plane_reload_required, manual stop, iteration cap. Currently the next session re-reads the full iteration history to reconstruct context. Gastown's gt handoff model solves this: on clean termination, serialize a structured handoff note capturing what was done and what remains, so the next session picks up precisely where the previous one stopped — without re-deriving context from raw artifacts. This is the complement to T32 (auto-reload): T32 handles the trigger, T41 handles the context carry-over."
+    },
+    {
+      "id": "T41.1",
+      "title": "Write a structured handoff note to .ralph/handoff/ on every clean loop termination",
+      "status": "todo",
+      "parentId": "T41",
+      "dependsOn": [
+        "T37"
+      ],
+      "notes": "In src/ralph/iterationEngine.ts, after persisting the final iteration result on any clean stop (task_marked_complete, iteration_cap_reached, control_plane_reload_required, human_review_needed, no_actionable_task, verification_passed_no_remaining_subtasks), write a handoff file to .ralph/handoff/<agentId>-<iteration>.json containing: agentId, iteration, selectedTaskId, selectedTaskTitle, stopReason, completionClassification, progressNote (from the completion report), pendingBlocker (if any), validationFailureSignature (if any), and a brief humanSummary string. The file must be written atomically (write to .tmp then rename). Add .ralph/handoff/ to the generated-artifact retention policy so old handoff files are pruned alongside prompts and run artifacts. The handoff directory must not be committed — add it to .gitignore.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+    },
+    {
+      "id": "T41.2",
+      "title": "Include the latest handoff note in the next iteration's prompt context and preflight output",
+      "status": "todo",
+      "parentId": "T41",
+      "dependsOn": [
+        "T41.1"
+      ],
+      "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading — placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ]
 }

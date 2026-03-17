@@ -85,6 +85,7 @@ AGENTS.md is a routing/control document for the repo.
 - [docs/verifier.md](${absolute('docs/verifier.md')}): verifier
 - [docs/boundaries.md](${absolute('docs/boundaries.md')}): boundaries
 - [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
+- [docs/prompt-calibration.md](${absolute('docs/prompt-calibration.md')}): prompt calibration
 
 ## Code Owners For Behavior
 
@@ -133,6 +134,7 @@ Validation entry points:
 - [docs/verifier.md](${absolute('docs/verifier.md')}): verifier
 - [docs/boundaries.md](${absolute('docs/boundaries.md')}): boundaries
 - [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
+- [docs/prompt-calibration.md](${absolute('docs/prompt-calibration.md')}): prompt calibration
 `);
 
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
@@ -204,6 +206,8 @@ Stable runtime notes live here.
 ## Packaging Runtime
 
 \`npm run package\` is supported on Node 20+.
+
+check:ledger is the ledger consistency check.
 `);
 
   await writeFile(rootPath, 'docs/invariants.md', `# Invariants
@@ -268,6 +272,10 @@ Stable run bundle rules live here.
 ## What Operators Can Verify
 
 Stable operator verification rules live here.
+
+## Epistemic Gap
+
+The completion report is a model's self-report. It is labelled as unverified in the run bundle. reconciliationWarnings records divergence cases. Treat verifier artifacts as the authoritative evidence.
 `);
 
   await writeFile(rootPath, 'docs/verifier.md', `# Verifier
@@ -374,6 +382,25 @@ Remediation slices should stay isolated so each \`agentId\` can validate its own
 ## Lifting The Deferral
 
 The deferral lifts only after the acceptance criterion is met and \`npm run validate\` passes for the repository.
+`);
+
+  await writeFile(rootPath, 'docs/prompt-calibration.md', `# Prompt Calibration
+
+## Calibration Baseline
+
+Stable baseline rules live here.
+
+## Token Target Methodology
+
+The targetTokens value is derived from the context window budget and reasoningEffort setting.
+
+## Recalibration Procedure
+
+Recalibrate when the prompt budget drifts outside the acceptable range. Use medium or high reasoningEffort depending on task complexity.
+
+## Reasoning Effort Overhead
+
+Stable reasoning effort overhead rules live here.
 `);
 }
 

@@ -27,6 +27,7 @@ Ralph Codex Workbench is a VS Code extension that:
 - [docs/verifier.md](docs/verifier.md): verifier modes, outcome classes, and stop implications
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals, trust limits, and Codex boundaries
 - [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
+- [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
 
 ## Code Owners For Behavior
 

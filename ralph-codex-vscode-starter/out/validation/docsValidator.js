@@ -47,7 +47,8 @@ const REQUIRED_DOCS = [
     'docs/provenance.md',
     'docs/verifier.md',
     'docs/boundaries.md',
-    'docs/multi-agent-readiness.md'
+    'docs/multi-agent-readiness.md',
+    'docs/prompt-calibration.md'
 ];
 const REQUIRED_AGENTS_HEADINGS = [
     'Purpose',
@@ -66,7 +67,8 @@ const REQUIRED_AGENTS_DOC_MAP_TARGETS = [
     'docs/provenance.md',
     'docs/verifier.md',
     'docs/boundaries.md',
-    'docs/multi-agent-readiness.md'
+    'docs/multi-agent-readiness.md',
+    'docs/prompt-calibration.md'
 ];
 const REQUIRED_README_DOC_MAP_TARGETS = [
     'AGENTS.md',
@@ -77,7 +79,8 @@ const REQUIRED_README_DOC_MAP_TARGETS = [
     'docs/provenance.md',
     'docs/verifier.md',
     'docs/boundaries.md',
-    'docs/multi-agent-readiness.md'
+    'docs/multi-agent-readiness.md',
+    'docs/prompt-calibration.md'
 ];
 const REQUIRED_CODE_OWNER_FILES = [
     'src/commands/registerCommands.ts',
@@ -127,11 +130,16 @@ const DOC_RULES = {
             'IDE Handoff Provenance Chain',
             'Integrity Failure Stages',
             'Run Bundle Contract',
-            'What Operators Can Verify'
+            'What Operators Can Verify',
+            'Epistemic Gap'
         ],
         requiredFragments: [
             'plans, prompts, invocations, and run bundles',
-            'trusted record'
+            'trusted record',
+            "model's self-report",
+            'unverified',
+            'reconciliationWarnings',
+            'authoritative evidence'
         ]
     },
     'docs/verifier.md': {
@@ -216,6 +224,21 @@ const DOC_RULES = {
             'claims.json',
             'agentId',
             'npm run validate'
+        ]
+    },
+    'docs/prompt-calibration.md': {
+        requiredHeadings: [
+            'Calibration Baseline',
+            'Token Target Methodology',
+            'Recalibration Procedure',
+            'Reasoning Effort Overhead'
+        ],
+        requiredFragments: [
+            'targetTokens',
+            'reasoningEffort',
+            'medium',
+            'high',
+            'context window'
         ]
     }
 };

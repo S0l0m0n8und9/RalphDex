@@ -111,6 +111,7 @@ The extension contributes these commands:
 - [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
 - [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
+- [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
 
 ## Product Notes
 

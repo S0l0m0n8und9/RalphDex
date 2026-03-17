@@ -160,3 +160,13 @@ The trust check is simple:
 - the stdin hash matches the rendered prompt hash
 
 If that chain breaks, the attempt should surface as a blocked integrity failure rather than an ambiguous execution record.
+
+## Epistemic Gap
+
+The CLI provenance chain proves prompt integrity up to the `codex exec` boundary. It proves that the correct rendered prompt was selected, hashed, persisted, and passed to the CLI without modification. It does not prove anything about what happened inside the model after that boundary.
+
+The completion report is a model's self-report. It is labelled as unverified in the run bundle. The field name `completionReportStatus` makes that epistemic status machine-readable so downstream tooling can distinguish verified evidence from model assertion.
+
+`reconciliationWarnings` records cases where the model's claimed status diverged from what preflight and verifier evidence found. A warning entry means an inconsistency was detected and surfaced; the absence of warnings means the model's claimed status was consistent with the observable verifier signals. Absence of reconciliation warnings does not prove the model's reasoning was correct — it proves only that the model's claimed status was consistent with those observable signals.
+
+Operators requiring stronger guarantees should treat the verifier artifacts — `validationCommand`, `gitDiff`, and `taskState` — as the authoritative evidence and treat the completion report as supplementary context. Those artifacts are produced from observable outcomes, not from the model's self-description.

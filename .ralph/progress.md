@@ -100,3 +100,4 @@
 - Added lock-cleanup-on-throw regression test to taskFile.test.ts and documented the write-serialisation contract (lock path, hold duration, timeout, process-exit behaviour) in docs/invariants.md under a new Task Graph Write Serialisation section. All 268 tests pass.
 - Serialised all tasks.json mutation paths (reconciliation, workspace seed) behind withTaskFileLock; added cleanup and concurrency regression tests; all 268 tests pass
 - Lifted multi-agent deferral: updated boundaries.md, multi-agent-readiness.md, and invariants.md to record milestone satisfied 2026-03-17; relaxed single-agent fragment check in docsValidator; all 271 tests pass.
+- Added Epistemic Gap section to docs/provenance.md covering the five required points: CLI provenance boundary, completionReportStatus machine-readable label, reconciliationWarnings semantics, absence-of-warnings meaning, and operator guidance to treat verifier artifacts as authoritative.
