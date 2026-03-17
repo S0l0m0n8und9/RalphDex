@@ -195,7 +195,7 @@ export async function prepareIterationContext(
   const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
   const effectiveTaskCounts = taskCounts ?? countTaskStatuses(taskFile);
   const taskSelectedAt = new Date().toISOString();
-  const iteration = snapshot.state.nextIteration;
+  const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
   const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
   const provenanceId = createProvenanceId({
     iteration,

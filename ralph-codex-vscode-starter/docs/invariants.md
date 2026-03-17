@@ -105,6 +105,18 @@ Lock mechanics:
 - The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
 - An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `state.lock` manually if subsequent `saveState` calls time out.
 
+### nextIteration Allocation
+
+`nextIteration` must be allocated atomically before any artifact paths are constructed for a new iteration. The allocation is performed by `stateManager.allocateIteration`, which:
+
+1. Acquires `state.lock`.
+2. Reads the live `state.json` from disk (not a cached snapshot).
+3. Captures the current `nextIteration` as the allocated number.
+4. Increments `nextIteration` by 1 and writes the minimal update back to `state.json`.
+5. Releases the lock and returns the allocated number.
+
+All iteration artifact paths (`resolveIterationArtifactPaths`, `resolvePreflightArtifactPaths`, etc.) must receive the value returned by `allocateIteration`, not the pre-lock snapshot value. This guarantees that two concurrent agents can never receive the same iteration number even if they read the workspace snapshot at the same instant.
+
 ## Preflight Invariants
 
 Before CLI execution starts, preflight must run and remain deterministic.

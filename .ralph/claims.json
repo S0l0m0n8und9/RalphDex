@@ -303,14 +303,48 @@
       "status": "released"
     },
     {
-      "taskId": "T36.1",
       "agentId": "default",
-      "provenanceId": "run-i063-cli-20260317T210734Z",
+      "taskId": "T36.1",
       "claimedAt": "2026-03-17T21:07:34.108Z",
+      "provenanceId": "run-i063-cli-20260317T210734Z",
       "status": "stale",
       "resolvedAt": "2026-03-18T00:00:00.000Z",
       "resolvedBy": "fix-failure-iteration",
       "resolutionReason": "Stale active claim from prior no_progress iteration. T36.1 implementation complete; releasing so ledger check passes."
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.1",
+      "claimedAt": "2026-03-17T21:31:32.385Z",
+      "provenanceId": "run-i064-cli-20260317T213132Z",
+      "status": "released",
+      "resolvedAt": "2026-03-18T00:00:00.000Z",
+      "resolvedBy": "fix-failure-iteration",
+      "resolutionReason": "Orphaned active claim from prior no_progress iteration. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.1",
+      "claimedAt": "2026-03-17T22:14:00.756Z",
+      "provenanceId": "run-i065-cli-20260317T221400Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.1",
+      "claimedAt": "2026-03-17T22:33:23.641Z",
+      "provenanceId": "run-i066-cli-20260317T223323Z",
+      "status": "released",
+      "resolvedAt": "2026-03-18T00:00:00.000Z",
+      "resolvedBy": "fix-failure-iteration",
+      "resolutionReason": "Orphaned active claim. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.2",
+      "claimedAt": "2026-03-17T23:12:28.584Z",
+      "provenanceId": "run-i067-cli-20260317T231228Z",
+      "status": "released"
     }
   ]
 }

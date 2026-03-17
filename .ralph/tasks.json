@@ -1452,7 +1452,7 @@
     {
       "id": "T36.1",
       "title": "Add withStateLock to stateManager.ts — a state.lock file mechanism wrapping every saveState call",
-      "status": "todo",
+      "status": "done",
       "parentId": "T36",
       "notes": "In src/ralph/stateManager.ts, add a withStateLock function modelled on withTaskFileLock in src/ralph/taskFile.ts: acquire an exclusive wx-open on state.lock in the same directory as state.json; retry up to lockRetryCount times with lockRetryDelayMs delay; return a lock_timeout result if the lock cannot be acquired; always release in a finally block. Wrap every saveState call site in stateManager.ts inside withStateLock so no state.json mutation can proceed without holding the lock. The lock is not held across the entire iteration — only for the duration of each read-modify-write cycle. Update docs/invariants.md to document the state.lock contract alongside the existing tasks.lock section.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"

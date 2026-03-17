@@ -106,7 +106,7 @@ async function prepareIterationContext(input) {
     const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
     const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
     const taskSelectedAt = new Date().toISOString();
-    const iteration = snapshot.state.nextIteration;
+    const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
     const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const provenanceId = (0, integrity_1.createProvenanceId)({
         iteration,

@@ -828,6 +828,41 @@ export class RalphStateManager {
     return path.join(paths.artifactDir, `iteration-${String(iteration).padStart(3, '0')}`);
   }
 
+  public async allocateIteration(rootPath: string, paths: RalphPaths): Promise<number> {
+    const locked = await withStateLock(paths.stateFilePath, undefined, async () => {
+      const diskStateText = await readText(paths.stateFilePath);
+      let liveState: RalphWorkspaceState;
+      if (diskStateText.trim()) {
+        try {
+          liveState = normalizeWorkspaceState(JSON.parse(diskStateText));
+        } catch {
+          liveState = normalizeWorkspaceState(this.workspaceState.get<RalphWorkspaceState>(stateKey(rootPath)));
+        }
+      } else {
+        liveState = normalizeWorkspaceState(this.workspaceState.get<RalphWorkspaceState>(stateKey(rootPath)));
+      }
+
+      const allocated = liveState.nextIteration;
+      const updated: RalphWorkspaceState = {
+        ...liveState,
+        nextIteration: allocated + 1,
+        updatedAt: new Date().toISOString()
+      };
+
+      await fs.writeFile(paths.stateFilePath, `${JSON.stringify(updated, null, 2)}\n`, 'utf8');
+      await this.workspaceState.update(stateKey(rootPath), updated);
+      return allocated;
+    });
+
+    if (locked.outcome === 'lock_timeout') {
+      throw new Error(
+        `Timed out acquiring state.lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+      );
+    }
+
+    return locked.value;
+  }
+
   public async recordPrompt(
     rootPath: string,
     paths: RalphPaths,

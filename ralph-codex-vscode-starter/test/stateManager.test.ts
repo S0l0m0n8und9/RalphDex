@@ -545,3 +545,42 @@ test('inspectTaskFile migrates a v1 tasks.json through withTaskFileLock and pers
   const persisted = JSON.parse(await fs.readFile(snapshot.paths.taskFilePath, 'utf8')) as RalphTaskFile;
   assert.equal(persisted.version, 2);
 });
+
+test('allocateIteration returns the current nextIteration and increments it in state.json', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  // Default nextIteration starts at 1.
+  const first = await stateManager.allocateIteration(rootPath, snapshot.paths);
+  assert.equal(first, 1, 'First allocation should return 1');
+
+  const stateAfterFirst = await stateManager.loadState(rootPath, snapshot.paths);
+  assert.equal(stateAfterFirst.nextIteration, 2, 'nextIteration should be 2 after first allocation');
+
+  const second = await stateManager.allocateIteration(rootPath, snapshot.paths);
+  assert.equal(second, 2, 'Second allocation should return 2');
+
+  const stateAfterSecond = await stateManager.loadState(rootPath, snapshot.paths);
+  assert.equal(stateAfterSecond.nextIteration, 3, 'nextIteration should be 3 after second allocation');
+});
+
+test('allocateIteration serializes concurrent calls so each gets a unique iteration number', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  const allocated = await Promise.all([
+    stateManager.allocateIteration(rootPath, snapshot.paths),
+    stateManager.allocateIteration(rootPath, snapshot.paths),
+    stateManager.allocateIteration(rootPath, snapshot.paths)
+  ]);
+
+  // All three values must be distinct.
+  const unique = new Set(allocated);
+  assert.equal(unique.size, 3, 'All concurrent allocations must produce unique iteration numbers');
+
+  // nextIteration on disk must have advanced by 3.
+  const finalState = await stateManager.loadState(rootPath, snapshot.paths);
+  assert.equal(finalState.nextIteration, 4, 'nextIteration must reflect all three allocations');
+});

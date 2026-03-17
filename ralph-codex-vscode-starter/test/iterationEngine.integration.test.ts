@@ -488,10 +488,16 @@ test('runCliIteration does not emit remediation artifacts when repeated prefligh
     /Ralph preflight blocked iteration start/
   );
 
-  const iterationDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
-  await assert.doesNotReject(fs.access(path.join(iterationDir, 'preflight-report.json')));
-  await assert.rejects(fs.access(path.join(iterationDir, 'task-remediation.json')));
-  await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'preflight-report.json')));
+  // Each blocked call allocates a unique iteration number, so two separate
+  // preflight-report.json files are created (one per call). Neither iteration
+  // should produce a task-remediation.json or latest-remediation.json because
+  // execution never started.
+  const iterationDir1 = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  const iterationDir2 = path.join(rootPath, '.ralph', 'artifacts', 'iteration-002');
+  await assert.doesNotReject(fs.access(path.join(iterationDir1, 'preflight-report.json')));
+  await assert.rejects(fs.access(path.join(iterationDir1, 'task-remediation.json')));
+  await assert.doesNotReject(fs.access(path.join(iterationDir2, 'preflight-report.json')));
+  await assert.rejects(fs.access(path.join(iterationDir2, 'task-remediation.json')));
   await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json')));
   const latestSummary = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md'), 'utf8');
   assert.match(latestSummary, /Preflight blocked before Codex execution started/);
