@@ -167,7 +167,7 @@ const DOC_RULES = {
         requiredFragments: [
             'explicitly does not try to do',
             'trust guarantees stop',
-            'single-agent iteration/loop runner',
+            'iteration/loop runner',
             'operator-local runtime state'
         ]
     },

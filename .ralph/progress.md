@@ -96,3 +96,7 @@
 - Removed the validation blocker by adding a test-only process runner harness and fake git baseline so claim-lifecycle and handoff-path coverage now validates cleanly under sandboxed execution. Full `npm run validate` passes.
 - Added an explicit operator-approved stale-claim recovery command that atomically marks canonical stale claims in claims.json, records durable resolution metadata, and surfaces the resolved task/provenance/reason in status and preflight reporting. Added regression coverage and updated operator docs.
 - Added regression coverage for stale-claim recovery returning a task to CLI reselection and explicit status/doc wording for the claim lifecycle across CLI execution and IDE prompt preparation.
+- Wrapped initializeFreshWorkspace tasks.json write in withTaskFileLock; all other mutation paths (reconciliation, stateManager.inspectTaskFile, stateManager.updateTaskFile) were already locked.
+- Added lock-cleanup-on-throw regression test to taskFile.test.ts and documented the write-serialisation contract (lock path, hold duration, timeout, process-exit behaviour) in docs/invariants.md under a new Task Graph Write Serialisation section. All 268 tests pass.
+- Serialised all tasks.json mutation paths (reconciliation, workspace seed) behind withTaskFileLock; added cleanup and concurrency regression tests; all 268 tests pass
+- Lifted multi-agent deferral: updated boundaries.md, multi-agent-readiness.md, and invariants.md to record milestone satisfied 2026-03-17; relaxed single-agent fragment check in docsValidator; all 271 tests pass.

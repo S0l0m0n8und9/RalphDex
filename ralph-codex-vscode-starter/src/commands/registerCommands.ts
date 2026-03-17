@@ -13,7 +13,7 @@ import {
   RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
-import { applySuggestedChildTasks, inspectTaskClaimGraph, resolveStaleClaim, selectNextTask } from '../ralph/taskFile';
+import { applySuggestedChildTasks, inspectTaskClaimGraph, resolveStaleClaim, selectNextTask, withTaskFileLock } from '../ralph/taskFile';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -139,7 +139,12 @@ async function initializeFreshWorkspace(rootPath: string): Promise<{
 
   await fs.mkdir(ralphDir, { recursive: true });
   await fs.writeFile(prdPath, RALPH_PRD_PLACEHOLDER, 'utf8');
-  await fs.writeFile(tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
+  const taskFileLocked = await withTaskFileLock(tasksPath, undefined, async () => {
+    await fs.writeFile(tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
+  });
+  if (taskFileLocked.outcome === 'lock_timeout') {
+    throw new Error(`Timed out acquiring tasks.json lock at ${taskFileLocked.lockPath} after ${taskFileLocked.attempts} attempt(s).`);
+  }
   await fs.writeFile(progressPath, '', 'utf8');
 
   if (!(await pathExists(gitignorePath))) {

@@ -336,7 +336,7 @@ Stable trust boundary rules live here.
 
 Stable control-plane boundary rules live here.
 
-The shipped control plane is a sequential single-agent iteration/loop runner.
+The shipped control plane is a sequential iteration/loop runner.
 
 ## Workspace And Runtime Boundary
 

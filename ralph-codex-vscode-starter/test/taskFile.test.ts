@@ -1109,6 +1109,26 @@ test('withTaskFileLock returns lock_timeout after the configured retry window', 
   assert.equal(await pathExists(lockPath), true);
 });
 
+test('withTaskFileLock cleans up the lock file when the callback throws, matching finally-block cleanup on clean process exit', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-file-'));
+  const taskFilePath = path.join(tempRoot, 'tasks.json');
+  const lockPath = path.join(tempRoot, 'tasks.lock');
+  await fs.writeFile(taskFilePath, stringifyTaskFile(parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: []
+  }))), 'utf8');
+
+  await assert.rejects(
+    withTaskFileLock(taskFilePath, {}, async () => {
+      assert.equal(await pathExists(lockPath), true);
+      throw new Error('simulated failure inside locked section');
+    }),
+    /simulated failure inside locked section/
+  );
+
+  assert.equal(await pathExists(lockPath), false);
+});
+
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T | PromiseLike<T>) => void; reject: (reason?: unknown) => void } {
   let resolve!: (value: T | PromiseLike<T>) => void;
   let reject!: (reason?: unknown) => void;

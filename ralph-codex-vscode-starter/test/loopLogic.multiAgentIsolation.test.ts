@@ -134,3 +134,94 @@ test('buildTaskRemediation does not mix default-agent repeated failures into an 
 
   assert.equal(remediation, null);
 });
+
+// Interleaved multi-agent tests: two explicitly named agents alternating — each agent's streak
+// must be evaluated independently so neither triggers a false stop based on the other's history.
+
+test('decideLoopContinuation does not count interleaved agent-b iterations toward agent-a no-progress streak', () => {
+  // History: agent-a, agent-b, agent-a — the agent-b entry breaks agent-a's trailing streak.
+  const agentAFirst = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const agentBMiddle = iterationResult({ iteration: 2, agentId: 'agent-b' });
+  const current = iterationResult({ iteration: 3, agentId: 'agent-a' });
+
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    preflightDiagnostics: [],
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 3,
+    stopOnHumanReviewNeeded: true,
+    autoReplenishBacklog: false,
+    reachedIterationCap: false,
+    previousIterations: [agentAFirst, agentBMiddle]
+  });
+
+  assert.equal(decision.shouldContinue, true, 'agent-a streak of 1 (broken by agent-b) must not trigger stop at threshold 2');
+  assert.equal(decision.stopReason, null);
+});
+
+test('decideLoopContinuation does not count interleaved agent-a iterations toward agent-b repeated-failure streak', () => {
+  // History: agent-b failed, agent-a failed, agent-b failed — agent-a breaks agent-b's streak.
+  const agentBFirst = iterationResult({
+    iteration: 1,
+    agentId: 'agent-b',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: []
+  });
+  const agentAMiddle = iterationResult({
+    iteration: 2,
+    agentId: 'agent-a',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: []
+  });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-b',
+    completionClassification: 'failed',
+    verificationStatus: 'failed',
+    noProgressSignals: []
+  });
+
+  const decision = decideLoopContinuation({
+    currentResult: current,
+    selectedTaskCompleted: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    hasActionableTask: true,
+    preflightDiagnostics: [],
+    noProgressThreshold: 3,
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: true,
+    autoReplenishBacklog: false,
+    reachedIterationCap: false,
+    previousIterations: [agentBFirst, agentAMiddle]
+  });
+
+  assert.equal(decision.shouldContinue, true, 'agent-b streak of 1 (broken by agent-a) must not trigger stop at threshold 2');
+  assert.equal(decision.stopReason, null);
+});
+
+test('buildTaskRemediation does not fire for agent-a when its no-progress streak is broken by interleaved agent-b iterations', () => {
+  // History: agent-a, agent-b, agent-a — agent-b entry breaks agent-a's trailing streak to 1.
+  const agentAFirst = iterationResult({ iteration: 1, agentId: 'agent-a' });
+  const agentBMiddle = iterationResult({ iteration: 2, agentId: 'agent-b' });
+  const current = iterationResult({
+    iteration: 3,
+    agentId: 'agent-a',
+    stopReason: 'repeated_no_progress',
+    noProgressSignals: ['same_task_selected_repeatedly', 'same_validation_failure_signature']
+  });
+
+  const remediation = buildTaskRemediation({
+    currentResult: current,
+    stopReason: 'repeated_no_progress',
+    previousIterations: [agentAFirst, agentBMiddle]
+  });
+
+  assert.equal(remediation, null, 'trailing streak of 1 for agent-a (broken by agent-b) must not produce remediation');
+});

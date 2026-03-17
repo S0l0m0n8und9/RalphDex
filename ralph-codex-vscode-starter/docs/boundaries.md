@@ -39,7 +39,7 @@ Ralph does not prove:
 
 Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
 
-The current shipped control plane is a sequential single-agent iteration/loop runner. Multi-agent orchestration is a planned milestone, and the explicit acceptance criteria for lifting this boundary are defined in [docs/multi-agent-readiness.md](multi-agent-readiness.md).
+The current shipped control plane is a sequential iteration/loop runner. Multi-agent orchestration acceptance criteria (task ownership, write serialisation, and remediation isolation) were satisfied on 2026-03-17; see [docs/multi-agent-readiness.md](multi-agent-readiness.md) for the full record. Broad concurrent multi-agent orchestration remains an operator concern; Ralph does not coordinate multiple agents automatically.
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 

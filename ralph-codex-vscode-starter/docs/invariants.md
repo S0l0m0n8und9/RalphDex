@@ -77,6 +77,20 @@ Task claims are a separate, file-backed coordination surface:
 - operator stale-claim recovery is explicit: `Resolve Stale Task Claim` may mark only the canonical stale active claim as `stale`, must record `resolvedAt`, `resolvedBy`, and `resolutionReason`, and must return that task to the normal CLI selection pool instead of silently reassigning it
 - status wording must keep the lifecycle explicit: CLI iterations own blocking claim acquire/release, IDE prompt preparation does not, and stale canonical claims require the operator recovery command rather than manual `claims.json` edits
 
+## Task Graph Write Serialisation
+
+All `tasks.json` mutation paths must acquire `tasks.lock` (a sibling file in the same directory) before reading, modifying, and writing the task file. This includes task-status reconciliation, task-graph replenishment, and any other code that produces a new `tasks.json`.
+
+Lock mechanics:
+
+- The lock file is `<dir>/tasks.lock` where `<dir>` is the directory containing `tasks.json`.
+- Acquisition uses an exclusive `wx` open, which atomically fails if the file already exists.
+- The lock is held only for the duration of the read–modify–write cycle; it is not a long-lived lease.
+- Maximum hold duration is bounded by the operation itself. The default retry budget is `lockRetryCount × lockRetryDelayMs` (default `10 × 25 ms = 250 ms`). Any caller that needs a longer window must pass explicit options.
+- On timeout, `withTaskFileLock` returns `{ outcome: 'lock_timeout', lockPath, attempts }` without throwing. The caller is responsible for surfacing this as a preflight failure.
+- The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
+- An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `tasks.lock` manually before the next iteration can proceed. Ralph preflight should detect an unexpectedly old lock file and surface it as a warning so operators know to intervene.
+
 ## Preflight Invariants
 
 Before CLI execution starts, preflight must run and remain deterministic.
@@ -118,7 +132,7 @@ The control plane stays deterministic:
 - when the task ledger is inconsistent, replenish-backlog context must preserve that distinction and direct the operator or model to repair `.ralph/tasks.json` before adding new tasks
 - during normal CLI task execution, Ralph reconciles the model's structured completion report locally; the model does not directly persist `.ralph/tasks.json` or `.ralph/progress.md`
 - prompt generation may differ by `cliExec` versus `ideHandoff`, but the underlying loop model must not change
-- the loop coordinates one selected task and one Codex execution at a time; broad multi-agent orchestration remains deferred until nested root policy stays deterministic, test-backed, and persisted in durable evidence
+- the loop coordinates one selected task and one Codex execution at a time; multi-agent orchestration acceptance criteria were satisfied on 2026-03-17 (see docs/multi-agent-readiness.md), but coordinating multiple concurrent agents remains an operator concern outside the built-in loop
 - prompt context stays compact; no raw transcript dumping and no full-repo enumeration
 - execution must bind to persisted artifacts before launch
 - machine-readable results must keep selected task, execution status, verification status, classification, stop reason, timestamps, and artifact references
