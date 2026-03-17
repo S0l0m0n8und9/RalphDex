@@ -12,10 +12,11 @@ Related docs:
 - `npm run compile`: build the extension from `src/` to `out/`.
 - `npm run lint`: type-check `src/` and `test/` without emitting files.
 - `npm run check:docs`: run deterministic documentation structure, link, ownership, and lightweight code-doc alignment checks.
+- `npm run check:ledger`: verify that the task and claims ledger files in `.ralph/` are internally consistent; a drifted ledger blocks the full validation gate before tests run.
 - `npm test`: run `npm run compile:tests` and then execute the Node test suite from `out-test/test/`.
 - `npm run test:activation`: launch a real Extension Development Host smoke test through `@vscode/test-electron`.
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
-- `npm run validate`: run `compile`, `check:docs`, `lint`, and `test`.
+- `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `lint`, and `test`.
 - `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
 
 ## What Is Covered

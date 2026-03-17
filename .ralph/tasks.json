@@ -1036,7 +1036,7 @@
     {
       "id": "T28",
       "title": "Add a continuous automated ledger-integrity gate to npm run validate",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T28.1",
         "T28.2",
@@ -1056,7 +1056,7 @@
     {
       "id": "T28.2",
       "title": "Wire check:ledger into package.json scripts and npm run validate",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T28",
       "dependsOn": [
         "T28.1",
@@ -1068,7 +1068,7 @@
     {
       "id": "T28.3",
       "title": "Add regression tests for the ledger check script covering each drift class",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T28",
       "dependsOn": [
         "T28.2",
@@ -1080,7 +1080,7 @@
     {
       "id": "T29",
       "title": "Surface the trust-chain epistemic gap explicitly in the provenance bundle and documentation",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T29.1",
         "T29.2",
@@ -1100,7 +1100,7 @@
     {
       "id": "T29.2",
       "title": "Add an Epistemic Gap section to docs/provenance.md documenting what the bundle cannot prove",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T29",
       "dependsOn": [
         "T29.1",
@@ -1112,7 +1112,7 @@
     {
       "id": "T29.3",
       "title": "Add docsValidator fragment enforcement for the epistemic gap language",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T29",
       "dependsOn": [
         "T29.2",
@@ -1124,7 +1124,7 @@
     {
       "id": "T30",
       "title": "Document the prompt budget methodology and make policies model-configurable",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T30.1",
         "T30.2",
@@ -1136,7 +1136,7 @@
     {
       "id": "T30.1",
       "title": "Create docs/prompt-calibration.md documenting how token targets were derived and how to re-derive them",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T30",
       "dependsOn": [
         "T24"
@@ -1147,7 +1147,7 @@
     {
       "id": "T30.2",
       "title": "Add ralphCodex.promptBudgetProfile setting and wire it into promptBuilder's policy selection",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T30",
       "dependsOn": [
         "T30.1"
@@ -1158,7 +1158,7 @@
     {
       "id": "T30.3",
       "title": "Add a budget calibration script that renders prompts across all kinds and reports estimated token counts",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T30",
       "dependsOn": [
         "T30.2"
@@ -1169,7 +1169,7 @@
     {
       "id": "T31",
       "title": "Add prompt quality tests that assert on rendered content, not just section inclusion policy",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T31.1",
         "T31.2",
@@ -1181,7 +1181,7 @@
     {
       "id": "T31.1",
       "title": "Build a prompt test fixture framework with representative workspace and task scenarios",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T31",
       "dependsOn": [
         "T24",
@@ -1194,7 +1194,7 @@
     {
       "id": "T31.2",
       "title": "Add golden snapshot tests for each prompt kind rendered against the fixture scenarios",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T31",
       "dependsOn": [
         "T31.1",
@@ -1208,7 +1208,7 @@
     {
       "id": "T31.3",
       "title": "Add content assertion tests for critical prompt sections across key scenarios",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T31",
       "dependsOn": [
         "T31.2",
@@ -1222,7 +1222,7 @@
     {
       "id": "T32",
       "title": "Auto-restart the extension host on control_plane_reload_required instead of waiting for operator action",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T32.1",
         "T32.2",
@@ -1236,7 +1236,7 @@
     {
       "id": "T32.1",
       "title": "Add ralphCodex.autoReloadOnControlPlaneChange boolean setting defaulting to false",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T32",
       "dependsOn": [
         "T24",
@@ -1249,7 +1249,7 @@
     {
       "id": "T32.2",
       "title": "Wire auto-reload into the loop command handler when the stop reason is control_plane_reload_required",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T32",
       "dependsOn": [
         "T32.1",
@@ -1263,7 +1263,7 @@
     {
       "id": "T32.3",
       "title": "Add regression coverage and document the auto-reload behaviour in docs/workflows.md",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T32",
       "dependsOn": [
         "T32.2",
@@ -1277,7 +1277,7 @@
     {
       "id": "T33",
       "title": "Auto-apply decompose_task and mark_blocked remediation actions without operator intervention",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T33.1",
         "T33.2",
@@ -1292,7 +1292,7 @@
     {
       "id": "T33.1",
       "title": "Add ralphCodex.autoApplyRemediation setting with decompose_task and mark_blocked as opt-in actions",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T33",
       "dependsOn": [
         "T24",
@@ -1305,7 +1305,7 @@
     {
       "id": "T33.2",
       "title": "Implement auto-application of mark_blocked in the iteration engine after a blocked stop",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T33",
       "dependsOn": [
         "T33.1",
@@ -1317,7 +1317,7 @@
     {
       "id": "T33.3",
       "title": "Implement auto-application of decompose_task using the existing apply-proposal write path",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T33",
       "dependsOn": [
         "T33.2"
@@ -1328,7 +1328,7 @@
     {
       "id": "T33.4",
       "title": "Add regression coverage for auto-remediation and document the behaviour in docs/verifier.md and docs/workflows.md",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T33",
       "dependsOn": [
         "T33.3"
@@ -1339,7 +1339,7 @@
     {
       "id": "T34",
       "title": "Automatically continue into replenish-backlog prompt when backlog is cleanly exhausted in loop mode",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T34.1",
         "T34.2"
@@ -1357,7 +1357,7 @@
     {
       "id": "T34.2",
       "title": "Add regression coverage and document auto-replenishment in docs/workflows.md",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T34",
       "dependsOn": [
         "T34.1"
@@ -1368,7 +1368,7 @@
     {
       "id": "T35",
       "title": "Add a fully-autonomous loop mode that composes T32, T33, and T34 with explicit hard stops preserved",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T35.1",
         "T35.2"
@@ -1378,7 +1378,7 @@
     {
       "id": "T35.1",
       "title": "Add ralphCodex.autonomyMode setting and wire it as a shorthand for the three individual autonomy settings",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T35",
       "dependsOn": [
         "T32.1",
@@ -1391,7 +1391,7 @@
     {
       "id": "T35.2",
       "title": "Document autonomous mode, its hard stops, and the trust model in docs/boundaries.md and docs/workflows.md",
-      "status": "blocked",
+      "status": "todo",
       "parentId": "T35",
       "dependsOn": [
         "T35.1"

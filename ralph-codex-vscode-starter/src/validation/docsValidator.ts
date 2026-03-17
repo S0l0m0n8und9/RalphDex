@@ -200,7 +200,8 @@ const DOC_RULES: Record<string, DocRule> = {
     requiredFragments: [
       '`npm run package`',
       'manual `.vsix` install',
-      'Node 20+'
+      'Node 20+',
+      'check:ledger'
     ]
   },
   'docs/multi-agent-readiness.md': {
