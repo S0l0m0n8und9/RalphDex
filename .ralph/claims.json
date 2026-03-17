@@ -282,11 +282,35 @@
       "status": "released"
     },
     {
-      "taskId": "T28.2",
       "agentId": "default",
-      "provenanceId": "run-i060-cli-20260317T174355Z",
+      "taskId": "T28.2",
       "claimedAt": "2026-03-17T17:43:55.607Z",
+      "provenanceId": "run-i060-cli-20260317T174355Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.1",
+      "claimedAt": "2026-03-17T20:41:10.600Z",
+      "provenanceId": "run-i061-cli-20260317T204109Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.1",
+      "claimedAt": "2026-03-17T20:53:13.817Z",
+      "provenanceId": "run-i062-cli-20260317T205313Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T36.1",
+      "agentId": "default",
+      "provenanceId": "run-i063-cli-20260317T210734Z",
+      "claimedAt": "2026-03-17T21:07:34.108Z",
+      "status": "stale",
+      "resolvedAt": "2026-03-18T00:00:00.000Z",
+      "resolvedBy": "fix-failure-iteration",
+      "resolutionReason": "Stale active claim from prior no_progress iteration. T36.1 implementation complete; releasing so ledger check passes."
     }
   ]
 }

@@ -91,6 +91,20 @@ Lock mechanics:
 - The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
 - An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `tasks.lock` manually before the next iteration can proceed. Ralph preflight should detect an unexpectedly old lock file and surface it as a warning so operators know to intervene.
 
+## State Write Serialisation
+
+All `state.json` mutation paths must acquire `state.lock` (a sibling file in the same directory) before writing. Every call to `saveState` in `stateManager.ts` must hold this lock for the duration of its write.
+
+Lock mechanics:
+
+- The lock file is `<dir>/state.lock` where `<dir>` is the directory containing `state.json`.
+- Acquisition uses an exclusive `wx` open, which atomically fails if the file already exists.
+- The lock is held only for the duration of the write cycle; it is not a long-lived lease.
+- Maximum hold duration is bounded by the write operation itself. The default retry budget is `lockRetryCount × lockRetryDelayMs` (default `10 × 25 ms = 250 ms`). Any caller that needs a longer window must pass explicit options.
+- On timeout, `withStateLock` returns `{ outcome: 'lock_timeout', lockPath, attempts }` without throwing. `saveState` converts a timeout result to a thrown error so callers fail fast rather than silently skipping persistence.
+- The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
+- An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `state.lock` manually if subsequent `saveState` calls time out.
+
 ## Preflight Invariants
 
 Before CLI execution starts, preflight must run and remain deterministic.

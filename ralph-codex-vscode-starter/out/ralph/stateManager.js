@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphStateManager = void 0;
+exports.withStateLock = withStateLock;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const pathResolver_1 = require("./pathResolver");
@@ -42,6 +43,45 @@ const taskFile_1 = require("./taskFile");
 const types_1 = require("./types");
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
+const DEFAULT_LOCK_RETRY_COUNT = 10;
+const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
+function sleep(delayMs) {
+    return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+async function withStateLock(stateFilePath, options, fn) {
+    const lockPath = path.join(path.dirname(stateFilePath), 'state.lock');
+    const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
+    const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
+    for (let attempt = 0;; attempt += 1) {
+        let handle = null;
+        try {
+            await fs.mkdir(path.dirname(lockPath), { recursive: true });
+            handle = await fs.open(lockPath, 'wx');
+            try {
+                return {
+                    outcome: 'ok',
+                    value: await fn()
+                };
+            }
+            finally {
+                await handle.close();
+                await fs.rm(lockPath, { force: true });
+            }
+        }
+        catch (error) {
+            if (handle) {
+                await handle.close().catch(() => undefined);
+            }
+            const code = typeof error === 'object' && error !== null && 'code' in error
+                ? String(error.code)
+                : '';
+            if (code !== 'EEXIST' || attempt >= retryCount) {
+                throw error;
+            }
+            await sleep(retryDelayMs);
+        }
+    }
+}
 const DEFAULT_PRD = [
     '# Product / project brief',
     '',
@@ -568,17 +608,22 @@ class RalphStateManager {
         return normalizeWorkspaceState(storedState);
     }
     async saveState(rootPath, paths, state) {
-        const normalized = {
-            ...state,
-            version: 2,
-            lastRun: state.runHistory.length > 0 ? state.runHistory[state.runHistory.length - 1] : state.lastRun,
-            lastIteration: state.iterationHistory.length > 0 ? state.iterationHistory[state.iterationHistory.length - 1] : state.lastIteration,
-            runHistory: state.runHistory.slice(-RUN_HISTORY_LIMIT),
-            iterationHistory: state.iterationHistory.slice(-ITERATION_HISTORY_LIMIT),
-            updatedAt: new Date().toISOString()
-        };
-        await fs.writeFile(paths.stateFilePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
-        await this.workspaceState.update(stateKey(rootPath), normalized);
+        const locked = await withStateLock(paths.stateFilePath, undefined, async () => {
+            const normalized = {
+                ...state,
+                version: 2,
+                lastRun: state.runHistory.length > 0 ? state.runHistory[state.runHistory.length - 1] : state.lastRun,
+                lastIteration: state.iterationHistory.length > 0 ? state.iterationHistory[state.iterationHistory.length - 1] : state.lastIteration,
+                runHistory: state.runHistory.slice(-RUN_HISTORY_LIMIT),
+                iterationHistory: state.iterationHistory.slice(-ITERATION_HISTORY_LIMIT),
+                updatedAt: new Date().toISOString()
+            };
+            await fs.writeFile(paths.stateFilePath, `${JSON.stringify(normalized, null, 2)}\n`, 'utf8');
+            await this.workspaceState.update(stateKey(rootPath), normalized);
+        });
+        if (locked.outcome === 'lock_timeout') {
+            throw new Error(`Timed out acquiring state.lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+        }
     }
     async readObjectiveText(paths) {
         return readText(paths.prdPath, `${DEFAULT_PRD}\n`);
