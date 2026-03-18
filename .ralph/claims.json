@@ -345,6 +345,54 @@
       "claimedAt": "2026-03-17T23:12:28.584Z",
       "provenanceId": "run-i067-cli-20260317T231228Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.2",
+      "claimedAt": "2026-03-17T23:43:36.786Z",
+      "provenanceId": "run-i068-cli-20260317T234336Z",
+      "status": "released",
+      "resolvedAt": "2026-03-18T00:00:00.000Z",
+      "resolvedBy": "continue-progress-iteration",
+      "resolutionReason": "T36.2 implementation complete in commit 035ba93: allocateIteration added to stateManager.ts and wired into iterationPreparation.ts."
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.2",
+      "claimedAt": "2026-03-17T23:51:14.011Z",
+      "provenanceId": "run-i069-cli-20260317T235113Z",
+      "status": "released",
+      "resolvedAt": "2026-03-18T00:00:00.000Z",
+      "resolvedBy": "fix-failure-iteration",
+      "resolutionReason": "Orphaned active claim from prior no_progress iteration. T36.2 implementation already complete in stateManager.ts (allocateIteration) and wired in iterationPreparation.ts."
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T00:05:15.896Z",
+      "provenanceId": "run-i070-cli-20260318T000515Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T04:03:14.389Z",
+      "provenanceId": "run-i071-cli-20260318T040313Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T04:13:34.085Z",
+      "provenanceId": "run-i072-cli-20260318T041333Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T04:20:02.449Z",
+      "provenanceId": "run-i073-cli-20260318T042002Z",
+      "status": "released"
     }
   ]
 }

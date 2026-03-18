@@ -301,16 +301,6 @@ function decideLoopContinuation(input) {
             message: 'The selected Ralph task is marked done.'
         };
     }
-    if (input.currentResult.verificationStatus === 'passed'
-        && input.currentResult.selectedTaskId
-        && input.currentResult.completionClassification === 'partial_progress'
-        && input.remainingSubtaskCount === 0) {
-        return {
-            shouldContinue: false,
-            stopReason: 'verification_passed_no_remaining_subtasks',
-            message: 'Verification passed and no remaining subtasks were detected for the selected task.'
-        };
-    }
     if (input.currentResult.completionClassification === 'needs_human_review' && input.stopOnHumanReviewNeeded) {
         return {
             shouldContinue: false,

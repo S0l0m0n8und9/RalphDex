@@ -75,8 +75,15 @@ async function withStateLock(stateFilePath, options, fn) {
             const code = typeof error === 'object' && error !== null && 'code' in error
                 ? String(error.code)
                 : '';
-            if (code !== 'EEXIST' || attempt >= retryCount) {
+            if (code !== 'EEXIST') {
                 throw error;
+            }
+            if (attempt >= retryCount) {
+                return {
+                    outcome: 'lock_timeout',
+                    lockPath,
+                    attempts: attempt + 1
+                };
             }
             await sleep(retryDelayMs);
         }

@@ -6,9 +6,9 @@ import test from 'node:test';
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
-import { RalphStateManager } from '../src/ralph/stateManager';
+import { RalphStateManager, withStateLock } from '../src/ralph/stateManager';
 import { stringifyTaskFile } from '../src/ralph/taskFile';
-import { RalphIterationResult, RalphTaskFile } from '../src/ralph/types';
+import { RalphIterationResult, RalphTaskFile, RalphWorkspaceState } from '../src/ralph/types';
 import { Logger } from '../src/services/logger';
 
 class MemoryMemento implements vscode.Memento {
@@ -583,4 +583,70 @@ test('allocateIteration serializes concurrent calls so each gets a unique iterat
   // nextIteration on disk must have advanced by 3.
   const finalState = await stateManager.loadState(rootPath, snapshot.paths);
   assert.equal(finalState.nextIteration, 4, 'nextIteration must reflect all three allocations');
+});
+
+test('saveState serializes concurrent writes so state.json is never corrupted by simultaneous callers', async () => {
+  const rootPath = await makeTempRoot();
+  const stateManager = new RalphStateManager(new MemoryMemento(), createLogger());
+  const snapshot = await stateManager.ensureWorkspace(rootPath, DEFAULT_CONFIG);
+
+  // Fire three concurrent saveState calls each writing a distinct nextIteration value.
+  // The state.lock serialises them so the file is never written by two callers simultaneously.
+  const nextIterationValues = [10, 20, 30];
+  await Promise.all(
+    nextIterationValues.map((n) =>
+      stateManager.saveState(rootPath, snapshot.paths, { ...snapshot.state, nextIteration: n } as RalphWorkspaceState)
+    )
+  );
+
+  // The file must contain valid JSON with exactly one of the three written values (no corruption).
+  const reloaded = await stateManager.loadState(rootPath, snapshot.paths);
+  assert.ok(
+    nextIterationValues.includes(reloaded.nextIteration),
+    `nextIteration must be one of ${nextIterationValues.join(', ')} after concurrent saves, got ${reloaded.nextIteration}`
+  );
+});
+
+test('withStateLock returns lock_timeout when the lock file already exists and retries are exhausted', async () => {
+  const rootPath = await makeTempRoot();
+  const stateFilePath = path.join(rootPath, 'state.json');
+  const lockPath = path.join(rootPath, 'state.lock');
+
+  // Pre-create the lock file to simulate a concurrently held lock.
+  await fs.mkdir(rootPath, { recursive: true });
+  await fs.writeFile(lockPath, '', 'utf8');
+
+  // With lockRetryCount: 0 the first attempt failure is the only attempt — must return lock_timeout.
+  const result = await withStateLock(stateFilePath, { lockRetryCount: 0, lockRetryDelayMs: 0 }, async () => {
+    return 'should not reach here';
+  });
+
+  assert.equal(result.outcome, 'lock_timeout');
+  if (result.outcome === 'lock_timeout') {
+    assert.equal(result.attempts, 1);
+    assert.equal(result.lockPath, lockPath);
+  }
+
+  // Remove the pre-created lock file so the temp dir is clean.
+  await fs.rm(lockPath, { force: true });
+});
+
+test('withStateLock removes the lock file when fn throws so subsequent callers are not blocked', async () => {
+  const rootPath = await makeTempRoot();
+  const stateFilePath = path.join(rootPath, 'state.json');
+  const lockPath = path.join(rootPath, 'state.lock');
+
+  // A throwing fn must propagate the error and still clean up the lock.
+  await assert.rejects(
+    () => withStateLock(stateFilePath, undefined, async () => {
+      throw new Error('simulated write failure');
+    }),
+    /simulated write failure/
+  );
+
+  // Lock file must be absent so the next caller can acquire it immediately.
+  await assert.rejects(
+    fs.access(lockPath),
+    'Lock file must not exist after fn throws'
+  );
 });

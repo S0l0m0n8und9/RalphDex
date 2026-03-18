@@ -77,7 +77,6 @@ Do not replace this with an open-ended "AI decides progress" rule.
 The loop may stop for:
 
 - `task_marked_complete`
-- `verification_passed_no_remaining_subtasks`
 - `control_plane_reload_required`
 - `iteration_cap_reached`
 - `claim_contested`

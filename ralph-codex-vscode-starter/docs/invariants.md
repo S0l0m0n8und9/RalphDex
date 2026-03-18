@@ -91,7 +91,7 @@ Lock mechanics:
 - The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
 - An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `tasks.lock` manually before the next iteration can proceed. Ralph preflight should detect an unexpectedly old lock file and surface it as a warning so operators know to intervene.
 
-## State Write Serialisation
+## State File Write Serialisation
 
 All `state.json` mutation paths must acquire `state.lock` (a sibling file in the same directory) before writing. Every call to `saveState` in `stateManager.ts` must hold this lock for the duration of its write.
 

@@ -1460,7 +1460,7 @@
     {
       "id": "T36.2",
       "title": "Atomic nextIteration allocation — acquire the state lock and increment nextIteration before any artifact paths are generated",
-      "status": "todo",
+      "status": "done",
       "parentId": "T36",
       "dependsOn": [
         "T36.1"
@@ -1471,7 +1471,7 @@
     {
       "id": "T36.3",
       "title": "Regression coverage and invariant docs for concurrent state.json writes",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T36",
       "dependsOn": [
         "T36.2"

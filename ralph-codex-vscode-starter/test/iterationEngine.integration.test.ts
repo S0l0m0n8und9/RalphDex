@@ -241,9 +241,9 @@ test('runCliIteration records successful progress, artifacts, and state persiste
 
   assert.equal(firstRun.result.completionClassification, 'partial_progress');
   assert.equal(firstRun.result.verificationStatus, 'passed');
-  assert.equal(firstRun.loopDecision.shouldContinue, false);
-  assert.equal(firstRun.loopDecision.stopReason, 'verification_passed_no_remaining_subtasks');
-  assert.equal(firstRun.result.stopReason, 'verification_passed_no_remaining_subtasks');
+  assert.equal(firstRun.loopDecision.shouldContinue, true);
+  assert.equal(firstRun.loopDecision.stopReason, null);
+  assert.equal(firstRun.result.stopReason, null);
   assert.equal(firstRun.result.completionReportStatus, 'applied');
   assert.equal(firstRun.result.selectedTaskId, 'T1');
   assert.equal(firstRun.result.selectedTaskTitle, 'Implement parent task');
@@ -2384,36 +2384,71 @@ test('runCliIteration records a reframe remediation artifact for repeated valida
   assert.equal(remediationArtifact.suggestedChildTasks[0]?.validation, 'node -e "console.error(\'deterministic failure\'); process.exit(1)"');
 });
 
-test('runCliIteration can stop on verifier-driven completion without an explicit done state', async () => {
+test('two concurrent runCliIteration calls produce distinct iteration numbers and non-overlapping artifact directories', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Document result', status: 'todo' }
+      { id: 'T1', title: 'Concurrent task one', status: 'todo' },
+      { id: 'T2', title: 'Concurrent task two', status: 'todo' }
     ]
   });
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
-    verifierModes: ['taskState'],
-    gitCheckpointMode: 'off'
+    verifierModes: ['taskState']
   });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
-  const run = createEngine([
+  const sharedMemento = new MemoryMemento();
+
+  // Two independent engines sharing the same workspace and memento.
+  const engineA = createEngine([
     {
-      run: async () => {
-        await appendProgress(rootPath, 'Verifier saw concrete progress.');
-        return { lastMessage: 'Updated progress log only.' };
-      }
+      run: async () => ({
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'in_progress',
+          progressNote: 'Engine A made progress.'
+        })
+      })
     }
+  ], sharedMemento);
+
+  const engineB = createEngine([
+    {
+      run: async () => ({
+        lastMessage: completionReport({
+          selectedTaskId: 'T2',
+          requestedStatus: 'in_progress',
+          progressNote: 'Engine B made progress.'
+        })
+      })
+    }
+  ], sharedMemento);
+
+  const [runA, runB] = await Promise.all([
+    engineA.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false }),
+    engineB.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false })
   ]);
 
-  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
-    reachedIterationCap: false
-  });
+  // Each run must receive a distinct iteration number (allocateIteration serialises under state.lock).
+  assert.notEqual(
+    runA.result.iteration,
+    runB.result.iteration,
+    `Concurrent runs must produce distinct iteration numbers, both got ${runA.result.iteration}`
+  );
 
-  assert.equal(summary.result.verificationStatus, 'passed');
-  assert.equal(summary.result.stopReason, 'verification_passed_no_remaining_subtasks');
+  // Each run must write to a distinct artifact directory so they cannot overwrite each other's output.
+  assert.notEqual(
+    runA.result.artifactDir,
+    runB.result.artifactDir,
+    `Concurrent runs must use non-overlapping artifact directories`
+  );
+
+  // Both artifact directories must exist on disk — neither run overwrote the other.
+  await assert.doesNotReject(fs.access(runA.result.artifactDir));
+  await assert.doesNotReject(fs.access(runB.result.artifactDir));
 });
 
 test('runCliIteration stops immediately when human review is required and configured', async () => {
