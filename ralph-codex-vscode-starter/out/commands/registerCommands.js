@@ -362,15 +362,23 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         command: validationCommand,
         rootPath: rootPolicy.verificationRootPath
     });
-    const artifactReadinessDiagnostics = await (0, preflight_1.inspectPreflightArtifactReadiness)({
-        rootPath: workspaceFolder.uri.fsPath,
-        artifactRootDir: inspection.paths.artifactDir,
-        promptDir: inspection.paths.promptDir,
-        runDir: inspection.paths.runDir,
-        stateFilePath: inspection.paths.stateFilePath,
-        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-        provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
-    });
+    const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+        (0, preflight_1.inspectPreflightArtifactReadiness)({
+            rootPath: workspaceFolder.uri.fsPath,
+            artifactRootDir: inspection.paths.artifactDir,
+            promptDir: inspection.paths.promptDir,
+            runDir: inspection.paths.runDir,
+            stateFilePath: inspection.paths.stateFilePath,
+            generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+            provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
+        }),
+        (0, preflight_1.checkStaleState)({
+            stateFilePath: inspection.paths.stateFilePath,
+            taskFilePath: inspection.paths.taskFilePath,
+            claimFilePath: inspection.paths.claimFilePath,
+            artifactDir: inspection.paths.artifactDir
+        })
+    ]);
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);
     const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
         readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
@@ -399,7 +407,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         fileStatus: inspection.fileStatus,
         codexCliSupport,
         ideCommandSupport,
-        artifactReadinessDiagnostics
+        artifactReadinessDiagnostics,
+        agentHealthDiagnostics
     });
     const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({

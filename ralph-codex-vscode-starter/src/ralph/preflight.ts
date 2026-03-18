@@ -18,14 +18,18 @@ import {
   RalphTaskCounts,
   RalphValidationCommandReadiness
 } from './types';
+import { DEFAULT_CLAIM_TTL_MS } from './taskFile';
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
   claimGraph: 'Claim graph',
   workspaceRuntime: 'Workspace/runtime',
   codexAdapter: 'Codex adapter',
-  validationVerifier: 'Validation/verifier'
+  validationVerifier: 'Validation/verifier',
+  agentHealth: 'Agent Health'
 };
+
+const DEFAULT_STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
 function createDiagnostic(
   category: RalphPreflightCategory,
@@ -125,6 +129,7 @@ export interface RalphPreflightInput {
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
   artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
+  agentHealthDiagnostics?: RalphPreflightExternalDiagnostic[];
 }
 
 export interface RalphPreflightExternalDiagnostic {
@@ -195,6 +200,150 @@ function basenameList(rootPath: string, targets: string[]): string {
   return targets
     .map((target) => relativePath(rootPath, target))
     .join(', ');
+}
+
+export interface CheckStaleStateInput {
+  stateFilePath: string;
+  taskFilePath: string;
+  claimFilePath: string;
+  artifactDir: string;
+  staleLockThresholdMs?: number;
+  staleClaimTtlMs?: number;
+  now?: Date;
+}
+
+export async function checkStaleState(
+  input: CheckStaleStateInput
+): Promise<RalphPreflightExternalDiagnostic[]> {
+  const diagnostics: RalphPreflightExternalDiagnostic[] = [];
+  const now = input.now ?? new Date();
+  const staleLockThresholdMs = input.staleLockThresholdMs ?? DEFAULT_STALE_LOCK_THRESHOLD_MS;
+  const staleClaimTtlMs = input.staleClaimTtlMs ?? DEFAULT_CLAIM_TTL_MS;
+
+  // (1) Check state.lock
+  const stateLockPath = path.join(path.dirname(input.stateFilePath), 'state.lock');
+  try {
+    const stat = await fs.stat(stateLockPath);
+    const ageMs = now.getTime() - stat.mtimeMs;
+    if (ageMs > staleLockThresholdMs) {
+      const ageSec = Math.round(ageMs / 1000);
+      diagnostics.push({
+        severity: 'warning',
+        code: 'stale_state_lock',
+        message: `state.lock is ${ageSec}s old (threshold ${Math.round(staleLockThresholdMs / 1000)}s). Remove it manually if no iteration is in progress.`
+      });
+    }
+  } catch {
+    // lock file absent — expected during normal operation
+  }
+
+  // (2) Check tasks.lock
+  const tasksLockPath = path.join(path.dirname(input.taskFilePath), 'tasks.lock');
+  try {
+    const stat = await fs.stat(tasksLockPath);
+    const ageMs = now.getTime() - stat.mtimeMs;
+    if (ageMs > staleLockThresholdMs) {
+      const ageSec = Math.round(ageMs / 1000);
+      diagnostics.push({
+        severity: 'warning',
+        code: 'stale_tasks_lock',
+        message: `tasks.lock is ${ageSec}s old (threshold ${Math.round(staleLockThresholdMs / 1000)}s). Remove it manually if no iteration is in progress.`
+      });
+    }
+  } catch {
+    // lock file absent — expected during normal operation
+  }
+
+  // Read claims.json for active-claim checks
+  const claimsRecord = await readJsonRecord(input.claimFilePath);
+  if (!claimsRecord) {
+    return diagnostics;
+  }
+
+  const rawClaims = Array.isArray(claimsRecord.claims) ? claimsRecord.claims : [];
+  const activeClaims = rawClaims.filter(
+    (c): c is Record<string, unknown> =>
+      typeof c === 'object' && c !== null && (c as Record<string, unknown>).status === 'active'
+  );
+
+  if (activeClaims.length === 0) {
+    return diagnostics;
+  }
+
+  // Find the mtime of the most recent iteration-result.json in artifactDir
+  let latestResultMtimeMs: number | null = null;
+  try {
+    const entries = await fs.readdir(input.artifactDir, { withFileTypes: true });
+    await Promise.all(
+      entries
+        .filter((e) => e.isDirectory() && e.name.startsWith('iteration-'))
+        .map(async (e) => {
+          const resultPath = path.join(input.artifactDir, e.name, 'iteration-result.json');
+          try {
+            const stat = await fs.stat(resultPath);
+            if (latestResultMtimeMs === null || stat.mtimeMs > latestResultMtimeMs) {
+              latestResultMtimeMs = stat.mtimeMs;
+            }
+          } catch {
+            // no result file in this dir
+          }
+        })
+    );
+  } catch {
+    // artifactDir absent or unreadable
+  }
+
+  // Read state.json lastRun.finishedAt for offline detection
+  const stateRecord = await readJsonRecord(input.stateFilePath);
+  const lastRunRecord = typeof stateRecord?.lastRun === 'object' && stateRecord.lastRun !== null
+    ? stateRecord.lastRun as Record<string, unknown>
+    : null;
+  const lastRunFinishedAt = typeof lastRunRecord?.finishedAt === 'string' ? lastRunRecord.finishedAt : null;
+  const lastRunTimeMs = lastRunFinishedAt ? new Date(lastRunFinishedAt).getTime() : null;
+
+  for (const claim of activeClaims) {
+    const claimedAt = typeof claim.claimedAt === 'string' ? claim.claimedAt : null;
+    const agentId = typeof claim.agentId === 'string' ? claim.agentId : 'unknown';
+    const taskId = typeof claim.taskId === 'string' ? claim.taskId : 'unknown';
+
+    if (!claimedAt) {
+      continue;
+    }
+
+    const claimTimeMs = new Date(claimedAt).getTime();
+    if (isNaN(claimTimeMs)) {
+      continue;
+    }
+
+    const claimAgeMs = now.getTime() - claimTimeMs;
+    if (claimAgeMs <= staleClaimTtlMs) {
+      continue; // claim is within TTL — not stale
+    }
+
+    const claimAgeSec = Math.round(claimAgeMs / 1000);
+
+    // (3) No iteration result found after claim time
+    const hasResultAfterClaim = latestResultMtimeMs !== null && latestResultMtimeMs > claimTimeMs;
+    if (!hasResultAfterClaim) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'stale_active_claim_no_result',
+        message: `Active claim by ${agentId} on task ${taskId} is ${claimAgeSec}s old (since ${claimedAt}) with no iteration result found after claim time.`
+      });
+    }
+
+    // (4) No recent state.json lastRun — agent may be offline
+    const hasRecentLastRun = lastRunTimeMs !== null && lastRunTimeMs > claimTimeMs;
+    if (!hasRecentLastRun) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'stale_active_claim_agent_offline',
+        message: `Active claim by ${agentId} on task ${taskId} is ${claimAgeSec}s old with no state.json lastRun after claim time; agent may be offline.`
+      });
+    }
+  }
+
+  return diagnostics;
 }
 
 export async function inspectPreflightArtifactReadiness(
@@ -450,6 +599,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     ));
   }
 
+  for (const diagnostic of input.agentHealthDiagnostics ?? []) {
+    diagnostics.push(createDiagnostic(
+      'agentHealth',
+      diagnostic.severity,
+      diagnostic.code,
+      diagnostic.message
+    ));
+  }
+
   if (!input.workspaceTrusted) {
     diagnostics.push(createDiagnostic(
       'workspaceRuntime',
@@ -608,7 +766,8 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     sectionSummary('claimGraph', byCategory('claimGraph')),
     sectionSummary('workspaceRuntime', byCategory('workspaceRuntime')),
     sectionSummary('codexAdapter', byCategory('codexAdapter')),
-    sectionSummary('validationVerifier', byCategory('validationVerifier'))
+    sectionSummary('validationVerifier', byCategory('validationVerifier')),
+    sectionSummary('agentHealth', byCategory('agentHealth'))
   ].join(' | ');
   const selectionSummary = summarizeTaskSelection(input.selectedTask, orderedDiagnostics);
   const validationSummary = input.validationCommand

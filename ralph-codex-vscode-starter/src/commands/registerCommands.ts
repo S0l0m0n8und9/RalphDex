@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { RalphIterationEngine } from '../ralph/iterationEngine';
-import { buildPreflightReport, inspectPreflightArtifactReadiness } from '../ralph/preflight';
+import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness } from '../ralph/preflight';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   buildStatusReport,
@@ -406,15 +406,23 @@ async function collectStatusSnapshot(
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
   });
-  const artifactReadinessDiagnostics = await inspectPreflightArtifactReadiness({
-    rootPath: workspaceFolder.uri.fsPath,
-    artifactRootDir: inspection.paths.artifactDir,
-    promptDir: inspection.paths.promptDir,
-    runDir: inspection.paths.runDir,
-    stateFilePath: inspection.paths.stateFilePath,
-    generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-    provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
-  });
+  const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+    inspectPreflightArtifactReadiness({
+      rootPath: workspaceFolder.uri.fsPath,
+      artifactRootDir: inspection.paths.artifactDir,
+      promptDir: inspection.paths.promptDir,
+      runDir: inspection.paths.runDir,
+      stateFilePath: inspection.paths.stateFilePath,
+      generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+      provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
+    }),
+    checkStaleState({
+      stateFilePath: inspection.paths.stateFilePath,
+      taskFilePath: inspection.paths.taskFilePath,
+      claimFilePath: inspection.paths.claimFilePath,
+      artifactDir: inspection.paths.artifactDir
+    })
+  ]);
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
   const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
     readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
@@ -443,7 +451,8 @@ async function collectStatusSnapshot(
     fileStatus: inspection.fileStatus,
     codexCliSupport,
     ideCommandSupport,
-    artifactReadinessDiagnostics
+    artifactReadinessDiagnostics,
+    agentHealthDiagnostics
   });
   const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
     inspectGeneratedArtifactRetention({

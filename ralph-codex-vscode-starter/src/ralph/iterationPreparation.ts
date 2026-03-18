@@ -27,6 +27,7 @@ import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableT
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
+  checkStaleState,
   inspectPreflightArtifactReadiness,
   renderPreflightReport
 } from './preflight';
@@ -246,15 +247,23 @@ export async function prepareIterationContext(
     newChatCommandId: config.newChatCommandId,
     availableCommands
   });
-  const artifactReadinessDiagnostics = await inspectPreflightArtifactReadiness({
-    rootPath,
-    artifactRootDir: snapshot.paths.artifactDir,
-    promptDir: snapshot.paths.promptDir,
-    runDir: snapshot.paths.runDir,
-    stateFilePath: snapshot.paths.stateFilePath,
-    generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-    provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
-  });
+  const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+    inspectPreflightArtifactReadiness({
+      rootPath,
+      artifactRootDir: snapshot.paths.artifactDir,
+      promptDir: snapshot.paths.promptDir,
+      runDir: snapshot.paths.runDir,
+      stateFilePath: snapshot.paths.stateFilePath,
+      generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+      provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
+    }),
+    checkStaleState({
+      stateFilePath: snapshot.paths.stateFilePath,
+      taskFilePath: snapshot.paths.taskFilePath,
+      claimFilePath: snapshot.paths.claimFilePath,
+      artifactDir: snapshot.paths.artifactDir
+    })
+  ]);
   const preflightReport = buildPreflightReport({
     rootPath,
     workspaceTrusted: vscode.workspace.isTrusted,
@@ -272,7 +281,8 @@ export async function prepareIterationContext(
     createdPaths: snapshot.createdPaths,
     codexCliSupport,
     ideCommandSupport,
-    artifactReadinessDiagnostics
+    artifactReadinessDiagnostics,
+    agentHealthDiagnostics
   });
   const preflightArtifactPaths = resolvePreflightArtifactPaths(snapshot.paths.artifactDir, iteration);
   const {

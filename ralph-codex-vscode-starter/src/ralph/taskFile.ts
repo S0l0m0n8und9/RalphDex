@@ -19,7 +19,7 @@ const EMPTY_COUNTS: RalphTaskCounts = {
   done: 0
 };
 
-const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
+export const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
 const DEFAULT_LOCK_RETRY_COUNT = 10;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 

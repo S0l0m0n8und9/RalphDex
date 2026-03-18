@@ -157,15 +157,23 @@ async function prepareIterationContext(input) {
         newChatCommandId: config.newChatCommandId,
         availableCommands
     });
-    const artifactReadinessDiagnostics = await (0, preflight_1.inspectPreflightArtifactReadiness)({
-        rootPath,
-        artifactRootDir: snapshot.paths.artifactDir,
-        promptDir: snapshot.paths.promptDir,
-        runDir: snapshot.paths.runDir,
-        stateFilePath: snapshot.paths.stateFilePath,
-        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-        provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
-    });
+    const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+        (0, preflight_1.inspectPreflightArtifactReadiness)({
+            rootPath,
+            artifactRootDir: snapshot.paths.artifactDir,
+            promptDir: snapshot.paths.promptDir,
+            runDir: snapshot.paths.runDir,
+            stateFilePath: snapshot.paths.stateFilePath,
+            generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+            provenanceBundleRetentionCount: config.provenanceBundleRetentionCount
+        }),
+        (0, preflight_1.checkStaleState)({
+            stateFilePath: snapshot.paths.stateFilePath,
+            taskFilePath: snapshot.paths.taskFilePath,
+            claimFilePath: snapshot.paths.claimFilePath,
+            artifactDir: snapshot.paths.artifactDir
+        })
+    ]);
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath,
         workspaceTrusted: vscode.workspace.isTrusted,
@@ -183,7 +191,8 @@ async function prepareIterationContext(input) {
         createdPaths: snapshot.createdPaths,
         codexCliSupport,
         ideCommandSupport,
-        artifactReadinessDiagnostics
+        artifactReadinessDiagnostics,
+        agentHealthDiagnostics
     });
     const preflightArtifactPaths = (0, artifactStore_1.resolvePreflightArtifactPaths)(snapshot.paths.artifactDir, iteration);
     const { persistedReport: persistedPreflightReport, humanSummary: preflightSummaryText } = await (0, artifactStore_1.writePreflightArtifacts)({

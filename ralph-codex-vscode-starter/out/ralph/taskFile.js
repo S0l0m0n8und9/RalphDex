@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_CLAIM_TTL_MS = void 0;
 exports.withTaskFileLock = withTaskFileLock;
 exports.inspectTaskGraph = inspectTaskGraph;
 exports.inspectTaskFileText = inspectTaskFileText;
@@ -60,7 +61,7 @@ const EMPTY_COUNTS = {
     blocked: 0,
     done: 0
 };
-const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
+exports.DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
 const DEFAULT_LOCK_RETRY_COUNT = 10;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 const SUPPORTED_TASK_FIELDS = new Set([
@@ -169,7 +170,7 @@ function findClaim(claimFile, candidate) {
     return claimFile.claims.find((claim) => claimRecordMatches(claim, candidate)) ?? null;
 }
 function resolveClaimTtlMs(options) {
-    return Math.max(0, Math.floor(options?.ttlMs ?? DEFAULT_CLAIM_TTL_MS));
+    return Math.max(0, Math.floor(options?.ttlMs ?? exports.DEFAULT_CLAIM_TTL_MS));
 }
 function claimIsStale(claim, ttlMs, now) {
     if (claim.status !== 'active') {

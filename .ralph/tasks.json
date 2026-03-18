@@ -1474,7 +1474,9 @@
       "status": "in_progress",
       "parentId": "T36",
       "dependsOn": [
-        "T36.2"
+        "T36.2",
+        "T36.3.1",
+        "T36.3.2"
       ],
       "notes": "Add tests in test/stateManager.test.ts covering: concurrent saveState calls produce unique nextIteration values with no collision; withStateLock returns lock_timeout when the lock cannot be acquired within the retry window; the lock file is cleaned up when saveState throws. Add an integration test in test/iterationEngine.integration.test.ts proving two concurrent runCliIteration calls against the same workspace generate different iteration numbers and non-overlapping artifact directories. Update docs/invariants.md under a new State File Write Serialisation section documenting the state.lock contract, the minimal-hold-time rule, and that abrupt process termination leaves a stale state.lock requiring manual operator removal.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1690,6 +1692,29 @@
         "T41.1"
       ],
       "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading — placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T36.3.1",
+      "title": "Regression coverage",
+      "status": "todo",
+      "parentId": "T36.3",
+      "dependsOn": [
+        "T36.2"
+      ],
+      "notes": "Narrow T36.3 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T36.3.2",
+      "title": "Invariant docs for concurrent state.json writes",
+      "status": "todo",
+      "parentId": "T36.3",
+      "dependsOn": [
+        "T36.2",
+        "T36.3.1"
+      ],
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T36.3.1.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ]

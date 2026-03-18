@@ -55,7 +55,8 @@ export type RalphPreflightCategory =
   | 'claimGraph'
   | 'workspaceRuntime'
   | 'codexAdapter'
-  | 'validationVerifier';
+  | 'validationVerifier'
+  | 'agentHealth';
 
 export type RalphPreflightSeverity = 'error' | 'warning' | 'info';
 

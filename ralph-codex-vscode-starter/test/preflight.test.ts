@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, inspectPreflightArtifactReadiness } from '../src/ralph/preflight';
+import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
@@ -296,4 +296,245 @@ test('inspectPreflightArtifactReadiness warns when retention cleanup is disabled
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'artifact_cleanup_root_overlap'));
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'generated_artifact_retention_disabled'));
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'provenance_bundle_retention_disabled'));
+});
+
+test('checkStaleState returns no diagnostics when lock files are absent and no claims', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(rootPath, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.deepEqual(diagnostics, []);
+});
+
+test('checkStaleState emits stale_state_lock warning when state.lock is older than threshold', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(rootPath, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  // Create a state.lock file with mtime in the past
+  const stateLockPath = path.join(ralphDir, 'state.lock');
+  await fs.writeFile(stateLockPath, '', 'utf8');
+  const pastTime = new Date('2026-03-18T11:50:00.000Z'); // 10 min before 'now'
+  await fs.utimes(stateLockPath, pastTime, pastTime);
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000, // 5 min threshold
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.ok(diagnostics.some((d) => d.code === 'stale_state_lock'));
+  assert.ok(diagnostics.find((d) => d.code === 'stale_state_lock')?.message.includes('Remove it manually'));
+});
+
+test('checkStaleState does not emit stale_state_lock when state.lock is within threshold', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(rootPath, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  const stateLockPath = path.join(ralphDir, 'state.lock');
+  await fs.writeFile(stateLockPath, '', 'utf8');
+  const recentTime = new Date('2026-03-18T11:58:00.000Z'); // 2 min before 'now'
+  await fs.utimes(stateLockPath, recentTime, recentTime);
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000, // 5 min threshold
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.ok(!diagnostics.some((d) => d.code === 'stale_state_lock'));
+});
+
+test('checkStaleState emits stale_tasks_lock warning when tasks.lock is older than threshold', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(ralphDir, 'tasks.json'); // tasks.lock will be in ralphDir
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  const tasksLockPath = path.join(ralphDir, 'tasks.lock');
+  await fs.writeFile(tasksLockPath, '', 'utf8');
+  const pastTime = new Date('2026-03-18T11:50:00.000Z');
+  await fs.utimes(tasksLockPath, pastTime, pastTime);
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.ok(diagnostics.some((d) => d.code === 'stale_tasks_lock'));
+});
+
+test('checkStaleState emits stale_active_claim_no_result and stale_active_claim_agent_offline for stale active claim', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(ralphDir, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  // Active claim that is 2 days old (past the 24-hour TTL)
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        agentId: 'agent-x',
+        taskId: 'T5',
+        claimedAt: '2026-03-16T12:00:00.000Z',
+        provenanceId: 'run-old',
+        status: 'active'
+      }
+    ]
+  }), 'utf8');
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000, // 24 hours
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.ok(diagnostics.some((d) => d.code === 'stale_active_claim_no_result'));
+  assert.ok(diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
+  const noResultDiag = diagnostics.find((d) => d.code === 'stale_active_claim_no_result');
+  assert.ok(noResultDiag?.message.includes('agent-x'));
+  assert.ok(noResultDiag?.message.includes('T5'));
+});
+
+test('checkStaleState does not emit stale claim warnings when iteration result exists after claim time', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+  const iterDir = path.join(artifactDir, 'iteration-001');
+  await createDirectories([ralphDir, iterDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(ralphDir, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+
+  const claimTime = new Date('2026-03-16T12:00:00.000Z');
+  const resultTime = new Date('2026-03-16T13:00:00.000Z'); // after claim
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        agentId: 'agent-x',
+        taskId: 'T5',
+        claimedAt: claimTime.toISOString(),
+        provenanceId: 'run-old',
+        status: 'active'
+      }
+    ]
+  }), 'utf8');
+
+  const resultPath = path.join(iterDir, 'iteration-result.json');
+  await fs.writeFile(resultPath, '{}', 'utf8');
+  await fs.utimes(resultPath, resultTime, resultTime);
+
+  // lastRun after claim time too
+  await fs.writeFile(stateFilePath, JSON.stringify({
+    version: 2,
+    lastRun: { finishedAt: resultTime.toISOString() }
+  }), 'utf8');
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_no_result'));
+  assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
+});
+
+test('checkStaleState ignores released and non-stale active claims', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  await createDirectories([ralphDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(ralphDir, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+
+  const now = new Date('2026-03-18T12:00:00.000Z');
+  const recentClaimTime = new Date(now.getTime() - 60_000).toISOString(); // 1 min ago — within 24h TTL
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        agentId: 'agent-a',
+        taskId: 'T1',
+        claimedAt: '2026-03-16T00:00:00.000Z',
+        provenanceId: 'run-old',
+        status: 'released'  // released — should be ignored
+      },
+      {
+        agentId: 'agent-b',
+        taskId: 'T2',
+        claimedAt: recentClaimTime,
+        provenanceId: 'run-new',
+        status: 'active'  // active but within TTL
+      }
+    ]
+  }), 'utf8');
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000,
+    now
+  });
+
+  assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_no_result'));
+  assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
 });
