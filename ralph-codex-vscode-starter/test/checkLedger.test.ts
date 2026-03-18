@@ -106,3 +106,30 @@ test('check-ledger ignores legacy IDE handoff claims because they are non-blocki
 
   assert.deepEqual(runLedgerCheck(workspaceRoot), []);
 });
+
+test('check-ledger passes when a task is in_progress with an active CLI claim — the normal steady state after markTaskInProgress', async () => {
+  // The engine marks tasks in_progress at claim time (via markTaskInProgress) so the ledger
+  // is always consistent when the agent runs validation.
+  const workspaceRoot = await createWorkspace(
+    {
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Active iteration task', status: 'in_progress' }
+      ]
+    },
+    {
+      version: 1,
+      claims: [
+        {
+          taskId: 'T1',
+          agentId: 'default',
+          provenanceId: 'run-i001-cli-20260318T000000Z',
+          claimedAt: '2026-03-18T00:00:00.000Z',
+          status: 'active'
+        }
+      ]
+    }
+  );
+
+  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
+});

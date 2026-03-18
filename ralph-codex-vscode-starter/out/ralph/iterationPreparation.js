@@ -92,7 +92,7 @@ async function prepareIterationContext(input) {
     const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
         ? vscode.window.activeTextEditor.document.uri.fsPath
         : null;
-    const [progressText, taskInspection, taskCounts, summary, beforeCoreState] = await Promise.all([
+    const [progressText, taskInspection, taskCounts, summary, initialCoreState] = await Promise.all([
         stateManager.readProgressText(snapshot.paths),
         stateManager.inspectTaskFile(snapshot.paths),
         stateManager.taskCounts(snapshot.paths).catch(() => null),
@@ -102,8 +102,8 @@ async function prepareIterationContext(input) {
         }),
         (0, verifier_1.captureCoreState)(snapshot.paths)
     ]);
-    const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
-    const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
+    const tasksText = taskInspection.text ?? initialCoreState.tasksText;
+    const taskFile = taskInspection.taskFile ?? initialCoreState.taskFile;
     const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
     const taskSelectedAt = new Date().toISOString();
     const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
@@ -114,8 +114,13 @@ async function prepareIterationContext(input) {
         createdAt: taskSelectedAt
     });
     const selectedTask = promptTarget === 'cliExec'
-        ? await selectClaimedTask(taskFile, snapshot.paths.claimFilePath, provenanceId)
+        ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId)
         : (0, taskFile_1.selectNextTask)(taskFile);
+    // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
+    // the todo→in_progress bookkeeping change is not counted as durable agent progress.
+    const beforeCoreState = promptTarget === 'cliExec'
+        ? await (0, verifier_1.captureCoreState)(snapshot.paths)
+        : initialCoreState;
     const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);
     const promptDecision = (0, promptBuilder_1.decidePromptKind)(snapshot.state, promptTarget, {
         selectedTask,
@@ -371,10 +376,13 @@ async function prepareIterationContext(input) {
     await input.persistPreparedProvenanceBundle(preparedContext);
     return preparedContext;
 }
-async function selectClaimedTask(taskFile, claimFilePath, provenanceId) {
+async function selectClaimedTask(taskFile, taskFilePath, claimFilePath, provenanceId) {
     for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
         const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, types_1.DEFAULT_RALPH_AGENT_ID, provenanceId);
         if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+            if (candidate.status === 'todo') {
+                await (0, taskFile_1.markTaskInProgress)(taskFilePath, candidate.id);
+            }
             return candidate;
         }
     }

@@ -1656,7 +1656,8 @@
       "status": "todo",
       "parentId": "T36",
       "dependsOn": [
-        "T36.1"
+        "T36.1",
+        "T36.3"
       ],
       "notes": "In src/ralph/preflight.ts add a checkStaleState() function that runs in-process (no LLM, no external process) as part of every preflight check. It must detect: (1) state.lock file older than a configurable threshold (default 5 min) — surface as a warning with the lock file age and the instruction to remove it manually if no iteration is in progress; (2) tasks.lock file older than threshold — same warning pattern; (3) any active claim in claims.json whose claimedAt is past the stale TTL and has no matching iteration result in .ralph/artifacts/ from after the claim time — surface as a warning per claim with agentId, taskId, and age; (4) any active claim whose claimedAt is past TTL with no recent state.json lastRun timestamp — surface as 'agent may be offline'. These are mechanical signals only — checkStaleState does not take recovery actions. Recovery is the watchdog's job (T39.1). Ensure checkStaleState results appear in the preflight artifact and in Show Status under a dedicated Agent Health section.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1697,12 +1698,12 @@
     {
       "id": "T36.3.1",
       "title": "Regression coverage",
-      "status": "todo",
+      "status": "done",
       "parentId": "T36.3",
       "dependsOn": [
         "T36.2"
       ],
-      "notes": "Narrow T36.3 to a deterministic first step before retrying the parent task.",
+      "notes": "markTaskInProgress atomically promotes todo→in_progress at claim time; beforeCoreState re-captured after selectClaimedTask so the bookkeeping change is not counted as agent progress; 285 tests pass, validate exits 0.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

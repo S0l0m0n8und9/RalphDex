@@ -9,6 +9,7 @@ import {
   applySuggestedChildTasks,
   countTaskStatuses,
   inspectTaskFileText,
+  markTaskInProgress,
   normalizeTaskFileText,
   parseTaskFile,
   resolveStaleClaim,
@@ -1127,6 +1128,31 @@ test('withTaskFileLock cleans up the lock file when the callback throws, matchin
   );
 
   assert.equal(await pathExists(lockPath), false);
+});
+
+test('markTaskInProgress transitions a todo task to in_progress and is idempotent for non-todo tasks', async () => {
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-file-'));
+  const taskFilePath = path.join(tempRoot, 'tasks.json');
+  await fs.writeFile(taskFilePath, stringifyTaskFile(parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Claimed task', status: 'todo' },
+      { id: 'T2', title: 'Already active task', status: 'in_progress' },
+      { id: 'T3', title: 'Done task', status: 'done' }
+    ]
+  }))), 'utf8');
+
+  await markTaskInProgress(taskFilePath, 'T1');
+
+  const after = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  assert.equal(after.tasks.find((t) => t.id === 'T1')?.status, 'in_progress', 'todo task should be promoted to in_progress');
+  assert.equal(after.tasks.find((t) => t.id === 'T2')?.status, 'in_progress', 'in_progress task should be unchanged');
+  assert.equal(after.tasks.find((t) => t.id === 'T3')?.status, 'done', 'done task should be unchanged');
+
+  // Calling again on an already-in_progress task is idempotent.
+  await markTaskInProgress(taskFilePath, 'T1');
+  const afterSecond = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  assert.equal(afterSecond.tasks.find((t) => t.id === 'T1')?.status, 'in_progress');
 });
 
 function deferred<T>(): { promise: Promise<T>; resolve: (value: T | PromiseLike<T>) => void; reject: (reason?: unknown) => void } {

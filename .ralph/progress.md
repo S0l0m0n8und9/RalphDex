@@ -101,3 +101,4 @@
 - Serialised all tasks.json mutation paths (reconciliation, workspace seed) behind withTaskFileLock; added cleanup and concurrency regression tests; all 268 tests pass
 - Lifted multi-agent deferral: updated boundaries.md, multi-agent-readiness.md, and invariants.md to record milestone satisfied 2026-03-17; relaxed single-agent fragment check in docsValidator; all 271 tests pass.
 - Added Epistemic Gap section to docs/provenance.md covering the five required points: CLI provenance boundary, completionReportStatus machine-readable label, reconciliationWarnings semantics, absence-of-warnings meaning, and operator guidance to treat verifier artifacts as authoritative.
+- markTaskInProgress atomically promotes todo→in_progress at claim time; beforeCoreState re-captured after selectClaimedTask so the bookkeeping change is not counted as agent progress; 285 tests pass, validate exits 0.

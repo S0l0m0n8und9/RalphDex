@@ -1406,6 +1406,25 @@ export function remainingSubtasks(taskFile: RalphTaskFile, taskId: string | null
   return collectDescendants(taskFile, taskId).filter((task) => task.status !== 'done');
 }
 
+export async function markTaskInProgress(taskFilePath: string, taskId: string): Promise<void> {
+  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+    const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+    const nextTaskFile: RalphTaskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) =>
+        task.id === taskId && task.status === 'todo'
+          ? { ...task, status: 'in_progress' }
+          : task
+      )
+    };
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(`Timed out acquiring tasks.json lock while marking ${taskId} in_progress.`);
+  }
+}
+
 export async function acquireClaim(
   claimFilePath: string,
   taskId: string,

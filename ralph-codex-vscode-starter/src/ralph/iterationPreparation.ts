@@ -23,7 +23,7 @@ import {
   RalphTaskFile,
   RalphWorkspaceState
 } from './types';
-import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks, selectNextTask } from './taskFile';
+import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks, markTaskInProgress, selectNextTask } from './taskFile';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -182,7 +182,7 @@ export async function prepareIterationContext(
   const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
     ? vscode.window.activeTextEditor.document.uri.fsPath
     : null;
-  const [progressText, taskInspection, taskCounts, summary, beforeCoreState] = await Promise.all([
+  const [progressText, taskInspection, taskCounts, summary, initialCoreState] = await Promise.all([
     stateManager.readProgressText(snapshot.paths),
     stateManager.inspectTaskFile(snapshot.paths),
     stateManager.taskCounts(snapshot.paths).catch(() => null),
@@ -192,8 +192,8 @@ export async function prepareIterationContext(
     }),
     captureCoreState(snapshot.paths)
   ]);
-  const tasksText = taskInspection.text ?? beforeCoreState.tasksText;
-  const taskFile = taskInspection.taskFile ?? beforeCoreState.taskFile;
+  const tasksText = taskInspection.text ?? initialCoreState.tasksText;
+  const taskFile = taskInspection.taskFile ?? initialCoreState.taskFile;
   const effectiveTaskCounts = taskCounts ?? countTaskStatuses(taskFile);
   const taskSelectedAt = new Date().toISOString();
   const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
@@ -204,8 +204,13 @@ export async function prepareIterationContext(
     createdAt: taskSelectedAt
   });
   const selectedTask = promptTarget === 'cliExec'
-    ? await selectClaimedTask(taskFile, snapshot.paths.claimFilePath, provenanceId)
+    ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId)
     : selectNextTask(taskFile);
+  // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
+  // the todo→in_progress bookkeeping change is not counted as durable agent progress.
+  const beforeCoreState = promptTarget === 'cliExec'
+    ? await captureCoreState(snapshot.paths)
+    : initialCoreState;
   const rootPolicy = deriveRootPolicy(summary);
   const promptDecision = decidePromptKind(snapshot.state, promptTarget, {
     selectedTask,
@@ -476,6 +481,7 @@ export async function prepareIterationContext(
 
 async function selectClaimedTask(
   taskFile: RalphTaskFile,
+  taskFilePath: string,
   claimFilePath: string,
   provenanceId: string
 ): Promise<RalphTask | null> {
@@ -487,6 +493,9 @@ async function selectClaimedTask(
       provenanceId
     );
     if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
+      if (candidate.status === 'todo') {
+        await markTaskInProgress(taskFilePath, candidate.id);
+      }
       return candidate;
     }
   }

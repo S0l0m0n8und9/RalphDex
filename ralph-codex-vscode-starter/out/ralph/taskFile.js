@@ -48,6 +48,7 @@ exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.findTaskById = findTaskById;
 exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.remainingSubtasks = remainingSubtasks;
+exports.markTaskInProgress = markTaskInProgress;
 exports.acquireClaim = acquireClaim;
 exports.releaseClaim = releaseClaim;
 exports.inspectClaimOwnership = inspectClaimOwnership;
@@ -1093,6 +1094,21 @@ function remainingSubtasks(taskFile, taskId) {
         return [];
     }
     return collectDescendants(taskFile, taskId).filter((task) => task.status !== 'done');
+}
+async function markTaskInProgress(taskFilePath, taskId) {
+    const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+        const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+        const nextTaskFile = {
+            ...taskFile,
+            tasks: taskFile.tasks.map((task) => task.id === taskId && task.status === 'todo'
+                ? { ...task, status: 'in_progress' }
+                : task)
+        };
+        await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock while marking ${taskId} in_progress.`);
+    }
 }
 async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, options) {
     return withClaimFileLock(claimFilePath, options, async () => {

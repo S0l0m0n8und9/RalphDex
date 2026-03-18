@@ -1246,7 +1246,7 @@ test('runCliIteration rejects a completion report for the wrong selected task id
   assert.equal(summary.result.verificationStatus, 'passed');
   assert.equal(summary.result.completionReportStatus, 'rejected');
   assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /did not match the selected task T1/);
-  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
   assert.doesNotMatch(progressText, /This should be ignored\./);
   assert.equal(completionArtifact.status, 'rejected');
 });
@@ -1309,7 +1309,7 @@ for (const scenario of [
 
     assert.equal(summary.result.verificationStatus, 'passed');
     assert.equal(summary.result.completionReportStatus, scenario.name);
-    assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+    assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
     assert.doesNotMatch(progressText, /structured completion report/i);
     assert.equal(completionArtifact.status, scenario.name);
     assert.match((completionArtifact.parseError ?? '') || completionArtifact.warnings.join('\n'), scenario.parsePattern);
@@ -1365,7 +1365,7 @@ test('runCliIteration does not mark a task done when the completion report reque
   assert.equal(summary.result.verificationStatus, 'failed');
   assert.equal(summary.result.completionReportStatus, 'rejected');
   assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /verification status was failed/);
-  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
   assert.doesNotMatch(progressText, /This should not be persisted\./);
 });
 
@@ -1428,7 +1428,7 @@ test('runCliIteration stops with claim_contested when the selected task claim is
   assert.equal(summary.result.stopReason, 'claim_contested');
   assert.equal(summary.loopDecision.stopReason, 'claim_contested');
   assert.match(summary.result.reconciliationWarnings?.join('\n') ?? '', /claim ownership check failed/);
-  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
   assert.doesNotMatch(progressText, /This should not be persisted\./);
   assert.equal(completionArtifact.status, 'rejected');
 });
