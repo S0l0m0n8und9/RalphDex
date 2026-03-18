@@ -414,6 +414,90 @@
       "claimedAt": "2026-03-18T06:56:44.748Z",
       "provenanceId": "run-i076-cli-20260318T065644Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3.2",
+      "claimedAt": "2026-03-18T07:39:09.112Z",
+      "provenanceId": "run-i077-cli-20260318T073909Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3.2",
+      "claimedAt": "2026-03-18T07:48:55.304Z",
+      "provenanceId": "run-i078-cli-20260318T074855Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3.2",
+      "claimedAt": "2026-03-18T07:59:13.628Z",
+      "provenanceId": "run-i079-cli-20260318T075913Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3.2",
+      "claimedAt": "2026-03-18T08:14:53.013Z",
+      "provenanceId": "run-i080-cli-20260318T081452Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T08:59:21.295Z",
+      "provenanceId": "run-i081-cli-20260318T085921Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.3",
+      "claimedAt": "2026-03-18T09:07:25.557Z",
+      "provenanceId": "run-i082-cli-20260318T090725Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36",
+      "claimedAt": "2026-03-18T09:14:07.767Z",
+      "provenanceId": "run-i083-cli-20260318T091407Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36",
+      "claimedAt": "2026-03-18T09:25:51.708Z",
+      "provenanceId": "run-i084-cli-20260318T092551Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36",
+      "claimedAt": "2026-03-18T09:31:33.270Z",
+      "provenanceId": "run-i085-cli-20260318T093133Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36",
+      "claimedAt": "2026-03-18T19:17:12.585Z",
+      "provenanceId": "run-i086-cli-20260318T191712Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.4",
+      "claimedAt": "2026-03-18T19:17:23.408Z",
+      "provenanceId": "run-i087-cli-20260318T191723Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.4",
+      "claimedAt": "2026-03-18T19:30:10.837Z",
+      "provenanceId": "run-i088-cli-20260318T193010Z",
+      "status": "released"
     }
   ]
 }

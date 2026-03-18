@@ -104,6 +104,29 @@ Lock mechanics:
 - On timeout, `withStateLock` returns `{ outcome: 'lock_timeout', lockPath, attempts }` without throwing. `saveState` converts a timeout result to a thrown error so callers fail fast rather than silently skipping persistence.
 - The lock file is always removed in a `finally` block, so normal exits and in-process exceptions both clean up correctly.
 - An abrupt process termination (SIGKILL, power loss) will leave the lock file on disk. Operators must remove a stale `state.lock` manually if subsequent `saveState` calls time out.
+- Preflight must detect an unexpectedly old `state.lock` file and surface it as a warning so operators know to intervene, matching the same check performed for `tasks.lock`.
+
+### saveState vs allocateIteration
+
+`saveState` and `allocateIteration` have different concurrency safety properties:
+
+- `saveState` serializes individual writes: two concurrent callers cannot corrupt the file, but each writes the snapshot supplied by its caller. If they hold different snapshots, the last writer wins — no corruption, but the final value is the last-written snapshot.
+- `allocateIteration` is safe for concurrent callers: it re-reads live `state.json` from disk inside the lock before computing and writing the updated counter. Two concurrent allocations will always produce distinct iteration numbers.
+
+Use `allocateIteration` for any counter that must be unique across concurrent callers. Use `saveState` only when the caller already holds a serialized, canonical view of the state — the normal Ralph loop runs one iteration at a time, so this is safe.
+
+`recordIteration` updates `nextIteration` directly as `result.iteration + 1` via `saveState` (without re-reading disk) because the loop model serializes iterations at the orchestration level. If the loop ever permits concurrent iterations, those paths must switch to `allocateIteration` instead.
+
+### VS Code Memento Mirroring
+
+`saveState` writes to both `state.json` on disk and VS Code `workspaceState` (Memento) within the same lock acquisition:
+
+- The Memento write happens after the file write, inside the same `withStateLock` callback.
+- If the process crashes between the two writes, disk and Memento can diverge.
+- `loadState` reads disk first and falls back to Memento only when `state.json` is absent or unparseable.
+- `allocateIteration` reads disk inside the lock, falling back to Memento only when the disk read fails.
+- `state.json` is the canonical source of truth; Memento is a secondary fallback for recovery when the file is absent.
+- Operators who reset state manually (by deleting `state.json`) should be aware that a stale Memento value may surface as the loaded state until a new `saveState` call overwrites it.
 
 ### nextIteration Allocation
 
@@ -136,6 +159,25 @@ Task diagnostics should preserve lightweight source metadata from the raw task f
 Severe preflight findings must block CLI execution before `codex exec` starts.
 
 Task-ledger drift is one of those blocking findings. When a persisted parent is `done` while any descendant remains `todo`, `in_progress`, or `blocked`, Ralph must treat the backlog as inconsistent rather than exhausted. In that state, status and preflight surfaces should keep the drift explicit with messages like `No task selected because task-ledger drift blocks safe selection: ...` and `Task-ledger drift: ...` so operators repair the ledger instead of assuming Ralph needs new work.
+
+## Agent Health Checks
+
+Every preflight run executes `checkStaleState` in-process (no LLM, no external process) and appends its results to the preflight report under the **Agent Health** section. The check is mechanical-only — it detects stale signals and surfaces them as warnings; it does not take recovery actions.
+
+`checkStaleState` detects four stale-state signals:
+
+1. **Stale `state.lock`**: if `state.lock` is older than the configurable threshold (default 5 min), emit a `stale_state_lock` warning with the file age and an instruction to remove it manually if no iteration is in progress.
+2. **Stale `tasks.lock`**: same pattern for `tasks.lock` — emit a `stale_tasks_lock` warning if older than the threshold.
+3. **Active claim with no iteration result**: if an active claim in `claims.json` has a `claimedAt` older than the stale TTL and no `iteration-result.json` exists in the artifact directory after the claim time, emit a `stale_active_claim_no_result` warning per claim with agentId, taskId, and age.
+4. **Active claim with no recent `state.json` lastRun**: if an active claim is past the TTL with no `lastRun.finishedAt` in `state.json` after the claim time, emit a `stale_active_claim_agent_offline` warning indicating the agent may be offline.
+
+Agent Health diagnostics appear in:
+
+- The `preflight-report.json` artifact under the `agentHealth` category.
+- The preflight summary rendered in `preflight-summary.md` under a dedicated Agent Health section.
+- The `Show Status` command output, which includes the Agent Health summary line alongside Task graph, Claim graph, and other sections.
+
+Recovery actions (e.g., auto-releasing stale claims or removing stale lock files) are intentionally out of scope for `checkStaleState`. The operator may use `Resolve Stale Task Claim` for claim recovery. Lock-file removal requires manual operator intervention.
 
 ## Iteration Model Invariants
 

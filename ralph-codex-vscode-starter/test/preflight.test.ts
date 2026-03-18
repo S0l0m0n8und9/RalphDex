@@ -493,6 +493,38 @@ test('checkStaleState does not emit stale claim warnings when iteration result e
   assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
 });
 
+test('buildPreflightReport routes agentHealthDiagnostics into the agentHealth category and summary', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    claimGraph: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus,
+    agentHealthDiagnostics: [
+      { severity: 'warning', code: 'stale_state_lock', message: 'state.lock is 600s old.' },
+      { severity: 'warning', code: 'stale_active_claim_agent_offline', message: 'Agent may be offline.' }
+    ]
+  });
+
+  const agentHealthDiags = report.diagnostics.filter((d) => d.category === 'agentHealth');
+  assert.equal(agentHealthDiags.length, 2);
+  assert.ok(agentHealthDiags.some((d) => d.code === 'stale_state_lock'));
+  assert.ok(agentHealthDiags.some((d) => d.code === 'stale_active_claim_agent_offline'));
+  assert.match(report.summary, /Agent Health: 2 warnings/);
+});
+
 test('checkStaleState ignores released and non-stale active claims', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
   const ralphDir = path.join(rootPath, '.ralph');

@@ -63,7 +63,7 @@ const EMPTY_COUNTS = {
     done: 0
 };
 exports.DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
-const DEFAULT_LOCK_RETRY_COUNT = 10;
+const DEFAULT_LOCK_RETRY_COUNT = 40;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 const SUPPORTED_TASK_FIELDS = new Set([
     'id',

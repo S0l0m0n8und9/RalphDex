@@ -153,7 +153,7 @@
         "ralphCodex.cliProvider": {
           "type": "string",
           "enum": ["codex", "claude"],
-          "default": "claude",
+          "default": "codex",
           "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
         },
         "ralphCodex.codexCommandPath": {
@@ -299,8 +299,8 @@
         },
         "ralphCodex.model": {
           "type": "string",
-          "default": "claude-sonnet-4-6",
-          "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-20250514 for Claude)."
+          "default": "gpt-5.4",
+          "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-6 for Claude)."
         },
         "ralphCodex.reasoningEffort": {
           "type": "string",
@@ -322,12 +322,12 @@
         },
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
-          "default": "claude.openSidebar",
+          "default": "codex.openSidebar",
           "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
-          "default": "claude.newChat",
+          "default": "codex.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
         }
       }

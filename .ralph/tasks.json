@@ -1441,7 +1441,7 @@
     {
       "id": "T36",
       "title": "Fix concurrent-agent state.json collision — iteration numbers and artifact paths collide under concurrent starts",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T36.1",
         "T36.2",
@@ -1471,7 +1471,7 @@
     {
       "id": "T36.3",
       "title": "Regression coverage and invariant docs for concurrent state.json writes",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T36",
       "dependsOn": [
         "T36.2",
@@ -1653,7 +1653,7 @@
     {
       "id": "T36.4",
       "title": "Add mechanical checkStaleState preflight check — in-process detection of stale locks, stale claims, and stuck iterations without LLM involvement",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T36",
       "dependsOn": [
         "T36.1",
@@ -1709,13 +1709,13 @@
     {
       "id": "T36.3.2",
       "title": "Invariant docs for concurrent state.json writes",
-      "status": "todo",
+      "status": "done",
       "parentId": "T36.3",
       "dependsOn": [
         "T36.2",
         "T36.3.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T36.3.1.",
+      "notes": "Docs already written in a prior iteration (state.json lock mechanics, saveState vs allocateIteration, nextIteration allocation, Memento mirroring). Marked done manually after agent found no remaining work.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ]
