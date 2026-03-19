@@ -29,9 +29,18 @@ import {
   RalphRunMode,
   RalphRunRecord,
   RalphTask,
+  RalphTaskFile,
   RalphTaskCounts,
 } from './types';
-import { countTaskStatuses, releaseClaim, remainingSubtasks, selectNextTask } from './taskFile';
+import {
+  countTaskStatuses,
+  parseTaskFile,
+  releaseClaim,
+  remainingSubtasks,
+  selectNextTask,
+  stringifyTaskFile,
+  withTaskFileLock
+} from './taskFile';
 import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
 import {
   captureCoreState,
@@ -143,6 +152,44 @@ function controlPlaneRuntimeChanges(changedFiles: string[]): string[] {
   }
 
   return Array.from(matches).sort();
+}
+
+async function autoApplyMarkBlockedRemediation(input: {
+  taskFilePath: string;
+  taskId: string;
+  blocker: string;
+}): Promise<RalphTaskFile> {
+  const locked = await withTaskFileLock(input.taskFilePath, undefined, async () => {
+    const taskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+    const nextTaskFile: RalphTaskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) => (
+        task.id === input.taskId
+          ? {
+            ...task,
+            status: 'blocked',
+            blocker: input.blocker
+          }
+          : task
+      ))
+    };
+
+    await fs.writeFile(input.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    return nextTaskFile;
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+
+  const updatedTask = locked.value.tasks.find((task) => task.id === input.taskId);
+  if (!updatedTask) {
+    throw new Error(`Task ${input.taskId} was not found in tasks.json while auto-applying mark_blocked remediation.`);
+  }
+
+  return locked.value;
 }
 
 function isBacklogExhausted(taskCounts: RalphTaskCounts): boolean {
@@ -1120,6 +1167,35 @@ export class RalphIterationEngine {
       );
     }
 
+    let effectiveTaskFile = afterCoreState.taskFile;
+
+    if (result.stopReason === 'repeated_identical_failure'
+      && result.remediation?.action === 'mark_blocked'
+      && result.selectedTaskId
+      && prepared.config.autoApplyRemediation.includes('mark_blocked')) {
+      try {
+        effectiveTaskFile = await autoApplyMarkBlockedRemediation({
+          taskFilePath: prepared.paths.taskFilePath,
+          taskId: result.selectedTaskId,
+          blocker: result.remediation.summary
+        });
+        result.warnings.push(`Remediation auto-applied: mark_blocked on task ${result.selectedTaskId}`);
+        this.logger.info('Auto-applied remediation: mark_blocked.', {
+          taskId: result.selectedTaskId,
+          blocker: result.remediation.summary
+        });
+      } catch (error) {
+        result.warnings.push(
+          `Failed to auto-apply remediation mark_blocked on task ${result.selectedTaskId}: ${toErrorMessage(error)}`
+        );
+        this.logger.warn('Failed to auto-apply remediation: mark_blocked.', {
+          taskId: result.selectedTaskId,
+          blocker: result.remediation.summary,
+          error: toErrorMessage(error)
+        });
+      }
+    }
+
     phaseTimestamps.persistedAt = new Date().toISOString();
 
     try {
@@ -1137,7 +1213,7 @@ export class RalphIterationEngine {
 
     const remediationArtifact = buildRemediationArtifact({
       result,
-      taskFile: afterCoreState.taskFile,
+      taskFile: effectiveTaskFile,
       previousIterations: prepared.state.iterationHistory,
       artifactDir: artifactPaths.directory,
       iterationResultPath: artifactPaths.iterationResultPath,

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from './defaults';
 import {
+  AutoApplyRemediationAction,
   ClaudePermissionMode,
   CliProviderId,
   CodexApprovalMode,
@@ -8,6 +9,7 @@ import {
   CodexReasoningEffort,
   CodexSandboxMode,
   RalphCodexConfig,
+  RalphAutonomyMode,
   RalphGitCheckpointMode,
   RalphVerifierMode
 } from './types';
@@ -148,8 +150,41 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ['codex', 'claude'],
     DEFAULT_CONFIG.cliProvider
   );
+  const autonomyMode = readEnum<RalphAutonomyMode>(
+    config,
+    'autonomyMode',
+    ['supervised', 'autonomous'],
+    DEFAULT_CONFIG.autonomyMode
+  );
   const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
   const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
+  const autoReplenishBacklog = readBoolean(
+    config,
+    'autoReplenishBacklog',
+    DEFAULT_CONFIG.autoReplenishBacklog
+  );
+  const autoReloadOnControlPlaneChange = readBoolean(
+    config,
+    'autoReloadOnControlPlaneChange',
+    DEFAULT_CONFIG.autoReloadOnControlPlaneChange
+  );
+  const autoApplyRemediation = readEnumArray<AutoApplyRemediationAction>(
+    config,
+    'autoApplyRemediation',
+    ['decompose_task', 'mark_blocked'],
+    DEFAULT_CONFIG.autoApplyRemediation
+  );
+  const effectiveAutonomy = autonomyMode === 'autonomous'
+    ? {
+        autoReplenishBacklog: true,
+        autoReloadOnControlPlaneChange: true,
+        autoApplyRemediation: ['decompose_task', 'mark_blocked'] as AutoApplyRemediationAction[]
+      }
+    : {
+        autoReplenishBacklog,
+        autoReloadOnControlPlaneChange,
+        autoApplyRemediation
+      };
 
   return {
     cliProvider,
@@ -226,11 +261,10 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'stopOnHumanReviewNeeded',
       DEFAULT_CONFIG.stopOnHumanReviewNeeded
     ),
-    autoReplenishBacklog: readBoolean(
-      config,
-      'autoReplenishBacklog',
-      DEFAULT_CONFIG.autoReplenishBacklog
-    ),
+    autonomyMode,
+    autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
+    autoReloadOnControlPlaneChange: effectiveAutonomy.autoReloadOnControlPlaneChange,
+    autoApplyRemediation: effectiveAutonomy.autoApplyRemediation,
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
     progressPath: readString(config, 'progressPath', DEFAULT_CONFIG.progressPath),

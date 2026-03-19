@@ -2238,6 +2238,164 @@ test('runCliIteration stops after repeated identical failure classifications', a
   assert.equal(secondRun.result.stopReason, 'repeated_identical_failure');
 });
 
+test('runCliIteration auto-applies mark_blocked remediation after a repeated blocked stop', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Wait for an external dependency', status: 'todo' },
+      { id: 'T2', title: 'Follow-up task remains actionable', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: false,
+    gitCheckpointMode: 'off',
+    autoApplyRemediation: ['mark_blocked']
+  });
+
+  const sharedMemento = new MemoryMemento();
+  await sharedMemento.update(`ralphCodex.workspaceState:${rootPath}`, {
+    version: 2,
+    objectivePreview: null,
+    nextIteration: 2,
+    lastPromptKind: 'iteration',
+    lastPromptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+    lastRun: null,
+    runHistory: [],
+    lastIteration: {
+      schemaVersion: 1,
+      agentId: DEFAULT_CONFIG.agentId,
+      iteration: 1,
+      selectedTaskId: 'T1',
+      selectedTaskTitle: 'Wait for an external dependency',
+      promptKind: 'iteration',
+      promptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+      artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
+      adapterUsed: 'cliExec',
+      executionIntegrity: null,
+      executionStatus: 'succeeded',
+      verificationStatus: 'failed',
+      completionClassification: 'blocked',
+      followUpAction: 'stop',
+      startedAt: '2026-03-19T00:00:00.000Z',
+      finishedAt: '2026-03-19T00:00:01.000Z',
+      phaseTimestamps: {
+        inspectStartedAt: '2026-03-19T00:00:00.000Z',
+        inspectFinishedAt: '2026-03-19T00:00:00.000Z',
+        taskSelectedAt: '2026-03-19T00:00:00.000Z',
+        promptGeneratedAt: '2026-03-19T00:00:00.000Z',
+        resultCollectedAt: '2026-03-19T00:00:01.000Z',
+        verificationFinishedAt: '2026-03-19T00:00:01.000Z',
+        classifiedAt: '2026-03-19T00:00:01.000Z'
+      },
+      summary: 'Selected T1: Wait for an external dependency | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 2',
+      warnings: [],
+      errors: [],
+      execution: {
+        exitCode: 0
+      },
+      verification: {
+        taskValidationHint: null,
+        effectiveValidationCommand: null,
+        normalizedValidationCommandFrom: null,
+        primaryCommand: null,
+        validationFailureSignature: null,
+        verifiers: []
+      },
+      backlog: {
+        remainingTaskCount: 2,
+        actionableTaskAvailable: true
+      },
+      diffSummary: null,
+      noProgressSignals: [],
+      remediation: null,
+      stopReason: 'repeated_identical_failure'
+    },
+    iterationHistory: [
+      {
+        schemaVersion: 1,
+        agentId: DEFAULT_CONFIG.agentId,
+        iteration: 1,
+        selectedTaskId: 'T1',
+        selectedTaskTitle: 'Wait for an external dependency',
+        promptKind: 'iteration',
+        promptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+        artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
+        adapterUsed: 'cliExec',
+        executionIntegrity: null,
+        executionStatus: 'succeeded',
+        verificationStatus: 'failed',
+        completionClassification: 'blocked',
+        followUpAction: 'stop',
+        startedAt: '2026-03-19T00:00:00.000Z',
+        finishedAt: '2026-03-19T00:00:01.000Z',
+        phaseTimestamps: {
+          inspectStartedAt: '2026-03-19T00:00:00.000Z',
+          inspectFinishedAt: '2026-03-19T00:00:00.000Z',
+          taskSelectedAt: '2026-03-19T00:00:00.000Z',
+          promptGeneratedAt: '2026-03-19T00:00:00.000Z',
+          resultCollectedAt: '2026-03-19T00:00:01.000Z',
+          verificationFinishedAt: '2026-03-19T00:00:01.000Z',
+          classifiedAt: '2026-03-19T00:00:01.000Z'
+        },
+        summary: 'Selected T1: Wait for an external dependency | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 2',
+        warnings: [],
+        errors: [],
+        execution: {
+          exitCode: 0
+        },
+        verification: {
+          taskValidationHint: null,
+          effectiveValidationCommand: null,
+          normalizedValidationCommandFrom: null,
+          primaryCommand: null,
+          validationFailureSignature: null,
+          verifiers: []
+        },
+        backlog: {
+          remainingTaskCount: 2,
+          actionableTaskAvailable: true
+        },
+        diffSummary: null,
+        noProgressSignals: [],
+        remediation: null,
+        stopReason: 'repeated_identical_failure'
+      }
+    ],
+    updatedAt: '2026-03-19T00:00:01.000Z'
+  });
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'blocked',
+          progressNote: 'Still waiting on the upstream dependency.',
+          blocker: 'Upstream dependency is still not ready.'
+        }, 'The task is still blocked.')
+      })
+    }
+  ], sharedMemento);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const selectedTask = taskFile.tasks.find((task) => task.id === 'T1');
+
+  assert.equal(summary.result.stopReason, 'repeated_identical_failure');
+  assert.equal(summary.result.remediation?.action, 'mark_blocked');
+  assert.ok(summary.result.warnings.includes('Remediation auto-applied: mark_blocked on task T1'));
+  assert.equal(selectedTask?.status, 'blocked');
+  assert.equal(selectedTask?.blocker, summary.result.remediation?.summary);
+});
+
 test('runCliIteration records a non-proposal remediation artifact for repeated identical human-review failures', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {

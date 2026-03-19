@@ -106,6 +106,31 @@ function controlPlaneRuntimeChanges(changedFiles) {
     }
     return Array.from(matches).sort();
 }
+async function autoApplyMarkBlockedRemediation(input) {
+    const locked = await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => {
+        const taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
+        const nextTaskFile = {
+            ...taskFile,
+            tasks: taskFile.tasks.map((task) => (task.id === input.taskId
+                ? {
+                    ...task,
+                    status: 'blocked',
+                    blocker: input.blocker
+                }
+                : task))
+        };
+        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        return nextTaskFile;
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+    const updatedTask = locked.value.tasks.find((task) => task.id === input.taskId);
+    if (!updatedTask) {
+        throw new Error(`Task ${input.taskId} was not found in tasks.json while auto-applying mark_blocked remediation.`);
+    }
+    return locked.value;
+}
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
 }
@@ -934,6 +959,32 @@ class RalphIterationEngine {
                 result.remediation = null;
                 result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
             }
+            let effectiveTaskFile = afterCoreState.taskFile;
+            if (result.stopReason === 'repeated_identical_failure'
+                && result.remediation?.action === 'mark_blocked'
+                && result.selectedTaskId
+                && prepared.config.autoApplyRemediation.includes('mark_blocked')) {
+                try {
+                    effectiveTaskFile = await autoApplyMarkBlockedRemediation({
+                        taskFilePath: prepared.paths.taskFilePath,
+                        taskId: result.selectedTaskId,
+                        blocker: result.remediation.summary
+                    });
+                    result.warnings.push(`Remediation auto-applied: mark_blocked on task ${result.selectedTaskId}`);
+                    this.logger.info('Auto-applied remediation: mark_blocked.', {
+                        taskId: result.selectedTaskId,
+                        blocker: result.remediation.summary
+                    });
+                }
+                catch (error) {
+                    result.warnings.push(`Failed to auto-apply remediation mark_blocked on task ${result.selectedTaskId}: ${toErrorMessage(error)}`);
+                    this.logger.warn('Failed to auto-apply remediation: mark_blocked.', {
+                        taskId: result.selectedTaskId,
+                        blocker: result.remediation.summary,
+                        error: toErrorMessage(error)
+                    });
+                }
+            }
             phaseTimestamps.persistedAt = new Date().toISOString();
             try {
                 await updateAgentIdentityRecord({
@@ -950,7 +1001,7 @@ class RalphIterationEngine {
             }
             const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
                 result,
-                taskFile: afterCoreState.taskFile,
+                taskFile: effectiveTaskFile,
                 previousIterations: prepared.state.iterationHistory,
                 artifactDir: artifactPaths.directory,
                 iterationResultPath: artifactPaths.iterationResultPath,

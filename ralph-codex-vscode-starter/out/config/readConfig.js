@@ -117,8 +117,23 @@ function readPromptBudgetOverrideMap(config, key) {
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
     const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
+    const autoReplenishBacklog = readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog);
+    const autoReloadOnControlPlaneChange = readBoolean(config, 'autoReloadOnControlPlaneChange', defaults_1.DEFAULT_CONFIG.autoReloadOnControlPlaneChange);
+    const autoApplyRemediation = readEnumArray(config, 'autoApplyRemediation', ['decompose_task', 'mark_blocked'], defaults_1.DEFAULT_CONFIG.autoApplyRemediation);
+    const effectiveAutonomy = autonomyMode === 'autonomous'
+        ? {
+            autoReplenishBacklog: true,
+            autoReloadOnControlPlaneChange: true,
+            autoApplyRemediation: ['decompose_task', 'mark_blocked']
+        }
+        : {
+            autoReplenishBacklog,
+            autoReloadOnControlPlaneChange,
+            autoApplyRemediation
+        };
     return {
         cliProvider,
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
@@ -138,7 +153,10 @@ function readConfig(workspaceFolder) {
         gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
         validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
         stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
-        autoReplenishBacklog: readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog),
+        autonomyMode,
+        autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
+        autoReloadOnControlPlaneChange: effectiveAutonomy.autoReloadOnControlPlaneChange,
+        autoApplyRemediation: effectiveAutonomy.autoApplyRemediation,
         ralphTaskFilePath: readString(config, 'ralphTaskFilePath', defaults_1.DEFAULT_CONFIG.ralphTaskFilePath),
         prdPath: readString(config, 'prdPath', defaults_1.DEFAULT_CONFIG.prdPath),
         progressPath: readString(config, 'progressPath', defaults_1.DEFAULT_CONFIG.progressPath),

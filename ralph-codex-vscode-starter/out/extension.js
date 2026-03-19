@@ -37,6 +37,7 @@ exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const registerCommands_1 = require("./commands/registerCommands");
+const readConfig_1 = require("./config/readConfig");
 const logger_1 = require("./services/logger");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
@@ -46,6 +47,20 @@ function activate(context) {
         workspaceTrusted: vscode.workspace.isTrusted,
         activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
     });
+    if (!vscode.workspace.workspaceFolders?.length) {
+        logger.info('Effective Ralph autonomy configuration unavailable at activation because no workspace folder is open.');
+        return;
+    }
+    for (const workspaceFolder of vscode.workspace.workspaceFolders) {
+        const config = (0, readConfig_1.readConfig)(workspaceFolder);
+        logger.info('Effective Ralph autonomy configuration.', {
+            workspaceFolder: workspaceFolder.name,
+            autonomyMode: config.autonomyMode,
+            autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
+            autoApplyRemediation: config.autoApplyRemediation,
+            autoReplenishBacklog: config.autoReplenishBacklog
+        });
+    }
 }
 function deactivate() {
     // no-op

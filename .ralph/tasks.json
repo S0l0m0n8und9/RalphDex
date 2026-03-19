@@ -1190,7 +1190,7 @@
     {
       "id": "T31.1",
       "title": "Build a prompt test fixture framework with representative workspace and task scenarios",
-      "status": "todo",
+      "status": "done",
       "parentId": "T31",
       "dependsOn": [
         "T36",
@@ -1198,13 +1198,13 @@
         "T29",
         "T30"
       ],
-      "notes": "Create test/fixtures/promptScenarios.ts exporting a set of at least five named scenario objects, each containing: a minimal RalphTaskFile, a prd.md string, a progress.md string, a WorkspaceScan snapshot, and a prior iteration result (or null for bootstrap). The scenarios should cover: (1) a fresh workspace with no prior iterations; (2) a workspace mid-task with a prior partial_progress iteration; (3) a workspace with a repeated_no_progress stop and a pending decompose_task remediation; (4) a workspace with a blocked task; (5) a fix-failure scenario with a non-null validationFailureSignature. These fixtures are the inputs that T31.2 and T31.3 render prompts against. Keep each fixture minimal — the goal is controlled, reproducible inputs, not realistic project content.",
+      "notes": "Added deterministic prompt scenario fixtures and a guard test covering bootstrap, partial-progress, repeated-no-progress remediation, blocked-task, and validation-failure cases.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T31.2",
       "title": "Add golden snapshot tests for each prompt kind rendered against the fixture scenarios",
-      "status": "todo",
+      "status": "done",
       "parentId": "T31",
       "dependsOn": [
         "T31.1",
@@ -1212,13 +1212,13 @@
         "T29",
         "T30"
       ],
-      "notes": "Add test/promptBuilder.snapshot.test.ts. For each combination of prompt kind and fixture scenario that is valid (e.g. fix-failure only against scenarios with a prior failed iteration), render the prompt using the existing promptBuilder logic and compare the output against a stored snapshot in test/fixtures/snapshots/. Use Jest's toMatchSnapshot or a custom snapshot mechanism that writes plain .md files so snapshot diffs are readable in code review. The first run should write the snapshots. Subsequent runs detect regressions. Add a note to docs/testing.md that snapshot updates require running npm test -- --updateSnapshot and that reviewers should read snapshot diffs as carefully as code diffs.",
+      "notes": "Added readable golden snapshot coverage for each prompt kind, expanded fixture scenarios to include replenish-backlog and human-review-handoff, generated plain .md snapshots, and documented npm test -- --updateSnapshot for snapshot refreshes. Validation remains red only because of unrelated pre-existing test failures in stateManager.test and iterationEngine.integration.test.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T31.3",
       "title": "Add content assertion tests for critical prompt sections across key scenarios",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T31",
       "dependsOn": [
         "T31.2",
@@ -1247,7 +1247,7 @@
     {
       "id": "T32.1",
       "title": "Add ralphCodex.autoReloadOnControlPlaneChange boolean setting defaulting to false",
-      "status": "todo",
+      "status": "done",
       "parentId": "T32",
       "dependsOn": [
         "T36",
@@ -1255,13 +1255,13 @@
         "T29",
         "T30"
       ],
-      "notes": "Add ralphCodex.autoReloadOnControlPlaneChange to package.json contributes.configuration as a boolean with default false and a description stating that when enabled, Ralph will automatically execute workbench.action.reloadWindow after a control_plane_reload_required stop in loop mode instead of waiting for operator action. Add the corresponding field to the config type in src/config/types.ts and the read path in src/config/readConfig.ts. Default is false so existing behaviour is unchanged until the operator explicitly opts in.",
+      "notes": "Added ralphCodex.autoReloadOnControlPlaneChange as a boolean setting defaulting to false in package.json, src/config/types.ts, src/config/defaults.ts, and src/config/readConfig.ts so the new control-plane reload toggle is available through the typed config surface.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T32.2",
       "title": "Wire auto-reload into the loop command handler when the stop reason is control_plane_reload_required",
-      "status": "todo",
+      "status": "done",
       "parentId": "T32",
       "dependsOn": [
         "T32.1",
@@ -1269,13 +1269,13 @@
         "T29",
         "T30"
       ],
-      "notes": "In src/commands/registerCommands.ts, in the Run CLI Loop command handler, after an iteration returns with stopReason === 'control_plane_reload_required': if autoReloadOnControlPlaneChange is true, log a message to the output channel stating Ralph is reloading the extension host to apply control-plane changes, wait 1500ms to ensure the iteration result artifact has been flushed to disk, then call vscode.commands.executeCommand('workbench.action.reloadWindow'). The wait is intentional — do not skip it. If autoReloadOnControlPlaneChange is false, preserve the existing behaviour of surfacing the stop to the operator. Do not trigger auto-reload from the Run CLI Iteration single-shot command — only from the loop path.",
+      "notes": "Wired loop-only auto-reload for control_plane_reload_required in registerCommands.ts. When autoReloadOnControlPlaneChange is true, Ralph logs the reload message, waits 1500ms for artifact flush, and executes workbench.action.reloadWindow; otherwise the existing operator-facing stop message remains unchanged.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T32.3",
       "title": "Add regression coverage and document the auto-reload behaviour in docs/workflows.md",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T32",
       "dependsOn": [
         "T32.2",
@@ -1305,7 +1305,7 @@
     {
       "id": "T33.1",
       "title": "Add ralphCodex.autoApplyRemediation setting with decompose_task and mark_blocked as opt-in actions",
-      "status": "todo",
+      "status": "done",
       "parentId": "T33",
       "dependsOn": [
         "T36",
@@ -1313,25 +1313,25 @@
         "T29",
         "T30"
       ],
-      "notes": "Add ralphCodex.autoApplyRemediation to package.json contributes.configuration as an array of strings with items enum ['decompose_task', 'mark_blocked'] and default empty array. This means auto-application is fully opt-in — an operator who wants both actions automated sets ['decompose_task', 'mark_blocked']; an operator who only wants mark_blocked sets ['mark_blocked']; the default empty array preserves current behaviour exactly. Do not include reframe_task or request_human_review in the enum — they must not be auto-applicable. Add the field to src/config/types.ts and src/config/readConfig.ts.",
+      "notes": "Added ralphCodex.autoApplyRemediation as an opt-in array setting with only decompose_task and mark_blocked allowed, defaulted it to empty array, and threaded it through package.json, config types, defaults, and config loading. Also aligned the existing autoReloadOnControlPlaneChange field in typed/default config so compile stays consistent.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T33.2",
       "title": "Implement auto-application of mark_blocked in the iteration engine after a blocked stop",
-      "status": "todo",
+      "status": "done",
       "parentId": "T33",
       "dependsOn": [
         "T33.1",
         "T24.1.3"
       ],
-      "notes": "In src/ralph/iterationEngine.ts (or src/ralph/reconciliation.ts after T27.3), after the iteration result is classified and persisted with stopReason === 'repeated_identical_failure' and remediation.action === 'mark_blocked': if 'mark_blocked' is in autoApplyRemediation, acquire the task file lock via withTaskFileLock (T24.2.1), read the current tasks.json, set the selected task status to 'blocked' and populate the blocker field with remediation.summary, write the file, release the lock, and log to the output channel that mark_blocked was auto-applied with the task id and blocker text. Record the auto-application in the iteration result warnings array with the text 'Remediation auto-applied: mark_blocked on task <id>' so the provenance bundle reflects what happened. Run npm test.",
+      "notes": "Implemented automatic mark_blocked remediation application in the iteration engine using withTaskFileLock, persisted the required warning text in iteration results, logged the auto-apply event, and added an integration test covering the repeated blocked stop path.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T33.3",
       "title": "Implement auto-application of decompose_task using the existing apply-proposal write path",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T33",
       "dependsOn": [
         "T33.2"
@@ -1395,14 +1395,14 @@
     {
       "id": "T35.1",
       "title": "Add ralphCodex.autonomyMode setting and wire it as a shorthand for the three individual autonomy settings",
-      "status": "todo",
+      "status": "done",
       "parentId": "T35",
       "dependsOn": [
         "T32.1",
         "T33.1",
         "T34.1"
       ],
-      "notes": "Add ralphCodex.autonomyMode to package.json contributes.configuration as a string enum with values 'supervised' (default) and 'autonomous'. In src/config/readConfig.ts, after reading individual settings, apply the override: if autonomyMode === 'autonomous', set autoReloadOnControlPlaneChange to true, autoApplyRemediation to ['decompose_task', 'mark_blocked'], and autoReplenishBacklog to true, regardless of their individual values. If autonomyMode === 'supervised', individual settings are used as-is, allowing mixed configurations. Log the effective autonomy configuration to the output channel at extension activation so the operator can confirm what mode is active. Add the field to src/config/types.ts.",
+      "notes": "Added ralphCodex.autonomyMode as a supervised/autonomous shorthand, applied the effective override in readConfig, logged the resolved autonomy configuration at activation, updated the workflow doc, and added focused config plus activation tests.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {

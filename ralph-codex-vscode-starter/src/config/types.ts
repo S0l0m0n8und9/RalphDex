@@ -18,6 +18,10 @@ export type PromptBudgetProfile = 'codex' | 'claude' | 'custom';
 
 export type CustomPromptBudget = Partial<Record<string, number>>;
 
+export type AutoApplyRemediationAction = 'decompose_task' | 'mark_blocked';
+
+export type RalphAutonomyMode = 'supervised' | 'autonomous';
+
 export interface RalphCodexConfig {
   cliProvider: CliProviderId;
   codexCommandPath: string;
@@ -37,7 +41,10 @@ export interface RalphCodexConfig {
   gitCheckpointMode: RalphGitCheckpointMode;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;
+  autonomyMode: RalphAutonomyMode;
   autoReplenishBacklog: boolean;
+  autoReloadOnControlPlaneChange: boolean;
+  autoApplyRemediation: AutoApplyRemediationAction[];
   ralphTaskFilePath: string;
   prdPath: string;
   progressPath: string;

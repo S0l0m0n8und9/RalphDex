@@ -207,6 +207,10 @@ Backlog replenishment is a different path. Use it only when the durable task led
 
 `ralphCodex.autoReplenishBacklog` lets the loop continue into the replenish-backlog prompt kind after a `no_actionable_task` stop, but that is only safe when preflight says the durable ledger is still internally consistent.
 
+`ralphCodex.autonomyMode` is the higher-level shortcut for the loop autonomy knobs. `supervised` is the default and preserves the individual settings exactly as configured, which means mixed combinations remain valid. `autonomous` forces three effective settings at runtime regardless of their individual values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.
+
+On activation, Ralph writes the effective autonomy mode and those three resolved settings to the `Ralph Codex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
+
 The safety gate is the preflight drift check. Ralph only auto-replenishes when the selector found no actionable task, the current result recorded `no_actionable_task`, and preflight found no error-severity ledger-drift diagnostics such as `ledger_drift` or `done_parent_unfinished_descendants`.
 
 That check matters because “no actionable task” can mean two very different things:
@@ -217,6 +221,16 @@ That check matters because “no actionable task” can mean two very different 
 Use the setting only for the first case. Leave it off when you want explicit operator review before Ralph adds more backlog, and treat any drift diagnostic as a repair-first stop even if auto-replenishment is enabled.
 
 If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
+
+### Control-Plane Reload
+
+`ralphCodex.autoReloadOnControlPlaneChange` defaults to `false`. Leave it off when you want to inspect the persisted result first and restart the loop manually after a control-plane stop.
+
+When the setting is `true`, only `Run CLI Loop` auto-reloads. `Run CLI Iteration` stays single-shot even if the result stop reason is `control_plane_reload_required`.
+
+The loop waits 1500 ms before it runs `workbench.action.reloadWindow`. That short flush delay gives the extension host time to finish writing the already-persisted iteration result, latest pointers, and operator-facing summary surfaces before VS Code tears the process down.
+
+`workbench.action.reloadWindow` is only safe in this narrow path because the iteration outcome was already durably recorded before the reload fires. Ralph is not relying on in-memory loop state surviving the reload.
 
 Stop reasons and precedence rules are defined in [docs/verifier.md](verifier.md).
 

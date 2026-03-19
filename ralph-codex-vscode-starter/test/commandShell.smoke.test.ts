@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import * as vscode from 'vscode';
 import { activate } from '../src/extension';
+import { RalphIterationEngine } from '../src/ralph/iterationEngine';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
 
 class MemoryMemento implements vscode.Memento {
@@ -93,6 +94,70 @@ async function readClaimFile(rootPath: string): Promise<{ version: number; claim
   }
 }
 
+type MockRunCliIterationResult = Awaited<ReturnType<RalphIterationEngine['runCliIteration']>>;
+
+function createMockRun(
+  rootPath: string,
+  mode: 'singleExec' | 'loop',
+  stopReason: 'control_plane_reload_required' | null
+): MockRunCliIterationResult {
+  return {
+    prepared: {
+      rootPath
+    },
+    result: {
+      iteration: 1,
+      executionStatus: 'succeeded',
+      summary: 'Iteration summary.',
+      completionClassification: 'complete',
+      stopReason
+    },
+    loopDecision: {
+      shouldContinue: false,
+      message: stopReason === 'control_plane_reload_required'
+        ? 'Control-plane changes require a reload.'
+        : `Mock ${mode} stop.`
+    },
+    createdPaths: []
+  } as unknown as MockRunCliIterationResult;
+}
+
+async function withMockedRunCliIteration<T>(
+  implementation: (
+    workspaceFolder: vscode.WorkspaceFolder,
+    mode: 'singleExec' | 'loop'
+  ) => Promise<MockRunCliIterationResult>,
+  action: () => Promise<T>
+): Promise<T> {
+  const original = RalphIterationEngine.prototype.runCliIteration;
+  RalphIterationEngine.prototype.runCliIteration = function mockedRunCliIteration(
+    workspaceFolder: vscode.WorkspaceFolder,
+    mode: 'singleExec' | 'loop'
+  ): Promise<MockRunCliIterationResult> {
+    return implementation(workspaceFolder, mode);
+  } as RalphIterationEngine['runCliIteration'];
+
+  try {
+    return await action();
+  } finally {
+    RalphIterationEngine.prototype.runCliIteration = original;
+  }
+}
+
+async function withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
+  const originalSetTimeout = globalThis.setTimeout;
+  globalThis.setTimeout = ((callback: (...args: unknown[]) => void, _delay?: number, ...args: unknown[]) => {
+    callback(...args);
+    return 0 as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout;
+
+  try {
+    return await action();
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
+}
+
 test.beforeEach(() => {
   const harness = vscodeTestHarness();
   harness.reset();
@@ -104,6 +169,12 @@ test('activate registers the key Ralph commands', async () => {
 
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autonomyMode: 'autonomous',
+    autoReloadOnControlPlaneChange: false,
+    autoApplyRemediation: [],
+    autoReplenishBacklog: false
+  });
 
   activate(createExtensionContext());
   const commands = await vscode.commands.getCommands(true);
@@ -121,6 +192,13 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.resolveStaleTaskClaim'));
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
+
+  const output = harness.getOutputLines('Ralph Codex').join('\n');
+  assert.match(output, /"message":"Effective Ralph autonomy configuration\."/);
+  assert.match(output, /"autonomyMode":"autonomous"/);
+  assert.match(output, /"autoReloadOnControlPlaneChange":true/);
+  assert.match(output, /"autoApplyRemediation":\["decompose_task","mark_blocked"\]/);
+  assert.match(output, /"autoReplenishBacklog":true/);
 });
 
 test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missing-only .gitignore contract', async () => {
@@ -1112,6 +1190,81 @@ test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on cli
   assert.equal(
     harness.state.infoMessages.at(-1)?.message ?? '',
     `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
+  );
+});
+
+test('Run CLI Loop does not auto-reload when control-plane reload is required but the setting is disabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autoReloadOnControlPlaneChange: false
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    }
+  );
+
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI loop stopped after iteration 1: Control-plane changes require a reload\./
+  );
+});
+
+test('Run CLI Iteration does not auto-reload on a control-plane reload stop even when the setting is enabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autoReloadOnControlPlaneChange: true
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+    }
+  );
+
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI iteration 1 completed\. Iteration summary\./
+  );
+});
+
+test('Run CLI Loop auto-reloads with the VS Code reload command after a control-plane reload stop when enabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autoReloadOnControlPlaneChange: true
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+    async () => withImmediateTimeout(async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    })
+  );
+
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'workbench.action.reloadWindow'), true);
+  assert.equal(
+    harness.state.infoMessages.some((entry) => /Ralph CLI loop stopped after iteration/.test(entry.message)),
+    false
   );
 });
 

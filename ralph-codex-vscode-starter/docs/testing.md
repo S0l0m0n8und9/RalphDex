@@ -28,6 +28,7 @@ Related docs:
 - `test/vscode/runActivationSmoke.ts` and `test/vscode/suite/index.ts`: optional real activation smoke coverage for extension activation, command registration, and one basic command invocation in a real Extension Development Host.
 - `scripts/run-real-cli-smoke.js`: optional real `codex exec` smoke coverage that seeds a temp Ralph workspace, runs one CLI iteration against the actual Codex binary, and prints the resulting artifact pointers or preserved temp path for inspection.
 - `test/promptBuilder.test.ts`: deterministic prompt-kind selection, file-based template rendering, verifier-informed prompt refinement, prior-context trimming, prompt-budget omission behavior, and prompt-output determinism.
+- `test/promptBuilder.snapshot.test.ts`: golden snapshot coverage for each valid prompt-kind fixture scenario using readable `.md` snapshots under `test/fixtures/snapshots/`.
 - `test/cliExecStrategy.test.ts`: CLI argument shaping, medium-versus-high reasoning-effort selection, transcript generation, missing-CLI error wording, and fail-fast prompt-hash mismatch detection before launch.
 - `test/iterationEngine.integration.test.ts`: temp-workspace loop execution with mocked Codex exec covering progress, repeated no-progress, repeated failure classification, persisted remediation artifacts for decomposition, reframe, and human-review paths, proposal-child generation versus non-decomposition artifacts, verifier-driven completion, human-review-needed stops, execution-plan/CLI-invocation artifact emission, persisted state across iterations, non-blocking IDE preparation before later CLI selection, and blocked integrity evidence for `executionPlanHash`, `promptArtifactHash`, and `stdinPayloadHash`.
 - `test/preflight.test.ts`: targeted preflight coverage for likely task-schema drift diagnostics, validation-command readiness wording, and stale latest-artifact plus retention-readiness warnings before CLI loops start.
@@ -68,6 +69,7 @@ When changing those areas, rely on the authoritative commands above plus manual 
 - The optional real CLI smoke persists the temp workspace when execution or verification fails so operators can inspect `.ralph/artifacts/`, `stderr.log`, and the latest summary surfaces directly.
 - `npm run test:real-cli-smoke` accepts `RALPH_REAL_CLI_SMOKE_COMMAND`, `RALPH_REAL_CLI_SMOKE_MODEL`, and `RALPH_REAL_CLI_SMOKE_KEEP_WORKSPACE=1` when you need a non-default Codex binary, model, or preserved temp workspace.
 - Prompt-template tests may point `ralphCodex.promptTemplateDirectory` at temp directories so rendering stays thin and deterministic without pulling in a heavier templating engine.
+- Prompt snapshot updates require `npm test -- --updateSnapshot`; reviewers should read `.md` snapshot diffs with the same care as code diffs because they capture the durable prompt contract.
 - The activation smoke also stays thin: it checks one real activation path and one basic command invocation, then stops.
 
 ## Packaging Runtime

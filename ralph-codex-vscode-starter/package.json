@@ -46,7 +46,10 @@
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
+        "ralphCodex.autonomyMode",
         "ralphCodex.autoReplenishBacklog",
+        "ralphCodex.autoApplyRemediation",
+        "ralphCodex.autoReloadOnControlPlaneChange",
         "ralphCodex.ralphTaskFilePath",
         "ralphCodex.prdPath",
         "ralphCodex.progressPath",
@@ -263,10 +266,30 @@
           "default": true,
           "description": "Stop the Ralph loop immediately when the task-state verifier classifies an iteration as needs_human_review."
         },
+        "ralphCodex.autonomyMode": {
+          "type": "string",
+          "enum": ["supervised", "autonomous"],
+          "default": "supervised",
+          "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on."
+        },
         "ralphCodex.autoReplenishBacklog": {
           "type": "boolean",
           "default": false,
           "description": "Continue the Ralph loop into backlog replenishment when no actionable task remains and preflight found no ledger-drift safety errors."
+        },
+        "ralphCodex.autoReloadOnControlPlaneChange": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled, Ralph will automatically execute workbench.action.reloadWindow after a control_plane_reload_required stop in loop mode instead of waiting for operator action."
+        },
+        "ralphCodex.autoApplyRemediation": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["decompose_task", "mark_blocked"]
+          },
+          "default": [],
+          "description": "Opt-in remediation actions Ralph may auto-apply after repeated-stop evidence. Leave this empty to preserve review-only behavior; set one or both of decompose_task and mark_blocked to allow only those actions."
         },
         "ralphCodex.ralphTaskFilePath": {
           "type": "string",

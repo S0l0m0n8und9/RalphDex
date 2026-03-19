@@ -66,6 +66,11 @@ function createdPathSummary(rootPath, createdPaths) {
 function deletedCountSummary(count, singular, plural) {
     return `${count} ${count === 1 ? singular : plural}`;
 }
+function delay(milliseconds) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, milliseconds);
+    });
+}
 const RALPH_GITIGNORE_CONTENT = [
     '/artifacts',
     '/done-task-audit*.md',
@@ -841,6 +846,16 @@ function registerCommands(context, logger) {
                     throw new Error(iterationFailureMessage(lastRun.result));
                 }
                 if (!lastRun.loopDecision.shouldContinue) {
+                    if (lastRun.result.stopReason === 'control_plane_reload_required'
+                        && config.autoReloadOnControlPlaneChange) {
+                        logger.info('Ralph is reloading the extension host to apply control-plane changes.', {
+                            iteration: lastRun.result.iteration,
+                            stopReason: lastRun.result.stopReason
+                        });
+                        await delay(1500);
+                        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                        return;
+                    }
                     void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
                     return;
                 }
