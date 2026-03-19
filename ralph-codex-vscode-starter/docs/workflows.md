@@ -266,7 +266,7 @@ Use the inspection commands by question, not just by file name:
 
 - `Ralph Codex: Show Status` writes a readable summary to the `Ralph Codex` output channel.
 - The status summary includes the current loop/preflight snapshot, the latest iteration, the latest prompt-budget policy, required versus optional prompt sections plus omission order and kept versus omitted sections, current planned prompt byte count, current CLI reasoning effort when available, recent iteration and run history from `.ralph/state.json`, the latest remediation summary plus action, attempt count, human-review flag, proposed child-task count and dependency sketch when available, and proposal path when repeated-stop guidance exists, the current generated-artifact and provenance-bundle retention windows including protected retained entries, and whether any missing latest-summary/latest-provenance surfaces were repaired or remain stale during the status refresh.
-- The same status summary also keeps the task-claim lifecycle explicit: it shows the current claim holder for the selected task, reminds the operator that only CLI execution owns blocking claim acquire/release, and points stale-claim recovery through `Ralph Codex: Resolve Stale Task Claim` when a stale canonical holder is blocking reselection.
+- The same status summary also keeps the task-claim lifecycle explicit: it shows the current claim holder for the selected task, groups all active claims by `agentId` with task id, task title, claim timestamp, and stale/fresh state, reminds the operator that only CLI execution owns blocking claim acquire/release, and points stale-claim recovery through `Ralph Codex: Resolve Stale Task Claim` when a stale canonical holder is blocking reselection.
 - If preflight blocks on task-ledger drift such as a parent marked `done` while any descendant remains `todo`, `in_progress`, or `blocked`, repair `.ralph/tasks.json` first instead of retrying Codex on the same stale graph.
 - A clean repair usually means one of two changes:
 - reopen the parent to `todo` or `in_progress` so the unfinished descendants remain visible under an active parent
@@ -289,6 +289,26 @@ For routine long-loop inspection, use these commands in order:
 4. `Open Latest Provenance Bundle` or `Reveal Latest Provenance Bundle Directory` when you need the full persisted proof set for the newest attempt.
 
 These commands rely on the stable latest-pointer contract described in [docs/invariants.md](invariants.md).
+
+## Multi-Agent Team
+
+Use concurrent Ralph operators only when each running loop instance has its own durable agent identity.
+
+### Configure `agentId`
+
+Set `ralphCodex.agentId` to a unique stable value for each concurrent CLI loop or single-iteration worker. The default value is `default`, which is fine for one operator but intentionally surfaces a preflight warning when another active `default` claim already exists.
+
+That setting is persisted onto active claims, run records, and iteration records so Ralph can attribute ownership durably across fresh sessions instead of inferring it from transient process state.
+
+### Read The Multi-Agent Status View
+
+`Show Status` and the human-readable preflight output now group active claims by `agentId`. Each group shows the claimed task id and title, the `claimedAt` timestamp, and whether the claim is still fresh or has gone stale.
+
+Use that grouped view to answer three operator questions quickly:
+
+- which agent currently owns which task
+- whether a claim is old enough to investigate as stale before starting another loop
+- whether a misconfigured shared `agentId` is making two workers look like the same actor
 
 ## Reset State
 

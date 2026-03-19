@@ -1,0 +1,34 @@
+{
+  "agentId": "default",
+  "firstSeenAt": "2026-03-19T09:02:07.019Z",
+  "completedTaskIds": [
+    "T37.1",
+    "T30.3",
+    "T30",
+    "T37.2"
+  ],
+  "touchedFiles": [
+    ".ralph/agents/default.json",
+    ".ralph/progress.md",
+    ".ralph/tasks.json",
+    "ralph-codex-vscode-starter/docs/prompt-calibration.md",
+    "ralph-codex-vscode-starter/docs/testing.md",
+    "ralph-codex-vscode-starter/docs/workflows.md",
+    "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+    "ralph-codex-vscode-starter/out/ralph/artifactStore.js.map",
+    "ralph-codex-vscode-starter/out/ralph/preflight.js",
+    "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
+    "ralph-codex-vscode-starter/out/ralph/types.js.map",
+    "ralph-codex-vscode-starter/package.json",
+    "ralph-codex-vscode-starter/README.md",
+    "ralph-codex-vscode-starter/scripts/calibrate-prompt-budget.js",
+    "ralph-codex-vscode-starter/src/ralph/artifactStore.ts",
+    "ralph-codex-vscode-starter/src/ralph/preflight.ts",
+    "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+    "ralph-codex-vscode-starter/src/ralph/types.ts",
+    "ralph-codex-vscode-starter/test/preflight.test.ts",
+    "ralph-codex-vscode-starter/test/statusReport.test.ts"
+  ]
+}

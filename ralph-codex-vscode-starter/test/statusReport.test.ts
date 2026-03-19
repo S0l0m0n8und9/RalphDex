@@ -784,6 +784,7 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
     preflightReport: {
       ready: true,
       summary: 'Preflight ready.',
+      activeClaimSummary: 'agent-b: T2 - Next task @ 2026-03-07T00:07:00.000Z (fresh); default: T2 - Next task @ 2026-03-07T00:06:00.000Z (fresh)',
       diagnostics: [
         {
           category: 'claimGraph',
@@ -858,9 +859,101 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
   assert.match(report, /- Claim holder for current task: agent-b\/run-i999-cli-20260307T000700Z \(contested, different provenance\)/);
   assert.match(report, /- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims\./);
   assert.match(report, /- Claim recovery: Use Ralph Codex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active\./);
-  assert.match(report, /- Claim state: Task T2 has contested active claims/);
+  assert.match(report, /- Claim state: agent-b: T2 - Next task @ 2026-03-07T00:07:00.000Z \(fresh\); default: T2 - Next task @ 2026-03-07T00:06:00.000Z \(fresh\)/);
+  assert.match(report, /- Active claim state: agent-b: T2 - Next task @ 2026-03-07T00:07:00.000Z \(fresh\); default: T2 - Next task @ 2026-03-07T00:06:00.000Z \(fresh\)/);
   assert.match(report, /### Claim Graph/);
   assert.match(report, /task_claim_contested/);
+});
+
+test('buildStatusReport groups active claims by agent and shows stale state for multiple agents', () => {
+  const report = buildStatusReport(snapshot({
+    selectedTask: { id: 'T2', title: 'Next task', status: 'todo' },
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      activeClaimSummary: 'agent-a: T1 - First task @ 2026-03-07T00:01:00.000Z (fresh); agent-b: T2 - Next task @ 2026-03-07T00:02:00.000Z (stale)',
+      diagnostics: []
+    },
+    claimGraph: {
+      claimFile: {
+        version: 1,
+        claims: [
+          {
+            taskId: 'T1',
+            agentId: 'agent-a',
+            provenanceId: 'run-i001-cli-20260307T000100Z',
+            claimedAt: '2026-03-07T00:01:00.000Z',
+            status: 'active'
+          },
+          {
+            taskId: 'T2',
+            agentId: 'agent-b',
+            provenanceId: 'run-i002-cli-20260307T000200Z',
+            claimedAt: '2026-03-07T00:02:00.000Z',
+            status: 'active'
+          }
+        ]
+      },
+      tasks: [
+        {
+          taskId: 'T1',
+          canonicalClaim: {
+            claim: {
+              taskId: 'T1',
+              agentId: 'agent-a',
+              provenanceId: 'run-i001-cli-20260307T000100Z',
+              claimedAt: '2026-03-07T00:01:00.000Z',
+              status: 'active'
+            },
+            stale: false
+          },
+          activeClaims: [
+            {
+              claim: {
+                taskId: 'T1',
+                agentId: 'agent-a',
+                provenanceId: 'run-i001-cli-20260307T000100Z',
+                claimedAt: '2026-03-07T00:01:00.000Z',
+                status: 'active'
+              },
+              stale: false
+            }
+          ],
+          contested: false
+        },
+        {
+          taskId: 'T2',
+          canonicalClaim: {
+            claim: {
+              taskId: 'T2',
+              agentId: 'agent-b',
+              provenanceId: 'run-i002-cli-20260307T000200Z',
+              claimedAt: '2026-03-07T00:02:00.000Z',
+              status: 'active'
+            },
+            stale: true
+          },
+          activeClaims: [
+            {
+              claim: {
+                taskId: 'T2',
+                agentId: 'agent-b',
+                provenanceId: 'run-i002-cli-20260307T000200Z',
+                claimedAt: '2026-03-07T00:02:00.000Z',
+                status: 'active'
+              },
+              stale: true
+            }
+          ],
+          contested: false
+        }
+      ],
+      latestResolvedClaim: null
+    }
+  }));
+
+  assert.match(report, /- Claim state: agent-a: T1 - First task @ 2026-03-07T00:01:00.000Z \(fresh\); agent-b: T2 - Next task @ 2026-03-07T00:02:00.000Z \(stale\)/);
+  assert.match(report, /- Active claim state: agent-a: T1 - First task @ 2026-03-07T00:01:00.000Z \(fresh\); agent-b: T2 - Next task @ 2026-03-07T00:02:00.000Z \(stale\)/);
 });
 
 test('buildStatusReport renders a dedicated Agent Health section from preflight diagnostics', () => {

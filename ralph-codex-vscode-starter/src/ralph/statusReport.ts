@@ -170,12 +170,7 @@ function taskLedgerDriftSummary(snapshot: RalphStatusSnapshot): string {
 }
 
 function claimGraphSummary(snapshot: RalphStatusSnapshot): string {
-  const claimDiagnostics = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'claimGraph');
-  if (claimDiagnostics.length === 0) {
-    return 'none';
-  }
-
-  return compactList(claimDiagnostics.map((diagnostic) => diagnostic.message), 2);
+  return snapshot.preflightReport.activeClaimSummary ?? 'none';
 }
 
 function currentClaimHolderSummary(snapshot: RalphStatusSnapshot): string {
@@ -369,6 +364,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     '## Preflight',
     `- Ready: ${snapshot.preflightReport.ready ? 'yes' : 'no'}`,
     `- Summary: ${snapshot.preflightReport.summary}`,
+    `- Active claim state: ${snapshot.preflightReport.activeClaimSummary ?? 'none'}`,
     '',
     '### Task Graph',
     preflightTaskGraph.length > 0 ? preflightTaskGraph.map(renderDiagnostic).join('\n') : '- ok',

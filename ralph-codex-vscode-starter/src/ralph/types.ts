@@ -86,6 +86,7 @@ export interface RalphValidationCommandReadiness {
 export interface RalphPreflightReport {
   ready: boolean;
   summary: string;
+  activeClaimSummary?: string;
   diagnostics: RalphPreflightDiagnostic[];
 }
 
@@ -99,6 +100,7 @@ export interface RalphPersistedPreflightReport {
   trustLevel: RalphProvenanceTrustLevel;
   ready: boolean;
   summary: string;
+  activeClaimSummary?: string;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
   taskValidationHint: string | null;

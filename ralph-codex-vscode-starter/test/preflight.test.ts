@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness } from '../src/ralph/preflight';
+import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
@@ -193,6 +193,11 @@ test('buildPreflightReport surfaces contested, stale, and mismatched claims in c
     2
   );
   assert.match(report.summary, /Claim graph:/);
+  assert.equal(
+    report.activeClaimSummary,
+    'agent-a: T1 - Contested task @ 2026-03-10T00:00:00.000Z (stale); agent-b: T1 - Contested task @ 2026-03-10T00:10:00.000Z (stale); agent-c: T2 - Stale task @ 2026-03-10T00:00:00.000Z (stale)'
+  );
+  assert.match(renderPreflightReport(report), /- Active claim state: agent-a: T1 - Contested task @ 2026-03-10T00:00:00.000Z \(stale\); agent-b: T1 - Contested task @ 2026-03-10T00:10:00.000Z \(stale\); agent-c: T2 - Stale task @ 2026-03-10T00:00:00.000Z \(stale\)/);
 });
 
 test('buildPreflightReport warns when the default agent identity collides with another active default claim', async () => {

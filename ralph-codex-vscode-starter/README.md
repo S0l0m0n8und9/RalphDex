@@ -100,6 +100,8 @@ The extension contributes these commands:
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks for required files, headings, links, and a few cheap code-doc alignment rules. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 
+For manual prompt-budget recalibration, run `npm run prompt:calibrate -- <workspace-path>` from the extension root and use [docs/prompt-calibration.md](docs/prompt-calibration.md) as the procedure.
+
 ## Document Map
 
 - [AGENTS.md](AGENTS.md): concise repo operating rules and authoritative map

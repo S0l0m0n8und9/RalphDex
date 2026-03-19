@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.summarizeActiveClaimsByAgent = summarizeActiveClaimsByAgent;
 exports.checkStaleState = checkStaleState;
 exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
 exports.buildPreflightReport = buildPreflightReport;
@@ -107,6 +108,34 @@ function summarizeTaskSelection(selectedTask, diagnostics) {
         return `No task selected because task-ledger drift blocks safe selection: ${taskLedgerDrift.message}`;
     }
     return 'No task selected.';
+}
+function buildTaskTitleLookup(tasks) {
+    const titles = new Map();
+    for (const task of tasks ?? []) {
+        titles.set(task.id, task.title);
+    }
+    return titles;
+}
+function formatActiveClaimLabel(claim, stale, taskTitles) {
+    const title = taskTitles.get(claim.taskId);
+    return `${claim.taskId}${title ? ` - ${title}` : ''} @ ${claim.claimedAt} (${stale ? 'stale' : 'fresh'})`;
+}
+function summarizeActiveClaimsByAgent(claimGraph, taskTitles) {
+    const groupedClaims = new Map();
+    for (const entry of claimGraph?.tasks ?? []) {
+        for (const activeClaim of entry.activeClaims) {
+            const labels = groupedClaims.get(activeClaim.claim.agentId) ?? [];
+            labels.push(formatActiveClaimLabel(activeClaim.claim, activeClaim.stale, taskTitles));
+            groupedClaims.set(activeClaim.claim.agentId, labels);
+        }
+    }
+    if (groupedClaims.size === 0) {
+        return 'none';
+    }
+    return [...groupedClaims.entries()]
+        .sort(([leftAgentId], [rightAgentId]) => leftAgentId.localeCompare(rightAgentId))
+        .map(([agentId, claims]) => `${agentId}: ${claims.join(', ')}`)
+        .join('; ');
 }
 async function pathExists(target) {
     try {
@@ -482,6 +511,8 @@ async function inspectPreflightArtifactReadiness(input) {
 }
 function buildPreflightReport(input) {
     const diagnostics = [...input.taskInspection.diagnostics];
+    const taskTitles = buildTaskTitleLookup(input.taskInspection.taskFile?.tasks);
+    const activeClaimSummary = summarizeActiveClaimsByAgent(input.claimGraph, taskTitles);
     const currentProvenanceId = input.currentProvenanceId?.trim() || null;
     const defaultAgentClaims = input.claimGraph?.claimFile.claims.filter((claim) => (claim.status === 'active'
         && claim.agentId === types_1.DEFAULT_RALPH_AGENT_ID
@@ -611,7 +642,8 @@ function buildPreflightReport(input) {
         : 'Validation none.';
     return {
         ready,
-        summary: `Preflight ${ready ? 'ready' : 'blocked'}: ${selectionSummary} ${validationSummary} ${scopeSummary}`,
+        summary: `Preflight ${ready ? 'ready' : 'blocked'}: ${selectionSummary} ${validationSummary} Active claims ${activeClaimSummary}. ${scopeSummary}`,
+        activeClaimSummary,
         diagnostics: orderedDiagnostics
     };
 }
@@ -631,6 +663,7 @@ function renderPreflightReport(report) {
         '',
         `- Ready: ${report.ready ? 'yes' : 'no'}`,
         `- Summary: ${report.summary}`,
+        `- Active claim state: ${report.activeClaimSummary ?? 'none'}`,
         '',
         ...sections
     ].join('\n');

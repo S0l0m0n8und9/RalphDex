@@ -13,6 +13,7 @@ Related docs:
 - `npm run lint`: type-check `src/` and `test/` without emitting files.
 - `npm run check:docs`: run deterministic documentation structure, link, ownership, and lightweight code-doc alignment checks.
 - `npm run check:ledger`: verify that the task and claims ledger files in `.ralph/` are internally consistent; a drifted ledger blocks the full validation gate before tests run.
+- `npm run prompt:calibrate -- <workspace-path>`: render one prompt of each kind and target against a representative Ralph workspace and report estimated token counts versus the checked-in codex targets. This is a manual operator aid, not a validation gate.
 - `npm test`: run `npm run compile:tests` and then execute the Node test suite from `out-test/test/`.
 - `npm run test:activation`: launch a real Extension Development Host smoke test through `@vscode/test-electron`.
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
@@ -53,6 +54,7 @@ Related docs:
 - live clipboard integration in a real host OS session
 - live VS Code command handoff behavior in a real Extension Development Host session
 - Real `codex exec` process execution is only covered by the optional `npm run test:real-cli-smoke` path, not by the default `npm test` or `npm run validate` gate.
+- Prompt-budget calibration is a manual operator workflow through `npm run prompt:calibrate -- <workspace-path>` and is not exercised by `npm test` or `npm run validate`.
 - Live Git checkpoint behavior in a real repository
 - live `.vsix` install behavior after packaging
 

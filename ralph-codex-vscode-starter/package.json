@@ -363,6 +363,7 @@
     "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
+    "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
     "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test --test-isolation=none ./out-test/test/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",

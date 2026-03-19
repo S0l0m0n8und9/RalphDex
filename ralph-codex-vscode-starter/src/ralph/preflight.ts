@@ -112,6 +112,47 @@ function summarizeTaskSelection(
   return 'No task selected.';
 }
 
+function buildTaskTitleLookup(tasks: readonly RalphTask[] | undefined): Map<string, string> {
+  const titles = new Map<string, string>();
+  for (const task of tasks ?? []) {
+    titles.set(task.id, task.title);
+  }
+  return titles;
+}
+
+function formatActiveClaimLabel(
+  claim: RalphTaskClaimGraphInspection['claimFile']['claims'][number],
+  stale: boolean,
+  taskTitles: ReadonlyMap<string, string>
+): string {
+  const title = taskTitles.get(claim.taskId);
+  return `${claim.taskId}${title ? ` - ${title}` : ''} @ ${claim.claimedAt} (${stale ? 'stale' : 'fresh'})`;
+}
+
+export function summarizeActiveClaimsByAgent(
+  claimGraph: RalphTaskClaimGraphInspection | null | undefined,
+  taskTitles: ReadonlyMap<string, string>
+): string {
+  const groupedClaims = new Map<string, string[]>();
+
+  for (const entry of claimGraph?.tasks ?? []) {
+    for (const activeClaim of entry.activeClaims) {
+      const labels = groupedClaims.get(activeClaim.claim.agentId) ?? [];
+      labels.push(formatActiveClaimLabel(activeClaim.claim, activeClaim.stale, taskTitles));
+      groupedClaims.set(activeClaim.claim.agentId, labels);
+    }
+  }
+
+  if (groupedClaims.size === 0) {
+    return 'none';
+  }
+
+  return [...groupedClaims.entries()]
+    .sort(([leftAgentId], [rightAgentId]) => leftAgentId.localeCompare(rightAgentId))
+    .map(([agentId, claims]) => `${agentId}: ${claims.join(', ')}`)
+    .join('; ');
+}
+
 export interface RalphPreflightInput {
   rootPath: string;
   workspaceTrusted: boolean;
@@ -631,6 +672,8 @@ export async function inspectPreflightArtifactReadiness(
 
 export function buildPreflightReport(input: RalphPreflightInput): RalphPreflightReport {
   const diagnostics: RalphPreflightDiagnostic[] = [...input.taskInspection.diagnostics];
+  const taskTitles = buildTaskTitleLookup(input.taskInspection.taskFile?.tasks);
+  const activeClaimSummary = summarizeActiveClaimsByAgent(input.claimGraph, taskTitles);
   const currentProvenanceId = input.currentProvenanceId?.trim() || null;
   const defaultAgentClaims = input.claimGraph?.claimFile.claims.filter((claim) => (
     claim.status === 'active'
@@ -894,7 +937,8 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
 
   return {
     ready,
-    summary: `Preflight ${ready ? 'ready' : 'blocked'}: ${selectionSummary} ${validationSummary} ${scopeSummary}`,
+    summary: `Preflight ${ready ? 'ready' : 'blocked'}: ${selectionSummary} ${validationSummary} Active claims ${activeClaimSummary}. ${scopeSummary}`,
+    activeClaimSummary,
     diagnostics: orderedDiagnostics
   };
 }
@@ -917,6 +961,7 @@ export function renderPreflightReport(report: RalphPreflightReport): string {
     '',
     `- Ready: ${report.ready ? 'yes' : 'no'}`,
     `- Summary: ${report.summary}`,
+    `- Active claim state: ${report.activeClaimSummary ?? 'none'}`,
     '',
     ...sections
   ].join('\n');

@@ -104,11 +104,7 @@ function taskLedgerDriftSummary(snapshot) {
     return compactList(taskGraphErrors.map((diagnostic) => diagnostic.message), 2);
 }
 function claimGraphSummary(snapshot) {
-    const claimDiagnostics = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'claimGraph');
-    if (claimDiagnostics.length === 0) {
-        return 'none';
-    }
-    return compactList(claimDiagnostics.map((diagnostic) => diagnostic.message), 2);
+    return snapshot.preflightReport.activeClaimSummary ?? 'none';
 }
 function currentClaimHolderSummary(snapshot) {
     if (!snapshot.selectedTask) {
@@ -273,6 +269,7 @@ function buildStatusReport(snapshot) {
         '## Preflight',
         `- Ready: ${snapshot.preflightReport.ready ? 'yes' : 'no'}`,
         `- Summary: ${snapshot.preflightReport.summary}`,
+        `- Active claim state: ${snapshot.preflightReport.activeClaimSummary ?? 'none'}`,
         '',
         '### Task Graph',
         preflightTaskGraph.length > 0 ? preflightTaskGraph.map(renderDiagnostic).join('\n') : '- ok',

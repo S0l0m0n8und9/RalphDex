@@ -49,21 +49,25 @@ No systematic truncation experiments were run at calibration time. If prompts ar
 
 Follow these steps when switching to a different model, after a Codex CLI context-window change, or after observing consistent prompt truncation or unnecessary padding.
 
+Manual calibration renders are available through `npm run prompt:calibrate -- <workspace-path>` from the extension root. The script reads `.ralph/prd.md` and `.ralph/tasks.json` from the target workspace, renders one prompt of each kind for both `cliExec` and `ideHandoff` using the checked-in `promptBuilder` logic, and prints the estimated-token delta against the current checked-in codex target. This tool is operator-facing only; it is not part of `npm run validate`.
+
 1. **Record the new context window.** Find the model's maximum context tokens from its documentation. If the new model becomes the checked-in default, update `src/config/defaults.ts` and the "Calibration Baseline" section of this file together.
 
-2. **Measure the fixed-section floor.** Render three representative prompts (bootstrap, iteration, replenish-backlog) at their current settings with a minimal task and minimal repo context. Record the actual token count from the CLI's usage output. The lowest count is the fixed-section floor.
+2. **Render a baseline table.** Run `npm run prompt:calibrate -- <workspace-path>` against a representative workspace that contains `.ralph/prd.md` and a minimal `.ralph/tasks.json` with at least one actionable task. Keep the output table with the current `estimated tokens`, `budget target`, and `delta` values as the before-calibration snapshot.
 
-3. **Measure variable-section sizes.** For a realistic task and repo, render each prompt kind and measure the token count above the floor. Divide by the character limits to get an empirical chars-per-token ratio. Claude models are typically 3.5–4.5 chars/token for English prose; adjust the approximation in this doc if measurement diverges.
+3. **Measure the fixed-section floor.** Render three representative prompts (bootstrap, iteration, replenish-backlog) at their current settings with a minimal task and minimal repo context. Record the actual token count from the CLI's usage output. The lowest count is the fixed-section floor.
 
-4. **Re-derive each policy entry.** For each `promptKind:promptTarget`, recompute `floor + variableBudget + 15 % buffer`, then round to the nearest 100. Keep IDE handoff targets 30–40 % below their CLI equivalents unless testing shows a different review density is better.
+4. **Measure variable-section sizes.** For a realistic task and repo, render each prompt kind and measure the token count above the floor. Divide by the character limits to get an empirical chars-per-token ratio. Claude models are typically 3.5–4.5 chars/token for English prose; adjust the approximation in this doc if measurement diverges.
 
-5. **Adjust character limits if needed.** If the new model has a larger context window and you want to allow richer context, increase `objectiveChars`, `progressChars`, and `priorBudget` proportionally in `src/prompt/promptBuilder.ts`, then re-derive `targetTokens`. If the new model has a smaller context window, reduce those section budgets first and only then set lower token targets.
+5. **Re-derive each policy entry.** For each `promptKind:promptTarget`, recompute `floor + variableBudget + 15 % buffer`, then round to the nearest 100. Keep IDE handoff targets 30–40 % below their CLI equivalents unless testing shows a different review density is better.
 
-6. **Smoke-test real prompts.** Run one representative prompt for each CLI kind and inspect the resulting prompt artifacts or CLI usage output for truncation, omitted sections, or obvious over-padding. If real truncation occurs, prefer lowering section budgets before lowering only one `targetTokens` value.
+6. **Adjust character limits if needed.** If the new model has a larger context window and you want to allow richer context, increase `objectiveChars`, `progressChars`, and `priorBudget` proportionally in `src/prompt/promptBuilder.ts`, then re-derive `targetTokens`. If the new model has a smaller context window, reduce those section budgets first and only then set lower token targets.
 
-7. **Run `npm run check:docs` and `npm run validate`.** Confirm the documentation still matches the code and the updated policy matrix compiles and passes tests.
+7. **Smoke-test real prompts.** Run one representative prompt for each CLI kind and inspect the resulting prompt artifacts or CLI usage output for truncation, omitted sections, or obvious over-padding. If real truncation occurs, prefer lowering section budgets before lowering only one `targetTokens` value.
 
-8. **Update this file** with the active profile baseline, the model name and context window used for calibration, the empirical chars-per-token ratio measured in step 3, and whether the recalibration was estimate-only or also informed by observed truncation behavior.
+8. **Run `npm run check:docs` and `npm run validate`.** Confirm the documentation still matches the code and the updated policy matrix compiles and passes tests.
+
+9. **Update this file** with the active profile baseline, the model name and context window used for calibration, the empirical chars-per-token ratio measured in step 4, and whether the recalibration was estimate-only or also informed by observed truncation behavior.
 
 ## Reasoning Effort Overhead
 
