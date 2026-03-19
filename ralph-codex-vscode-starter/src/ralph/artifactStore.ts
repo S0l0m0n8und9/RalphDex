@@ -84,6 +84,8 @@ export interface RalphGeneratedArtifactRetentionSummary {
   deletedRunArtifactBaseNames: string[];
   retainedRunArtifactBaseNames: string[];
   protectedRetainedRunArtifactBaseNames: string[];
+  deletedHandoffFiles?: string[];
+  retainedHandoffFiles?: string[];
 }
 
 export interface RalphLatestArtifactRepairSummary {
@@ -101,6 +103,7 @@ interface RalphGeneratedArtifactRetentionInspection {
   iterationDirectories: { iteration: number; name: string }[];
   promptFiles: { iteration: number; name: string }[];
   runArtifacts: { baseName: string; iteration: number; fileNames: string[] }[];
+  handoffFiles: { iteration: number; name: string }[];
   protectedArtifacts: RalphProtectedGeneratedArtifacts;
   iterationDirectoryDecision: {
     retainedNames: Set<string>;
@@ -113,6 +116,9 @@ interface RalphGeneratedArtifactRetentionInspection {
   runArtifactDecision: {
     retainedNames: Set<string>;
     protectedRetainedNames: string[];
+  };
+  handoffFileDecision: {
+    retainedNames: Set<string>;
   };
 }
 
@@ -850,6 +856,18 @@ function renderProvenanceSummary(bundle: RalphProvenanceBundle): string {
   ].join('\n');
 }
 
+function parseHandoffFileName(name: string): { iteration: number; name: string } | null {
+  const match = /^.+-(\d+)\.json$/.exec(name);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    name,
+    iteration: Number.parseInt(match[1], 10)
+  };
+}
+
 function renderLatestResultSummary(record: Record<string, unknown>): string | null {
   if (typeof record.iteration !== 'number'
     || typeof record.promptKind !== 'string'
@@ -1434,12 +1452,13 @@ export async function cleanupGeneratedArtifacts(input: {
   artifactRootDir: string;
   promptDir: string;
   runDir: string;
+  handoffDir?: string;
   stateFilePath: string;
   retentionCount: number;
   protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphGeneratedArtifactRetentionSummary> {
   if (input.retentionCount <= 0) {
-    return {
+    const summary: RalphGeneratedArtifactRetentionSummary = {
       deletedIterationDirectories: [],
       retainedIterationDirectories: [],
       protectedRetainedIterationDirectories: [],
@@ -1450,6 +1469,11 @@ export async function cleanupGeneratedArtifacts(input: {
       retainedRunArtifactBaseNames: [],
       protectedRetainedRunArtifactBaseNames: []
     };
+    if (input.handoffDir) {
+      summary.deletedHandoffFiles = [];
+      summary.retainedHandoffFiles = [];
+    }
+    return summary;
   }
   const inspection = await collectGeneratedArtifactRetentionInspection(input);
 
@@ -1483,7 +1507,7 @@ export async function cleanupGeneratedArtifacts(input: {
     deletedRunArtifactBaseNames.push(entry.baseName);
   }
 
-  return {
+  const summary: RalphGeneratedArtifactRetentionSummary = {
     deletedIterationDirectories,
     retainedIterationDirectories: inspection.iterationDirectories
       .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
@@ -1500,18 +1524,38 @@ export async function cleanupGeneratedArtifacts(input: {
       .map((entry) => entry.baseName),
     protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
   };
+
+  if (input.handoffDir) {
+    const retainedHandoffFiles = inspection.handoffFileDecision.retainedNames;
+    const deletedHandoffFiles: string[] = [];
+    for (const entry of inspection.handoffFiles.slice(input.retentionCount)) {
+      if (retainedHandoffFiles.has(entry.name)) {
+        continue;
+      }
+      await fs.rm(path.join(input.handoffDir, entry.name), { force: true });
+      deletedHandoffFiles.push(entry.name);
+    }
+
+    summary.deletedHandoffFiles = deletedHandoffFiles;
+    summary.retainedHandoffFiles = inspection.handoffFiles
+      .filter((entry) => retainedHandoffFiles.has(entry.name))
+      .map((entry) => entry.name);
+  };
+
+  return summary;
 }
 
 export async function inspectGeneratedArtifactRetention(input: {
   artifactRootDir: string;
   promptDir: string;
   runDir: string;
+  handoffDir?: string;
   stateFilePath: string;
   retentionCount: number;
   protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphGeneratedArtifactRetentionSummary> {
   const inspection = await collectGeneratedArtifactRetentionInspection(input);
-  return {
+  const summary: RalphGeneratedArtifactRetentionSummary = {
     deletedIterationDirectories: [],
     retainedIterationDirectories: inspection.iterationDirectories
       .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
@@ -1528,6 +1572,15 @@ export async function inspectGeneratedArtifactRetention(input: {
       .map((entry) => entry.baseName),
     protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
   };
+
+  if (input.handoffDir) {
+    summary.deletedHandoffFiles = [];
+    summary.retainedHandoffFiles = inspection.handoffFiles
+      .filter((entry) => inspection.handoffFileDecision.retainedNames.has(entry.name))
+      .map((entry) => entry.name);
+  }
+
+  return summary;
 }
 
 async function collectProvenanceBundleRetentionInspection(input: {
@@ -1555,6 +1608,7 @@ async function collectGeneratedArtifactRetentionInspection(input: {
   artifactRootDir: string;
   promptDir: string;
   runDir: string;
+  handoffDir?: string;
   stateFilePath: string;
   retentionCount: number;
   protectionScope?: RalphGeneratedArtifactProtectionScope;
@@ -1571,6 +1625,9 @@ async function collectGeneratedArtifactRetentionInspection(input: {
       protectionScope: input.protectionScope
     })
   ]);
+  const handoffEntries = input.handoffDir
+    ? await fs.readdir(input.handoffDir, { withFileTypes: true }).catch(() => [])
+    : [];
 
   const iterationDirectories = artifactEntries
     .filter((entry) => entry.isDirectory())
@@ -1605,14 +1662,20 @@ async function collectGeneratedArtifactRetentionInspection(input: {
   const runArtifacts = Array.from(runArtifactGroups.values()).sort((left, right) =>
     right.iteration - left.iteration || right.baseName.localeCompare(left.baseName)
   );
+  const handoffFiles = handoffEntries
+    .filter((entry) => entry.isFile())
+    .map((entry) => parseHandoffFileName(entry.name))
+    .filter((entry): entry is { iteration: number; name: string } => entry !== null)
+    .sort(sortByIterationDesc);
   const effectiveRetentionCount = input.retentionCount <= 0
-    ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length)
+    ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length, handoffFiles.length)
     : input.retentionCount;
 
   return {
     iterationDirectories,
     promptFiles,
     runArtifacts,
+    handoffFiles,
     protectedArtifacts,
     iterationDirectoryDecision: retentionDecisionByNewestAndProtected(
       iterationDirectories,
@@ -1631,7 +1694,15 @@ async function collectGeneratedArtifactRetentionInspection(input: {
       effectiveRetentionCount,
       protectedArtifacts.runArtifactBaseNames,
       (entry) => entry.baseName
-    )
+    ),
+    handoffFileDecision: {
+      retainedNames: retainedNamesByNewestAndProtected(
+        handoffFiles,
+        effectiveRetentionCount,
+        [],
+        (entry) => entry.name
+      )
+    }
   };
 }
 

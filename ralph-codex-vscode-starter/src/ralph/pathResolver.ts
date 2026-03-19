@@ -9,6 +9,7 @@ export interface RalphPaths {
   taskFilePath: string;
   claimFilePath: string;
   stateFilePath: string;
+  handoffDir: string;
   promptDir: string;
   runDir: string;
   logDir: string;
@@ -32,6 +33,7 @@ export function resolveRalphPaths(rootPath: string, config: RalphCodexConfig): R
     taskFilePath: resolveWorkspacePath(rootPath, config.ralphTaskFilePath),
     claimFilePath: path.join(ralphDir, 'claims.json'),
     stateFilePath: path.join(ralphDir, 'state.json'),
+    handoffDir: path.join(ralphDir, 'handoff'),
     promptDir: path.join(ralphDir, 'prompts'),
     runDir: path.join(ralphDir, 'runs'),
     logDir,

@@ -1,3 +1,5 @@
+import { RalphAgentRole } from '../ralph/types';
+
 export type CliProviderId = 'codex' | 'claude';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
@@ -13,6 +15,7 @@ export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
 export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
 
 export type RalphGitCheckpointMode = 'off' | 'snapshot' | 'snapshotAndDiff';
+export type RalphScmStrategy = 'none' | 'commit-on-done' | 'branch-per-task';
 
 export type PromptBudgetProfile = 'codex' | 'claude' | 'custom';
 
@@ -29,6 +32,7 @@ export interface RalphCodexConfig {
   claudeMaxTurns: number;
   claudePermissionMode: ClaudePermissionMode;
   agentId: string;
+  agentRole: RalphAgentRole;
   preferredHandoffMode: CodexHandoffMode;
   inspectionRootOverride: string;
   ralphIterationCap: number;
@@ -39,6 +43,7 @@ export interface RalphCodexConfig {
   generatedArtifactRetentionCount: number;
   provenanceBundleRetentionCount: number;
   gitCheckpointMode: RalphGitCheckpointMode;
+  scmStrategy: RalphScmStrategy;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;
   autonomyMode: RalphAutonomyMode;

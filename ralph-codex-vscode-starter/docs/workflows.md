@@ -191,6 +191,7 @@ Autonomous mode widens what Ralph may do without another click, but it does not 
 - `needs_human_review` outcomes still stop the loop and surface `request_human_review` as the next action instead of auto-continuing
 - remediation artifacts that recommend `request_human_review` still remain operator-owned decisions
 - initial PRD authorship is always manual; autonomous mode assumes `.ralph/prd.md` already contains a human-authored repository objective
+- blocked preflight remains a hard stop; autonomous mode does not bypass missing PRD requirements, task-ledger drift, claim conflicts, or other blocking control-plane diagnostics
 
 Enable autonomous mode only when the safety dependencies are already satisfied:
 

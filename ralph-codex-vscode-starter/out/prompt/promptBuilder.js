@@ -56,6 +56,7 @@ const TEMPLATE_FILE_BY_KIND = {
     'continue-progress': 'continue-progress.md',
     'human-review-handoff': 'human-review-handoff.md'
 };
+const REVIEW_AGENT_TEMPLATE_FILE = 'review-agent.md';
 const PROMPT_INTRO_BY_KIND = {
     bootstrap: 'You are starting a fresh Ralph-guided Codex run inside an existing repository. Treat the repository and durable Ralph files as the source of truth.',
     iteration: 'You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.',
@@ -476,7 +477,25 @@ function isBacklogExhausted(context) {
         && context.taskCounts.in_progress === 0
         && context.taskCounts.blocked === 0;
 }
-function buildStrategyContext(target, kind, taskLedgerDriftMessages = []) {
+function effectiveAgentRole(config) {
+    return config.agentRole ?? 'build';
+}
+function buildStrategyContext(target, kind, agentRole, taskLedgerDriftMessages = []) {
+    if (agentRole === 'review') {
+        return target === 'cliExec'
+            ? [
+                '- Target: Codex CLI review execution via `codex exec`.',
+                '- Operate in review-only mode. Do not make code changes or edit durable Ralph files.',
+                '- Run the selected validation command when available, then inspect the changed files since the last completed task.',
+                '- Report missing test coverage, documentation gaps, or invariant violations as follow-up tasks in `suggestedChildTasks` instead of implementing fixes.'
+            ]
+            : [
+                '- Target: manual Codex IDE review handoff via clipboard plus VS Code commands.',
+                '- Stay review-only. Do not make code changes or mutate durable Ralph files during this review pass.',
+                '- Validate first when practical, then inspect the changed files since the last completed task.',
+                '- Surface missing test coverage, documentation gaps, or invariant violations as proposed follow-up tasks instead of implementation work.'
+            ];
+    }
     if (target === 'cliExec') {
         if (kind === 'replenish-backlog') {
             const backlogStateLine = taskLedgerDriftMessages.length > 0
@@ -755,7 +774,17 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
         .sort((left, right) => right.priority - left.priority)
         .map((entry) => entry.text), budget);
 }
-function buildOperatingRules() {
+function buildOperatingRules(agentRole) {
+    if (agentRole === 'review') {
+        return [
+            '- Read AGENTS.md plus the durable Ralph files before making non-trivial review decisions.',
+            '- Do not invent unsupported IDE APIs or hidden handoff channels.',
+            '- Keep the review deterministic, file-backed, and evidence-driven.',
+            '- Do not make implementation edits; this role reports review findings only.',
+            '- Prefer the repository’s real validation commands when they exist.',
+            '- Do not edit `.ralph/tasks.json` or `.ralph/progress.md`; return review results through the structured completion report instead.'
+        ];
+    }
     return [
         '- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.',
         '- Do not invent unsupported IDE APIs or hidden handoff channels.',
@@ -766,7 +795,7 @@ function buildOperatingRules() {
         '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
 }
-function buildExecutionContract(target, kind) {
+function buildExecutionContract(target, kind, agentRole) {
     if (kind === 'replenish-backlog') {
         const contract = [
             '1. Inspect the PRD, durable progress log, and current repo state before editing the task file.',
@@ -784,6 +813,26 @@ function buildExecutionContract(target, kind) {
         }
         return contract;
     }
+    if (agentRole === 'review') {
+        if (target === 'cliExec') {
+            return [
+                '1. Inspect the workspace facts and selected Ralph task before reviewing.',
+                '2. Run the selected validation command when available and report the concrete result.',
+                '3. Inspect changed files since the last completed task and identify missing test coverage, documentation gaps, or invariant violations.',
+                '4. Do not make code changes. Emit proposed follow-up tasks in `suggestedChildTasks` instead of editing files or the task ledger.',
+                '5. Set `requestedStatus` to `done` when no gaps are found; otherwise keep the task open with `in_progress` or `blocked` and explain why.',
+                '6. End with a fenced `json` completion report block using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `suggestedChildTasks`.'
+            ];
+        }
+        return [
+            '1. Inspect the workspace facts and selected Ralph task before reviewing.',
+            '2. Validate when practical, then inspect changed files since the last completed task.',
+            '3. Identify missing test coverage, documentation gaps, or invariant violations.',
+            '4. Do not make code changes. Propose follow-up tasks instead of implementation work.',
+            '5. Make the next human review decision explicit when gaps or blockers remain.',
+            '6. End with the concrete review outcome and the next verification step.'
+        ];
+    }
     const contract = [
         '1. Inspect the workspace facts and selected Ralph task before editing.',
         '2. Execute only the selected task, or explain deterministically why no safe task is available.',
@@ -800,7 +849,7 @@ function buildExecutionContract(target, kind) {
     }
     return contract;
 }
-function buildFinalResponseContract(target, kind) {
+function buildFinalResponseContract(target, kind, agentRole) {
     if (kind === 'replenish-backlog') {
         return [
             '- Generated or updated task ids.',
@@ -808,6 +857,22 @@ function buildFinalResponseContract(target, kind) {
             '- Whether a new actionable task now exists.',
             '- Any blocker that prevented safe backlog replenishment.'
         ];
+    }
+    if (agentRole === 'review') {
+        return target === 'cliExec'
+            ? [
+                '- Validation results.',
+                '- Reviewed files or review scope.',
+                '- Missing test coverage, documentation gaps, or invariant violations.',
+                '- Suggested follow-up tasks when gaps remain.',
+                '- End with a fenced `json` completion report block for the selected task.'
+            ]
+            : [
+                '- Reviewed files or review scope.',
+                '- Validation run or still needed.',
+                '- Review findings and proposed follow-up tasks.',
+                '- The next concrete IDE or terminal verification step.'
+            ];
     }
     if (target === 'cliExec') {
         return [
@@ -865,9 +930,10 @@ async function resolvePromptTemplateDirectory(rootPath, overrideDirectory) {
     }
     throw new Error('Bundled Ralph prompt templates were not found.');
 }
-async function loadTemplate(kind, rootPath, overrideDirectory) {
+async function loadTemplate(kind, rootPath, overrideDirectory, agentRole) {
     const directory = await resolvePromptTemplateDirectory(rootPath, overrideDirectory);
-    const templatePath = path.join(directory, TEMPLATE_FILE_BY_KIND[kind]);
+    const templateFile = agentRole === 'review' ? REVIEW_AGENT_TEMPLATE_FILE : TEMPLATE_FILE_BY_KIND[kind];
+    const templatePath = path.join(directory, templateFile);
     const templateText = await fs.readFile(templatePath, 'utf8').catch((error) => {
         throw new Error(`Failed to read Ralph prompt template ${templatePath}: ${error instanceof Error ? error.message : String(error)}`);
     });
@@ -945,11 +1011,12 @@ function createArtifactBaseName(kind, iteration) {
     return `${kind}-${String(iteration).padStart(3, '0')}`;
 }
 async function buildPrompt(input) {
-    const { templatePath, templateText } = await loadTemplate(input.kind, input.paths.rootPath, input.config.promptTemplateDirectory);
+    const agentRole = effectiveAgentRole(input.config);
+    const { templatePath, templateText } = await loadTemplate(input.kind, input.paths.rootPath, input.config.promptTemplateDirectory, agentRole);
     const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(input.preflightReport.diagnostics);
     const budgetPolicy = buildPromptBudgetPolicy(input.kind, input.target, input.config.promptBudgetProfile ?? 'codex', input.config.customPromptBudget ?? {});
     const sectionBodies = {
-        strategyContext: buildStrategyContext(input.target, input.kind, taskLedgerDriftMessages),
+        strategyContext: buildStrategyContext(input.target, input.kind, agentRole, taskLedgerDriftMessages),
         preflightContext: buildPreflightContext(input.preflightReport),
         objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
         repoContext: buildRepoContext(input.summary, input.kind, input.target, input.selectedTask, budgetPolicy.repoDetail),
@@ -960,9 +1027,9 @@ async function buildPrompt(input) {
             .map((line) => line.trimEnd())
             .filter((line) => line.length > 0),
         priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask),
-        operatingRules: buildOperatingRules(),
-        executionContract: buildExecutionContract(input.target, input.kind),
-        finalResponseContract: buildFinalResponseContract(input.target, input.kind)
+        operatingRules: buildOperatingRules(agentRole),
+        executionContract: buildExecutionContract(input.target, input.kind, agentRole),
+        finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
     };
     const omittedSections = new Set();
     const placeholderFor = (name) => {

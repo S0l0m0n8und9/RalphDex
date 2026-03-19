@@ -1,6 +1,8 @@
 import {
   RalphCompletionReport,
-  RalphCompletionReportRequestedStatus
+  RalphCompletionReportRequestedStatus,
+  RalphSuggestedChildTask,
+  RalphSuggestedTaskDependency
 } from './types';
 
 export interface CompletionReportArtifact {
@@ -39,6 +41,81 @@ export function sanitizeCompletionText(value: string | undefined, maximumLength 
 
 export function isAllowedCompletionStatus(value: string): value is RalphCompletionReportRequestedStatus {
   return value === 'done' || value === 'blocked' || value === 'in_progress';
+}
+
+function parseSuggestedTaskDependency(candidate: unknown): RalphSuggestedTaskDependency | null {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.taskId !== 'string' || !record.taskId.trim()) {
+    return null;
+  }
+  if (record.reason !== 'blocks_sequence' && record.reason !== 'inherits_parent_dependency') {
+    return null;
+  }
+
+  return {
+    taskId: record.taskId.trim(),
+    reason: record.reason
+  };
+}
+
+function parseSuggestedChildTask(candidate: unknown): RalphSuggestedChildTask | null {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.id !== 'string' || !record.id.trim()) {
+    return null;
+  }
+  if (typeof record.title !== 'string' || !record.title.trim()) {
+    return null;
+  }
+  if (typeof record.parentId !== 'string' || !record.parentId.trim()) {
+    return null;
+  }
+  if (record.validation !== null && typeof record.validation !== 'string') {
+    return null;
+  }
+  if (typeof record.rationale !== 'string' || !record.rationale.trim()) {
+    return null;
+  }
+  if (!Array.isArray(record.dependsOn)) {
+    return null;
+  }
+
+  const dependsOn = record.dependsOn
+    .map(parseSuggestedTaskDependency)
+    .filter((dependency): dependency is RalphSuggestedTaskDependency => dependency !== null);
+  if (dependsOn.length !== record.dependsOn.length) {
+    return null;
+  }
+
+  return {
+    id: record.id.trim(),
+    title: record.title.trim(),
+    parentId: record.parentId.trim(),
+    dependsOn,
+    validation: typeof record.validation === 'string' ? sanitizeCompletionText(record.validation) ?? record.validation.trim() : null,
+    rationale: sanitizeCompletionText(record.rationale) ?? record.rationale.trim()
+  };
+}
+
+function parseSuggestedChildTasks(candidate: unknown): RalphSuggestedChildTask[] | undefined | null {
+  if (candidate === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(candidate)) {
+    return null;
+  }
+
+  const tasks = candidate
+    .map(parseSuggestedChildTask)
+    .filter((task): task is RalphSuggestedChildTask => task !== null);
+  return tasks.length === candidate.length ? tasks : null;
 }
 
 export function extractTrailingJsonObject(text: string): string | null {
@@ -149,6 +226,15 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       parseError: 'Completion report needsHumanReview must be a boolean when provided.'
     };
   }
+  const suggestedChildTasks = parseSuggestedChildTasks(candidate.suggestedChildTasks);
+  if (suggestedChildTasks === null) {
+    return {
+      status: 'invalid',
+      report: null,
+      rawBlock,
+      parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.'
+    };
+  }
 
   const report: RalphCompletionReport = {
     selectedTaskId: candidate.selectedTaskId.trim(),
@@ -156,7 +242,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     progressNote: sanitizeCompletionText(typeof candidate.progressNote === 'string' ? candidate.progressNote : undefined),
     blocker: sanitizeCompletionText(typeof candidate.blocker === 'string' ? candidate.blocker : undefined),
     validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
-    needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined
+    needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
+    suggestedChildTasks
   };
 
   return {

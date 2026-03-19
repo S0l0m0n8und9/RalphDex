@@ -597,7 +597,10 @@ async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManage
     if (confirmed !== 'Apply Proposal') {
         return false;
     }
-    await (0, taskFile_1.applySuggestedChildTasksToFile)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks);
+    const locked = await (0, taskFile_1.withTaskFileLock)(inspection.paths.taskFilePath, undefined, async () => ((0, taskFile_1.applySuggestedChildTasksWithinLock)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks)));
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
     logger.info('Applied Ralph task decomposition proposal.', {
         rootPath: workspaceFolder.uri.fsPath,
         remediationPath: latestArtifacts.latestRemediationPath,

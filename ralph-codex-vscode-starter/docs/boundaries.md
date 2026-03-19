@@ -43,7 +43,7 @@ The current shipped control plane is a sequential iteration/loop runner. Multi-a
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 
-Autonomy mode does not change the principal-agent model. The operator remains the principal, `autonomyMode` only changes a bounded set of loop defaults, and hard stops such as `needs_human_review`, `request_human_review`, and initial PRD authorship stay enforced regardless of mode.
+Autonomy mode does not change the principal-agent model. The operator remains the principal, `autonomyMode` only changes a bounded set of loop defaults, and hard stops such as `needs_human_review`, `request_human_review`, initial PRD authorship, and blocking preflight diagnostics stay enforced regardless of mode.
 
 It does not:
 

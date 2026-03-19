@@ -199,7 +199,8 @@ const DOC_RULES = {
             'code --install-extension',
             'build a distributable `.vsix`',
             'autonomyMode',
-            'hard stops'
+            'hard stops',
+            'blocked preflight'
         ]
     },
     'docs/testing.md': {

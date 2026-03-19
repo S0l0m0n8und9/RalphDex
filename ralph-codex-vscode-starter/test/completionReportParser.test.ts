@@ -65,6 +65,39 @@ test('parseCompletionReport accepts a trailing JSON object without a fence', () 
   assert.equal(parsed.report?.progressNote, 'Updated parser tests.');
 });
 
+test('parseCompletionReport accepts suggested child tasks when provided', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T27.1",',
+    '  "requestedStatus": "in_progress",',
+    '  "suggestedChildTasks": [',
+    '    {',
+    '      "id": "T27.1.a",',
+    '      "title": "Add missing regression coverage",',
+    '      "parentId": "T27.1",',
+    '      "dependsOn": [],',
+    '      "validation": " npm test ",',
+    '      "rationale": " Missing regression coverage leaves the review incomplete. "',
+    '    }',
+    '  ]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.deepEqual(parsed.report?.suggestedChildTasks, [
+    {
+      id: 'T27.1.a',
+      title: 'Add missing regression coverage',
+      parentId: 'T27.1',
+      dependsOn: [],
+      validation: 'npm test',
+      rationale: 'Missing regression coverage leaves the review incomplete.'
+    }
+  ]);
+});
+
 test('parseCompletionReport rejects invalid requestedStatus values', () => {
   const parsed = parseCompletionReport([
     '```json',
@@ -75,6 +108,21 @@ test('parseCompletionReport rejects invalid requestedStatus values', () => {
   assert.equal(parsed.status, 'invalid');
   assert.equal(parsed.report, null);
   assert.match(parsed.parseError ?? '', /requestedStatus must be one of done, blocked, or in_progress/);
+});
+
+test('parseCompletionReport rejects invalid suggested child task payloads', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T27.1",',
+    '  "requestedStatus": "in_progress",',
+    '  "suggestedChildTasks": [{"id":"T27.1.a"}]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+  assert.match(parsed.parseError ?? '', /suggestedChildTasks must be an array of valid suggested child tasks/);
 });
 
 test('parseCompletionReport reports missing when no trailing report block exists', () => {

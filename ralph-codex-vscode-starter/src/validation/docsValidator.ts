@@ -199,7 +199,8 @@ const DOC_RULES: Record<string, DocRule> = {
       'code --install-extension',
       'build a distributable `.vsix`',
       'autonomyMode',
-      'hard stops'
+      'hard stops',
+      'blocked preflight'
     ]
   },
   'docs/testing.md': {

@@ -99,12 +99,14 @@ type MockRunCliIterationResult = Awaited<ReturnType<RalphIterationEngine['runCli
 function createMockRun(
   rootPath: string,
   mode: 'singleExec' | 'loop',
-  stopReason: 'control_plane_reload_required' | 'human_review_needed' | null
+  stopReason: 'control_plane_reload_required' | 'human_review_needed' | 'preflight_blocked' | null
 ): MockRunCliIterationResult {
   const message = stopReason === 'control_plane_reload_required'
     ? 'Control-plane changes require a reload.'
     : stopReason === 'human_review_needed'
       ? 'The current outcome requires explicit human review.'
+      : stopReason === 'preflight_blocked'
+        ? 'Ralph preflight blocked iteration start. Missing human-authored PRD.'
       : `Mock ${mode} stop.`;
 
   return {
@@ -113,7 +115,7 @@ function createMockRun(
     },
     result: {
       iteration: 1,
-      executionStatus: 'succeeded',
+      executionStatus: stopReason === 'preflight_blocked' ? 'skipped' : 'succeeded',
       summary: 'Iteration summary.',
       completionClassification: 'complete',
       stopReason
@@ -1299,6 +1301,34 @@ test('Run CLI Loop still stops for human review in autonomous mode', async () =>
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph CLI loop stopped after iteration 1: The current outcome requires explicit human review\./
+  );
+});
+
+test('Run CLI Loop still stops on blocked preflight in autonomous mode', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autonomyMode: 'autonomous',
+    autoReloadOnControlPlaneChange: false,
+    autoApplyRemediation: [],
+    autoReplenishBacklog: false
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'preflight_blocked'),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    }
+  );
+
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI loop stopped after iteration 1: Ralph preflight blocked iteration start\. Missing human-authored PRD\./
   );
 });
 

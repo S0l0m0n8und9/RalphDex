@@ -37,6 +37,7 @@ exports.RalphIterationEngine = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const promptBuilder_1 = require("../prompt/promptBuilder");
+const processRunner_1 = require("../services/processRunner");
 const integrity_1 = require("./integrity");
 const iterationPreparation_1 = require("./iterationPreparation");
 const types_1 = require("./types");
@@ -51,6 +52,14 @@ const EMPTY_GIT_STATUS = {
     raw: '',
     entries: []
 };
+const CLEAN_TERMINAL_HANDOFF_STOP_REASONS = new Set([
+    'task_marked_complete',
+    'iteration_cap_reached',
+    'control_plane_reload_required',
+    'human_review_needed',
+    'no_actionable_task',
+    'verification_passed_no_remaining_subtasks'
+]);
 function formatClaudeStreamLine(line) {
     if (!line) {
         return null;
@@ -95,6 +104,26 @@ function summarizeLastMessage(lastMessage, exitCode) {
         .find((line) => line.length > 0)
         ?? (exitCode === null ? 'Execution skipped.' : `Exit code ${exitCode}`);
 }
+function formatScmCommitMessage(input) {
+    return {
+        subject: `ralph(${input.taskId}): ${input.taskTitle.replace(/\s+/g, ' ').trim()}`,
+        body: `Agent: ${input.agentId} | Iteration: ${input.iteration} | Validation: ${input.validationStatus}`
+    };
+}
+async function commitOnDone(input) {
+    const message = formatScmCommitMessage(input);
+    const addResult = await (0, processRunner_1.runProcess)('git', ['add', '-A'], { cwd: input.rootPath });
+    if (addResult.code !== 0) {
+        const failure = (addResult.stderr || addResult.stdout || `exit code ${addResult.code}`).trim();
+        throw new Error(`git add -A failed: ${failure}`);
+    }
+    const commitResult = await (0, processRunner_1.runProcess)('git', ['commit', '-m', message.subject, '-m', message.body], { cwd: input.rootPath });
+    if (commitResult.code !== 0) {
+        const failure = (commitResult.stderr || commitResult.stdout || `exit code ${commitResult.code}`).trim();
+        throw new Error(`git commit failed: ${failure}`);
+    }
+    return `SCM commit-on-done succeeded: ${message.subject}`;
+}
 function controlPlaneRuntimeChanges(changedFiles) {
     const matches = new Set();
     for (const filePath of changedFiles) {
@@ -135,7 +164,11 @@ async function autoApplyDecomposeTaskRemediation(input) {
     if (!input.suggestedChildTasks || input.suggestedChildTasks.length === 0) {
         throw new Error(`Cannot auto-apply decompose_task remediation for ${input.taskId} because no suggested child tasks were provided.`);
     }
-    return (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, input.taskId, input.suggestedChildTasks);
+    const locked = await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => ((0, taskFile_1.applySuggestedChildTasksWithinLock)(input.taskFilePath, input.taskId, input.suggestedChildTasks)));
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+    return locked.value;
 }
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
@@ -260,6 +293,25 @@ function runRecordFromIteration(mode, prepared, startedAt, result) {
 }
 function uniqueSorted(values) {
     return Array.from(new Set(values.filter((value) => value.trim().length > 0))).sort((left, right) => left.localeCompare(right));
+}
+function isCleanTerminalHandoffStopReason(stopReason) {
+    return typeof stopReason === 'string' && CLEAN_TERMINAL_HANDOFF_STOP_REASONS.has(stopReason);
+}
+function buildHandoffHumanSummary(note) {
+    const taskLabel = note.selectedTaskId
+        ? `${note.selectedTaskId}${note.selectedTaskTitle ? ` (${note.selectedTaskTitle})` : ''}`
+        : 'No selected task';
+    const detail = note.progressNote
+        ?? note.pendingBlocker
+        ?? note.validationFailureSignature
+        ?? note.completionClassification;
+    return `${taskLabel} stopped with ${note.stopReason}. ${detail}`.trim();
+}
+async function writeAtomicJsonFile(targetPath, value) {
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    const temporaryPath = `${targetPath}.tmp`;
+    await fs.writeFile(temporaryPath, (0, integrity_1.stableJson)(value), 'utf8');
+    await fs.rename(temporaryPath, targetPath);
 }
 function normalizeAgentIdentityRecord(candidate, agentId, firstSeenAt) {
     if (typeof candidate !== 'object' || candidate === null) {
@@ -505,12 +557,14 @@ class RalphIterationEngine {
             artifactRootDir: paths.artifactDir,
             promptDir: paths.promptDir,
             runDir: paths.runDir,
+            handoffDir: paths.handoffDir,
             stateFilePath: paths.stateFilePath,
             retentionCount
         });
         if (retention.deletedIterationDirectories.length === 0
             && retention.deletedPromptFiles.length === 0
-            && retention.deletedRunArtifactBaseNames.length === 0) {
+            && retention.deletedRunArtifactBaseNames.length === 0
+            && (retention.deletedHandoffFiles?.length ?? 0) === 0) {
             return;
         }
         this.logger.info(`Cleaned up generated Ralph artifacts after ${stage}.`, {
@@ -520,7 +574,28 @@ class RalphIterationEngine {
             deletedPromptFiles: retention.deletedPromptFiles,
             protectedRetainedPromptFiles: retention.protectedRetainedPromptFiles,
             deletedRunArtifactBaseNames: retention.deletedRunArtifactBaseNames,
-            protectedRetainedRunArtifactBaseNames: retention.protectedRetainedRunArtifactBaseNames
+            protectedRetainedRunArtifactBaseNames: retention.protectedRetainedRunArtifactBaseNames,
+            deletedHandoffFiles: retention.deletedHandoffFiles ?? []
+        });
+    }
+    async writeLoopTerminationHandoff(input) {
+        if (!isCleanTerminalHandoffStopReason(input.result.stopReason)) {
+            return;
+        }
+        const note = {
+            agentId: input.result.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID,
+            iteration: input.result.iteration,
+            selectedTaskId: input.result.selectedTaskId,
+            selectedTaskTitle: input.result.selectedTaskTitle,
+            stopReason: input.result.stopReason,
+            completionClassification: input.result.completionClassification,
+            progressNote: input.progressNote ?? undefined,
+            pendingBlocker: input.pendingBlocker ?? undefined,
+            validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined
+        };
+        await writeAtomicJsonFile(path.join(input.paths.handoffDir, `${note.agentId}-${String(note.iteration).padStart(3, '0')}.json`), {
+            ...note,
+            humanSummary: buildHandoffHumanSummary(note)
         });
     }
     async preparePrompt(workspaceFolder, progress) {
@@ -1046,6 +1121,28 @@ class RalphIterationEngine {
             catch (error) {
                 result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
             }
+            if (prepared.config.scmStrategy === 'commit-on-done'
+                && taskStateVerification.selectedTaskCompleted
+                && prepared.selectedTask) {
+                try {
+                    result.warnings.push(await commitOnDone({
+                        rootPath: prepared.rootPath,
+                        taskId: prepared.selectedTask.id,
+                        taskTitle: prepared.selectedTask.title,
+                        agentId: prepared.config.agentId,
+                        iteration: prepared.iteration,
+                        validationStatus: validationVerification.result.status
+                    }));
+                }
+                catch (error) {
+                    result.warnings.push(`SCM commit-on-done failed for ${prepared.selectedTask.id}: ${toErrorMessage(error)}`);
+                    this.logger.warn('SCM commit-on-done failed.', {
+                        taskId: prepared.selectedTask.id,
+                        iteration: prepared.iteration,
+                        error: toErrorMessage(error)
+                    });
+                }
+            }
             await (0, artifactStore_1.writeIterationArtifacts)({
                 paths: artifactPaths,
                 artifactRootDir: prepared.paths.artifactDir,
@@ -1116,6 +1213,12 @@ class RalphIterationEngine {
             }
             const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
             await this.stateManager.recordIteration(prepared.rootPath, prepared.paths, prepared.state, result, prepared.objectiveText, runRecord);
+            await this.writeLoopTerminationHandoff({
+                paths: prepared.paths,
+                result,
+                progressNote: completionReconciliation.artifact.report?.progressNote ?? null,
+                pendingBlocker: selectedTaskAfter?.blocker ?? completionReconciliation.artifact.report?.blocker ?? null
+            });
             await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
             this.logger.info('Completed Ralph iteration.', {
                 iteration: prepared.iteration,

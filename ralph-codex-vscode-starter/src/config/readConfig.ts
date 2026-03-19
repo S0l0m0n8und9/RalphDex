@@ -11,6 +11,7 @@ import {
   RalphCodexConfig,
   RalphAutonomyMode,
   RalphGitCheckpointMode,
+  RalphScmStrategy,
   RalphVerifierMode
 } from './types';
 
@@ -198,6 +199,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       DEFAULT_CONFIG.claudePermissionMode
     ),
     agentId: readString(config, 'agentId', DEFAULT_CONFIG.agentId),
+    agentRole: readEnum(
+      config,
+      'agentRole',
+      ['build', 'review', 'watchdog', 'scm'],
+      DEFAULT_CONFIG.agentRole
+    ),
     preferredHandoffMode: readEnum<CodexHandoffMode>(
       config,
       'preferredHandoffMode',
@@ -250,6 +257,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'gitCheckpointMode',
       ['off', 'snapshot', 'snapshotAndDiff'],
       DEFAULT_CONFIG.gitCheckpointMode
+    ),
+    scmStrategy: readEnum<RalphScmStrategy>(
+      config,
+      'scmStrategy',
+      ['none', 'commit-on-done', 'branch-per-task'],
+      DEFAULT_CONFIG.scmStrategy
     ),
     validationCommandOverride: readString(
       config,

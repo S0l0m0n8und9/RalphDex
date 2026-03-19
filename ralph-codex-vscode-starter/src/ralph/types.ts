@@ -123,6 +123,7 @@ export type RalphPromptKind =
   | 'fix-failure'
   | 'continue-progress'
   | 'human-review-handoff';
+export type RalphAgentRole = 'build' | 'review' | 'watchdog' | 'scm';
 export type RalphPromptTarget = 'cliExec' | 'ideHandoff';
 export type RalphRunMode = 'handoff' | 'singleExec' | 'loop';
 export type RalphRunStatus = 'succeeded' | 'failed';
@@ -432,9 +433,23 @@ export interface RalphCompletionReport {
   blocker?: string;
   validationRan?: string;
   needsHumanReview?: boolean;
+  suggestedChildTasks?: RalphSuggestedChildTask[];
 }
 
 export type RalphCompletionReportStatus = 'applied' | 'rejected' | 'missing' | 'invalid';
+
+export interface RalphHandoffNote {
+  agentId: string;
+  iteration: number;
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  stopReason: RalphStopReason | 'verification_passed_no_remaining_subtasks';
+  completionClassification: RalphCompletionClassification;
+  progressNote?: string;
+  pendingBlocker?: string;
+  validationFailureSignature?: string;
+  humanSummary: string;
+}
 
 export interface RalphIterationResult {
   schemaVersion: 1;

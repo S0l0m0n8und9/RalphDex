@@ -35,6 +35,7 @@
         "ralphCodex.codexCommandPath",
         "ralphCodex.preferredHandoffMode",
         "ralphCodex.agentId",
+        "ralphCodex.agentRole",
         "ralphCodex.inspectionRootOverride",
         "ralphCodex.ralphIterationCap",
         "ralphCodex.verifierModes",
@@ -44,6 +45,7 @@
         "ralphCodex.generatedArtifactRetentionCount",
         "ralphCodex.provenanceBundleRetentionCount",
         "ralphCodex.gitCheckpointMode",
+        "ralphCodex.scmStrategy",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
         "ralphCodex.autonomyMode",
@@ -190,6 +192,12 @@
           "default": "default",
           "description": "Identity Ralph writes into claims and iteration artifacts. Set a unique value per concurrent loop instance so multiple agents do not share the same durable identity."
         },
+        "ralphCodex.agentRole": {
+          "type": "string",
+          "enum": ["build", "review", "watchdog", "scm"],
+          "default": "build",
+          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, and the remaining roles reserve future non-build behaviors."
+        },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",
           "enum": ["ideCommand", "clipboard", "cliExec"],
@@ -256,6 +264,12 @@
           "default": "snapshotAndDiff",
           "description": "Controls optional Git safety artifacts. snapshot records pre/post status when Git is available. snapshotAndDiff also records a working-tree diff summary."
         },
+        "ralphCodex.scmStrategy": {
+          "type": "string",
+          "enum": ["none", "commit-on-done", "branch-per-task"],
+          "default": "none",
+          "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task is reserved for future task-branch automation."
+        },
         "ralphCodex.validationCommandOverride": {
           "type": "string",
           "default": "",
@@ -270,7 +284,7 @@
           "type": "string",
           "enum": ["supervised", "autonomous"],
           "default": "supervised",
-          "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on."
+          "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on, while preserving hard stops such as blocked preflight, request_human_review, and manual PRD authorship."
         },
         "ralphCodex.autoReplenishBacklog": {
           "type": "boolean",

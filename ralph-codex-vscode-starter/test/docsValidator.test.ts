@@ -168,6 +168,8 @@ Run the loop.
 
 The autonomyMode setting controls loop defaults, but hard stops still require the operator.
 
+blocked preflight remains a hard stop even in autonomyMode.
+
 ## Inspect State
 
 Inspect persisted state.

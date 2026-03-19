@@ -125,3 +125,8 @@
 - Implemented automatic mark_blocked remediation application in the iteration engine using withTaskFileLock, persisted the required warning text in iteration results, logged the auto-apply event, and added an integration test covering the repeated blocked stop path.
 - Persisted agentId into durable preflight, execution-plan, CLI-invocation, provenance-bundle, and latest-result artifacts, and surfaced it in repaired/generated summary markdown plus regression coverage.
 - Documented autonomous mode and hard stops in workflows/boundaries, enforced required doc fragments, added autonomous human-review stop smoke coverage, and fixed pre-existing validation drift so npm run validate passes.
+- Added the watchdog agent template and introduced RalphAgentRole with the watchdog role. The template reads preflight stale-state signals, inspects recent iteration history, emits structured watchdog_actions with severity, and explicitly forbids code-change proposals.
+- Made autonomous mode explicitly preserve blocked-preflight hard stops in docs/config metadata and added regression coverage proving the CLI loop still halts on blocked preflight in autonomous mode.
+- Added RalphAgentRole and ralphCodex.agentRole, introduced a review-agent prompt template with review-only contracts, and widened completion-report parsing for suggestedChildTasks.
+- Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed.
+- Added atomic clean-stop handoff notes under .ralph/handoff, wired handoff retention pruning into generated-artifact cleanup, and covered the behavior with targeted tests.

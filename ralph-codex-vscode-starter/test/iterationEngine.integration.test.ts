@@ -121,6 +121,13 @@ async function initGitRepo(rootPath: string): Promise<void> {
   await initializeFakeGitRepository(rootPath);
 }
 
+async function readFakeGitCommits(rootPath: string): Promise<Array<{ subject: string; body: string }>> {
+  return JSON.parse(await fs.readFile(path.join(rootPath, '.git', 'ralph-test-commits.json'), 'utf8')) as Array<{
+    subject: string;
+    body: string;
+  }>;
+}
+
 interface MockExecStep {
   run(request: CodexExecRequest): Promise<{
     exitCode?: number;
@@ -417,6 +424,52 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   const finalProgress = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
   assert.match(finalProgress, /Iteration one updated README\.md\./);
   assert.match(finalProgress, /Iteration two completed T1\./);
+});
+
+test('runCliIteration commits completed work when scmStrategy is commit-on-done', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T40.1', title: 'Auto-commit completed tasks', status: 'todo', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off',
+    scmStrategy: 'commit-on-done'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# shipped\n', 'utf8');
+        return {
+          stdout: 'completed task',
+          lastMessage: completionReport({
+            selectedTaskId: 'T40.1',
+            requestedStatus: 'done',
+            progressNote: 'Completed T40.1 and updated README.',
+            validationRan: 'npm test'
+          })
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const commits = await readFakeGitCommits(rootPath);
+  assert.equal(commits.length, 1);
+  assert.equal(commits[0]?.subject, 'ralph(T40.1): Auto-commit completed tasks');
+  assert.equal(commits[0]?.body, 'Agent: default | Iteration: 1 | Validation: passed');
+  assert.match(summary.result.warnings.join('\n'), /SCM commit-on-done succeeded/);
 });
 
 test('runCliIteration persists blocked preflight evidence before throwing', async () => {
@@ -2846,4 +2899,61 @@ test('runCliIteration stops immediately when human review is required and config
 
   assert.equal(summary.result.completionClassification, 'needs_human_review');
   assert.equal(summary.result.stopReason, 'human_review_needed');
+});
+
+test('runCliIteration writes a structured handoff note on clean termination', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Finish cleanly', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    generatedArtifactRetentionCount: 2,
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'done\n',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'Finished the selected task.',
+          validationRan: 'npm test'
+        })
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(
+    workspaceFolder(rootPath),
+    'cliExec',
+    progressReporter(),
+    { reachedIterationCap: false }
+  );
+
+  assert.equal(summary.result.stopReason, 'task_marked_complete');
+
+  const handoff = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'handoff', 'default-001.json'), 'utf8')
+  ) as Record<string, unknown>;
+
+  assert.deepEqual(handoff, {
+    agentId: 'default',
+    iteration: 1,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: 'Finish cleanly',
+    stopReason: 'task_marked_complete',
+    completionClassification: 'complete',
+    progressNote: 'Finished the selected task.',
+    humanSummary: 'T1 (Finish cleanly) stopped with task_marked_complete. Finished the selected task.'
+  });
 });

@@ -50,3 +50,17 @@ test('readConfig forces the autonomous shorthand overrides regardless of individ
   assert.deepEqual(config.autoApplyRemediation, ['decompose_task', 'mark_blocked']);
   assert.equal(config.autoReplenishBacklog, true);
 });
+
+test('readConfig reads scmStrategy and falls back to none', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    scmStrategy: 'commit-on-done'
+  });
+
+  const configured = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(configured.scmStrategy, 'commit-on-done');
+
+  harness.reset();
+  const fallback = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(fallback.scmStrategy, 'none');
+});

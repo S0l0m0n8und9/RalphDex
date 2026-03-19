@@ -1404,13 +1404,7 @@ export async function applySuggestedChildTasksToFile(
   suggestedChildTasks: RalphSuggestedChildTask[]
 ): Promise<RalphTaskFile> {
   const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-    const nextTaskFile = applySuggestedChildTasks(
-      parseTaskFile(await fs.readFile(taskFilePath, 'utf8')),
-      parentTaskId,
-      suggestedChildTasks
-    );
-    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
-    return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+    return applySuggestedChildTasksWithinLock(taskFilePath, parentTaskId, suggestedChildTasks);
   });
 
   if (locked.outcome === 'lock_timeout') {
@@ -1420,6 +1414,20 @@ export async function applySuggestedChildTasksToFile(
   }
 
   return locked.value;
+}
+
+export async function applySuggestedChildTasksWithinLock(
+  taskFilePath: string,
+  parentTaskId: string,
+  suggestedChildTasks: RalphSuggestedChildTask[]
+): Promise<RalphTaskFile> {
+  const nextTaskFile = applySuggestedChildTasks(
+    parseTaskFile(await fs.readFile(taskFilePath, 'utf8')),
+    parentTaskId,
+    suggestedChildTasks
+  );
+  await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+  return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
 }
 
 export function remainingSubtasks(taskFile: RalphTaskFile, taskId: string | null): RalphTask[] {

@@ -48,6 +48,7 @@ exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.findTaskById = findTaskById;
 exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.applySuggestedChildTasksToFile = applySuggestedChildTasksToFile;
+exports.applySuggestedChildTasksWithinLock = applySuggestedChildTasksWithinLock;
 exports.remainingSubtasks = remainingSubtasks;
 exports.markTaskInProgress = markTaskInProgress;
 exports.acquireClaim = acquireClaim;
@@ -1092,14 +1093,17 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
 }
 async function applySuggestedChildTasksToFile(taskFilePath, parentTaskId, suggestedChildTasks) {
     const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-        const nextTaskFile = applySuggestedChildTasks(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')), parentTaskId, suggestedChildTasks);
-        await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
-        return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+        return applySuggestedChildTasksWithinLock(taskFilePath, parentTaskId, suggestedChildTasks);
     });
     if (locked.outcome === 'lock_timeout') {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
     return locked.value;
+}
+async function applySuggestedChildTasksWithinLock(taskFilePath, parentTaskId, suggestedChildTasks) {
+    const nextTaskFile = applySuggestedChildTasks(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')), parentTaskId, suggestedChildTasks);
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
 }
 function remainingSubtasks(taskFile, taskId) {
     if (!taskId) {

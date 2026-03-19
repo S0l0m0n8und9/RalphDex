@@ -654,7 +654,7 @@ export class RalphStateManager {
     const paths = this.resolvePaths(rootPath, config);
     const createdPaths: string[] = [];
 
-    for (const dir of [paths.promptDir, paths.runDir, paths.logDir, paths.artifactDir]) {
+    for (const dir of [paths.handoffDir, paths.promptDir, paths.runDir, paths.logDir, paths.artifactDir]) {
       if (!(await pathExists(dir))) {
         createdPaths.push(dir);
       }
@@ -948,6 +948,7 @@ export class RalphStateManager {
 
     await fs.rm(paths.promptDir, { recursive: true, force: true });
     await fs.rm(paths.runDir, { recursive: true, force: true });
+    await fs.rm(paths.handoffDir, { recursive: true, force: true });
     await fs.rm(paths.logDir, { recursive: true, force: true });
     await fs.rm(paths.artifactDir, { recursive: true, force: true });
     await fs.rm(paths.stateFilePath, { force: true });
@@ -966,6 +967,7 @@ export class RalphStateManager {
       artifactRootDir: paths.artifactDir,
       promptDir: paths.promptDir,
       runDir: paths.runDir,
+      handoffDir: paths.handoffDir,
       stateFilePath: paths.stateFilePath,
       retentionCount: 1,
       protectionScope: 'currentAndLatest'

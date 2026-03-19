@@ -641,6 +641,16 @@ function renderProvenanceSummary(bundle) {
         `- Iteration artifact dir: ${bundle.artifactDir}`
     ].join('\n');
 }
+function parseHandoffFileName(name) {
+    const match = /^.+-(\d+)\.json$/.exec(name);
+    if (!match) {
+        return null;
+    }
+    return {
+        name,
+        iteration: Number.parseInt(match[1], 10)
+    };
+}
 function renderLatestResultSummary(record) {
     if (typeof record.iteration !== 'number'
         || typeof record.promptKind !== 'string'
@@ -1138,7 +1148,7 @@ async function inspectProvenanceBundleRetention(input) {
 }
 async function cleanupGeneratedArtifacts(input) {
     if (input.retentionCount <= 0) {
-        return {
+        const summary = {
             deletedIterationDirectories: [],
             retainedIterationDirectories: [],
             protectedRetainedIterationDirectories: [],
@@ -1149,6 +1159,11 @@ async function cleanupGeneratedArtifacts(input) {
             retainedRunArtifactBaseNames: [],
             protectedRetainedRunArtifactBaseNames: []
         };
+        if (input.handoffDir) {
+            summary.deletedHandoffFiles = [];
+            summary.retainedHandoffFiles = [];
+        }
+        return summary;
     }
     const inspection = await collectGeneratedArtifactRetentionInspection(input);
     const retainedIterationDirectories = inspection.iterationDirectoryDecision.retainedNames;
@@ -1178,7 +1193,7 @@ async function cleanupGeneratedArtifacts(input) {
         await Promise.all(entry.fileNames.map((fileName) => fs.rm(path.join(input.runDir, fileName), { force: true })));
         deletedRunArtifactBaseNames.push(entry.baseName);
     }
-    return {
+    const summary = {
         deletedIterationDirectories,
         retainedIterationDirectories: inspection.iterationDirectories
             .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
@@ -1195,10 +1210,27 @@ async function cleanupGeneratedArtifacts(input) {
             .map((entry) => entry.baseName),
         protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
     };
+    if (input.handoffDir) {
+        const retainedHandoffFiles = inspection.handoffFileDecision.retainedNames;
+        const deletedHandoffFiles = [];
+        for (const entry of inspection.handoffFiles.slice(input.retentionCount)) {
+            if (retainedHandoffFiles.has(entry.name)) {
+                continue;
+            }
+            await fs.rm(path.join(input.handoffDir, entry.name), { force: true });
+            deletedHandoffFiles.push(entry.name);
+        }
+        summary.deletedHandoffFiles = deletedHandoffFiles;
+        summary.retainedHandoffFiles = inspection.handoffFiles
+            .filter((entry) => retainedHandoffFiles.has(entry.name))
+            .map((entry) => entry.name);
+    }
+    ;
+    return summary;
 }
 async function inspectGeneratedArtifactRetention(input) {
     const inspection = await collectGeneratedArtifactRetentionInspection(input);
-    return {
+    const summary = {
         deletedIterationDirectories: [],
         retainedIterationDirectories: inspection.iterationDirectories
             .filter((entry) => inspection.iterationDirectoryDecision.retainedNames.has(entry.name))
@@ -1215,6 +1247,13 @@ async function inspectGeneratedArtifactRetention(input) {
             .map((entry) => entry.baseName),
         protectedRetainedRunArtifactBaseNames: inspection.runArtifactDecision.protectedRetainedNames
     };
+    if (input.handoffDir) {
+        summary.deletedHandoffFiles = [];
+        summary.retainedHandoffFiles = inspection.handoffFiles
+            .filter((entry) => inspection.handoffFileDecision.retainedNames.has(entry.name))
+            .map((entry) => entry.name);
+    }
+    return summary;
 }
 async function collectProvenanceBundleRetentionInspection(input) {
     const runsDir = path.join(input.artifactRootDir, 'runs');
@@ -1245,6 +1284,9 @@ async function collectGeneratedArtifactRetentionInspection(input) {
             protectionScope: input.protectionScope
         })
     ]);
+    const handoffEntries = input.handoffDir
+        ? await fs.readdir(input.handoffDir, { withFileTypes: true }).catch(() => [])
+        : [];
     const iterationDirectories = artifactEntries
         .filter((entry) => entry.isDirectory())
         .map((entry) => parseIterationDirectoryName(entry.name))
@@ -1273,17 +1315,26 @@ async function collectGeneratedArtifactRetentionInspection(input) {
         });
     }
     const runArtifacts = Array.from(runArtifactGroups.values()).sort((left, right) => right.iteration - left.iteration || right.baseName.localeCompare(left.baseName));
+    const handoffFiles = handoffEntries
+        .filter((entry) => entry.isFile())
+        .map((entry) => parseHandoffFileName(entry.name))
+        .filter((entry) => entry !== null)
+        .sort(sortByIterationDesc);
     const effectiveRetentionCount = input.retentionCount <= 0
-        ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length)
+        ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length, handoffFiles.length)
         : input.retentionCount;
     return {
         iterationDirectories,
         promptFiles,
         runArtifacts,
+        handoffFiles,
         protectedArtifacts,
         iterationDirectoryDecision: retentionDecisionByNewestAndProtected(iterationDirectories, effectiveRetentionCount, protectedArtifacts.iterationDirectories, (entry) => entry.name),
         promptFileDecision: retentionDecisionByNewestAndProtected(promptFiles, effectiveRetentionCount, protectedArtifacts.promptFiles, (entry) => entry.name),
-        runArtifactDecision: retentionDecisionByNewestAndProtected(runArtifacts, effectiveRetentionCount, protectedArtifacts.runArtifactBaseNames, (entry) => entry.baseName)
+        runArtifactDecision: retentionDecisionByNewestAndProtected(runArtifacts, effectiveRetentionCount, protectedArtifacts.runArtifactBaseNames, (entry) => entry.baseName),
+        handoffFileDecision: {
+            retainedNames: retainedNamesByNewestAndProtected(handoffFiles, effectiveRetentionCount, [], (entry) => entry.name)
+        }
     };
 }
 async function writePromptArtifacts(input) {

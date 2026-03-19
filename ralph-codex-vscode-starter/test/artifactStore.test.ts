@@ -31,20 +31,23 @@ async function makeGeneratedArtifactDirs(): Promise<{
   artifactRootDir: string;
   promptDir: string;
   runDir: string;
+  handoffDir: string;
   stateFilePath: string;
 }> {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-generated-artifacts-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
   const promptDir = path.join(rootPath, '.ralph', 'prompts');
   const runDir = path.join(rootPath, '.ralph', 'runs');
+  const handoffDir = path.join(rootPath, '.ralph', 'handoff');
   const stateFilePath = path.join(rootPath, '.ralph', 'state.json');
   await Promise.all([
     fs.mkdir(artifactRootDir, { recursive: true }),
     fs.mkdir(promptDir, { recursive: true }),
-    fs.mkdir(runDir, { recursive: true })
+    fs.mkdir(runDir, { recursive: true }),
+    fs.mkdir(handoffDir, { recursive: true })
   ]);
 
-  return { rootPath, artifactRootDir, promptDir, runDir, stateFilePath };
+  return { rootPath, artifactRootDir, promptDir, runDir, handoffDir, stateFilePath };
 }
 
 async function seedGeneratedArtifacts(input: {
@@ -794,6 +797,29 @@ test('cleanupGeneratedArtifacts leaves generated files untouched when automatic 
     'iteration-001.last-message.md',
     'iteration-001.transcript.md'
   ]);
+});
+
+test('cleanupGeneratedArtifacts prunes older handoff files when configured', async () => {
+  const { artifactRootDir, promptDir, runDir, handoffDir, stateFilePath } = await makeGeneratedArtifactDirs();
+
+  await Promise.all([
+    fs.writeFile(path.join(handoffDir, 'default-008.json'), '{}\n', 'utf8'),
+    fs.writeFile(path.join(handoffDir, 'default-009.json'), '{}\n', 'utf8'),
+    fs.writeFile(path.join(handoffDir, 'default-010.json'), '{}\n', 'utf8')
+  ]);
+
+  const retention = await cleanupGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    handoffDir,
+    stateFilePath,
+    retentionCount: 1
+  });
+
+  assert.deepEqual(retention.deletedHandoffFiles, ['default-009.json', 'default-008.json']);
+  assert.deepEqual(retention.retainedHandoffFiles, ['default-010.json']);
+  assert.deepEqual(await fs.readdir(handoffDir), ['default-010.json']);
 });
 
 test('cleanupGeneratedArtifacts keeps latest-linked and state-referenced generated artifacts', async () => {

@@ -10,10 +10,20 @@ import {
 
 const GIT_SIM_DIR = '.git';
 const GIT_SIM_STATE_FILE = path.join(GIT_SIM_DIR, 'ralph-test-index.json');
+const GIT_SIM_COMMITS_FILE = path.join(GIT_SIM_DIR, 'ralph-test-commits.json');
 const ACTIVE_CODEX_PROCESS_FILE = path.join('.ralph', 'active-codex-processes.txt');
+const GIT_COMMIT_EXCLUSIONS = new Set([
+  '.ralph/state.json',
+  '.ralph/claims.json'
+]);
 
 interface GitSnapshotState {
   files: Record<string, string>;
+}
+
+interface GitCommitRecord {
+  subject: string;
+  body: string;
 }
 
 function normalizeRelative(target: string): string {
@@ -60,6 +70,9 @@ async function buildGitSnapshot(rootPath: string): Promise<GitSnapshotState> {
   const files = await collectWorkspaceFiles(rootPath);
   const snapshot: GitSnapshotState = { files: {} };
   for (const relativePath of files) {
+    if (GIT_COMMIT_EXCLUSIONS.has(relativePath) || relativePath.startsWith('.ralph/logs/')) {
+      continue;
+    }
     const contents = await fs.readFile(path.join(rootPath, relativePath), 'utf8');
     snapshot.files[relativePath] = createHash('sha256').update(contents).digest('hex');
   }
@@ -76,6 +89,7 @@ export async function initializeFakeGitRepository(rootPath: string): Promise<voi
   await fs.mkdir(path.join(rootPath, GIT_SIM_DIR), { recursive: true });
   const snapshot = await buildGitSnapshot(rootPath);
   await fs.writeFile(path.join(rootPath, GIT_SIM_STATE_FILE), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), '[]\n', 'utf8');
 }
 
 async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
@@ -109,6 +123,46 @@ async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
   return {
     code: 0,
     stdout: lines.length > 0 ? `${lines.join('\n')}\n` : '',
+    stderr: ''
+  };
+}
+
+async function readCommitLog(rootPath: string): Promise<GitCommitRecord[]> {
+  const raw = await fs.readFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), 'utf8');
+  return JSON.parse(raw) as GitCommitRecord[];
+}
+
+async function fakeGitAdd(): Promise<ProcessRunResult> {
+  return {
+    code: 0,
+    stdout: '',
+    stderr: ''
+  };
+}
+
+async function fakeGitCommit(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  const messages = args.flatMap((arg, index) => (args[index - 1] === '-m' ? [arg] : []));
+  const subject = messages[0]?.trim() ?? '';
+  const body = messages[1]?.trim() ?? '';
+  const currentSnapshot = await buildGitSnapshot(rootPath);
+  const existingSnapshot = await readGitSnapshot(rootPath);
+
+  if (JSON.stringify(currentSnapshot.files) === JSON.stringify(existingSnapshot.files)) {
+    return {
+      code: 1,
+      stdout: '',
+      stderr: 'nothing to commit'
+    };
+  }
+
+  const commits = await readCommitLog(rootPath);
+  commits.push({ subject, body });
+  await fs.writeFile(path.join(rootPath, GIT_SIM_STATE_FILE), `${JSON.stringify(currentSnapshot, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), `${JSON.stringify(commits, null, 2)}\n`, 'utf8');
+
+  return {
+    code: 0,
+    stdout: `[main abc1234] ${subject}\n`,
     stderr: ''
   };
 }
@@ -251,6 +305,14 @@ async function fakeProcessRunner(command: string, args: string[], options: Proce
 
   if (command === 'git' && args[0] === 'status') {
     return fakeGitStatus(options.cwd);
+  }
+
+  if (command === 'git' && args[0] === 'add') {
+    return fakeGitAdd();
+  }
+
+  if (command === 'git' && args[0] === 'commit') {
+    return fakeGitCommit(options.cwd, args);
   }
 
   if (command === 'sh' && args[0] === '-lc' && (args[1] ?? '').includes('ps -eo command')) {

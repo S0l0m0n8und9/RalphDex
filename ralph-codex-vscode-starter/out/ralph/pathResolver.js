@@ -49,6 +49,7 @@ function resolveRalphPaths(rootPath, config) {
         taskFilePath: resolveWorkspacePath(rootPath, config.ralphTaskFilePath),
         claimFilePath: path.join(ralphDir, 'claims.json'),
         stateFilePath: path.join(ralphDir, 'state.json'),
+        handoffDir: path.join(ralphDir, 'handoff'),
         promptDir: path.join(ralphDir, 'prompts'),
         runDir: path.join(ralphDir, 'runs'),
         logDir,

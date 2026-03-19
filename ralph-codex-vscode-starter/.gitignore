@@ -4,4 +4,8 @@ out-test/
 out-test/
 .vscode-test/
 .ralph/
+.ralph/handoff/
+.ralph/state.json
+.ralph/claims.json
+.ralph/logs/
 

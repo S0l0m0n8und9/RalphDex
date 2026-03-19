@@ -13,7 +13,13 @@ import {
   RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
-import { applySuggestedChildTasksToFile, inspectTaskClaimGraph, resolveStaleClaim, selectNextTask, withTaskFileLock } from '../ralph/taskFile';
+import {
+  applySuggestedChildTasksWithinLock,
+  inspectTaskClaimGraph,
+  resolveStaleClaim,
+  selectNextTask,
+  withTaskFileLock
+} from '../ralph/taskFile';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -713,11 +719,19 @@ async function applyLatestTaskDecompositionProposal(
     return false;
   }
 
-  await applySuggestedChildTasksToFile(
-    inspection.paths.taskFilePath,
-    remediationArtifact.selectedTaskId!,
-    remediationArtifact.suggestedChildTasks
-  );
+  const locked = await withTaskFileLock(inspection.paths.taskFilePath, undefined, async () => (
+    applySuggestedChildTasksWithinLock(
+      inspection.paths.taskFilePath,
+      remediationArtifact.selectedTaskId!,
+      remediationArtifact.suggestedChildTasks
+    )
+  ));
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
 
   logger.info('Applied Ralph task decomposition proposal.', {
     rootPath: workspaceFolder.uri.fsPath,
