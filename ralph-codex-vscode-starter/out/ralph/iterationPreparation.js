@@ -77,7 +77,10 @@ async function prepareIterationContext(input) {
     const { workspaceFolder, progress, includeVerifierContext, stateManager, logger } = input;
     const inspectStartedAt = new Date().toISOString();
     progress.report({ message: 'Inspecting Ralph workspace' });
-    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const config = {
+        ...(0, readConfig_1.readConfig)(workspaceFolder),
+        ...(input.configOverrides ?? {})
+    };
     const rootPath = workspaceFolder.uri.fsPath;
     const snapshot = await stateManager.ensureWorkspace(rootPath, config);
     await logger.setWorkspaceLogFile(snapshot.paths.logFilePath);

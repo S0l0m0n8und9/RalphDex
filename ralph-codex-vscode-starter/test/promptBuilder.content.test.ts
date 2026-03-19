@@ -21,6 +21,7 @@ function createPaths(rootPath: string): RalphPaths {
     taskFilePath: `${rootPath}/.ralph/tasks.json`,
     claimFilePath: `${rootPath}/.ralph/claims.json`,
     stateFilePath: `${rootPath}/.ralph/state.json`,
+    handoffDir: `${rootPath}/.ralph/handoff`,
     promptDir: `${rootPath}/.ralph/prompts`,
     runDir: `${rootPath}/.ralph/runs`,
     logDir: `${rootPath}/.ralph/logs`,
@@ -92,7 +93,7 @@ test('replenish-backlog prompt keeps the PRD objective text in rendered text', a
   assert.match(prompt, /Keep Ralph moving when the current durable backlog is fully consumed\./);
 });
 
-test('iteration prompt can still carry remediation summary text when prior remediation exists', async () => {
+test('iteration prompt keeps remediation-fixture summary text when prior remediation exists', async () => {
   const { prompt } = await renderScenario(promptScenarios.repeatedNoProgress, 'iteration');
 
   assert.match(prompt, /Decompose T3 into smaller bounded child tasks before retrying\./);

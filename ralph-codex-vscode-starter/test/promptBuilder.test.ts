@@ -18,6 +18,7 @@ const paths: RalphPaths = {
   taskFilePath: '/workspace/.ralph/tasks.json',
   claimFilePath: '/workspace/.ralph/claims.json',
   stateFilePath: '/workspace/.ralph/state.json',
+  handoffDir: '/workspace/.ralph/handoff',
   promptDir: '/workspace/.ralph/prompts',
   runDir: '/workspace/.ralph/runs',
   logDir: '/workspace/.ralph/logs',

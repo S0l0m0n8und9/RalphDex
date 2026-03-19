@@ -18,10 +18,16 @@
     "T39.1",
     "T35",
     "T38.1",
-    "T41.1"
+    "T41.1",
+    "T38.2",
+    "T31.3"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
+    ".ralph/handoff/default-118.json",
+    ".ralph/handoff/default-119.json",
+    ".ralph/handoff/default-120.json",
+    ".ralph/handoff/default-121.json",
     ".ralph/progress.md",
     ".ralph/state.lock",
     ".ralph/tasks.json",
@@ -105,6 +111,7 @@
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.content.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.snapshot.test.ts",
+    "ralph-codex-vscode-starter/test/promptBuilder.test.ts",
     "ralph-codex-vscode-starter/test/promptScenarios.test.ts",
     "ralph-codex-vscode-starter/test/readConfig.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",

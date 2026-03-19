@@ -1218,7 +1218,7 @@
     {
       "id": "T31.3",
       "title": "Add content assertion tests for critical prompt sections across key scenarios",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T31",
       "dependsOn": [
         "T31.2",
@@ -1226,7 +1226,7 @@
         "T29",
         "T30"
       ],
-      "notes": "Add content assertions to test/promptBuilder.test.ts (or a new test/promptBuilder.content.test.ts) that go beyond section-presence checks to assert on rendered text. At minimum: (1) a fix-failure cliExec prompt rendered against the repeated-failure fixture must contain the task's validation command string in the rendered text, not just assert that the execution section is included; (2) a human-review-handoff prompt rendered against the blocked fixture must contain the blocker text from the task; (3) a replenish-backlog prompt must contain the PRD objective text; (4) an iteration prompt rendered against the remediation fixture must contain a substring from the remediation summary; (5) a bootstrap prompt must not contain any prior-iteration context. These assertions are brittle by design — they should fail if the template rendering logic accidentally drops critical content under budget pressure.",
+      "notes": "Added brittle prompt content assertions for validation commands, blocker text, PRD objective text, remediation summaries, and bootstrap prior-context isolation; refreshed adjacent test fixtures and expectations so the full validate gate passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1543,12 +1543,12 @@
     {
       "id": "T38.2",
       "title": "Register Run Review Agent command and wire role-aware single-pass stop behaviour",
-      "status": "todo",
+      "status": "done",
       "parentId": "T38",
       "dependsOn": [
         "T38.1"
       ],
-      "notes": "Register 'Ralph: Run Review Agent' in src/commands/registerCommands.ts as a single-pass command with agentRole: 'review' and an agentId prefixed 'review-'. The review agent runs one iteration and stops — it does not loop. After the iteration completes, surface any proposed tasks (from suggestedChildTasks in the completion report) in the output channel and prompt the operator to run Apply Latest Task Decomposition Proposal if they want to commit them. Add the command to package.json contributes.commands. Do not add a Run Review Loop command — single-pass is intentional so the operator reviews proposals before a second pass.",
+      "notes": "Registered a single-pass Run Review Agent command, added per-run agent role/id overrides for review execution, and surfaced suggestedChildTasks in the output channel with an Apply Latest Task Decomposition Proposal prompt.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {

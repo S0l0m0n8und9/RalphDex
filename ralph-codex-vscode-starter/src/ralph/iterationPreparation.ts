@@ -108,6 +108,7 @@ export interface PrepareIterationContextInput {
   workspaceFolder: vscode.WorkspaceFolder;
   progress: vscode.Progress<{ message?: string; increment?: number }>;
   includeVerifierContext: boolean;
+  configOverrides?: Partial<Pick<RalphCodexConfig, 'agentId' | 'agentRole'>>;
   stateManager: RalphStateManager;
   logger: Logger;
   persistBlockedPreflightBundle: (input: {
@@ -165,7 +166,10 @@ export async function prepareIterationContext(
   const { workspaceFolder, progress, includeVerifierContext, stateManager, logger } = input;
   const inspectStartedAt = new Date().toISOString();
   progress.report({ message: 'Inspecting Ralph workspace' });
-  const config = readConfig(workspaceFolder);
+  const config: RalphCodexConfig = {
+    ...readConfig(workspaceFolder),
+    ...(input.configOverrides ?? {})
+  };
   const rootPath = workspaceFolder.uri.fsPath;
   const snapshot = await stateManager.ensureWorkspace(rootPath, config);
   await logger.setWorkspaceLogFile(snapshot.paths.logFilePath);

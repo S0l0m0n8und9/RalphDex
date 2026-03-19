@@ -164,11 +164,7 @@ async function autoApplyDecomposeTaskRemediation(input) {
     if (!input.suggestedChildTasks || input.suggestedChildTasks.length === 0) {
         throw new Error(`Cannot auto-apply decompose_task remediation for ${input.taskId} because no suggested child tasks were provided.`);
     }
-    const locked = await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => ((0, taskFile_1.applySuggestedChildTasksWithinLock)(input.taskFilePath, input.taskId, input.suggestedChildTasks)));
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
-    return locked.value;
+    return (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, input.taskId, input.suggestedChildTasks);
 }
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
@@ -598,11 +594,12 @@ class RalphIterationEngine {
             humanSummary: buildHandoffHumanSummary(note)
         });
     }
-    async preparePrompt(workspaceFolder, progress) {
+    async preparePrompt(workspaceFolder, progress, options) {
         const prepared = await (0, iterationPreparation_1.prepareIterationContext)({
             workspaceFolder,
             progress,
             includeVerifierContext: false,
+            configOverrides: options?.configOverrides,
             stateManager: this.stateManager,
             logger: this.logger,
             persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
@@ -617,6 +614,7 @@ class RalphIterationEngine {
             workspaceFolder,
             progress,
             includeVerifierContext: true,
+            configOverrides: options.configOverrides,
             stateManager: this.stateManager,
             logger: this.logger,
             persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
@@ -1121,28 +1119,6 @@ class RalphIterationEngine {
             catch (error) {
                 result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
             }
-            if (prepared.config.scmStrategy === 'commit-on-done'
-                && taskStateVerification.selectedTaskCompleted
-                && prepared.selectedTask) {
-                try {
-                    result.warnings.push(await commitOnDone({
-                        rootPath: prepared.rootPath,
-                        taskId: prepared.selectedTask.id,
-                        taskTitle: prepared.selectedTask.title,
-                        agentId: prepared.config.agentId,
-                        iteration: prepared.iteration,
-                        validationStatus: validationVerification.result.status
-                    }));
-                }
-                catch (error) {
-                    result.warnings.push(`SCM commit-on-done failed for ${prepared.selectedTask.id}: ${toErrorMessage(error)}`);
-                    this.logger.warn('SCM commit-on-done failed.', {
-                        taskId: prepared.selectedTask.id,
-                        iteration: prepared.iteration,
-                        error: toErrorMessage(error)
-                    });
-                }
-            }
             await (0, artifactStore_1.writeIterationArtifacts)({
                 paths: artifactPaths,
                 artifactRootDir: prepared.paths.artifactDir,
@@ -1220,6 +1196,28 @@ class RalphIterationEngine {
                 pendingBlocker: selectedTaskAfter?.blocker ?? completionReconciliation.artifact.report?.blocker ?? null
             });
             await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
+            if (prepared.config.scmStrategy === 'commit-on-done'
+                && taskStateVerification.selectedTaskCompleted
+                && prepared.selectedTask) {
+                try {
+                    result.warnings.push(await commitOnDone({
+                        rootPath: prepared.rootPath,
+                        taskId: prepared.selectedTask.id,
+                        taskTitle: prepared.selectedTask.title,
+                        agentId: prepared.config.agentId,
+                        iteration: prepared.iteration,
+                        validationStatus: validationVerification.result.status
+                    }));
+                }
+                catch (error) {
+                    result.warnings.push(`SCM commit-on-done failed for ${prepared.selectedTask.id}: ${toErrorMessage(error)}`);
+                    this.logger.warn('SCM commit-on-done failed.', {
+                        taskId: prepared.selectedTask.id,
+                        iteration: prepared.iteration,
+                        error: toErrorMessage(error)
+                    });
+                }
+            }
             this.logger.info('Completed Ralph iteration.', {
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,

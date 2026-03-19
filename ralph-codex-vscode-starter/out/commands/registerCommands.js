@@ -305,6 +305,48 @@ function normalizeTaskRemediationArtifact(candidate) {
         createdAt: typeof record.createdAt === 'string' ? record.createdAt : ''
     };
 }
+function normalizeCompletionReportArtifact(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (record.kind !== 'completionReport'
+        || typeof record.status !== 'string'
+        || (typeof record.selectedTaskId !== 'string' && record.selectedTaskId !== null)
+        || !Array.isArray(record.warnings)) {
+        return null;
+    }
+    const report = record.report;
+    const normalizedReport = typeof report === 'object' && report !== null
+        ? report
+        : null;
+    return {
+        schemaVersion: 1,
+        kind: 'completionReport',
+        status: record.status,
+        selectedTaskId: record.selectedTaskId,
+        report: normalizedReport,
+        rawBlock: typeof record.rawBlock === 'string' ? record.rawBlock : null,
+        parseError: typeof record.parseError === 'string' ? record.parseError : null,
+        warnings: record.warnings.filter((warning) => typeof warning === 'string')
+    };
+}
+function buildReviewAgentId(agentId) {
+    const trimmed = agentId.trim() || 'default';
+    return trimmed.startsWith('review-') ? trimmed : `review-${trimmed}`;
+}
+function renderSuggestedChildTasksForOutput(tasks) {
+    const lines = ['Review agent proposed follow-up tasks:'];
+    for (const task of tasks) {
+        lines.push(`- ${task.id}: ${task.title}`);
+        lines.push(`  parent: ${task.parentId}`);
+        lines.push(`  rationale: ${task.rationale}`);
+        lines.push(`  validation: ${task.validation ?? 'none'}`);
+        lines.push(`  dependsOn: ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => `${dependency.taskId} (${dependency.reason})`).join(', ') : 'none'}`);
+    }
+    lines.push('Run "Ralph Codex: Apply Latest Task Decomposition Proposal" to commit these proposed child tasks.');
+    return lines.join('\n');
+}
 function iterationFailureMessage(result) {
     return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
 }
@@ -597,10 +639,7 @@ async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManage
     if (confirmed !== 'Apply Proposal') {
         return false;
     }
-    const locked = await (0, taskFile_1.withTaskFileLock)(inspection.paths.taskFilePath, undefined, async () => ((0, taskFile_1.applySuggestedChildTasksWithinLock)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks)));
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
+    await (0, taskFile_1.applySuggestedChildTasksToFile)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks);
     logger.info('Applied Ralph task decomposition proposal.', {
         rootPath: workspaceFolder.uri.fsPath,
         remediationPath: latestArtifacts.latestRemediationPath,
@@ -819,6 +858,43 @@ function registerCommands(context, logger) {
             const baseMessage = run.result.executionStatus === 'skipped'
                 ? `Ralph CLI iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph CLI iteration ${run.result.iteration} completed. ${run.result.summary}`;
+            void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.runReviewAgent',
+        label: 'Ralph: Run Review Agent',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false,
+                configOverrides: {
+                    agentRole: 'review',
+                    agentId: buildReviewAgentId(config.agentId)
+                }
+            });
+            if (run.result.executionStatus === 'failed') {
+                throw new Error(iterationFailureMessage(run.result));
+            }
+            const completionReportPath = path.join(run.result.artifactDir, 'completion-report.json');
+            const completionArtifact = await readJsonArtifact(completionReportPath).then(normalizeCompletionReportArtifact);
+            const suggestedChildTasks = completionArtifact?.report?.suggestedChildTasks ?? [];
+            if (suggestedChildTasks.length > 0) {
+                logger.show(false);
+                logger.appendText(renderSuggestedChildTasksForOutput(suggestedChildTasks));
+                const choice = await vscode.window.showInformationMessage(`Review agent proposed ${suggestedChildTasks.length} follow-up task(s). Run Apply Latest Task Decomposition Proposal to commit them.`, 'Apply Latest Task Decomposition Proposal', 'Show Output');
+                if (choice === 'Apply Latest Task Decomposition Proposal') {
+                    await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+                }
+                else if (choice === 'Show Output') {
+                    logger.show(false);
+                }
+            }
+            const note = createdPathSummary(run.prepared.rootPath, run.createdPaths);
+            const baseMessage = run.result.executionStatus === 'skipped'
+                ? `Ralph review iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
+                : `Ralph review iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
         }
     });

@@ -26,6 +26,7 @@ function createPaths(rootPath: string): RalphPaths {
     taskFilePath: `${rootPath}/.ralph/tasks.json`,
     claimFilePath: `${rootPath}/.ralph/claims.json`,
     stateFilePath: `${rootPath}/.ralph/state.json`,
+    handoffDir: `${rootPath}/.ralph/handoff`,
     promptDir: `${rootPath}/.ralph/prompts`,
     runDir: `${rootPath}/.ralph/runs`,
     logDir: `${rootPath}/.ralph/logs`,

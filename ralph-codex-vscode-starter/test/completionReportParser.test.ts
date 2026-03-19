@@ -43,14 +43,14 @@ test('parseCompletionReport accepts a fenced JSON completion report and sanitize
   ].join('\n'));
 
   assert.equal(parsed.status, 'parsed');
-  assert.deepEqual(parsed.report, {
-    selectedTaskId: 'T27.1',
-    requestedStatus: 'blocked',
-    progressNote: 'Waiting on verifier access.',
-    blocker: 'Child process spawn EPERM',
-    validationRan: 'cd ralph-codex-vscode-starter && npm test',
-    needsHumanReview: true
-  });
+  assert.ok(parsed.report);
+  assert.equal(parsed.report.selectedTaskId, 'T27.1');
+  assert.equal(parsed.report.requestedStatus, 'blocked');
+  assert.equal(parsed.report.progressNote, 'Waiting on verifier access.');
+  assert.equal(parsed.report.blocker, 'Child process spawn EPERM');
+  assert.equal(parsed.report.validationRan, 'cd ralph-codex-vscode-starter && npm test');
+  assert.equal(parsed.report.needsHumanReview, true);
+  assert.equal(parsed.report.suggestedChildTasks, undefined);
   assert.equal(parsed.parseError, null);
 });
 

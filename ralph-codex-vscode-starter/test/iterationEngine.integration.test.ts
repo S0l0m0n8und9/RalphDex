@@ -2915,7 +2915,8 @@ test('runCliIteration writes a structured handoff note on clean termination', as
   harness.setConfiguration({
     generatedArtifactRetentionCount: 2,
     verifierModes: ['taskState'],
-    gitCheckpointMode: 'off'
+    gitCheckpointMode: 'off',
+    autoReplenishBacklog: false
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
@@ -2935,12 +2936,12 @@ test('runCliIteration writes a structured handoff note on clean termination', as
 
   const summary = await run.engine.runCliIteration(
     workspaceFolder(rootPath),
-    'cliExec',
+    'loop',
     progressReporter(),
-    { reachedIterationCap: false }
+    { reachedIterationCap: true }
   );
 
-  assert.equal(summary.result.stopReason, 'task_marked_complete');
+  assert.equal(summary.result.stopReason, 'iteration_cap_reached');
 
   const handoff = JSON.parse(
     await fs.readFile(path.join(rootPath, '.ralph', 'handoff', 'default-001.json'), 'utf8')
@@ -2951,9 +2952,9 @@ test('runCliIteration writes a structured handoff note on clean termination', as
     iteration: 1,
     selectedTaskId: 'T1',
     selectedTaskTitle: 'Finish cleanly',
-    stopReason: 'task_marked_complete',
-    completionClassification: 'complete',
+    stopReason: 'iteration_cap_reached',
+    completionClassification: 'no_progress',
     progressNote: 'Finished the selected task.',
-    humanSummary: 'T1 (Finish cleanly) stopped with task_marked_complete. Finished the selected task.'
+    humanSummary: 'T1 (Finish cleanly) stopped with iteration_cap_reached. Finished the selected task.'
   });
 });

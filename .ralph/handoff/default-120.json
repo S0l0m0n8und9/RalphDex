@@ -1,0 +1,11 @@
+{
+  "agentId": "default",
+  "iteration": 120,
+  "selectedTaskId": "T40.1",
+  "selectedTaskTitle": "Add ralphCodex.scmStrategy setting and implement commit-on-done — auto-commit after each task is reconciled done",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "partial_progress",
+  "progressNote": "Moved commit-on-done so SCM commit runs after Ralph persists iteration artifacts, provenance, state, handoff, and cleanup. Targeted commit-on-done regression passes. Full validate still has one unrelated failing handoff-note test.",
+  "validationFailureSignature": "cd ralph-codex-vscode-starter && npm run validate::exit:1::> ralph-codex-workbench@0.1.0 validate | > npm run compile && npm run check:docs && npm run check:ledger && npm run lint && npm run test | > ralph-codex-workbench@0.1.0 compile",
+  "humanSummary": "T40.1 (Add ralphCodex.scmStrategy setting and implement commit-on-done — auto-commit after each task is reconciled done) stopped with control_plane_reload_required. Moved commit-on-done so SCM commit runs after Ralph persists iteration artifacts, provenance, state, handoff, and cleanup. Targeted commit-on-done regression passes. Full validate still has one unrelated failing handoff-note test."
+}

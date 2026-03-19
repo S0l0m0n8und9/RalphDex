@@ -79,6 +79,7 @@
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
+    "onCommand:ralphCodex.runReviewAgent",
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
@@ -109,6 +110,10 @@
       {
         "command": "ralphCodex.runRalphIteration",
         "title": "Ralph Codex: Run CLI Iteration"
+      },
+      {
+        "command": "ralphCodex.runReviewAgent",
+        "title": "Ralph: Run Review Agent"
       },
       {
         "command": "ralphCodex.runRalphLoop",
