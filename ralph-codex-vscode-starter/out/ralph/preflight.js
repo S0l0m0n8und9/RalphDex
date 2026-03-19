@@ -41,6 +41,7 @@ exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const artifactStore_1 = require("./artifactStore");
+const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
@@ -482,6 +483,14 @@ async function inspectPreflightArtifactReadiness(input) {
 function buildPreflightReport(input) {
     const diagnostics = [...input.taskInspection.diagnostics];
     const currentProvenanceId = input.currentProvenanceId?.trim() || null;
+    const defaultAgentClaims = input.claimGraph?.claimFile.claims.filter((claim) => (claim.status === 'active'
+        && claim.agentId === types_1.DEFAULT_RALPH_AGENT_ID
+        && (currentProvenanceId === null || claim.provenanceId !== currentProvenanceId))) ?? [];
+    if (input.config.agentId === types_1.DEFAULT_RALPH_AGENT_ID && defaultAgentClaims.length > 0) {
+        diagnostics.push(createDiagnostic('claimGraph', 'warning', 'default_agent_id_collision', `Configured agentId is "${types_1.DEFAULT_RALPH_AGENT_ID}" while another active "${types_1.DEFAULT_RALPH_AGENT_ID}" claim already exists (${defaultAgentClaims
+            .map((claim) => `${claim.taskId}/${claim.provenanceId}`)
+            .join(', ')}). Set ralphCodex.agentId to a unique value for each concurrent loop instance.`));
+    }
     for (const claimEntry of input.claimGraph?.tasks ?? []) {
         if (claimEntry.contested) {
             diagnostics.push(createDiagnostic('claimGraph', 'warning', 'task_claim_contested', `Task ${claimEntry.taskId} has contested active claims: ${claimEntry.activeClaims

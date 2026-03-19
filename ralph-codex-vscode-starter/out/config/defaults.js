@@ -7,6 +7,7 @@ exports.DEFAULT_CONFIG = {
     claudeCommandPath: 'claude',
     claudeMaxTurns: 50,
     claudePermissionMode: 'dangerously-skip-permissions',
+    agentId: 'default',
     preferredHandoffMode: 'ideCommand',
     inspectionRootOverride: '',
     ralphIterationCap: 20,

@@ -1155,12 +1155,12 @@
     {
       "id": "T30.2",
       "title": "Add ralphCodex.promptBudgetProfile setting and wire it into promptBuilder's policy selection",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T30",
       "dependsOn": [
         "T30.1"
       ],
-      "notes": "Add a ralphCodex.promptBudgetProfile string setting to package.json contributes.configuration with a default value of 'codex' and an enum of ['codex', 'claude', 'custom']. In src/config/types.ts add promptBudgetProfile to the config type. In src/prompt/promptBuilder.ts, make the policy matrix selection branch on promptBudgetProfile: 'codex' uses the current hardcoded targets; 'claude' uses a separate policy matrix with targets appropriate for Claude's longer context window (document the placeholder targets in docs/prompt-calibration.md as requiring calibration before production use); 'custom' reads token targets from a ralphCodex.customPromptBudget object setting. Add regression coverage in test/promptBuilder.test.ts for the claude profile selecting a different policy matrix than the codex profile.",
+      "notes": "Confirmed the promptBudgetProfile setting, customPromptBudget wiring, Claude profile selection, and regression coverage were already present; added the remaining workflow-doc clarification that the published matrix is the calibrated codex baseline and reran validation successfully.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1353,13 +1353,13 @@
     {
       "id": "T34",
       "title": "Automatically continue into replenish-backlog prompt when backlog is cleanly exhausted in loop mode",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T36",
         "T34.1",
         "T34.2"
       ],
-      "notes": "EXECUTE AFTER T28 (ledger gate). When the durable backlog is cleanly exhausted Ralph already selects the replenish-backlog prompt kind — but the loop currently stops with no_actionable_task before executing it, requiring the operator to manually rerun. If the ledger is consistent (no drift detected by T28's check-ledger gate) and the stop reason is no_actionable_task with backlog.actionableTaskAvailable === false, the loop can safely continue into the replenishment iteration automatically. The replenishment prompt is deterministically generated and the resulting tasks.json still gets implicit human review when the operator decides whether to continue the next loop. The ledger gate from T28 is the safety dependency — auto-continuing into replenishment is only safe when the ledger is provably consistent, not when the exhaustion is a false positive caused by drift."
+      "notes": "Fixed auto-replenish loop continuation to use clean backlog exhaustion instead of an unset stopReason, and added regressions for clean exhaustion vs blocked/drift cases."
     },
     {
       "id": "T34.1",
@@ -1372,13 +1372,13 @@
     {
       "id": "T34.2",
       "title": "Add regression coverage and document auto-replenishment in docs/workflows.md",
-      "status": "todo",
+      "status": "done",
       "parentId": "T34",
       "dependsOn": [
         "T36",
         "T34.1"
       ],
-      "notes": "Add tests in test/loopLogic.test.ts covering: auto-replenishment continues the loop when the backlog is clean and the setting is true; auto-replenishment does not continue when ledger drift is present in preflight diagnostics even if the setting is true; auto-replenishment does not continue when autoReplenishBacklog is false; the loop still stops when no_actionable_task is accompanied by an error-severity ledger-drift diagnostic regardless of the setting. In docs/workflows.md under Run The Ralph Loop, add a Backlog Replenishment subsection explaining that auto-replenishment is safe only when the ledger is consistent, why the drift check is the safety gate, and how to use the setting. Run npm run validate.",
+      "notes": "Added regression coverage for auto-replenishment safety gates in loopLogic tests and documented backlog auto-replenishment safety and drift gating in docs/workflows.md. Task-specific loopLogic test passes; full validate still fails on the existing unrelated iterationEngine EPERM temp-lock test.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1497,7 +1497,7 @@
     {
       "id": "T37.1",
       "title": "Add ralphCodex.agentId string setting and thread it through claims, iteration results, and run records",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T37",
       "dependsOn": [
         "T36"

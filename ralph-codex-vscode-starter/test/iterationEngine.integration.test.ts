@@ -1090,6 +1090,77 @@ test('runCliIteration reclaims a legacy IDE handoff claim from the same agent be
   );
 });
 
+test('runCliIteration threads a configured agentId through claims, state, results, and durable agent history', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Agent-owned task', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    agentId: 'builder-1',
+    verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+    gitCheckpointMode: 'snapshotAndDiff'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const sharedMemento = new MemoryMemento();
+  const run = createEngine([
+    {
+      run: async (request) => {
+        await fs.writeFile(path.join(request.executionRoot, 'src', 'feature.ts'), 'export const ready = "agent-one";\n', 'utf8');
+        return {
+          stdout: 'completed task',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'done',
+            progressNote: 'Completed the task.',
+            validationRan: 'npm test'
+          }, 'Completed the task.')
+        };
+      }
+    }
+  ], sharedMemento);
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const claimsFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; status: string }>;
+  };
+  const agentRecord = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'agents', 'builder-1.json'), 'utf8')) as {
+    agentId: string;
+    firstSeenAt: string;
+    completedTaskIds: string[];
+    touchedFiles: string[];
+  };
+  const reloadedState = await run.stateManager.loadState(rootPath, run.stateManager.resolvePaths(rootPath, DEFAULT_CONFIG));
+
+  assert.equal(summary.result.agentId, 'builder-1');
+  assert.deepEqual(
+    claimsFile.claims.map((claim) => ({
+      taskId: claim.taskId,
+      agentId: claim.agentId,
+      status: claim.status
+    })),
+    [
+      { taskId: 'T1', agentId: 'builder-1', status: 'released' }
+    ]
+  );
+  assert.equal(reloadedState.lastRun?.agentId, 'builder-1');
+  assert.equal(reloadedState.lastIteration?.agentId, 'builder-1');
+  assert.deepEqual(reloadedState.runHistory.map((record) => record.agentId), ['builder-1']);
+  assert.deepEqual(reloadedState.iterationHistory.map((record) => record.agentId), ['builder-1']);
+  assert.equal(agentRecord.agentId, 'builder-1');
+  assert.equal(agentRecord.firstSeenAt, summary.result.startedAt);
+  assert.deepEqual(agentRecord.completedTaskIds, ['T1']);
+  assert.ok(agentRecord.touchedFiles.includes('src/feature.ts'));
+});
+
 test('runCliIteration can reselect a task after operator stale-claim recovery and still release its CLI claim', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {

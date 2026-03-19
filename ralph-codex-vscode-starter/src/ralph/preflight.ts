@@ -11,6 +11,7 @@ import {
   resolveLatestArtifactPaths
 } from './artifactStore';
 import {
+  DEFAULT_RALPH_AGENT_ID,
   RalphPreflightCategory,
   RalphPreflightDiagnostic,
   RalphPreflightReport,
@@ -631,6 +632,22 @@ export async function inspectPreflightArtifactReadiness(
 export function buildPreflightReport(input: RalphPreflightInput): RalphPreflightReport {
   const diagnostics: RalphPreflightDiagnostic[] = [...input.taskInspection.diagnostics];
   const currentProvenanceId = input.currentProvenanceId?.trim() || null;
+  const defaultAgentClaims = input.claimGraph?.claimFile.claims.filter((claim) => (
+    claim.status === 'active'
+    && claim.agentId === DEFAULT_RALPH_AGENT_ID
+    && (currentProvenanceId === null || claim.provenanceId !== currentProvenanceId)
+  )) ?? [];
+
+  if (input.config.agentId === DEFAULT_RALPH_AGENT_ID && defaultAgentClaims.length > 0) {
+    diagnostics.push(createDiagnostic(
+      'claimGraph',
+      'warning',
+      'default_agent_id_collision',
+      `Configured agentId is "${DEFAULT_RALPH_AGENT_ID}" while another active "${DEFAULT_RALPH_AGENT_ID}" claim already exists (${defaultAgentClaims
+        .map((claim) => `${claim.taskId}/${claim.provenanceId}`)
+        .join(', ')}). Set ralphCodex.agentId to a unique value for each concurrent loop instance.`
+    ));
+  }
 
   for (const claimEntry of input.claimGraph?.tasks ?? []) {
     if (claimEntry.contested) {

@@ -10,7 +10,6 @@ import {
   stringifyTaskFile
 } from './taskFile';
 import {
-  DEFAULT_RALPH_AGENT_ID,
   RalphCompletionClassification,
   RalphIterationResult,
   RalphTask,
@@ -145,7 +144,7 @@ export async function reconcileCompletionReport(
   const claimOwnership = await inspectClaimOwnership(
     input.prepared.paths.claimFilePath,
     input.selectedTask.id,
-    DEFAULT_RALPH_AGENT_ID,
+    input.prepared.config.agentId,
     input.prepared.provenanceId
   );
 

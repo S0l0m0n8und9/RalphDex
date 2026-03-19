@@ -626,11 +626,8 @@ test('decideLoopContinuation stops when no actionable task remains even if block
 
 test('decideLoopContinuation continues into backlog replenishment when enabled and no drift is present', () => {
   const current = iterationResult({
-    selectedTaskId: null,
-    selectedTaskTitle: null,
-    stopReason: 'no_actionable_task',
     backlog: {
-      remainingTaskCount: 1,
+      remainingTaskCount: 0,
       actionableTaskAvailable: false
     }
   });
@@ -644,6 +641,48 @@ test('decideLoopContinuation continues into backlog replenishment when enabled a
   assert.equal(decision.shouldContinue, true);
   assert.equal(decision.stopReason, null);
   assert.match(decision.message, /continuing into backlog replenishment/i);
+});
+
+test('decideLoopContinuation does not auto-replenish when blocked work remains', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: true
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+});
+
+test('decideLoopContinuation does not auto-replenish when the setting is disabled', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    stopReason: 'no_actionable_task',
+    backlog: {
+      remainingTaskCount: 1,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: false
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /No executable Ralph task remains/i);
 });
 
 test('decideLoopContinuation does not auto-replenish when ledger drift is present', () => {
@@ -672,4 +711,34 @@ test('decideLoopContinuation does not auto-replenish when ledger drift is presen
 
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'no_actionable_task');
+});
+
+test('decideLoopContinuation stops on ledger drift even when auto-replenishment is enabled and no actionable task remains', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    stopReason: 'no_actionable_task',
+    backlog: {
+      remainingTaskCount: 0,
+      actionableTaskAvailable: false
+    }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: true,
+    preflightDiagnostics: [
+      diagnostic({
+        category: 'taskGraph',
+        severity: 'error',
+        code: 'done_parent_unfinished_descendants',
+        message: 'Done parent still has unfinished descendants.'
+      })
+    ]
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /No executable Ralph task remains/i);
 });

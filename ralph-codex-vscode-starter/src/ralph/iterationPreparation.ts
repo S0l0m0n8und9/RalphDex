@@ -9,7 +9,6 @@ import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
 import {
-  DEFAULT_RALPH_AGENT_ID,
   RalphExecutionPlan,
   RalphPersistedPreflightReport,
   RalphPreflightReport,
@@ -204,7 +203,7 @@ export async function prepareIterationContext(
     createdAt: taskSelectedAt
   });
   const selectedTask = promptTarget === 'cliExec'
-    ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId)
+    ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
     : selectNextTask(taskFile);
   // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
   // the todo→in_progress bookkeeping change is not counted as durable agent progress.
@@ -483,13 +482,14 @@ async function selectClaimedTask(
   taskFile: RalphTaskFile,
   taskFilePath: string,
   claimFilePath: string,
-  provenanceId: string
+  provenanceId: string,
+  agentId: string
 ): Promise<RalphTask | null> {
   for (const candidate of listSelectableTasks(taskFile)) {
     const claimResult = await acquireClaim(
       claimFilePath,
       candidate.id,
-      DEFAULT_RALPH_AGENT_ID,
+      agentId,
       provenanceId
     );
     if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {

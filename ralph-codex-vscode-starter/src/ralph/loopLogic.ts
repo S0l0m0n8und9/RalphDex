@@ -414,8 +414,9 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
 
   if (!input.hasActionableTask) {
     const canContinueIntoBacklogReplenishment = input.autoReplenishBacklog
-      && input.currentResult.stopReason === 'no_actionable_task'
       && input.currentResult.backlog.actionableTaskAvailable === false
+      && input.currentResult.backlog.remainingTaskCount === 0
+      && input.currentResult.executionStatus !== 'failed'
       && !hasBacklogReplenishmentLedgerDrift(input.preflightDiagnostics);
 
     if (canContinueIntoBacklogReplenishment) {

@@ -41,7 +41,6 @@ const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
-const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const preflight_1 = require("./preflight");
 const verifier_1 = require("./verifier");
@@ -114,7 +113,7 @@ async function prepareIterationContext(input) {
         createdAt: taskSelectedAt
     });
     const selectedTask = promptTarget === 'cliExec'
-        ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId)
+        ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
         : (0, taskFile_1.selectNextTask)(taskFile);
     // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
     // the todo→in_progress bookkeeping change is not counted as durable agent progress.
@@ -376,9 +375,9 @@ async function prepareIterationContext(input) {
     await input.persistPreparedProvenanceBundle(preparedContext);
     return preparedContext;
 }
-async function selectClaimedTask(taskFile, taskFilePath, claimFilePath, provenanceId) {
+async function selectClaimedTask(taskFile, taskFilePath, claimFilePath, provenanceId, agentId) {
     for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
-        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, types_1.DEFAULT_RALPH_AGENT_ID, provenanceId);
+        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId);
         if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
             if (candidate.status === 'todo') {
                 await (0, taskFile_1.markTaskInProgress)(taskFilePath, candidate.id);

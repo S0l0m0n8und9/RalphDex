@@ -162,6 +162,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       ['dangerously-skip-permissions', 'default'],
       DEFAULT_CONFIG.claudePermissionMode
     ),
+    agentId: readString(config, 'agentId', DEFAULT_CONFIG.agentId),
     preferredHandoffMode: readEnum<CodexHandoffMode>(
       config,
       'preferredHandoffMode',

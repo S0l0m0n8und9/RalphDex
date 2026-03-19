@@ -195,6 +195,61 @@ test('buildPreflightReport surfaces contested, stale, and mismatched claims in c
   assert.match(report.summary, /Claim graph:/);
 });
 
+test('buildPreflightReport warns when the default agent identity collides with another active default claim', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const claimFilePath = path.join(rootPath, '.ralph', 'claims.json');
+  await createDirectories([path.dirname(claimFilePath)]);
+  await writeUtf8Files([
+    [claimFilePath, JSON.stringify({
+      version: 1,
+      claims: [
+        {
+          taskId: 'T1',
+          agentId: 'default',
+          provenanceId: 'run-001',
+          claimedAt: '2026-03-10T00:00:00.000Z',
+          status: 'active'
+        }
+      ]
+    })]
+  ]);
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Claimed elsewhere', status: 'todo' },
+      { id: 'T2', title: 'Available task', status: 'todo' }
+    ]
+  }));
+  const claimGraph = await inspectTaskClaimGraph(claimFilePath, {
+    now: new Date('2026-03-10T00:05:00.000Z')
+  });
+  const report = buildPreflightReport({
+    rootPath,
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 2, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    currentProvenanceId: 'run-current',
+    claimGraph,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'default_agent_id_collision'));
+  assert.match(
+    report.diagnostics.find((diagnostic) => diagnostic.code === 'default_agent_id_collision')?.message ?? '',
+    /Set ralphCodex\.agentId to a unique value/
+  );
+});
+
 test('inspectPreflightArtifactReadiness reports stale latest surfaces and missing latest-pointer targets', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');

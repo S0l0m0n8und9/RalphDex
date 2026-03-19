@@ -34,6 +34,7 @@
       "restrictedConfigurations": [
         "ralphCodex.codexCommandPath",
         "ralphCodex.preferredHandoffMode",
+        "ralphCodex.agentId",
         "ralphCodex.inspectionRootOverride",
         "ralphCodex.ralphIterationCap",
         "ralphCodex.verifierModes",
@@ -180,6 +181,11 @@
           "enum": ["dangerously-skip-permissions", "default"],
           "default": "dangerously-skip-permissions",
           "description": "Permission mode for Claude CLI runs. 'dangerously-skip-permissions' runs without approval prompts (suitable for unattended Ralph iterations). 'default' uses Claude's standard permission system."
+        },
+        "ralphCodex.agentId": {
+          "type": "string",
+          "default": "default",
+          "description": "Identity Ralph writes into claims and iteration artifacts. Set a unique value per concurrent loop instance so multiple agents do not share the same durable identity."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",

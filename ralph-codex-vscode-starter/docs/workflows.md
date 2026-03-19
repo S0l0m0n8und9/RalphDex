@@ -145,7 +145,9 @@ Budget pressure drops only lower-priority sections, in a fixed order captured in
 
 For `fix-failure` and `human-review-handoff`, that policy is intentionally biased toward blocker evidence: Ralph drops recent progress before it drops prior-iteration remediation or stop-reason context for the same task.
 
-The built-in policy matrix is:
+The built-in `codex` policy matrix is the default selected by `ralphCodex.promptBudgetProfile`. Operators can switch to the higher-context placeholder `claude` profile or provide `ralphCodex.customPromptBudget` overrides for a `custom` profile, but only the `codex` matrix below is calibrated for production use today. See [docs/prompt-calibration.md](prompt-calibration.md) before treating a non-`codex` profile as a stable baseline.
+
+The default policy matrix is:
 
 | Prompt kind | Target | Target tokens | Required sections | Minimum context bias | Optional sections | Drop-first order |
 | --- | --- | ---: | --- | --- | --- | --- |
@@ -200,6 +202,19 @@ Before treating `decompose_task` as the next move, confirm the proposal still fi
 - if the recorded evidence cannot justify that small deterministic set, Ralph should prefer `reframe_task`, `request_human_review`, or `no_action`
 
 Backlog replenishment is a different path. Use it only when the durable task ledger is consistent and there is genuinely no actionable work left. If a parent task is marked `done` while descendants are still `todo`, `in_progress`, or `blocked`, that is task-ledger drift, not clean exhaustion, and the next step is to repair `.ralph/tasks.json` instead of adding fresh tasks.
+
+### Backlog Replenishment
+
+`ralphCodex.autoReplenishBacklog` lets the loop continue into the replenish-backlog prompt kind after a `no_actionable_task` stop, but that is only safe when preflight says the durable ledger is still internally consistent.
+
+The safety gate is the preflight drift check. Ralph only auto-replenishes when the selector found no actionable task, the current result recorded `no_actionable_task`, and preflight found no error-severity ledger-drift diagnostics such as `ledger_drift` or `done_parent_unfinished_descendants`.
+
+That check matters because “no actionable task” can mean two very different things:
+
+- the backlog is genuinely clean and ready for the next bounded slice
+- the task graph is contradictory, so safe selection stopped before Ralph could trust the ledger
+
+Use the setting only for the first case. Leave it off when you want explicit operator review before Ralph adds more backlog, and treat any drift diagnostic as a repair-first stop even if auto-replenishment is enabled.
 
 If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
 

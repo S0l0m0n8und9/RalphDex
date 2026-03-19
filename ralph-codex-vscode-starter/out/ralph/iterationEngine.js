@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphIterationEngine = void 0;
 const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const integrity_1 = require("./integrity");
 const iterationPreparation_1 = require("./iterationPreparation");
@@ -225,6 +226,67 @@ function runRecordFromIteration(mode, prepared, startedAt, result) {
         lastMessagePath: result.execution.lastMessagePath,
         summary: result.summary
     };
+}
+function uniqueSorted(values) {
+    return Array.from(new Set(values.filter((value) => value.trim().length > 0))).sort((left, right) => left.localeCompare(right));
+}
+function normalizeAgentIdentityRecord(candidate, agentId, firstSeenAt) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return {
+            agentId,
+            firstSeenAt,
+            completedTaskIds: [],
+            touchedFiles: []
+        };
+    }
+    const record = candidate;
+    const completedTaskIds = Array.isArray(record.completedTaskIds)
+        ? record.completedTaskIds.filter((item) => typeof item === 'string')
+        : [];
+    const touchedFiles = Array.isArray(record.touchedFiles)
+        ? record.touchedFiles.filter((item) => typeof item === 'string')
+        : [];
+    return {
+        agentId,
+        firstSeenAt: typeof record.firstSeenAt === 'string' && record.firstSeenAt.trim().length > 0
+            ? record.firstSeenAt
+            : firstSeenAt,
+        completedTaskIds,
+        touchedFiles
+    };
+}
+async function updateAgentIdentityRecord(input) {
+    const agentDirectoryPath = path.join(input.rootPath, '.ralph', 'agents');
+    const recordPath = path.join(agentDirectoryPath, `${input.agentId}.json`);
+    let existing = null;
+    try {
+        existing = JSON.parse(await fs.readFile(recordPath, 'utf8'));
+    }
+    catch (error) {
+        const code = error.code;
+        if (code !== 'ENOENT') {
+            throw error;
+        }
+    }
+    const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
+    const completedTaskIds = [...record.completedTaskIds];
+    if (input.selectedTaskCompleted && input.selectedTaskId) {
+        completedTaskIds.push(input.selectedTaskId);
+    }
+    const nextRecord = {
+        agentId: input.agentId,
+        firstSeenAt: record.firstSeenAt,
+        completedTaskIds,
+        touchedFiles: uniqueSorted([
+            ...record.touchedFiles,
+            ...(input.diffSummary?.changedFiles ?? [])
+        ])
+    };
+    await fs.mkdir(agentDirectoryPath, { recursive: true });
+    const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
+    await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
+    await fs.rm(recordPath, { force: true });
+    await fs.rename(tempPath, recordPath);
 }
 class RalphIterationEngine {
     stateManager;
@@ -757,7 +819,7 @@ class RalphIterationEngine {
             ];
             const result = {
                 schemaVersion: 1,
-                agentId: types_1.DEFAULT_RALPH_AGENT_ID,
+                agentId: prepared.config.agentId,
                 provenanceId: prepared.provenanceId,
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,
@@ -873,6 +935,19 @@ class RalphIterationEngine {
                 result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
             }
             phaseTimestamps.persistedAt = new Date().toISOString();
+            try {
+                await updateAgentIdentityRecord({
+                    rootPath: prepared.rootPath,
+                    agentId: prepared.config.agentId,
+                    startedAt,
+                    selectedTaskId: prepared.selectedTask?.id ?? null,
+                    selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
+                    diffSummary: fileChangeVerification.diffSummary
+                });
+            }
+            catch (error) {
+                result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
+            }
             const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
                 result,
                 taskFile: afterCoreState.taskFile,
@@ -975,7 +1050,7 @@ class RalphIterationEngine {
         }
         finally {
             if (prepared.selectedTask) {
-                await (0, taskFile_1.releaseClaim)(prepared.paths.claimFilePath, prepared.selectedTask.id, types_1.DEFAULT_RALPH_AGENT_ID).catch((error) => {
+                await (0, taskFile_1.releaseClaim)(prepared.paths.claimFilePath, prepared.selectedTask.id, prepared.config.agentId).catch((error) => {
                     this.logger.warn('Failed to release Ralph task claim after iteration.', {
                         selectedTaskId: prepared.selectedTask?.id ?? null,
                         provenanceId: prepared.provenanceId,

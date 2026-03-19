@@ -125,6 +125,7 @@ function readConfig(workspaceFolder) {
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),
+        agentId: readString(config, 'agentId', defaults_1.DEFAULT_CONFIG.agentId),
         preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
         inspectionRootOverride: readString(config, 'inspectionRootOverride', defaults_1.DEFAULT_CONFIG.inspectionRootOverride),
         ralphIterationCap: readNumber(config, 'ralphIterationCap', defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),

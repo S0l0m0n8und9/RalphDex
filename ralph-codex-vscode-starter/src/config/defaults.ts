@@ -6,6 +6,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   claudeCommandPath: 'claude',
   claudeMaxTurns: 50,
   claudePermissionMode: 'dangerously-skip-permissions',
+  agentId: 'default',
   preferredHandoffMode: 'ideCommand',
   inspectionRootOverride: '',
   ralphIterationCap: 20,

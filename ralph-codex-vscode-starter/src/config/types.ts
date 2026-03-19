@@ -24,6 +24,7 @@ export interface RalphCodexConfig {
   claudeCommandPath: string;
   claudeMaxTurns: number;
   claudePermissionMode: ClaudePermissionMode;
+  agentId: string;
   preferredHandoffMode: CodexHandoffMode;
   inspectionRootOverride: string;
   ralphIterationCap: number;
