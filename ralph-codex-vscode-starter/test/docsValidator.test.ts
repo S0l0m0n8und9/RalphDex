@@ -275,7 +275,7 @@ Stable operator verification rules live here.
 
 ## Epistemic Gap
 
-The completion report is a model's self-report. It is labelled as unverified in the run bundle. reconciliationWarnings records divergence cases. Treat verifier artifacts as the authoritative evidence.
+The completion report is a model's self-report. It is labelled as unverified in the run bundle. The epistemicGap object keeps that distinction machine-readable. reconciliationWarnings records divergence cases. Treat verifier-summary.json and related verifier artifacts as the authoritative evidence.
 `);
 
   await writeFile(rootPath, 'docs/verifier.md', `# Verifier

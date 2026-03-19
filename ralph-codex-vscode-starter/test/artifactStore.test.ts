@@ -181,7 +181,15 @@ function bundle(input: {
   iteration: number;
   status: RalphProvenanceBundle['status'];
   failure?: RalphIntegrityFailure;
-}): RalphProvenanceBundle {
+}): Omit<
+  RalphProvenanceBundle,
+  'executionSummaryPath'
+  | 'verifierSummaryPath'
+  | 'completionReportStatus'
+  | 'reconciliationWarnings'
+  | 'completionReportPath'
+  | 'epistemicGap'
+> {
   const paths = resolveProvenanceBundlePaths(input.artifactRootDir, input.provenanceId);
 
   return {
@@ -207,9 +215,6 @@ function bundle(input: {
     executionPlanHash: `sha256:plan-${input.iteration}`,
     cliInvocationPath: input.status === 'executed' ? paths.cliInvocationPath : null,
     iterationResultPath: input.status === 'executed' ? paths.iterationResultPath : null,
-    completionReportStatus: null,
-    reconciliationWarnings: null,
-    completionReportPath: null,
     provenanceFailurePath: input.failure ? paths.provenanceFailurePath : null,
     provenanceFailureSummaryPath: input.failure ? paths.provenanceFailureSummaryPath : null,
     promptHash: `sha256:prompt-${input.iteration}`,
@@ -411,6 +416,7 @@ test('writeProvenanceBundle persists completion-report divergence fields and sum
     await fs.readFile(paths.bundlePath, 'utf8')
   ) as import('../src/ralph/types').RalphProvenanceBundle;
   const summary = await fs.readFile(paths.summaryPath, 'utf8');
+  const epistemicGap = persistedBundle.epistemicGap;
 
   assert.equal(persistedBundle.completionReportStatus, 'rejected');
   assert.deepEqual(persistedBundle.reconciliationWarnings, [
@@ -418,7 +424,25 @@ test('writeProvenanceBundle persists completion-report divergence fields and sum
     'Task status left unchanged pending review.'
   ]);
   assert.equal(persistedBundle.completionReportPath, iterationPaths.completionReportPath);
-  assert.match(summary, /Model Self-Report: rejected; warnings: Requested done but verifier failed\. \| Task status left unchanged pending review\./);
+  assert.equal(persistedBundle.executionSummaryPath, iterationPaths.executionSummaryPath);
+  assert.equal(persistedBundle.verifierSummaryPath, iterationPaths.verifierSummaryPath);
+  assert.ok(epistemicGap);
+  assert.equal(epistemicGap.modelClaimsPath, iterationPaths.completionReportPath);
+  assert.equal(epistemicGap.modelClaimsStatus, 'rejected');
+  assert.equal(epistemicGap.modelClaimsAreUnverified, true);
+  assert.deepEqual(epistemicGap.verifierEvidencePaths, [
+    iterationPaths.executionSummaryPath,
+    iterationPaths.verifierSummaryPath,
+    iterationPaths.iterationResultPath
+  ]);
+  assert.equal(epistemicGap.verifierEvidenceIsAuthoritative, true);
+  assert.match(summary, /## Model Claims/);
+  assert.match(summary, /Model self-report status: rejected/);
+  assert.match(summary, /Unverified model claim: yes/);
+  assert.match(summary, /## Verifier Evidence/);
+  assert.match(summary, /verifier-summary\.json/);
+  assert.match(summary, /## Epistemic Gap/);
+  assert.match(summary, /does not prove: That the model reasoned correctly internally or that its completion report is true without verifier support\./);
 });
 
 test('artifactStore exposes the protected generated-artifact roots explicitly', () => {

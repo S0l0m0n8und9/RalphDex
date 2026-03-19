@@ -564,6 +564,20 @@ function renderIntegrityFailureSummary(failure) {
 }
 function renderProvenanceSummary(bundle) {
     const reconciliationWarnings = bundle.reconciliationWarnings ?? [];
+    const epistemicGap = bundle.epistemicGap ?? {
+        trustBoundary: 'The provenance chain stops at the codex exec boundary; model-internal reasoning is not directly observable.',
+        bundleProves: 'The persisted Ralph artifacts and any verifier-observed run outputs recorded in this bundle.',
+        bundleDoesNotProve: 'That the model reasoned correctly internally or that an unverified completion report is true.',
+        modelClaimsPath: bundle.completionReportPath ?? null,
+        modelClaimsStatus: bundle.completionReportStatus ?? null,
+        modelClaimsAreUnverified: (bundle.completionReportPath ?? null) !== null,
+        verifierEvidencePaths: [bundle.executionSummaryPath, bundle.verifierSummaryPath, bundle.iterationResultPath]
+            .filter((item) => typeof item === 'string' && item.length > 0),
+        verifierEvidenceIsAuthoritative: true,
+        reconciliationWarnings,
+        noWarningsMeans: 'No reconciliation warnings means the model claim matched the observable verifier signals, not that the model reasoning was correct.'
+    };
+    const verifierEvidencePaths = epistemicGap.verifierEvidencePaths;
     return [
         `# Ralph Provenance ${bundle.provenanceId}`,
         '',
@@ -596,11 +610,28 @@ function renderProvenanceSummary(bundle) {
         `- Execution plan: ${bundle.executionPlanPath ?? 'none'}`,
         `- CLI invocation: ${bundle.cliInvocationPath ?? 'none'}`,
         `- Iteration result: ${bundle.iterationResultPath ?? 'none'}`,
+        `- Execution summary: ${bundle.executionSummaryPath ?? 'none'}`,
+        `- Verifier summary: ${bundle.verifierSummaryPath ?? 'none'}`,
         `- Completion report: ${bundle.completionReportPath ?? 'none'}`,
         `- Provenance failure: ${bundle.provenanceFailurePath ?? 'none'}`,
         '',
-        '## Model Self-Report',
-        `- Model Self-Report: ${bundle.completionReportStatus ?? 'none'}; warnings: ${reconciliationWarnings.join(' | ') || 'none'}`,
+        '## Model Claims',
+        `- Completion report path: ${epistemicGap.modelClaimsPath ?? 'none'}`,
+        `- Model self-report status: ${epistemicGap.modelClaimsStatus ?? 'none'}`,
+        `- Unverified model claim: ${epistemicGap.modelClaimsAreUnverified ? 'yes' : 'no'}`,
+        `- Reconciliation warnings: ${reconciliationWarnings.join(' | ') || 'none'}`,
+        '',
+        '## Verifier Evidence',
+        ...(verifierEvidencePaths.length > 0
+            ? verifierEvidencePaths.map((evidencePath) => `- ${evidencePath}`)
+            : ['- none']),
+        `- Verifier evidence is authoritative: ${epistemicGap.verifierEvidenceIsAuthoritative ? 'yes' : 'no'}`,
+        '',
+        '## Epistemic Gap',
+        `- Trust boundary: ${epistemicGap.trustBoundary}`,
+        `- This bundle proves: ${epistemicGap.bundleProves}`,
+        `- This bundle does not prove: ${epistemicGap.bundleDoesNotProve}`,
+        `- No-warning interpretation: ${epistemicGap.noWarningsMeans}`,
         '',
         '## Canonical Iteration Artifacts',
         `- Iteration artifact dir: ${bundle.artifactDir}`
@@ -1385,11 +1416,45 @@ async function writeProvenanceBundle(input) {
     const bundle = input.result
         ? {
             ...input.bundle,
+            executionSummaryPath: resultIterationPaths?.executionSummaryPath ?? null,
+            verifierSummaryPath: resultIterationPaths?.verifierSummaryPath ?? null,
             completionReportStatus: input.result.completionReportStatus ?? null,
             reconciliationWarnings: input.result.reconciliationWarnings ?? null,
-            completionReportPath
+            completionReportPath,
+            epistemicGap: {
+                trustBoundary: 'The provenance chain stops at the codex exec boundary; model-internal reasoning is not directly observable.',
+                bundleProves: 'Prompt, plan, and CLI payload integrity up to execution, plus the verifier-observed post-run artifacts.',
+                bundleDoesNotProve: 'That the model reasoned correctly internally or that its completion report is true without verifier support.',
+                modelClaimsPath: completionReportPath,
+                modelClaimsStatus: input.result.completionReportStatus ?? null,
+                modelClaimsAreUnverified: completionReportPath !== null,
+                verifierEvidencePaths: [
+                    resultIterationPaths?.executionSummaryPath ?? null,
+                    resultIterationPaths?.verifierSummaryPath ?? null,
+                    resultIterationPaths?.iterationResultPath ?? null
+                ].filter((item) => typeof item === 'string' && item.length > 0),
+                verifierEvidenceIsAuthoritative: true,
+                reconciliationWarnings: input.result.reconciliationWarnings ?? [],
+                noWarningsMeans: 'No reconciliation warnings means the model claim matched the observable verifier signals, not that the model reasoning was correct.'
+            }
         }
-        : input.bundle;
+        : {
+            ...input.bundle,
+            executionSummaryPath: null,
+            verifierSummaryPath: null,
+            epistemicGap: {
+                trustBoundary: 'The provenance chain can prove only the prepared bundle until execution occurs.',
+                bundleProves: 'The persisted preflight, prompt, and execution-plan artifacts that Ralph prepared for this run.',
+                bundleDoesNotProve: 'Anything about a model outcome, because no completion report or verifier evidence exists yet.',
+                modelClaimsPath: null,
+                modelClaimsStatus: null,
+                modelClaimsAreUnverified: false,
+                verifierEvidencePaths: [],
+                verifierEvidenceIsAuthoritative: true,
+                reconciliationWarnings: [],
+                noWarningsMeans: 'No reconciliation warnings are available because no model self-report was reconciled yet.'
+            }
+        };
     const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
     const summary = renderProvenanceSummary(bundle);
     const writes = [

@@ -14,6 +14,10 @@ export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
 
 export type RalphGitCheckpointMode = 'off' | 'snapshot' | 'snapshotAndDiff';
 
+export type PromptBudgetProfile = 'codex' | 'claude' | 'custom';
+
+export type CustomPromptBudget = Partial<Record<string, number>>;
+
 export interface RalphCodexConfig {
   cliProvider: CliProviderId;
   codexCommandPath: string;
@@ -39,6 +43,8 @@ export interface RalphCodexConfig {
   promptTemplateDirectory: string;
   promptIncludeVerifierFeedback: boolean;
   promptPriorContextBudget: number;
+  promptBudgetProfile: PromptBudgetProfile;
+  customPromptBudget: CustomPromptBudget;
   clipboardAutoCopy: boolean;
   model: string;
   reasoningEffort: CodexReasoningEffort;

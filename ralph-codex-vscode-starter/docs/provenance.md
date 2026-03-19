@@ -114,6 +114,13 @@ The bundle summary is the primary human-readable surface. Machine-readable sibli
 `Open Latest Provenance Bundle` should prefer the summary first. `Reveal Latest Provenance Bundle Directory` should reveal the folder that contains the copied evidence set.
 `Open Latest Prompt Evidence` should open the stable latest prompt-evidence manifest directly. `Open Latest CLI Transcript` should open the transcript referenced by the stable latest CLI-invocation manifest, or the corresponding last-message artifact when that transcript path is unavailable.
 
+When a run executes, the bundle must surface the trust split explicitly instead of leaving operators to infer it from `completionReportStatus` and warning text alone:
+
+- `completion-report.json` is the model's self-report and stays labelled as unverified model output
+- `execution-summary.json`, `verifier-summary.json`, and `iteration-result.json` are the verifier-backed evidence surfaces the bundle points back to
+- the bundle summary should render separate Model Claims, Verifier Evidence, and Epistemic Gap sections so an auditor can see the distinction immediately
+- the machine-readable `epistemicGap` object in `provenance-bundle.json` should carry the same distinction for downstream tooling
+
 Repeated-stop remediation is part of the persisted evidence chain, but it is intentionally narrower than execution provenance:
 
 - `task-remediation.json` ties a repeated-stop recommendation back to the same iteration directory and `iteration-result.json`
@@ -165,8 +172,8 @@ If that chain breaks, the attempt should surface as a blocked integrity failure 
 
 The CLI provenance chain proves prompt integrity up to the `codex exec` boundary. It proves that the correct rendered prompt was selected, hashed, persisted, and passed to the CLI without modification. It does not prove anything about what happened inside the model after that boundary.
 
-The completion report is a model's self-report. It is labelled as unverified in the run bundle. The field name `completionReportStatus` makes that epistemic status machine-readable so downstream tooling can distinguish verified evidence from model assertion.
+The completion report is a model's self-report. It is labelled as unverified in the run bundle. The field name `completionReportStatus` and the bundle's explicit `epistemicGap.modelClaims*` fields make that epistemic status machine-readable so downstream tooling can distinguish verified evidence from model assertion.
 
 `reconciliationWarnings` records cases where the model's claimed status diverged from what preflight and verifier evidence found. A warning entry means an inconsistency was detected and surfaced; the absence of warnings means the model's claimed status was consistent with the observable verifier signals. Absence of reconciliation warnings does not prove the model's reasoning was correct — it proves only that the model's claimed status was consistent with those observable signals.
 
-Operators requiring stronger guarantees should treat the verifier artifacts — `validationCommand`, `gitDiff`, and `taskState` — as the authoritative evidence and treat the completion report as supplementary context. Those artifacts are produced from observable outcomes, not from the model's self-description.
+Operators requiring stronger guarantees should treat the verifier artifacts — `validationCommand`, `gitDiff`, and `taskState`, surfaced through `execution-summary.json`, `verifier-summary.json`, and `iteration-result.json` — as the authoritative evidence and treat the completion report as supplementary context. Those artifacts are produced from observable outcomes, not from the model's self-description.

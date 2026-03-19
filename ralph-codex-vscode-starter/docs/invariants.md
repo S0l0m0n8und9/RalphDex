@@ -231,6 +231,7 @@ Run-level provenance bundles are first-class artifacts, not optional debugging l
 - `provenance-bundle.json`
 - `summary.md`
 - copied preflight, prompt, evidence, and plan surfaces
+- explicit model-claim versus verifier-evidence references when execution occurred, including the unverified `completion-report.json` path plus `execution-summary.json`, `verifier-summary.json`, and `iteration-result.json`
 - `provenance-failure.json` plus `provenance-failure-summary.md` when launch integrity blocks execution
 
 Stable latest pointers are part of the operator interface and must stay current:

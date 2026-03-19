@@ -1193,6 +1193,73 @@ test('buildPrompt records the prompt-budget matrix for each prompt kind and targ
   }
 });
 
+test('buildPrompt selects the Claude prompt-budget profile instead of the codex baseline when configured', async () => {
+  const templateDir = await createTemplateDir();
+  const baseInput = {
+    kind: 'iteration' as const,
+    target: 'cliExec' as const,
+    iteration: 2,
+    selectionReason: 'Profile selection check.',
+    objectiveText: '# Product / project brief\n\nShip prompt-budgeted context deterministically.\n',
+    progressText: '# Progress\n\n- Prompt budgets are recorded in evidence.\n',
+    taskCounts: {
+      todo: 2,
+      in_progress: 1,
+      blocked: 0,
+      done: 3
+    },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2 as const,
+      tasks: [
+        { id: 'T22', title: 'Define prompt-budget policy', status: 'in_progress' as const }
+      ]
+    },
+    selectedTask: {
+      id: 'T22',
+      title: 'Define prompt-budget policy',
+      status: 'in_progress' as const
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight completed without blocking errors.',
+      diagnostics: []
+    }
+  };
+
+  const codexRender = await buildPrompt({
+    ...baseInput,
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      promptBudgetProfile: 'codex'
+    }
+  });
+
+  const claudeRender = await buildPrompt({
+    ...baseInput,
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      promptBudgetProfile: 'claude'
+    }
+  });
+
+  assert.equal(codexRender.evidence.promptBudget?.policyName, 'iteration:cliExec');
+  assert.equal(codexRender.evidence.promptBudget?.targetTokens, 1600);
+  assert.equal(claudeRender.evidence.promptBudget?.policyName, 'claude/iteration:cliExec');
+  assert.equal(claudeRender.evidence.promptBudget?.targetTokens, 2400);
+  assert.notEqual(claudeRender.evidence.promptBudget?.targetTokens, codexRender.evidence.promptBudget?.targetTokens);
+});
+
 test('buildPrompt omits lower-priority sections when the prompt budget would otherwise be exceeded', async () => {
   const templateDir = await createTemplateDir();
   const largeParagraph = 'Budget pressure evidence. '.repeat(120);

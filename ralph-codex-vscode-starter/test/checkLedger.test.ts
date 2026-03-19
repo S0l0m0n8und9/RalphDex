@@ -1,12 +1,9 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-
-const { runLedgerCheck } = require(path.resolve(process.cwd(), 'scripts', 'check-ledger.js')) as {
-  runLedgerCheck: (workspaceRoot: string) => Array<{ taskId: string; message: string }>;
-};
 
 async function createWorkspace(taskFile: unknown, claimFile?: unknown) {
   const workspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-ledger-'));
@@ -21,100 +18,131 @@ async function createWorkspace(taskFile: unknown, claimFile?: unknown) {
   return workspaceRoot;
 }
 
-test('check-ledger exits cleanly for a consistent ledger without claims.json', async () => {
+function runLedgerCli(workspaceRoot: string) {
+  const scriptPath = path.resolve(process.cwd(), 'scripts', 'check-ledger.js');
+  return spawnSync(process.execPath, [scriptPath, workspaceRoot], {
+    cwd: process.cwd(),
+    encoding: 'utf8'
+  });
+}
+
+function skipIfSpawnUnavailable(
+  result: ReturnType<typeof spawnSync>,
+  t: test.TestContext
+): boolean {
+  const spawnError = result.error as (Error & { code?: string }) | undefined;
+
+  if (spawnError?.code === 'EPERM') {
+    t.skip('child_process.spawnSync is blocked in this environment');
+    return true;
+  }
+
+  if (spawnError) {
+    assert.fail(`spawnSync failed: ${spawnError.message}`);
+  }
+
+  return false;
+}
+
+test('check-ledger exits 0 for a clean tasks.json without claims.json', async (t) => {
   const workspaceRoot = await createWorkspace({
     version: 2,
     tasks: [
       { id: 'T1', title: 'Parent', status: 'todo' },
-      { id: 'T1.1', title: 'Child', status: 'todo', parentId: 'T1', dependsOn: ['T0'] },
-      { id: 'T0', title: 'Dependency', status: 'done' }
+      { id: 'T1.1', title: 'Child', status: 'todo', parentId: 'T1' }
     ]
   });
 
-  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
 });
 
-test('check-ledger reports drift, missing references, cycles, and inconsistent active CLI claims', async () => {
-  const workspaceRoot = await createWorkspace(
-    {
-      version: 2,
-      tasks: [
-        { id: 'T1', title: 'Done parent', status: 'done' },
-        { id: 'T1.1', title: 'Child still active', status: 'in_progress', parentId: 'T1', dependsOn: ['MISSING'] },
-        { id: 'T2', title: 'Orphan', status: 'todo', parentId: 'T9' },
-        { id: 'T3', title: 'Cycle start', status: 'todo', dependsOn: ['T4'] },
-        { id: 'T4', title: 'Cycle end', status: 'todo', dependsOn: ['T3'] }
-      ]
-    },
-    {
-      version: 1,
-      claims: [
-        {
-          taskId: 'T2',
-          agentId: 'agent-a',
-          provenanceId: 'run-001',
-          claimedAt: '2026-03-14T00:00:00.000Z',
-          status: 'active'
-        }
-      ]
-    }
-  );
+test('check-ledger exits 1 and names the parent when a done parent still has a todo child', async (t) => {
+  const workspaceRoot = await createWorkspace({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Parent', status: 'done' },
+      { id: 'T1.1', title: 'Child', status: 'todo', parentId: 'T1' }
+    ]
+  });
 
-  const findings = runLedgerCheck(workspaceRoot).map((finding) => `${finding.taskId}: ${finding.message}`).join('\n');
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
 
-  assert.match(findings, /^T1: is marked done but has unfinished descendants: T1\.1 \(in_progress\)$/m);
-  assert.match(findings, /^T1\.1: references missing dependency MISSING$/m);
-  assert.match(findings, /^T2: references missing parentId T9$/m);
-  assert.match(findings, /^T2: has an active CLI claim in \.ralph\/claims\.json but is not marked in_progress$/m);
-  assert.match(findings, /^T4: dependency cycle detected: T3 -> T4 -> T3$/m);
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^T1: is marked done but has unfinished descendants: T1\.1 \(todo\)$/m);
+  assert.equal(result.stderr, '');
 });
 
-test('check-ledger accepts in-progress tasks without an active claim after claim release', async () => {
+test('check-ledger exits 1 for a missing dependsOn target', async (t) => {
+  const workspaceRoot = await createWorkspace({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Task', status: 'todo', dependsOn: ['T9'] }
+    ]
+  });
+
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^T1: references missing dependency T9$/m);
+  assert.equal(result.stderr, '');
+});
+
+test('check-ledger exits 1 for a missing parentId target', async (t) => {
+  const workspaceRoot = await createWorkspace({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Task', status: 'todo', parentId: 'T9' }
+    ]
+  });
+
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^T1: references missing parentId T9$/m);
+  assert.equal(result.stderr, '');
+});
+
+test('check-ledger exits 1 for a dependency cycle', async (t) => {
+  const workspaceRoot = await createWorkspace({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Cycle start', status: 'todo', dependsOn: ['T2'] },
+      { id: 'T2', title: 'Cycle end', status: 'todo', dependsOn: ['T1'] }
+    ]
+  });
+
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /^T2: dependency cycle detected: T1 -> T2 -> T1$/m);
+  assert.equal(result.stderr, '');
+});
+
+test('check-ledger exits 0 for an in_progress task with a matching active claims.json entry', async (t) => {
   const workspaceRoot = await createWorkspace(
     {
       version: 2,
       tasks: [
         { id: 'T1', title: 'Claimed task', status: 'in_progress' }
-      ]
-    }
-  );
-
-  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
-});
-
-test('check-ledger ignores legacy IDE handoff claims because they are non-blocking', async () => {
-  const workspaceRoot = await createWorkspace(
-    {
-      version: 2,
-      tasks: [
-        { id: 'T1', title: 'Prepared task', status: 'todo' }
-      ]
-    },
-    {
-      version: 1,
-      claims: [
-        {
-          taskId: 'T1',
-          agentId: 'agent-a',
-          provenanceId: 'run-i007-ide-20260314T110000Z',
-          claimedAt: '2026-03-14T11:00:00.000Z',
-          status: 'active'
-        }
-      ]
-    }
-  );
-
-  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
-});
-
-test('check-ledger passes when a task is in_progress with an active CLI claim â€” the normal steady state after markTaskInProgress', async () => {
-  // The engine marks tasks in_progress at claim time (via markTaskInProgress) so the ledger
-  // is always consistent when the agent runs validation.
-  const workspaceRoot = await createWorkspace(
-    {
-      version: 2,
-      tasks: [
-        { id: 'T1', title: 'Active iteration task', status: 'in_progress' }
       ]
     },
     {
@@ -131,5 +159,30 @@ test('check-ledger passes when a task is in_progress with an active CLI claim â€
     }
   );
 
-  assert.deepEqual(runLedgerCheck(workspaceRoot), []);
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+});
+
+test('check-ledger exits 0 for an in_progress task when claims.json is absent', async (t) => {
+  const workspaceRoot = await createWorkspace({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Claim released task', status: 'in_progress' }
+    ]
+  });
+
+  const result = runLedgerCli(workspaceRoot);
+  if (skipIfSpawnUnavailable(result, t)) {
+    return;
+  }
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
 });

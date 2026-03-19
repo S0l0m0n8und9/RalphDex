@@ -113,6 +113,32 @@ function readEnumArray<T extends string>(
   return normalized.length > 0 ? normalized : [...fallback];
 }
 
+function readPromptBudgetOverrideMap(
+  config: vscode.WorkspaceConfiguration,
+  key: string
+): Record<string, number> {
+  const value = config.get<unknown>(key);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const normalized: Record<string, number> = {};
+  for (const [entryKey, entryValue] of Object.entries(value)) {
+    if (typeof entryValue !== 'number' || !Number.isFinite(entryValue) || entryValue <= 0) {
+      continue;
+    }
+
+    const trimmedKey = entryKey.trim();
+    if (!trimmedKey) {
+      continue;
+    }
+
+    normalized[trimmedKey] = Math.floor(entryValue);
+  }
+
+  return normalized;
+}
+
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
@@ -223,6 +249,13 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       DEFAULT_CONFIG.promptPriorContextBudget,
       1
     ),
+    promptBudgetProfile: readEnum(
+      config,
+      'promptBudgetProfile',
+      ['codex', 'claude', 'custom'],
+      DEFAULT_CONFIG.promptBudgetProfile
+    ),
+    customPromptBudget: readPromptBudgetOverrideMap(config, 'customPromptBudget'),
     clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', DEFAULT_CONFIG.clipboardAutoCopy),
     model: readString(config, 'model', DEFAULT_CONFIG.model),
     reasoningEffort: readEnum<CodexReasoningEffort>(

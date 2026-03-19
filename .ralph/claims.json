@@ -512,6 +512,76 @@
       "claimedAt": "2026-03-18T21:33:15.701Z",
       "provenanceId": "run-i090-cli-20260318T213310Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T28.2",
+      "claimedAt": "2026-03-19T07:34:02.252Z",
+      "provenanceId": "run-i091-cli-20260319T073402Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T29.3",
+      "claimedAt": "2026-03-19T07:34:32.278Z",
+      "provenanceId": "run-i092-cli-20260319T073432Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T30.1",
+      "claimedAt": "2026-03-19T07:34:38.110Z",
+      "provenanceId": "run-i093-cli-20260319T073437Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T28.3",
+      "claimedAt": "2026-03-19T07:38:13.534Z",
+      "provenanceId": "run-i092-cli-20260319T073813Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T30.1",
+      "claimedAt": "2026-03-19T07:40:03.416Z",
+      "provenanceId": "run-i094-cli-20260319T074003Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T30.1",
+      "claimedAt": "2026-03-19T07:43:02.120Z",
+      "provenanceId": "run-i095-cli-20260319T074301Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T30.1",
+      "claimedAt": "2026-03-19T07:46:58.032Z",
+      "provenanceId": "run-i096-cli-20260319T074657Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T29",
+      "claimedAt": "2026-03-19T07:51:28.109Z",
+      "provenanceId": "run-i093-cli-20260319T075127Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T30.2",
+      "claimedAt": "2026-03-19T07:51:52.645Z",
+      "provenanceId": "run-i097-cli-20260319T075152Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T28.3",
+      "claimedAt": "2026-03-19T07:56:56.761Z",
+      "provenanceId": "run-i093-cli-20260319T075656Z",
+      "status": "released"
     }
   ]
 }

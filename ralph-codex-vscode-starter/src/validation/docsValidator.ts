@@ -137,8 +137,10 @@ const DOC_RULES: Record<string, DocRule> = {
       'plans, prompts, invocations, and run bundles',
       'trusted record',
       "model's self-report",
+      'epistemicGap',
       'unverified',
       'reconciliationWarnings',
+      'verifier-summary.json',
       'authoritative evidence'
     ]
   },

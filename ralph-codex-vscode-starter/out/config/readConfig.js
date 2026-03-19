@@ -96,6 +96,24 @@ function readEnumArray(config, key, allowed, fallback) {
     const normalized = value.filter((item) => typeof item === 'string' && allowed.includes(item));
     return normalized.length > 0 ? normalized : [...fallback];
 }
+function readPromptBudgetOverrideMap(config, key) {
+    const value = config.get(key);
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return {};
+    }
+    const normalized = {};
+    for (const [entryKey, entryValue] of Object.entries(value)) {
+        if (typeof entryValue !== 'number' || !Number.isFinite(entryValue) || entryValue <= 0) {
+            continue;
+        }
+        const trimmedKey = entryKey.trim();
+        if (!trimmedKey) {
+            continue;
+        }
+        normalized[trimmedKey] = Math.floor(entryValue);
+    }
+    return normalized;
+}
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider);
@@ -126,6 +144,8 @@ function readConfig(workspaceFolder) {
         promptTemplateDirectory: readString(config, 'promptTemplateDirectory', defaults_1.DEFAULT_CONFIG.promptTemplateDirectory),
         promptIncludeVerifierFeedback: readBoolean(config, 'promptIncludeVerifierFeedback', defaults_1.DEFAULT_CONFIG.promptIncludeVerifierFeedback),
         promptPriorContextBudget: readNumber(config, 'promptPriorContextBudget', defaults_1.DEFAULT_CONFIG.promptPriorContextBudget, 1),
+        promptBudgetProfile: readEnum(config, 'promptBudgetProfile', ['codex', 'claude', 'custom'], defaults_1.DEFAULT_CONFIG.promptBudgetProfile),
+        customPromptBudget: readPromptBudgetOverrideMap(config, 'customPromptBudget'),
         clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', defaults_1.DEFAULT_CONFIG.clipboardAutoCopy),
         model: readString(config, 'model', defaults_1.DEFAULT_CONFIG.model),
         reasoningEffort: readEnum(config, 'reasoningEffort', ['medium', 'high'], defaults_1.DEFAULT_CONFIG.reasoningEffort),

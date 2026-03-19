@@ -512,9 +512,12 @@ export interface RalphProvenanceBundle {
   executionPlanHash: string | null;
   cliInvocationPath: string | null;
   iterationResultPath: string | null;
+  executionSummaryPath?: string | null;
+  verifierSummaryPath?: string | null;
   completionReportStatus?: RalphCompletionReportStatus | null;
   reconciliationWarnings?: string[] | null;
   completionReportPath?: string | null;
+  epistemicGap?: RalphProvenanceEpistemicGap;
   provenanceFailurePath: string | null;
   provenanceFailureSummaryPath: string | null;
   promptHash: string | null;
@@ -524,6 +527,19 @@ export interface RalphProvenanceBundle {
   mismatchReason: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface RalphProvenanceEpistemicGap {
+  trustBoundary: string;
+  bundleProves: string;
+  bundleDoesNotProve: string;
+  modelClaimsPath: string | null;
+  modelClaimsStatus: RalphCompletionReportStatus | null;
+  modelClaimsAreUnverified: boolean;
+  verifierEvidencePaths: string[];
+  verifierEvidenceIsAuthoritative: boolean;
+  reconciliationWarnings: string[];
+  noWarningsMeans: string;
 }
 
 export interface RalphLoopDecision {

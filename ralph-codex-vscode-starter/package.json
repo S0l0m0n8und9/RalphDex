@@ -52,6 +52,8 @@
         "ralphCodex.promptTemplateDirectory",
         "ralphCodex.promptIncludeVerifierFeedback",
         "ralphCodex.promptPriorContextBudget",
+        "ralphCodex.promptBudgetProfile",
+        "ralphCodex.customPromptBudget",
         "ralphCodex.clipboardAutoCopy",
         "ralphCodex.model",
         "ralphCodex.reasoningEffort",
@@ -291,6 +293,21 @@
           "minimum": 1,
           "maximum": 40,
           "description": "Maximum number of concise prior-iteration bullet lines to carry into the next prompt."
+        },
+        "ralphCodex.promptBudgetProfile": {
+          "type": "string",
+          "enum": ["codex", "claude", "custom"],
+          "default": "codex",
+          "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context placeholder matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
+        },
+        "ralphCodex.customPromptBudget": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 1
+          },
+          "description": "Optional targetTokens overrides used only when ralphCodex.promptBudgetProfile is 'custom'. Keys must match promptKind:promptTarget entries such as iteration:cliExec."
         },
         "ralphCodex.clipboardAutoCopy": {
           "type": "boolean",

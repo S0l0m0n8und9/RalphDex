@@ -25,6 +25,8 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   promptTemplateDirectory: '',
   promptIncludeVerifierFeedback: true,
   promptPriorContextBudget: 8,
+  promptBudgetProfile: 'codex',
+  customPromptBudget: {},
   clipboardAutoCopy: true,
   model: 'claude-sonnet-4-6',
   reasoningEffort: 'medium',

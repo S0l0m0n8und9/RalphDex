@@ -44,7 +44,7 @@ const PROMPT_INTRO_BY_KIND: Record<RalphPromptKind, string> = {
 type PromptConfig = Pick<
 RalphCodexConfig,
 'promptTemplateDirectory' | 'promptIncludeVerifierFeedback' | 'promptPriorContextBudget'
->;
+> & Partial<Pick<RalphCodexConfig, 'promptBudgetProfile' | 'customPromptBudget'>>;
 
 type PromptSectionName =
   | 'strategyContext'
@@ -84,7 +84,9 @@ const REQUIRED_PROMPT_SECTIONS: PromptSectionName[] = [
   'finalResponseContract'
 ];
 
-const PROMPT_BUDGET_POLICIES: Record<`${RalphPromptKind}:${RalphPromptTarget}`, PromptBudgetPolicy> = {
+type PromptBudgetPolicyKey = `${RalphPromptKind}:${RalphPromptTarget}`;
+
+const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptBudgetPolicy> = {
   'bootstrap:cliExec': {
     name: 'bootstrap:cliExec',
     targetTokens: 2100,
@@ -255,6 +257,81 @@ const PROMPT_BUDGET_POLICIES: Record<`${RalphPromptKind}:${RalphPromptTarget}`, 
   }
 };
 
+const CLAUDE_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptBudgetPolicy> = {
+  'bootstrap:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['bootstrap:cliExec'],
+    name: 'claude/bootstrap:cliExec',
+    targetTokens: 3200,
+    minimumContextBias: 'placeholder Claude profile: broader objective, expanded repo scan, standard runtime pointers'
+  },
+  'bootstrap:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['bootstrap:ideHandoff'],
+    name: 'claude/bootstrap:ideHandoff',
+    targetTokens: 2200,
+    minimumContextBias: 'placeholder Claude profile: broader objective with lighter runtime and repo detail for human review'
+  },
+  'iteration:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['iteration:cliExec'],
+    name: 'claude/iteration:cliExec',
+    targetTokens: 2400,
+    minimumContextBias: 'placeholder Claude profile: selected task plus richer repo/runtime context'
+  },
+  'iteration:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['iteration:ideHandoff'],
+    name: 'claude/iteration:ideHandoff',
+    targetTokens: 1500,
+    minimumContextBias: 'placeholder Claude profile: selected task plus richer review-oriented context'
+  },
+  'replenish-backlog:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:cliExec'],
+    name: 'claude/replenish-backlog:cliExec',
+    targetTokens: 2800,
+    minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and richer repo/runtime context for task generation'
+  },
+  'replenish-backlog:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:ideHandoff'],
+    name: 'claude/replenish-backlog:ideHandoff',
+    targetTokens: 1900,
+    minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and explicit next-task generation context'
+  },
+  'fix-failure:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['fix-failure:cliExec'],
+    name: 'claude/fix-failure:cliExec',
+    targetTokens: 2500,
+    minimumContextBias: 'placeholder Claude profile: failure signature, blocker, remediation, and fuller validation context'
+  },
+  'fix-failure:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['fix-failure:ideHandoff'],
+    name: 'claude/fix-failure:ideHandoff',
+    targetTokens: 1700,
+    minimumContextBias: 'placeholder Claude profile: failure signature and blocker summary for manual inspection'
+  },
+  'continue-progress:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['continue-progress:cliExec'],
+    name: 'claude/continue-progress:cliExec',
+    targetTokens: 2400,
+    minimumContextBias: 'placeholder Claude profile: selected task plus richer recent progress and prior iteration state'
+  },
+  'continue-progress:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['continue-progress:ideHandoff'],
+    name: 'claude/continue-progress:ideHandoff',
+    targetTokens: 1500,
+    minimumContextBias: 'placeholder Claude profile: selected task plus richer carry-forward state for human review'
+  },
+  'human-review-handoff:cliExec': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:cliExec'],
+    name: 'claude/human-review-handoff:cliExec',
+    targetTokens: 2300,
+    minimumContextBias: 'placeholder Claude profile: blocker, remediation, and current task state over broader history'
+  },
+  'human-review-handoff:ideHandoff': {
+    ...CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:ideHandoff'],
+    name: 'claude/human-review-handoff:ideHandoff',
+    targetTokens: 1700,
+    minimumContextBias: 'placeholder Claude profile: blocker and review decision points over broader history'
+  }
+};
+
 export interface PromptGenerationInput {
   kind: RalphPromptKind;
   target: RalphPromptTarget;
@@ -360,10 +437,36 @@ function taskKeywords(task: RalphTask | null): string {
   ].join(' ').toLowerCase();
 }
 
-function buildPromptBudgetPolicy(kind: RalphPromptKind, target: RalphPromptTarget): PromptBudgetPolicy {
+function buildPromptBudgetPolicy(
+  kind: RalphPromptKind,
+  target: RalphPromptTarget,
+  profile: RalphCodexConfig['promptBudgetProfile'] = 'codex',
+  customPromptBudget: RalphCodexConfig['customPromptBudget'] = {}
+): PromptBudgetPolicy {
   const key = `${kind}:${target}`;
-  return PROMPT_BUDGET_POLICIES[key as keyof typeof PROMPT_BUDGET_POLICIES]
-    ?? PROMPT_BUDGET_POLICIES['iteration:cliExec'];
+  const codexFallback = CODEX_PROMPT_BUDGET_POLICIES['iteration:cliExec'];
+  const codexPolicy = CODEX_PROMPT_BUDGET_POLICIES[key as keyof typeof CODEX_PROMPT_BUDGET_POLICIES] ?? codexFallback;
+
+  if (profile === 'claude') {
+    return CLAUDE_PROMPT_BUDGET_POLICIES[key as keyof typeof CLAUDE_PROMPT_BUDGET_POLICIES]
+      ?? CLAUDE_PROMPT_BUDGET_POLICIES['iteration:cliExec'];
+  }
+
+  if (profile === 'custom') {
+    const overriddenTarget = customPromptBudget[key];
+    return {
+      ...codexPolicy,
+      name: `custom/${key}`,
+      targetTokens: typeof overriddenTarget === 'number' && Number.isFinite(overriddenTarget) && overriddenTarget > 0
+        ? Math.floor(overriddenTarget)
+        : codexPolicy.targetTokens,
+      minimumContextBias: typeof overriddenTarget === 'number' && Number.isFinite(overriddenTarget) && overriddenTarget > 0
+        ? `${codexPolicy.minimumContextBias}; custom targetTokens override`
+        : `${codexPolicy.minimumContextBias}; custom profile using codex fallback target`
+    };
+  }
+
+  return codexPolicy;
 }
 
 function trimContextLines(lines: string[], budget: number): string[] {
@@ -1066,7 +1169,12 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
   );
 
   const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(input.preflightReport.diagnostics);
-  const budgetPolicy = buildPromptBudgetPolicy(input.kind, input.target);
+  const budgetPolicy = buildPromptBudgetPolicy(
+    input.kind,
+    input.target,
+    input.config.promptBudgetProfile ?? 'codex',
+    input.config.customPromptBudget ?? {}
+  );
   const sectionBodies = {
     strategyContext: buildStrategyContext(input.target, input.kind, taskLedgerDriftMessages),
     preflightContext: buildPreflightContext(input.preflightReport),
