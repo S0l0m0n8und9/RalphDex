@@ -441,6 +441,7 @@ function renderPreflightSummary(report) {
     return [
         `# Ralph Preflight ${report.iteration}`,
         '',
+        `- Agent ID: ${formatOptional(report.agentId)}`,
         `- Provenance ID: ${report.provenanceId}`,
         `- Trust level: ${formatTrustLevel(report.trustLevel)}`,
         `- Ready: ${report.ready ? 'yes' : 'no'}`,
@@ -480,6 +481,7 @@ function renderIterationSummary(input) {
         `# Ralph Iteration ${result.iteration}`,
         '',
         '## Outcome',
+        `- Agent ID: ${formatOptional(result.agentId)}`,
         `- Provenance ID: ${formatOptional(result.provenanceId)}`,
         `- Selected task: ${formatOptional(result.selectedTaskId)}${result.selectedTaskTitle ? ` - ${result.selectedTaskTitle}` : ''}`,
         `- Prompt kind: ${result.promptKind}`,
@@ -582,6 +584,7 @@ function renderProvenanceSummary(bundle) {
     return [
         `# Ralph Provenance ${bundle.provenanceId}`,
         '',
+        `- Agent ID: ${formatOptional(bundle.agentId)}`,
         `- Iteration: ${bundle.iteration}`,
         `- Status: ${bundle.status}`,
         `- Trust level: ${formatTrustLevel(bundle.trustLevel)}`,
@@ -650,6 +653,7 @@ function renderLatestResultSummary(record) {
     }
     const selectedTaskId = typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null;
     const selectedTaskTitle = typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null;
+    const agentId = typeof record.agentId === 'string' ? record.agentId : 'none';
     const promptTarget = typeof record.promptTarget === 'string' ? record.promptTarget : 'unknown';
     const templatePath = typeof record.templatePath === 'string' ? record.templatePath : 'unknown';
     const executionMessage = typeof record.executionMessage === 'string' ? record.executionMessage : 'none';
@@ -695,6 +699,7 @@ function renderLatestResultSummary(record) {
         `# Ralph Iteration ${Math.floor(record.iteration)}`,
         '',
         '## Outcome',
+        `- Agent ID: ${agentId}`,
         `- Provenance ID: ${typeof record.provenanceId === 'string' ? record.provenanceId : 'none'}`,
         `- Selected task: ${selectedTaskId ?? 'none'}${selectedTaskTitle ? ` - ${selectedTaskTitle}` : ''}`,
         `- Prompt kind: ${record.promptKind}`,
@@ -751,6 +756,7 @@ function renderLatestResultSummary(record) {
 }
 function latestResultFromIteration(input) {
     return {
+        agentId: input.result.agentId ?? null,
         provenanceId: input.result.provenanceId ?? null,
         iteration: input.result.iteration,
         selectedTaskId: input.result.selectedTaskId,
@@ -1315,6 +1321,7 @@ async function writePreflightArtifacts(input) {
     const persistedReport = {
         schemaVersion: 1,
         kind: 'preflight',
+        agentId: input.agentId,
         provenanceId: input.provenanceId,
         iteration: input.iteration,
         promptKind: input.promptKind,

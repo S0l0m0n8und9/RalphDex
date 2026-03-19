@@ -295,6 +295,7 @@ export async function prepareIterationContext(
   } = await writePreflightArtifacts({
     paths: preflightArtifactPaths,
     artifactRootDir: snapshot.paths.artifactDir,
+    agentId: config.agentId,
     provenanceId,
     iteration,
     promptKind,
@@ -379,6 +380,7 @@ export async function prepareIterationContext(
   const executionPlan: RalphExecutionPlan = {
     schemaVersion: 1,
     kind: 'executionPlan',
+    agentId: config.agentId,
     provenanceId,
     iteration,
     selectedTaskId: selectedTask?.id ?? null,

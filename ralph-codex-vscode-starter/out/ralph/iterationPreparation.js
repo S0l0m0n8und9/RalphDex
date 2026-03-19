@@ -202,6 +202,7 @@ async function prepareIterationContext(input) {
     const { persistedReport: persistedPreflightReport, humanSummary: preflightSummaryText } = await (0, artifactStore_1.writePreflightArtifacts)({
         paths: preflightArtifactPaths,
         artifactRootDir: snapshot.paths.artifactDir,
+        agentId: config.agentId,
         provenanceId,
         iteration,
         promptKind,
@@ -280,6 +281,7 @@ async function prepareIterationContext(input) {
     const executionPlan = {
         schemaVersion: 1,
         kind: 'executionPlan',
+        agentId: config.agentId,
         provenanceId,
         iteration,
         selectedTaskId: selectedTask?.id ?? null,

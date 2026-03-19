@@ -308,8 +308,7 @@ function remediationActionForResult(result: RalphIterationResult): RalphTaskReme
   }
 
   if (result.noProgressSignals.includes('same_task_selected_repeatedly')
-    && result.noProgressSignals.includes('no_relevant_file_changes')
-    && result.noProgressSignals.includes('task_and_progress_state_unchanged')) {
+    && result.noProgressSignals.includes('no_relevant_file_changes')) {
     return 'decompose_task';
   }
 

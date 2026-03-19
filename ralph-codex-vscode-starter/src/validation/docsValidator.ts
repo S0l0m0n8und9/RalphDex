@@ -178,7 +178,9 @@ const DOC_RULES: Record<string, DocRule> = {
       'explicitly does not try to do',
       'trust guarantees stop',
       'iteration/loop runner',
-      'operator-local runtime state'
+      'operator-local runtime state',
+      'autonomyMode',
+      'hard stops'
     ]
   },
   'docs/workflows.md': {
@@ -195,7 +197,9 @@ const DOC_RULES: Record<string, DocRule> = {
     requiredFragments: [
       'Extensions: Install from VSIX...',
       'code --install-extension',
-      'build a distributable `.vsix`'
+      'build a distributable `.vsix`',
+      'autonomyMode',
+      'hard stops'
     ]
   },
   'docs/testing.md': {

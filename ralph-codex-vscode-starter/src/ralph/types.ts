@@ -93,6 +93,7 @@ export interface RalphPreflightReport {
 export interface RalphPersistedPreflightReport {
   schemaVersion: 1;
   kind: 'preflight';
+  agentId?: string;
   provenanceId: string;
   iteration: number;
   promptKind: RalphPromptKind;
@@ -310,6 +311,7 @@ export interface RalphRootPolicy {
 export interface RalphExecutionPlan {
   schemaVersion: 1;
   kind: 'executionPlan';
+  agentId?: string;
   provenanceId: string;
   iteration: number;
   selectedTaskId: string | null;
@@ -334,6 +336,7 @@ export interface RalphExecutionPlan {
 export interface RalphCliInvocation {
   schemaVersion: 1;
   kind: 'cliInvocation';
+  agentId?: string;
   provenanceId: string;
   iteration: number;
   commandPath: string;
@@ -494,6 +497,7 @@ export interface RalphIntegrityFailure {
 export interface RalphProvenanceBundle {
   schemaVersion: 1;
   kind: 'provenanceBundle';
+  agentId?: string;
   provenanceId: string;
   iteration: number;
   promptKind: RalphPromptKind;

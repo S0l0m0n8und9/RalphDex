@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   acquireClaim,
   autoCompleteSatisfiedAncestors,
+  applySuggestedChildTasksToFile,
   applySuggestedChildTasks,
   countTaskStatuses,
   inspectTaskFileText,
@@ -291,6 +292,42 @@ test('applySuggestedChildTasks rejects approved proposals for parents that are a
     ]),
     /parent task T1 is already done/
   );
+});
+
+test('applySuggestedChildTasksToFile writes approved child tasks atomically through the task-file lock', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-file-'));
+  const taskFilePath = path.join(rootPath, 'tasks.json');
+  await fs.writeFile(taskFilePath, JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Broad parent', status: 'todo', dependsOn: ['T0'] }
+    ]
+  }, null, 2), 'utf8');
+
+  const nextTaskFile = await applySuggestedChildTasksToFile(taskFilePath, 'T1', [
+    {
+      id: 'T1.1',
+      title: 'Reproduce the blocker',
+      parentId: 'T1',
+      dependsOn: [],
+      validation: 'npm test',
+      rationale: 'First bounded step.'
+    },
+    {
+      id: 'T1.2',
+      title: 'Implement the fix',
+      parentId: 'T1',
+      dependsOn: [{ taskId: 'T1.1', reason: 'blocks_sequence' }],
+      validation: 'npm test',
+      rationale: 'Second bounded step.'
+    }
+  ]);
+
+  const persistedTaskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  assert.deepEqual(nextTaskFile, persistedTaskFile);
+  assert.deepEqual(persistedTaskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1', 'T1.2']);
+  assert.deepEqual(persistedTaskFile.tasks.find((task) => task.id === 'T1')?.dependsOn, ['T0', 'T1.1', 'T1.2']);
 });
 
 test('inspectTaskFileText reports duplicate ids, missing references, cycles, and impossible done states', () => {

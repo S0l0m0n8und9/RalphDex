@@ -1408,12 +1408,12 @@
     {
       "id": "T35.2",
       "title": "Document autonomous mode, its hard stops, and the trust model in docs/boundaries.md and docs/workflows.md",
-      "status": "todo",
+      "status": "done",
       "parentId": "T35",
       "dependsOn": [
         "T35.1"
       ],
-      "notes": "Add an Autonomous Loop Mode section to docs/workflows.md covering: what autonomyMode: autonomous enables; the hard stops that are never automated (needs_human_review, request_human_review, initial PRD authorship); the safety dependencies (T28 ledger gate must be passing, T24 claim ownership must be active for multi-agent use); a recommended pre-flight checklist before enabling autonomous mode (clean ledger, human-reviewed tasks.json, validation command confirmed executable). Add a brief paragraph to docs/boundaries.md under Control-Plane Boundary noting that autonomous mode does not change the principal-agent model — the operator remains the principal and the hard stops are enforced regardless of mode. Add 'autonomyMode' and 'hard stops' as required fragments to the DOC_RULES entry for docs/boundaries.md in docsValidator.ts. Add regression coverage in test/commandShell.smoke.test.ts confirming that needs_human_review stops the loop even when autonomyMode is autonomous. Run npm run validate.",
+      "notes": "Documented autonomous mode and hard stops in workflows/boundaries, enforced required doc fragments, added autonomous human-review stop smoke coverage, and fixed pre-existing validation drift so npm run validate passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1486,13 +1486,13 @@
     {
       "id": "T37",
       "title": "Named agent identities — ralphCodex.agentId setting so each loop instance carries a distinct identity through claims and artifacts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T36",
         "T37.1",
         "T37.2"
       ],
-      "notes": "All multi-agent runs so far use agentId: 'default' for every loop instance. This means claims.json cannot distinguish which physical agent holds a task, Show Status cannot report which agent is active on what, and the remediation isolation that scopes history by agentId is always comparing the same value. A ralphCodex.agentId setting lets each VS Code window or CLI invocation carry a human-readable name (e.g. 'builder-1', 'builder-2', 'reviewer') that flows through claims, iteration results, and status output — making multi-agent operations observable and the claim graph interpretable without reading raw provenanceIds."
+      "notes": "Persisted agentId into durable preflight, execution-plan, CLI-invocation, provenance-bundle, and latest-result artifacts, and surfaced it in repaired/generated summary markdown plus regression coverage."
     },
     {
       "id": "T37.1",

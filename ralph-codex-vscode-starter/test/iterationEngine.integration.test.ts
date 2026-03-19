@@ -292,6 +292,7 @@ test('runCliIteration records successful progress, artifacts, and state persiste
   assert.ok(promptEvidence.inputs.repoContextSnapshot.manifests.includes('package.json'));
 
   const cliInvocation = JSON.parse(await fs.readFile(path.join(iterationDir, 'cli-invocation.json'), 'utf8')) as {
+    agentId: string;
     provenanceId: string;
     stdinHash: string;
     promptHash: string;
@@ -299,23 +300,27 @@ test('runCliIteration records successful progress, artifacts, and state persiste
     transcriptPath: string;
     lastMessagePath: string;
   };
+  assert.equal(cliInvocation.agentId, 'default');
   assert.equal(cliInvocation.stdinHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptHash, executionPlan.promptHash);
   assert.equal(cliInvocation.promptArtifactPath, executionPlan.promptArtifactPath);
   assert.equal(cliInvocation.provenanceId, executionPlan.provenanceId);
 
   const latestResult = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    agentId: string | null;
     promptPath: string;
     transcriptPath: string | null;
     lastMessagePath: string | null;
     artifactDir: string;
   };
+  assert.equal(latestResult.agentId, 'default');
   assert.equal(latestResult.artifactDir, iterationDir);
   assert.equal(latestResult.promptPath, path.join(iterationDir, 'prompt.md'));
   assert.equal(latestResult.transcriptPath, cliInvocation.transcriptPath);
   assert.equal(latestResult.lastMessagePath, cliInvocation.lastMessagePath);
 
   const bundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    agentId: string;
     provenanceId: string;
     promptHash: string;
     executionPlanHash: string;
@@ -325,11 +330,22 @@ test('runCliIteration records successful progress, artifacts, and state persiste
     iterationResultPath: string;
     status: string;
   };
+  assert.equal(bundle.agentId, 'default');
   assert.equal(bundle.provenanceId, executionPlan.provenanceId);
   assert.equal(bundle.promptHash, executionPlan.promptHash);
   assert.equal(bundle.promptArtifactPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'prompt.md'));
   assert.equal(bundle.executionPlanPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'execution-plan.json'));
   assert.equal(bundle.cliInvocationPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'cli-invocation.json'));
+  const preflightReport = JSON.parse(
+    await fs.readFile(path.join(iterationDir, 'preflight-report.json'), 'utf8')
+  ) as { agentId: string };
+  const summaryText = await fs.readFile(path.join(iterationDir, 'summary.md'), 'utf8');
+  const preflightSummaryText = await fs.readFile(path.join(iterationDir, 'preflight-summary.md'), 'utf8');
+  const bundleSummaryText = await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'summary.md'), 'utf8');
+  assert.equal(preflightReport.agentId, 'default');
+  assert.match(summaryText, /- Agent ID: default/);
+  assert.match(preflightSummaryText, /- Agent ID: default/);
+  assert.match(bundleSummaryText, /- Agent ID: default/);
   assert.equal(bundle.iterationResultPath, path.join(rootPath, '.ralph', 'artifacts', 'runs', bundle.provenanceId, 'iteration-result.json'));
   assert.equal(bundle.status, 'executed');
 
@@ -1159,6 +1175,37 @@ test('runCliIteration threads a configured agentId through claims, state, result
   assert.equal(agentRecord.firstSeenAt, summary.result.startedAt);
   assert.deepEqual(agentRecord.completedTaskIds, ['T1']);
   assert.ok(agentRecord.touchedFiles.includes('src/feature.ts'));
+  const artifactDir = path.join(rootPath, '.ralph', 'artifacts', 'iteration-001');
+  const executionPlan = JSON.parse(await fs.readFile(path.join(artifactDir, 'execution-plan.json'), 'utf8')) as {
+    agentId: string;
+  };
+  const cliInvocation = JSON.parse(await fs.readFile(path.join(artifactDir, 'cli-invocation.json'), 'utf8')) as {
+    agentId: string;
+  };
+  const preflightReport = JSON.parse(await fs.readFile(path.join(artifactDir, 'preflight-report.json'), 'utf8')) as {
+    agentId: string;
+  };
+  const latestResult = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), 'utf8')) as {
+    agentId: string | null;
+  };
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    agentId: string;
+    provenanceId: string;
+  };
+  const summaryText = await fs.readFile(path.join(artifactDir, 'summary.md'), 'utf8');
+  const preflightSummaryText = await fs.readFile(path.join(artifactDir, 'preflight-summary.md'), 'utf8');
+  const bundleSummaryText = await fs.readFile(
+    path.join(rootPath, '.ralph', 'artifacts', 'runs', latestBundle.provenanceId, 'summary.md'),
+    'utf8'
+  );
+  assert.equal(executionPlan.agentId, 'builder-1');
+  assert.equal(cliInvocation.agentId, 'builder-1');
+  assert.equal(preflightReport.agentId, 'builder-1');
+  assert.equal(latestResult.agentId, 'builder-1');
+  assert.equal(latestBundle.agentId, 'builder-1');
+  assert.match(summaryText, /- Agent ID: builder-1/);
+  assert.match(preflightSummaryText, /- Agent ID: builder-1/);
+  assert.match(bundleSummaryText, /- Agent ID: builder-1/);
 });
 
 test('runCliIteration can reselect a task after operator stale-claim recovery and still release its CLI claim', async () => {
@@ -2394,6 +2441,90 @@ test('runCliIteration auto-applies mark_blocked remediation after a repeated blo
   assert.ok(summary.result.warnings.includes('Remediation auto-applied: mark_blocked on task T1'));
   assert.equal(selectedTask?.status, 'blocked');
   assert.equal(selectedTask?.blocker, summary.result.remediation?.summary);
+});
+
+test('runCliIteration auto-applies decompose_task remediation through the shared proposal write path', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Broad task that needs decomposition', status: 'todo', dependsOn: ['T0'] }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState', 'gitDiff'],
+    noProgressThreshold: 2,
+    gitCheckpointMode: 'off',
+    autoApplyRemediation: ['decompose_task']
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([{ run: async () => ({ lastMessage: 'No durable changes.' }) }], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Still no durable changes.' }) }], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const parentTask = taskFile.tasks.find((task) => task.id === 'T1');
+
+  assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.equal(secondRun.result.remediation?.action, 'decompose_task');
+  assert.ok(
+    secondRun.result.warnings.includes('Remediation auto-applied: decompose_task on task T1, added 2 child tasks')
+  );
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1', 'T1.2']);
+  assert.deepEqual(parentTask?.dependsOn, ['T0', 'T1.1', 'T1.2']);
+});
+
+test('runCliIteration records a warning when auto-applying decompose_task remediation fails validation', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Broad task that needs decomposition', status: 'todo', dependsOn: ['T0'] },
+      { id: 'T1.1', title: 'Existing child id collides with the proposal', status: 'todo', parentId: 'T1', dependsOn: ['T0'] }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState', 'gitDiff'],
+    noProgressThreshold: 2,
+    gitCheckpointMode: 'off',
+    autoApplyRemediation: ['decompose_task']
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([{ run: async () => ({ lastMessage: 'No durable changes.' }) }], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Still no durable changes.' }) }], sharedMemento);
+  const summary = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+
+  assert.equal(summary.result.stopReason, 'repeated_no_progress');
+  assert.equal(summary.result.remediation?.action, 'decompose_task');
+  assert.match(
+    summary.result.warnings.find((warning) => warning.includes('Failed to auto-apply remediation decompose_task on task T1')) ?? '',
+    /task id T1\.1 already exists/
+  );
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1']);
 });
 
 test('runCliIteration records a non-proposal remediation artifact for repeated identical human-review failures', async () => {

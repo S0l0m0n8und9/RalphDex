@@ -131,6 +131,12 @@ async function autoApplyMarkBlockedRemediation(input) {
     }
     return locked.value;
 }
+async function autoApplyDecomposeTaskRemediation(input) {
+    if (!input.suggestedChildTasks || input.suggestedChildTasks.length === 0) {
+        throw new Error(`Cannot auto-apply decompose_task remediation for ${input.taskId} because no suggested child tasks were provided.`);
+    }
+    return (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, input.taskId, input.suggestedChildTasks);
+}
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
 }
@@ -329,6 +335,7 @@ class RalphIterationEngine {
         return {
             schemaVersion: 1,
             kind: 'provenanceBundle',
+            agentId: prepared.config.agentId,
             provenanceId: prepared.provenanceId,
             iteration: prepared.iteration,
             promptKind: prepared.promptKind,
@@ -392,6 +399,7 @@ class RalphIterationEngine {
         const bundle = {
             schemaVersion: 1,
             kind: 'provenanceBundle',
+            agentId: input.persistedPreflightReport.agentId,
             provenanceId: input.provenanceId,
             iteration: input.iteration,
             promptKind: input.promptKind,
@@ -636,6 +644,7 @@ class RalphIterationEngine {
                     invocation = {
                         schemaVersion: 1,
                         kind: 'cliInvocation',
+                        agentId: prepared.config.agentId,
                         provenanceId: prepared.provenanceId,
                         iteration: prepared.iteration,
                         commandPath: prepared.config.cliProvider === 'claude'
@@ -960,6 +969,15 @@ class RalphIterationEngine {
                 result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
             }
             let effectiveTaskFile = afterCoreState.taskFile;
+            phaseTimestamps.persistedAt = new Date().toISOString();
+            const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
+                result,
+                taskFile: afterCoreState.taskFile,
+                previousIterations: prepared.state.iterationHistory,
+                artifactDir: artifactPaths.directory,
+                iterationResultPath: artifactPaths.iterationResultPath,
+                createdAt: phaseTimestamps.persistedAt
+            });
             if (result.stopReason === 'repeated_identical_failure'
                 && result.remediation?.action === 'mark_blocked'
                 && result.selectedTaskId
@@ -985,7 +1003,36 @@ class RalphIterationEngine {
                     });
                 }
             }
-            phaseTimestamps.persistedAt = new Date().toISOString();
+            if (result.remediation?.action === 'decompose_task'
+                && result.selectedTaskId
+                && prepared.config.autoApplyRemediation.includes('decompose_task')) {
+                const suggestedChildTasks = remediationArtifact?.suggestedChildTasks ?? [];
+                if (suggestedChildTasks.length === 0) {
+                    result.warnings.push(`Skipped remediation auto-apply for decompose_task on task ${result.selectedTaskId}: no suggested child tasks were available.`);
+                }
+                else {
+                    try {
+                        effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
+                            taskFilePath: prepared.paths.taskFilePath,
+                            taskId: result.selectedTaskId,
+                            suggestedChildTasks
+                        });
+                        result.warnings.push(`Remediation auto-applied: decompose_task on task ${result.selectedTaskId}, added ${suggestedChildTasks.length} child tasks`);
+                        this.logger.info('Auto-applied remediation: decompose_task.', {
+                            taskId: result.selectedTaskId,
+                            childTaskIds: suggestedChildTasks.map((task) => task.id)
+                        });
+                    }
+                    catch (error) {
+                        result.warnings.push(`Failed to auto-apply remediation decompose_task on task ${result.selectedTaskId}: ${toErrorMessage(error)}`);
+                        this.logger.warn('Failed to auto-apply remediation: decompose_task.', {
+                            taskId: result.selectedTaskId,
+                            childTaskIds: suggestedChildTasks.map((task) => task.id),
+                            error: toErrorMessage(error)
+                        });
+                    }
+                }
+            }
             try {
                 await updateAgentIdentityRecord({
                     rootPath: prepared.rootPath,
@@ -999,14 +1046,6 @@ class RalphIterationEngine {
             catch (error) {
                 result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
             }
-            const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
-                result,
-                taskFile: effectiveTaskFile,
-                previousIterations: prepared.state.iterationHistory,
-                artifactDir: artifactPaths.directory,
-                iterationResultPath: artifactPaths.iterationResultPath,
-                createdAt: phaseTimestamps.persistedAt
-            });
             await (0, artifactStore_1.writeIterationArtifacts)({
                 paths: artifactPaths,
                 artifactRootDir: prepared.paths.artifactDir,

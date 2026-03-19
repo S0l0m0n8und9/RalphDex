@@ -99,8 +99,14 @@ type MockRunCliIterationResult = Awaited<ReturnType<RalphIterationEngine['runCli
 function createMockRun(
   rootPath: string,
   mode: 'singleExec' | 'loop',
-  stopReason: 'control_plane_reload_required' | null
+  stopReason: 'control_plane_reload_required' | 'human_review_needed' | null
 ): MockRunCliIterationResult {
+  const message = stopReason === 'control_plane_reload_required'
+    ? 'Control-plane changes require a reload.'
+    : stopReason === 'human_review_needed'
+      ? 'The current outcome requires explicit human review.'
+      : `Mock ${mode} stop.`;
+
   return {
     prepared: {
       rootPath
@@ -114,9 +120,7 @@ function createMockRun(
     },
     loopDecision: {
       shouldContinue: false,
-      message: stopReason === 'control_plane_reload_required'
-        ? 'Control-plane changes require a reload.'
-        : `Mock ${mode} stop.`
+      message
     },
     createdPaths: []
   } as unknown as MockRunCliIterationResult;
@@ -295,6 +299,7 @@ test('Open Latest Ralph Summary repairs a deleted latest summary from latest-res
   await seedWorkspace(rootPath);
   const latestSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-summary.md');
   await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-result.json'), JSON.stringify({
+    agentId: 'builder-1',
     iteration: 3,
     provenanceId: 'run-i003-cli-20260307T000600Z',
     selectedTaskId: 'T3',
@@ -355,6 +360,7 @@ test('Open Latest Ralph Summary repairs a deleted latest summary from latest-res
 
   assert.deepEqual(harness.state.shownDocuments, [latestSummaryPath]);
   assert.match(await fs.readFile(latestSummaryPath, 'utf8'), /# Ralph Iteration 3/);
+  assert.match(await fs.readFile(latestSummaryPath, 'utf8'), /- Agent ID: builder-1/);
   assert.match(await fs.readFile(latestSummaryPath, 'utf8'), /Remediation: Task T3 made no durable progress/);
 });
 
@@ -1265,6 +1271,34 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
   assert.equal(
     harness.state.infoMessages.some((entry) => /Ralph CLI loop stopped after iteration/.test(entry.message)),
     false
+  );
+});
+
+test('Run CLI Loop still stops for human review in autonomous mode', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    autonomyMode: 'autonomous',
+    autoReloadOnControlPlaneChange: false,
+    autoApplyRemediation: [],
+    autoReplenishBacklog: false
+  });
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'human_review_needed'),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    }
+  );
+
+  assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI loop stopped after iteration 1: The current outcome requires explicit human review\./
   );
 });
 

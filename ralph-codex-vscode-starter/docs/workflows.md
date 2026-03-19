@@ -182,6 +182,29 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
 4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
 
+### Autonomous Loop Mode
+
+`ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces three effective settings at runtime regardless of their stored values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.
+
+Autonomous mode widens what Ralph may do without another click, but it does not remove hard stops. These stops are never automated and still require an operator decision even when autonomy mode is `autonomous`:
+
+- `needs_human_review` outcomes still stop the loop and surface `request_human_review` as the next action instead of auto-continuing
+- remediation artifacts that recommend `request_human_review` still remain operator-owned decisions
+- initial PRD authorship is always manual; autonomous mode assumes `.ralph/prd.md` already contains a human-authored repository objective
+
+Enable autonomous mode only when the safety dependencies are already satisfied:
+
+- the T28 ledger gate is passing, so preflight is not reporting task-ledger drift or other blocking control-plane inconsistencies
+- the T24 claim-ownership path is active before concurrent multi-agent use, so each worker has a unique `agentId` and durable claim attribution in `.ralph/claims.json`
+
+Recommended pre-flight checklist before switching to `autonomous`:
+
+- the durable ledger is clean and preflight is not surfacing drift or stale-claim blockers
+- `.ralph/tasks.json` has already been human-reviewed for the next bounded work slice
+- the selected validation command has been confirmed executable in the current workspace
+
+Treat `autonomous` as a trust-conserving convenience mode, not a principal change. The operator still decides the objective, owns the backlog, and must handle the hard stops before another loop run begins.
+
 If a stop reason is `repeated_no_progress` or `repeated_identical_failure` on the same selected task, Ralph records a narrow remediation action so the operator can decide whether to decompose the task, reframe it around a deterministic failure, mark it blocked after repeated blocked starts, or request human review before starting another run.
 
 Use the remediation surfaces in this order when a loop stops repeatedly:
@@ -206,8 +229,6 @@ Backlog replenishment is a different path. Use it only when the durable task led
 ### Backlog Replenishment
 
 `ralphCodex.autoReplenishBacklog` lets the loop continue into the replenish-backlog prompt kind after a `no_actionable_task` stop, but that is only safe when preflight says the durable ledger is still internally consistent.
-
-`ralphCodex.autonomyMode` is the higher-level shortcut for the loop autonomy knobs. `supervised` is the default and preserves the individual settings exactly as configured, which means mixed combinations remain valid. `autonomous` forces three effective settings at runtime regardless of their individual values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.
 
 On activation, Ralph writes the effective autonomy mode and those three resolved settings to the `Ralph Codex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
 

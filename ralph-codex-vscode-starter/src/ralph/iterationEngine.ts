@@ -28,11 +28,13 @@ import {
   RalphProvenanceTrustLevel,
   RalphRunMode,
   RalphRunRecord,
+  RalphSuggestedChildTask,
   RalphTask,
   RalphTaskFile,
   RalphTaskCounts,
 } from './types';
 import {
+  applySuggestedChildTasksToFile,
   countTaskStatuses,
   parseTaskFile,
   releaseClaim,
@@ -59,7 +61,10 @@ import {
   writeIterationArtifacts,
 } from './artifactStore';
 import { reconcileCompletionReport } from './reconciliation';
-import { buildRemediationArtifact, normalizeRemediationForTask } from './taskDecomposition';
+import {
+  buildRemediationArtifact,
+  normalizeRemediationForTask
+} from './taskDecomposition';
 
 const EMPTY_GIT_STATUS: GitStatusSnapshot = {
   available: false,
@@ -190,6 +195,18 @@ async function autoApplyMarkBlockedRemediation(input: {
   }
 
   return locked.value;
+}
+
+async function autoApplyDecomposeTaskRemediation(input: {
+  taskFilePath: string;
+  taskId: string;
+  suggestedChildTasks: RalphSuggestedChildTask[];
+}): Promise<RalphTaskFile> {
+  if (!input.suggestedChildTasks || input.suggestedChildTasks.length === 0) {
+    throw new Error(`Cannot auto-apply decompose_task remediation for ${input.taskId} because no suggested child tasks were provided.`);
+  }
+
+  return applySuggestedChildTasksToFile(input.taskFilePath, input.taskId, input.suggestedChildTasks);
 }
 
 function isBacklogExhausted(taskCounts: RalphTaskCounts): boolean {
@@ -465,6 +482,7 @@ export class RalphIterationEngine {
     return {
       schemaVersion: 1,
       kind: 'provenanceBundle',
+      agentId: prepared.config.agentId,
       provenanceId: prepared.provenanceId,
       iteration: prepared.iteration,
       promptKind: prepared.promptKind,
@@ -546,6 +564,7 @@ export class RalphIterationEngine {
     const bundle: RalphProvenanceBundle = {
       schemaVersion: 1,
       kind: 'provenanceBundle',
+      agentId: input.persistedPreflightReport.agentId,
       provenanceId: input.provenanceId,
       iteration: input.iteration,
       promptKind: input.promptKind,
@@ -832,6 +851,7 @@ export class RalphIterationEngine {
         invocation = {
           schemaVersion: 1,
           kind: 'cliInvocation',
+          agentId: prepared.config.agentId,
           provenanceId: prepared.provenanceId,
           iteration: prepared.iteration,
           commandPath: prepared.config.cliProvider === 'claude'
@@ -1168,6 +1188,15 @@ export class RalphIterationEngine {
     }
 
     let effectiveTaskFile = afterCoreState.taskFile;
+    phaseTimestamps.persistedAt = new Date().toISOString();
+    const remediationArtifact = buildRemediationArtifact({
+      result,
+      taskFile: afterCoreState.taskFile,
+      previousIterations: prepared.state.iterationHistory,
+      artifactDir: artifactPaths.directory,
+      iterationResultPath: artifactPaths.iterationResultPath,
+      createdAt: phaseTimestamps.persistedAt
+    });
 
     if (result.stopReason === 'repeated_identical_failure'
       && result.remediation?.action === 'mark_blocked'
@@ -1196,7 +1225,40 @@ export class RalphIterationEngine {
       }
     }
 
-    phaseTimestamps.persistedAt = new Date().toISOString();
+    if (result.remediation?.action === 'decompose_task'
+      && result.selectedTaskId
+      && prepared.config.autoApplyRemediation.includes('decompose_task')) {
+      const suggestedChildTasks = remediationArtifact?.suggestedChildTasks ?? [];
+      if (suggestedChildTasks.length === 0) {
+        result.warnings.push(
+          `Skipped remediation auto-apply for decompose_task on task ${result.selectedTaskId}: no suggested child tasks were available.`
+        );
+      } else {
+        try {
+          effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
+            taskFilePath: prepared.paths.taskFilePath,
+            taskId: result.selectedTaskId,
+            suggestedChildTasks
+          });
+          result.warnings.push(
+            `Remediation auto-applied: decompose_task on task ${result.selectedTaskId}, added ${suggestedChildTasks.length} child tasks`
+          );
+          this.logger.info('Auto-applied remediation: decompose_task.', {
+            taskId: result.selectedTaskId,
+            childTaskIds: suggestedChildTasks.map((task) => task.id)
+          });
+        } catch (error) {
+          result.warnings.push(
+            `Failed to auto-apply remediation decompose_task on task ${result.selectedTaskId}: ${toErrorMessage(error)}`
+          );
+          this.logger.warn('Failed to auto-apply remediation: decompose_task.', {
+            taskId: result.selectedTaskId,
+            childTaskIds: suggestedChildTasks.map((task) => task.id),
+            error: toErrorMessage(error)
+          });
+        }
+      }
+    }
 
     try {
       await updateAgentIdentityRecord({
@@ -1210,15 +1272,6 @@ export class RalphIterationEngine {
     } catch (error) {
       result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
     }
-
-    const remediationArtifact = buildRemediationArtifact({
-      result,
-      taskFile: effectiveTaskFile,
-      previousIterations: prepared.state.iterationHistory,
-      artifactDir: artifactPaths.directory,
-      iterationResultPath: artifactPaths.iterationResultPath,
-      createdAt: phaseTimestamps.persistedAt
-    });
 
     await writeIterationArtifacts({
       paths: artifactPaths,

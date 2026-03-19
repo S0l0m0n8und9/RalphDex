@@ -166,6 +166,8 @@ Run one iteration.
 
 Run the loop.
 
+The autonomyMode setting controls loop defaults, but hard stops still require the operator.
+
 ## Inspect State
 
 Inspect persisted state.
@@ -345,6 +347,8 @@ Stable trust boundary rules live here.
 Stable control-plane boundary rules live here.
 
 The shipped control plane is a sequential iteration/loop runner.
+
+The autonomyMode setting does not remove hard stops from the operator-controlled trust model.
 
 ## Workspace And Runtime Boundary
 

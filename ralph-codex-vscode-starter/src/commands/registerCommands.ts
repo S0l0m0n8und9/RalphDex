@@ -13,7 +13,7 @@ import {
   RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
-import { applySuggestedChildTasks, inspectTaskClaimGraph, resolveStaleClaim, selectNextTask, withTaskFileLock } from '../ralph/taskFile';
+import { applySuggestedChildTasksToFile, inspectTaskClaimGraph, resolveStaleClaim, selectNextTask, withTaskFileLock } from '../ralph/taskFile';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -713,11 +713,11 @@ async function applyLatestTaskDecompositionProposal(
     return false;
   }
 
-  await stateManager.updateTaskFile(inspection.paths, (taskFile) => applySuggestedChildTasks(
-    taskFile,
+  await applySuggestedChildTasksToFile(
+    inspection.paths.taskFilePath,
     remediationArtifact.selectedTaskId!,
     remediationArtifact.suggestedChildTasks
-  ));
+  );
 
   logger.info('Applied Ralph task decomposition proposal.', {
     rootPath: workspaceFolder.uri.fsPath,

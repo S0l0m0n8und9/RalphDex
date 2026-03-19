@@ -153,6 +153,7 @@ function preflightReport(input: {
   return {
     schemaVersion: 1,
     kind: 'preflight',
+    agentId: 'builder-1',
     provenanceId: input.provenanceId,
     iteration: input.iteration,
     promptKind: 'iteration',
@@ -195,6 +196,7 @@ function bundle(input: {
   return {
     schemaVersion: 1,
     kind: 'provenanceBundle',
+    agentId: 'builder-1',
     provenanceId: input.provenanceId,
     iteration: input.iteration,
     promptKind: 'iteration',

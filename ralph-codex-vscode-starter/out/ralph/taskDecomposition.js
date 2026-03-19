@@ -28,6 +28,7 @@ function isClearlyCompoundTask(task) {
     const notes = normalizeWhitespace(task.notes?.toLowerCase() ?? '');
     const combined = [title, notes].filter(Boolean).join(' ');
     return /\b(and|plus|along with|together with|then)\b/.test(combined)
+        || /\b(broad task|needs decomposition|requires decomposition|decompose)\b/.test(combined)
         || title.includes(',')
         || /\bfrom\b.+\bthrough\b/.test(combined)
         || /\bsmall proposed child-task set with dependencies\b/.test(combined);
@@ -69,8 +70,7 @@ function buildDecompositionProposal(task, result) {
         ? segments
         : [
             'reproduce the blocker with a deterministic verification target',
-            'implement the smallest bounded fix for that reproduced blocker',
-            'rerun verification and capture the bounded evidence'
+            'implement the smallest bounded fix for that reproduced blocker'
         ];
     const limitedSegments = seedSegments.slice(0, MAX_REMEDIATION_CHILD_TASKS);
     return limitedSegments.map((segment, index) => ({

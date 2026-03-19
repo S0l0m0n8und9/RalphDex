@@ -597,7 +597,7 @@ async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManage
     if (confirmed !== 'Apply Proposal') {
         return false;
     }
-    await stateManager.updateTaskFile(inspection.paths, (taskFile) => (0, taskFile_1.applySuggestedChildTasks)(taskFile, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks));
+    await (0, taskFile_1.applySuggestedChildTasksToFile)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks);
     logger.info('Applied Ralph task decomposition proposal.', {
         rootPath: workspaceFolder.uri.fsPath,
         remediationPath: latestArtifacts.latestRemediationPath,
