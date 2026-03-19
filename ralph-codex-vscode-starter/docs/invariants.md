@@ -168,8 +168,8 @@ Every preflight run executes `checkStaleState` in-process (no LLM, no external p
 
 1. **Stale `state.lock`**: if `state.lock` is older than the configurable threshold (default 5 min), emit a `stale_state_lock` warning with the file age and an instruction to remove it manually if no iteration is in progress.
 2. **Stale `tasks.lock`**: same pattern for `tasks.lock` — emit a `stale_tasks_lock` warning if older than the threshold.
-3. **Active claim with no iteration result**: if an active claim in `claims.json` has a `claimedAt` older than the stale TTL and no `iteration-result.json` exists in the artifact directory after the claim time, emit a `stale_active_claim_no_result` warning per claim with agentId, taskId, and age.
-4. **Active claim with no recent `state.json` lastRun**: if an active claim is past the TTL with no `lastRun.finishedAt` in `state.json` after the claim time, emit a `stale_active_claim_agent_offline` warning indicating the agent may be offline.
+3. **Active claim with no matching iteration result**: if an active claim in `claims.json` has a `claimedAt` older than the stale TTL and no matching `iteration-result.json` (same `provenanceId`, or same `taskId` for the same agent) exists after the claim time, emit a `stale_active_claim_no_result` warning per claim with agentId, taskId, and age.
+4. **Active claim with no recent matching state run**: if an active claim is past the TTL with no matching finished run or iteration record in `state.json` after the claim time, emit a `stale_active_claim_agent_offline` warning indicating the agent may be offline.
 
 Agent Health diagnostics appear in:
 

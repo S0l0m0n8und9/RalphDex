@@ -202,6 +202,7 @@ function buildStatusReport(snapshot) {
     const preflightWorkspace = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'workspaceRuntime');
     const preflightAdapter = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'codexAdapter');
     const preflightVerifier = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'validationVerifier');
+    const preflightAgentHealth = snapshot.preflightReport.diagnostics.filter((diagnostic) => diagnostic.category === 'agentHealth');
     const latestPlan = snapshot.latestExecutionPlan;
     const latestPromptEvidence = snapshot.latestPromptEvidence;
     const latestRemediation = snapshot.latestRemediation ?? (lastIteration?.remediation
@@ -287,6 +288,9 @@ function buildStatusReport(snapshot) {
         '',
         '### Validation/Verifier',
         preflightVerifier.length > 0 ? preflightVerifier.map(renderDiagnostic).join('\n') : '- ok',
+        '',
+        '### Agent Health',
+        preflightAgentHealth.length > 0 ? preflightAgentHealth.map(renderDiagnostic).join('\n') : '- ok',
         '',
         '## Repo Context',
         `- Workspace root: ${relativeFromRoot(snapshot.rootPath, currentRootPolicy.workspaceRootPath)}`,

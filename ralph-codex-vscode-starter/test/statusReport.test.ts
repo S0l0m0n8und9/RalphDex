@@ -577,6 +577,7 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Current prompt selected sections: strategyContext, preflightContext, objectiveContext, taskContext, operatingRules, executionContract \(\+1 more\)/);
   assert.match(report, /- Current prompt omitted sections: runtimeContext, repoContext, progressContext/);
   assert.match(report, /- Current reasoning effort: medium/);
+  assert.match(report, /### Agent Health\r?\n- ok/);
   assert.match(report, /- Last prompt: iteration \(cliExec\)/);
   assert.match(report, /- Last execution root: ralph-codex-vscode-starter/);
   assert.match(report, /- Last prompt bytes: 1234/);
@@ -860,6 +861,34 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
   assert.match(report, /- Claim state: Task T2 has contested active claims/);
   assert.match(report, /### Claim Graph/);
   assert.match(report, /task_claim_contested/);
+});
+
+test('buildStatusReport renders a dedicated Agent Health section from preflight diagnostics', () => {
+  const report = buildStatusReport(snapshot({
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: [
+        {
+          category: 'agentHealth',
+          severity: 'warning',
+          code: 'stale_state_lock',
+          message: 'state.lock is 600s old (threshold 300s). Remove it manually if no iteration is in progress.'
+        },
+        {
+          category: 'agentHealth',
+          severity: 'warning',
+          code: 'stale_active_claim_agent_offline',
+          message: 'Active claim by agent-x on task T5 is 172800s old with no matching state.json run after claim time; agent may be offline.'
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /### Agent Health/);
+  assert.match(report, /warning \[stale_state_lock\]/);
+  assert.match(report, /warning \[stale_active_claim_agent_offline\]/);
+  assert.match(report, /agent may be offline/);
 });
 
 test('buildStatusReport surfaces the latest stale-claim resolution details', () => {

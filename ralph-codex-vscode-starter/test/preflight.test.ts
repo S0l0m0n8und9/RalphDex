@@ -470,13 +470,29 @@ test('checkStaleState does not emit stale claim warnings when iteration result e
   }), 'utf8');
 
   const resultPath = path.join(iterDir, 'iteration-result.json');
-  await fs.writeFile(resultPath, '{}', 'utf8');
+  await fs.writeFile(resultPath, JSON.stringify({
+    provenanceId: 'run-old',
+    selectedTaskId: 'T5',
+    finishedAt: resultTime.toISOString()
+  }), 'utf8');
   await fs.utimes(resultPath, resultTime, resultTime);
 
   // lastRun after claim time too
   await fs.writeFile(stateFilePath, JSON.stringify({
     version: 2,
-    lastRun: { finishedAt: resultTime.toISOString() }
+    lastRun: {
+      agentId: 'agent-x',
+      provenanceId: 'run-old',
+      finishedAt: resultTime.toISOString()
+    },
+    iterationHistory: [
+      {
+        agentId: 'agent-x',
+        provenanceId: 'run-old',
+        selectedTaskId: 'T5',
+        finishedAt: resultTime.toISOString()
+      }
+    ]
   }), 'utf8');
 
   const diagnostics = await checkStaleState({
@@ -491,6 +507,89 @@ test('checkStaleState does not emit stale claim warnings when iteration result e
 
   assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_no_result'));
   assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
+});
+
+test('checkStaleState keeps claim checks isolated so one active claim does not mask another', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
+  const ralphDir = path.join(rootPath, '.ralph');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+  const staleIterDir = path.join(artifactDir, 'iteration-001');
+  const freshIterDir = path.join(artifactDir, 'iteration-002');
+  await createDirectories([ralphDir, staleIterDir, freshIterDir]);
+  const stateFilePath = path.join(ralphDir, 'state.json');
+  const taskFilePath = path.join(ralphDir, 'tasks.json');
+  const claimFilePath = path.join(ralphDir, 'claims.json');
+
+  const staleClaimTime = new Date('2026-03-16T12:00:00.000Z');
+  const freshClaimTime = new Date('2026-03-17T12:00:00.000Z');
+  const freshResultTime = new Date('2026-03-17T13:00:00.000Z');
+
+  await fs.writeFile(claimFilePath, JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        agentId: 'agent-stale',
+        taskId: 'T5',
+        claimedAt: staleClaimTime.toISOString(),
+        provenanceId: 'run-stale',
+        status: 'active'
+      },
+      {
+        agentId: 'agent-fresh',
+        taskId: 'T6',
+        claimedAt: freshClaimTime.toISOString(),
+        provenanceId: 'run-fresh',
+        status: 'active'
+      }
+    ]
+  }), 'utf8');
+
+  await fs.writeFile(path.join(freshIterDir, 'iteration-result.json'), JSON.stringify({
+    provenanceId: 'run-fresh',
+    selectedTaskId: 'T6',
+    finishedAt: freshResultTime.toISOString()
+  }), 'utf8');
+  await fs.utimes(path.join(freshIterDir, 'iteration-result.json'), freshResultTime, freshResultTime);
+
+  await fs.writeFile(stateFilePath, JSON.stringify({
+    version: 2,
+    lastRun: {
+      agentId: 'agent-fresh',
+      provenanceId: 'run-fresh',
+      finishedAt: freshResultTime.toISOString()
+    },
+    runHistory: [
+      {
+        agentId: 'agent-fresh',
+        provenanceId: 'run-fresh',
+        finishedAt: freshResultTime.toISOString()
+      }
+    ],
+    iterationHistory: [
+      {
+        agentId: 'agent-fresh',
+        provenanceId: 'run-fresh',
+        selectedTaskId: 'T6',
+        finishedAt: freshResultTime.toISOString()
+      }
+    ]
+  }), 'utf8');
+
+  const diagnostics = await checkStaleState({
+    stateFilePath,
+    taskFilePath,
+    claimFilePath,
+    artifactDir,
+    staleLockThresholdMs: 300_000,
+    staleClaimTtlMs: 86_400_000,
+    now: new Date('2026-03-18T12:00:00.000Z')
+  });
+
+  const staleTaskWarnings = diagnostics.filter((d) => d.message.includes('task T5'));
+  const freshTaskWarnings = diagnostics.filter((d) => d.message.includes('task T6'));
+  assert.ok(staleTaskWarnings.some((d) => d.code === 'stale_active_claim_no_result'));
+  assert.ok(staleTaskWarnings.some((d) => d.code === 'stale_active_claim_agent_offline'));
+  assert.equal(freshTaskWarnings.length, 0);
 });
 
 test('buildPreflightReport routes agentHealthDiagnostics into the agentHealth category and summary', () => {

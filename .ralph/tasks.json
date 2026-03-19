@@ -1441,13 +1441,14 @@
     {
       "id": "T36",
       "title": "Fix concurrent-agent state.json collision — iteration numbers and artifact paths collide under concurrent starts",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T36.1",
         "T36.2",
-        "T36.3"
+        "T36.3",
+        "T36.4"
       ],
-      "notes": "EXECUTE FIRST, before any other todo work. When two or more Ralph loop instances start concurrently they both read the same nextIteration value from state.json before either writes it back, generating identical iteration numbers, artifact directories, and prompt paths — last writer wins and earlier agents' artifacts are silently overwritten. Observed in the first multi-agent runs: claims.json shows three run-i057 provenanceIds acquired by separate agents within 20 seconds, but only one iteration-057 artifact directory survives. state.json mutations have no lock analogous to withTaskFileLock on tasks.json. This task adds a withStateLock mechanism and makes nextIteration allocation atomic so each concurrent agent always receives a unique, collision-free iteration number before it generates any artifact paths."
+      "notes": "Completed the remaining T36 stale-state preflight slice by making checkStaleState claim-specific. Concurrent agents no longer mask stale-claim warnings with unrelated iteration results or state timestamps; added regression coverage and aligned invariants."
     },
     {
       "id": "T36.1",
@@ -1653,13 +1654,13 @@
     {
       "id": "T36.4",
       "title": "Add mechanical checkStaleState preflight check — in-process detection of stale locks, stale claims, and stuck iterations without LLM involvement",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T36",
       "dependsOn": [
         "T36.1",
         "T36.3"
       ],
-      "notes": "In src/ralph/preflight.ts add a checkStaleState() function that runs in-process (no LLM, no external process) as part of every preflight check. It must detect: (1) state.lock file older than a configurable threshold (default 5 min) — surface as a warning with the lock file age and the instruction to remove it manually if no iteration is in progress; (2) tasks.lock file older than threshold — same warning pattern; (3) any active claim in claims.json whose claimedAt is past the stale TTL and has no matching iteration result in .ralph/artifacts/ from after the claim time — surface as a warning per claim with agentId, taskId, and age; (4) any active claim whose claimedAt is past TTL with no recent state.json lastRun timestamp — surface as 'agent may be offline'. These are mechanical signals only — checkStaleState does not take recovery actions. Recovery is the watchdog's job (T39.1). Ensure checkStaleState results appear in the preflight artifact and in Show Status under a dedicated Agent Health section.",
+      "notes": "Added dedicated Agent Health rendering to Show Status and covered it with status-report tests. Full validate ran; new coverage passed, but an existing unrelated concurrent runCliIteration state.lock timeout still fails the suite.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

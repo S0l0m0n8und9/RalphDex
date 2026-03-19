@@ -126,6 +126,31 @@ async function readJsonRecord(target) {
         return null;
     }
 }
+function readStringField(record, key) {
+    const value = record?.[key];
+    return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
+function readTimestampMs(value) {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return null;
+    }
+    const timestampMs = new Date(value).getTime();
+    return Number.isNaN(timestampMs) ? null : timestampMs;
+}
+function claimMatchesSignal(claim, signal) {
+    const claimTaskId = readStringField(claim, 'taskId');
+    const claimProvenanceId = readStringField(claim, 'provenanceId');
+    const claimAgentId = readStringField(claim, 'agentId');
+    if (claimProvenanceId && signal.provenanceId && claimProvenanceId === signal.provenanceId) {
+        return true;
+    }
+    if (claimTaskId && signal.selectedTaskId && claimTaskId === signal.selectedTaskId) {
+        if (!signal.agentId || !claimAgentId || signal.agentId === claimAgentId) {
+            return true;
+        }
+    }
+    return false;
+}
 function pathOverlaps(left, right) {
     const normalizedLeft = path.resolve(left);
     const normalizedRight = path.resolve(right);
@@ -202,8 +227,8 @@ async function checkStaleState(input) {
     if (activeClaims.length === 0) {
         return diagnostics;
     }
-    // Find the mtime of the most recent iteration-result.json in artifactDir
-    let latestResultMtimeMs = null;
+    // Load iteration-result.json records so stale-claim checks can match claim-specific evidence.
+    const iterationSignals = [];
     try {
         const entries = await fs.readdir(input.artifactDir, { withFileTypes: true });
         await Promise.all(entries
@@ -212,9 +237,13 @@ async function checkStaleState(input) {
             const resultPath = path.join(input.artifactDir, e.name, 'iteration-result.json');
             try {
                 const stat = await fs.stat(resultPath);
-                if (latestResultMtimeMs === null || stat.mtimeMs > latestResultMtimeMs) {
-                    latestResultMtimeMs = stat.mtimeMs;
-                }
+                const record = await readJsonRecord(resultPath);
+                iterationSignals.push({
+                    provenanceId: readStringField(record, 'provenanceId'),
+                    selectedTaskId: readStringField(record, 'selectedTaskId'),
+                    finishedAtMs: readTimestampMs(record?.finishedAt),
+                    mtimeMs: stat.mtimeMs
+                });
             }
             catch {
                 // no result file in this dir
@@ -224,13 +253,40 @@ async function checkStaleState(input) {
     catch {
         // artifactDir absent or unreadable
     }
-    // Read state.json lastRun.finishedAt for offline detection
+    // Read state.json run and iteration history for claim-specific offline detection.
     const stateRecord = await readJsonRecord(input.stateFilePath);
+    const stateSignals = [];
+    const pushStateSignal = (record) => {
+        if (!record) {
+            return;
+        }
+        stateSignals.push({
+            agentId: readStringField(record, 'agentId'),
+            provenanceId: readStringField(record, 'provenanceId'),
+            selectedTaskId: readStringField(record, 'selectedTaskId'),
+            finishedAtMs: readTimestampMs(record.finishedAt)
+        });
+    };
     const lastRunRecord = typeof stateRecord?.lastRun === 'object' && stateRecord.lastRun !== null
         ? stateRecord.lastRun
         : null;
-    const lastRunFinishedAt = typeof lastRunRecord?.finishedAt === 'string' ? lastRunRecord.finishedAt : null;
-    const lastRunTimeMs = lastRunFinishedAt ? new Date(lastRunFinishedAt).getTime() : null;
+    pushStateSignal(lastRunRecord);
+    const runHistory = Array.isArray(stateRecord?.runHistory) ? stateRecord.runHistory : [];
+    for (const entry of runHistory) {
+        if (typeof entry === 'object' && entry !== null) {
+            pushStateSignal(entry);
+        }
+    }
+    const lastIterationRecord = typeof stateRecord?.lastIteration === 'object' && stateRecord.lastIteration !== null
+        ? stateRecord.lastIteration
+        : null;
+    pushStateSignal(lastIterationRecord);
+    const iterationHistory = Array.isArray(stateRecord?.iterationHistory) ? stateRecord.iterationHistory : [];
+    for (const entry of iterationHistory) {
+        if (typeof entry === 'object' && entry !== null) {
+            pushStateSignal(entry);
+        }
+    }
     for (const claim of activeClaims) {
         const claimedAt = typeof claim.claimedAt === 'string' ? claim.claimedAt : null;
         const agentId = typeof claim.agentId === 'string' ? claim.agentId : 'unknown';
@@ -247,8 +303,9 @@ async function checkStaleState(input) {
             continue; // claim is within TTL — not stale
         }
         const claimAgeSec = Math.round(claimAgeMs / 1000);
-        // (3) No iteration result found after claim time
-        const hasResultAfterClaim = latestResultMtimeMs !== null && latestResultMtimeMs > claimTimeMs;
+        // (3) No matching iteration result found after claim time
+        const hasResultAfterClaim = iterationSignals.some((signal) => signal.mtimeMs > claimTimeMs
+            && claimMatchesSignal(claim, signal));
         if (!hasResultAfterClaim) {
             diagnostics.push({
                 severity: 'warning',
@@ -256,13 +313,15 @@ async function checkStaleState(input) {
                 message: `Active claim by ${agentId} on task ${taskId} is ${claimAgeSec}s old (since ${claimedAt}) with no iteration result found after claim time.`
             });
         }
-        // (4) No recent state.json lastRun — agent may be offline
-        const hasRecentLastRun = lastRunTimeMs !== null && lastRunTimeMs > claimTimeMs;
-        if (!hasRecentLastRun) {
+        // (4) No recent matching state signal — agent may be offline
+        const hasRecentStateSignal = stateSignals.some((signal) => signal.finishedAtMs !== null
+            && signal.finishedAtMs > claimTimeMs
+            && claimMatchesSignal(claim, signal));
+        if (!hasRecentStateSignal) {
             diagnostics.push({
                 severity: 'warning',
                 code: 'stale_active_claim_agent_offline',
-                message: `Active claim by ${agentId} on task ${taskId} is ${claimAgeSec}s old with no state.json lastRun after claim time; agent may be offline.`
+                message: `Active claim by ${agentId} on task ${taskId} is ${claimAgeSec}s old with no matching state.json run after claim time; agent may be offline.`
             });
         }
     }

@@ -498,6 +498,20 @@
       "claimedAt": "2026-03-18T19:30:10.837Z",
       "provenanceId": "run-i088-cli-20260318T193010Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36",
+      "claimedAt": "2026-03-18T20:43:21.493Z",
+      "provenanceId": "run-i089-cli-20260318T204321Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T36.4",
+      "claimedAt": "2026-03-18T21:33:15.701Z",
+      "provenanceId": "run-i090-cli-20260318T213310Z",
+      "status": "released"
     }
   ]
 }
