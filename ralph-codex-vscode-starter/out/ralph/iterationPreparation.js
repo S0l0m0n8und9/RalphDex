@@ -37,6 +37,7 @@ exports.prepareIterationContext = prepareIterationContext;
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
 const promptBuilder_1 = require("../prompt/promptBuilder");
+const processRunner_1 = require("../services/processRunner");
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
@@ -115,9 +116,14 @@ async function prepareIterationContext(input) {
         promptTarget,
         createdAt: taskSelectedAt
     });
-    const selectedTask = promptTarget === 'cliExec'
-        ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
-        : (0, taskFile_1.selectNextTask)(taskFile);
+    const claimedSelection = promptTarget === 'cliExec'
+        ? await selectClaimedTask(rootPath, config, taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
+        : {
+            task: (0, taskFile_1.selectNextTask)(taskFile),
+            claim: null
+        };
+    const selectedTask = claimedSelection.task;
+    const selectedTaskClaim = claimedSelection.claim;
     // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
     // the todo→in_progress bookkeeping change is not counted as durable agent progress.
     const beforeCoreState = promptTarget === 'cliExec'
@@ -359,6 +365,7 @@ async function prepareIterationContext(input) {
         taskCounts: effectiveTaskCounts,
         summary,
         selectedTask,
+        selectedTaskClaim,
         taskValidationHint,
         effectiveValidationCommand,
         normalizedValidationCommandFrom,
@@ -380,16 +387,79 @@ async function prepareIterationContext(input) {
     await input.persistPreparedProvenanceBundle(preparedContext);
     return preparedContext;
 }
-async function selectClaimedTask(taskFile, taskFilePath, claimFilePath, provenanceId, agentId) {
+async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId) {
     for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
-        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId);
+        const claimBranches = config.scmStrategy === 'branch-per-task'
+            ? await prepareTaskBranchWorkspace(rootPath, candidate)
+            : null;
+        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId, claimBranches ?? undefined);
         if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
             if (candidate.status === 'todo') {
                 await (0, taskFile_1.markTaskInProgress)(taskFilePath, candidate.id);
             }
-            return candidate;
+            return {
+                task: candidate,
+                claim: claimResult.claim ?? claimResult.canonicalClaim
+            };
         }
     }
-    return null;
+    return {
+        task: null,
+        claim: null
+    };
+}
+async function prepareTaskBranchWorkspace(rootPath, task) {
+    const baseBranch = await currentGitBranch(rootPath);
+    const featureBranch = `ralph/${task.id}`;
+    if (task.parentId) {
+        const integrationBranch = `ralph/integration/${task.parentId}`;
+        await ensureGitBranch(rootPath, integrationBranch, baseBranch);
+        await ensureGitBranch(rootPath, featureBranch, integrationBranch);
+        await checkoutGitBranch(rootPath, featureBranch);
+        return {
+            baseBranch,
+            integrationBranch,
+            featureBranch
+        };
+    }
+    await ensureGitBranch(rootPath, featureBranch, baseBranch);
+    await checkoutGitBranch(rootPath, featureBranch);
+    return {
+        baseBranch,
+        featureBranch
+    };
+}
+async function currentGitBranch(rootPath) {
+    const result = await (0, processRunner_1.runProcess)('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: rootPath });
+    if (result.code !== 0) {
+        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+        throw new Error(`git rev-parse --abbrev-ref HEAD failed: ${failure}`);
+    }
+    const branch = result.stdout.trim();
+    if (!branch) {
+        throw new Error('git rev-parse --abbrev-ref HEAD returned an empty branch name.');
+    }
+    return branch;
+}
+async function branchExists(rootPath, branchName) {
+    const result = await (0, processRunner_1.runProcess)('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
+    return result.code === 0;
+}
+async function ensureGitBranch(rootPath, branchName, startPoint) {
+    if (await branchExists(rootPath, branchName)) {
+        return;
+    }
+    const result = await (0, processRunner_1.runProcess)('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
+    if (result.code !== 0) {
+        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+        throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
+    }
+}
+async function checkoutGitBranch(rootPath, branchName) {
+    const result = await (0, processRunner_1.runProcess)('git', ['checkout', branchName], { cwd: rootPath });
+    if (result.code !== 0) {
+        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+        throw new Error(`git checkout ${branchName} failed: ${failure}`);
+    }
 }
 //# sourceMappingURL=iterationPreparation.js.map

@@ -1279,9 +1279,13 @@ test('Run CLI Loop does not auto-reload when control-plane reload is required bu
     autoReloadOnControlPlaneChange: false
   });
 
+  const seenModes: Array<'singleExec' | 'loop'> = [];
   const executeCalls = await withMockedExecuteCommand(async (calls) => {
     await withMockedRunCliIteration(
-      async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+      async (workspaceFolderArg, mode) => {
+        seenModes.push(mode);
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+      },
       async () => {
         activate(createExtensionContext());
         await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
@@ -1290,6 +1294,7 @@ test('Run CLI Loop does not auto-reload when control-plane reload is required bu
     return calls;
   });
 
+  assert.deepEqual(seenModes, ['loop']);
   assert.equal(executeCalls.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
@@ -1307,9 +1312,13 @@ test('Run CLI Iteration does not auto-reload on a control-plane reload stop even
     autoReloadOnControlPlaneChange: true
   });
 
+  const seenModes: Array<'singleExec' | 'loop'> = [];
   const executeCalls = await withMockedExecuteCommand(async (calls) => {
     await withMockedRunCliIteration(
-      async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+      async (workspaceFolderArg, mode) => {
+        seenModes.push(mode);
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+      },
       async () => {
         activate(createExtensionContext());
         await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
@@ -1318,6 +1327,7 @@ test('Run CLI Iteration does not auto-reload on a control-plane reload stop even
     return calls;
   });
 
+  assert.deepEqual(seenModes, ['singleExec']);
   assert.equal(executeCalls.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
@@ -1335,9 +1345,13 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
     autoReloadOnControlPlaneChange: true
   });
 
+  const seenModes: Array<'singleExec' | 'loop'> = [];
   const executeCalls = await withMockedExecuteCommand(async (calls) => {
     await withMockedRunCliIteration(
-      async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required'),
+      async (workspaceFolderArg, mode) => {
+        seenModes.push(mode);
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+      },
       async () => withImmediateTimeout(async () => {
         activate(createExtensionContext());
         await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
@@ -1346,8 +1360,10 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
     return calls;
   });
 
+  assert.deepEqual(seenModes, ['loop']);
   const reloadCommands = executeCalls.filter((entry) => entry.command === 'workbench.action.reloadWindow');
   assert.equal(reloadCommands.length, 1);
+  assert.deepEqual(reloadCommands[0]?.args ?? [], []);
   assert.equal(
     harness.state.infoMessages.some((entry) => /Ralph CLI loop stopped after iteration/.test(entry.message)),
     false

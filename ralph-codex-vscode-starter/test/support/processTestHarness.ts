@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { createHash } from 'node:crypto';
 import {
   ProcessRunOptions,
   ProcessRunResult,
@@ -19,6 +18,17 @@ const GIT_COMMIT_EXCLUSIONS = new Set([
 
 interface GitSnapshotState {
   files: Record<string, string>;
+}
+
+interface GitBranchState {
+  files: Record<string, string>;
+  baseFiles: Record<string, string>;
+}
+
+interface GitSimulationState {
+  currentBranch: string;
+  branches: Record<string, GitBranchState>;
+  conflictPaths?: string[];
 }
 
 interface GitCommitRecord {
@@ -73,27 +83,62 @@ async function buildGitSnapshot(rootPath: string): Promise<GitSnapshotState> {
     if (GIT_COMMIT_EXCLUSIONS.has(relativePath) || relativePath.startsWith('.ralph/logs/')) {
       continue;
     }
-    const contents = await fs.readFile(path.join(rootPath, relativePath), 'utf8');
-    snapshot.files[relativePath] = createHash('sha256').update(contents).digest('hex');
+    snapshot.files[relativePath] = await fs.readFile(path.join(rootPath, relativePath), 'utf8');
   }
   return snapshot;
 }
 
-async function readGitSnapshot(rootPath: string): Promise<GitSnapshotState> {
+async function writeGitState(rootPath: string, state: GitSimulationState): Promise<void> {
+  await fs.writeFile(path.join(rootPath, GIT_SIM_STATE_FILE), `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+}
+
+async function readGitState(rootPath: string): Promise<GitSimulationState> {
   const statePath = path.join(rootPath, GIT_SIM_STATE_FILE);
   const raw = await fs.readFile(statePath, 'utf8');
-  return JSON.parse(raw) as GitSnapshotState;
+  return JSON.parse(raw) as GitSimulationState;
+}
+
+async function syncWorkingTree(rootPath: string, snapshot: GitSnapshotState): Promise<void> {
+  const currentFiles = await collectWorkspaceFiles(rootPath);
+  for (const relativePath of currentFiles) {
+    if (GIT_COMMIT_EXCLUSIONS.has(relativePath) || relativePath.startsWith('.ralph/logs/')) {
+      continue;
+    }
+
+    if (!(relativePath in snapshot.files)) {
+      await fs.rm(path.join(rootPath, relativePath), { force: true });
+    }
+  }
+
+  for (const [relativePath, contents] of Object.entries(snapshot.files)) {
+    const fullPath = path.join(rootPath, relativePath);
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    const existing = await fs.readFile(fullPath, 'utf8').catch(() => null);
+    if (existing !== contents) {
+      await fs.writeFile(fullPath, contents, 'utf8');
+    }
+  }
 }
 
 export async function initializeFakeGitRepository(rootPath: string): Promise<void> {
   await fs.mkdir(path.join(rootPath, GIT_SIM_DIR), { recursive: true });
   const snapshot = await buildGitSnapshot(rootPath);
-  await fs.writeFile(path.join(rootPath, GIT_SIM_STATE_FILE), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+  await writeGitState(rootPath, {
+    currentBranch: 'main',
+    branches: {
+      main: {
+        files: snapshot.files,
+        baseFiles: snapshot.files
+      }
+    },
+    conflictPaths: []
+  });
   await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), '[]\n', 'utf8');
 }
 
 async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
-  const snapshot = await readGitSnapshot(rootPath);
+  const state = await readGitState(rootPath);
+  const snapshot = state.branches[state.currentBranch] ?? { files: {} };
   const current = await buildGitSnapshot(rootPath);
   const changedPaths = new Set<string>([
     ...Object.keys(snapshot.files),
@@ -119,6 +164,11 @@ async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
 
       return [`M  ${relativePath}`];
     });
+  for (const conflictPath of state.conflictPaths ?? []) {
+    if (!lines.includes(`UU ${conflictPath}`)) {
+      lines.push(`UU ${conflictPath}`);
+    }
+  }
 
   return {
     code: 0,
@@ -145,7 +195,8 @@ async function fakeGitCommit(rootPath: string, args: string[]): Promise<ProcessR
   const subject = messages[0]?.trim() ?? '';
   const body = messages[1]?.trim() ?? '';
   const currentSnapshot = await buildGitSnapshot(rootPath);
-  const existingSnapshot = await readGitSnapshot(rootPath);
+  const state = await readGitState(rootPath);
+  const existingSnapshot = state.branches[state.currentBranch] ?? { files: {} };
 
   if (JSON.stringify(currentSnapshot.files) === JSON.stringify(existingSnapshot.files)) {
     return {
@@ -157,12 +208,202 @@ async function fakeGitCommit(rootPath: string, args: string[]): Promise<ProcessR
 
   const commits = await readCommitLog(rootPath);
   commits.push({ subject, body });
-  await fs.writeFile(path.join(rootPath, GIT_SIM_STATE_FILE), `${JSON.stringify(currentSnapshot, null, 2)}\n`, 'utf8');
+  state.branches[state.currentBranch] = {
+    ...state.branches[state.currentBranch],
+    files: currentSnapshot.files
+  };
+  state.conflictPaths = [];
+  await writeGitState(rootPath, state);
   await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), `${JSON.stringify(commits, null, 2)}\n`, 'utf8');
 
   return {
     code: 0,
-    stdout: `[main abc1234] ${subject}\n`,
+    stdout: `[${state.currentBranch} abc1234] ${subject}\n`,
+    stderr: ''
+  };
+}
+
+async function fakeGitRevParse(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  const state = await readGitState(rootPath);
+  if (args[1] === '--abbrev-ref' && args[2] === 'HEAD') {
+    return {
+      code: 0,
+      stdout: `${state.currentBranch}\n`,
+      stderr: ''
+    };
+  }
+
+  if (args[1] === '--verify') {
+    const target = args[2] ?? '';
+    const branchName = target.replace(/^refs\/heads\//, '');
+    return {
+      code: branchName in state.branches ? 0 : 1,
+      stdout: branchName in state.branches ? `${branchName}\n` : '',
+      stderr: branchName in state.branches ? '' : `unknown revision ${branchName}`
+    };
+  }
+
+  return {
+    code: 1,
+    stdout: '',
+    stderr: 'unsupported rev-parse'
+  };
+}
+
+async function fakeGitCheckout(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  const state = await readGitState(rootPath);
+  if (args[1] === '-b') {
+    const branchName = args[2] ?? '';
+    const startPoint = args[3] ?? state.currentBranch;
+    const baseBranch = state.branches[startPoint];
+    if (!baseBranch) {
+      return { code: 1, stdout: '', stderr: `unknown revision ${startPoint}` };
+    }
+
+    state.branches[branchName] = {
+      files: { ...baseBranch.files },
+      baseFiles: { ...baseBranch.files }
+    };
+    state.currentBranch = branchName;
+    state.conflictPaths = [];
+    await writeGitState(rootPath, state);
+    await syncWorkingTree(rootPath, { files: state.branches[branchName].files });
+    return {
+      code: 0,
+      stdout: `Switched to a new branch '${branchName}'\n`,
+      stderr: ''
+    };
+  }
+
+  const branchName = args[1] ?? '';
+  const branch = state.branches[branchName];
+  if (!branch) {
+    return { code: 1, stdout: '', stderr: `pathspec '${branchName}' did not match any file(s) known to git` };
+  }
+
+  if (state.currentBranch === branchName) {
+    return {
+      code: 0,
+      stdout: `Already on '${branchName}'\n`,
+      stderr: ''
+    };
+  }
+
+  state.currentBranch = branchName;
+  state.conflictPaths = [];
+  await writeGitState(rootPath, state);
+  await syncWorkingTree(rootPath, { files: branch.files });
+  return {
+    code: 0,
+    stdout: `Switched to branch '${branchName}'\n`,
+    stderr: ''
+  };
+}
+
+async function fakeGitDiff(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  const state = await readGitState(rootPath);
+  if (args[1] === '--name-only' && args[2] === '--diff-filter=U') {
+    const lines = (state.conflictPaths ?? []).join('\n');
+    return {
+      code: 0,
+      stdout: lines ? `${lines}\n` : '',
+      stderr: ''
+    };
+  }
+
+  return {
+    code: 1,
+    stdout: '',
+    stderr: 'unsupported diff'
+  };
+}
+
+function mergeSnapshots(current: Record<string, string>, source: Record<string, string>, base: Record<string, string>): {
+  merged: Record<string, string>;
+  conflictPaths: string[];
+} {
+  const merged: Record<string, string> = {};
+  const conflictPaths: string[] = [];
+  const allPaths = new Set<string>([
+    ...Object.keys(base),
+    ...Object.keys(current),
+    ...Object.keys(source)
+  ]);
+
+  for (const filePath of Array.from(allPaths).sort()) {
+    const left = current[filePath];
+    const right = source[filePath];
+    const ancestor = base[filePath];
+
+    if (left === right) {
+      if (left !== undefined) {
+        merged[filePath] = left;
+      }
+      continue;
+    }
+
+    if (left === ancestor) {
+      if (right !== undefined) {
+        merged[filePath] = right;
+      }
+      continue;
+    }
+
+    if (right === ancestor) {
+      if (left !== undefined) {
+        merged[filePath] = left;
+      }
+      continue;
+    }
+
+    conflictPaths.push(filePath);
+    if (left !== undefined) {
+      merged[filePath] = left;
+    }
+  }
+
+  return { merged, conflictPaths };
+}
+
+async function fakeGitMerge(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  const sourceBranchName = args.find((arg, index) => index > 0 && !arg.startsWith('-')) ?? '';
+  const messages = args.flatMap((arg, index) => (args[index - 1] === '-m' ? [arg] : []));
+  const subject = messages[0]?.trim() ?? '';
+  const body = messages[1]?.trim() ?? '';
+  const state = await readGitState(rootPath);
+  const currentBranch = state.branches[state.currentBranch];
+  const sourceBranch = state.branches[sourceBranchName];
+
+  if (!currentBranch || !sourceBranch) {
+    return { code: 1, stdout: '', stderr: `unknown revision ${sourceBranchName}` };
+  }
+
+  const merge = mergeSnapshots(currentBranch.files, sourceBranch.files, sourceBranch.baseFiles);
+  if (merge.conflictPaths.length > 0) {
+    state.conflictPaths = merge.conflictPaths;
+    await writeGitState(rootPath, state);
+    return {
+      code: 1,
+      stdout: '',
+      stderr: `CONFLICT (content): Merge conflict in ${merge.conflictPaths.join(', ')}`
+    };
+  }
+
+  state.branches[state.currentBranch] = {
+    files: merge.merged,
+    baseFiles: currentBranch.baseFiles
+  };
+  state.conflictPaths = [];
+  await writeGitState(rootPath, state);
+  await syncWorkingTree(rootPath, { files: merge.merged });
+
+  const commits = await readCommitLog(rootPath);
+  commits.push({ subject, body });
+  await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), `${JSON.stringify(commits, null, 2)}\n`, 'utf8');
+
+  return {
+    code: 0,
+    stdout: `Merge made by the 'ort' strategy.\n`,
     stderr: ''
   };
 }
@@ -296,11 +537,15 @@ async function fakeCliCommand(command: string, options: ProcessRunOptions): Prom
 
 async function fakeProcessRunner(command: string, args: string[], options: ProcessRunOptions): Promise<ProcessRunResult> {
   if (command === 'git' && args[0] === 'rev-parse') {
-    return {
-      code: await pathExists(path.join(options.cwd, GIT_SIM_DIR)) ? 0 : 1,
-      stdout: 'true\n',
-      stderr: ''
-    };
+    if (args[1] === '--is-inside-work-tree') {
+      return {
+        code: await pathExists(path.join(options.cwd, GIT_SIM_DIR)) ? 0 : 1,
+        stdout: 'true\n',
+        stderr: ''
+      };
+    }
+
+    return fakeGitRevParse(options.cwd, args);
   }
 
   if (command === 'git' && args[0] === 'status') {
@@ -313,6 +558,18 @@ async function fakeProcessRunner(command: string, args: string[], options: Proce
 
   if (command === 'git' && args[0] === 'commit') {
     return fakeGitCommit(options.cwd, args);
+  }
+
+  if (command === 'git' && args[0] === 'checkout') {
+    return fakeGitCheckout(options.cwd, args);
+  }
+
+  if (command === 'git' && args[0] === 'merge') {
+    return fakeGitMerge(options.cwd, args);
+  }
+
+  if (command === 'git' && args[0] === 'diff') {
+    return fakeGitDiff(options.cwd, args);
   }
 
   if (command === 'sh' && args[0] === '-lc' && (args[1] ?? '').includes('ps -eo command')) {

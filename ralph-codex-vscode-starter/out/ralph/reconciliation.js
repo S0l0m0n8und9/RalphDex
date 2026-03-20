@@ -188,6 +188,12 @@ async function reconcileCompletionReport(input) {
         await appendProgressBullet(input.prepared.paths.progressPath, parsed.report.progressNote);
         progressChanged = true;
     }
+    if (input.prepared.config.agentRole === 'watchdog' && parsed.report.watchdog_actions?.length) {
+        const watchdogOutcome = await processWatchdogActions(input, parsed.report.watchdog_actions);
+        taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
+        progressChanged = progressChanged || watchdogOutcome.progressChanged;
+        warnings.push(...watchdogOutcome.warnings);
+    }
     const selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
     if (warnings.length > 0) {
         input.logger.warn('Completion report reconciliation recorded warnings.', {
@@ -225,5 +231,80 @@ async function appendProgressBullet(progressPath, bullet) {
     const current = await fs.readFile(progressPath, 'utf8');
     const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
     await fs.writeFile(progressPath, nextText, 'utf8');
+}
+async function processWatchdogActions(input, watchdogActions) {
+    let taskFileChanged = false;
+    let progressChanged = false;
+    const warnings = [];
+    for (const action of watchdogActions) {
+        if (action.action === 'resolve_stale_claim') {
+            const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(input.prepared.paths.claimFilePath);
+            const taskEntry = claimGraph.tasks.find((entry) => entry.taskId === action.taskId);
+            const canonicalClaim = taskEntry?.canonicalClaim?.claim ?? null;
+            if (!canonicalClaim || canonicalClaim.agentId !== action.agentId) {
+                warnings.push(`Watchdog action resolve_stale_claim could not find a canonical active claim for ${action.taskId} held by ${action.agentId}.`);
+                continue;
+            }
+            const resolved = await (0, taskFile_1.resolveStaleClaim)(input.prepared.paths.claimFilePath, {
+                expectedClaim: canonicalClaim,
+                resolutionReason: buildWatchdogResolutionReason(action),
+                resolvedBy: input.prepared.config.agentId,
+                status: 'stale'
+            });
+            if (resolved.outcome !== 'resolved') {
+                warnings.push(`Watchdog action resolve_stale_claim was not eligible for ${action.taskId} held by ${action.agentId}.`);
+            }
+            continue;
+        }
+        if (action.action === 'decompose_task') {
+            if (!action.suggestedChildTasks || action.suggestedChildTasks.length === 0) {
+                warnings.push(`Watchdog action decompose_task for ${action.taskId} did not include suggestedChildTasks.`);
+                continue;
+            }
+            if (!(await taskExists(input.taskFilePath, action.taskId))) {
+                warnings.push(`Watchdog action decompose_task could not find task ${action.taskId}.`);
+                continue;
+            }
+            await (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, action.taskId, action.suggestedChildTasks);
+            taskFileChanged = true;
+            continue;
+        }
+        if (!(await taskExists(input.taskFilePath, action.taskId))) {
+            warnings.push(`Watchdog action escalate_to_human could not find task ${action.taskId}.`);
+            continue;
+        }
+        await appendProgressBullet(input.prepared.paths.progressPath, buildWatchdogEscalationEntry(action));
+        progressChanged = true;
+        await updateTaskFile(input.taskFilePath, (taskFile) => ({
+            ...taskFile,
+            tasks: taskFile.tasks.map((task) => {
+                if (task.id !== action.taskId) {
+                    return task;
+                }
+                return {
+                    ...task,
+                    blocker: buildWatchdogBlocker(action)
+                };
+            })
+        }));
+        taskFileChanged = true;
+    }
+    return {
+        taskFileChanged,
+        progressChanged,
+        warnings
+    };
+}
+function buildWatchdogResolutionReason(action) {
+    return `${action.severity} watchdog recovery: ${action.reason} Evidence: ${action.evidence}`;
+}
+function buildWatchdogEscalationEntry(action) {
+    return `[watchdog][${action.severity}][${action.action}] task=${action.taskId} agent=${action.agentId} reason=${action.reason} evidence=${action.evidence} trailingNoProgress=${action.trailingNoProgressCount} trailingRepeatedFailure=${action.trailingRepeatedFailureCount}`;
+}
+function buildWatchdogBlocker(action) {
+    return `Watchdog escalation (${action.severity}) for ${action.agentId}: ${action.reason}`;
+}
+async function taskExists(taskFilePath, taskId) {
+    return (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')), taskId) !== null;
 }
 //# sourceMappingURL=reconciliation.js.map

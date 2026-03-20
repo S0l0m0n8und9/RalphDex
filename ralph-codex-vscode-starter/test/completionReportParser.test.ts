@@ -98,6 +98,63 @@ test('parseCompletionReport accepts suggested child tasks when provided', () => 
   ]);
 });
 
+test('parseCompletionReport accepts watchdog actions when provided', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T39.2",',
+    '  "requestedStatus": "done",',
+    '  "watchdog_actions": [',
+    '    {',
+    '      "taskId": "T12",',
+    '      "agentId": "builder-2",',
+    '      "action": "decompose_task",',
+    '      "severity": "HIGH",',
+    '      "reason": "Repeated no-progress iterations",',
+    '      "evidence": "Three trailing runs ended no_progress with no file changes.",',
+    '      "trailingNoProgressCount": 3,',
+    '      "trailingRepeatedFailureCount": 0,',
+    '      "suggestedChildTasks": [',
+    '        {',
+    '          "id": "T12.1",',
+    '          "title": "Split the stalled task",',
+    '          "parentId": "T12",',
+    '          "dependsOn": [],',
+    '          "validation": " npm test ",',
+    '          "rationale": " Reduce the stalled scope. "',
+    '        }',
+    '      ]',
+    '    }',
+    '  ]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.deepEqual(parsed.report?.watchdog_actions, [
+    {
+      taskId: 'T12',
+      agentId: 'builder-2',
+      action: 'decompose_task',
+      severity: 'HIGH',
+      reason: 'Repeated no-progress iterations',
+      evidence: 'Three trailing runs ended no_progress with no file changes.',
+      trailingNoProgressCount: 3,
+      trailingRepeatedFailureCount: 0,
+      suggestedChildTasks: [
+        {
+          id: 'T12.1',
+          title: 'Split the stalled task',
+          parentId: 'T12',
+          dependsOn: [],
+          validation: 'npm test',
+          rationale: 'Reduce the stalled scope.'
+        }
+      ]
+    }
+  ]);
+});
+
 test('parseCompletionReport rejects invalid requestedStatus values', () => {
   const parsed = parseCompletionReport([
     '```json',
@@ -123,6 +180,21 @@ test('parseCompletionReport rejects invalid suggested child task payloads', () =
 
   assert.equal(parsed.status, 'invalid');
   assert.match(parsed.parseError ?? '', /suggestedChildTasks must be an array of valid suggested child tasks/);
+});
+
+test('parseCompletionReport ignores invalid watchdog action payloads', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T39.2",',
+    '  "requestedStatus": "done",',
+    '  "watchdog_actions": [{"taskId":"T12","action":"resolve_stale_claim"}]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.watchdog_actions?.length ?? 0, 0);
 });
 
 test('parseCompletionReport reports missing when no trailing report block exists', () => {

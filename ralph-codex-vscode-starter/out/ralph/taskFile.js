@@ -111,6 +111,9 @@ function normalizeClaim(candidate) {
         claimedAt: record.claimedAt,
         provenanceId: record.provenanceId,
         status: normalizeClaimStatus(record.status),
+        baseBranch: typeof record.baseBranch === 'string' ? record.baseBranch : undefined,
+        integrationBranch: typeof record.integrationBranch === 'string' ? record.integrationBranch : undefined,
+        featureBranch: typeof record.featureBranch === 'string' ? record.featureBranch : undefined,
         resolvedAt: typeof record.resolvedAt === 'string' ? record.resolvedAt : undefined,
         resolvedBy: typeof record.resolvedBy === 'string' ? record.resolvedBy : undefined,
         resolutionReason: typeof record.resolutionReason === 'string' ? record.resolutionReason : undefined
@@ -165,6 +168,9 @@ function isIdeHandoffProvenance(provenanceId) {
 function claimRecordMatches(left, right) {
     return claimIdentityMatches(left, right)
         && left.status === right.status
+        && left.baseBranch === right.baseBranch
+        && left.integrationBranch === right.integrationBranch
+        && left.featureBranch === right.featureBranch
         && left.resolvedAt === right.resolvedAt
         && left.resolvedBy === right.resolvedBy
         && left.resolutionReason === right.resolutionReason;
@@ -1176,7 +1182,10 @@ async function acquireClaim(claimFilePath, taskId, agentId, provenanceId, option
             agentId,
             provenanceId,
             claimedAt: (options?.now ?? new Date()).toISOString(),
-            status: 'active'
+            status: 'active',
+            baseBranch: options?.baseBranch?.trim() || undefined,
+            integrationBranch: options?.integrationBranch?.trim() || undefined,
+            featureBranch: options?.featureBranch?.trim() || undefined
         };
         const nextClaimFile = {
             version: 1,

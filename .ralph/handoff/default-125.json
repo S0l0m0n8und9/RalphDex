@@ -1,0 +1,10 @@
+{
+  "agentId": "default",
+  "iteration": 125,
+  "selectedTaskId": "T38",
+  "selectedTaskTitle": "Review agent role — a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "complete",
+  "progressNote": "Implemented the missing review-agent anomaly handling so review-only runs that modify relevant workspace/source files now fail git-diff verification, surface explicit anomaly warnings, and no longer count those edits as progress. Added integration coverage and documented the workflow behavior.",
+  "humanSummary": "T38 (Review agent role — a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes) stopped with control_plane_reload_required. Implemented the missing review-agent anomaly handling so review-only runs that modify relevant workspace/source files now fail git-diff verification, surface explicit anomaly warnings, and no longer count those edits as progress. Added integration coverage and documented the workflow behavior."
+}

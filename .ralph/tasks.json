@@ -1283,8 +1283,9 @@
         "T29",
         "T30"
       ],
-      "notes": "Add tests in test/commandShell.smoke.test.ts covering: auto-reload is not triggered when autoReloadOnControlPlaneChange is false; auto-reload is not triggered from the single-shot iteration command even when the setting is true; the reload command is invoked with the correct VS Code command id when the setting is true and the stop reason is control_plane_reload_required. Mock vscode.commands.executeCommand in the test environment. Add a Control-Plane Reload subsection to the Run The Ralph Loop section of docs/workflows.md explaining the setting, the 1500ms flush delay, and that reloadWindow is only safe here because the iteration result was already persisted before the reload fires. Run npm run validate.",
-      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+      "notes": "Added explicit command-shell regression assertions for control-plane auto-reload mode/command behavior and tightened docs/workflows.md wording for the reload command. Validation is currently blocked by unrelated TypeScript errors in src/ralph/iterationPreparation.ts.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "blocker": "npm run validate fails in compile due to unrelated existing TypeScript errors in src/ralph/iterationPreparation.ts (missing RalphTaskClaimDetails export, selectedTaskClaim type mismatches, missing integrationBranch)."
     },
     {
       "id": "T33",
@@ -1520,14 +1521,14 @@
     {
       "id": "T38",
       "title": "Review agent role — a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T38.1",
         "T38.2",
         "T38.3"
       ],
-      "notes": "Build agents make code changes. A review agent does the opposite: reads the codebase, runs validation, identifies quality gaps or missing coverage, and emits structured findings as proposed backlog tasks — without modifying any source files. This creates a natural check on build-agent output: after a build agent completes a task, a review agent can independently verify the work and propose follow-up tasks if gaps remain. The review agent uses the same claims and completion-report machinery as build agents but its prompt instructs it to propose rather than implement, and its reconciliation path should surface any source-file modifications as an anomaly."
+      "notes": "Implemented the missing review-agent anomaly handling so review-only runs that modify relevant workspace/source files now fail git-diff verification, surface explicit anomaly warnings, and no longer count those edits as progress. Added integration coverage and documented the workflow behavior."
     },
     {
       "id": "T38.1",
@@ -1589,13 +1590,14 @@
     {
       "id": "T39.2",
       "title": "Wire watchdog recovery actions into reconciliation — permit cross-task resolve and decompose for watchdog role only",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T39",
       "dependsOn": [
         "T39.1"
       ],
-      "notes": "In src/ralph/reconciliation.ts extend the completion report schema with an optional watchdog_actions array. When the reconciling agent's role is 'watchdog', process each action: resolve_stale_claim calls resolveStaleClaim for the named task and agent without requiring the watchdog to hold a claim on that task; decompose_task calls applySuggestedChildTasks for the named task after validating the proposal; escalate_to_human appends a structured entry to progress.md and sets the target task's blocker field. Non-watchdog agents that include watchdog_actions in their completion report must have the actions silently ignored — the role guard is authoritative.",
-      "validation": "cd ralph-codex-vscode-starter && npm run compile"
+      "notes": "Wired watchdog-only reconciliation for resolve_stale_claim, decompose_task, and escalate_to_human; added parser and integration coverage, but repository compile is still blocked by unrelated iterationPreparation.ts errors.",
+      "validation": "cd ralph-codex-vscode-starter && npm run compile",
+      "blocker": "Validation command `cd ralph-codex-vscode-starter && npm run compile` fails due to pre-existing TypeScript errors in src/ralph/iterationPreparation.ts outside the watchdog reconciliation change."
     },
     {
       "id": "T39.3",
@@ -1634,7 +1636,7 @@
     {
       "id": "T40.2",
       "title": "Implement branch-per-task SCM strategy — integration branch per parent, feature branch per child, atomic merge on parent done",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T40",
       "dependsOn": [
         "T40.1"

@@ -39,6 +39,7 @@ import {
 import {
   applySuggestedChildTasksToFile,
   countTaskStatuses,
+  findTaskById,
   parseTaskFile,
   releaseClaim,
   remainingSubtasks,
@@ -170,6 +171,13 @@ function formatScmCommitMessage(input: {
   };
 }
 
+function scmAuthorEnv(agentId: string): NodeJS.ProcessEnv {
+  return {
+    GIT_AUTHOR_NAME: `ralph/${agentId}`,
+    GIT_COMMITTER_NAME: `ralph/${agentId}`
+  };
+}
+
 async function commitOnDone(input: {
   rootPath: string;
   taskId: string;
@@ -188,7 +196,10 @@ async function commitOnDone(input: {
   const commitResult = await runProcess(
     'git',
     ['commit', '-m', message.subject, '-m', message.body],
-    { cwd: input.rootPath }
+    {
+      cwd: input.rootPath,
+      env: scmAuthorEnv(input.agentId)
+    }
   );
   if (commitResult.code !== 0) {
     const failure = (commitResult.stderr || commitResult.stdout || `exit code ${commitResult.code}`).trim();
@@ -196,6 +207,171 @@ async function commitOnDone(input: {
   }
 
   return `SCM commit-on-done succeeded: ${message.subject}`;
+}
+
+async function checkoutGitBranch(rootPath: string, branchName: string): Promise<void> {
+  const result = await runProcess('git', ['checkout', branchName], { cwd: rootPath });
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(`git checkout ${branchName} failed: ${failure}`);
+  }
+}
+
+async function mergeGitBranch(input: {
+  rootPath: string;
+  targetBranch: string;
+  sourceBranch: string;
+  subject: string;
+  body: string;
+  agentId: string;
+}): Promise<void> {
+  await checkoutGitBranch(input.rootPath, input.targetBranch);
+  const result = await runProcess(
+    'git',
+    ['merge', '--no-ff', input.sourceBranch, '-m', input.subject, '-m', input.body],
+    {
+      cwd: input.rootPath,
+      env: scmAuthorEnv(input.agentId)
+    }
+  );
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(failure);
+  }
+}
+
+async function listGitConflictPaths(rootPath: string): Promise<string[]> {
+  const result = await runProcess('git', ['diff', '--name-only', '--diff-filter=U'], { cwd: rootPath });
+  if (result.code !== 0) {
+    return [];
+  }
+
+  return result.stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+}
+
+async function reopenTaskWithMergeBlocker(input: {
+  taskFilePath: string;
+  taskId: string;
+  blocker: string;
+}): Promise<void> {
+  const locked = await withTaskFileLock(input.taskFilePath, undefined, async () => {
+    const taskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+    const nextTaskFile: RalphTaskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) => (
+        task.id === input.taskId
+          ? {
+            ...task,
+            status: 'in_progress',
+            blocker: input.blocker
+          }
+          : task
+      ))
+    };
+
+    await fs.writeFile(input.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+}
+
+interface BranchPerTaskScmResult {
+  warnings: string[];
+}
+
+async function reconcileBranchPerTaskScm(input: {
+  prepared: PreparedIterationContext;
+  validationStatus: RalphVerificationStatus;
+  taskFileAfter: RalphTaskFile;
+}): Promise<BranchPerTaskScmResult> {
+  const selectedTask = input.prepared.selectedTask;
+  const selectedClaim = input.prepared.selectedTaskClaim?.claim;
+  if (!selectedTask || !selectedClaim?.featureBranch || !selectedClaim.baseBranch) {
+    return { warnings: [] };
+  }
+
+  const warnings: string[] = [];
+  try {
+    await checkoutGitBranch(input.prepared.rootPath, selectedClaim.featureBranch);
+    warnings.push(await commitOnDone({
+      rootPath: input.prepared.rootPath,
+      taskId: selectedTask.id,
+      taskTitle: selectedTask.title,
+      agentId: input.prepared.config.agentId,
+      iteration: input.prepared.iteration,
+      validationStatus: input.validationStatus
+    }));
+
+    if (selectedClaim.integrationBranch) {
+      await mergeGitBranch({
+        rootPath: input.prepared.rootPath,
+        targetBranch: selectedClaim.integrationBranch,
+        sourceBranch: selectedClaim.featureBranch,
+        subject: `ralph(${selectedTask.id}): merge ${selectedClaim.featureBranch} into ${selectedClaim.integrationBranch}`,
+        body: `Agent: ${input.prepared.config.agentId} | Iteration: ${input.prepared.iteration} | Validation: ${input.validationStatus}`,
+        agentId: input.prepared.config.agentId
+      });
+      warnings.push(`SCM branch-per-task merged ${selectedClaim.featureBranch} into ${selectedClaim.integrationBranch}.`);
+
+      const parentTask = selectedTask.parentId
+        ? findTaskById(input.taskFileAfter, selectedTask.parentId)
+        : null;
+      const parentTaskBefore = selectedTask.parentId
+        ? findTaskById(input.prepared.taskFile, selectedTask.parentId)
+        : null;
+      if (parentTask && parentTask.status === 'done' && parentTaskBefore?.status !== 'done') {
+        await mergeGitBranch({
+          rootPath: input.prepared.rootPath,
+          targetBranch: selectedClaim.baseBranch,
+          sourceBranch: selectedClaim.integrationBranch,
+          subject: `ralph(${parentTask.id}): ${parentTask.title.replace(/\s+/g, ' ').trim()}`,
+          body: `Atomic integration merge from ${selectedClaim.integrationBranch} for parent ${parentTask.id}`,
+          agentId: input.prepared.config.agentId
+        });
+        warnings.push(`SCM branch-per-task merged ${selectedClaim.integrationBranch} into ${selectedClaim.baseBranch} for parent ${parentTask.id}.`);
+      } else {
+        await checkoutGitBranch(input.prepared.rootPath, selectedClaim.baseBranch);
+      }
+    } else {
+      await mergeGitBranch({
+        rootPath: input.prepared.rootPath,
+        targetBranch: selectedClaim.baseBranch,
+        sourceBranch: selectedClaim.featureBranch,
+        subject: `ralph(${selectedTask.id}): ${selectedTask.title.replace(/\s+/g, ' ').trim()}`,
+        body: `Atomic merge from ${selectedClaim.featureBranch} for top-level task ${selectedTask.id}`,
+        agentId: input.prepared.config.agentId
+      });
+      warnings.push(`SCM branch-per-task merged ${selectedClaim.featureBranch} into ${selectedClaim.baseBranch}.`);
+    }
+  } catch (error) {
+    const conflictPaths = await listGitConflictPaths(input.prepared.rootPath);
+    const mergeTargetTaskId = conflictPaths.length > 0
+      && selectedTask.parentId
+      && findTaskById(input.taskFileAfter, selectedTask.parentId)?.status === 'done'
+      && findTaskById(input.prepared.taskFile, selectedTask.parentId)?.status !== 'done'
+      ? selectedTask.parentId
+      : selectedTask.id;
+    const blocker = conflictPaths.length > 0
+      ? `Merge conflict while reconciling branch-per-task SCM: ${conflictPaths.join(', ')}`
+      : `Merge conflict while reconciling branch-per-task SCM: ${toErrorMessage(error)}`;
+    await reopenTaskWithMergeBlocker({
+      taskFilePath: input.prepared.paths.taskFilePath,
+      taskId: mergeTargetTaskId,
+      blocker
+    });
+    warnings.push(
+      `SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`
+    );
+  }
+
+  return { warnings };
 }
 
 function controlPlaneRuntimeChanges(changedFiles: string[]): string[] {
@@ -421,6 +597,49 @@ function runRecordFromIteration(
 
 function uniqueSorted(values: readonly string[]): string[] {
   return Array.from(new Set(values.filter((value) => value.trim().length > 0))).sort((left, right) => left.localeCompare(right));
+}
+
+function applyReviewAgentFileChangePolicy(input: {
+  agentRole: PreparedIterationContext['config']['agentRole'];
+  fileChangeVerification: {
+    diffSummary: RalphDiffSummary | null;
+    result: RalphIterationResult['verification']['verifiers'][number];
+  };
+}): {
+  fileChangeVerification: {
+    diffSummary: RalphDiffSummary | null;
+    result: RalphIterationResult['verification']['verifiers'][number];
+  };
+  relevantFileChangesForOutcome: string[];
+} {
+  const relevantChangedFiles = input.fileChangeVerification.diffSummary?.relevantChangedFiles ?? [];
+  if (input.agentRole !== 'review' || relevantChangedFiles.length === 0) {
+    return {
+      fileChangeVerification: input.fileChangeVerification,
+      relevantFileChangesForOutcome: relevantChangedFiles
+    };
+  }
+
+  const anomaly = `Review-agent anomaly: detected source-file modifications during a review-only pass (${relevantChangedFiles.join(', ')}).`;
+  return {
+    fileChangeVerification: {
+      ...input.fileChangeVerification,
+      result: {
+        ...input.fileChangeVerification.result,
+        status: 'failed',
+        summary: `Review-agent anomaly: detected ${relevantChangedFiles.length} relevant workspace change(s) during a review-only pass.`,
+        warnings: uniqueSorted([
+          ...input.fileChangeVerification.result.warnings,
+          anomaly
+        ]),
+        errors: uniqueSorted([
+          ...input.fileChangeVerification.result.errors,
+          'Review agents must not modify source files during review-only execution.'
+        ])
+      }
+    },
+    relevantFileChangesForOutcome: []
+  };
 }
 
 function isCleanTerminalHandoffStopReason(
@@ -1063,10 +1282,16 @@ export class RalphIterationEngine {
           errors: []
         }
       };
+    const roleAdjustedFileChange = applyReviewAgentFileChangePolicy({
+      agentRole: prepared.config.agentRole,
+      fileChangeVerification
+    });
+    const effectiveFileChangeVerification = roleAdjustedFileChange.fileChangeVerification;
+    const relevantFileChangesForOutcome = roleAdjustedFileChange.relevantFileChangesForOutcome;
 
     const preliminaryVerificationStatus = classifyVerificationStatus([
       validationVerification.result.status,
-      fileChangeVerification.result.status
+      effectiveFileChangeVerification.result.status
     ]);
     const preliminaryOutcome = classifyIterationOutcome({
       selectedTaskId: prepared.selectedTask?.id ?? null,
@@ -1080,7 +1305,7 @@ export class RalphIterationEngine {
       executionStatus,
       verificationStatus: preliminaryVerificationStatus,
       validationFailureSignature: validationVerification.result.failureSignature ?? null,
-      relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
+      relevantFileChanges: relevantFileChangesForOutcome,
       progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
       taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
       previousIterations: prepared.state.iterationHistory
@@ -1094,6 +1319,18 @@ export class RalphIterationEngine {
       taskFilePath: prepared.paths.taskFilePath,
       logger: this.logger
     });
+    const branchPerTaskWarnings: string[] = [];
+    if (prepared.config.scmStrategy === 'branch-per-task'
+      && completionReconciliation.selectedTask?.status === 'done'
+      && prepared.selectedTask) {
+      const taskFileAfterCompletion = parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
+      const branchScm = await reconcileBranchPerTaskScm({
+        prepared,
+        validationStatus: validationVerification.result.status,
+        taskFileAfter: taskFileAfterCompletion
+      });
+      branchPerTaskWarnings.push(...branchScm.warnings);
+    }
     const afterCoreState = await captureCoreState(prepared.paths);
     const taskStateVerification = prepared.config.verifierModes.includes('taskState')
       ? await runTaskStateVerifier({
@@ -1122,7 +1359,7 @@ export class RalphIterationEngine {
 
     const verifierResults = [
       validationVerification.result,
-      fileChangeVerification.result,
+      effectiveFileChangeVerification.result,
       taskStateVerification.result
     ];
     const verificationStatus = classifyVerificationStatus(verifierResults.map((item) => item.status));
@@ -1143,7 +1380,7 @@ export class RalphIterationEngine {
       executionStatus,
       verificationStatus,
       validationFailureSignature: validationVerification.result.failureSignature ?? null,
-      relevantFileChanges: fileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
+      relevantFileChanges: relevantFileChangesForOutcome,
       progressChanged: taskStateVerification.progressChanged,
       taskFileChanged: taskStateVerification.taskFileChanged,
       previousIterations: prepared.state.iterationHistory
@@ -1176,6 +1413,7 @@ export class RalphIterationEngine {
     ].join(' | ');
     const warnings = [
       ...executionWarnings,
+      ...branchPerTaskWarnings,
       ...completionReconciliation.warnings,
       ...verifierResults.flatMap((item) => item.warnings)
     ];
@@ -1270,7 +1508,7 @@ export class RalphIterationEngine {
       reachedIterationCap: options.reachedIterationCap,
       previousIterations: prepared.state.iterationHistory
     });
-    const runtimeChanges = controlPlaneRuntimeChanges(fileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
+    const runtimeChanges = controlPlaneRuntimeChanges(effectiveFileChangeVerification.diffSummary?.relevantChangedFiles ?? []);
 
     if (completionReconciliation.claimContested) {
       loopDecision = {

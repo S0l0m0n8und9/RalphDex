@@ -110,6 +110,8 @@ For normal task execution, the prompt explicitly tells the model not to edit `.r
 
 Use this path when you need repeatable execution plus deterministic result recording.
 
+When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch placement for the selected task. Top-level tasks claim a dedicated `ralph/<taskId>` branch from the branch that was active when the claim was acquired. Child tasks claim both `ralph/integration/<parentId>` and `ralph/<taskId>`, record those branch names plus the original base branch in `.ralph/claims.json`, and run the task on the child feature branch. When the child task reconciles `done`, Ralph commits the remaining work on `ralph/<taskId>`, merges that feature branch into `ralph/integration/<parentId>`, and, if that completion also auto-completes the parent aggregate task, performs one atomic merge from `ralph/integration/<parentId>` back into the recorded base branch. Ralph never auto-deletes either branch. If any of those merges conflict, Ralph leaves the conflicting branch checked out, reopens the affected task as `in_progress` with a merge-conflict blocker, releases the active claim, and records the conflict path in the iteration warnings instead of silently forcing the merge.
+
 If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralph Codex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no `codex exec` process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
 
 After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run CLI Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
@@ -252,7 +254,7 @@ If an iteration changes control-plane runtime files, the loop stops with `contro
 
 When the setting is `true`, only `Run CLI Loop` auto-reloads. `Run CLI Iteration` stays single-shot even if the result stop reason is `control_plane_reload_required`.
 
-The loop waits 1500 ms before it runs `workbench.action.reloadWindow`. That short flush delay gives the extension host time to finish writing the already-persisted iteration result, latest pointers, and operator-facing summary surfaces before VS Code tears the process down.
+When auto-reload is enabled, the loop waits 1500 ms before it invokes the VS Code reload command `workbench.action.reloadWindow`. That short flush delay gives the extension host time to finish writing the already-persisted iteration result, latest pointers, and operator-facing summary surfaces before VS Code tears the process down.
 
 `workbench.action.reloadWindow` is only safe in this narrow path because the iteration outcome was already durably recorded before the reload fires. Ralph is not relying on in-memory loop state surviving the reload.
 
@@ -353,6 +355,8 @@ Use that grouped view to answer three operator questions quickly:
 Run `Ralph: Run Review Agent` when you want a bounded review pass over the currently selected Ralph task instead of another implementation attempt. This is the right pass after a build agent lands a change and you want Ralph to validate it, inspect the changed files, and call out missing tests, documentation gaps, or invariant violations before more code work continues.
 
 The review agent is propose-only. It runs a single CLI iteration in `agentRole = review`, uses the dedicated review prompt template, and tells the model not to implement fixes. When the review finds gaps, it emits proposed follow-up tasks in `suggestedChildTasks` instead of editing source files or mutating `.ralph/tasks.json` directly.
+
+If a review pass still edits relevant workspace files, Ralph treats that as an anomaly rather than progress: git-diff verification fails for the review run, the completion report cannot cleanly mark the task done, and the unexpected file list is surfaced in the persisted warnings.
 
 Operator approval remains explicit:
 

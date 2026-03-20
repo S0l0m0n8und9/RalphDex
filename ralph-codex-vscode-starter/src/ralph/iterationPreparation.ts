@@ -3,6 +3,7 @@ import { readConfig } from '../config/readConfig';
 import { RalphCodexConfig } from '../config/types';
 import { buildPrompt, createPromptFileName, decidePromptKind } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
+import { runProcess } from '../services/processRunner';
 import { scanWorkspace } from '../services/workspaceScanner';
 import { inspectCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphStateManager } from './stateManager';
@@ -22,7 +23,15 @@ import {
   RalphTaskFile,
   RalphWorkspaceState
 } from './types';
-import { acquireClaim, countTaskStatuses, inspectTaskClaimGraph, listSelectableTasks, markTaskInProgress, selectNextTask } from './taskFile';
+import {
+  acquireClaim,
+  countTaskStatuses,
+  inspectTaskClaimGraph,
+  listSelectableTasks,
+  markTaskInProgress,
+  RalphTaskClaimDetails,
+  selectNextTask
+} from './taskFile';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -80,6 +89,7 @@ export interface PreparedPromptContext {
   taskCounts: RalphTaskCounts;
   summary: Awaited<ReturnType<typeof scanWorkspace>>;
   selectedTask: RalphTask | null;
+  selectedTaskClaim: RalphTaskClaimDetails | null;
   taskValidationHint: string | null;
   effectiveValidationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
@@ -206,9 +216,22 @@ export async function prepareIterationContext(
     promptTarget,
     createdAt: taskSelectedAt
   });
-  const selectedTask = promptTarget === 'cliExec'
-    ? await selectClaimedTask(taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
-    : selectNextTask(taskFile);
+  const claimedSelection = promptTarget === 'cliExec'
+    ? await selectClaimedTask(
+      rootPath,
+      config,
+      taskFile,
+      snapshot.paths.taskFilePath,
+      snapshot.paths.claimFilePath,
+      provenanceId,
+      config.agentId
+    )
+    : {
+      task: selectNextTask(taskFile),
+      claim: null
+    };
+  const selectedTask = claimedSelection.task;
+  const selectedTaskClaim = claimedSelection.claim;
   // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
   // the todo→in_progress bookkeeping change is not counted as durable agent progress.
   const beforeCoreState = promptTarget === 'cliExec'
@@ -461,6 +484,7 @@ export async function prepareIterationContext(
     taskCounts: effectiveTaskCounts,
     summary,
     selectedTask,
+    selectedTaskClaim,
     taskValidationHint,
     effectiveValidationCommand,
     normalizedValidationCommandFrom,
@@ -485,26 +509,105 @@ export async function prepareIterationContext(
 }
 
 async function selectClaimedTask(
+  rootPath: string,
+  config: RalphCodexConfig,
   taskFile: RalphTaskFile,
   taskFilePath: string,
   claimFilePath: string,
   provenanceId: string,
   agentId: string
-): Promise<RalphTask | null> {
+): Promise<{ task: RalphTask | null; claim: RalphTaskClaimDetails | null }> {
   for (const candidate of listSelectableTasks(taskFile)) {
+    const claimBranches = config.scmStrategy === 'branch-per-task'
+      ? await prepareTaskBranchWorkspace(rootPath, candidate)
+      : null;
     const claimResult = await acquireClaim(
       claimFilePath,
       candidate.id,
       agentId,
-      provenanceId
+      provenanceId,
+      claimBranches ?? undefined
     );
     if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
       if (candidate.status === 'todo') {
         await markTaskInProgress(taskFilePath, candidate.id);
       }
-      return candidate;
+      return {
+        task: candidate,
+        claim: claimResult.claim ?? claimResult.canonicalClaim
+      };
     }
   }
 
-  return null;
+  return {
+    task: null,
+    claim: null
+  };
+}
+
+async function prepareTaskBranchWorkspace(
+  rootPath: string,
+  task: RalphTask
+): Promise<{ baseBranch: string; integrationBranch?: string; featureBranch: string }> {
+  const baseBranch = await currentGitBranch(rootPath);
+  const featureBranch = `ralph/${task.id}`;
+
+  if (task.parentId) {
+    const integrationBranch = `ralph/integration/${task.parentId}`;
+    await ensureGitBranch(rootPath, integrationBranch, baseBranch);
+    await ensureGitBranch(rootPath, featureBranch, integrationBranch);
+    await checkoutGitBranch(rootPath, featureBranch);
+    return {
+      baseBranch,
+      integrationBranch,
+      featureBranch
+    };
+  }
+
+  await ensureGitBranch(rootPath, featureBranch, baseBranch);
+  await checkoutGitBranch(rootPath, featureBranch);
+  return {
+    baseBranch,
+    featureBranch
+  };
+}
+
+async function currentGitBranch(rootPath: string): Promise<string> {
+  const result = await runProcess('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: rootPath });
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(`git rev-parse --abbrev-ref HEAD failed: ${failure}`);
+  }
+
+  const branch = result.stdout.trim();
+  if (!branch) {
+    throw new Error('git rev-parse --abbrev-ref HEAD returned an empty branch name.');
+  }
+
+  return branch;
+}
+
+async function branchExists(rootPath: string, branchName: string): Promise<boolean> {
+  const result = await runProcess('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
+  return result.code === 0;
+}
+
+async function ensureGitBranch(rootPath: string, branchName: string, startPoint: string): Promise<void> {
+  if (await branchExists(rootPath, branchName)) {
+    return;
+  }
+
+  const result = await runProcess('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
+  }
+}
+
+async function checkoutGitBranch(rootPath: string, branchName: string): Promise<void> {
+  const result = await runProcess('git', ['checkout', branchName], { cwd: rootPath });
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(`git checkout ${branchName} failed: ${failure}`);
+  }
 }

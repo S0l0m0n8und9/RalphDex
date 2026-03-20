@@ -6,6 +6,7 @@ export interface ProcessRunOptions {
   onStdoutChunk?: (chunk: string) => void;
   onStderrChunk?: (chunk: string) => void;
   shell?: boolean;
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface ProcessRunResult {
@@ -49,7 +50,8 @@ export async function runProcess(command: string, args: string[], options: Proce
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      shell: options.shell ?? process.platform === 'win32'
+      shell: options.shell ?? process.platform === 'win32',
+      env: options.env ? { ...process.env, ...options.env } : process.env
     });
 
     let stdout = '';

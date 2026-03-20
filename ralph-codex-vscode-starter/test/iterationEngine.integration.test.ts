@@ -128,6 +128,18 @@ async function readFakeGitCommits(rootPath: string): Promise<Array<{ subject: st
   }>;
 }
 
+async function readFakeGitState(rootPath: string): Promise<{
+  currentBranch: string;
+  branches: Record<string, { files: Record<string, string>; baseFiles: Record<string, string> }>;
+  conflictPaths?: string[];
+}> {
+  return JSON.parse(await fs.readFile(path.join(rootPath, '.git', 'ralph-test-index.json'), 'utf8')) as {
+    currentBranch: string;
+    branches: Record<string, { files: Record<string, string>; baseFiles: Record<string, string> }>;
+    conflictPaths?: string[];
+  };
+}
+
 interface MockExecStep {
   run(request: CodexExecRequest): Promise<{
     exitCode?: number;
@@ -474,6 +486,137 @@ test('runCliIteration commits completed work when scmStrategy is commit-on-done'
     await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'iteration-result.json'), 'utf8')
   ) as { warnings: string[] };
   assert.match(persistedResult.warnings.join('\n'), /SCM commit-on-done succeeded/);
+});
+
+test('runCliIteration uses branch-per-task SCM with parent integration branches and an atomic parent merge', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T40', title: 'Ship parent integration', status: 'todo' },
+      { id: 'T40.2', title: 'Implement branch strategy', status: 'todo', parentId: 'T40', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off',
+    scmStrategy: 'branch-per-task'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "branch-per-task";\n', 'utf8');
+        return {
+          stdout: 'completed task',
+          lastMessage: completionReport({
+            selectedTaskId: 'T40.2',
+            requestedStatus: 'done',
+            progressNote: 'Completed T40.2 via branch-per-task SCM.',
+            validationRan: 'npm test'
+          })
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const commits = await readFakeGitCommits(rootPath);
+  assert.equal(commits.length, 3);
+  assert.equal(commits[0]?.subject, 'ralph(T40.2): Implement branch strategy');
+  assert.equal(commits[1]?.subject, 'ralph(T40.2): merge ralph/T40.2 into ralph/integration/T40');
+  assert.equal(commits[2]?.subject, 'ralph(T40): Ship parent integration');
+
+  const gitState = await readFakeGitState(rootPath);
+  assert.equal(gitState.currentBranch, 'main');
+  assert.ok('ralph/integration/T40' in gitState.branches);
+  assert.ok('ralph/T40.2' in gitState.branches);
+
+  const claims = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{
+      taskId: string;
+      status: string;
+      baseBranch?: string;
+      integrationBranch?: string;
+      featureBranch?: string;
+    }>;
+  };
+  assert.equal(claims.claims[0]?.taskId, 'T40.2');
+  assert.equal(claims.claims[0]?.status, 'released');
+  assert.equal(claims.claims[0]?.baseBranch, 'main');
+  assert.equal(claims.claims[0]?.integrationBranch, 'ralph/integration/T40');
+  assert.equal(claims.claims[0]?.featureBranch, 'ralph/T40.2');
+
+  const finalTaskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T40.2')?.status, 'done');
+  assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T40')?.status, 'done');
+  assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task merged ralph\/T40\.2 into ralph\/integration\/T40/);
+  assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task merged ralph\/integration\/T40 into main for parent T40/);
+});
+
+test('runCliIteration reopens the task when branch-per-task merge hits a conflict', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T41', title: 'Top-level branch merge', status: 'todo', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off',
+    scmStrategy: 'branch-per-task'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "feature-branch";\n', 'utf8');
+        const gitState = await readFakeGitState(rootPath);
+        gitState.branches.main.files['src/feature.ts'] = 'export const ready = "main-branch";\n';
+        await fs.writeFile(
+          path.join(rootPath, '.git', 'ralph-test-index.json'),
+          `${JSON.stringify(gitState, null, 2)}\n`,
+          'utf8'
+        );
+
+        return {
+          stdout: 'completed task',
+          lastMessage: completionReport({
+            selectedTaskId: 'T41',
+            requestedStatus: 'done',
+            progressNote: 'Completed T41 but the base branch diverged.',
+            validationRan: 'npm test'
+          })
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const finalTaskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  assert.equal(finalTaskFile.tasks.find((task) => task.id === 'T41')?.status, 'in_progress');
+  assert.match(finalTaskFile.tasks.find((task) => task.id === 'T41')?.blocker ?? '', /src\/feature\.ts/);
+
+  const gitState = await readFakeGitState(rootPath);
+  assert.equal(gitState.currentBranch, 'main');
+  assert.deepEqual(gitState.conflictPaths, ['src/feature.ts']);
+  assert.match(summary.result.warnings.join('\n'), /SCM branch-per-task failed for T41: Merge conflict/);
+  assert.match(summary.result.warnings.join('\n'), /src\/feature\.ts/);
 });
 
 test('runCliIteration persists blocked preflight evidence before throwing', async () => {
@@ -1654,6 +1797,183 @@ test('runCliIteration applies blocked completion reports through control-plane r
   assert.equal(selectedTask?.blocker, 'Waiting on API contract.');
   assert.equal(selectedTask?.notes, 'Blocked while waiting for the upstream schema.');
   assert.match(progressText, /Blocked while waiting for the upstream schema\./);
+});
+
+test('runCliIteration ignores watchdog actions from non-watchdog agents', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Selected task', status: 'todo' },
+      { id: 'T2', title: 'Should not be escalated', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'still working',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'in_progress',
+          progressNote: 'Continued the selected task.',
+          watchdog_actions: [
+            {
+              taskId: 'T2',
+              agentId: 'builder-2',
+              action: 'escalate_to_human',
+              severity: 'CRITICAL',
+              reason: 'Ownership looks contested.',
+              evidence: 'Conflicting active claims appeared in the claim graph.',
+              trailingNoProgressCount: 0,
+              trailingRepeatedFailureCount: 2
+            }
+          ]
+        }, 'Non-watchdog report with watchdog actions.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false,
+    configOverrides: {
+      agentRole: 'build',
+      agentId: 'builder-1'
+    }
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.notes, 'Continued the selected task.');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T2')?.blocker, undefined);
+  assert.doesNotMatch(progressText, /\[watchdog\]\[CRITICAL\]\[escalate_to_human\] task=T2/);
+});
+
+test('runCliIteration lets watchdog agents reconcile cross-task recovery actions', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'W1', title: 'Watchdog reconciliation task', status: 'todo' },
+      { id: 'T2', title: 'Recover stale claim', status: 'todo' },
+      { id: 'T3', title: 'Decompose stalled task', status: 'todo' },
+      { id: 'T4', title: 'Escalate safely', status: 'todo' }
+    ]
+  });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), `${JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T2',
+        agentId: 'builder-2',
+        provenanceId: 'run-i010-cli-20260301T000000Z',
+        claimedAt: '2026-03-01T00:00:00.000Z',
+        status: 'active'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        stdout: 'watchdog recovery actions prepared',
+        lastMessage: completionReport({
+          selectedTaskId: 'W1',
+          requestedStatus: 'in_progress',
+          progressNote: 'Reconciled watchdog recovery actions.',
+          watchdog_actions: [
+            {
+              taskId: 'T2',
+              agentId: 'builder-2',
+              action: 'resolve_stale_claim',
+              severity: 'HIGH',
+              reason: 'The canonical claim is stale and no new execution evidence exists.',
+              evidence: 'Claim age exceeded TTL and no later iteration artifacts were present.',
+              trailingNoProgressCount: 0,
+              trailingRepeatedFailureCount: 1
+            },
+            {
+              taskId: 'T3',
+              agentId: 'builder-3',
+              action: 'decompose_task',
+              severity: 'HIGH',
+              reason: 'The task has repeated no-progress runs.',
+              evidence: 'Three trailing iterations ended with no_progress and no meaningful diff.',
+              trailingNoProgressCount: 3,
+              trailingRepeatedFailureCount: 0,
+              suggestedChildTasks: [
+                {
+                  id: 'T3.1',
+                  title: 'Split the stalled task into a recoverable slice',
+                  parentId: 'T3',
+                  dependsOn: [],
+                  validation: 'npm test',
+                  rationale: 'Reduce the stalled scope to a single verifiable slice.'
+                }
+              ]
+            },
+            {
+              taskId: 'T4',
+              agentId: 'builder-4',
+              action: 'escalate_to_human',
+              severity: 'CRITICAL',
+              reason: 'The evidence does not support a safe automated recovery.',
+              evidence: 'Repeated human-review-needed stops block autonomous continuation.',
+              trailingNoProgressCount: 1,
+              trailingRepeatedFailureCount: 2
+            }
+          ]
+        }, 'Watchdog recovery actions follow.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false,
+    configOverrides: {
+      agentRole: 'watchdog',
+      agentId: 'watchdog-1'
+    }
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const claimFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{ taskId: string; agentId: string; status: string; resolvedBy?: string; resolutionReason?: string }>;
+  };
+  const progressText = await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8');
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'W1')?.notes, 'Reconciled watchdog recovery actions.');
+  assert.equal(claimFile.claims.find((claim) => claim.taskId === 'T2' && claim.agentId === 'builder-2')?.status, 'stale');
+  assert.equal(claimFile.claims.find((claim) => claim.taskId === 'T2' && claim.agentId === 'builder-2')?.resolvedBy, 'watchdog-1');
+  assert.match(
+    claimFile.claims.find((claim) => claim.taskId === 'T2' && claim.agentId === 'builder-2')?.resolutionReason ?? '',
+    /HIGH watchdog recovery/
+  );
+  assert.ok(taskFile.tasks.find((task) => task.id === 'T3.1'));
+  assert.equal(
+    taskFile.tasks.find((task) => task.id === 'T4')?.blocker,
+    'Watchdog escalation (CRITICAL) for builder-4: The evidence does not support a safe automated recovery.'
+  );
+  assert.match(progressText, /\[watchdog\]\[CRITICAL\]\[escalate_to_human\] task=T4 agent=builder-4/);
 });
 
 test('runCliIteration auto-completes aggregate parents after the final child slice reports done', async () => {
@@ -2903,6 +3223,64 @@ test('runCliIteration stops immediately when human review is required and config
 
   assert.equal(summary.result.completionClassification, 'needs_human_review');
   assert.equal(summary.result.stopReason, 'human_review_needed');
+});
+
+test('review-agent source edits are treated as a verification anomaly instead of progress', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Review current implementation', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['gitDiff', 'taskState']
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = false;\n', 'utf8');
+        return {
+          stdout: 'review mutated src/feature.ts',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1',
+            requestedStatus: 'done',
+            progressNote: 'Review pass finished.',
+            validationRan: 'npm test'
+          })
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false,
+    configOverrides: {
+      agentRole: 'review',
+      agentId: 'review-default'
+    }
+  });
+
+  assert.equal(summary.result.verificationStatus, 'failed');
+  assert.equal(summary.result.completionReportStatus, 'rejected');
+  assert.equal(summary.result.completionClassification, 'no_progress');
+  assert.match(summary.result.summary, /Outcome: no_progress/);
+  assert.match(summary.result.warnings.join('\n'), /Review-agent anomaly: detected source-file modifications/);
+  assert.match(summary.result.errors.join('\n'), /Review agents must not modify source files/);
+
+  const gitDiffVerifier = summary.result.verification.verifiers.find((verifier) => verifier.verifier === 'gitDiff');
+  assert.equal(gitDiffVerifier?.status, 'failed');
+  assert.match(gitDiffVerifier?.summary ?? '', /review-only pass/);
+
+  const updatedTaskFile = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')
+  ) as RalphTaskFile;
+  assert.equal(updatedTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
 });
 
 test('runCliIteration writes a structured handoff note on clean termination', async () => {

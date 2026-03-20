@@ -20,6 +20,12 @@ function sanitizeCompletionText(value, maximumLength = 400) {
 function isAllowedCompletionStatus(value) {
     return value === 'done' || value === 'blocked' || value === 'in_progress';
 }
+function isAllowedWatchdogActionType(value) {
+    return value === 'resolve_stale_claim' || value === 'decompose_task' || value === 'escalate_to_human';
+}
+function isAllowedWatchdogActionSeverity(value) {
+    return value === 'MEDIUM' || value === 'HIGH' || value === 'CRITICAL';
+}
 function parseSuggestedTaskDependency(candidate) {
     if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
         return null;
@@ -85,6 +91,63 @@ function parseSuggestedChildTasks(candidate) {
         .map(parseSuggestedChildTask)
         .filter((task) => task !== null);
     return tasks.length === candidate.length ? tasks : null;
+}
+function parseWatchdogAction(candidate) {
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.taskId !== 'string' || !record.taskId.trim()) {
+        return null;
+    }
+    if (typeof record.agentId !== 'string' || !record.agentId.trim()) {
+        return null;
+    }
+    if (!isAllowedWatchdogActionType(record.action)) {
+        return null;
+    }
+    if (!isAllowedWatchdogActionSeverity(record.severity)) {
+        return null;
+    }
+    const reason = sanitizeCompletionText(typeof record.reason === 'string' ? record.reason : undefined);
+    const evidence = sanitizeCompletionText(typeof record.evidence === 'string' ? record.evidence : undefined);
+    if (!reason || !evidence) {
+        return null;
+    }
+    if (!Number.isInteger(record.trailingNoProgressCount) || record.trailingNoProgressCount < 0) {
+        return null;
+    }
+    if (!Number.isInteger(record.trailingRepeatedFailureCount) || record.trailingRepeatedFailureCount < 0) {
+        return null;
+    }
+    const trailingNoProgressCount = record.trailingNoProgressCount;
+    const trailingRepeatedFailureCount = record.trailingRepeatedFailureCount;
+    const suggestedChildTasks = parseSuggestedChildTasks(record.suggestedChildTasks);
+    if (suggestedChildTasks === null) {
+        return null;
+    }
+    return {
+        taskId: record.taskId.trim(),
+        agentId: record.agentId.trim(),
+        action: record.action,
+        severity: record.severity,
+        reason,
+        evidence,
+        trailingNoProgressCount,
+        trailingRepeatedFailureCount,
+        suggestedChildTasks
+    };
+}
+function parseWatchdogActions(candidate) {
+    if (candidate === undefined) {
+        return undefined;
+    }
+    if (!Array.isArray(candidate)) {
+        return undefined;
+    }
+    return candidate
+        .map(parseWatchdogAction)
+        .filter((action) => action !== null);
 }
 function extractTrailingJsonObject(text) {
     const trimmed = text.trimEnd();
@@ -195,6 +258,7 @@ function parseCompletionReport(lastMessage) {
             parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.'
         };
     }
+    const watchdogActions = parseWatchdogActions(candidate.watchdog_actions);
     const report = {
         selectedTaskId: candidate.selectedTaskId.trim(),
         requestedStatus: candidate.requestedStatus,
@@ -202,7 +266,8 @@ function parseCompletionReport(lastMessage) {
         blocker: sanitizeCompletionText(typeof candidate.blocker === 'string' ? candidate.blocker : undefined),
         validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
         needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
-        suggestedChildTasks
+        suggestedChildTasks,
+        watchdog_actions: watchdogActions
     };
     return {
         status: 'parsed',

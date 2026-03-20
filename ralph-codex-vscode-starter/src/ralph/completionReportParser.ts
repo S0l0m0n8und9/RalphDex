@@ -2,7 +2,10 @@ import {
   RalphCompletionReport,
   RalphCompletionReportRequestedStatus,
   RalphSuggestedChildTask,
-  RalphSuggestedTaskDependency
+  RalphSuggestedTaskDependency,
+  RalphWatchdogAction,
+  RalphWatchdogActionSeverity,
+  RalphWatchdogActionType
 } from './types';
 
 export interface CompletionReportArtifact {
@@ -41,6 +44,14 @@ export function sanitizeCompletionText(value: string | undefined, maximumLength 
 
 export function isAllowedCompletionStatus(value: string): value is RalphCompletionReportRequestedStatus {
   return value === 'done' || value === 'blocked' || value === 'in_progress';
+}
+
+function isAllowedWatchdogActionType(value: unknown): value is RalphWatchdogActionType {
+  return value === 'resolve_stale_claim' || value === 'decompose_task' || value === 'escalate_to_human';
+}
+
+function isAllowedWatchdogActionSeverity(value: unknown): value is RalphWatchdogActionSeverity {
+  return value === 'MEDIUM' || value === 'HIGH' || value === 'CRITICAL';
 }
 
 function parseSuggestedTaskDependency(candidate: unknown): RalphSuggestedTaskDependency | null {
@@ -116,6 +127,71 @@ function parseSuggestedChildTasks(candidate: unknown): RalphSuggestedChildTask[]
     .map(parseSuggestedChildTask)
     .filter((task): task is RalphSuggestedChildTask => task !== null);
   return tasks.length === candidate.length ? tasks : null;
+}
+
+function parseWatchdogAction(candidate: unknown): RalphWatchdogAction | null {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.taskId !== 'string' || !record.taskId.trim()) {
+    return null;
+  }
+  if (typeof record.agentId !== 'string' || !record.agentId.trim()) {
+    return null;
+  }
+  if (!isAllowedWatchdogActionType(record.action)) {
+    return null;
+  }
+  if (!isAllowedWatchdogActionSeverity(record.severity)) {
+    return null;
+  }
+
+  const reason = sanitizeCompletionText(typeof record.reason === 'string' ? record.reason : undefined);
+  const evidence = sanitizeCompletionText(typeof record.evidence === 'string' ? record.evidence : undefined);
+  if (!reason || !evidence) {
+    return null;
+  }
+  if (!Number.isInteger(record.trailingNoProgressCount) || (record.trailingNoProgressCount as number) < 0) {
+    return null;
+  }
+  if (!Number.isInteger(record.trailingRepeatedFailureCount) || (record.trailingRepeatedFailureCount as number) < 0) {
+    return null;
+  }
+
+  const trailingNoProgressCount = record.trailingNoProgressCount as number;
+  const trailingRepeatedFailureCount = record.trailingRepeatedFailureCount as number;
+
+  const suggestedChildTasks = parseSuggestedChildTasks(record.suggestedChildTasks);
+  if (suggestedChildTasks === null) {
+    return null;
+  }
+
+  return {
+    taskId: record.taskId.trim(),
+    agentId: record.agentId.trim(),
+    action: record.action,
+    severity: record.severity,
+    reason,
+    evidence,
+    trailingNoProgressCount,
+    trailingRepeatedFailureCount,
+    suggestedChildTasks
+  };
+}
+
+function parseWatchdogActions(candidate: unknown): RalphWatchdogAction[] | undefined {
+  if (candidate === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(candidate)) {
+    return undefined;
+  }
+
+  return candidate
+    .map(parseWatchdogAction)
+    .filter((action): action is RalphWatchdogAction => action !== null);
 }
 
 export function extractTrailingJsonObject(text: string): string | null {
@@ -235,6 +311,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.'
     };
   }
+  const watchdogActions = parseWatchdogActions(candidate.watchdog_actions);
 
   const report: RalphCompletionReport = {
     selectedTaskId: candidate.selectedTaskId.trim(),
@@ -243,7 +320,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     blocker: sanitizeCompletionText(typeof candidate.blocker === 'string' ? candidate.blocker : undefined),
     validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
     needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
-    suggestedChildTasks
+    suggestedChildTasks,
+    watchdog_actions: watchdogActions
   };
 
   return {

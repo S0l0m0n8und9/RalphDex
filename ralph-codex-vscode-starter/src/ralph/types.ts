@@ -33,6 +33,9 @@ export interface RalphTaskClaim {
   claimedAt: string;
   provenanceId: string;
   status: RalphTaskClaimStatus;
+  baseBranch?: string;
+  integrationBranch?: string;
+  featureBranch?: string;
   resolvedAt?: string;
   resolvedBy?: string;
   resolutionReason?: string;
@@ -426,6 +429,21 @@ export interface RalphIterationBacklogSummary {
 
 export type RalphCompletionReportRequestedStatus = 'done' | 'blocked' | 'in_progress';
 
+export type RalphWatchdogActionType = 'resolve_stale_claim' | 'decompose_task' | 'escalate_to_human';
+export type RalphWatchdogActionSeverity = 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface RalphWatchdogAction {
+  taskId: string;
+  agentId: string;
+  action: RalphWatchdogActionType;
+  severity: RalphWatchdogActionSeverity;
+  reason: string;
+  evidence: string;
+  trailingNoProgressCount: number;
+  trailingRepeatedFailureCount: number;
+  suggestedChildTasks?: RalphSuggestedChildTask[];
+}
+
 export interface RalphCompletionReport {
   selectedTaskId: string;
   requestedStatus: RalphCompletionReportRequestedStatus;
@@ -434,6 +452,7 @@ export interface RalphCompletionReport {
   validationRan?: string;
   needsHumanReview?: boolean;
   suggestedChildTasks?: RalphSuggestedChildTask[];
+  watchdog_actions?: RalphWatchdogAction[];
 }
 
 export type RalphCompletionReportStatus = 'applied' | 'rejected' | 'missing' | 'invalid';
