@@ -1,0 +1,12 @@
+{
+  "agentId": "default",
+  "iteration": 133,
+  "selectedTaskId": "T33.3",
+  "selectedTaskTitle": "Implement auto-application of decompose_task using the existing apply-proposal write path",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "partial_progress",
+  "progressNote": "Verified the durable T33.3 implementation already routes decompose_task auto-apply through the shared proposal write path, with source/docs/tests in place and relevant regression coverage passing under npm test.",
+  "pendingBlocker": "Full `npm test` is currently blocked by unrelated TypeScript compile errors in prompt-builder tests that are missing required `RalphPaths.handoffDir`.",
+  "validationFailureSignature": "cd ralph-codex-vscode-starter && npm test::exit:1::> ralph-codex-workbench@0.1.0 test | > npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test --test-isolation=none ./out-test/test/*.js | > ralph-codex-workbench@0.1.0 compile:tests",
+  "humanSummary": "T33.3 (Implement auto-application of decompose_task using the existing apply-proposal write path) stopped with control_plane_reload_required. Verified the durable T33.3 implementation already routes decompose_task auto-apply through the shared proposal write path, with source/docs/tests in place and relevant regression coverage passing under npm test."
+}

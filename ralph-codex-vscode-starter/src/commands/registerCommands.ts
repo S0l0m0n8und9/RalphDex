@@ -1130,6 +1130,32 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
   });
 
   registerCommand(context, logger, {
+    commandId: 'ralphCodex.runWatchdogAgent',
+    label: 'Ralph: Run Watchdog Agent',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+        reachedIterationCap: false,
+        configOverrides: {
+          agentRole: 'watchdog',
+          agentId: 'watchdog'
+        }
+      });
+
+      if (run.result.executionStatus === 'failed') {
+        throw new Error(iterationFailureMessage(run.result));
+      }
+
+      const note = createdPathSummary(run.prepared.rootPath, run.createdPaths);
+      const baseMessage = run.result.executionStatus === 'skipped'
+        ? `Ralph watchdog iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
+        : `Ralph watchdog iteration ${run.result.iteration} completed. ${run.result.summary}`;
+
+      void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+    }
+  });
+
+  registerCommand(context, logger, {
     commandId: 'ralphCodex.runRalphLoop',
     label: 'Ralph Codex: Run CLI Loop',
     handler: async (progress) => {

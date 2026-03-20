@@ -772,6 +772,12 @@ export class RalphStateManager {
     });
 
     if (locked.outcome === 'lock_timeout') {
+      // Another caller may have completed the seed or migration while this caller was waiting.
+      const fallbackRaw = await readText(paths.taskFilePath);
+      if (fallbackRaw.trim()) {
+        return inspectTaskFileText(fallbackRaw);
+      }
+
       throw new Error(
         `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
       );

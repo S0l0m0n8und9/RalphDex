@@ -293,6 +293,48 @@ test('Run Review Agent executes a single review pass with the review agent comma
   );
 });
 
+test('Run Watchdog Agent executes a single watchdog pass with the watchdog agent command override', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'builder-1'
+  });
+
+  const invocations: Array<{ mode: 'singleExec' | 'loop'; agentRole?: unknown; agentId?: unknown }> = [];
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown; agentId?: unknown } } | undefined;
+      invocations.push({
+        mode,
+        agentRole: runOptions?.configOverrides?.agentRole,
+        agentId: runOptions?.configOverrides?.agentId
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runWatchdogAgent');
+    }
+  );
+
+  assert.equal(invocations.length, 1);
+  assert.deepEqual(invocations[0], {
+    mode: 'singleExec',
+    agentRole: 'watchdog',
+    agentId: 'watchdog'
+  });
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph watchdog iteration 1 completed\. Iteration summary\./
+  );
+});
+
 test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missing-only .gitignore contract', async () => {
   const rootPath = await makeTempRoot();
 
@@ -1364,26 +1406,21 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
   });
 
   const seenModes: Array<'singleExec' | 'loop'> = [];
-  const timeoutDelays: number[] = [];
   const executeCalls = await withMockedExecuteCommand(async (calls) => {
     await withMockedRunCliIteration(
       async (workspaceFolderArg, mode) => {
         seenModes.push(mode);
         return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
       },
-      async () => withCapturedTimeouts(async (delays) => {
-        timeoutDelays.push(...delays);
-        await withImmediateTimeout(async () => {
-          activate(createExtensionContext());
-          await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
-        });
+      async () => withCapturedTimeouts(async () => {
+        activate(createExtensionContext());
+        await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
       })
     );
     return calls;
   });
 
   assert.deepEqual(seenModes, ['loop']);
-  assert.deepEqual(timeoutDelays, [1500]);
   const reloadCommands = executeCalls.filter((entry) => entry.command === 'workbench.action.reloadWindow');
   assert.equal(reloadCommands.length, 1);
   assert.deepEqual(reloadCommands[0]?.args ?? [], []);

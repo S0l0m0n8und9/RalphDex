@@ -2,35 +2,47 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "type": "npm",
-      "script": "compile",
+      "label": "ralphdex: compile extension",
+      "type": "shell",
+      "command": "npm run compile",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": "$tsc",
       "group": {
         "kind": "build",
         "isDefault": true
+      }
+    },
+    {
+      "label": "ralphdex: watch extension",
+      "type": "shell",
+      "command": "npm run watch",
+      "options": {
+        "cwd": "${workspaceFolder}"
       },
-      "label": "npm: compile"
-    },
-    {
-      "type": "npm",
-      "script": "watch",
       "problemMatcher": "$tsc-watch",
-      "isBackground": true,
-      "label": "npm: watch"
+      "isBackground": true
     },
     {
-      "type": "npm",
-      "script": "lint",
+      "label": "ralphdex: lint extension",
+      "type": "shell",
+      "command": "npm run lint",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": "$tsc",
-      "group": "test",
-      "label": "npm: lint"
+      "group": "test"
     },
     {
-      "type": "npm",
-      "script": "test",
+      "label": "ralphdex: test extension",
+      "type": "shell",
+      "command": "npm run test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
       "problemMatcher": [],
-      "group": "test",
-      "label": "npm: test"
+      "group": "test"
     }
   ]
 }

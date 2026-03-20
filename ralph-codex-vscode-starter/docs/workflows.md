@@ -364,6 +364,22 @@ Operator approval remains explicit:
 - the review pass does not commit those proposals into the durable task ledger by itself
 - review proposals become real tasks only after the operator explicitly runs `Apply Latest Task Decomposition Proposal`
 
+### Watchdog Agent
+
+Run `Ralph: Run Watchdog Agent` when the multi-agent claim graph or recent iteration history suggests a worker is stuck, stale, or repeatedly failing and you want Ralph to attempt bounded recovery before escalating to a human.
+
+The watchdog runs a single CLI iteration in `agentRole = watchdog` with a fixed `agentId = watchdog`. That gives it a stable recovery identity while keeping it outside the normal build-agent claim pool.
+
+The watchdog may take these autonomous recovery actions when the evidence is strong enough:
+
+- resolve a stale claim held by another agent when the canonical claim is still active but no fresh execution evidence exists
+- apply a valid `decompose_task` proposal for a stalled task through the same bounded task-file write path used by the explicit decomposition apply command
+- escalate a task to human review by appending a durable progress entry and writing a blocker on the affected task when no safe automated recovery exists
+
+Use this escalation rule when the watchdog cannot recover safely:
+
+- if the watchdog records an escalation, inspect the blocker and progress entry first, then decide whether to repair the task graph, reassign the work, or intervene manually before running more loops
+
 ### Source Control Agent
 
 Use `agentRole = scm` only for loops that are meant to watch the durable branch-per-task state and finish repository plumbing after build agents complete child slices.
