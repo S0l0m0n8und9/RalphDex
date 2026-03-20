@@ -708,38 +708,50 @@ async function updateAgentIdentityRecord(input: {
 }): Promise<void> {
   const agentDirectoryPath = path.join(input.rootPath, '.ralph', 'agents');
   const recordPath = path.join(agentDirectoryPath, `${input.agentId}.json`);
-  let existing: unknown = null;
 
-  try {
-    existing = JSON.parse(await fs.readFile(recordPath, 'utf8')) as unknown;
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== 'ENOENT') {
-      throw error;
-    }
-  }
-
-  const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
-  const completedTaskIds = [...record.completedTaskIds];
-  if (input.selectedTaskCompleted && input.selectedTaskId) {
-    completedTaskIds.push(input.selectedTaskId);
-  }
-
-  const nextRecord: RalphAgentIdentityRecord = {
-    agentId: input.agentId,
-    firstSeenAt: record.firstSeenAt,
-    completedTaskIds,
-    touchedFiles: uniqueSorted([
-      ...record.touchedFiles,
-      ...(input.diffSummary?.changedFiles ?? [])
-    ])
-  };
-
+  // Wrap the entire read-compute-write cycle in withTaskFileLock so that concurrent agents
+  // sharing the same agentId serialise on .ralph/agents/tasks.lock instead of racing.
+  // The temp-file rename is kept for crash safety; the lock eliminates the TOCTOU race.
   await fs.mkdir(agentDirectoryPath, { recursive: true });
-  const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
-  await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
-  await fs.rm(recordPath, { force: true });
-  await fs.rename(tempPath, recordPath);
+  const locked = await withTaskFileLock(recordPath, undefined, async () => {
+    let existing: unknown = null;
+
+    try {
+      existing = JSON.parse(await fs.readFile(recordPath, 'utf8')) as unknown;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
+    const completedTaskIds = [...record.completedTaskIds];
+    if (input.selectedTaskCompleted && input.selectedTaskId) {
+      completedTaskIds.push(input.selectedTaskId);
+    }
+
+    const nextRecord: RalphAgentIdentityRecord = {
+      agentId: input.agentId,
+      firstSeenAt: record.firstSeenAt,
+      completedTaskIds,
+      touchedFiles: uniqueSorted([
+        ...record.touchedFiles,
+        ...(input.diffSummary?.changedFiles ?? [])
+      ])
+    };
+
+    const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
+    await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
+    await fs.rm(recordPath, { force: true });
+    await fs.rename(tempPath, recordPath);
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring agent record lock for ${input.agentId} after ${locked.attempts} attempt(s).`
+    );
+  }
 }
 
 export class RalphIterationEngine {

@@ -209,6 +209,23 @@ async function reconcileCompletionReport(input) {
         warnings
     };
 }
+// Acquires the task-file lock once and, inside that critical section, writes both
+// tasks.json and the progress bullet.  Used by the watchdog escalate_to_human path so
+// the progress.md append is never interleaved with concurrent task-file writes.
+async function updateTaskFileWithProgress(taskFilePath, progressPath, progressNote, transform) {
+    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
+        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        const trimmed = progressNote.trim();
+        if (trimmed) {
+            const current = await fs.readFile(progressPath, 'utf8');
+            await fs.writeFile(progressPath, `${current.trimEnd()}\n- ${trimmed}\n`, 'utf8');
+        }
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+}
 async function updateTaskFile(taskFilePath, transform) {
     const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
         const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
@@ -304,9 +321,7 @@ async function processWatchdogActions(input, watchdogActions) {
             warnings.push(`Watchdog action escalate_to_human could not find task ${action.taskId}.`);
             continue;
         }
-        await appendProgressBullet(input.prepared.paths.progressPath, buildWatchdogEscalationEntry(action));
-        progressChanged = true;
-        await updateTaskFile(input.taskFilePath, (taskFile) => ({
+        await updateTaskFileWithProgress(input.taskFilePath, input.prepared.paths.progressPath, buildWatchdogEscalationEntry(action), (taskFile) => ({
             ...taskFile,
             tasks: taskFile.tasks.map((task) => {
                 if (task.id !== action.taskId) {
@@ -318,6 +333,7 @@ async function processWatchdogActions(input, watchdogActions) {
                 };
             })
         }));
+        progressChanged = true;
         taskFileChanged = true;
     }
     return {

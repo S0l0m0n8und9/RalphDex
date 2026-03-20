@@ -2,7 +2,7 @@
 
 This document catalogues verification challenges and race conditions that arise when multiple Ralph iterations run concurrently.
 
-**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`, which acquires the task-file lock once and re-checks claim ownership, writes tasks.json, and appends the progress bullet all inside that single critical section. Gaps 3–10 remain open.
+**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`. Gaps 3 and 4 (HIGH) were subsequently fixed. Gaps 5–10 remain open.
 
 ---
 
@@ -13,7 +13,7 @@ This document catalogues verification challenges and race conditions that arise 
 | `.ralph/tasks.json` | `withTaskFileLock()` — exclusive advisory lock | ~~TOCTOU window between ownership check and write~~ **Fixed** |
 | `.ralph/claims.json` | `withClaimFileLock()` — write-then-verify pattern | Well protected |
 | `.ralph/progress.md` | `withTaskFileLock()` via `updateTaskFileWithVerification` (main path) | ~~Unprotected read-modify-write~~ **Fixed** for main path; watchdog escalation still unprotected |
-| `.ralph/agents/{id}.json` | **None** — temp-file + rename only | HIGH — last-writer-wins data loss |
+| `.ralph/agents/{id}.json` | `withTaskFileLock()` on record path → `.ralph/agents/tasks.lock` | ~~HIGH — last-writer-wins data loss~~ **Fixed** |
 | `.ralph/state.json` | None | Low — overwrite is idempotent |
 
 ---
@@ -44,32 +44,23 @@ This document catalogues verification challenges and race conditions that arise 
 
 ---
 
-## Gap 3 — Agent Identity Record Has No Lock (HIGH)
+## Gap 3 — Agent Identity Record Has No Lock ~~(HIGH)~~ **Fixed**
 
-**Location:** `src/ralph/iterationEngine.ts:701–743`
+**Location:** `src/ralph/iterationEngine.ts` — `updateAgentIdentityRecord`
 
-`updateAgentIdentityRecord()` reads the existing record, computes the merged next record, writes a temp file, deletes the original, then renames the temp into place:
+**Fix:** The entire read-compute-write cycle is now wrapped in `withTaskFileLock(recordPath, ...)`, which creates `.ralph/agents/tasks.lock` as an advisory lock (separate from `.ralph/tasks.lock`). Concurrent agents sharing the same `agentId` serialise on this lock; the temp-file rename is retained for crash safety.
 
-```
-read record → compute update → write .tmp → rm original → rename .tmp → original
-```
-
-This is not equivalent to an atomic locked update. Two agents with the same `agentId` writing simultaneously will both read the same original, compute independent updates, and the second rename will overwrite the first, losing the first agent's completed-task history.
-
-The temp-file name includes `process.pid` and `Date.now()` but both can collide at millisecond granularity on a single machine.
+~~`updateAgentIdentityRecord()` reads the existing record, computes the merged next record, writes a temp file, deletes the original, then renames the temp into place. This is not equivalent to an atomic locked update. Two agents writing simultaneously will both read the same original and the second rename overwrites the first, losing completed-task history.~~
 
 ---
 
-## Gap 4 — Watchdog and Build Agents Race on Task Graph Mutations (HIGH)
+## Gap 4 — Watchdog and Build Agents Race on Task Graph Mutations ~~(HIGH)~~ **Partially Fixed**
 
-**Location:** `src/ralph/reconciliation.ts:222–355`
+**Location:** `src/ralph/reconciliation.ts` — `processWatchdogActions`
 
-Watchdog actions (`decompose_task`, `resolve_stale_claim`) acquire the task-file lock and the claim-file lock independently and sequentially. There is no encompassing lock that prevents a build agent from:
+**Fix (partial):** The `escalate_to_human` branch previously called `appendProgressBullet` (outside any lock) and then `updateTaskFile` as two separate operations. These are now a single `updateTaskFileWithProgress` call that writes both tasks.json and progress.md under one `withTaskFileLock` acquisition, eliminating the interleaved-write hazard for watchdog escalations.
 
-1. Claiming a task while the watchdog is mid-decompose of that same task.
-2. Reading a claim as valid while the watchdog is resolving it as stale.
-
-The watchdog re-checks claim ownership before each action but does not hold a claim lock across the full mutation window, leaving gaps between the per-action checks.
+**Remaining exposure:** The broader race between watchdog `decompose_task` / `resolve_stale_claim` actions and concurrent build-agent claim acquisition is not yet closed. Watchdog actions acquire the task-file lock and claim-file lock independently; there is no encompassing lock preventing a build agent from claiming a task that the watchdog is mid-decompose on. Closing this fully requires either a cross-file transaction guard or a cooperative protocol between build and watchdog agents.
 
 ---
 
@@ -127,8 +118,8 @@ Concurrent writes to `tasks.json` are serialised by the task-file lock, but the 
 |---|---|---|---|
 | 1 | ~~TOCTOU between claim check and task-file write~~ **Fixed** | ~~CRITICAL~~ | `reconciliation.ts` → `updateTaskFileWithVerification` |
 | 2 | ~~`progress.md` unprotected read-modify-write~~ **Fixed (main path)** | ~~CRITICAL~~ | `reconciliation.ts` → inside lock; watchdog path still open |
-| 3 | Agent identity record has no lock | HIGH | `iterationEngine.ts:701–743` |
-| 4 | Watchdog + build agent race on task graph | HIGH | `reconciliation.ts:222–355` |
+| 3 | ~~Agent identity record has no lock~~ **Fixed** | ~~HIGH~~ | `iterationEngine.ts` → `updateAgentIdentityRecord` now uses `withTaskFileLock` |
+| 4 | ~~Watchdog escalation progress.md race~~ **Fixed**; broader watchdog/build race open | ~~HIGH~~ | `reconciliation.ts` → `updateTaskFileWithProgress` |
 | 5 | Validation execution is unverified | MEDIUM | `reconciliation.ts:110–127` |
 | 6 | Stale task context between prepare and execute | MEDIUM | `iterationEngine.ts:1071–1140` |
 | 7 | Ledger drift detected one cycle too late | MEDIUM | `loopLogic.ts:52–61` |

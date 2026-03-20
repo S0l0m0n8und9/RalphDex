@@ -248,6 +248,33 @@ export async function reconcileCompletionReport(
   };
 }
 
+// Acquires the task-file lock once and, inside that critical section, writes both
+// tasks.json and the progress bullet.  Used by the watchdog escalate_to_human path so
+// the progress.md append is never interleaved with concurrent task-file writes.
+async function updateTaskFileWithProgress(
+  taskFilePath: string,
+  progressPath: string,
+  progressNote: string,
+  transform: (taskFile: RalphTaskFile) => RalphTaskFile
+): Promise<void> {
+  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+    const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+
+    const trimmed = progressNote.trim();
+    if (trimmed) {
+      const current = await fs.readFile(progressPath, 'utf8');
+      await fs.writeFile(progressPath, `${current.trimEnd()}\n- ${trimmed}\n`, 'utf8');
+    }
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+}
+
 async function updateTaskFile(taskFilePath: string, transform: (taskFile: RalphTaskFile) => RalphTaskFile): Promise<void> {
   const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
     const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
@@ -381,21 +408,25 @@ async function processWatchdogActions(
       continue;
     }
 
-    await appendProgressBullet(input.prepared.paths.progressPath, buildWatchdogEscalationEntry(action));
-    progressChanged = true;
-    await updateTaskFile(input.taskFilePath, (taskFile) => ({
-      ...taskFile,
-      tasks: taskFile.tasks.map((task) => {
-        if (task.id !== action.taskId) {
-          return task;
-        }
+    await updateTaskFileWithProgress(
+      input.taskFilePath,
+      input.prepared.paths.progressPath,
+      buildWatchdogEscalationEntry(action),
+      (taskFile) => ({
+        ...taskFile,
+        tasks: taskFile.tasks.map((task) => {
+          if (task.id !== action.taskId) {
+            return task;
+          }
 
-        return {
-          ...task,
-          blocker: buildWatchdogBlocker(action)
-        };
+          return {
+            ...task,
+            blocker: buildWatchdogBlocker(action)
+          };
+        })
       })
-    }));
+    );
+    progressChanged = true;
     taskFileChanged = true;
   }
 
