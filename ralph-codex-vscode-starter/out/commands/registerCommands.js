@@ -324,6 +324,7 @@ function normalizeCompletionReportArtifact(candidate) {
         schemaVersion: 1,
         kind: 'completionReport',
         status: record.status,
+        rejectionReason: typeof record.rejectionReason === 'string' ? record.rejectionReason : null,
         selectedTaskId: record.selectedTaskId,
         report: normalizedReport,
         rawBlock: typeof record.rawBlock === 'string' ? record.rawBlock : null,

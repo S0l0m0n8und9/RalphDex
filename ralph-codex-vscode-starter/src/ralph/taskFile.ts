@@ -22,6 +22,11 @@ const EMPTY_COUNTS: RalphTaskCounts = {
 export const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
 const DEFAULT_LOCK_RETRY_COUNT = 40;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
+// Lock files older than this threshold are considered left by a crashed process and
+// are removed automatically so the next agent does not have to wait for a manual
+// operator to delete them.  5 minutes is generous enough to cover slow machines
+// while still recovering long before any realistic TTL or user-visible timeout.
+const STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
 
 const SUPPORTED_TASK_FIELDS = new Set([
   'id',
@@ -374,6 +379,18 @@ async function withClaimFileLock<T>(
         throw error;
       }
 
+      // Stale-lock recovery: if the lock file is older than the threshold it was
+      // left by a crashed process.  Remove it and retry immediately.
+      try {
+        const lockStat = await fs.stat(lockPath);
+        if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
+          await fs.rm(lockPath, { force: true });
+          continue;
+        }
+      } catch {
+        // lock was already removed between EEXIST and stat; retry normally
+      }
+
       await sleep(retryDelayMs);
     }
   }
@@ -420,6 +437,18 @@ export async function withTaskFileLock<T>(
           lockPath,
           attempts: attempt + 1
         };
+      }
+
+      // Stale-lock recovery: if the lock file is older than the threshold it was
+      // left by a crashed process.  Remove it and retry immediately.
+      try {
+        const lockStat = await fs.stat(lockPath);
+        if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
+          await fs.rm(lockPath, { force: true });
+          continue;
+        }
+      } catch {
+        // lock was already removed between EEXIST and stat; retry normally
       }
 
       await sleep(retryDelayMs);
@@ -1122,9 +1151,13 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
       ? { ...task, parentId: inferredParentId }
       : task;
   });
+  const parsedMutationCount = typeof record.mutationCount === 'number' && Number.isInteger(record.mutationCount) && record.mutationCount >= 0
+    ? record.mutationCount
+    : undefined;
   const taskFile: RalphTaskFile = {
     version: 2,
-    tasks: migratedTasks
+    tasks: migratedTasks,
+    ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
   };
   const taskDiagnostics = inspectTaskGraph(taskFile);
   const normalizedText = stringifyTaskFile(taskFile);
@@ -1205,11 +1238,22 @@ export function normalizeTaskFileText(raw: string): { taskFile: RalphTaskFile; t
   throw new Error(formatTaskGraphDiagnostics(inspection.diagnostics));
 }
 
+export function bumpMutationCount(taskFile: RalphTaskFile): RalphTaskFile {
+  return {
+    ...taskFile,
+    mutationCount: (taskFile.mutationCount ?? 0) + 1
+  };
+}
+
 export function stringifyTaskFile(taskFile: RalphTaskFile): string {
-  return `${JSON.stringify({
+  const obj: Record<string, unknown> = {
     version: taskFile.version,
     tasks: taskFile.tasks.map(({ source: _source, ...task }) => task)
-  }, null, 2)}\n`;
+  };
+  if (taskFile.mutationCount !== undefined) {
+    obj.mutationCount = taskFile.mutationCount;
+  }
+  return `${JSON.stringify(obj, null, 2)}\n`;
 }
 
 export function countTaskStatuses(taskFile: RalphTaskFile): RalphTaskCounts {

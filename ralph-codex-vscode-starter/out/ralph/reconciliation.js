@@ -43,6 +43,7 @@ async function reconcileCompletionReport(input) {
         schemaVersion: 1,
         kind: 'completionReport',
         status: parsed.status === 'parsed' ? 'rejected' : parsed.status,
+        rejectionReason: null,
         selectedTaskId: input.selectedTask?.id ?? null,
         report: parsed.report,
         rawBlock: parsed.rawBlock,
@@ -85,6 +86,7 @@ async function reconcileCompletionReport(input) {
         return {
             artifact: {
                 ...artifactBase,
+                rejectionReason: 'task_id_mismatch',
                 warnings
             },
             selectedTask: input.selectedTask,
@@ -106,6 +108,9 @@ async function reconcileCompletionReport(input) {
             return {
                 artifact: {
                     ...artifactBase,
+                    rejectionReason: input.verificationStatus !== 'passed'
+                        ? 'verification_failed'
+                        : 'needs_human_review_with_done',
                     warnings
                 },
                 selectedTask: input.selectedTask,
@@ -128,6 +133,7 @@ async function reconcileCompletionReport(input) {
         return {
             artifact: {
                 ...artifactBase,
+                rejectionReason: 'blocked_overrides_complete',
                 warnings
             },
             selectedTask: input.selectedTask,
@@ -180,6 +186,7 @@ async function reconcileCompletionReport(input) {
         return {
             artifact: {
                 ...artifactBase,
+                rejectionReason: 'claim_contested',
                 warnings
             },
             selectedTask: input.selectedTask,
@@ -231,7 +238,7 @@ async function reconcileCompletionReport(input) {
 // the progress.md append is never interleaved with concurrent task-file writes.
 async function updateTaskFileWithProgress(taskFilePath, progressPath, progressNote, transform) {
     const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
-        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        const nextTaskFile = (0, taskFile_1.bumpMutationCount)(transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'))));
         await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
         const trimmed = progressNote.trim();
         if (trimmed) {
@@ -245,7 +252,7 @@ async function updateTaskFileWithProgress(taskFilePath, progressPath, progressNo
 }
 async function updateTaskFile(taskFilePath, transform) {
     const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
-        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        const nextTaskFile = (0, taskFile_1.bumpMutationCount)(transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'))));
         await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
     });
     if (locked.outcome === 'lock_timeout') {
@@ -272,7 +279,7 @@ async function updateTaskFileWithVerification(taskFilePath, claimFilePath, taskI
             claimContested = true;
             return;
         }
-        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        const nextTaskFile = (0, taskFile_1.bumpMutationCount)(transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'))));
         await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
         if (progressNote) {
             const trimmed = progressNote.trim();

@@ -12,6 +12,8 @@ export interface CompletionReportArtifact {
   schemaVersion: 1;
   kind: 'completionReport';
   status: 'applied' | 'rejected' | 'missing' | 'invalid';
+  /** Machine-readable reason code when status is 'rejected', null otherwise. */
+  rejectionReason: string | null;
   selectedTaskId: string | null;
   report: RalphCompletionReport | null;
   rawBlock: string | null;

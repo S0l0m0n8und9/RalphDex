@@ -4,6 +4,7 @@ import { CompletionReportArtifact, parseCompletionReport } from './completionRep
 import {
   applySuggestedChildTasksToFile,
   autoCompleteSatisfiedAncestors,
+  bumpMutationCount,
   findTaskById,
   inspectClaimOwnership,
   inspectTaskClaimGraph,
@@ -49,6 +50,7 @@ export async function reconcileCompletionReport(
     schemaVersion: 1,
     kind: 'completionReport',
     status: parsed.status === 'parsed' ? 'rejected' : parsed.status,
+    rejectionReason: null,
     selectedTaskId: input.selectedTask?.id ?? null,
     report: parsed.report,
     rawBlock: parsed.rawBlock,
@@ -96,6 +98,7 @@ export async function reconcileCompletionReport(
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'task_id_mismatch',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -118,6 +121,9 @@ export async function reconcileCompletionReport(
       return {
         artifact: {
           ...artifactBase,
+          rejectionReason: input.verificationStatus !== 'passed'
+            ? 'verification_failed'
+            : 'needs_human_review_with_done',
           warnings
         },
         selectedTask: input.selectedTask,
@@ -144,6 +150,7 @@ export async function reconcileCompletionReport(
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'blocked_overrides_complete',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -217,6 +224,7 @@ export async function reconcileCompletionReport(
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'claim_contested',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -279,7 +287,7 @@ async function updateTaskFileWithProgress(
   transform: (taskFile: RalphTaskFile) => RalphTaskFile
 ): Promise<void> {
   const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-    const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
     await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
 
     const trimmed = progressNote.trim();
@@ -298,7 +306,7 @@ async function updateTaskFileWithProgress(
 
 async function updateTaskFile(taskFilePath: string, transform: (taskFile: RalphTaskFile) => RalphTaskFile): Promise<void> {
   const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-    const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
     await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
   });
 
@@ -340,7 +348,7 @@ async function updateTaskFileWithVerification(
       return;
     }
 
-    const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
     await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
 
     if (progressNote) {

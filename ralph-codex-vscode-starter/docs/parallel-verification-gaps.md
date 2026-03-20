@@ -2,7 +2,7 @@
 
 This document catalogues verification challenges and race conditions that arise when multiple Ralph iterations run concurrently.
 
-**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`. Gaps 3 and 4 (HIGH) were subsequently fixed. Gaps 5, 6, and 7 (MEDIUM) were fixed in the third tranche. Gaps 8–10 remain open.
+**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`. Gaps 3 and 4 (HIGH) were subsequently fixed. Gaps 5, 6, and 7 (MEDIUM) were fixed in the third tranche. Gaps 8, 9, and 10 (LOW) were fixed in the fourth tranche.
 
 ---
 
@@ -94,25 +94,33 @@ This document catalogues verification challenges and race conditions that arise 
 
 ---
 
-## Gap 8 — Lock Files Accumulate on Process Crash (LOW)
+## Gap 8 — Lock Files Accumulate on Process Crash ~~(LOW)~~ **Fixed**
 
-**Location:** `src/ralph/taskFile.ts:382–428`
+**Location:** `src/ralph/taskFile.ts` — `withTaskFileLock` and `withClaimFileLock`
 
-`tasks.lock` and `claims.lock` are exclusive-create advisory locks. If the process holding a lock crashes, the lock file persists on disk. The next agent retries for up to 1000 ms (40 retries × 25 ms) and then gives up with `lock_timeout`. There is no automatic stale-lock detection or cleanup; recovery requires manual deletion of the lock file.
+**Fix:** Both lock functions now perform stale-lock detection on EEXIST. After the exclusive-create fails, `fs.stat()` is called on the lock file. If `Date.now() - mtimeMs > STALE_LOCK_THRESHOLD_MS` (5 minutes), the lock file is removed with `fs.rm(..., { force: true })` and the loop continues immediately without sleeping. If the stat itself throws (the lock was already removed by a concurrent agent between EEXIST and stat), the loop falls through to the normal retry sleep. This eliminates the need for manual operator cleanup after process crashes.
 
----
-
-## Gap 9 — No Hard Rejection Path in the Completion Report State Machine (LOW)
-
-**Location:** `src/ralph/completionReportParser.ts:50–67`, `src/ralph/reconciliation.ts:110–127`
-
-The `status: 'rejected'` value exists in the `RalphCompletionReportArtifact` type but is never emitted in practice. Divergence cases (AI reports 'done', verifier reports 'blocked') return `status: 'applied'` with warnings rather than `status: 'rejected'` with a hard stop. There is no configurable policy for how divergence should be handled, making enforcement dependent on future manual review.
+~~`tasks.lock` and `claims.lock` are exclusive-create advisory locks. If the process holding a lock crashes, the lock file persists on disk. The next agent retries for up to 1000 ms (40 retries × 25 ms) and then gives up with `lock_timeout`. There is no automatic stale-lock detection or cleanup; recovery requires manual deletion of the lock file.~~
 
 ---
 
-## Gap 10 — No Version Numbers on `tasks.json` (LOW)
+## Gap 9 — No Hard Rejection Path in the Completion Report State Machine ~~(LOW)~~ **Fixed**
 
-Concurrent writes to `tasks.json` are serialised by the task-file lock, but the file format contains no sequence number or vector clock. Conflicting parallel mutations are indistinguishable in git history and post-hoc debugging relies solely on log files rather than the file's own change record.
+**Location:** `src/ralph/completionReportParser.ts`, `src/ralph/reconciliation.ts`
+
+**Fix:** A `rejectionReason: string | null` field was added to `CompletionReportArtifact`. Each early-return rejection path in `reconcileCompletionReport` now sets a machine-readable reason code: `'task_id_mismatch'`, `'verification_failed'`, `'needs_human_review_with_done'`, `'blocked_overrides_complete'`, or `'claim_contested'`. The `artifactBase` initialises `rejectionReason` to `null`; the final `status: 'applied'` path leaves it null. This makes divergence cases self-documenting in provenance artefacts without requiring log file archaeology.
+
+~~The `status: 'rejected'` value exists in the `RalphCompletionReportArtifact` type but is never emitted in practice. Divergence cases (AI reports 'done', verifier reports 'blocked') return `status: 'applied'` with warnings rather than `status: 'rejected'` with a hard stop. There is no configurable policy for how divergence should be handled, making enforcement dependent on future manual review.~~
+
+---
+
+## Gap 10 — No Version Numbers on `tasks.json` ~~(LOW)~~ **Fixed**
+
+**Location:** `src/ralph/types.ts`, `src/ralph/taskFile.ts`, `src/ralph/reconciliation.ts`
+
+**Fix:** A `mutationCount?: number` field was added to `RalphTaskFile`. `inspectTaskFileText` parses it from the JSON (accepting non-negative integers, ignoring absent or invalid values). `stringifyTaskFile` serialises it when present. A `bumpMutationCount` helper increments it (defaulting from 0). All three write paths — `updateTaskFile`, `updateTaskFileWithProgress`, and `updateTaskFileWithVerification` — call `bumpMutationCount` on the transformed task file before writing. Concurrent writes are now distinguishable in git history by their monotonically increasing counter, and post-hoc debugging no longer relies solely on external log files.
+
+~~Concurrent writes to `tasks.json` are serialised by the task-file lock, but the file format contains no sequence number or vector clock. Conflicting parallel mutations are indistinguishable in git history and post-hoc debugging relies solely on log files rather than the file's own change record.~~
 
 ---
 
@@ -127,6 +135,6 @@ Concurrent writes to `tasks.json` are serialised by the task-file lock, but the 
 | 5 | ~~Validation execution unverified~~ **Fixed (observability)** | ~~MEDIUM~~ | `reconciliation.ts` → non-blocking `validationRan` warning |
 | 6 | ~~Stale task context between prepare and execute~~ **Fixed** | ~~MEDIUM~~ | `iterationEngine.ts` → `StaleTaskContextError` guard |
 | 7 | ~~Ledger drift detected one cycle too late~~ **Fixed** | ~~MEDIUM~~ | `loopLogic.ts` + `reconciliation.ts` → immediate `inspectTaskGraph` check |
-| 8 | Lock files accumulate on process crash | LOW | `taskFile.ts:382–428` |
-| 9 | No hard rejection in completion report state machine | LOW | `completionReportParser.ts:50–67` |
-| 10 | No version numbers on `tasks.json` | LOW | `taskFile.ts` (file format) |
+| 8 | ~~Lock files accumulate on process crash~~ **Fixed** | ~~LOW~~ | `taskFile.ts` → stale-lock detection in both lock functions |
+| 9 | ~~No hard rejection in completion report state machine~~ **Fixed** | ~~LOW~~ | `completionReportParser.ts` → `rejectionReason` field; `reconciliation.ts` → reason codes |
+| 10 | ~~No version numbers on `tasks.json`~~ **Fixed** | ~~LOW~~ | `types.ts` + `taskFile.ts` → `mutationCount`; `reconciliation.ts` → `bumpMutationCount` |
