@@ -903,6 +903,13 @@
       "taskId": "T40.2",
       "claimedAt": "2026-03-20T01:07:26.389Z",
       "provenanceId": "run-i127-cli-20260320T010725Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T32.3",
+      "agentId": "default",
+      "provenanceId": "run-i128-cli-20260320T014752Z",
+      "claimedAt": "2026-03-20T01:47:52.281Z",
       "status": "active"
     }
   ]

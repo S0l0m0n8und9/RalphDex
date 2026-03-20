@@ -493,7 +493,7 @@ test('runCliIteration uses branch-per-task SCM with parent integration branches 
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T40', title: 'Ship parent integration', status: 'todo' },
+      { id: 'T40', title: 'Ship parent integration', status: 'todo', dependsOn: ['T40.2'] },
       { id: 'T40.2', title: 'Implement branch strategy', status: 'todo', parentId: 'T40', validation: 'npm test' }
     ]
   });

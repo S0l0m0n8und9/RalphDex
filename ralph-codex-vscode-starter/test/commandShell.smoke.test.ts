@@ -172,6 +172,24 @@ async function withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
+async function withCapturedTimeouts<T>(
+  action: (delays: number[]) => Promise<T>
+): Promise<T> {
+  const originalSetTimeout = globalThis.setTimeout;
+  const delays: number[] = [];
+  globalThis.setTimeout = ((callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
+    delays.push(typeof delay === 'number' ? delay : 0);
+    callback(...args);
+    return 0 as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout;
+
+  try {
+    return await action(delays);
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
+}
+
 async function withMockedExecuteCommand<T>(
   action: (calls: Array<{ command: string; args: unknown[] }>) => Promise<T>
 ): Promise<T> {
@@ -1346,21 +1364,26 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
   });
 
   const seenModes: Array<'singleExec' | 'loop'> = [];
+  const timeoutDelays: number[] = [];
   const executeCalls = await withMockedExecuteCommand(async (calls) => {
     await withMockedRunCliIteration(
       async (workspaceFolderArg, mode) => {
         seenModes.push(mode);
         return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
       },
-      async () => withImmediateTimeout(async () => {
-        activate(createExtensionContext());
-        await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+      async () => withCapturedTimeouts(async (delays) => {
+        timeoutDelays.push(...delays);
+        await withImmediateTimeout(async () => {
+          activate(createExtensionContext());
+          await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+        });
       })
     );
     return calls;
   });
 
   assert.deepEqual(seenModes, ['loop']);
+  assert.deepEqual(timeoutDelays, [1500]);
   const reloadCommands = executeCalls.filter((entry) => entry.command === 'workbench.action.reloadWindow');
   assert.equal(reloadCommands.length, 1);
   assert.deepEqual(reloadCommands[0]?.args ?? [], []);

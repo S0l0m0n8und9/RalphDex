@@ -1636,12 +1636,12 @@
     {
       "id": "T40.2",
       "title": "Implement branch-per-task SCM strategy — integration branch per parent, feature branch per child, atomic merge on parent done",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T40",
       "dependsOn": [
         "T40.1"
       ],
-      "notes": "When scmStrategy is 'branch-per-task': for tasks with a parentId, create or reuse a ralph/integration/<parentId> branch from main (the accumulation branch for that parent's work); create a child feature branch ralph/<taskId> from the integration branch, not from main. Record both the integration branch and the base branch (the branch active at claim time) in the claim metadata. When a child task is reconciled done, commit remaining changes (same message format as commit-on-done with GIT_AUTHOR_NAME='ralph/<agentId>'), merge ralph/<taskId> into ralph/integration/<parentId> with a merge commit. When the parent task auto-completes (all children done), merge ralph/integration/<parentId> into the base branch with a single atomic merge commit referencing the parent task id and title — one integration merge to main per parent, not one per child. For top-level tasks with no parentId, use ralph/<taskId> directly off the base branch. If any merge fails due to conflicts: leave the conflicting branch checked out, reset the affected task to in_progress with a blocker noting the merge conflict, release the claim, and surface the conflict path in iteration result warnings. Never auto-delete ralph/integration/* or ralph/<taskId> branches.",
+      "notes": "Implemented branch-per-task SCM orchestration with durable branch metadata, child-to-integration merges, atomic parent merges, conflict recovery, docs updates, and regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

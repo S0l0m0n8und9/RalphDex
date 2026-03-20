@@ -1,6 +1,6 @@
 # Ralph Codex Workbench
 
-This document is the implementation README for the VS Code extension source under `ralph-codex-vscode-starter/`. For the public repository landing page, setup summary, license, and repo structure, start with the root `README.md`.
+This document is the implementation README for the VS Code extension package rooted at `ralph-codex-vscode-starter/`. For the public repository landing page, repo topology, and the repo-root-open workflow, start with the root `README.md`.
 
 Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
 
@@ -8,6 +8,13 @@ The extension has two execution paths:
 
 - prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
 - run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+
+## Package Root Versus Repo Root
+
+- `ralph-codex-vscode-starter/` is the actual extension package root. `package.json`, `src/`, `test/`, `scripts/`, and bundled docs live here.
+- The repo root remains the canonical place to open the project in VS Code. The root `.vscode/` launch and task files target this nested package on purpose.
+- The nested `.vscode/` folder is only a secondary convenience for people who intentionally open `ralph-codex-vscode-starter/` by itself.
+- Ralph durable state still lives at the repo root under `.ralph/`, even when the extension inspects or executes from this nested package root.
 
 ## Getting Started
 
@@ -22,11 +29,12 @@ The initializer refuses to run when `.ralph/prd.md` already exists so it does no
 
 ## Quick Start
 
-1. Run `npm install`.
-2. Run `npm run compile`.
-3. Open the repo in VS Code and start the Extension Development Host with `F5`.
-4. Use `Ralph Codex: Show Status` to inspect the current workspace state.
-5. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+1. Open the repo root in VS Code for the canonical workflow.
+2. Run `cd ralph-codex-vscode-starter && npm install`.
+3. Run `cd ralph-codex-vscode-starter && npm run compile`.
+4. Start the Extension Development Host with `F5` from the repo root, or open this folder directly if you intentionally want the package-only workflow.
+5. Use `Ralph Codex: Show Status` to inspect the current workspace state.
+6. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
 
 For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The package now ships a curated runtime payload plus the bundled license and operator docs instead of the full development tree. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
 
