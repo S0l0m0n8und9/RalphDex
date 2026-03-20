@@ -132,26 +132,10 @@ async function reconcileCompletionReport(input) {
     }
     let taskFileChanged = false;
     let progressChanged = false;
-    const claimOwnership = await (0, taskFile_1.inspectClaimOwnership)(input.prepared.paths.claimFilePath, input.selectedTask.id, input.prepared.config.agentId, input.prepared.provenanceId);
-    if (!claimOwnership.holdsActiveClaim) {
-        const canonicalClaim = claimOwnership.canonicalClaim?.claim;
-        const canonicalHolder = canonicalClaim
-            ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
-            : 'none';
-        warnings.push(`Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${canonicalHolder}.`);
-        return {
-            artifact: {
-                ...artifactBase,
-                warnings
-            },
-            selectedTask: input.selectedTask,
-            progressChanged: false,
-            taskFileChanged: false,
-            claimContested: true,
-            warnings
-        };
-    }
-    await updateTaskFile(input.taskFilePath, (taskFile) => {
+    // Claim ownership re-check, task-file write, and progress.md append all happen inside a
+    // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
+    // read-modify-write that existed when these operations ran sequentially outside any lock.
+    const verificationResult = await updateTaskFileWithVerification(input.taskFilePath, input.prepared.paths.claimFilePath, input.selectedTask.id, input.prepared.config.agentId, input.prepared.provenanceId, input.prepared.paths.progressPath, parsed.report.progressNote ?? null, (taskFile) => {
         const selectedTaskUpdated = {
             ...taskFile,
             tasks: taskFile.tasks.map((task) => {
@@ -184,10 +168,21 @@ async function reconcileCompletionReport(input) {
         }
         return ancestorCompletion.taskFile;
     });
-    if (parsed.report.progressNote) {
-        await appendProgressBullet(input.prepared.paths.progressPath, parsed.report.progressNote);
-        progressChanged = true;
+    if (verificationResult.claimContested) {
+        warnings.push(`Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${verificationResult.canonicalHolder ?? 'none'}.`);
+        return {
+            artifact: {
+                ...artifactBase,
+                warnings
+            },
+            selectedTask: input.selectedTask,
+            progressChanged: false,
+            taskFileChanged: false,
+            claimContested: true,
+            warnings
+        };
     }
+    progressChanged = verificationResult.progressChanged;
     if (input.prepared.config.agentRole === 'watchdog' && parsed.report.watchdog_actions?.length) {
         const watchdogOutcome = await processWatchdogActions(input, parsed.report.watchdog_actions);
         taskFileChanged = taskFileChanged || watchdogOutcome.taskFileChanged;
@@ -222,6 +217,42 @@ async function updateTaskFile(taskFilePath, transform) {
     if (locked.outcome === 'lock_timeout') {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
+}
+// Acquires the task-file lock once and, inside that single critical section:
+// 1. Re-verifies claim ownership (eliminates the TOCTOU window between the prior standalone
+//    inspectClaimOwnership call and the subsequent updateTaskFile call).
+// 2. Applies the task transform and persists tasks.json.
+// 3. Appends the progress bullet to progress.md (eliminates the unprotected read-modify-write
+//    that existed when appendProgressBullet ran outside any lock).
+async function updateTaskFileWithVerification(taskFilePath, claimFilePath, taskId, agentId, provenanceId, progressPath, progressNote, transform) {
+    let claimContested = false;
+    let canonicalHolder = null;
+    let progressChanged = false;
+    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
+        const claimOwnership = await (0, taskFile_1.inspectClaimOwnership)(claimFilePath, taskId, agentId, provenanceId);
+        if (!claimOwnership.holdsActiveClaim) {
+            const canonicalClaim = claimOwnership.canonicalClaim?.claim;
+            canonicalHolder = canonicalClaim
+                ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
+                : 'none';
+            claimContested = true;
+            return;
+        }
+        const nextTaskFile = transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')));
+        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        if (progressNote) {
+            const trimmed = progressNote.trim();
+            if (trimmed) {
+                const current = await fs.readFile(progressPath, 'utf8');
+                await fs.writeFile(progressPath, `${current.trimEnd()}\n- ${trimmed}\n`, 'utf8');
+                progressChanged = true;
+            }
+        }
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+    return { claimContested, canonicalHolder, progressChanged };
 }
 async function appendProgressBullet(progressPath, bullet) {
     const trimmed = bullet.trim();
