@@ -1,6 +1,8 @@
 # Parallel Verification Gaps
 
-This document catalogues verification challenges and race conditions that arise when multiple Ralph iterations run concurrently. It is scoped to the current control-plane implementation and does not include fixes.
+This document catalogues verification challenges and race conditions that arise when multiple Ralph iterations run concurrently.
+
+**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`, which acquires the task-file lock once and re-checks claim ownership, writes tasks.json, and appends the progress bullet all inside that single critical section. Gaps 3–10 remain open.
 
 ---
 
@@ -8,43 +10,37 @@ This document catalogues verification challenges and race conditions that arise 
 
 | Resource | Lock mechanism | Risk level |
 |---|---|---|
-| `.ralph/tasks.json` | `withTaskFileLock()` — exclusive advisory lock | TOCTOU window between ownership check and write |
+| `.ralph/tasks.json` | `withTaskFileLock()` — exclusive advisory lock | ~~TOCTOU window between ownership check and write~~ **Fixed** |
 | `.ralph/claims.json` | `withClaimFileLock()` — write-then-verify pattern | Well protected |
-| `.ralph/progress.md` | **None** | HIGH — unprotected read-modify-write |
+| `.ralph/progress.md` | `withTaskFileLock()` via `updateTaskFileWithVerification` (main path) | ~~Unprotected read-modify-write~~ **Fixed** for main path; watchdog escalation still unprotected |
 | `.ralph/agents/{id}.json` | **None** — temp-file + rename only | HIGH — last-writer-wins data loss |
 | `.ralph/state.json` | None | Low — overwrite is idempotent |
 
 ---
 
-## Gap 1 — TOCTOU Race in Completion Reconciliation (CRITICAL)
+## Gap 1 — TOCTOU Race in Completion Reconciliation ~~(CRITICAL)~~ **Fixed**
 
-**Location:** `src/ralph/reconciliation.ts:148–176`
+**Location:** `src/ralph/reconciliation.ts` — replaced by `updateTaskFileWithVerification`
 
-`inspectClaimOwnership()` checks whether the agent holds the active claim (line 148). `updateTaskFile()` then writes the new task status (line 176). These two operations are separated by approximately 28 lines of synchronous logic and are **not wrapped in a single atomic critical section**.
+**Fix:** The standalone `inspectClaimOwnership` call and the subsequent `updateTaskFile` call were replaced by a single `updateTaskFileWithVerification` call that re-checks claim ownership inside the `withTaskFileLock` callback. Claim check, task write, and progress.md append now execute inside the same critical section.
 
-**Failure scenario:**
-1. Agent A holds claim for Task T; passes ownership check at line 148.
-2. Agent B steals or re-acquires the claim between lines 148 and 176.
-3. Agent A proceeds to write 'done' for Task T under the task-file lock, which does not re-verify claim ownership.
-4. Task T is now marked done by an agent that no longer owns it; Agent B's execution continues on a task the ledger already considers finished.
+~~`inspectClaimOwnership()` checks whether the agent holds the active claim (line 148). `updateTaskFile()` then writes the new task status (line 176). These two operations are separated by approximately 28 lines of synchronous logic and are **not wrapped in a single atomic critical section**.~~
 
-**Why existing locks don't prevent it:** `withTaskFileLock()` serialises file writes but does not keep the claim checked-out across the lock boundary. The claim check and the write are two separate I/O operations with no encompassing mutex.
+**Original failure scenario (no longer possible):**
+1. Agent A holds claim for Task T; passes ownership check.
+2. Agent B steals or re-acquires the claim between the check and the write.
+3. Agent A proceeds to write 'done' under the task-file lock without re-verifying ownership.
+4. Task T is marked done by an agent that no longer owns it.
 
 ---
 
-## Gap 2 — `progress.md` Writes Are Unprotected (CRITICAL)
+## Gap 2 — `progress.md` Writes Are Unprotected ~~(CRITICAL)~~ **Fixed (main path)**
 
-**Location:** `src/ralph/reconciliation.ts:265–274`
+**Location:** `src/ralph/reconciliation.ts` — fixed in main reconciliation path; watchdog path remains open
 
-`appendProgressBullet()` performs a read-modify-write on `.ralph/progress.md` with no lock:
+**Fix:** The `appendProgressBullet` call that followed `updateTaskFile` was moved inside the `updateTaskFileWithVerification` critical section. The progress.md write now happens under `withTaskFileLock`, so concurrent completions can no longer interleave or clobber each other's progress entries on the main path.
 
-```
-read current content → append bullet → write full file
-```
-
-Two agents completing at the same time will both read the same file content, both compute an updated string, and the later write will silently overwrite the earlier one. Progress entries are lost with no error.
-
-The same pattern is used by the `escalate_to_human` watchdog action (`reconciliation.ts:332`), creating the same hazard for watchdog-originated notes.
+**Remaining exposure:** The `escalate_to_human` watchdog action (`reconciliation.ts:processWatchdogActions`) still calls `appendProgressBullet` outside any lock, so watchdog-originated progress notes are still vulnerable to concurrent overwrites. This is tracked under Gap 4.
 
 ---
 
@@ -129,8 +125,8 @@ Concurrent writes to `tasks.json` are serialised by the task-file lock, but the 
 
 | # | Gap | Severity | Key location |
 |---|---|---|---|
-| 1 | TOCTOU between claim check and task-file write | CRITICAL | `reconciliation.ts:148–176` |
-| 2 | `progress.md` unprotected read-modify-write | CRITICAL | `reconciliation.ts:265–274` |
+| 1 | ~~TOCTOU between claim check and task-file write~~ **Fixed** | ~~CRITICAL~~ | `reconciliation.ts` → `updateTaskFileWithVerification` |
+| 2 | ~~`progress.md` unprotected read-modify-write~~ **Fixed (main path)** | ~~CRITICAL~~ | `reconciliation.ts` → inside lock; watchdog path still open |
 | 3 | Agent identity record has no lock | HIGH | `iterationEngine.ts:701–743` |
 | 4 | Watchdog + build agent race on task graph | HIGH | `reconciliation.ts:222–355` |
 | 5 | Validation execution is unverified | MEDIUM | `reconciliation.ts:110–127` |
