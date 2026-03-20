@@ -1,3 +1,5 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
 import { RalphCodexConfig } from '../config/types';
@@ -15,6 +17,7 @@ import {
   RalphPreflightReport,
   RalphPromptEvidence,
   RalphPromptKind,
+  RalphPromptSessionHandoff,
   RalphPromptTarget,
   RalphProvenanceTrustLevel,
   RalphRootPolicy,
@@ -97,6 +100,7 @@ export interface PreparedPromptContext {
   preflightReport: RalphPreflightReport;
   persistedPreflightReport: RalphPersistedPreflightReport;
   preflightSummaryText: string;
+  sessionHandoff: RalphPromptSessionHandoff | null;
   provenanceBundlePaths: ReturnType<typeof resolveProvenanceBundlePaths>;
   createdPaths: string[];
 }
@@ -170,6 +174,40 @@ async function maybeSeedObjective(
   return `${nextText}\n`;
 }
 
+async function readSessionHandoff(
+  handoffDir: string,
+  agentId: string,
+  iteration: number
+): Promise<RalphPromptSessionHandoff | null> {
+  if (iteration <= 1) {
+    return null;
+  }
+
+  const handoffPath = path.join(handoffDir, `${agentId}-${String(iteration - 1).padStart(3, '0')}.json`);
+  try {
+    const raw = JSON.parse(await fs.readFile(handoffPath, 'utf8')) as Record<string, unknown>;
+    return {
+      agentId: typeof raw.agentId === 'string' ? raw.agentId : agentId,
+      iteration: typeof raw.iteration === 'number' ? raw.iteration : iteration - 1,
+      selectedTaskId: typeof raw.selectedTaskId === 'string' ? raw.selectedTaskId : null,
+      selectedTaskTitle: typeof raw.selectedTaskTitle === 'string' ? raw.selectedTaskTitle : null,
+      stopReason: typeof raw.stopReason === 'string'
+        ? raw.stopReason as RalphPromptSessionHandoff['stopReason']
+        : 'verification_passed_no_remaining_subtasks',
+      completionClassification: typeof raw.completionClassification === 'string'
+        ? raw.completionClassification as RalphPromptSessionHandoff['completionClassification']
+        : 'no_progress',
+      humanSummary: typeof raw.humanSummary === 'string' ? raw.humanSummary : 'none',
+      pendingBlocker: typeof raw.pendingBlocker === 'string' ? raw.pendingBlocker : null,
+      validationFailureSignature: typeof raw.validationFailureSignature === 'string'
+        ? raw.validationFailureSignature
+        : null
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function prepareIterationContext(
   input: PrepareIterationContextInput
 ): Promise<PreparedIterationContext> {
@@ -210,6 +248,7 @@ export async function prepareIterationContext(
   const effectiveTaskCounts = taskCounts ?? countTaskStatuses(taskFile);
   const taskSelectedAt = new Date().toISOString();
   const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
+  const sessionHandoff = await readSessionHandoff(snapshot.paths.handoffDir, config.agentId, iteration);
   const promptTarget: RalphPromptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
   const provenanceId = createProvenanceId({
     iteration,
@@ -313,7 +352,8 @@ export async function prepareIterationContext(
     codexCliSupport,
     ideCommandSupport,
     artifactReadinessDiagnostics,
-    agentHealthDiagnostics
+    agentHealthDiagnostics,
+    sessionHandoff
   });
   const preflightArtifactPaths = resolvePreflightArtifactPaths(snapshot.paths.artifactDir, iteration);
   const {
@@ -385,6 +425,7 @@ export async function prepareIterationContext(
     normalizedValidationCommandFrom,
     validationCommand: effectiveValidationCommand,
     preflightReport,
+    sessionHandoff,
     config
   });
   const prompt = promptRender.prompt;
@@ -492,6 +533,7 @@ export async function prepareIterationContext(
     preflightReport,
     persistedPreflightReport,
     preflightSummaryText,
+    sessionHandoff,
     provenanceBundlePaths,
     createdPaths: snapshot.createdPaths,
     beforeCoreState,

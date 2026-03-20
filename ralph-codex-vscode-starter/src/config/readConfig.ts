@@ -264,6 +264,11 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       ['none', 'commit-on-done', 'branch-per-task'],
       DEFAULT_CONFIG.scmStrategy
     ),
+    scmPrOnParentDone: readBoolean(
+      config,
+      'scmPrOnParentDone',
+      DEFAULT_CONFIG.scmPrOnParentDone
+    ),
     validationCommandOverride: readString(
       config,
       'validationCommandOverride',

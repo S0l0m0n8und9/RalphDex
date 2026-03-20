@@ -470,6 +470,18 @@ export interface RalphHandoffNote {
   humanSummary: string;
 }
 
+export interface RalphPromptSessionHandoff {
+  agentId: string;
+  iteration: number;
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  stopReason: RalphStopReason | 'verification_passed_no_remaining_subtasks';
+  completionClassification: RalphCompletionClassification;
+  humanSummary: string;
+  pendingBlocker: string | null;
+  validationFailureSignature: string | null;
+}
+
 export interface RalphIterationResult {
   schemaVersion: 1;
   agentId?: string;

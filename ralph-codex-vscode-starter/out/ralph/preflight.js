@@ -563,6 +563,9 @@ function buildPreflightReport(input) {
     if ((input.createdPaths ?? []).length > 0) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'workspace_paths_initialized', `Initialized Ralph paths: ${input.createdPaths.map((target) => relativePath(input.rootPath, target)).join(', ')}.`));
     }
+    if (input.sessionHandoff) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'session_handoff_available', `Resuming from handoff note ${input.sessionHandoff.agentId}-${String(input.sessionHandoff.iteration).padStart(3, '0')}.json: ${input.sessionHandoff.humanSummary}`));
+    }
     if (input.taskInspection.taskFile && input.selectedTask === null) {
         const counts = input.taskCounts;
         if (counts && (counts.todo > 0 || counts.in_progress > 0 || counts.blocked > 0)) {

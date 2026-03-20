@@ -46,6 +46,7 @@
         "ralphCodex.provenanceBundleRetentionCount",
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.scmStrategy",
+        "ralphCodex.scmPrOnParentDone",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
         "ralphCodex.autonomyMode",
@@ -273,7 +274,12 @@
           "type": "string",
           "enum": ["none", "commit-on-done", "branch-per-task"],
           "default": "none",
-          "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task is reserved for future task-branch automation."
+          "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
+        },
+        "ralphCodex.scmPrOnParentDone": {
+          "type": "boolean",
+          "default": false,
+          "description": "When enabled with scmStrategy = branch-per-task, Ralph pushes ralph/integration/<parentId> and opens a GitHub pull request through gh when the final child completion auto-completes a parent task. Push or PR failures are reported as iteration warnings without rolling back completion."
         },
         "ralphCodex.validationCommandOverride": {
           "type": "string",

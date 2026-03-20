@@ -116,6 +116,109 @@ function scmAuthorEnv(agentId) {
         GIT_COMMITTER_NAME: `ralph/${agentId}`
     };
 }
+function normalizeParentClaimRecord(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.taskId !== 'string' || typeof record.claimedAt !== 'string') {
+        return null;
+    }
+    return {
+        taskId: record.taskId,
+        claimedAt: record.claimedAt,
+        baseBranch: typeof record.baseBranch === 'string' ? record.baseBranch : undefined,
+        integrationBranch: typeof record.integrationBranch === 'string' ? record.integrationBranch : undefined
+    };
+}
+function buildParentPullRequestBody(childTasks) {
+    return [
+        'Completed child tasks:',
+        ...childTasks.map((task) => {
+            const summary = (task.notes ?? '').trim() || 'No completion summary recorded.';
+            return `- ${task.id}: ${summary}`;
+        })
+    ].join('\n');
+}
+async function resolveParentPullRequestBaseBranch(input) {
+    const childTaskIds = new Set(input.childTasks.map((task) => task.id));
+    try {
+        const raw = await fs.readFile(input.claimFilePath, 'utf8');
+        if (!raw.trim()) {
+            return input.fallbackBaseBranch;
+        }
+        const parsed = JSON.parse(raw);
+        const matchingClaim = (Array.isArray(parsed.claims) ? parsed.claims : [])
+            .map((claim) => normalizeParentClaimRecord(claim))
+            .filter((claim) => claim !== null)
+            .filter((claim) => childTaskIds.has(claim.taskId)
+            && claim.integrationBranch === input.integrationBranch
+            && typeof claim.baseBranch === 'string'
+            && claim.baseBranch.trim().length > 0)
+            .sort((left, right) => {
+            const leftTime = Date.parse(left.claimedAt);
+            const rightTime = Date.parse(right.claimedAt);
+            if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+                return 0;
+            }
+            if (Number.isNaN(leftTime)) {
+                return 1;
+            }
+            if (Number.isNaN(rightTime)) {
+                return -1;
+            }
+            return leftTime - rightTime;
+        })[0];
+        return matchingClaim?.baseBranch?.trim() || input.fallbackBaseBranch;
+    }
+    catch (error) {
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? String(error.code)
+            : '';
+        if (code === 'ENOENT') {
+            return input.fallbackBaseBranch;
+        }
+        throw error;
+    }
+}
+async function createParentPullRequestOnDone(input) {
+    if (!input.prepared.config.scmPrOnParentDone) {
+        return [];
+    }
+    const prBaseBranch = await resolveParentPullRequestBaseBranch({
+        claimFilePath: input.prepared.paths.claimFilePath,
+        integrationBranch: input.integrationBranch,
+        childTasks: input.childTasks,
+        fallbackBaseBranch: input.fallbackBaseBranch
+    });
+    const pushResult = await (0, processRunner_1.runProcess)('git', ['push', '--set-upstream', 'origin', input.integrationBranch], { cwd: input.prepared.rootPath });
+    if (pushResult.code !== 0) {
+        const failure = (pushResult.stderr || pushResult.stdout || `exit code ${pushResult.code}`).trim();
+        return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: git push failed: ${failure}`];
+    }
+    try {
+        const prResult = await (0, processRunner_1.runProcess)('gh', [
+            'pr',
+            'create',
+            '--base',
+            prBaseBranch,
+            '--head',
+            input.integrationBranch,
+            '--title',
+            input.parentTask.title,
+            '--body',
+            buildParentPullRequestBody(input.childTasks)
+        ], { cwd: input.prepared.rootPath });
+        if (prResult.code !== 0) {
+            const failure = (prResult.stderr || prResult.stdout || `exit code ${prResult.code}`).trim();
+            return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: gh pr create failed: ${failure}`];
+        }
+    }
+    catch (error) {
+        return [`SCM branch-per-task PR creation failed for parent ${input.parentTask.id}: ${toErrorMessage(error)}`];
+    }
+    return [`SCM branch-per-task opened PR for parent ${input.parentTask.id} from ${input.integrationBranch} to ${prBaseBranch}.`];
+}
 async function commitOnDone(input) {
     const message = formatScmCommitMessage(input);
     const addResult = await (0, processRunner_1.runProcess)('git', ['add', '-A'], { cwd: input.rootPath });
@@ -223,6 +326,14 @@ async function reconcileBranchPerTaskScm(input) {
                     agentId: input.prepared.config.agentId
                 });
                 warnings.push(`SCM branch-per-task merged ${selectedClaim.integrationBranch} into ${selectedClaim.baseBranch} for parent ${parentTask.id}.`);
+                const childTasks = input.taskFileAfter.tasks.filter((task) => task.parentId === parentTask.id);
+                warnings.push(...await createParentPullRequestOnDone({
+                    prepared: input.prepared,
+                    parentTask,
+                    integrationBranch: selectedClaim.integrationBranch,
+                    fallbackBaseBranch: selectedClaim.baseBranch,
+                    childTasks
+                }));
             }
             else {
                 await checkoutGitBranch(input.prepared.rootPath, selectedClaim.baseBranch);
@@ -297,10 +408,8 @@ async function autoApplyMarkBlockedRemediation(input) {
     return locked.value;
 }
 async function autoApplyDecomposeTaskRemediation(input) {
-    if (!input.suggestedChildTasks || input.suggestedChildTasks.length === 0) {
-        throw new Error(`Cannot auto-apply decompose_task remediation for ${input.taskId} because no suggested child tasks were provided.`);
-    }
-    return (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, input.taskId, input.suggestedChildTasks);
+    const applied = await (0, taskDecomposition_1.applyTaskDecompositionProposalArtifact)(input.taskFilePath, input.remediationArtifact);
+    return applied.taskFile;
 }
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
@@ -1271,8 +1380,7 @@ class RalphIterationEngine {
                     try {
                         effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
                             taskFilePath: prepared.paths.taskFilePath,
-                            taskId: result.selectedTaskId,
-                            suggestedChildTasks
+                            remediationArtifact: remediationArtifact
                         });
                         result.warnings.push(`Remediation auto-applied: decompose_task on task ${result.selectedTaskId}, added ${suggestedChildTasks.length} child tasks`);
                         this.logger.info('Auto-applied remediation: decompose_task.', {

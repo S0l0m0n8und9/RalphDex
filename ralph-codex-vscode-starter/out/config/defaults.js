@@ -20,6 +20,7 @@ exports.DEFAULT_CONFIG = {
     provenanceBundleRetentionCount: 25,
     gitCheckpointMode: 'snapshotAndDiff',
     scmStrategy: 'none',
+    scmPrOnParentDone: false,
     validationCommandOverride: '',
     stopOnHumanReviewNeeded: true,
     autonomyMode: 'supervised',

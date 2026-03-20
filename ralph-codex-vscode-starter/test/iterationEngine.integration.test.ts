@@ -128,6 +128,30 @@ async function readFakeGitCommits(rootPath: string): Promise<Array<{ subject: st
   }>;
 }
 
+async function readFakeGitPushes(rootPath: string): Promise<Array<{ remote: string; branch: string; args: string[] }>> {
+  return JSON.parse(await fs.readFile(path.join(rootPath, '.git', 'ralph-test-pushes.json'), 'utf8')) as Array<{
+    remote: string;
+    branch: string;
+    args: string[];
+  }>;
+}
+
+async function readFakePullRequests(rootPath: string): Promise<Array<{
+  base: string;
+  head: string;
+  title: string;
+  body: string;
+  args: string[];
+}>> {
+  return JSON.parse(await fs.readFile(path.join(rootPath, '.git', 'ralph-test-pull-requests.json'), 'utf8')) as Array<{
+    base: string;
+    head: string;
+    title: string;
+    body: string;
+    args: string[];
+  }>;
+}
+
 async function readFakeGitState(rootPath: string): Promise<{
   currentBranch: string;
   branches: Record<string, { files: Record<string, string>; baseFiles: Record<string, string> }>;
@@ -2027,6 +2051,140 @@ test('runCliIteration auto-completes aggregate parents after the final child sli
   assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
 });
 
+test('runCliIteration pushes the parent integration branch and opens a PR when a child completion auto-completes the parent', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'Completed slice', status: 'done', parentId: 'T1', notes: 'Implemented the first slice.' },
+      { id: 'T1.2', title: 'Final slice', status: 'todo', parentId: 'T1', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'claims.json'), `${JSON.stringify({
+    version: 1,
+    claims: [
+      {
+        taskId: 'T1.1',
+        agentId: 'builder-0',
+        provenanceId: 'run-i001-cli-20260320T000000Z',
+        claimedAt: '2026-03-20T00:00:00.000Z',
+        status: 'released',
+        baseBranch: 'main',
+        integrationBranch: 'ralph/integration/T1',
+        featureBranch: 'ralph/T1.1'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off',
+    scmStrategy: 'branch-per-task',
+    scmPrOnParentDone: true
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# aggregate parent completed via PR\n', 'utf8');
+        return {
+          stdout: 'completed final slice',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1.2',
+            requestedStatus: 'done',
+            progressNote: 'Completed the final T1 slice.',
+            validationRan: 'npm test'
+          }, 'Completed the final aggregate child slice.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const pushes = await readFakeGitPushes(rootPath);
+  const pullRequests = await readFakePullRequests(rootPath);
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.ok(summary.result.warnings.includes('SCM branch-per-task opened PR for parent T1 from ralph/integration/T1 to main.'));
+  assert.equal(pushes.length, 1);
+  assert.deepEqual(pushes[0], {
+    remote: 'origin',
+    branch: 'ralph/integration/T1',
+    args: ['push', '--set-upstream', 'origin', 'ralph/integration/T1']
+  });
+  assert.equal(pullRequests.length, 1);
+  assert.equal(pullRequests[0]?.base, 'main');
+  assert.equal(pullRequests[0]?.head, 'ralph/integration/T1');
+  assert.equal(pullRequests[0]?.title, 'Aggregate parent');
+  assert.match(pullRequests[0]?.body ?? '', /- T1\.1: Implemented the first slice\./);
+  assert.match(pullRequests[0]?.body ?? '', /- T1\.2: Completed the final T1 slice\./);
+});
+
+test('runCliIteration keeps parent completion applied when PR creation cannot run', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'Completed slice', status: 'done', parentId: 'T1', notes: 'Implemented the first slice.' },
+      { id: 'T1.2', title: 'Final slice', status: 'todo', parentId: 'T1', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+  await fs.writeFile(path.join(rootPath, '.git', 'ralph-test-gh-missing'), '', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    gitCheckpointMode: 'off',
+    scmStrategy: 'branch-per-task',
+    scmPrOnParentDone: true
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => {
+        await fs.writeFile(path.join(rootPath, 'README.md'), '# aggregate parent completed without gh\n', 'utf8');
+        return {
+          stdout: 'completed final slice',
+          lastMessage: completionReport({
+            selectedTaskId: 'T1.2',
+            requestedStatus: 'done',
+            progressNote: 'Completed the final T1 slice.',
+            validationRan: 'npm test'
+          }, 'Completed the final aggregate child slice.')
+        };
+      }
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const pushes = await readFakeGitPushes(rootPath);
+  const pullRequests = await readFakePullRequests(rootPath);
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1.2')?.status, 'done');
+  assert.equal(pushes.length, 1);
+  assert.equal(pullRequests.length, 0);
+  assert.match(
+    summary.result.warnings.join('\n'),
+    /SCM branch-per-task PR creation failed for parent T1: spawn gh ENOENT/
+  );
+});
+
 test('runCliIteration stops loop continuation when control-plane runtime files change', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
@@ -3339,4 +3497,90 @@ test('runCliIteration writes a structured handoff note on clean termination', as
     progressNote: 'Finished the selected task.',
     humanSummary: 'T1 (Finish cleanly) stopped with iteration_cap_reached. Finished the selected task.'
   });
+});
+
+test('runCliIteration carries the latest handoff into the next prompt and prunes older handoff files by retention', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'First clean stop', status: 'todo' },
+      { id: 'T2', title: 'Resume from handoff', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    generatedArtifactRetentionCount: 1,
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off',
+    autoReplenishBacklog: false
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const sharedMemento = new MemoryMemento();
+  const firstRun = createEngine([
+    {
+      run: async () => ({
+        stdout: 'first done\n',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'Finished the first task.',
+          validationRan: 'npm test'
+        })
+      })
+    }
+  ], sharedMemento);
+
+  await firstRun.engine.runCliIteration(
+    workspaceFolder(rootPath),
+    'loop',
+    progressReporter(),
+    { reachedIterationCap: true }
+  );
+
+  let secondPrompt = '';
+  const secondRun = createEngine([
+    {
+      run: async (request) => {
+        secondPrompt = request.prompt;
+        return {
+          stdout: 'second done\n',
+          lastMessage: completionReport({
+            selectedTaskId: 'T2',
+            requestedStatus: 'done',
+            progressNote: 'Finished the second task.',
+            validationRan: 'npm test'
+          })
+        };
+      }
+    }
+  ], sharedMemento);
+
+  await secondRun.engine.runCliIteration(
+    workspaceFolder(rootPath),
+    'loop',
+    progressReporter(),
+    { reachedIterationCap: true }
+  );
+
+  assert.match(secondPrompt, /## Prior Iteration Evidence/);
+  assert.match(secondPrompt, /### Session Handoff/);
+  assert.match(secondPrompt, /- Handoff summary: T1 \(First clean stop\) stopped with iteration_cap_reached\. Finished the first task\./);
+  assert.match(secondPrompt, /- Handoff blocker: none/);
+  assert.match(secondPrompt, /- Handoff validation failure signature: none/);
+
+  const secondPreflightReport = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-002', 'preflight-report.json'), 'utf8')
+  ) as {
+    diagnostics: Array<{ code: string; message: string }>;
+  };
+  assert.ok(secondPreflightReport.diagnostics.some((diagnostic) => (
+    diagnostic.code === 'session_handoff_available'
+      && /default-001\.json/.test(diagnostic.message)
+  )));
+
+  assert.deepEqual(await fs.readdir(path.join(rootPath, '.ralph', 'handoff')), ['default-002.json']);
 });

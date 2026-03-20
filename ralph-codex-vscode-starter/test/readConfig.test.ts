@@ -64,3 +64,17 @@ test('readConfig reads scmStrategy and falls back to none', () => {
   const fallback = readConfig(workspaceFolder('C:\\repo'));
   assert.equal(fallback.scmStrategy, 'none');
 });
+
+test('readConfig reads scmPrOnParentDone and falls back to false', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    scmPrOnParentDone: true
+  });
+
+  const configured = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(configured.scmPrOnParentDone, true);
+
+  harness.reset();
+  const fallback = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(fallback.scmPrOnParentDone, false);
+});

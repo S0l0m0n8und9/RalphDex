@@ -34,6 +34,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prepareIterationContext = prepareIterationContext;
+const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
 const promptBuilder_1 = require("../prompt/promptBuilder");
@@ -74,6 +76,35 @@ async function maybeSeedObjective(stateManager, paths) {
     await stateManager.writeObjectiveText(paths, nextText);
     return `${nextText}\n`;
 }
+async function readSessionHandoff(handoffDir, agentId, iteration) {
+    if (iteration <= 1) {
+        return null;
+    }
+    const handoffPath = path.join(handoffDir, `${agentId}-${String(iteration - 1).padStart(3, '0')}.json`);
+    try {
+        const raw = JSON.parse(await fs.readFile(handoffPath, 'utf8'));
+        return {
+            agentId: typeof raw.agentId === 'string' ? raw.agentId : agentId,
+            iteration: typeof raw.iteration === 'number' ? raw.iteration : iteration - 1,
+            selectedTaskId: typeof raw.selectedTaskId === 'string' ? raw.selectedTaskId : null,
+            selectedTaskTitle: typeof raw.selectedTaskTitle === 'string' ? raw.selectedTaskTitle : null,
+            stopReason: typeof raw.stopReason === 'string'
+                ? raw.stopReason
+                : 'verification_passed_no_remaining_subtasks',
+            completionClassification: typeof raw.completionClassification === 'string'
+                ? raw.completionClassification
+                : 'no_progress',
+            humanSummary: typeof raw.humanSummary === 'string' ? raw.humanSummary : 'none',
+            pendingBlocker: typeof raw.pendingBlocker === 'string' ? raw.pendingBlocker : null,
+            validationFailureSignature: typeof raw.validationFailureSignature === 'string'
+                ? raw.validationFailureSignature
+                : null
+        };
+    }
+    catch {
+        return null;
+    }
+}
 async function prepareIterationContext(input) {
     const { workspaceFolder, progress, includeVerifierContext, stateManager, logger } = input;
     const inspectStartedAt = new Date().toISOString();
@@ -110,6 +141,7 @@ async function prepareIterationContext(input) {
     const effectiveTaskCounts = taskCounts ?? (0, taskFile_1.countTaskStatuses)(taskFile);
     const taskSelectedAt = new Date().toISOString();
     const iteration = await stateManager.allocateIteration(rootPath, snapshot.paths);
+    const sessionHandoff = await readSessionHandoff(snapshot.paths.handoffDir, config.agentId, iteration);
     const promptTarget = includeVerifierContext ? 'cliExec' : 'ideHandoff';
     const provenanceId = (0, integrity_1.createProvenanceId)({
         iteration,
@@ -205,7 +237,8 @@ async function prepareIterationContext(input) {
         codexCliSupport,
         ideCommandSupport,
         artifactReadinessDiagnostics,
-        agentHealthDiagnostics
+        agentHealthDiagnostics,
+        sessionHandoff
     });
     const preflightArtifactPaths = (0, artifactStore_1.resolvePreflightArtifactPaths)(snapshot.paths.artifactDir, iteration);
     const { persistedReport: persistedPreflightReport, humanSummary: preflightSummaryText } = await (0, artifactStore_1.writePreflightArtifacts)({
@@ -273,6 +306,7 @@ async function prepareIterationContext(input) {
         normalizedValidationCommandFrom,
         validationCommand: effectiveValidationCommand,
         preflightReport,
+        sessionHandoff,
         config
     });
     const prompt = promptRender.prompt;
@@ -373,6 +407,7 @@ async function prepareIterationContext(input) {
         preflightReport,
         persistedPreflightReport,
         preflightSummaryText,
+        sessionHandoff,
         provenanceBundlePaths,
         createdPaths: snapshot.createdPaths,
         beforeCoreState,

@@ -19,6 +19,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   provenanceBundleRetentionCount: 25,
   gitCheckpointMode: 'snapshotAndDiff',
   scmStrategy: 'none',
+  scmPrOnParentDone: false,
   validationCommandOverride: '',
   stopOnHumanReviewNeeded: true,
   autonomyMode: 'supervised',

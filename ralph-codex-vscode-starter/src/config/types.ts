@@ -44,6 +44,7 @@ export interface RalphCodexConfig {
   provenanceBundleRetentionCount: number;
   gitCheckpointMode: RalphGitCheckpointMode;
   scmStrategy: RalphScmStrategy;
+  scmPrOnParentDone: boolean;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;
   autonomyMode: RalphAutonomyMode;

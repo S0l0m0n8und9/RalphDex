@@ -14,7 +14,6 @@ import {
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
 import {
-  applySuggestedChildTasksToFile,
   inspectTaskClaimGraph,
   resolveStaleClaim,
   selectNextTask,
@@ -30,6 +29,10 @@ import {
   RalphTaskRemediationArtifact
 } from '../ralph/types';
 import { inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention } from '../ralph/artifactStore';
+import {
+  applyTaskDecompositionProposalArtifact,
+  resolveApplicableTaskDecompositionProposal
+} from '../ralph/taskDecomposition';
 import {
   captureGitStatus,
   chooseValidationCommand,
@@ -751,18 +754,17 @@ async function applyLatestTaskDecompositionProposal(
     return false;
   }
 
-  if (remediationArtifact.action !== 'decompose_task'
-    || !remediationArtifact.selectedTaskId
-    || remediationArtifact.suggestedChildTasks.length === 0) {
+  const proposal = resolveApplicableTaskDecompositionProposal(remediationArtifact);
+  if (!proposal) {
     void vscode.window.showInformationMessage(
       'The latest Ralph remediation artifact does not contain an applicable task-decomposition proposal.'
     );
     return false;
   }
 
-  const childTaskIds = remediationArtifact.suggestedChildTasks.map((task) => task.id);
+  const childTaskIds = proposal.suggestedChildTasks.map((task) => task.id);
   const confirmed = await vscode.window.showWarningMessage(
-    `Apply the latest Ralph decomposition proposal for ${remediationArtifact.selectedTaskId}? This updates .ralph/tasks.json by adding ${childTaskIds.length} child task(s) and making the parent task depend on them.`,
+    `Apply the latest Ralph decomposition proposal for ${proposal.parentTaskId}? This updates .ralph/tasks.json by adding ${childTaskIds.length} child task(s) and making the parent task depend on them.`,
     { modal: true },
     'Apply Proposal'
   );
@@ -771,16 +773,12 @@ async function applyLatestTaskDecompositionProposal(
     return false;
   }
 
-  await applySuggestedChildTasksToFile(
-    inspection.paths.taskFilePath,
-    remediationArtifact.selectedTaskId!,
-    remediationArtifact.suggestedChildTasks
-  );
+  await applyTaskDecompositionProposalArtifact(inspection.paths.taskFilePath, remediationArtifact);
 
   logger.info('Applied Ralph task decomposition proposal.', {
     rootPath: workspaceFolder.uri.fsPath,
     remediationPath: latestArtifacts.latestRemediationPath,
-    parentTaskId: remediationArtifact.selectedTaskId,
+    parentTaskId: proposal.parentTaskId,
     childTaskIds
   });
 
@@ -789,7 +787,7 @@ async function applyLatestTaskDecompositionProposal(
     ? path.relative(workspaceFolder.uri.fsPath, latestArtifacts.latestRemediationPath)
     : '.ralph/artifacts/latest-remediation.json';
   void vscode.window.showInformationMessage(
-    `Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${remediationArtifact.selectedTaskId}.`
+    `Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${proposal.parentTaskId}.`
   );
   return true;
 }

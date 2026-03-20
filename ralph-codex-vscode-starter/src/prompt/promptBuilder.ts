@@ -9,6 +9,7 @@ import {
   RalphPreflightDiagnostic,
   RalphPreflightReport,
   RalphPromptEvidence,
+  RalphPromptSessionHandoff,
   RalphPromptKind,
   RalphPromptTarget,
   RalphTask,
@@ -353,6 +354,7 @@ export interface PromptGenerationInput {
   normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
   preflightReport: RalphPreflightReport;
+  sessionHandoff?: RalphPromptSessionHandoff | null;
   config: PromptConfig;
 }
 
@@ -851,15 +853,29 @@ function buildPriorIterationContext(
   includeVerifierFeedback: boolean,
   budget: number,
   rootPath: string,
-  selectedTask: RalphTask | null
+  selectedTask: RalphTask | null,
+  sessionHandoff: RalphPromptSessionHandoff | null
 ): string[] {
+  const handoffLines = sessionHandoff
+    ? [
+      '### Session Handoff',
+      `- Handoff summary: ${sessionHandoff.humanSummary}`,
+      `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
+      `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`
+    ]
+    : [];
   const prior = state.lastIteration;
 
   if (!prior) {
-    return ['- No prior Ralph iteration has been recorded.'];
+    return handoffLines.length > 0
+      ? trimContextLines(handoffLines, budget)
+      : ['- No prior Ralph iteration has been recorded.'];
   }
   if (!includeVerifierFeedback) {
-    return ['- Prior verifier feedback is disabled by configuration.'];
+    return trimContextLines([
+      ...handoffLines,
+      '- Prior verifier feedback is disabled by configuration.'
+    ], budget);
   }
 
   const taskTokens = keywordTokens(taskKeywords(selectedTask));
@@ -943,12 +959,12 @@ function buildPriorIterationContext(
     lineEntries.push({ priority: 19, text: `- Prior iteration artifact dir: ${toRelativePath(rootPath, prior.artifactDir)}` });
   }
 
-  return trimContextLines(
-    lineEntries
+  return trimContextLines([
+    ...handoffLines,
+    ...lineEntries
       .sort((left, right) => right.priority - left.priority)
-      .map((entry) => entry.text),
-    budget
-  );
+      .map((entry) => entry.text)
+  ], budget);
 }
 
 function buildOperatingRules(agentRole: RalphAgentRole): string[] {
@@ -1295,7 +1311,8 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       input.config.promptIncludeVerifierFeedback,
       Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
       input.paths.rootPath,
-      input.selectedTask
+      input.selectedTask,
+      input.sessionHandoff ?? null
     ),
     operatingRules: buildOperatingRules(agentRole),
     executionContract: buildExecutionContract(input.target, input.kind, agentRole),

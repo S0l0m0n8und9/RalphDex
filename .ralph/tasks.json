@@ -1590,12 +1590,12 @@
     {
       "id": "T39.2",
       "title": "Wire watchdog recovery actions into reconciliation — permit cross-task resolve and decompose for watchdog role only",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T39",
       "dependsOn": [
         "T39.1"
       ],
-      "notes": "Wired watchdog-only reconciliation for resolve_stale_claim, decompose_task, and escalate_to_human; added parser and integration coverage, but repository compile is still blocked by unrelated iterationPreparation.ts errors.",
+      "notes": "Re-inspected the durable repository state and confirmed T39.2 is already implemented: watchdog-only reconciliation permits cross-task resolve_stale_claim, decompose_task, and escalate_to_human, with parser and integration coverage. The prior compile blocker is no longer present; compile and watchdog-focused tests now pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile",
       "blocker": "Validation command `cd ralph-codex-vscode-starter && npm run compile` fails due to pre-existing TypeScript errors in src/ralph/iterationPreparation.ts outside the watchdog reconciliation change."
     },
@@ -1647,7 +1647,7 @@
     {
       "id": "T40.3",
       "title": "Add ralphCodex.scmPrOnParentDone setting and implement PR creation via gh CLI on parent task completion",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T40",
       "dependsOn": [
         "T40.2"
@@ -1692,7 +1692,7 @@
     {
       "id": "T41.2",
       "title": "Include the latest handoff note in the next iteration's prompt context and preflight output",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T41",
       "dependsOn": [
         "T41.1"
