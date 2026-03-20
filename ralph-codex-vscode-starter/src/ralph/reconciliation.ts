@@ -7,6 +7,7 @@ import {
   findTaskById,
   inspectClaimOwnership,
   inspectTaskClaimGraph,
+  inspectTaskGraph,
   parseTaskFile,
   resolveStaleClaim,
   withTaskFileLock,
@@ -126,6 +127,16 @@ export async function reconcileCompletionReport(
         warnings
       };
     }
+
+    // Non-blocking observability: surface when an agent marks a task done without
+    // reporting that it ran the configured validation command.  Ralph's own
+    // verifierStatus already provides the hard enforcement gate; this warning
+    // makes skipped validation self-reporting visible in parallel-run artefacts.
+    if (input.prepared.validationCommand && !parsed.report.validationRan) {
+      warnings.push(
+        `Completed task without reporting validationRan; configured validation command was '${input.prepared.validationCommand}'.`
+      );
+    }
   }
 
   if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
@@ -225,7 +236,17 @@ export async function reconcileCompletionReport(
     warnings.push(...watchdogOutcome.warnings);
   }
 
-  const selectedTask = findTaskById(parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
+  // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
+  // after reconciliation instead of waiting for the next preflight cycle.
+  // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
+  // done while a sibling child remains open; parallel runs make the window worse.
+  const postReconciliationTaskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+  const selectedTask = findTaskById(postReconciliationTaskFile, input.selectedTask.id);
+  const driftDiagnostics = inspectTaskGraph(postReconciliationTaskFile)
+    .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
+  for (const diagnostic of driftDiagnostics) {
+    warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
+  }
 
   if (warnings.length > 0) {
     input.logger.warn('Completion report reconciliation recorded warnings.', {

@@ -313,6 +313,16 @@ class RalphIntegrityFailureError extends Error {
         this.name = 'RalphIntegrityFailureError';
     }
 }
+// Thrown inside the pre-exec integrity window when the selected task was already
+// completed by a concurrent agent between preparation and execution (gap 6).
+class StaleTaskContextError extends Error {
+    taskId;
+    constructor(taskId) {
+        super(`Task ${taskId} was already completed by a concurrent agent.`);
+        this.taskId = taskId;
+        this.name = 'StaleTaskContextError';
+    }
+}
 async function readVerifiedExecutionPlanArtifact(executionPlanPath, expectedExecutionPlanHash) {
     const planText = await fs.readFile(executionPlanPath, 'utf8').catch((error) => {
         throw new RalphIntegrityFailureError({
@@ -843,6 +853,17 @@ class RalphIterationEngine {
                     }
                     const verifiedPlan = await readVerifiedExecutionPlanArtifact(prepared.executionPlanPath, prepared.executionPlanHash);
                     const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+                    // Gap 6: Re-read the selected task status immediately before shelling out.
+                    // Another agent may have completed this task in the window between
+                    // prepareIterationContext (where the prompt was built) and now.
+                    // Throw StaleTaskContextError so the catch block below can convert it into
+                    // a clean 'skipped' result instead of wasting CLI compute.
+                    if (prepared.selectedTask) {
+                        const freshTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(prepared.paths.taskFilePath, 'utf8')), prepared.selectedTask.id);
+                        if (freshTask?.status === 'done') {
+                            throw new StaleTaskContextError(prepared.selectedTask.id);
+                        }
+                    }
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
                     let claudeLineBuffer = '';
                     const execResult = await execStrategy.runExec({
@@ -915,13 +936,23 @@ class RalphIterationEngine {
                     });
                 }
                 catch (error) {
-                    const integrityFailure = toIntegrityFailureError(error, prepared);
-                    if (integrityFailure) {
+                    if (error instanceof StaleTaskContextError) {
+                        // Gap 6: selected task was completed by a concurrent agent between
+                        // prepare and execute.  Treat as a clean skip rather than a failure.
+                        executionStatus = 'skipped';
+                        executionWarnings.push(`Execution skipped: task ${error.taskId} was already completed by a concurrent agent between preparation and execution.`);
                         phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
                         phaseTimestamps.executionFinishedAt = new Date().toISOString();
-                        await this.persistIntegrityFailureBundle(prepared, integrityFailure);
                     }
-                    throw error;
+                    else {
+                        const integrityFailure = toIntegrityFailureError(error, prepared);
+                        if (integrityFailure) {
+                            phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+                            phaseTimestamps.executionFinishedAt = new Date().toISOString();
+                            await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+                        }
+                        throw error;
+                    }
                 }
             }
             else {

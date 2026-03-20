@@ -460,6 +460,15 @@ class RalphIntegrityFailureError extends Error {
   }
 }
 
+// Thrown inside the pre-exec integrity window when the selected task was already
+// completed by a concurrent agent between preparation and execution (gap 6).
+class StaleTaskContextError extends Error {
+  public constructor(public readonly taskId: string) {
+    super(`Task ${taskId} was already completed by a concurrent agent.`);
+    this.name = 'StaleTaskContextError';
+  }
+}
+
 interface RalphAgentIdentityRecord {
   agentId: string;
   firstSeenAt: string;
@@ -1150,6 +1159,22 @@ export class RalphIterationEngine {
           prepared.executionPlanHash
         );
         const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+
+        // Gap 6: Re-read the selected task status immediately before shelling out.
+        // Another agent may have completed this task in the window between
+        // prepareIterationContext (where the prompt was built) and now.
+        // Throw StaleTaskContextError so the catch block below can convert it into
+        // a clean 'skipped' result instead of wasting CLI compute.
+        if (prepared.selectedTask) {
+          const freshTask = findTaskById(
+            parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8')),
+            prepared.selectedTask.id
+          );
+          if (freshTask?.status === 'done') {
+            throw new StaleTaskContextError(prepared.selectedTask.id);
+          }
+        }
+
         phaseTimestamps.executionStartedAt = new Date().toISOString();
         let claudeLineBuffer = '';
         const execResult = await execStrategy.runExec({
@@ -1223,13 +1248,24 @@ export class RalphIterationEngine {
           invocation
         });
       } catch (error) {
-        const integrityFailure = toIntegrityFailureError(error, prepared);
-        if (integrityFailure) {
+        if (error instanceof StaleTaskContextError) {
+          // Gap 6: selected task was completed by a concurrent agent between
+          // prepare and execute.  Treat as a clean skip rather than a failure.
+          executionStatus = 'skipped';
+          executionWarnings.push(
+            `Execution skipped: task ${error.taskId} was already completed by a concurrent agent between preparation and execution.`
+          );
           phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
           phaseTimestamps.executionFinishedAt = new Date().toISOString();
-          await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+        } else {
+          const integrityFailure = toIntegrityFailureError(error, prepared);
+          if (integrityFailure) {
+            phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+            phaseTimestamps.executionFinishedAt = new Date().toISOString();
+            await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+          }
+          throw error;
         }
-        throw error;
       }
     } else {
       executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];

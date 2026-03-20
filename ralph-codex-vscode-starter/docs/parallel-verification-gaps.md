@@ -2,7 +2,7 @@
 
 This document catalogues verification challenges and race conditions that arise when multiple Ralph iterations run concurrently.
 
-**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`. Gaps 3 and 4 (HIGH) were subsequently fixed. Gaps 5–10 remain open.
+**Status:** Gaps 1 and 2 (CRITICAL) were fixed in `reconciliation.ts` by introducing `updateTaskFileWithVerification`. Gaps 3 and 4 (HIGH) were subsequently fixed. Gaps 5, 6, and 7 (MEDIUM) were fixed in the third tranche. Gaps 8–10 remain open.
 
 ---
 
@@ -64,29 +64,33 @@ This document catalogues verification challenges and race conditions that arise 
 
 ---
 
-## Gap 5 — Validation Command Execution Is Unverified (MEDIUM)
+## Gap 5 — Validation Command Execution Is Unverified ~~(MEDIUM)~~ **Fixed (observability)**
 
-**Location:** `src/prompt/promptBuilder.ts` (validation hint), `src/ralph/reconciliation.ts:110–127`
+**Location:** `src/ralph/reconciliation.ts` — `reconcileCompletionReport`
 
-The iteration prompt tells the agent which validation command to run (e.g. `npm run validate`). The completion report's `validationRan` field is **optional** and **purely informational**. Reconciliation generates a warning when `verificationStatus !== 'passed'` for a 'done' report but does **not block or reject** the status update.
+**Fix:** After the hard-block guard that already rejects 'done' reports when `verificationStatus !== 'passed'`, a non-blocking warning is now appended to the artifact when `requestedStatus === 'done'` and a validation command is configured (`prepared.validationCommand`) but the completion report omits `validationRan`. This makes silent validation skips visible in provenance bundles and iteration logs without blocking valid completions where the agent simply forgot the field.
 
-Consequence: an agent can mark a task 'done' without ever running validation, and the ledger will accept it. In parallel runs, multiple agents doing this simultaneously can leave the build in a broken state while tasks.json shows all green.
-
----
-
-## Gap 6 — Stale Task Context Between Prepare and Execute (MEDIUM)
-
-**Location:** `src/ralph/iterationEngine.ts:1071–1140`
-
-The iteration cycle has two distinct phases: **prepare** (builds prompt, writes plan artifact, hashes it) and **execute** (shells out to the CLI). Another agent can mutate `tasks.json` between these phases. The pre-execute integrity check (`iterationEngine.ts:1132–1140`) validates the plan-artifact hash and the prompt-artifact hash but does **not re-read or re-hash the task graph content**. An agent therefore executes with a prompt whose task context may describe a task that another agent already completed or decomposed.
+**Remaining gap:** Ralph's `verificationStatus === 'passed'` gate does not require that the validation-command verifier specifically ran — a passing file-change verifier is sufficient. Agents that made file changes but never ran `npm test` can still mark tasks done if the file-change verifier passes. Closing this fully would require making the validation-command verifier mandatory when a command is configured.
 
 ---
 
-## Gap 7 — Ledger Drift Detection Is Deferred (MEDIUM)
+## Gap 6 — Stale Task Context Between Prepare and Execute ~~(MEDIUM)~~ **Fixed**
 
-**Location:** `src/ralph/loopLogic.ts:52–61`
+**Location:** `src/ralph/iterationEngine.ts` — `runCliIteration`, inner exec try/catch
 
-`done_parent_unfinished_descendants` drift is only detected at loop-decision time (next preflight). `autoCompleteSatisfiedAncestors()` (called inside `reconcileCompletionReport()`) can mark ancestor tasks done, but if a sibling child is still open, the resulting drift is not detected until the **following iteration's** preflight. In parallel execution, this window can span multiple simultaneous reconciliations, accumulating drift that is only caught one cycle later.
+**Fix:** After the prompt-artifact integrity check and immediately before `execStrategy.runExec`, the selected task is re-read from a fresh `tasks.json`. If the task status is `'done'` (completed by a concurrent agent), a `StaleTaskContextError` is thrown and caught by the surrounding catch block, which converts it into a clean `executionStatus: 'skipped'` result with a warning rather than wasting CLI compute or propagating an error to the caller.
+
+---
+
+## Gap 7 — Ledger Drift Detection Is Deferred ~~(MEDIUM)~~ **Fixed**
+
+**Location:** `src/ralph/loopLogic.ts` and `src/ralph/reconciliation.ts`
+
+**Fix (two parts):**
+
+1. `loopLogic.ts` — `BACKLOG_REPLENISHMENT_DRIFT_CODES` contained `done_parent_unfinished_descendants` but `inspectTaskGraph` actually emits `completed_parent_with_incomplete_descendants`. The correct code was added to the set so the backlog-replenishment trigger now fires when the drift is detected at preflight time.
+
+2. `reconciliation.ts` — After `updateTaskFileWithVerification` and watchdog actions complete, `inspectTaskGraph` is run on the post-reconciliation task file and any `completed_parent_with_incomplete_descendants` diagnostics are immediately appended to the artifact warnings. Drift is now surfaced in the same iteration that caused it rather than being deferred to the next preflight cycle.
 
 ---
 
@@ -120,9 +124,9 @@ Concurrent writes to `tasks.json` are serialised by the task-file lock, but the 
 | 2 | ~~`progress.md` unprotected read-modify-write~~ **Fixed (main path)** | ~~CRITICAL~~ | `reconciliation.ts` → inside lock; watchdog path still open |
 | 3 | ~~Agent identity record has no lock~~ **Fixed** | ~~HIGH~~ | `iterationEngine.ts` → `updateAgentIdentityRecord` now uses `withTaskFileLock` |
 | 4 | ~~Watchdog escalation progress.md race~~ **Fixed**; broader watchdog/build race open | ~~HIGH~~ | `reconciliation.ts` → `updateTaskFileWithProgress` |
-| 5 | Validation execution is unverified | MEDIUM | `reconciliation.ts:110–127` |
-| 6 | Stale task context between prepare and execute | MEDIUM | `iterationEngine.ts:1071–1140` |
-| 7 | Ledger drift detected one cycle too late | MEDIUM | `loopLogic.ts:52–61` |
+| 5 | ~~Validation execution unverified~~ **Fixed (observability)** | ~~MEDIUM~~ | `reconciliation.ts` → non-blocking `validationRan` warning |
+| 6 | ~~Stale task context between prepare and execute~~ **Fixed** | ~~MEDIUM~~ | `iterationEngine.ts` → `StaleTaskContextError` guard |
+| 7 | ~~Ledger drift detected one cycle too late~~ **Fixed** | ~~MEDIUM~~ | `loopLogic.ts` + `reconciliation.ts` → immediate `inspectTaskGraph` check |
 | 8 | Lock files accumulate on process crash | LOW | `taskFile.ts:382–428` |
 | 9 | No hard rejection in completion report state machine | LOW | `completionReportParser.ts:50–67` |
 | 10 | No version numbers on `tasks.json` | LOW | `taskFile.ts` (file format) |

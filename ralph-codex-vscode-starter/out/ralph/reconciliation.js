@@ -115,6 +115,13 @@ async function reconcileCompletionReport(input) {
                 warnings
             };
         }
+        // Non-blocking observability: surface when an agent marks a task done without
+        // reporting that it ran the configured validation command.  Ralph's own
+        // verifierStatus already provides the hard enforcement gate; this warning
+        // makes skipped validation self-reporting visible in parallel-run artefacts.
+        if (input.prepared.validationCommand && !parsed.report.validationRan) {
+            warnings.push(`Completed task without reporting validationRan; configured validation command was '${input.prepared.validationCommand}'.`);
+        }
     }
     if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
         warnings.push('Completion report requested blocked, but the preliminary outcome already classified the task as complete.');
@@ -189,7 +196,17 @@ async function reconcileCompletionReport(input) {
         progressChanged = progressChanged || watchdogOutcome.progressChanged;
         warnings.push(...watchdogOutcome.warnings);
     }
-    const selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
+    // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
+    // after reconciliation instead of waiting for the next preflight cycle.
+    // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
+    // done while a sibling child remains open; parallel runs make the window worse.
+    const postReconciliationTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
+    const selectedTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, input.selectedTask.id);
+    const driftDiagnostics = (0, taskFile_1.inspectTaskGraph)(postReconciliationTaskFile)
+        .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
+    for (const diagnostic of driftDiagnostics) {
+        warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
+    }
     if (warnings.length > 0) {
         input.logger.warn('Completion report reconciliation recorded warnings.', {
             selectedTaskId: input.selectedTask.id,

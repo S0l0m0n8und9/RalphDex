@@ -51,7 +51,11 @@ export interface RalphStopDecisionInput {
 
 const BACKLOG_REPLENISHMENT_DRIFT_CODES = new Set([
   'ledger_drift',
-  'done_parent_unfinished_descendants'
+  'done_parent_unfinished_descendants',
+  // inspectTaskGraph emits this code when a parent is marked done while descendants
+  // remain open; 'done_parent_unfinished_descendants' was the originally intended
+  // name but was never emitted, so both are kept for forward-compatibility.
+  'completed_parent_with_incomplete_descendants'
 ]);
 
 function hasBacklogReplenishmentLedgerDrift(diagnostics: RalphPreflightDiagnostic[]): boolean {
