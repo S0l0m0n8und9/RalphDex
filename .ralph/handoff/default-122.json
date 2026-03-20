@@ -1,0 +1,10 @@
+{
+  "agentId": "default",
+  "iteration": 122,
+  "selectedTaskId": "T38.3",
+  "selectedTaskTitle": "Add regression coverage for review-agent prompt routing and command; document in docs/workflows.md",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "complete",
+  "progressNote": "Added regression coverage for Run Review Agent command registration/single-pass behavior, verified review prompt routing to review-agent.md without implementation sections, and documented the review-agent workflow and approval boundary in docs/workflows.md.",
+  "humanSummary": "T38.3 (Add regression coverage for review-agent prompt routing and command; document in docs/workflows.md) stopped with control_plane_reload_required. Added regression coverage for Run Review Agent command registration/single-pass behavior, verified review prompt routing to review-agent.md without implementation sections, and documented the review-agent workflow and approval boundary in docs/workflows.md."
+}

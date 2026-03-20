@@ -20,7 +20,10 @@
     "T38.1",
     "T41.1",
     "T38.2",
-    "T31.3"
+    "T31.3",
+    "T31",
+    "T40.1",
+    "T38.3"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -34,7 +37,9 @@
     "ralph-codex-vscode-starter/.gitignore",
     "ralph-codex-vscode-starter/docs/boundaries.md",
     "ralph-codex-vscode-starter/docs/prompt-calibration.md",
+    "ralph-codex-vscode-starter/docs/provenance.md",
     "ralph-codex-vscode-starter/docs/testing.md",
+    "ralph-codex-vscode-starter/docs/verifier.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",

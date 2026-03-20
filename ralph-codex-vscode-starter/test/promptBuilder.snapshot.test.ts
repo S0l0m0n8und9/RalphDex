@@ -43,6 +43,22 @@ function snapshotPath(kind: RalphPromptKind, scenario: PromptScenarioFixture): s
   return path.join(snapshotDirectory, `${scenario.name}.${kind}.md`);
 }
 
+function assertPromptSemantics(scenario: PromptScenarioFixture, prompt: string): void {
+  for (const snippet of scenario.requiredPromptSnippets) {
+    assert.ok(
+      prompt.includes(snippet),
+      `Prompt for ${scenario.name}/${scenario.expectedPromptKind} should include: ${snippet}`
+    );
+  }
+
+  for (const snippet of scenario.forbiddenPromptSnippets ?? []) {
+    assert.ok(
+      !prompt.includes(snippet),
+      `Prompt for ${scenario.name}/${scenario.expectedPromptKind} should omit: ${snippet}`
+    );
+  }
+}
+
 async function assertMarkdownSnapshot(
   kind: RalphPromptKind,
   scenario: PromptScenarioFixture,
@@ -113,6 +129,7 @@ test('prompt builder matches readable golden snapshots for each valid fixture sc
       }
     });
 
+    assertPromptSemantics(scenario, render.prompt);
     await assertMarkdownSnapshot(decision.kind, scenario, render.prompt);
   }
 });

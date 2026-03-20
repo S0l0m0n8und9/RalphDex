@@ -99,7 +99,8 @@ type MockRunCliIterationResult = Awaited<ReturnType<RalphIterationEngine['runCli
 function createMockRun(
   rootPath: string,
   mode: 'singleExec' | 'loop',
-  stopReason: 'control_plane_reload_required' | 'human_review_needed' | 'preflight_blocked' | null
+  stopReason: 'control_plane_reload_required' | 'human_review_needed' | 'preflight_blocked' | null,
+  overrides: Partial<MockRunCliIterationResult['result']> = {}
 ): MockRunCliIterationResult {
   const message = stopReason === 'control_plane_reload_required'
     ? 'Control-plane changes require a reload.'
@@ -118,7 +119,10 @@ function createMockRun(
       executionStatus: stopReason === 'preflight_blocked' ? 'skipped' : 'succeeded',
       summary: 'Iteration summary.',
       completionClassification: 'complete',
-      stopReason
+      stopReason,
+      artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
+      followUpAction: 'continue_same_task',
+      ...overrides
     },
     loopDecision: {
       shouldContinue: false,
@@ -131,16 +135,20 @@ function createMockRun(
 async function withMockedRunCliIteration<T>(
   implementation: (
     workspaceFolder: vscode.WorkspaceFolder,
-    mode: 'singleExec' | 'loop'
+    mode: 'singleExec' | 'loop',
+    progress?: vscode.Progress<{ message?: string; increment?: number }>,
+    options?: unknown
   ) => Promise<MockRunCliIterationResult>,
   action: () => Promise<T>
 ): Promise<T> {
   const original = RalphIterationEngine.prototype.runCliIteration;
   RalphIterationEngine.prototype.runCliIteration = function mockedRunCliIteration(
     workspaceFolder: vscode.WorkspaceFolder,
-    mode: 'singleExec' | 'loop'
+    mode: 'singleExec' | 'loop',
+    progress?: vscode.Progress<{ message?: string; increment?: number }>,
+    options?: unknown
   ): Promise<MockRunCliIterationResult> {
-    return implementation(workspaceFolder, mode);
+    return implementation(workspaceFolder, mode, progress, options);
   } as RalphIterationEngine['runCliIteration'];
 
   try {
@@ -206,6 +214,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.initializeWorkspace'));
   assert.ok(commands.includes('ralphCodex.runRalphIteration'));
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
+  assert.ok(commands.includes('ralphCodex.runReviewAgent'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
   assert.ok(commands.includes('ralphCodex.openLatestRalphSummary'));
   assert.ok(commands.includes('ralphCodex.openLatestProvenanceBundle'));
@@ -222,6 +231,48 @@ test('activate registers the key Ralph commands', async () => {
   assert.match(output, /"autoReloadOnControlPlaneChange":true/);
   assert.match(output, /"autoApplyRemediation":\["decompose_task","mark_blocked"\]/);
   assert.match(output, /"autoReplenishBacklog":true/);
+});
+
+test('Run Review Agent executes a single review pass with the review agent command override', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default'
+  });
+
+  const invocations: Array<{ mode: 'singleExec' | 'loop'; agentRole?: unknown; agentId?: unknown }> = [];
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown; agentId?: unknown } } | undefined;
+      invocations.push({
+        mode,
+        agentRole: runOptions?.configOverrides?.agentRole,
+        agentId: runOptions?.configOverrides?.agentId
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runReviewAgent');
+    }
+  );
+
+  assert.equal(invocations.length, 1);
+  assert.deepEqual(invocations[0], {
+    mode: 'singleExec',
+    agentRole: 'review',
+    agentId: 'review-default'
+  });
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph review iteration 1 completed\. Iteration summary\./
+  );
 });
 
 test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missing-only .gitignore contract', async () => {

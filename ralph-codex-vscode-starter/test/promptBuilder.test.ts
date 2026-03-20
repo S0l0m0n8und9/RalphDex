@@ -440,6 +440,69 @@ test('buildPrompt renders a file-based template with structured inputs', async (
   assert.ok((render.evidence.promptBudget?.budgetDeltaTokens ?? Number.POSITIVE_INFINITY) <= 0);
 });
 
+test('buildPrompt routes review-agent prompts to the review template and omits implementation sections', async () => {
+  const templateDir = await createTemplateDir();
+  await fs.writeFile(path.join(templateDir, 'review-agent.md'), await fs.readFile(
+    path.join(process.cwd(), 'prompt-templates', 'review-agent.md'),
+    'utf8'
+  ), 'utf8');
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Run a bounded review pass for the selected task.',
+    objectiveText: '# Product / project brief\n\nVerify Ralph changes before implementation continues.',
+    progressText: '# Progress\n\n- Review coverage is missing.\n',
+    taskCounts: {
+      todo: 2,
+      in_progress: 1,
+      blocked: 0,
+      done: 3
+    },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [
+        { id: 'T38.3', title: 'Add review-agent regression coverage', status: 'in_progress' }
+      ]
+    },
+    selectedTask: {
+      id: 'T38.3',
+      title: 'Add review-agent regression coverage',
+      status: 'in_progress',
+      notes: 'Review-only pass.'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight completed without blocking errors.',
+      diagnostics: []
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'review'
+    }
+  });
+
+  assert.equal(render.templatePath, path.join(templateDir, 'review-agent.md'));
+  assert.match(render.prompt, /You are Ralph's review agent\./);
+  assert.match(render.prompt, /Do not implement fixes in this run\./);
+  assert.match(render.prompt, /- Do not make implementation edits; this role reports review findings only\./);
+  assert.match(render.prompt, /4\. Do not make code changes\. Emit proposed follow-up tasks in `suggestedChildTasks` instead of editing files or the task ledger\./);
+  assert.match(render.prompt, /- Reviewed files or review scope\./);
+  assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement that advances the task\./);
+  assert.doesNotMatch(render.prompt, /- Changed files\./);
+  assert.equal(render.evidence.templatePath, path.join(templateDir, 'review-agent.md'));
+});
+
 test('buildPrompt renders backlog-replenishment instructions when the task list is exhausted', async () => {
   const templateDir = await createTemplateDir();
 

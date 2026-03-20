@@ -128,7 +128,7 @@ Repeated-stop remediation is part of the persisted evidence chain, but it is int
 - the remediation artifact records deterministic trigger history, bounded proposed action, and any suggested child tasks
 - the remediation artifact is advisory evidence for operator review; it is not itself proof that `.ralph/tasks.json` changed
 
-That last distinction matters for approval flow. The recommendation can be persisted automatically, but a task-graph mutation happens only if the operator later runs `Apply Latest Task Decomposition Proposal`, and that write must still pass task-file validation at apply time.
+That last distinction matters for approval flow. The recommendation can be persisted automatically, and any task-graph mutation still happens only through the bounded proposal-application path. By default that path is operator-triggered through `Apply Latest Task Decomposition Proposal`; when `autoApplyRemediation` explicitly enables `decompose_task`, the loop may invoke the same validated write path automatically at iteration time.
 
 ## Latest Surface Recovery
 

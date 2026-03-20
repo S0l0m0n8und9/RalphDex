@@ -21,6 +21,8 @@ export interface PromptScenarioFixture {
   description: string;
   expectedPromptKind: RalphPromptKind;
   selectedTaskId: string | null;
+  requiredPromptSnippets: string[];
+  forbiddenPromptSnippets?: string[];
   taskFile: RalphTaskFile;
   prd: string;
   progress: string;
@@ -297,6 +299,11 @@ export const freshWorkspaceScenario: PromptScenarioFixture = {
   description: 'Fresh workspace with no prior iterations and one actionable bootstrap task.',
   expectedPromptKind: 'bootstrap',
   selectedTaskId: 'T1',
+  requiredPromptSnippets: [
+    'Treat the repository and durable Ralph files as the source of truth.',
+    'No prior Ralph iteration has been recorded.',
+    'Selected task id: T1'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -321,6 +328,11 @@ export const partialProgressScenario: PromptScenarioFixture = {
   description: 'Workspace mid-task after a prior partial-progress iteration on the same selected task.',
   expectedPromptKind: 'continue-progress',
   selectedTaskId: 'T2',
+  requiredPromptSnippets: [
+    'Resume from that durable state and finish the next coherent slice without redoing settled work.',
+    'Prior outcome classification: partial_progress',
+    'Selected task id: T2'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -357,6 +369,11 @@ export const repeatedNoProgressScenario: PromptScenarioFixture = {
   description: 'Workspace hit repeated no-progress on one task and now carries a pending decompose-task remediation.',
   expectedPromptKind: 'fix-failure',
   selectedTaskId: 'T3',
+  requiredPromptSnippets: [
+    'Focus first on the concrete failure or no-progress signal carried forward from the previous iteration.',
+    'Prior remediation: Decompose T3 into smaller bounded child tasks before retrying.',
+    'Additional prior-context signals omitted: 5.'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -399,6 +416,14 @@ export const blockedTaskScenario: PromptScenarioFixture = {
   description: 'Workspace has a blocked selected task, but the prior iteration history does not force a special prompt kind.',
   expectedPromptKind: 'iteration',
   selectedTaskId: 'T4',
+  requiredPromptSnippets: [
+    'You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.',
+    'Status: blocked',
+    'Blocker: Waiting on a reproducible fixture input from an external dependency.'
+  ],
+  forbiddenPromptSnippets: [
+    'The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -435,6 +460,14 @@ export const fixFailureScenario: PromptScenarioFixture = {
   description: 'Fix-failure scenario with a validation failure signature captured in the prior iteration result.',
   expectedPromptKind: 'fix-failure',
   selectedTaskId: 'T6',
+  requiredPromptSnippets: [
+    'Repair the concrete cause instead of repeating the same attempt.',
+    'Prior validation failure signature: npm run compile::TS2304::prompt-scenarios',
+    'Selected task id: T6'
+  ],
+  forbiddenPromptSnippets: [
+    'The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -492,6 +525,14 @@ export const replenishBacklogScenario: PromptScenarioFixture = {
   description: 'Backlog is exhausted, so the next prompt should regenerate durable task entries before normal execution resumes.',
   expectedPromptKind: 'replenish-backlog',
   selectedTaskId: null,
+  requiredPromptSnippets: [
+    'The durable Ralph backlog is exhausted.',
+    'The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.',
+    'Update `.ralph/progress.md` with a short note explaining why backlog replenishment was needed and what was added.'
+  ],
+  forbiddenPromptSnippets: [
+    'Selected task id:'
+  ],
   taskFile: {
     version: 2,
     tasks: [
@@ -532,6 +573,14 @@ export const humanReviewScenario: PromptScenarioFixture = {
   description: 'A prior iteration requested human review, so the next prompt should preserve that blocker instead of masking it.',
   expectedPromptKind: 'human-review-handoff',
   selectedTaskId: 'T9',
+  requiredPromptSnippets: [
+    'Treat the prior blocker as real until the repository proves otherwise.',
+    'Blocker: [human-review-needed] Fixture baseline requires explicit reviewer sign-off before proceeding.',
+    'Prior remediation: Request human review before continuing the fixture workflow.'
+  ],
+  forbiddenPromptSnippets: [
+    'The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.'
+  ],
   taskFile: {
     version: 2,
     tasks: [

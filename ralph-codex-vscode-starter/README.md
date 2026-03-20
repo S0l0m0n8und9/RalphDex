@@ -57,7 +57,7 @@ During long-running loops, Ralph keeps the newest generated prompt, run, iterati
 
 If a latest human-readable summary surface is deleted manually, Ralph attempts to repair it from the surviving latest JSON record before treating it as stale. `Ralph Codex: Show Status` reports repaired or still-stale latest surfaces, and the open/reveal commands give the main long-loop inspection path: latest summary, latest provenance bundle, latest prompt evidence, latest CLI transcript, and latest provenance bundle directory. See [docs/workflows.md](docs/workflows.md) for the operator flow and [docs/provenance.md](docs/provenance.md) for the trust chain behind those artifacts.
 
-When repeated-stop remediation proposes a bounded task decomposition, Ralph still defaults to propose-only behavior. Use `Ralph Codex: Apply Latest Task Decomposition Proposal` only after you have reviewed the persisted remediation artifact and want Ralph to add the proposed child tasks to `.ralph/tasks.json` and gate the parent task behind them.
+When repeated-stop remediation proposes a bounded task decomposition, Ralph still defaults to propose-only behavior. Use `Ralph Codex: Apply Latest Task Decomposition Proposal` after reviewing the persisted remediation artifact when you want the manual write path to add the proposed child tasks to `.ralph/tasks.json` and gate the parent task behind them. If `ralphCodex.autoApplyRemediation` includes `decompose_task` or autonomy mode is `autonomous`, Ralph may also apply the same validated proposal write path automatically during the loop.
 
 For long-loop maintenance, use this quick distinction:
 

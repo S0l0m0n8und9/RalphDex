@@ -1,10 +1,10 @@
 {
   "agentId": "default",
   "iteration": 121,
-  "selectedTaskId": "T38.2",
-  "selectedTaskTitle": "Register Run Review Agent command and wire role-aware single-pass stop behaviour",
+  "selectedTaskId": "T31",
+  "selectedTaskTitle": "Add prompt quality tests that assert on rendered content, not just section inclusion policy",
   "stopReason": "control_plane_reload_required",
   "completionClassification": "complete",
-  "progressNote": "Registered a single-pass Run Review Agent command, added per-run agent role/id overrides for review execution, and surfaced suggestedChildTasks in the output channel with an Apply Latest Task Decomposition Proposal prompt.",
-  "humanSummary": "T38.2 (Register Run Review Agent command and wire role-aware single-pass stop behaviour) stopped with control_plane_reload_required. Registered a single-pass Run Review Agent command, added per-run agent role/id overrides for review execution, and surfaced suggestedChildTasks in the output channel with an Apply Latest Task Decomposition Proposal prompt."
+  "progressNote": "Added fixture-driven semantic assertions to the prompt snapshot suite so each scenario now checks critical rendered guidance as well as exact markdown snapshots.",
+  "humanSummary": "T31 (Add prompt quality tests that assert on rendered content, not just section inclusion policy) stopped with control_plane_reload_required. Added fixture-driven semantic assertions to the prompt snapshot suite so each scenario now checks critical rendered guidance as well as exact markdown snapshots."
 }

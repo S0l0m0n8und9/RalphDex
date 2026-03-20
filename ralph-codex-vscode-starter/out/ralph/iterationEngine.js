@@ -1119,6 +1119,28 @@ class RalphIterationEngine {
             catch (error) {
                 result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
             }
+            if (prepared.config.scmStrategy === 'commit-on-done'
+                && taskStateVerification.selectedTaskCompleted
+                && prepared.selectedTask) {
+                try {
+                    result.warnings.push(await commitOnDone({
+                        rootPath: prepared.rootPath,
+                        taskId: prepared.selectedTask.id,
+                        taskTitle: prepared.selectedTask.title,
+                        agentId: prepared.config.agentId,
+                        iteration: prepared.iteration,
+                        validationStatus: validationVerification.result.status
+                    }));
+                }
+                catch (error) {
+                    result.warnings.push(`SCM commit-on-done failed for ${prepared.selectedTask.id}: ${toErrorMessage(error)}`);
+                    this.logger.warn('SCM commit-on-done failed.', {
+                        taskId: prepared.selectedTask.id,
+                        iteration: prepared.iteration,
+                        error: toErrorMessage(error)
+                    });
+                }
+            }
             await (0, artifactStore_1.writeIterationArtifacts)({
                 paths: artifactPaths,
                 artifactRootDir: prepared.paths.artifactDir,
@@ -1196,28 +1218,6 @@ class RalphIterationEngine {
                 pendingBlocker: selectedTaskAfter?.blocker ?? completionReconciliation.artifact.report?.blocker ?? null
             });
             await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
-            if (prepared.config.scmStrategy === 'commit-on-done'
-                && taskStateVerification.selectedTaskCompleted
-                && prepared.selectedTask) {
-                try {
-                    result.warnings.push(await commitOnDone({
-                        rootPath: prepared.rootPath,
-                        taskId: prepared.selectedTask.id,
-                        taskTitle: prepared.selectedTask.title,
-                        agentId: prepared.config.agentId,
-                        iteration: prepared.iteration,
-                        validationStatus: validationVerification.result.status
-                    }));
-                }
-                catch (error) {
-                    result.warnings.push(`SCM commit-on-done failed for ${prepared.selectedTask.id}: ${toErrorMessage(error)}`);
-                    this.logger.warn('SCM commit-on-done failed.', {
-                        taskId: prepared.selectedTask.id,
-                        iteration: prepared.iteration,
-                        error: toErrorMessage(error)
-                    });
-                }
-            }
             this.logger.info('Completed Ralph iteration.', {
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,

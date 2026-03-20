@@ -93,12 +93,14 @@ Per-iteration artifacts now also include `completion-report.json`, which records
 
 When the same selected task stops with repeated no-progress, repeated blocked starts, or repeated identical failure evidence, the persisted iteration result, latest-result pointer, latest summary, and status report now also carry a bounded remediation recommendation. That recommendation stays deterministic and human-review-first; it does not trigger an automatic extra model pass.
 
-If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralph Codex: Apply Latest Task Decomposition Proposal` only when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step adds the approved child tasks and makes the parent depend on them so the bounded subtasks run before the parent is retried.
+If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralph Codex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried.
+
+Ralph may also auto-apply `decompose_task` during `Run CLI Iteration` or `Run CLI Loop`, but only when `ralphCodex.autoApplyRemediation` includes `decompose_task` or `ralphCodex.autonomyMode = autonomous` makes that setting effective at runtime. In that mode Ralph still persists the remediation artifact first, then applies the suggested child tasks through the same task-file validation and `withTaskFileLock` write path used by the explicit apply command. If validation fails, Ralph leaves `.ralph/tasks.json` unchanged and records a warning on the iteration result instead of forcing the edit.
 
 The operator approval boundary is strict on purpose:
 
-- Ralph can persist the proposal artifact automatically, but it cannot change `.ralph/tasks.json` until the operator runs `Apply Latest Task Decomposition Proposal`
-- the apply command is only for the latest approved `decompose_task` artifact; `reframe_task`, `mark_blocked`, and `request_human_review` stay operator decisions outside automatic task-file edits
+- Ralph can persist the proposal artifact automatically, and it changes `.ralph/tasks.json` only through the bounded proposal write path used by `Apply Latest Task Decomposition Proposal` or by the explicit `autoApplyRemediation` opt-in
+- the apply command is still the manual path for the latest approved `decompose_task` artifact; `reframe_task` and `request_human_review` stay operator decisions outside automatic task-file edits, while `mark_blocked` has its own separate opt-in auto-apply path
 - approval is still validated at write time, so stale, duplicate, or graph-invalid proposed children are rejected instead of being forced into the task graph
 - the approved write is narrow: Ralph appends the proposed child tasks and adds them as parent dependencies, but it does not reorder or rewrite unrelated tasks
 
@@ -213,7 +215,7 @@ Use the remediation surfaces in this order when a loop stops repeatedly:
 1. `Show Status` to read the remediation summary, action, attempt count, human-review flag, and proposal path.
 2. `Open Latest Ralph Summary` when you want the newest human-readable iteration narrative.
 3. Open `.ralph/artifacts/latest-remediation.json` or the iteration-local `task-remediation.json` when you need the exact trigger history, evidence list, and suggested child tasks.
-4. Run `Apply Latest Task Decomposition Proposal` only after you have decided that the bounded child-task set is the right next step.
+4. Run `Apply Latest Task Decomposition Proposal` only after you have decided that the bounded child-task set is the right next step when auto-apply is not enabled.
 
 Before treating `decompose_task` as the next move, confirm the proposal still fits Ralph's bounded decomposition shape:
 
@@ -313,7 +315,7 @@ Use the inspection commands by question, not just by file name:
 - `Ralph Codex: Open Latest Provenance Bundle` opens the newest provenance summary surface.
 - `Ralph Codex: Open Latest Prompt Evidence` opens `latest-prompt-evidence.json` for direct prompt-context inspection.
 - `Ralph Codex: Open Latest CLI Transcript` opens the newest CLI transcript and falls back to the newest last-message artifact when a transcript path is unavailable.
-- `Ralph Codex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`.
+- `Ralph Codex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`.
 - `Ralph Codex: Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory for folder-level inspection.
 - `Ralph Codex: Cleanup Runtime Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
 
@@ -345,6 +347,18 @@ Use that grouped view to answer three operator questions quickly:
 - which agent currently owns which task
 - whether a claim is old enough to investigate as stale before starting another loop
 - whether a misconfigured shared `agentId` is making two workers look like the same actor
+
+### Review Agent
+
+Run `Ralph: Run Review Agent` when you want a bounded review pass over the currently selected Ralph task instead of another implementation attempt. This is the right pass after a build agent lands a change and you want Ralph to validate it, inspect the changed files, and call out missing tests, documentation gaps, or invariant violations before more code work continues.
+
+The review agent is propose-only. It runs a single CLI iteration in `agentRole = review`, uses the dedicated review prompt template, and tells the model not to implement fixes. When the review finds gaps, it emits proposed follow-up tasks in `suggestedChildTasks` instead of editing source files or mutating `.ralph/tasks.json` directly.
+
+Operator approval remains explicit:
+
+- the review pass may persist a proposal artifact and surface suggested follow-up tasks
+- the review pass does not commit those proposals into the durable task ledger by itself
+- review proposals become real tasks only after the operator explicitly runs `Apply Latest Task Decomposition Proposal`
 
 ## Reset State
 

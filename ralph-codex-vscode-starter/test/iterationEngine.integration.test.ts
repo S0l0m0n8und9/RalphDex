@@ -470,6 +470,10 @@ test('runCliIteration commits completed work when scmStrategy is commit-on-done'
   assert.equal(commits[0]?.subject, 'ralph(T40.1): Auto-commit completed tasks');
   assert.equal(commits[0]?.body, 'Agent: default | Iteration: 1 | Validation: passed');
   assert.match(summary.result.warnings.join('\n'), /SCM commit-on-done succeeded/);
+  const persistedResult = JSON.parse(
+    await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'iteration-result.json'), 'utf8')
+  ) as { warnings: string[] };
+  assert.match(persistedResult.warnings.join('\n'), /SCM commit-on-done succeeded/);
 });
 
 test('runCliIteration persists blocked preflight evidence before throwing', async () => {

@@ -98,7 +98,7 @@ When a stop is caused by `repeated_no_progress`, repeated blocked starts on the 
 
 Ralph also persists a dedicated `task-remediation.json` artifact in the iteration directory and mirrors the newest one to `.ralph/artifacts/latest-remediation.json`. That proposal records the triggering history, deterministic rationale, bounded proposed action, and any suggested child-task decomposition hints.
 
-For `decompose_task`, the remediation artifact may now include a bounded proposed child-task set when the selected task looks clearly compound. Those proposals stay one level deep, inherit only the parent task and dependency context, cap the number of proposed children, and never rewrite `.ralph/tasks.json` automatically.
+For `decompose_task`, the remediation artifact may now include a bounded proposed child-task set when the selected task looks clearly compound. Those proposals stay one level deep, inherit only the parent task and dependency context, cap the number of proposed children, and default to review-only behavior unless `autoApplyRemediation` explicitly enables `decompose_task`.
 
 This remediation is deterministic and evidence-backed:
 
@@ -130,6 +130,8 @@ Hard limits keep remediation from turning into ad hoc planning:
 - child tasks inherit only the parent validation command and dependency context plus sequential dependencies between the suggested siblings
 - applying a proposal is rejected if the parent task is missing or already done, if a child id duplicates an existing task or the parent id, or if a proposed dependency does not resolve inside the approved task set
 - even after approval, Ralph only adds the proposed children and gates the parent on them; it does not rewrite unrelated tasks or the broader plan
+
+When auto-apply is enabled for `decompose_task`, Ralph uses that same bounded proposal-application path during iteration execution. The remediation artifact is still persisted first, and any validation failure is surfaced as a warning instead of silently mutating the task graph.
 
 `decompose_task` has a deliberately narrow shape so the operator can predict what Ralph will propose before opening the artifact:
 
