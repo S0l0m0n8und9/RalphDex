@@ -425,7 +425,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             stateFilePath: inspection.paths.stateFilePath,
             taskFilePath: inspection.paths.taskFilePath,
             claimFilePath: inspection.paths.claimFilePath,
-            artifactDir: inspection.paths.artifactDir
+            artifactDir: inspection.paths.artifactDir,
+            staleClaimTtlMs: config.watchdogStaleTtlMs
         })
     ]);
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);

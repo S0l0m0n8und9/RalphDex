@@ -331,7 +331,8 @@ export async function prepareIterationContext(
       stateFilePath: snapshot.paths.stateFilePath,
       taskFilePath: snapshot.paths.taskFilePath,
       claimFilePath: snapshot.paths.claimFilePath,
-      artifactDir: snapshot.paths.artifactDir
+      artifactDir: snapshot.paths.artifactDir,
+      staleClaimTtlMs: config.watchdogStaleTtlMs
     })
   ]);
   const preflightReport = buildPreflightReport({

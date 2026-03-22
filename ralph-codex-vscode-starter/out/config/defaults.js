@@ -21,6 +21,7 @@ exports.DEFAULT_CONFIG = {
     gitCheckpointMode: 'snapshotAndDiff',
     scmStrategy: 'none',
     scmPrOnParentDone: false,
+    watchdogStaleTtlMs: 24 * 60 * 60 * 1000,
     validationCommandOverride: '',
     stopOnHumanReviewNeeded: true,
     autonomyMode: 'supervised',

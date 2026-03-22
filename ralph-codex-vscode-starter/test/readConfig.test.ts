@@ -78,3 +78,17 @@ test('readConfig reads scmPrOnParentDone and falls back to false', () => {
   const fallback = readConfig(workspaceFolder('C:\\repo'));
   assert.equal(fallback.scmPrOnParentDone, false);
 });
+
+test('readConfig reads watchdogStaleTtlMs and falls back to 24 hours', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    watchdogStaleTtlMs: 3600000
+  });
+
+  const configured = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(configured.watchdogStaleTtlMs, 3600000);
+
+  harness.reset();
+  const fallback = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(fallback.watchdogStaleTtlMs, 24 * 60 * 60 * 1000);
+});

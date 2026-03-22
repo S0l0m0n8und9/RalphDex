@@ -47,6 +47,7 @@
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.scmStrategy",
         "ralphCodex.scmPrOnParentDone",
+        "ralphCodex.watchdogStaleTtlMs",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
         "ralphCodex.autonomyMode",
@@ -167,7 +168,7 @@
         "ralphCodex.cliProvider": {
           "type": "string",
           "enum": ["codex", "claude"],
-          "default": "codex",
+          "default": "claude",
           "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
         },
         "ralphCodex.codexCommandPath": {
@@ -273,13 +274,19 @@
         "ralphCodex.scmStrategy": {
           "type": "string",
           "enum": ["none", "commit-on-done", "branch-per-task"],
-          "default": "none",
+          "default": "commit-on-done",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
         "ralphCodex.scmPrOnParentDone": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "When enabled with scmStrategy = branch-per-task, Ralph pushes ralph/integration/<parentId> and opens a GitHub pull request through gh when the final child completion auto-completes a parent task. Push or PR failures are reported as iteration warnings without rolling back completion."
+        },
+        "ralphCodex.watchdogStaleTtlMs": {
+          "type": "number",
+          "default": 86400000,
+          "minimum": 0,
+          "description": "Time-to-live in milliseconds for active claims before the watchdog considers them stale. Defaults to 86400000 (24 hours). Set to 0 to treat every active claim as immediately stale for testing purposes."
         },
         "ralphCodex.validationCommandOverride": {
           "type": "string",
@@ -294,12 +301,12 @@
         "ralphCodex.autonomyMode": {
           "type": "string",
           "enum": ["supervised", "autonomous"],
-          "default": "supervised",
+          "default": "autonomous",
           "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on, while preserving hard stops such as blocked preflight, request_human_review, and manual PRD authorship."
         },
         "ralphCodex.autoReplenishBacklog": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Continue the Ralph loop into backlog replenishment when no actionable task remains and preflight found no ledger-drift safety errors."
         },
         "ralphCodex.autoReloadOnControlPlaneChange": {
@@ -313,7 +320,7 @@
             "type": "string",
             "enum": ["decompose_task", "mark_blocked"]
           },
-          "default": [],
+          "default": ["decompose_task"],
           "description": "Opt-in remediation actions Ralph may auto-apply after repeated-stop evidence. Leave this empty to preserve review-only behavior; set one or both of decompose_task and mark_blocked to allow only those actions."
         },
         "ralphCodex.ralphTaskFilePath": {
@@ -351,7 +358,7 @@
         "ralphCodex.promptBudgetProfile": {
           "type": "string",
           "enum": ["codex", "claude", "custom"],
-          "default": "codex",
+          "default": "claude",
           "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context placeholder matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
         },
         "ralphCodex.customPromptBudget": {
@@ -370,7 +377,7 @@
         },
         "ralphCodex.model": {
           "type": "string",
-          "default": "gpt-5.4",
+          "default": "claude-sonnet-4-6",
           "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-6 for Claude)."
         },
         "ralphCodex.reasoningEffort": {
@@ -393,12 +400,12 @@
         },
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
-          "default": "codex.openSidebar",
+          "default": "claude.openSidebar",
           "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
-          "default": "codex.newChat",
+          "default": "claude.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
         }
       }
