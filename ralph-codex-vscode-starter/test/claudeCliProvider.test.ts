@@ -88,6 +88,30 @@ test('extractResponseText parses structured JSON output and returns result field
   assert.equal(text, 'The task is complete.\n\n```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```');
 });
 
+test('extractResponseText picks result event with most turns when follow-up turn is present', async () => {
+  // Simulates the background-Task follow-up pattern: Claude emits a main
+  // result (many turns, contains the completion report) then a task_notification
+  // triggers a second result (1 turn, brief acknowledgement) that must not win.
+  const mainResult = JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    result: 'Work done.\n\n```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```',
+    num_turns: 16,
+    session_id: 'abc'
+  });
+  const followUpResult = JSON.stringify({
+    type: 'result',
+    subtype: 'success',
+    result: 'The completion report is above.',
+    num_turns: 1,
+    session_id: 'abc'
+  });
+  const stdout = [mainResult, followUpResult].join('\n');
+
+  const text = await provider().extractResponseText(stdout, '', '');
+  assert.equal(text, 'Work done.\n\n```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```');
+});
+
 test('extractResponseText falls back to raw stdout when JSON is malformed', async () => {
   const text = await provider().extractResponseText('not valid json', '', '');
   assert.equal(text, 'not valid json');

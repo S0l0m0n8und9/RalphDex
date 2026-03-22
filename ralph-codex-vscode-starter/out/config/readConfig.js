@@ -154,6 +154,7 @@ function readConfig(workspaceFolder) {
         gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
         scmStrategy: readEnum(config, 'scmStrategy', ['none', 'commit-on-done', 'branch-per-task'], defaults_1.DEFAULT_CONFIG.scmStrategy),
         scmPrOnParentDone: readBoolean(config, 'scmPrOnParentDone', defaults_1.DEFAULT_CONFIG.scmPrOnParentDone),
+        watchdogStaleTtlMs: readNumber(config, 'watchdogStaleTtlMs', defaults_1.DEFAULT_CONFIG.watchdogStaleTtlMs, 0),
         validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
         stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
         autonomyMode,

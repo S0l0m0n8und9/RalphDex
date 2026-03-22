@@ -1,6 +1,40 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClaudeCliProvider = void 0;
+const fs = __importStar(require("fs/promises"));
 function firstNonEmptyLine(text) {
     return text
         .split('\n')
@@ -32,28 +66,42 @@ class ClaudeCliProvider {
         }
         return args;
     }
-    async extractResponseText(stdout, _stderr, _lastMessagePath) {
+    async extractResponseText(stdout, _stderr, lastMessagePath) {
         const trimmed = stdout.trim();
         if (!trimmed) {
             return '';
         }
-        // With --output-format stream-json, stdout is NDJSON. Scan in reverse for
-        // the result event, which carries the final assistant response text.
+        // With --output-format stream-json, stdout is NDJSON. Collect all result
+        // events and return the one with the most turns — that is always the main
+        // interaction. When Claude uses background Task invocations a follow-up
+        // result event (num_turns: 1) is emitted after the background task
+        // completes; reverse-scanning would pick that brief follow-up instead of
+        // the main response that contains the completion report.
         const lines = trimmed.split('\n');
-        for (let i = lines.length - 1; i >= 0; i--) {
-            const line = lines[i].trim();
-            if (!line) {
+        let bestResult = null;
+        let bestTurns = -1;
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
                 continue;
             }
             try {
-                const parsed = JSON.parse(line);
+                const parsed = JSON.parse(trimmedLine);
                 if (parsed.type === 'result' && typeof parsed.result === 'string') {
-                    return parsed.result;
+                    const turns = typeof parsed.num_turns === 'number' ? parsed.num_turns : 0;
+                    if (turns > bestTurns) {
+                        bestTurns = turns;
+                        bestResult = parsed.result;
+                    }
                 }
             }
             catch {
                 // skip unparseable lines
             }
+        }
+        if (bestResult !== null) {
+            await fs.writeFile(lastMessagePath, bestResult, 'utf8').catch(() => { });
+            return bestResult;
         }
         // Fallback: try parsing the whole stdout as a single JSON object in case
         // --output-format json was used or the process wrote a single blob.

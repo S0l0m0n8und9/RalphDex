@@ -1,3 +1,4 @@
+import * as fs from 'fs/promises';
 import { CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
@@ -54,28 +55,44 @@ export class ClaudeCliProvider implements CliProvider {
     return args;
   }
 
-  public async extractResponseText(stdout: string, _stderr: string, _lastMessagePath: string): Promise<string> {
+  public async extractResponseText(stdout: string, _stderr: string, lastMessagePath: string): Promise<string> {
     const trimmed = stdout.trim();
     if (!trimmed) {
       return '';
     }
 
-    // With --output-format stream-json, stdout is NDJSON. Scan in reverse for
-    // the result event, which carries the final assistant response text.
+    // With --output-format stream-json, stdout is NDJSON. Collect all result
+    // events and return the one with the most turns — that is always the main
+    // interaction. When Claude uses background Task invocations a follow-up
+    // result event (num_turns: 1) is emitted after the background task
+    // completes; reverse-scanning would pick that brief follow-up instead of
+    // the main response that contains the completion report.
     const lines = trimmed.split('\n');
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i].trim();
-      if (!line) {
+    let bestResult: string | null = null;
+    let bestTurns = -1;
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
         continue;
       }
       try {
-        const parsed = JSON.parse(line) as ClaudeJsonOutput;
+        const parsed = JSON.parse(trimmedLine) as ClaudeJsonOutput;
         if (parsed.type === 'result' && typeof parsed.result === 'string') {
-          return parsed.result;
+          const turns = typeof parsed.num_turns === 'number' ? parsed.num_turns : 0;
+          if (turns > bestTurns) {
+            bestTurns = turns;
+            bestResult = parsed.result;
+          }
         }
       } catch {
         // skip unparseable lines
       }
+    }
+
+    if (bestResult !== null) {
+      await fs.writeFile(lastMessagePath, bestResult, 'utf8').catch(() => {});
+      return bestResult;
     }
 
     // Fallback: try parsing the whole stdout as a single JSON object in case

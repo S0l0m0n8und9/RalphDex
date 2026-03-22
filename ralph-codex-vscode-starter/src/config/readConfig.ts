@@ -269,6 +269,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'scmPrOnParentDone',
       DEFAULT_CONFIG.scmPrOnParentDone
     ),
+    watchdogStaleTtlMs: readNumber(
+      config,
+      'watchdogStaleTtlMs',
+      DEFAULT_CONFIG.watchdogStaleTtlMs,
+      0
+    ),
     validationCommandOverride: readString(
       config,
       'validationCommandOverride',

@@ -45,6 +45,7 @@ export interface RalphCodexConfig {
   gitCheckpointMode: RalphGitCheckpointMode;
   scmStrategy: RalphScmStrategy;
   scmPrOnParentDone: boolean;
+  watchdogStaleTtlMs: number;
   validationCommandOverride: string;
   stopOnHumanReviewNeeded: boolean;
   autonomyMode: RalphAutonomyMode;

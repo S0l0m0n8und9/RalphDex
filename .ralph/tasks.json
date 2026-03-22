@@ -1566,7 +1566,7 @@
     {
       "id": "T39",
       "title": "Watchdog agent role — detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T37",
         "T39.1",
@@ -1613,7 +1613,7 @@
     {
       "id": "T40",
       "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T37",
         "T40.1",

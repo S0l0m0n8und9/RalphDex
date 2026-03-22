@@ -47,6 +47,7 @@
         "ralphCodex.gitCheckpointMode",
         "ralphCodex.scmStrategy",
         "ralphCodex.scmPrOnParentDone",
+        "ralphCodex.watchdogStaleTtlMs",
         "ralphCodex.validationCommandOverride",
         "ralphCodex.stopOnHumanReviewNeeded",
         "ralphCodex.autonomyMode",
@@ -280,6 +281,12 @@
           "type": "boolean",
           "default": true,
           "description": "When enabled with scmStrategy = branch-per-task, Ralph pushes ralph/integration/<parentId> and opens a GitHub pull request through gh when the final child completion auto-completes a parent task. Push or PR failures are reported as iteration warnings without rolling back completion."
+        },
+        "ralphCodex.watchdogStaleTtlMs": {
+          "type": "number",
+          "default": 86400000,
+          "minimum": 0,
+          "description": "Time-to-live in milliseconds for active claims before the watchdog considers them stale. Defaults to 86400000 (24 hours). Set to 0 to treat every active claim as immediately stale for testing purposes."
         },
         "ralphCodex.validationCommandOverride": {
           "type": "string",
