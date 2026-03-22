@@ -273,7 +273,7 @@
         "ralphCodex.scmStrategy": {
           "type": "string",
           "enum": ["none", "commit-on-done", "branch-per-task"],
-          "default": "branch-per-task",
+          "default": "commit-on-done",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
         "ralphCodex.scmPrOnParentDone": {
@@ -304,7 +304,7 @@
         },
         "ralphCodex.autoReloadOnControlPlaneChange": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "When enabled, Ralph will automatically execute workbench.action.reloadWindow after a control_plane_reload_required stop in loop mode instead of waiting for operator action."
         },
         "ralphCodex.autoApplyRemediation": {

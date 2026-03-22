@@ -967,6 +967,16 @@
       "claimedAt": "2026-03-20T08:19:54.844Z",
       "provenanceId": "run-i136-cli-20260320T081954Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T33.3",
+      "claimedAt": "2026-03-22T22:18:47.677Z",
+      "provenanceId": "run-i139-cli-20260322T221840Z",
+      "status": "released",
+      "baseBranch": "ralph/T32.3",
+      "integrationBranch": "ralph/integration/T33",
+      "featureBranch": "ralph/T33.3"
     }
   ]
 }
