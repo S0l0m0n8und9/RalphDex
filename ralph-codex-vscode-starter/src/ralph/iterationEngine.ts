@@ -603,6 +603,15 @@ class RalphIntegrityFailureError extends Error {
   }
 }
 
+// Thrown inside the pre-exec integrity window when the selected task was already
+// completed by a concurrent agent between preparation and execution (gap 6).
+class StaleTaskContextError extends Error {
+  public constructor(public readonly taskId: string) {
+    super(`Task ${taskId} was already completed by a concurrent agent.`);
+    this.name = 'StaleTaskContextError';
+  }
+}
+
 interface RalphAgentIdentityRecord {
   agentId: string;
   firstSeenAt: string;
@@ -851,38 +860,50 @@ async function updateAgentIdentityRecord(input: {
 }): Promise<void> {
   const agentDirectoryPath = path.join(input.rootPath, '.ralph', 'agents');
   const recordPath = path.join(agentDirectoryPath, `${input.agentId}.json`);
-  let existing: unknown = null;
 
-  try {
-    existing = JSON.parse(await fs.readFile(recordPath, 'utf8')) as unknown;
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== 'ENOENT') {
-      throw error;
-    }
-  }
-
-  const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
-  const completedTaskIds = [...record.completedTaskIds];
-  if (input.selectedTaskCompleted && input.selectedTaskId) {
-    completedTaskIds.push(input.selectedTaskId);
-  }
-
-  const nextRecord: RalphAgentIdentityRecord = {
-    agentId: input.agentId,
-    firstSeenAt: record.firstSeenAt,
-    completedTaskIds,
-    touchedFiles: uniqueSorted([
-      ...record.touchedFiles,
-      ...(input.diffSummary?.changedFiles ?? [])
-    ])
-  };
-
+  // Wrap the entire read-compute-write cycle in withTaskFileLock so that concurrent agents
+  // sharing the same agentId serialise on .ralph/agents/tasks.lock instead of racing.
+  // The temp-file rename is kept for crash safety; the lock eliminates the TOCTOU race.
   await fs.mkdir(agentDirectoryPath, { recursive: true });
-  const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
-  await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
-  await fs.rm(recordPath, { force: true });
-  await fs.rename(tempPath, recordPath);
+  const locked = await withTaskFileLock(recordPath, undefined, async () => {
+    let existing: unknown = null;
+
+    try {
+      existing = JSON.parse(await fs.readFile(recordPath, 'utf8')) as unknown;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        throw error;
+      }
+    }
+
+    const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
+    const completedTaskIds = [...record.completedTaskIds];
+    if (input.selectedTaskCompleted && input.selectedTaskId) {
+      completedTaskIds.push(input.selectedTaskId);
+    }
+
+    const nextRecord: RalphAgentIdentityRecord = {
+      agentId: input.agentId,
+      firstSeenAt: record.firstSeenAt,
+      completedTaskIds,
+      touchedFiles: uniqueSorted([
+        ...record.touchedFiles,
+        ...(input.diffSummary?.changedFiles ?? [])
+      ])
+    };
+
+    const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
+    await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
+    await fs.rm(recordPath, { force: true });
+    await fs.rename(tempPath, recordPath);
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring agent record lock for ${input.agentId} after ${locked.attempts} attempt(s).`
+    );
+  }
 }
 
 export class RalphIterationEngine {
@@ -1281,6 +1302,22 @@ export class RalphIterationEngine {
           prepared.executionPlanHash
         );
         const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+
+        // Gap 6: Re-read the selected task status immediately before shelling out.
+        // Another agent may have completed this task in the window between
+        // prepareIterationContext (where the prompt was built) and now.
+        // Throw StaleTaskContextError so the catch block below can convert it into
+        // a clean 'skipped' result instead of wasting CLI compute.
+        if (prepared.selectedTask) {
+          const freshTask = findTaskById(
+            parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8')),
+            prepared.selectedTask.id
+          );
+          if (freshTask?.status === 'done') {
+            throw new StaleTaskContextError(prepared.selectedTask.id);
+          }
+        }
+
         phaseTimestamps.executionStartedAt = new Date().toISOString();
         let claudeLineBuffer = '';
         const execResult = await execStrategy.runExec({
@@ -1354,13 +1391,24 @@ export class RalphIterationEngine {
           invocation
         });
       } catch (error) {
-        const integrityFailure = toIntegrityFailureError(error, prepared);
-        if (integrityFailure) {
+        if (error instanceof StaleTaskContextError) {
+          // Gap 6: selected task was completed by a concurrent agent between
+          // prepare and execute.  Treat as a clean skip rather than a failure.
+          executionStatus = 'skipped';
+          executionWarnings.push(
+            `Execution skipped: task ${error.taskId} was already completed by a concurrent agent between preparation and execution.`
+          );
           phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
           phaseTimestamps.executionFinishedAt = new Date().toISOString();
-          await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+        } else {
+          const integrityFailure = toIntegrityFailureError(error, prepared);
+          if (integrityFailure) {
+            phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
+            phaseTimestamps.executionFinishedAt = new Date().toISOString();
+            await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+          }
+          throw error;
         }
-        throw error;
       }
     } else {
       executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];

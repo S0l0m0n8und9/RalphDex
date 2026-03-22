@@ -4,9 +4,11 @@ import { CompletionReportArtifact, parseCompletionReport } from './completionRep
 import {
   applySuggestedChildTasksToFile,
   autoCompleteSatisfiedAncestors,
+  bumpMutationCount,
   findTaskById,
   inspectClaimOwnership,
   inspectTaskClaimGraph,
+  inspectTaskGraph,
   parseTaskFile,
   resolveStaleClaim,
   withTaskFileLock,
@@ -48,6 +50,7 @@ export async function reconcileCompletionReport(
     schemaVersion: 1,
     kind: 'completionReport',
     status: parsed.status === 'parsed' ? 'rejected' : parsed.status,
+    rejectionReason: null,
     selectedTaskId: input.selectedTask?.id ?? null,
     report: parsed.report,
     rawBlock: parsed.rawBlock,
@@ -95,6 +98,7 @@ export async function reconcileCompletionReport(
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'task_id_mismatch',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -117,6 +121,9 @@ export async function reconcileCompletionReport(
       return {
         artifact: {
           ...artifactBase,
+          rejectionReason: input.verificationStatus !== 'passed'
+            ? 'verification_failed'
+            : 'needs_human_review_with_done',
           warnings
         },
         selectedTask: input.selectedTask,
@@ -126,6 +133,16 @@ export async function reconcileCompletionReport(
         warnings
       };
     }
+
+    // Non-blocking observability: surface when an agent marks a task done without
+    // reporting that it ran the configured validation command.  Ralph's own
+    // verifierStatus already provides the hard enforcement gate; this warning
+    // makes skipped validation self-reporting visible in parallel-run artefacts.
+    if (input.prepared.validationCommand && !parsed.report.validationRan) {
+      warnings.push(
+        `Completed task without reporting validationRan; configured validation command was '${input.prepared.validationCommand}'.`
+      );
+    }
   }
 
   if (requestedStatus === 'blocked' && input.preliminaryClassification === 'complete') {
@@ -133,6 +150,7 @@ export async function reconcileCompletionReport(
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'blocked_overrides_complete',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -145,24 +163,68 @@ export async function reconcileCompletionReport(
 
   let taskFileChanged = false;
   let progressChanged = false;
-  const claimOwnership = await inspectClaimOwnership(
+
+  // Claim ownership re-check, task-file write, and progress.md append all happen inside a
+  // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
+  // read-modify-write that existed when these operations ran sequentially outside any lock.
+  const verificationResult = await updateTaskFileWithVerification(
+    input.taskFilePath,
     input.prepared.paths.claimFilePath,
     input.selectedTask.id,
     input.prepared.config.agentId,
-    input.prepared.provenanceId
+    input.prepared.provenanceId,
+    input.prepared.paths.progressPath,
+    parsed.report.progressNote ?? null,
+    (taskFile) => {
+      const selectedTaskUpdated: RalphTaskFile = {
+        ...taskFile,
+        tasks: taskFile.tasks.map((task) => {
+          if (task.id !== input.selectedTask!.id) {
+            return task;
+          }
+
+          const nextTask: RalphTask = {
+            ...task,
+            status: requestedStatus,
+            notes: parsed.report!.progressNote ?? task.notes,
+            blocker: requestedStatus === 'blocked'
+              ? parsed.report!.blocker ?? task.blocker
+              : task.blocker
+          };
+
+          if (requestedStatus !== 'blocked' && parsed.report!.blocker) {
+            nextTask.blocker = parsed.report!.blocker;
+          }
+
+          taskFileChanged = nextTask.status !== task.status
+            || nextTask.notes !== task.notes
+            || nextTask.blocker !== task.blocker;
+
+          return nextTask;
+        })
+      };
+
+      if (requestedStatus !== 'done') {
+        return selectedTaskUpdated;
+      }
+
+      const ancestorCompletion = autoCompleteSatisfiedAncestors(selectedTaskUpdated, input.selectedTask!.id);
+      if (ancestorCompletion.completedAncestorIds.length > 0) {
+        taskFileChanged = true;
+      }
+
+      return ancestorCompletion.taskFile;
+    }
   );
 
-  if (!claimOwnership.holdsActiveClaim) {
-    const canonicalClaim = claimOwnership.canonicalClaim?.claim;
-    const canonicalHolder = canonicalClaim
-      ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
-      : 'none';
+  if (verificationResult.claimContested) {
     warnings.push(
-      `Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${canonicalHolder}.`
+      `Completion report claim ownership check failed for ${input.selectedTask.id}; canonical holder was ${verificationResult.canonicalHolder ?? 'none'}.`
     );
     return {
       artifact: {
         ...artifactBase,
+        rejectionReason: 'claim_contested',
         warnings
       },
       selectedTask: input.selectedTask,
@@ -173,51 +235,7 @@ export async function reconcileCompletionReport(
     };
   }
 
-  await updateTaskFile(input.taskFilePath, (taskFile) => {
-    const selectedTaskUpdated: RalphTaskFile = {
-      ...taskFile,
-      tasks: taskFile.tasks.map((task) => {
-        if (task.id !== input.selectedTask!.id) {
-          return task;
-        }
-
-        const nextTask: RalphTask = {
-          ...task,
-          status: requestedStatus,
-          notes: parsed.report!.progressNote ?? task.notes,
-          blocker: requestedStatus === 'blocked'
-            ? parsed.report!.blocker ?? task.blocker
-            : task.blocker
-        };
-
-        if (requestedStatus !== 'blocked' && parsed.report!.blocker) {
-          nextTask.blocker = parsed.report!.blocker;
-        }
-
-        taskFileChanged = nextTask.status !== task.status
-          || nextTask.notes !== task.notes
-          || nextTask.blocker !== task.blocker;
-
-        return nextTask;
-      })
-    };
-
-    if (requestedStatus !== 'done') {
-      return selectedTaskUpdated;
-    }
-
-    const ancestorCompletion = autoCompleteSatisfiedAncestors(selectedTaskUpdated, input.selectedTask!.id);
-    if (ancestorCompletion.completedAncestorIds.length > 0) {
-      taskFileChanged = true;
-    }
-
-    return ancestorCompletion.taskFile;
-  });
-
-  if (parsed.report.progressNote) {
-    await appendProgressBullet(input.prepared.paths.progressPath, parsed.report.progressNote);
-    progressChanged = true;
-  }
+  progressChanged = verificationResult.progressChanged;
 
   if (input.prepared.config.agentRole === 'watchdog' && parsed.report.watchdog_actions?.length) {
     const watchdogOutcome = await processWatchdogActions(input, parsed.report.watchdog_actions);
@@ -226,7 +244,17 @@ export async function reconcileCompletionReport(
     warnings.push(...watchdogOutcome.warnings);
   }
 
-  const selectedTask = findTaskById(parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
+  // Gap 7: Detect completed_parent_with_incomplete_descendants drift immediately
+  // after reconciliation instead of waiting for the next preflight cycle.
+  // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
+  // done while a sibling child remains open; parallel runs make the window worse.
+  const postReconciliationTaskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+  const selectedTask = findTaskById(postReconciliationTaskFile, input.selectedTask.id);
+  const driftDiagnostics = inspectTaskGraph(postReconciliationTaskFile)
+    .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
+  for (const diagnostic of driftDiagnostics) {
+    warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
+  }
 
   if (warnings.length > 0) {
     input.logger.warn('Completion report reconciliation recorded warnings.', {
@@ -249,9 +277,36 @@ export async function reconcileCompletionReport(
   };
 }
 
+// Acquires the task-file lock once and, inside that critical section, writes both
+// tasks.json and the progress bullet.  Used by the watchdog escalate_to_human path so
+// the progress.md append is never interleaved with concurrent task-file writes.
+async function updateTaskFileWithProgress(
+  taskFilePath: string,
+  progressPath: string,
+  progressNote: string,
+  transform: (taskFile: RalphTaskFile) => RalphTaskFile
+): Promise<void> {
+  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+
+    const trimmed = progressNote.trim();
+    if (trimmed) {
+      const current = await fs.readFile(progressPath, 'utf8');
+      await fs.writeFile(progressPath, `${current.trimEnd()}\n- ${trimmed}\n`, 'utf8');
+    }
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+}
+
 async function updateTaskFile(taskFilePath: string, transform: (taskFile: RalphTaskFile) => RalphTaskFile): Promise<void> {
   const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-    const nextTaskFile = transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')));
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
     await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
   });
 
@@ -260,6 +315,59 @@ async function updateTaskFile(taskFilePath: string, transform: (taskFile: RalphT
       `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
     );
   }
+}
+
+// Acquires the task-file lock once and, inside that single critical section:
+// 1. Re-verifies claim ownership (eliminates the TOCTOU window between the prior standalone
+//    inspectClaimOwnership call and the subsequent updateTaskFile call).
+// 2. Applies the task transform and persists tasks.json.
+// 3. Appends the progress bullet to progress.md (eliminates the unprotected read-modify-write
+//    that existed when appendProgressBullet ran outside any lock).
+async function updateTaskFileWithVerification(
+  taskFilePath: string,
+  claimFilePath: string,
+  taskId: string,
+  agentId: string,
+  provenanceId: string,
+  progressPath: string,
+  progressNote: string | null,
+  transform: (taskFile: RalphTaskFile) => RalphTaskFile
+): Promise<{ claimContested: boolean; canonicalHolder: string | null; progressChanged: boolean }> {
+  let claimContested = false;
+  let canonicalHolder: string | null = null;
+  let progressChanged = false;
+
+  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+    const claimOwnership = await inspectClaimOwnership(claimFilePath, taskId, agentId, provenanceId);
+    if (!claimOwnership.holdsActiveClaim) {
+      const canonicalClaim = claimOwnership.canonicalClaim?.claim;
+      canonicalHolder = canonicalClaim
+        ? `${canonicalClaim.agentId}/${canonicalClaim.provenanceId}/${canonicalClaim.status}`
+        : 'none';
+      claimContested = true;
+      return;
+    }
+
+    const nextTaskFile = bumpMutationCount(transform(parseTaskFile(await fs.readFile(taskFilePath, 'utf8'))));
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+
+    if (progressNote) {
+      const trimmed = progressNote.trim();
+      if (trimmed) {
+        const current = await fs.readFile(progressPath, 'utf8');
+        await fs.writeFile(progressPath, `${current.trimEnd()}\n- ${trimmed}\n`, 'utf8');
+        progressChanged = true;
+      }
+    }
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+
+  return { claimContested, canonicalHolder, progressChanged };
 }
 
 async function appendProgressBullet(progressPath: string, bullet: string): Promise<void> {
@@ -329,21 +437,25 @@ async function processWatchdogActions(
       continue;
     }
 
-    await appendProgressBullet(input.prepared.paths.progressPath, buildWatchdogEscalationEntry(action));
-    progressChanged = true;
-    await updateTaskFile(input.taskFilePath, (taskFile) => ({
-      ...taskFile,
-      tasks: taskFile.tasks.map((task) => {
-        if (task.id !== action.taskId) {
-          return task;
-        }
+    await updateTaskFileWithProgress(
+      input.taskFilePath,
+      input.prepared.paths.progressPath,
+      buildWatchdogEscalationEntry(action),
+      (taskFile) => ({
+        ...taskFile,
+        tasks: taskFile.tasks.map((task) => {
+          if (task.id !== action.taskId) {
+            return task;
+          }
 
-        return {
-          ...task,
-          blocker: buildWatchdogBlocker(action)
-        };
+          return {
+            ...task,
+            blocker: buildWatchdogBlocker(action)
+          };
+        })
       })
-    }));
+    );
+    progressChanged = true;
     taskFileChanged = true;
   }
 

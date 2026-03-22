@@ -40,6 +40,7 @@ exports.inspectTaskFileText = inspectTaskFileText;
 exports.createDefaultTaskFile = createDefaultTaskFile;
 exports.parseTaskFile = parseTaskFile;
 exports.normalizeTaskFileText = normalizeTaskFileText;
+exports.bumpMutationCount = bumpMutationCount;
 exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
 exports.listSelectableTasks = listSelectableTasks;
@@ -67,6 +68,11 @@ const EMPTY_COUNTS = {
 exports.DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
 const DEFAULT_LOCK_RETRY_COUNT = 40;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
+// Lock files older than this threshold are considered left by a crashed process and
+// are removed automatically so the next agent does not have to wait for a manual
+// operator to delete them.  5 minutes is generous enough to cover slow machines
+// while still recovering long before any realistic TTL or user-visible timeout.
+const STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
 const SUPPORTED_TASK_FIELDS = new Set([
     'id',
     'title',
@@ -287,6 +293,18 @@ async function withClaimFileLock(claimFilePath, options, fn) {
             if (code !== 'EEXIST' || attempt >= retryCount) {
                 throw error;
             }
+            // Stale-lock recovery: if the lock file is older than the threshold it was
+            // left by a crashed process.  Remove it and retry immediately.
+            try {
+                const lockStat = await fs.stat(lockPath);
+                if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
+                    await fs.rm(lockPath, { force: true });
+                    continue;
+                }
+            }
+            catch {
+                // lock was already removed between EEXIST and stat; retry normally
+            }
             await sleep(retryDelayMs);
         }
     }
@@ -327,6 +345,18 @@ async function withTaskFileLock(taskFilePath, options, fn) {
                     lockPath,
                     attempts: attempt + 1
                 };
+            }
+            // Stale-lock recovery: if the lock file is older than the threshold it was
+            // left by a crashed process.  Remove it and retry immediately.
+            try {
+                const lockStat = await fs.stat(lockPath);
+                if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
+                    await fs.rm(lockPath, { force: true });
+                    continue;
+                }
+            }
+            catch {
+                // lock was already removed between EEXIST and stat; retry normally
             }
             await sleep(retryDelayMs);
         }
@@ -877,9 +907,13 @@ function inspectTaskFileText(raw) {
             ? { ...task, parentId: inferredParentId }
             : task;
     });
+    const parsedMutationCount = typeof record.mutationCount === 'number' && Number.isInteger(record.mutationCount) && record.mutationCount >= 0
+        ? record.mutationCount
+        : undefined;
     const taskFile = {
         version: 2,
-        tasks: migratedTasks
+        tasks: migratedTasks,
+        ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
     };
     const taskDiagnostics = inspectTaskGraph(taskFile);
     const normalizedText = stringifyTaskFile(taskFile);
@@ -947,11 +981,21 @@ function normalizeTaskFileText(raw) {
     }
     throw new Error(formatTaskGraphDiagnostics(inspection.diagnostics));
 }
+function bumpMutationCount(taskFile) {
+    return {
+        ...taskFile,
+        mutationCount: (taskFile.mutationCount ?? 0) + 1
+    };
+}
 function stringifyTaskFile(taskFile) {
-    return `${JSON.stringify({
+    const obj = {
         version: taskFile.version,
         tasks: taskFile.tasks.map(({ source: _source, ...task }) => task)
-    }, null, 2)}\n`;
+    };
+    if (taskFile.mutationCount !== undefined) {
+        obj.mutationCount = taskFile.mutationCount;
+    }
+    return `${JSON.stringify(obj, null, 2)}\n`;
 }
 function countTaskStatuses(taskFile) {
     const counts = { ...EMPTY_COUNTS };

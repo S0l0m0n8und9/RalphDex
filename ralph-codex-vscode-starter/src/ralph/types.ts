@@ -23,6 +23,12 @@ export interface RalphTask {
 export interface RalphTaskFile {
   version: 2;
   tasks: RalphTask[];
+  /**
+   * Monotonically increasing write counter.  Each locked mutation increments
+   * this value so concurrent-write conflicts are distinguishable in git history
+   * and post-hoc debugging does not need to rely solely on log files.
+   */
+  mutationCount?: number;
 }
 
 export type RalphTaskClaimStatus = 'active' | 'released' | 'stale';
