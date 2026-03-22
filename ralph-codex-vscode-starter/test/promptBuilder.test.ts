@@ -1177,6 +1177,73 @@ test('buildPrompt keeps task-relevant prior validation and remediation signals n
   ]);
 });
 
+test('buildPrompt prepends session handoff context ahead of prior iteration evidence', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Resume from the latest clean handoff.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: {
+      todo: 1,
+      in_progress: 0,
+      blocked: 0,
+      done: 1
+    },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        summary: 'Prior iteration completed with a handoff note.'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Resume the selected task', status: 'todo' }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Resume the selected task',
+      status: 'todo'
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    },
+    sessionHandoff: {
+      agentId: 'default',
+      iteration: 1,
+      selectedTaskId: 'T1',
+      selectedTaskTitle: 'Resume the selected task',
+      stopReason: 'iteration_cap_reached',
+      completionClassification: 'partial_progress',
+      humanSummary: 'T1 (Resume the selected task) stopped with iteration_cap_reached. Keep going.',
+      pendingBlocker: 'Waiting on follow-up validation.',
+      validationFailureSignature: 'sig:validate:resume'
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.deepEqual(render.evidence.inputs.priorIterationContext.slice(0, 4), [
+    '### Session Handoff',
+    '- Handoff summary: T1 (Resume the selected task) stopped with iteration_cap_reached. Keep going.',
+    '- Handoff blocker: Waiting on follow-up validation.',
+    '- Handoff validation failure signature: sig:validate:resume'
+  ]);
+  assert.match(render.prompt, /Prior:\n### Session Handoff/);
+});
+
 test('buildPrompt records the prompt-budget matrix for each prompt kind and target', async () => {
   const templateDir = await createTemplateDir();
   const expectedPolicies = [

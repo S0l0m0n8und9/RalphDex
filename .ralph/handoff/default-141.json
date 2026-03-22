@@ -1,0 +1,9 @@
+{
+  "agentId": "default",
+  "iteration": 141,
+  "selectedTaskId": null,
+  "selectedTaskTitle": null,
+  "stopReason": "iteration_cap_reached",
+  "completionClassification": "no_progress",
+  "humanSummary": "No selected task stopped with iteration_cap_reached. no_progress"
+}

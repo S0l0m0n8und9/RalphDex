@@ -6,7 +6,7 @@ import {
   RalphTaskRemediationArtifact,
   RalphTaskRemediationHistoryEntry
 } from './types';
-import { findTaskById } from './taskFile';
+import { applySuggestedChildTasksToFile, findTaskById } from './taskFile';
 
 const MAX_REMEDIATION_CHILD_TASKS = 3;
 
@@ -261,6 +261,51 @@ export function buildRemediationArtifact(input: {
     artifactDir: input.artifactDir,
     iterationResultPath: input.iterationResultPath,
     createdAt: input.createdAt
+  };
+}
+
+export interface RalphApplicableTaskDecompositionProposal {
+  parentTaskId: string;
+  suggestedChildTasks: RalphSuggestedChildTask[];
+}
+
+export function resolveApplicableTaskDecompositionProposal(
+  remediationArtifact: RalphTaskRemediationArtifact | null | undefined
+): RalphApplicableTaskDecompositionProposal | null {
+  if (!remediationArtifact
+    || remediationArtifact.action !== 'decompose_task'
+    || !remediationArtifact.selectedTaskId
+    || remediationArtifact.suggestedChildTasks.length === 0) {
+    return null;
+  }
+
+  return {
+    parentTaskId: remediationArtifact.selectedTaskId,
+    suggestedChildTasks: remediationArtifact.suggestedChildTasks
+  };
+}
+
+export async function applyTaskDecompositionProposalArtifact(
+  taskFilePath: string,
+  remediationArtifact: RalphTaskRemediationArtifact
+): Promise<{
+    taskFile: RalphTaskFile;
+    parentTaskId: string;
+    childTaskIds: string[];
+  }> {
+  const proposal = resolveApplicableTaskDecompositionProposal(remediationArtifact);
+  if (!proposal) {
+    throw new Error('The provided remediation artifact does not contain an applicable task-decomposition proposal.');
+  }
+
+  return {
+    taskFile: await applySuggestedChildTasksToFile(
+      taskFilePath,
+      proposal.parentTaskId,
+      proposal.suggestedChildTasks
+    ),
+    parentTaskId: proposal.parentTaskId,
+    childTaskIds: proposal.suggestedChildTasks.map((task) => task.id)
   };
 }
 

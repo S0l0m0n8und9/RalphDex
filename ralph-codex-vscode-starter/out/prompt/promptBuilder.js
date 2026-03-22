@@ -685,13 +685,26 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, preflightRep
         `- Blocker: ${selectedTask.blocker ?? 'none'}`
     ];
 }
-function buildPriorIterationContext(state, includeVerifierFeedback, budget, rootPath, selectedTask) {
+function buildPriorIterationContext(state, includeVerifierFeedback, budget, rootPath, selectedTask, sessionHandoff) {
+    const handoffLines = sessionHandoff
+        ? [
+            '### Session Handoff',
+            `- Handoff summary: ${sessionHandoff.humanSummary}`,
+            `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
+            `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`
+        ]
+        : [];
     const prior = state.lastIteration;
     if (!prior) {
-        return ['- No prior Ralph iteration has been recorded.'];
+        return handoffLines.length > 0
+            ? trimContextLines(handoffLines, budget)
+            : ['- No prior Ralph iteration has been recorded.'];
     }
     if (!includeVerifierFeedback) {
-        return ['- Prior verifier feedback is disabled by configuration.'];
+        return trimContextLines([
+            ...handoffLines,
+            '- Prior verifier feedback is disabled by configuration.'
+        ], budget);
     }
     const taskTokens = keywordTokens(taskKeywords(selectedTask));
     const validationFocusedTask = taskTokens.some((token) => [
@@ -770,9 +783,12 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
         lineEntries.push({ priority: 20, text: `- Prior prompt artifact: ${toRelativePath(rootPath, prior.promptPath)}` });
         lineEntries.push({ priority: 19, text: `- Prior iteration artifact dir: ${toRelativePath(rootPath, prior.artifactDir)}` });
     }
-    return trimContextLines(lineEntries
-        .sort((left, right) => right.priority - left.priority)
-        .map((entry) => entry.text), budget);
+    return trimContextLines([
+        ...handoffLines,
+        ...lineEntries
+            .sort((left, right) => right.priority - left.priority)
+            .map((entry) => entry.text)
+    ], budget);
 }
 function buildOperatingRules(agentRole) {
     if (agentRole === 'review') {
@@ -1026,7 +1042,7 @@ async function buildPrompt(input) {
             .split('\n')
             .map((line) => line.trimEnd())
             .filter((line) => line.length > 0),
-        priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask),
+        priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask, input.sessionHandoff ?? null),
         operatingRules: buildOperatingRules(agentRole),
         executionContract: buildExecutionContract(input.target, input.kind, agentRole),
         finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)

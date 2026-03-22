@@ -24,10 +24,15 @@
     "T31",
     "T40.1",
     "T38.3",
-    "T38"
+    "T38",
+    "T40.2",
+    "T39.2",
+    "T39.3",
+    "T40.3"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
+    ".ralph/claims.json",
     ".ralph/handoff/default-118.json",
     ".ralph/handoff/default-119.json",
     ".ralph/handoff/default-120.json",
@@ -35,6 +40,14 @@
     ".ralph/handoff/default-123.json",
     ".ralph/handoff/default-124.json",
     ".ralph/handoff/default-126.json",
+    ".ralph/handoff/default-129.json",
+    ".ralph/handoff/default-130.json",
+    ".ralph/handoff/default-131.json",
+    ".ralph/handoff/default-133.json",
+    ".ralph/handoff/default-135.json",
+    ".ralph/handoff/default-136.json",
+    ".ralph/handoff/default-137.json",
+    ".ralph/handoff/default-141.json",
     ".ralph/progress.md",
     ".ralph/state.lock",
     ".ralph/tasks.json",
@@ -131,6 +144,7 @@
     "ralph-codex-vscode-starter/test/readConfig.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/support/processTestHarness.ts",
+    "ralph-codex-vscode-starter/test/taskDecomposition.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts"
   ]
 }

@@ -255,6 +255,47 @@ test('buildPreflightReport warns when the default agent identity collides with a
   );
 });
 
+test('buildPreflightReport surfaces an informational diagnostic when resuming from a handoff note', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Resume work', status: 'todo' }
+    ]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus,
+    sessionHandoff: {
+      agentId: 'default',
+      iteration: 1,
+      selectedTaskId: 'T1',
+      selectedTaskTitle: 'Resume work',
+      stopReason: 'iteration_cap_reached',
+      completionClassification: 'partial_progress',
+      humanSummary: 'T1 (Resume work) stopped with iteration_cap_reached. Continue from the saved state.',
+      pendingBlocker: 'Waiting on a final validation pass.',
+      validationFailureSignature: 'sig:resume:1'
+    }
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'session_handoff_available'));
+  assert.match(report.summary, /Workspace\/runtime: 1 info/);
+});
+
 test('inspectPreflightArtifactReadiness reports stale latest surfaces and missing latest-pointer targets', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');

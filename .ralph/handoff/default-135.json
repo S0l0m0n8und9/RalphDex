@@ -1,0 +1,11 @@
+{
+  "agentId": "default",
+  "iteration": 135,
+  "selectedTaskId": "T41.2",
+  "selectedTaskTitle": "Include the latest handoff note in the next iteration's prompt context and preflight output",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "partial_progress",
+  "progressNote": "Verified the existing durable implementation already includes session handoff context in the next prompt, surfaces handoff availability in preflight, and covers handoff write/carry/prune behavior with passing targeted regression tests. Full npm run validate still fails on unrelated existing auto-reload and concurrent-claim tests.",
+  "validationFailureSignature": "cd ralph-codex-vscode-starter && npm run validate::exit:1::> ralph-codex-workbench@0.1.0 validate | > npm run compile && npm run check:docs && npm run check:ledger && npm run lint && npm run test | > ralph-codex-workbench@0.1.0 compile",
+  "humanSummary": "T41.2 (Include the latest handoff note in the next iteration's prompt context and preflight output) stopped with control_plane_reload_required. Verified the existing durable implementation already includes session handoff context in the next prompt, surfaces handoff availability in preflight, and covers handoff write/carry/prune behavior with passing targeted regression tests. Full npm run validate still fails on unrelated existing auto-reload and concurrent-claim tests."
+}

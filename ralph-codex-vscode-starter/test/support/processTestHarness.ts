@@ -10,6 +10,11 @@ import {
 const GIT_SIM_DIR = '.git';
 const GIT_SIM_STATE_FILE = path.join(GIT_SIM_DIR, 'ralph-test-index.json');
 const GIT_SIM_COMMITS_FILE = path.join(GIT_SIM_DIR, 'ralph-test-commits.json');
+const GIT_SIM_PUSHES_FILE = path.join(GIT_SIM_DIR, 'ralph-test-pushes.json');
+const GIT_SIM_PULL_REQUESTS_FILE = path.join(GIT_SIM_DIR, 'ralph-test-pull-requests.json');
+const GIT_SIM_PUSH_FAILURE_FILE = path.join(GIT_SIM_DIR, 'ralph-test-push-failure.txt');
+const GIT_SIM_GH_FAILURE_FILE = path.join(GIT_SIM_DIR, 'ralph-test-gh-failure.txt');
+const GIT_SIM_GH_MISSING_FILE = path.join(GIT_SIM_DIR, 'ralph-test-gh-missing');
 const ACTIVE_CODEX_PROCESS_FILE = path.join('.ralph', 'active-codex-processes.txt');
 const GIT_COMMIT_EXCLUSIONS = new Set([
   '.ralph/state.json',
@@ -34,6 +39,20 @@ interface GitSimulationState {
 interface GitCommitRecord {
   subject: string;
   body: string;
+}
+
+interface GitPushRecord {
+  remote: string;
+  branch: string;
+  args: string[];
+}
+
+interface PullRequestRecord {
+  base: string;
+  head: string;
+  title: string;
+  body: string;
+  args: string[];
 }
 
 function normalizeRelative(target: string): string {
@@ -134,6 +153,8 @@ export async function initializeFakeGitRepository(rootPath: string): Promise<voi
     conflictPaths: []
   });
   await fs.writeFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), '[]\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, GIT_SIM_PUSHES_FILE), '[]\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, GIT_SIM_PULL_REQUESTS_FILE), '[]\n', 'utf8');
 }
 
 async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
@@ -180,6 +201,16 @@ async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
 async function readCommitLog(rootPath: string): Promise<GitCommitRecord[]> {
   const raw = await fs.readFile(path.join(rootPath, GIT_SIM_COMMITS_FILE), 'utf8');
   return JSON.parse(raw) as GitCommitRecord[];
+}
+
+async function readPushLog(rootPath: string): Promise<GitPushRecord[]> {
+  const raw = await fs.readFile(path.join(rootPath, GIT_SIM_PUSHES_FILE), 'utf8');
+  return JSON.parse(raw) as GitPushRecord[];
+}
+
+async function readPullRequestLog(rootPath: string): Promise<PullRequestRecord[]> {
+  const raw = await fs.readFile(path.join(rootPath, GIT_SIM_PULL_REQUESTS_FILE), 'utf8');
+  return JSON.parse(raw) as PullRequestRecord[];
 }
 
 async function fakeGitAdd(): Promise<ProcessRunResult> {
@@ -408,6 +439,68 @@ async function fakeGitMerge(rootPath: string, args: string[]): Promise<ProcessRu
   };
 }
 
+async function fakeGitPush(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  if (await pathExists(path.join(rootPath, GIT_SIM_PUSH_FAILURE_FILE))) {
+    const failure = (await fs.readFile(path.join(rootPath, GIT_SIM_PUSH_FAILURE_FILE), 'utf8')).trim() || 'push rejected';
+    return {
+      code: 1,
+      stdout: '',
+      stderr: failure
+    };
+  }
+
+  const remote = args[args.length - 2] ?? '';
+  const branch = args[args.length - 1] ?? '';
+  const pushes = await readPushLog(rootPath);
+  pushes.push({
+    remote,
+    branch,
+    args
+  });
+  await fs.writeFile(path.join(rootPath, GIT_SIM_PUSHES_FILE), `${JSON.stringify(pushes, null, 2)}\n`, 'utf8');
+
+  return {
+    code: 0,
+    stdout: `branch '${branch}' set up to track '${remote}/${branch}'.\n`,
+    stderr: ''
+  };
+}
+
+async function fakeGhPrCreate(rootPath: string, args: string[]): Promise<ProcessRunResult> {
+  if (await pathExists(path.join(rootPath, GIT_SIM_GH_MISSING_FILE))) {
+    throw Object.assign(new Error('spawn gh ENOENT'), { code: 'ENOENT' });
+  }
+
+  if (await pathExists(path.join(rootPath, GIT_SIM_GH_FAILURE_FILE))) {
+    const failure = (await fs.readFile(path.join(rootPath, GIT_SIM_GH_FAILURE_FILE), 'utf8')).trim() || 'gh pr create failed';
+    return {
+      code: 1,
+      stdout: '',
+      stderr: failure
+    };
+  }
+
+  const base = args[args.indexOf('--base') + 1] ?? '';
+  const head = args[args.indexOf('--head') + 1] ?? '';
+  const title = args[args.indexOf('--title') + 1] ?? '';
+  const body = args[args.indexOf('--body') + 1] ?? '';
+  const pullRequests = await readPullRequestLog(rootPath);
+  pullRequests.push({
+    base,
+    head,
+    title,
+    body,
+    args
+  });
+  await fs.writeFile(path.join(rootPath, GIT_SIM_PULL_REQUESTS_FILE), `${JSON.stringify(pullRequests, null, 2)}\n`, 'utf8');
+
+  return {
+    code: 0,
+    stdout: 'https://github.com/example/repo/pull/1\n',
+    stderr: ''
+  };
+}
+
 function parseExecutableLookup(command: string, args: string[]): string {
   if (command === 'where') {
     return args[0] ?? '';
@@ -432,7 +525,7 @@ async function fakeExecutableLookup(command: string, args: string[]): Promise<Pr
     };
   }
 
-  if (['git', 'node', 'npm', 'codex', 'where', 'sh'].includes(executable)) {
+  if (['git', 'gh', 'node', 'npm', 'codex', 'where', 'sh'].includes(executable)) {
     return {
       code: 0,
       stdout: executable,
@@ -568,8 +661,16 @@ async function fakeProcessRunner(command: string, args: string[], options: Proce
     return fakeGitMerge(options.cwd, args);
   }
 
+  if (command === 'git' && args[0] === 'push') {
+    return fakeGitPush(options.cwd, args);
+  }
+
   if (command === 'git' && args[0] === 'diff') {
     return fakeGitDiff(options.cwd, args);
+  }
+
+  if (command === 'gh' && args[0] === 'pr' && args[1] === 'create') {
+    return fakeGhPrCreate(options.cwd, args);
   }
 
   if (command === 'sh' && args[0] === '-lc' && (args[1] ?? '').includes('ps -eo command')) {

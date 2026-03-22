@@ -15,6 +15,7 @@ import {
   RalphPreflightCategory,
   RalphPreflightDiagnostic,
   RalphPreflightReport,
+  RalphPromptSessionHandoff,
   RalphTask,
   RalphTaskCounts,
   RalphValidationCommandReadiness
@@ -172,6 +173,7 @@ export interface RalphPreflightInput {
   ideCommandSupport?: CodexIdeCommandSupport | null;
   artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
   agentHealthDiagnostics?: RalphPreflightExternalDiagnostic[];
+  sessionHandoff?: RalphPromptSessionHandoff | null;
 }
 
 export interface RalphPreflightExternalDiagnostic {
@@ -790,6 +792,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
       'info',
       'workspace_paths_initialized',
       `Initialized Ralph paths: ${input.createdPaths!.map((target) => relativePath(input.rootPath, target)).join(', ')}.`
+    ));
+  }
+
+  if (input.sessionHandoff) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      'info',
+      'session_handoff_available',
+      `Resuming from handoff note ${input.sessionHandoff.agentId}-${String(input.sessionHandoff.iteration).padStart(3, '0')}.json: ${input.sessionHandoff.humanSummary}`
     ));
   }
 

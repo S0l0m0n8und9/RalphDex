@@ -46,6 +46,7 @@ const statusReport_1 = require("../ralph/statusReport");
 const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
+const taskDecomposition_1 = require("../ralph/taskDecomposition");
 const verifier_1 = require("../ralph/verifier");
 const cliActivity_1 = require("../services/cliActivity");
 const codexCliSupport_1 = require("../services/codexCliSupport");
@@ -629,29 +630,28 @@ async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManage
         void vscode.window.showInformationMessage('No latest Ralph remediation proposal exists yet. Run enough CLI iterations to record a remediation artifact, then try again.');
         return false;
     }
-    if (remediationArtifact.action !== 'decompose_task'
-        || !remediationArtifact.selectedTaskId
-        || remediationArtifact.suggestedChildTasks.length === 0) {
+    const proposal = (0, taskDecomposition_1.resolveApplicableTaskDecompositionProposal)(remediationArtifact);
+    if (!proposal) {
         void vscode.window.showInformationMessage('The latest Ralph remediation artifact does not contain an applicable task-decomposition proposal.');
         return false;
     }
-    const childTaskIds = remediationArtifact.suggestedChildTasks.map((task) => task.id);
-    const confirmed = await vscode.window.showWarningMessage(`Apply the latest Ralph decomposition proposal for ${remediationArtifact.selectedTaskId}? This updates .ralph/tasks.json by adding ${childTaskIds.length} child task(s) and making the parent task depend on them.`, { modal: true }, 'Apply Proposal');
+    const childTaskIds = proposal.suggestedChildTasks.map((task) => task.id);
+    const confirmed = await vscode.window.showWarningMessage(`Apply the latest Ralph decomposition proposal for ${proposal.parentTaskId}? This updates .ralph/tasks.json by adding ${childTaskIds.length} child task(s) and making the parent task depend on them.`, { modal: true }, 'Apply Proposal');
     if (confirmed !== 'Apply Proposal') {
         return false;
     }
-    await (0, taskFile_1.applySuggestedChildTasksToFile)(inspection.paths.taskFilePath, remediationArtifact.selectedTaskId, remediationArtifact.suggestedChildTasks);
+    await (0, taskDecomposition_1.applyTaskDecompositionProposalArtifact)(inspection.paths.taskFilePath, remediationArtifact);
     logger.info('Applied Ralph task decomposition proposal.', {
         rootPath: workspaceFolder.uri.fsPath,
         remediationPath: latestArtifacts.latestRemediationPath,
-        parentTaskId: remediationArtifact.selectedTaskId,
+        parentTaskId: proposal.parentTaskId,
         childTaskIds
     });
     await openTextFile(inspection.paths.taskFilePath);
     const remediationLabel = latestArtifacts.latestRemediationPath
         ? path.relative(workspaceFolder.uri.fsPath, latestArtifacts.latestRemediationPath)
         : '.ralph/artifacts/latest-remediation.json';
-    void vscode.window.showInformationMessage(`Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${remediationArtifact.selectedTaskId}.`);
+    void vscode.window.showInformationMessage(`Applied the latest Ralph decomposition proposal from ${remediationLabel}. Added ${childTaskIds.join(', ')} under ${proposal.parentTaskId}.`);
     return true;
 }
 async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
@@ -896,6 +896,28 @@ function registerCommands(context, logger) {
             const baseMessage = run.result.executionStatus === 'skipped'
                 ? `Ralph review iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph review iteration ${run.result.iteration} completed. ${run.result.summary}`;
+            void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.runWatchdogAgent',
+        label: 'Ralph: Run Watchdog Agent',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false,
+                configOverrides: {
+                    agentRole: 'watchdog',
+                    agentId: 'watchdog'
+                }
+            });
+            if (run.result.executionStatus === 'failed') {
+                throw new Error(iterationFailureMessage(run.result));
+            }
+            const note = createdPathSummary(run.prepared.rootPath, run.createdPaths);
+            const baseMessage = run.result.executionStatus === 'skipped'
+                ? `Ralph watchdog iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
+                : `Ralph watchdog iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
         }
     });

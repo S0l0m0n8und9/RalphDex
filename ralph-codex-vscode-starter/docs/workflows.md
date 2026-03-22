@@ -110,7 +110,7 @@ For normal task execution, the prompt explicitly tells the model not to edit `.r
 
 Use this path when you need repeatable execution plus deterministic result recording.
 
-When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch placement for the selected task. Top-level tasks claim a dedicated `ralph/<taskId>` branch from the branch that was active when the claim was acquired. Child tasks claim both `ralph/integration/<parentId>` and `ralph/<taskId>`, record those branch names plus the original base branch in `.ralph/claims.json`, and run the task on the child feature branch. When the child task reconciles `done`, Ralph commits the remaining work on `ralph/<taskId>`, merges that feature branch into `ralph/integration/<parentId>`, and, if that completion also auto-completes the parent aggregate task, performs one atomic merge from `ralph/integration/<parentId>` back into the recorded base branch. Ralph never auto-deletes either branch. If any of those merges conflict, Ralph leaves the conflicting branch checked out, reopens the affected task as `in_progress` with a merge-conflict blocker, releases the active claim, and records the conflict path in the iteration warnings instead of silently forcing the merge.
+When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch placement for the selected task. Top-level tasks claim a dedicated `ralph/<taskId>` branch from the branch that was active when the claim was acquired. Child tasks claim both `ralph/integration/<parentId>` and `ralph/<taskId>`, record those branch names plus the original base branch in `.ralph/claims.json`, and run the task on the child feature branch. When the child task reconciles `done`, Ralph commits the remaining work on `ralph/<taskId>`, merges that feature branch into `ralph/integration/<parentId>`, and, if that completion also auto-completes the parent aggregate task, performs one atomic merge from `ralph/integration/<parentId>` back into the recorded base branch. If `ralphCodex.scmPrOnParentDone = true`, Ralph also pushes `ralph/integration/<parentId>` to `origin` and runs `gh pr create` with the parent title plus the completed child summaries, targeting the base branch recorded on the first child claim. Push or PR failures are surfaced in iteration warnings only; they do not roll back the completed task state. Ralph never auto-deletes either branch. If any of those merges conflict, Ralph leaves the conflicting branch checked out, reopens the affected task as `in_progress` with a merge-conflict blocker, releases the active claim, and records the conflict path in the iteration warnings instead of silently forcing the merge.
 
 If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralph Codex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no `codex exec` process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
 
@@ -363,6 +363,34 @@ Operator approval remains explicit:
 - the review pass may persist a proposal artifact and surface suggested follow-up tasks
 - the review pass does not commit those proposals into the durable task ledger by itself
 - review proposals become real tasks only after the operator explicitly runs `Apply Latest Task Decomposition Proposal`
+
+### Watchdog Agent
+
+Run `Ralph: Run Watchdog Agent` when the multi-agent claim graph or recent iteration history suggests a worker is stuck, stale, or repeatedly failing and you want Ralph to attempt bounded recovery before escalating to a human.
+
+The watchdog runs a single CLI iteration in `agentRole = watchdog` with a fixed `agentId = watchdog`. That gives it a stable recovery identity while keeping it outside the normal build-agent claim pool.
+
+The watchdog may take these autonomous recovery actions when the evidence is strong enough:
+
+- resolve a stale claim held by another agent when the canonical claim is still active but no fresh execution evidence exists
+- apply a valid `decompose_task` proposal for a stalled task through the same bounded task-file write path used by the explicit decomposition apply command
+- escalate a task to human review by appending a durable progress entry and writing a blocker on the affected task when no safe automated recovery exists
+
+Use this escalation rule when the watchdog cannot recover safely:
+
+- if the watchdog records an escalation, inspect the blocker and progress entry first, then decide whether to repair the task graph, reassign the work, or intervene manually before running more loops
+
+### Source Control Agent
+
+Use `agentRole = scm` only for loops that are meant to watch the durable branch-per-task state and finish repository plumbing after build agents complete child slices.
+
+The SCM-specific branch automation is still driven by the main CLI iteration flow rather than a separate hidden channel. With `ralphCodex.scmStrategy = branch-per-task`, the relevant branch names and base branch are recorded durably in `.ralph/claims.json`. With `ralphCodex.scmPrOnParentDone = true`, the parent auto-complete path will push `ralph/integration/<parentId>` and open a GitHub pull request through the `gh` CLI after the final child finishes.
+
+That PR creation step is intentionally failure-tolerant:
+
+- task completion still applies before Ralph attempts the push or PR
+- a failed `git push` or missing `gh` executable is reported in iteration warnings
+- those warnings do not reopen the completed parent or undo the child completion
 
 ## Reset State
 

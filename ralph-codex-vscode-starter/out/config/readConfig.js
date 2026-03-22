@@ -153,6 +153,7 @@ function readConfig(workspaceFolder) {
         provenanceBundleRetentionCount: readNumber(config, 'provenanceBundleRetentionCount', defaults_1.DEFAULT_CONFIG.provenanceBundleRetentionCount, 0),
         gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
         scmStrategy: readEnum(config, 'scmStrategy', ['none', 'commit-on-done', 'branch-per-task'], defaults_1.DEFAULT_CONFIG.scmStrategy),
+        scmPrOnParentDone: readBoolean(config, 'scmPrOnParentDone', defaults_1.DEFAULT_CONFIG.scmPrOnParentDone),
         validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
         stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
         autonomyMode,

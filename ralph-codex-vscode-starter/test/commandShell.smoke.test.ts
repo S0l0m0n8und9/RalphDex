@@ -172,6 +172,24 @@ async function withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
   }
 }
 
+async function withCapturedTimeouts<T>(
+  action: (delays: number[]) => Promise<T>
+): Promise<T> {
+  const originalSetTimeout = globalThis.setTimeout;
+  const delays: number[] = [];
+  globalThis.setTimeout = ((callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
+    delays.push(typeof delay === 'number' ? delay : 0);
+    callback(...args);
+    return 0 as unknown as ReturnType<typeof setTimeout>;
+  }) as typeof setTimeout;
+
+  try {
+    return await action(delays);
+  } finally {
+    globalThis.setTimeout = originalSetTimeout;
+  }
+}
+
 async function withMockedExecuteCommand<T>(
   action: (calls: Array<{ command: string; args: unknown[] }>) => Promise<T>
 ): Promise<T> {
@@ -272,6 +290,48 @@ test('Run Review Agent executes a single review pass with the review agent comma
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph review iteration 1 completed\. Iteration summary\./
+  );
+});
+
+test('Run Watchdog Agent executes a single watchdog pass with the watchdog agent command override', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'builder-1'
+  });
+
+  const invocations: Array<{ mode: 'singleExec' | 'loop'; agentRole?: unknown; agentId?: unknown }> = [];
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown; agentId?: unknown } } | undefined;
+      invocations.push({
+        mode,
+        agentRole: runOptions?.configOverrides?.agentRole,
+        agentId: runOptions?.configOverrides?.agentId
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runWatchdogAgent');
+    }
+  );
+
+  assert.equal(invocations.length, 1);
+  assert.deepEqual(invocations[0], {
+    mode: 'singleExec',
+    agentRole: 'watchdog',
+    agentId: 'watchdog'
+  });
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph watchdog iteration 1 completed\. Iteration summary\./
   );
 });
 
@@ -1352,7 +1412,7 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
         seenModes.push(mode);
         return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
       },
-      async () => withImmediateTimeout(async () => {
+      async () => withCapturedTimeouts(async () => {
         activate(createExtensionContext());
         await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
       })

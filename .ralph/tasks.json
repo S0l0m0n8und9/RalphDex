@@ -1590,24 +1590,24 @@
     {
       "id": "T39.2",
       "title": "Wire watchdog recovery actions into reconciliation — permit cross-task resolve and decompose for watchdog role only",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T39",
       "dependsOn": [
         "T39.1"
       ],
-      "notes": "Wired watchdog-only reconciliation for resolve_stale_claim, decompose_task, and escalate_to_human; added parser and integration coverage, but repository compile is still blocked by unrelated iterationPreparation.ts errors.",
+      "notes": "Re-inspected the durable repository state and confirmed T39.2 is already implemented: watchdog-only reconciliation permits cross-task resolve_stale_claim, decompose_task, and escalate_to_human, with parser and integration coverage. The prior compile blocker is no longer present; compile and watchdog-focused tests now pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile",
       "blocker": "Validation command `cd ralph-codex-vscode-starter && npm run compile` fails due to pre-existing TypeScript errors in src/ralph/iterationPreparation.ts outside the watchdog reconciliation change."
     },
     {
       "id": "T39.3",
       "title": "Register Run Watchdog Agent command; add regression coverage and docs",
-      "status": "todo",
+      "status": "done",
       "parentId": "T39",
       "dependsOn": [
         "T39.2"
       ],
-      "notes": "Register 'Ralph: Run Watchdog Agent' in src/commands/registerCommands.ts as a single-pass command with agentRole: 'watchdog' and agentId: 'watchdog'. Add tests: command is registered; watchdog_actions from a non-watchdog agent are silently ignored; watchdog can resolve a stale claim without holding a claim on the target task; watchdog decompose proposal is applied when valid. Add a Watchdog Agent subsection under Multi-Agent Team in docs/workflows.md describing: when to run the watchdog, what recovery actions it can take autonomously, and the escalation path when it cannot recover. Run npm run validate.",
+      "notes": "Registered the Run Watchdog Agent command, added smoke coverage for the watchdog command override, and documented watchdog usage, autonomous recovery actions, and escalation flow in workflows.md. Full validate still reports a pre-existing unrelated auto-reload smoke failure.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1636,23 +1636,23 @@
     {
       "id": "T40.2",
       "title": "Implement branch-per-task SCM strategy — integration branch per parent, feature branch per child, atomic merge on parent done",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T40",
       "dependsOn": [
         "T40.1"
       ],
-      "notes": "When scmStrategy is 'branch-per-task': for tasks with a parentId, create or reuse a ralph/integration/<parentId> branch from main (the accumulation branch for that parent's work); create a child feature branch ralph/<taskId> from the integration branch, not from main. Record both the integration branch and the base branch (the branch active at claim time) in the claim metadata. When a child task is reconciled done, commit remaining changes (same message format as commit-on-done with GIT_AUTHOR_NAME='ralph/<agentId>'), merge ralph/<taskId> into ralph/integration/<parentId> with a merge commit. When the parent task auto-completes (all children done), merge ralph/integration/<parentId> into the base branch with a single atomic merge commit referencing the parent task id and title — one integration merge to main per parent, not one per child. For top-level tasks with no parentId, use ralph/<taskId> directly off the base branch. If any merge fails due to conflicts: leave the conflicting branch checked out, reset the affected task to in_progress with a blocker noting the merge conflict, release the claim, and surface the conflict path in iteration result warnings. Never auto-delete ralph/integration/* or ralph/<taskId> branches.",
+      "notes": "Implemented branch-per-task SCM orchestration with durable branch metadata, child-to-integration merges, atomic parent merges, conflict recovery, docs updates, and regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T40.3",
       "title": "Add ralphCodex.scmPrOnParentDone setting and implement PR creation via gh CLI on parent task completion",
-      "status": "todo",
+      "status": "done",
       "parentId": "T40",
       "dependsOn": [
         "T40.2"
       ],
-      "notes": "Add ralphCodex.scmPrOnParentDone boolean setting (default false). When enabled and a parent task auto-completes with scmStrategy 'branch-per-task': push the ralph/integration/<parentId> branch to the remote and open a PR using 'gh pr create' with the parent task title and a body listing child task ids and their completion summaries, targeting the base branch recorded when the first child claim was acquired. If gh is unavailable or the push fails, surface the failure in iteration result warnings and continue — PR creation failure must not roll back task completion. Add regression coverage for the gh invocation and the failure-tolerant path. Add a Source Control Agent subsection under Multi-Agent Team in docs/workflows.md. Run npm run validate.",
+      "notes": "Built on the existing scmPrOnParentDone implementation already present in durable state, then fixed the remaining validation blockers: concurrent inspectTaskFile seeding now tolerates losing the lock when another caller already completed the seed, and the loop auto-reload smoke test was stabilized. Full validate now passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1692,7 +1692,7 @@
     {
       "id": "T41.2",
       "title": "Include the latest handoff note in the next iteration's prompt context and preflight output",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T41",
       "dependsOn": [
         "T41.1"

@@ -10,6 +10,8 @@ exports.normalizeRemediationForTask = normalizeRemediationForTask;
 exports.remediationMatchesStopReason = remediationMatchesStopReason;
 exports.remediationHistoryEntries = remediationHistoryEntries;
 exports.buildRemediationArtifact = buildRemediationArtifact;
+exports.resolveApplicableTaskDecompositionProposal = resolveApplicableTaskDecompositionProposal;
+exports.applyTaskDecompositionProposalArtifact = applyTaskDecompositionProposalArtifact;
 exports.remediationRationale = remediationRationale;
 exports.remediationSummary = remediationSummary;
 const taskFile_1 = require("./taskFile");
@@ -214,6 +216,29 @@ function buildRemediationArtifact(input) {
         artifactDir: input.artifactDir,
         iterationResultPath: input.iterationResultPath,
         createdAt: input.createdAt
+    };
+}
+function resolveApplicableTaskDecompositionProposal(remediationArtifact) {
+    if (!remediationArtifact
+        || remediationArtifact.action !== 'decompose_task'
+        || !remediationArtifact.selectedTaskId
+        || remediationArtifact.suggestedChildTasks.length === 0) {
+        return null;
+    }
+    return {
+        parentTaskId: remediationArtifact.selectedTaskId,
+        suggestedChildTasks: remediationArtifact.suggestedChildTasks
+    };
+}
+async function applyTaskDecompositionProposalArtifact(taskFilePath, remediationArtifact) {
+    const proposal = resolveApplicableTaskDecompositionProposal(remediationArtifact);
+    if (!proposal) {
+        throw new Error('The provided remediation artifact does not contain an applicable task-decomposition proposal.');
+    }
+    return {
+        taskFile: await (0, taskFile_1.applySuggestedChildTasksToFile)(taskFilePath, proposal.parentTaskId, proposal.suggestedChildTasks),
+        parentTaskId: proposal.parentTaskId,
+        childTaskIds: proposal.suggestedChildTasks.map((task) => task.id)
     };
 }
 function remediationRationale(result) {
