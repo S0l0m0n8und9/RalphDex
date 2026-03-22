@@ -1309,7 +1309,11 @@ function isSatisfiedAggregateParent(taskFile: RalphTaskFile, task: RalphTask): b
   }
 
   const descendantIds = new Set(descendants.map((descendant) => descendant.id));
-  return (task.dependsOn ?? []).every((dependencyId) => descendantIds.has(dependencyId));
+  return (task.dependsOn ?? []).every((dependencyId) => {
+    if (descendantIds.has(dependencyId)) return true;
+    const dep = findTaskById(taskFile, dependencyId);
+    return dep?.status === 'done';
+  });
 }
 
 export function autoCompleteSatisfiedAncestors(

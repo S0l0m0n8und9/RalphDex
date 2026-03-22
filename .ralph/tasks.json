@@ -1566,7 +1566,7 @@
     {
       "id": "T39",
       "title": "Watchdog agent role — detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T37",
         "T39.1",

@@ -967,6 +967,74 @@
       "claimedAt": "2026-03-20T08:19:54.844Z",
       "provenanceId": "run-i136-cli-20260320T081954Z",
       "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T33.3",
+      "claimedAt": "2026-03-22T21:52:42.769Z",
+      "provenanceId": "run-i135-cli-20260322T215235Z",
+      "status": "released",
+      "baseBranch": "ralph/T32.3",
+      "integrationBranch": "ralph/integration/T33",
+      "featureBranch": "ralph/T33.3"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T41.2",
+      "claimedAt": "2026-03-22T21:53:05.404Z",
+      "provenanceId": "run-i136-cli-20260322T215258Z",
+      "status": "released",
+      "baseBranch": "ralph/T33.3",
+      "integrationBranch": "ralph/integration/T41",
+      "featureBranch": "ralph/T41.2"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T39",
+      "claimedAt": "2026-03-22T21:54:02.575Z",
+      "provenanceId": "run-i137-cli-20260322T215352Z",
+      "status": "released",
+      "baseBranch": "ralph/T41.2",
+      "featureBranch": "ralph/T39"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T41.2",
+      "claimedAt": "2026-03-22T22:02:36.526Z",
+      "provenanceId": "run-i137-cli-20260322T220222Z",
+      "status": "released",
+      "baseBranch": "ralph/T39",
+      "integrationBranch": "ralph/integration/T41",
+      "featureBranch": "ralph/T41.2"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T39",
+      "claimedAt": "2026-03-22T22:04:46.642Z",
+      "provenanceId": "run-i138-cli-20260322T220440Z",
+      "status": "released",
+      "baseBranch": "ralph/T33.3",
+      "featureBranch": "ralph/T39"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T33.3",
+      "claimedAt": "2026-03-22T22:08:59.439Z",
+      "provenanceId": "run-i136-cli-20260322T220853Z",
+      "status": "active",
+      "baseBranch": "ralph/T32.3",
+      "integrationBranch": "ralph/integration/T33",
+      "featureBranch": "ralph/T33.3"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T41.2",
+      "claimedAt": "2026-03-22T22:15:55.943Z",
+      "provenanceId": "run-i138-cli-20260322T221545Z",
+      "status": "active",
+      "baseBranch": "ralph/T39",
+      "integrationBranch": "ralph/integration/T41",
+      "featureBranch": "ralph/T41.2"
     }
   ]
 }
