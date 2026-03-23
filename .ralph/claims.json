@@ -1102,16 +1102,23 @@
       "status": "released"
     },
     {
-      "taskId": "T40",
       "agentId": "default",
-      "provenanceId": "run-i157-cli-20260323T051622Z",
-      "claimedAt": "2026-03-23T05:16:34.904Z",
-      "status": "released",
-      "provenanceId": "run-i169-cli-20260323T083600Z",
+      "taskId": "T40",
       "claimedAt": "2026-03-23T08:36:07.774Z",
+      "provenanceId": "run-i169-cli-20260323T083600Z",
       "status": "active",
       "baseBranch": "ralph/T33.3",
       "featureBranch": "ralph/T40"
+    },
+    {
+      "taskId": "T41.2.1",
+      "agentId": "default",
+      "provenanceId": "run-i177-cli-20260323T090728Z",
+      "claimedAt": "2026-03-23T09:07:46.370Z",
+      "status": "active",
+      "baseBranch": "ralph/T33.3",
+      "integrationBranch": "ralph/integration/T41.2",
+      "featureBranch": "ralph/T41.2.1"
     }
   ]
 }
