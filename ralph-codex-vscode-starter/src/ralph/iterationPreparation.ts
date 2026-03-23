@@ -174,6 +174,45 @@ async function maybeSeedObjective(
   return `${nextText}\n`;
 }
 
+async function findLatestHandoffPath(
+  handoffDir: string,
+  agentId: string,
+  iteration: number
+): Promise<string | null> {
+  // Fast path: check the immediately preceding iteration first
+  const directPath = path.join(handoffDir, `${agentId}-${String(iteration - 1).padStart(3, '0')}.json`);
+  try {
+    await fs.access(directPath);
+    return directPath;
+  } catch {
+    // fall through to directory scan
+  }
+
+  // Scan directory for the most recent handoff before this iteration
+  try {
+    const files = await fs.readdir(handoffDir);
+    const prefix = `${agentId}-`;
+    const suffix = '.json';
+    let latestIteration = -1;
+    for (const file of files) {
+      if (!file.startsWith(prefix) || !file.endsWith(suffix)) {
+        continue;
+      }
+      const numStr = file.slice(prefix.length, -suffix.length);
+      const num = parseInt(numStr, 10);
+      if (!isNaN(num) && num < iteration && num > latestIteration) {
+        latestIteration = num;
+      }
+    }
+    if (latestIteration < 0) {
+      return null;
+    }
+    return path.join(handoffDir, `${agentId}-${String(latestIteration).padStart(3, '0')}.json`);
+  } catch {
+    return null;
+  }
+}
+
 async function readSessionHandoff(
   handoffDir: string,
   agentId: string,
@@ -183,7 +222,11 @@ async function readSessionHandoff(
     return null;
   }
 
-  const handoffPath = path.join(handoffDir, `${agentId}-${String(iteration - 1).padStart(3, '0')}.json`);
+  const handoffPath = await findLatestHandoffPath(handoffDir, agentId, iteration);
+  if (!handoffPath) {
+    return null;
+  }
+
   try {
     const raw = JSON.parse(await fs.readFile(handoffPath, 'utf8')) as Record<string, unknown>;
     return {

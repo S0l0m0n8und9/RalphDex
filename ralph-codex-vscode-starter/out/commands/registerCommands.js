@@ -931,12 +931,11 @@ function registerCommands(context, logger) {
         label: 'Ralph: Run SCM Agent',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
                 configOverrides: {
                     agentRole: 'scm',
-                    agentId: buildScmAgentId(config.agentId)
+                    agentId: 'scm'
                 }
             });
             if (run.result.executionStatus === 'failed') {
@@ -954,11 +953,12 @@ function registerCommands(context, logger) {
         label: 'Ralph: Run SCM Agent',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
                 configOverrides: {
                     agentRole: 'scm',
-                    agentId: 'scm'
+                    agentId: buildScmAgentId(config.agentId)
                 }
             });
             if (run.result.executionStatus === 'failed') {

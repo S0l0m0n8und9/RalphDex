@@ -3495,7 +3495,7 @@ test('runCliIteration writes a structured handoff note on clean termination', as
     stopReason: 'iteration_cap_reached',
     completionClassification: 'no_progress',
     progressNote: 'Finished the selected task.',
-    backlog: { remainingTaskCount: 0, actionableTaskAvailable: false },
+    backlog: { remainingTaskCount: 1, actionableTaskAvailable: true },
     humanSummary: 'T1 (Finish cleanly) stopped with iteration_cap_reached. Finished the selected task.'
   });
 });

@@ -111,7 +111,7 @@ const CODEX_PROMPT_BUDGET_POLICIES = {
         objectiveChars: 960,
         progressLines: 5,
         progressChars: 420,
-        priorBudget: 5,
+        priorBudget: 6,
         repoDetail: 'minimal',
         runtimeDetail: 'minimal',
         requiredSections: REQUIRED_PROMPT_SECTIONS,

@@ -36,6 +36,7 @@
   "touchedFiles": [
     ".ralph/agents/default.json",
     ".ralph/claims.json",
+    ".ralph/handoff/default-117.json",
     ".ralph/handoff/default-118.json",
     ".ralph/handoff/default-119.json",
     ".ralph/handoff/default-120.json",
