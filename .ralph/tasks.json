@@ -1613,14 +1613,14 @@
     {
       "id": "T40",
       "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T40.1",
         "T40.2",
         "T40.3"
       ],
-      "notes": "Fixed the two failing package-manifest tests by adding runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, and registering the missing runScmAgent command handler in registerCommands.ts. All 344 tests pass.",
+      "notes": "Fixed Windows git commit failure caused by cmd.exe interpreting pipe characters in commit message body: changed processRunner.ts default from shell=true-on-win32 to shell=false.",
       "blocker": "Merge conflict while reconciling branch-per-task SCM: git commit failed: 'Iteration:' is not recognized as an internal or external command,\r\noperable program or batch file."
     },
     {
@@ -1725,5 +1725,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 1
+  "mutationCount": 2
 }

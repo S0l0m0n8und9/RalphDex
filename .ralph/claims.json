@@ -1063,6 +1063,15 @@
       "status": "released",
       "baseBranch": "ralph/T33.3",
       "featureBranch": "ralph/T40"
+    },
+    {
+      "taskId": "T40",
+      "agentId": "default",
+      "provenanceId": "run-i152-cli-20260323T030644Z",
+      "claimedAt": "2026-03-23T03:06:59.767Z",
+      "status": "active",
+      "baseBranch": "ralph/T33.3",
+      "featureBranch": "ralph/T40"
     }
   ]
 }
