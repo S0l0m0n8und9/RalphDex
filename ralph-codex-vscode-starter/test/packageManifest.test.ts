@@ -13,7 +13,7 @@ type PackageManifest = {
   };
 };
 
-const packageJsonPath = path.join(__dirname, '..', 'package.json');
+const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
 
 async function readPackageManifest(): Promise<PackageManifest> {
   const raw = await fs.readFile(packageJsonPath, 'utf8');

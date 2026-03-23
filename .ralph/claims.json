@@ -1095,7 +1095,7 @@
       "taskId": "T39",
       "claimedAt": "2026-03-23T00:48:39.413Z",
       "provenanceId": "run-i148-cli-20260323T004839Z",
-      "status": "active"
+      "status": "released"
     },
     {
       "agentId": "default",
