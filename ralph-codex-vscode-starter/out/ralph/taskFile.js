@@ -1043,7 +1043,12 @@ function isSatisfiedAggregateParent(taskFile, task) {
         return false;
     }
     const descendantIds = new Set(descendants.map((descendant) => descendant.id));
-    return (task.dependsOn ?? []).every((dependencyId) => descendantIds.has(dependencyId));
+    return (task.dependsOn ?? []).every((dependencyId) => {
+        if (descendantIds.has(dependencyId))
+            return true;
+        const dep = findTaskById(taskFile, dependencyId);
+        return dep?.status === 'done';
+    });
 }
 function autoCompleteSatisfiedAncestors(taskFile, completedTaskId) {
     if (!completedTaskId) {

@@ -119,6 +119,40 @@ test('autoCompleteSatisfiedAncestors closes aggregate parents once every child s
   assert.equal(completed.taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
 });
 
+test('autoCompleteSatisfiedAncestors closes aggregate parents that have a done external (non-child) dependency', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'External prerequisite', status: 'done' },
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T0', 'T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'First slice', status: 'done', parentId: 'T1' },
+      { id: 'T1.2', title: 'Second slice', status: 'done', parentId: 'T1' }
+    ]
+  }));
+
+  const completed = autoCompleteSatisfiedAncestors(taskFile, 'T1.2');
+
+  assert.deepEqual(completed.completedAncestorIds, ['T1']);
+  assert.equal(completed.taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+});
+
+test('autoCompleteSatisfiedAncestors keeps aggregate parents open when an external dependency is not done', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'External prerequisite', status: 'todo' },
+      { id: 'T1', title: 'Aggregate parent', status: 'todo', dependsOn: ['T0', 'T1.1', 'T1.2'] },
+      { id: 'T1.1', title: 'First slice', status: 'done', parentId: 'T1' },
+      { id: 'T1.2', title: 'Second slice', status: 'done', parentId: 'T1' }
+    ]
+  }));
+
+  const completed = autoCompleteSatisfiedAncestors(taskFile, 'T1.2');
+
+  assert.deepEqual(completed.completedAncestorIds, []);
+  assert.equal(completed.taskFile.tasks.find((task) => task.id === 'T1')?.status, 'todo');
+});
+
 test('autoCompleteSatisfiedAncestors keeps decomposed parents open when they still have standalone validation', () => {
   const taskFile = parseTaskFile(JSON.stringify({
     version: 2,
