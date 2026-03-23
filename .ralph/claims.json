@@ -967,6 +967,15 @@
       "claimedAt": "2026-03-20T08:19:54.844Z",
       "provenanceId": "run-i136-cli-20260320T081954Z",
       "status": "released"
+    },
+    {
+      "taskId": "T39",
+      "agentId": "default",
+      "provenanceId": "run-i157-cli-20260323T051622Z",
+      "claimedAt": "2026-03-23T05:16:34.904Z",
+      "status": "active",
+      "baseBranch": "ralph/T33.3",
+      "featureBranch": "ralph/T39"
     }
   ]
 }
