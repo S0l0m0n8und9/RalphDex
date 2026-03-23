@@ -82,6 +82,8 @@
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
     "onCommand:ralphCodex.runReviewAgent",
+    "onCommand:ralphCodex.runWatchdogAgent",
+    "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
@@ -116,6 +118,14 @@
       {
         "command": "ralphCodex.runReviewAgent",
         "title": "Ralph: Run Review Agent"
+      },
+      {
+        "command": "ralphCodex.runWatchdogAgent",
+        "title": "Ralph: Run Watchdog Agent"
+      },
+      {
+        "command": "ralphCodex.runScmAgent",
+        "title": "Ralph: Run SCM Agent"
       },
       {
         "command": "ralphCodex.runRalphLoop",
