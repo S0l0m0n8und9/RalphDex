@@ -337,6 +337,10 @@ function buildReviewAgentId(agentId) {
     const trimmed = agentId.trim() || 'default';
     return trimmed.startsWith('review-') ? trimmed : `review-${trimmed}`;
 }
+function buildScmAgentId(agentId) {
+    const trimmed = agentId.trim() || 'default';
+    return trimmed.startsWith('scm-') ? trimmed : `scm-${trimmed}`;
+}
 function renderSuggestedChildTasksForOutput(tasks) {
     const lines = ['Review agent proposed follow-up tasks:'];
     for (const task of tasks) {
@@ -919,6 +923,29 @@ function registerCommands(context, logger) {
             const baseMessage = run.result.executionStatus === 'skipped'
                 ? `Ralph watchdog iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph watchdog iteration ${run.result.iteration} completed. ${run.result.summary}`;
+            void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.runScmAgent',
+        label: 'Ralph: Run SCM Agent',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false,
+                configOverrides: {
+                    agentRole: 'scm',
+                    agentId: buildScmAgentId(config.agentId)
+                }
+            });
+            if (run.result.executionStatus === 'failed') {
+                throw new Error(iterationFailureMessage(run.result));
+            }
+            const note = createdPathSummary(run.prepared.rootPath, run.createdPaths);
+            const baseMessage = run.result.executionStatus === 'skipped'
+                ? `Ralph SCM iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
+                : `Ralph SCM iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
         }
     });

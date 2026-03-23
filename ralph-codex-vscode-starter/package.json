@@ -178,7 +178,7 @@
         "ralphCodex.cliProvider": {
           "type": "string",
           "enum": ["codex", "claude"],
-          "default": "codex",
+          "default": "claude",
           "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
         },
         "ralphCodex.codexCommandPath": {
@@ -284,7 +284,7 @@
         "ralphCodex.scmStrategy": {
           "type": "string",
           "enum": ["none", "commit-on-done", "branch-per-task"],
-          "default": "commit-on-done",
+          "default": "branch-per-task",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
         "ralphCodex.scmPrOnParentDone": {
@@ -387,7 +387,7 @@
         },
         "ralphCodex.model": {
           "type": "string",
-          "default": "gpt-5.4",
+          "default": "claude-sonnet-4-6",
           "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-6 for Claude)."
         },
         "ralphCodex.reasoningEffort": {
@@ -410,12 +410,12 @@
         },
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
-          "default": "codex.openSidebar",
+          "default": "claude.openSidebar",
           "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
-          "default": "codex.newChat",
+          "default": "claude.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
         }
       }
