@@ -1734,8 +1734,8 @@
       "dependsOn": [
         "T41.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task."
+      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T41.2.2",
@@ -1746,8 +1746,8 @@
         "T41.1",
         "T41.2.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1."
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
   "mutationCount": 2
