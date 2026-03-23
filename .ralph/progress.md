@@ -144,3 +144,4 @@
 - Built on the existing scmPrOnParentDone implementation already present in durable state, then fixed the remaining validation blockers: concurrent inspectTaskFile seeding now tolerates losing the lock when another caller already completed the seed, and the loop auto-reload smoke test was stabilized. Full validate now passes.
 - Fixed the two failing package-manifest tests by adding runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, and registering the missing runScmAgent command handler in registerCommands.ts. All 344 tests pass.
 - Fixed Windows git commit failure caused by cmd.exe interpreting pipe characters in commit message body: changed processRunner.ts default from shell=true-on-win32 to shell=false.
+- All child tasks done (T40.1/T40.2/T40.3); Windows git commit failure fixed via processRunner shell=false default; 344 tests pass; docs check passes.

@@ -1613,14 +1613,14 @@
     {
       "id": "T40",
       "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T40.1",
         "T40.2",
         "T40.3"
       ],
-      "notes": "Fixed Windows git commit failure caused by cmd.exe interpreting pipe characters in commit message body: changed processRunner.ts default from shell=true-on-win32 to shell=false.",
+      "notes": "All child tasks done (T40.1/T40.2/T40.3); Windows git commit failure fixed via processRunner shell=false default; 344 tests pass; docs check passes.",
       "blocker": "Merge conflict while reconciling branch-per-task SCM: git commit failed: 'Iteration:' is not recognized as an internal or external command,\r\noperable program or batch file."
     },
     {
@@ -1734,8 +1734,8 @@
       "dependsOn": [
         "T41.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task."
+      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T41.2.2",
@@ -1746,9 +1746,9 @@
         "T41.1",
         "T41.2.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1."
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 2
+  "mutationCount": 3
 }
