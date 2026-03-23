@@ -201,6 +201,10 @@ async function readSessionHandoff(
       pendingBlocker: typeof raw.pendingBlocker === 'string' ? raw.pendingBlocker : null,
       validationFailureSignature: typeof raw.validationFailureSignature === 'string'
         ? raw.validationFailureSignature
+        : null,
+      remainingTaskCount: typeof raw.backlog === 'object' && raw.backlog !== null
+        && typeof (raw.backlog as Record<string, unknown>).remainingTaskCount === 'number'
+        ? (raw.backlog as Record<string, unknown>).remainingTaskCount as number
         : null
     };
   } catch {

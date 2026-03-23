@@ -1226,7 +1226,8 @@ test('buildPrompt prepends session handoff context ahead of prior iteration evid
       completionClassification: 'partial_progress',
       humanSummary: 'T1 (Resume the selected task) stopped with iteration_cap_reached. Keep going.',
       pendingBlocker: 'Waiting on follow-up validation.',
-      validationFailureSignature: 'sig:validate:resume'
+      validationFailureSignature: 'sig:validate:resume',
+      remainingTaskCount: 3
     },
     config: {
       promptTemplateDirectory: templateDir,
@@ -1235,11 +1236,12 @@ test('buildPrompt prepends session handoff context ahead of prior iteration evid
     }
   });
 
-  assert.deepEqual(render.evidence.inputs.priorIterationContext.slice(0, 4), [
+  assert.deepEqual(render.evidence.inputs.priorIterationContext.slice(0, 5), [
     '### Session Handoff',
     '- Handoff summary: T1 (Resume the selected task) stopped with iteration_cap_reached. Keep going.',
     '- Handoff blocker: Waiting on follow-up validation.',
-    '- Handoff validation failure signature: sig:validate:resume'
+    '- Handoff validation failure signature: sig:validate:resume',
+    '- Remaining task count at handoff: 3'
   ]);
   assert.match(render.prompt, /Prior:\n### Session Handoff/);
 });

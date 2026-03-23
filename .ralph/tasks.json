@@ -1670,7 +1670,7 @@
     {
       "id": "T41",
       "title": "Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T37",
         "T41.1",

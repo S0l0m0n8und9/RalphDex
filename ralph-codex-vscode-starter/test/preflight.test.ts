@@ -288,7 +288,8 @@ test('buildPreflightReport surfaces an informational diagnostic when resuming fr
       completionClassification: 'partial_progress',
       humanSummary: 'T1 (Resume work) stopped with iteration_cap_reached. Continue from the saved state.',
       pendingBlocker: 'Waiting on a final validation pass.',
-      validationFailureSignature: 'sig:resume:1'
+      validationFailureSignature: 'sig:resume:1',
+      remainingTaskCount: null
     }
   });
 

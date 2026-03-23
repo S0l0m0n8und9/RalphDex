@@ -98,6 +98,10 @@ async function readSessionHandoff(handoffDir, agentId, iteration) {
             pendingBlocker: typeof raw.pendingBlocker === 'string' ? raw.pendingBlocker : null,
             validationFailureSignature: typeof raw.validationFailureSignature === 'string'
                 ? raw.validationFailureSignature
+                : null,
+            remainingTaskCount: typeof raw.backlog === 'object' && raw.backlog !== null
+                && typeof raw.backlog.remainingTaskCount === 'number'
+                ? raw.backlog.remainingTaskCount
                 : null
         };
     }

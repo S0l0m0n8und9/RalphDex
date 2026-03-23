@@ -473,6 +473,7 @@ export interface RalphHandoffNote {
   progressNote?: string;
   pendingBlocker?: string;
   validationFailureSignature?: string;
+  backlog?: RalphIterationBacklogSummary;
   humanSummary: string;
 }
 
@@ -486,6 +487,7 @@ export interface RalphPromptSessionHandoff {
   humanSummary: string;
   pendingBlocker: string | null;
   validationFailureSignature: string | null;
+  remainingTaskCount: number | null;
 }
 
 export interface RalphIterationResult {

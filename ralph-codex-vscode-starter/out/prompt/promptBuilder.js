@@ -691,7 +691,8 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
             '### Session Handoff',
             `- Handoff summary: ${sessionHandoff.humanSummary}`,
             `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
-            `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`
+            `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`,
+            `- Remaining task count at handoff: ${sessionHandoff.remainingTaskCount !== null ? String(sessionHandoff.remainingTaskCount) : 'unknown'}`
         ]
         : [];
     const prior = state.lastIteration;
