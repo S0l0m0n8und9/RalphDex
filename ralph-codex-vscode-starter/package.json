@@ -94,7 +94,9 @@
     "onCommand:ralphCodex.resolveStaleTaskClaim",
     "onCommand:ralphCodex.revealLatestProvenanceBundleDirectory",
     "onCommand:ralphCodex.cleanupRalphRuntimeArtifacts",
-    "onCommand:ralphCodex.resetRalphWorkspaceState"
+    "onCommand:ralphCodex.resetRalphWorkspaceState",
+    "onCommand:ralphCodex.runWatchdogAgent",
+    "onCommand:ralphCodex.runScmAgent"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -170,6 +172,14 @@
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
         "title": "Ralph Codex: Reset Runtime State"
+      },
+      {
+        "command": "ralphCodex.runWatchdogAgent",
+        "title": "Ralph: Run Watchdog Agent"
+      },
+      {
+        "command": "ralphCodex.runScmAgent",
+        "title": "Ralph: Run SCM Agent"
       }
     ],
     "configuration": {

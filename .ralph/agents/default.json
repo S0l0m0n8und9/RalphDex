@@ -62,6 +62,7 @@
     "ralph-codex-vscode-starter/docs/testing.md",
     "ralph-codex-vscode-starter/docs/verifier.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
+    "ralph-codex-vscode-starter/out/codex/claudeCliProvider.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
     "ralph-codex-vscode-starter/out/config/defaults.js",
