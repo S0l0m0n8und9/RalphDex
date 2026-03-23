@@ -1566,14 +1566,14 @@
     {
       "id": "T39",
       "title": "Watchdog agent role — detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T39.1",
         "T39.2",
         "T39.3"
       ],
-      "notes": "When a build agent gets stuck — stale claim, repeated no-progress, contested claim — the operator currently must intervene manually for each case. A watchdog agent runs independently, inspects claims.json and iterationHistory, identifies agents that have not made progress within a configurable TTL, and drives recovery: resolving stale claims, decomposing stuck tasks, or escalating to the operator with a structured report. The watchdog does not implement code — it manages the health of the agent team. It uses the same claims machinery but its reconciliation path permits cross-task recovery actions that are blocked for build agents."
+      "notes": "Finished the remaining watchdog slice by exposing Run Watchdog Agent in the VS Code manifest, aligning stale-claim invariants with the watchdog recovery path, and adding manifest regression coverage."
     },
     {
       "id": "T39.1",
@@ -1670,13 +1670,13 @@
     {
       "id": "T41",
       "title": "Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T41.1",
         "T41.2"
       ],
-      "notes": "Ralph loops terminate cleanly for many reasons that are not failures: context window exhaustion, control_plane_reload_required, manual stop, iteration cap. Currently the next session re-reads the full iteration history to reconstruct context. Gastown's gt handoff model solves this: on clean termination, serialize a structured handoff note capturing what was done and what remains, so the next session picks up precisely where the previous one stopped — without re-deriving context from raw artifacts. This is the complement to T32 (auto-reload): T32 handles the trigger, T41 handles the context carry-over."
+      "notes": "Documented the durable session handoff protocol: clean-stop handoff note writes, next-session prompt carry-forward, and handoff retention/testing coverage in README/workflows/testing docs."
     },
     {
       "id": "T41.1",
@@ -1724,5 +1724,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 1
+  "mutationCount": 3
 }

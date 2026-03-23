@@ -89,6 +89,19 @@ Operator-facing artifacts for this path include:
 - `.ralph/artifacts/latest-cli-invocation.json`
 - `.ralph/artifacts/latest-provenance-summary.md`
 
+When a CLI iteration stops cleanly instead of crashing, Ralph also writes a compact session handoff note under `.ralph/handoff/<agentId>-<iteration>.json`. This handoff file is the durable carry-forward surface for the next fresh session. It records the selected task, stop reason, completion classification, any progress note or blocker, the latest validation failure signature when one exists, and the remaining-task summary at the moment the loop stopped.
+
+Clean handoff notes are written only for terminal stop reasons that preserve inspectable continuity instead of failure ambiguity:
+
+- `task_marked_complete`
+- `iteration_cap_reached`
+- `control_plane_reload_required`
+- `human_review_needed`
+- `no_actionable_task`
+- `verification_passed_no_remaining_subtasks`
+
+On the next iteration for the same `agentId`, Ralph reads the immediately previous handoff note first and injects a compact `Session Handoff` block into the next prompt ahead of broader prior-iteration evidence. Preflight also surfaces this as an informational `session_handoff_available` diagnostic so the operator can see that the next run is resuming from a durable handoff instead of reconstructing context from the full iteration history.
+
 Per-iteration artifacts now also include `completion-report.json`, which records the parsed report, parse errors, or rejection warnings that explain whether Ralph applied the model's requested selected-task update.
 
 When the same selected task stops with repeated no-progress, repeated blocked starts, or repeated identical failure evidence, the persisted iteration result, latest-result pointer, latest summary, and status report now also carry a bounded remediation recommendation. That recommendation stays deterministic and human-review-first; it does not trigger an automatic extra model pass.
@@ -116,7 +129,7 @@ If `Show Status` reports a stale canonical task claim that blocks reselection, u
 
 After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run CLI Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
 
-When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph prunes older generated prompt files, iteration directories, and transcript or last-message pairs after iteration provenance is persisted. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
+When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph prunes older generated prompt files, iteration directories, transcript or last-message pairs, and session handoff files after iteration provenance is persisted. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. Session handoff files are retained by newest iteration only; they are not protected by latest-pointer JSON artifacts. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
 
 ## Prompt Budgeting And Quota Control
 
@@ -265,12 +278,12 @@ Stop reasons and precedence rules are defined in [docs/verifier.md](verifier.md)
 Use this mental model while a loop runs for hours or across fresh sessions:
 
 - Durable operator state stays in `.ralph/prd.md`, `.ralph/progress.md`, `.ralph/tasks.json`, and `.ralph/state.json`.
-- Generated execution evidence accumulates in `.ralph/prompts/`, `.ralph/runs/`, `.ralph/artifacts/iteration-###/`, and `.ralph/artifacts/runs/<provenance-id>/`.
+- Generated execution evidence accumulates in `.ralph/prompts/`, `.ralph/runs/`, `.ralph/artifacts/iteration-###/`, `.ralph/artifacts/runs/<provenance-id>/`, and clean-stop handoff notes in `.ralph/handoff/`.
 - Stable latest entry points under `.ralph/artifacts/` are the supported inspection surface for the newest prompt, plan, CLI invocation, summary, preflight, and provenance evidence.
 
 Automatic cleanup on prompt or iteration writes is bounded by two settings:
 
-- `ralphCodex.generatedArtifactRetentionCount` keeps the newest generated prompts, run artifacts, and iteration directories first, then adds older protected references from `.ralph/state.json`, latest-pointer JSON artifacts, and latest summary surfaces.
+- `ralphCodex.generatedArtifactRetentionCount` keeps the newest generated prompts, run artifacts, iteration directories, and handoff notes first, then adds older protected references from `.ralph/state.json`, latest-pointer JSON artifacts, and latest summary surfaces.
 - `ralphCodex.provenanceBundleRetentionCount` keeps the newest provenance bundles first, then adds older bundles that a latest pointer still references.
 
 The practical effect is that Ralph may delete older generated artifacts once they fall outside the newest retained window and no protected reference still points at them. It should not delete the current durable state or the latest inspection entry points just because retention ran.
@@ -382,7 +395,7 @@ Use this escalation rule when the watchdog cannot recover safely:
 
 ### Source Control Agent
 
-Use `agentRole = scm` only for loops that are meant to watch the durable branch-per-task state and finish repository plumbing after build agents complete child slices.
+Run `Ralph: Run SCM Agent` when you want a single bounded SCM follow-through pass over the currently selected task, or use `agentRole = scm` for loops that are meant to watch the durable branch-per-task state and finish repository plumbing after build agents complete child slices.
 
 The SCM-specific branch automation is still driven by the main CLI iteration flow rather than a separate hidden channel. With `ralphCodex.scmStrategy = branch-per-task`, the relevant branch names and base branch are recorded durably in `.ralph/claims.json`. With `ralphCodex.scmPrOnParentDone = true`, the parent auto-complete path will push `ralph/integration/<parentId>` and open a GitHub pull request through the `gh` CLI after the final child finishes.
 

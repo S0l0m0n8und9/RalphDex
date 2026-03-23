@@ -48,6 +48,7 @@ Ralph keeps its durable state in the workspace:
 - runtime state: `.ralph/state.json`
 - prompts: `.ralph/prompts/`
 - transcripts: `.ralph/runs/`
+- clean-stop session handoffs: `.ralph/handoff/`
 - artifacts and latest pointers: `.ralph/artifacts/`
 - logs: `.ralph/logs/extension.log`
 
@@ -58,10 +59,12 @@ The durable task model is explicit and flat. See [docs/invariants.md](docs/invar
 Ralph separates durable source-of-truth files from generated runtime evidence:
 
 - durable operator state: `.ralph/prd.md`, `.ralph/progress.md`, `.ralph/tasks.json`, `.ralph/state.json`
-- generated execution evidence: prompts in `.ralph/prompts/`, transcripts and last messages in `.ralph/runs/`, iteration artifacts in `.ralph/artifacts/iteration-###/`, and provenance bundles in `.ralph/artifacts/runs/`
+- generated execution evidence: prompts in `.ralph/prompts/`, transcripts and last messages in `.ralph/runs/`, clean-stop session handoff notes in `.ralph/handoff/`, iteration artifacts in `.ralph/artifacts/iteration-###/`, and provenance bundles in `.ralph/artifacts/runs/`
 - stable latest entry points: `latest-summary.md`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-summary.md`, and related latest-pointer artifacts under `.ralph/artifacts/`
 
 During long-running loops, Ralph keeps the newest generated prompt, run, iteration, and provenance artifacts first, then adds any older artifacts that are still protected by `.ralph/state.json` or the stable latest pointers. `Ralph Codex: Cleanup Runtime Artifacts` is the safe maintenance path: it may delete older generated prompts, transcripts, last-message files, iteration directories, older provenance bundles, and logs, but it preserves durable Ralph state and the latest evidence surfaces needed for inspection. `Ralph Codex: Reset Runtime State` is broader: it clears generated runtime state and artifacts while still preserving the durable PRD, progress log, and task file.
+
+When a CLI iteration stops cleanly with a durable terminal reason such as `iteration_cap_reached`, `control_plane_reload_required`, or `human_review_needed`, Ralph also writes a compact handoff note to `.ralph/handoff/<agentId>-<iteration>.json`. The next fresh session for that same agent reads the immediately previous handoff note first and uses it to prepend a compact `Session Handoff` block to the next prompt, so the run can resume from durable state without re-reading the entire iteration history.
 
 If a latest human-readable summary surface is deleted manually, Ralph attempts to repair it from the surviving latest JSON record before treating it as stale. `Ralph Codex: Show Status` reports repaired or still-stale latest surfaces, and the open/reveal commands give the main long-loop inspection path: latest summary, latest provenance bundle, latest prompt evidence, latest CLI transcript, and latest provenance bundle directory. See [docs/workflows.md](docs/workflows.md) for the operator flow and [docs/provenance.md](docs/provenance.md) for the trust chain behind those artifacts.
 

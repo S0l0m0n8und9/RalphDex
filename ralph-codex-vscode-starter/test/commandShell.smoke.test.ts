@@ -233,6 +233,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.runRalphIteration'));
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
   assert.ok(commands.includes('ralphCodex.runReviewAgent'));
+  assert.ok(commands.includes('ralphCodex.runScmAgent'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
   assert.ok(commands.includes('ralphCodex.openLatestRalphSummary'));
   assert.ok(commands.includes('ralphCodex.openLatestProvenanceBundle'));
@@ -332,6 +333,48 @@ test('Run Watchdog Agent executes a single watchdog pass with the watchdog agent
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph watchdog iteration 1 completed\. Iteration summary\./
+  );
+});
+
+test('Run SCM Agent executes a single SCM pass with the scm agent command override', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'builder-2'
+  });
+
+  const invocations: Array<{ mode: 'singleExec' | 'loop'; agentRole?: unknown; agentId?: unknown }> = [];
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown; agentId?: unknown } } | undefined;
+      invocations.push({
+        mode,
+        agentRole: runOptions?.configOverrides?.agentRole,
+        agentId: runOptions?.configOverrides?.agentId
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runScmAgent');
+    }
+  );
+
+  assert.equal(invocations.length, 1);
+  assert.deepEqual(invocations[0], {
+    mode: 'singleExec',
+    agentRole: 'scm',
+    agentId: 'scm-builder-2'
+  });
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph SCM iteration 1 completed\. Iteration summary\./
   );
 });
 

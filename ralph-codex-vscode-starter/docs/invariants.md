@@ -70,12 +70,13 @@ Task claims are a separate, file-backed coordination surface:
 - acquisition must not overwrite an existing canonical holder; it returns a contested result instead
 - acquisition writes the new active claim, rereads the file, and only succeeds if that reread still shows the same canonical holder
 - release is idempotent and only marks the canonical active claim held by the requesting agent as `released`
-- stale claims are detectable from `claimedAt` plus a configurable TTL, but Ralph must not auto-release them without an operator decision
+- stale claims are detectable from `claimedAt` plus a configurable TTL, but Ralph must not silently reassign or release them outside a bounded recovery path
 - preflight and `Show Status` must surface claim-graph state separately from task-graph drift, including contested active claims, stale active claims, and canonical claims whose `provenanceId` differs from the current iteration provenance
 - `Prepare Prompt` and `Open Codex IDE` must not acquire durable active claims; only the CLI execution path may hold a blocking task claim because it also owns reconciliation and release
 - when CLI selection encounters legacy active claims held by Ralph with an `-ide-` provenance id, it must release those non-blocking handoff claims and replace them with a fresh CLI claim so abandoned IDE handoffs cannot strand later selection
 - operator stale-claim recovery is explicit: `Resolve Stale Task Claim` may mark only the canonical stale active claim as `stale`, must record `resolvedAt`, `resolvedBy`, and `resolutionReason`, and must return that task to the normal CLI selection pool instead of silently reassigning it
-- status wording must keep the lifecycle explicit: CLI iterations own blocking claim acquire/release, IDE prompt preparation does not, and stale canonical claims require the operator recovery command rather than manual `claims.json` edits
+- watchdog stale-claim recovery is also explicit: the watchdog role may mark only a canonical stale active claim as `stale`, must persist the same recovery fields plus the watchdog identity, and must stay limited to durable evidence surfaced through preflight and iteration history instead of speculative reassignment
+- status wording must keep the lifecycle explicit: CLI iterations own blocking claim acquire/release, IDE prompt preparation does not, and stale canonical claims are recoverable only through the operator command or the dedicated watchdog reconciliation path rather than manual `claims.json` edits
 
 ## Task Graph Write Serialisation
 
@@ -177,7 +178,7 @@ Agent Health diagnostics appear in:
 - The preflight summary rendered in `preflight-summary.md` under a dedicated Agent Health section.
 - The `Show Status` command output, which includes the Agent Health summary line alongside Task graph, Claim graph, and other sections.
 
-Recovery actions (e.g., auto-releasing stale claims or removing stale lock files) are intentionally out of scope for `checkStaleState`. The operator may use `Resolve Stale Task Claim` for claim recovery. Lock-file removal requires manual operator intervention.
+Recovery actions remain intentionally out of scope for `checkStaleState` itself. It only surfaces the stale signals. Claim recovery may then happen through `Resolve Stale Task Claim` or the dedicated watchdog reconciliation path, while lock-file removal still requires manual operator intervention.
 
 ## Iteration Model Invariants
 

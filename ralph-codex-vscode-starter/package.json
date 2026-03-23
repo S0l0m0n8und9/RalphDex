@@ -82,6 +82,8 @@
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
     "onCommand:ralphCodex.runReviewAgent",
+    "onCommand:ralphCodex.runWatchdogAgent",
+    "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
@@ -116,6 +118,14 @@
       {
         "command": "ralphCodex.runReviewAgent",
         "title": "Ralph: Run Review Agent"
+      },
+      {
+        "command": "ralphCodex.runWatchdogAgent",
+        "title": "Ralph: Run Watchdog Agent"
+      },
+      {
+        "command": "ralphCodex.runScmAgent",
+        "title": "Ralph: Run SCM Agent"
       },
       {
         "command": "ralphCodex.runRalphLoop",
@@ -168,7 +178,7 @@
         "ralphCodex.cliProvider": {
           "type": "string",
           "enum": ["codex", "claude"],
-          "default": "claude",
+          "default": "codex",
           "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
         },
         "ralphCodex.codexCommandPath": {
@@ -203,7 +213,7 @@
           "type": "string",
           "enum": ["build", "review", "watchdog", "scm"],
           "default": "build",
-          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, and the remaining roles reserve future non-build behaviors."
+          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, 'watchdog' performs bounded claim/task recovery, and 'scm' performs source-control follow-through for branch-per-task flows."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",
@@ -377,7 +387,7 @@
         },
         "ralphCodex.model": {
           "type": "string",
-          "default": "claude-sonnet-4-6",
+          "default": "gpt-5.4",
           "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-6 for Claude)."
         },
         "ralphCodex.reasoningEffort": {
@@ -400,12 +410,12 @@
         },
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
-          "default": "claude.openSidebar",
+          "default": "codex.openSidebar",
           "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
-          "default": "claude.newChat",
+          "default": "codex.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
         }
       }
