@@ -29,7 +29,7 @@ async function runProcess(command, args, options) {
     return new Promise((resolve, reject) => {
         const child = (0, child_process_1.spawn)(command, args, {
             cwd: options.cwd,
-            shell: options.shell ?? process.platform === 'win32',
+            shell: options.shell ?? false,
             env: options.env ? { ...process.env, ...options.env } : process.env
         });
         let stdout = '';

@@ -50,7 +50,7 @@ export async function runProcess(command: string, args: string[], options: Proce
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
-      shell: options.shell ?? process.platform === 'win32',
+      shell: options.shell ?? false,
       env: options.env ? { ...process.env, ...options.env } : process.env
     });
 

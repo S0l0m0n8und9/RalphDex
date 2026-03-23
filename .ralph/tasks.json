@@ -1613,14 +1613,15 @@
     {
       "id": "T40",
       "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T40.1",
         "T40.2",
         "T40.3"
       ],
-      "notes": "Currently Ralph makes no git commits — all file changes accumulate on the working branch until a human commits them. In a multi-agent team this creates merge risk: two agents can make overlapping changes that conflict silently until a human intervenes. A source control agent introduces structured commits (one per completed task), optional branch-per-task isolation, and automated PR creation when a parent task's children are all done. All git operations are disabled by default (scmStrategy: 'none') to preserve existing behaviour — operators opt in explicitly."
+      "notes": "All child tasks done (T40.1/T40.2/T40.3); Windows git commit failure fixed via processRunner shell=false default; 344 tests pass; docs check passes.",
+      "blocker": "Merge conflict while reconciling branch-per-task SCM: git commit failed: 'Iteration:' is not recognized as an internal or external command,\r\noperable program or batch file."
     },
     {
       "id": "T40.1",
@@ -1733,8 +1734,8 @@
       "dependsOn": [
         "T41.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task."
+      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T41.2.2",
@@ -1745,9 +1746,9 @@
         "T41.1",
         "T41.2.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1."
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 1
+  "mutationCount": 3
 }
