@@ -1566,14 +1566,14 @@
     {
       "id": "T39",
       "title": "Watchdog agent role — detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T39.1",
         "T39.2",
         "T39.3"
       ],
-      "notes": "When a build agent gets stuck — stale claim, repeated no-progress, contested claim — the operator currently must intervene manually for each case. A watchdog agent runs independently, inspects claims.json and iterationHistory, identifies agents that have not made progress within a configurable TTL, and drives recovery: resolving stale claims, decomposing stuck tasks, or escalating to the operator with a structured report. The watchdog does not implement code — it manages the health of the agent team. It uses the same claims machinery but its reconciliation path permits cross-task recovery actions that are blocked for build agents."
+      "notes": "Fixed ledger inconsistency (T39 todo→in_progress), added runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, registered runScmAgent command stub, created missing test/packageManifest.test.ts source file. All 342 tests pass."
     },
     {
       "id": "T39.1",
@@ -1613,7 +1613,7 @@
     {
       "id": "T40",
       "title": "Source control agent role — structured commits, branch-per-task strategy, and PR creation on parent completion",
-      "status": "in_progress",
+      "status": "todo",
       "dependsOn": [
         "T37",
         "T40.1",
@@ -1698,6 +1698,8 @@
       "dependsOn": [
         "T41.1",
         "T41.2.1",
+        "T41.2.2",
+        "T41.2.1",
         "T41.2.2"
       ],
       "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading — placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
@@ -1734,8 +1736,8 @@
       "dependsOn": [
         "T41.1"
       ],
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
-      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task."
     },
     {
       "id": "T41.2.2",
@@ -1746,9 +1748,9 @@
         "T41.1",
         "T41.2.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1.",
-      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1."
     }
   ],
-  "mutationCount": 2
+  "mutationCount": 1
 }
