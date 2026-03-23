@@ -1232,7 +1232,7 @@
     {
       "id": "T32",
       "title": "Auto-restart the extension host on control_plane_reload_required instead of waiting for operator action",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T36",
         "T32.1",
@@ -1275,7 +1275,7 @@
     {
       "id": "T32.3",
       "title": "Add regression coverage and document the auto-reload behaviour in docs/workflows.md",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T32",
       "dependsOn": [
         "T32.2",
@@ -1283,7 +1283,7 @@
         "T29",
         "T30"
       ],
-      "notes": "Added explicit command-shell regression assertions for control-plane auto-reload mode/command behavior and tightened docs/workflows.md wording for the reload command. Validation is currently blocked by unrelated TypeScript errors in src/ralph/iterationPreparation.ts.",
+      "notes": "Regression coverage and docs/workflows.md auto-reload section are in place; prior TypeScript blocker no longer exists; 347 tests pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "blocker": "npm run validate fails in compile due to unrelated existing TypeScript errors in src/ralph/iterationPreparation.ts (missing RalphTaskClaimDetails export, selectedTaskClaim type mismatches, missing integrationBranch)."
     },
@@ -1335,7 +1335,9 @@
       "status": "in_progress",
       "parentId": "T33",
       "dependsOn": [
-        "T33.2"
+        "T33.2",
+        "T33.3.1",
+        "T33.3.2"
       ],
       "notes": "Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed.",
       "validation": "cd ralph-codex-vscode-starter && npm test",
@@ -1748,7 +1750,30 @@
       ],
       "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T33.3.1",
+      "title": "Reproduce the blocker with a deterministic verification target",
+      "status": "todo",
+      "parentId": "T33.3",
+      "dependsOn": [
+        "T33.2"
+      ],
+      "notes": "Narrow T33.3 to a deterministic first step before retrying the parent task.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T33.3.2",
+      "title": "Implement the smallest bounded fix for that reproduced blocker",
+      "status": "todo",
+      "parentId": "T33.3",
+      "dependsOn": [
+        "T33.2",
+        "T33.3.1"
+      ],
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T33.3.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
     }
   ],
-  "mutationCount": 3
+  "mutationCount": 4
 }

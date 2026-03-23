@@ -146,3 +146,4 @@
 - Fixed Windows git commit failure caused by cmd.exe interpreting pipe characters in commit message body: changed processRunner.ts default from shell=true-on-win32 to shell=false.
 - All child tasks done (T40.1/T40.2/T40.3); Windows git commit failure fixed via processRunner shell=false default; 344 tests pass; docs check passes.
 - Fixed ledger inconsistency (T39 todo→in_progress), added runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, registered runScmAgent command stub, created missing test/packageManifest.test.ts source file. All 342 tests pass.
+- Regression coverage and docs/workflows.md auto-reload section are in place; prior TypeScript blocker no longer exists; 347 tests pass.

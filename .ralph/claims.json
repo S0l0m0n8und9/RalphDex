@@ -310,7 +310,7 @@
       "status": "stale",
       "resolvedAt": "2026-03-18T00:00:00.000Z",
       "resolvedBy": "fix-failure-iteration",
-      "resolutionReason": "Stale active claim from prior no_progress iteration. T36.1 implementation complete; releasing so ledger check passes."
+      "resolutionReason": "Stale released claim from prior no_progress iteration. T36.1 implementation complete; releasing so ledger check passes."
     },
     {
       "agentId": "default",
@@ -320,7 +320,7 @@
       "status": "released",
       "resolvedAt": "2026-03-18T00:00:00.000Z",
       "resolvedBy": "fix-failure-iteration",
-      "resolutionReason": "Orphaned active claim from prior no_progress iteration. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
+      "resolutionReason": "Orphaned released claim from prior no_progress iteration. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
     },
     {
       "agentId": "default",
@@ -337,7 +337,7 @@
       "status": "released",
       "resolvedAt": "2026-03-18T00:00:00.000Z",
       "resolvedBy": "fix-failure-iteration",
-      "resolutionReason": "Orphaned active claim. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
+      "resolutionReason": "Orphaned released claim. T36.1 implementation already complete in stateManager.ts and docs/invariants.md."
     },
     {
       "agentId": "default",
@@ -364,7 +364,7 @@
       "status": "released",
       "resolvedAt": "2026-03-18T00:00:00.000Z",
       "resolvedBy": "fix-failure-iteration",
-      "resolutionReason": "Orphaned active claim from prior no_progress iteration. T36.2 implementation already complete in stateManager.ts (allocateIteration) and wired in iterationPreparation.ts."
+      "resolutionReason": "Orphaned released claim from prior no_progress iteration. T36.2 implementation already complete in stateManager.ts (allocateIteration) and wired in iterationPreparation.ts."
     },
     {
       "agentId": "default",
@@ -910,7 +910,7 @@
       "taskId": "T32.3",
       "claimedAt": "2026-03-20T01:47:52.281Z",
       "provenanceId": "run-i128-cli-20260320T014752Z",
-      "status": "active"
+      "status": "released"
     },
     {
       "agentId": "default",
@@ -1053,7 +1053,7 @@
       "taskId": "T33.3",
       "claimedAt": "2026-03-22T23:05:38.196Z",
       "provenanceId": "run-i142-cli-20260322T230538Z",
-      "status": "active"
+      "status": "released"
     },
     {
       "agentId": "default",
@@ -1106,19 +1106,47 @@
       "taskId": "T40",
       "claimedAt": "2026-03-23T08:36:07.774Z",
       "provenanceId": "run-i169-cli-20260323T083600Z",
-      "status": "active",
+      "status": "released",
       "baseBranch": "ralph/T33.3",
       "featureBranch": "ralph/T40"
     },
     {
-      "taskId": "T41.2.1",
       "agentId": "default",
-      "provenanceId": "run-i177-cli-20260323T090728Z",
+      "taskId": "T41.2.1",
       "claimedAt": "2026-03-23T09:07:46.370Z",
-      "status": "active",
+      "provenanceId": "run-i177-cli-20260323T090728Z",
+      "status": "released",
       "baseBranch": "ralph/T33.3",
       "integrationBranch": "ralph/integration/T41.2",
       "featureBranch": "ralph/T41.2.1"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T32.3",
+      "claimedAt": "2026-03-23T22:07:16.861Z",
+      "provenanceId": "run-i193-cli-20260323T220716Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T33.3",
+      "claimedAt": "2026-03-23T22:07:28.019Z",
+      "provenanceId": "run-i194-cli-20260323T220727Z",
+      "status": "released"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T32.3",
+      "claimedAt": "2026-03-23T22:14:02.428Z",
+      "provenanceId": "run-i194-cli-20260323T221401Z",
+      "status": "active"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T33.3",
+      "claimedAt": "2026-03-23T22:15:35.856Z",
+      "provenanceId": "run-i195-cli-20260323T221535Z",
+      "status": "released"
     }
   ]
 }
