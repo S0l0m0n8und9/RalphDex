@@ -1736,8 +1736,6 @@
       ],
       "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
-      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T41.2.2",
