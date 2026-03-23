@@ -28,7 +28,8 @@
     "T40.2",
     "T39.2",
     "T39.3",
-    "T40.3"
+    "T40.3",
+    "T41.2"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",

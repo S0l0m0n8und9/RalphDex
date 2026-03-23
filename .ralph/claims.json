@@ -1054,6 +1054,20 @@
       "claimedAt": "2026-03-22T23:05:38.196Z",
       "provenanceId": "run-i142-cli-20260322T230538Z",
       "status": "active"
+    },
+    {
+      "agentId": "default",
+      "taskId": "T40",
+      "claimedAt": "2026-03-22T23:47:44.832Z",
+      "provenanceId": "run-i144-cli-20260322T234744Z",
+      "status": "active"
+    },
+    {
+      "taskId": "T41.2",
+      "agentId": "default",
+      "provenanceId": "run-i145-cli-20260322T234802Z",
+      "claimedAt": "2026-03-22T23:48:02.610Z",
+      "status": "active"
     }
   ]
 }

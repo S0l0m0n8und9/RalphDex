@@ -1692,12 +1692,12 @@
     {
       "id": "T41.2",
       "title": "Include the latest handoff note in the next iteration's prompt context and preflight output",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T41",
       "dependsOn": [
         "T41.1"
       ],
-      "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading — placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
+      "notes": "T41.2 is already fully implemented: readSessionHandoff in iterationPreparation.ts reads the preceding handoff file, preflight surfaces session_handoff_available info diagnostic, promptBuilder renders Session Handoff heading first in prior context, and two integration tests cover write/carry/prune scenarios. All 342 tests pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1723,5 +1723,6 @@
       "notes": "Docs already written in a prior iteration (state.json lock mechanics, saveState vs allocateIteration, nextIteration allocation, Memento mirroring). Marked done manually after agent found no remaining work.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
-  ]
+  ],
+  "mutationCount": 1
 }

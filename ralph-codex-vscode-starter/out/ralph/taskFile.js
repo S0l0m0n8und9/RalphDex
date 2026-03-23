@@ -290,7 +290,10 @@ async function withClaimFileLock(claimFilePath, options, fn) {
             const code = typeof error === 'object' && error !== null && 'code' in error
                 ? String(error.code)
                 : '';
-            if (code !== 'EEXIST' || attempt >= retryCount) {
+            // On Windows, opening a file held exclusively by another process with 'wx'
+            // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
+            const isContention = code === 'EEXIST' || code === 'EPERM';
+            if (!isContention || attempt >= retryCount) {
                 throw error;
             }
             // Stale-lock recovery: if the lock file is older than the threshold it was
@@ -303,7 +306,7 @@ async function withClaimFileLock(claimFilePath, options, fn) {
                 }
             }
             catch {
-                // lock was already removed between EEXIST and stat; retry normally
+                // lock was already removed between EEXIST/EPERM and stat; retry normally
             }
             await sleep(retryDelayMs);
         }
