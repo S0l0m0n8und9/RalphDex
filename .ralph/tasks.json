@@ -1695,7 +1695,9 @@
       "status": "in_progress",
       "parentId": "T41",
       "dependsOn": [
-        "T41.1"
+        "T41.1",
+        "T41.2.1",
+        "T41.2.2"
       ],
       "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading — placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -1722,6 +1724,29 @@
       ],
       "notes": "Docs already written in a prior iteration (state.json lock mechanics, saveState vs allocateIteration, nextIteration allocation, Memento mirroring). Marked done manually after agent found no remaining work.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T41.2.1",
+      "title": "Include the latest handoff note in the next iteration's prompt context",
+      "status": "todo",
+      "parentId": "T41.2",
+      "dependsOn": [
+        "T41.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task."
+    },
+    {
+      "id": "T41.2.2",
+      "title": "Preflight output",
+      "status": "todo",
+      "parentId": "T41.2",
+      "dependsOn": [
+        "T41.1",
+        "T41.2.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T41.2.1."
     }
   ],
   "mutationCount": 1
