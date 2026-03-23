@@ -1,0 +1,9 @@
+{
+  "agentId": "default",
+  "iteration": 147,
+  "selectedTaskId": "T41",
+  "selectedTaskTitle": "Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
+  "stopReason": "control_plane_reload_required",
+  "completionClassification": "partial_progress",
+  "humanSummary": "T41 (Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history) stopped with control_plane_reload_required. partial_progress"
+}

@@ -223,7 +223,7 @@
           "type": "string",
           "enum": ["build", "review", "watchdog", "scm"],
           "default": "build",
-          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, and the remaining roles reserve future non-build behaviors."
+          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, 'watchdog' performs bounded claim/task recovery, and 'scm' performs source-control follow-through for branch-per-task flows."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",
@@ -294,7 +294,7 @@
         "ralphCodex.scmStrategy": {
           "type": "string",
           "enum": ["none", "commit-on-done", "branch-per-task"],
-          "default": "commit-on-done",
+          "default": "branch-per-task",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
         "ralphCodex.scmPrOnParentDone": {

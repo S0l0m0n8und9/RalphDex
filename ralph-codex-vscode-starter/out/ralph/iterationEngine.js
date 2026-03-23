@@ -879,7 +879,8 @@ class RalphIterationEngine {
             completionClassification: input.result.completionClassification,
             progressNote: input.progressNote ?? undefined,
             pendingBlocker: input.pendingBlocker ?? undefined,
-            validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined
+            validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined,
+            backlog: input.result.backlog
         };
         await writeAtomicJsonFile(path.join(input.paths.handoffDir, `${note.agentId}-${String(note.iteration).padStart(3, '0')}.json`), {
             ...note,

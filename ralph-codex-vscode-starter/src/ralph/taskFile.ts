@@ -375,7 +375,10 @@ async function withClaimFileLock<T>(
       const code = typeof error === 'object' && error !== null && 'code' in error
         ? String((error as { code?: unknown }).code)
         : '';
-      if (code !== 'EEXIST' || attempt >= retryCount) {
+      // On Windows, opening a file held exclusively by another process with 'wx'
+      // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
+      const isContention = code === 'EEXIST' || code === 'EPERM';
+      if (!isContention || attempt >= retryCount) {
         throw error;
       }
 
@@ -388,7 +391,7 @@ async function withClaimFileLock<T>(
           continue;
         }
       } catch {
-        // lock was already removed between EEXIST and stat; retry normally
+        // lock was already removed between EEXIST/EPERM and stat; retry normally
       }
 
       await sleep(retryDelayMs);
@@ -1309,7 +1312,11 @@ function isSatisfiedAggregateParent(taskFile: RalphTaskFile, task: RalphTask): b
   }
 
   const descendantIds = new Set(descendants.map((descendant) => descendant.id));
-  return (task.dependsOn ?? []).every((dependencyId) => descendantIds.has(dependencyId));
+  return (task.dependsOn ?? []).every((dependencyId) => {
+    if (descendantIds.has(dependencyId)) return true;
+    const dep = findTaskById(taskFile, dependencyId);
+    return dep?.status === 'done';
+  });
 }
 
 export function autoCompleteSatisfiedAncestors(

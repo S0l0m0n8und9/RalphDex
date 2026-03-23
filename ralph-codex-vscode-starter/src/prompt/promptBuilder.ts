@@ -127,7 +127,7 @@ const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptBudgetPo
     objectiveChars: 960,
     progressLines: 5,
     progressChars: 420,
-    priorBudget: 5,
+    priorBudget: 6,
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
@@ -861,7 +861,8 @@ function buildPriorIterationContext(
       '### Session Handoff',
       `- Handoff summary: ${sessionHandoff.humanSummary}`,
       `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
-      `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`
+      `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`,
+      `- Remaining task count at handoff: ${sessionHandoff.remainingTaskCount !== null ? String(sessionHandoff.remainingTaskCount) : 'unknown'}`
     ]
     : [];
   const prior = state.lastIteration;

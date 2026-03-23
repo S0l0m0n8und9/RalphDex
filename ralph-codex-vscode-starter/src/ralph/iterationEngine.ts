@@ -1188,7 +1188,8 @@ export class RalphIterationEngine {
       completionClassification: input.result.completionClassification,
       progressNote: input.progressNote ?? undefined,
       pendingBlocker: input.pendingBlocker ?? undefined,
-      validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined
+      validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined,
+      backlog: input.result.backlog
     };
 
     await writeAtomicJsonFile(

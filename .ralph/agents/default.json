@@ -28,11 +28,15 @@
     "T40.2",
     "T39.2",
     "T39.3",
-    "T40.3"
+    "T40.3",
+    "T41.2",
+    "T41",
+    "T39"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
     ".ralph/claims.json",
+    ".ralph/handoff/default-117.json",
     ".ralph/handoff/default-118.json",
     ".ralph/handoff/default-119.json",
     ".ralph/handoff/default-120.json",
@@ -53,6 +57,7 @@
     ".ralph/tasks.json",
     "ralph-codex-vscode-starter/.gitignore",
     "ralph-codex-vscode-starter/docs/boundaries.md",
+    "ralph-codex-vscode-starter/docs/invariants.md",
     "ralph-codex-vscode-starter/docs/prompt-calibration.md",
     "ralph-codex-vscode-starter/docs/provenance.md",
     "ralph-codex-vscode-starter/docs/testing.md",
@@ -137,6 +142,7 @@
     "ralph-codex-vscode-starter/test/fixtures/snapshots/repeatedNoProgress.fix-failure.md",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/replenishBacklog.replenish-backlog.md",
     "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+    "ralph-codex-vscode-starter/test/packageManifest.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.content.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.snapshot.test.ts",

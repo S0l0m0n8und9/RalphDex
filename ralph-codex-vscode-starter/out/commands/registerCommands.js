@@ -337,6 +337,10 @@ function buildReviewAgentId(agentId) {
     const trimmed = agentId.trim() || 'default';
     return trimmed.startsWith('review-') ? trimmed : `review-${trimmed}`;
 }
+function buildScmAgentId(agentId) {
+    const trimmed = agentId.trim() || 'default';
+    return trimmed.startsWith('scm-') ? trimmed : `scm-${trimmed}`;
+}
 function renderSuggestedChildTasksForOutput(tasks) {
     const lines = ['Review agent proposed follow-up tasks:'];
     for (const task of tasks) {
@@ -927,11 +931,12 @@ function registerCommands(context, logger) {
         label: 'Ralph: Run SCM Agent',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
                 configOverrides: {
                     agentRole: 'scm',
-                    agentId: 'scm'
+                    agentId: buildScmAgentId(config.agentId)
                 }
             });
             if (run.result.executionStatus === 'failed') {

@@ -390,6 +390,11 @@ function buildReviewAgentId(agentId: string): string {
   return trimmed.startsWith('review-') ? trimmed : `review-${trimmed}`;
 }
 
+function buildScmAgentId(agentId: string): string {
+  const trimmed = agentId.trim() || 'default';
+  return trimmed.startsWith('scm-') ? trimmed : `scm-${trimmed}`;
+}
+
 function renderSuggestedChildTasksForOutput(tasks: RalphSuggestedChildTask[]): string {
   const lines = ['Review agent proposed follow-up tasks:'];
 
@@ -1162,11 +1167,12 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
     label: 'Ralph: Run SCM Agent',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false,
         configOverrides: {
           agentRole: 'scm',
-          agentId: 'scm'
+          agentId: buildScmAgentId(config.agentId)
         }
       });
 

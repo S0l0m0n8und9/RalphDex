@@ -39,7 +39,7 @@ import {
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
 
-const DEFAULT_LOCK_RETRY_COUNT = 10;
+const DEFAULT_LOCK_RETRY_COUNT = 50;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
 
 function sleep(delayMs: number): Promise<void> {
@@ -95,7 +95,10 @@ export async function withStateLock<T>(
       const code = typeof error === 'object' && error !== null && 'code' in error
         ? String((error as { code?: unknown }).code)
         : '';
-      if (code !== 'EEXIST') {
+      // On Windows, opening a file held exclusively by another process with 'wx'
+      // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
+      const isContention = code === 'EEXIST' || code === 'EPERM';
+      if (!isContention) {
         throw error;
       }
 
