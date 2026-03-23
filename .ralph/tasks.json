@@ -1620,7 +1620,8 @@
         "T40.2",
         "T40.3"
       ],
-      "notes": "Currently Ralph makes no git commits — all file changes accumulate on the working branch until a human commits them. In a multi-agent team this creates merge risk: two agents can make overlapping changes that conflict silently until a human intervenes. A source control agent introduces structured commits (one per completed task), optional branch-per-task isolation, and automated PR creation when a parent task's children are all done. All git operations are disabled by default (scmStrategy: 'none') to preserve existing behaviour — operators opt in explicitly."
+      "notes": "Fixed the two failing package-manifest tests by adding runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, and registering the missing runScmAgent command handler in registerCommands.ts. All 344 tests pass.",
+      "blocker": "Merge conflict while reconciling branch-per-task SCM: git commit failed: 'Iteration:' is not recognized as an internal or external command,\r\noperable program or batch file."
     },
     {
       "id": "T40.1",
@@ -1723,5 +1724,6 @@
       "notes": "Docs already written in a prior iteration (state.json lock mechanics, saveState vs allocateIteration, nextIteration allocation, Memento mirroring). Marked done manually after agent found no remaining work.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
-  ]
+  ],
+  "mutationCount": 1
 }
