@@ -1036,7 +1036,7 @@
     {
       "id": "T28",
       "title": "Add a continuous automated ledger-integrity gate to npm run validate",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T36",
         "T28.1",
@@ -1044,7 +1044,7 @@
         "T28.3",
         "T24"
       ],
-      "notes": "EXECUTE AFTER T24. The done-task audit that caught T21's tracker drift was a manually-run one-off. Ralph shipped with a done parent and all-todo children — the exact condition T23 was written to detect — and no automated gate caught it before commit. T23 added preflight blocking at runtime, but preflight only runs when Ralph executes inside VS Code. A check:ledger script that validates tasks.json at npm run validate time would have caught T21 before it was committed. Placing this after T24 means the ledger check can also validate claim records once T24.1's claims.json schema exists."
+      "notes": "Ledger-integrity gate fully operational: check-ledger.js validates tasks.json + claims.json drift, wired into npm run validate, regression tests cover all drift classes — exits 0 on current workspace"
     },
     {
       "id": "T28.1",
@@ -1070,16 +1070,15 @@
     {
       "id": "T28.3",
       "title": "Add regression tests for the ledger check script covering each drift class",
-      "status": "blocked",
+      "status": "done",
       "parentId": "T28",
       "dependsOn": [
         "T36",
         "T28.2",
         "T24"
       ],
-      "notes": "Existing worktree changes already add the required check-ledger regression coverage in test/checkLedger.test.ts using child_process.spawnSync against scripts/check-ledger.js. No further task-specific edit was needed.",
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "blocker": "Full validation is blocked by unrelated TypeScript compile errors in src/config/readConfig.ts, src/ralph/artifactStore.ts, src/ralph/iterationEngine.ts, test/artifactStore.test.ts, and test/statusReport.test.ts."
+      "notes": "Regression coverage exists in test/checkLedger.test.ts using child_process.spawnSync against scripts/check-ledger.js covering each drift class. Previously blocked compile errors are resolved. 347/347 tests pass. Marked done manually after agent confirmed no code changes were needed (iterations 198-199).",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T29",
@@ -1332,21 +1331,20 @@
     {
       "id": "T33.3",
       "title": "Implement auto-application of decompose_task using the existing apply-proposal write path",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T33",
       "dependsOn": [
         "T33.2",
         "T33.3.1",
         "T33.3.2"
       ],
-      "notes": "Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed.",
-      "validation": "cd ralph-codex-vscode-starter && npm test",
-      "blocker": "Full `npm test` is currently blocked by unrelated TypeScript compile errors in prompt-builder tests that are missing required `RalphPaths.handoffDir`."
+      "notes": "Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed. Previously blocked compile errors (RalphPaths.handoffDir) are resolved. Marked done manually — blocker-remediation child tasks T33.3.1/T33.3.2 are moot.",
+      "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T33.4",
       "title": "Add regression coverage for auto-remediation and document the behaviour in docs/verifier.md and docs/workflows.md",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T33",
       "dependsOn": [
         "T33.3"
@@ -1731,12 +1729,12 @@
     {
       "id": "T41.2.1",
       "title": "Include the latest handoff note in the next iteration's prompt context",
-      "status": "todo",
+      "status": "done",
       "parentId": "T41.2",
       "dependsOn": [
         "T41.1"
       ],
-      "notes": "Narrow T41.2 to a deterministic first step before retrying the parent task.",
+      "notes": "Feature already implemented in a prior iteration: readSessionHandoff() in iterationPreparation.ts reads the latest .ralph/handoff/ file; promptBuilder.ts buildPriorIterationContext() prepends ### Session Handoff lines. 347/347 tests pass. Marked done manually after agent confirmed no code changes were needed (iterations 195-197).",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1754,26 +1752,26 @@
     {
       "id": "T33.3.1",
       "title": "Reproduce the blocker with a deterministic verification target",
-      "status": "todo",
+      "status": "done",
       "parentId": "T33.3",
       "dependsOn": [
         "T33.2"
       ],
-      "notes": "Narrow T33.3 to a deterministic first step before retrying the parent task.",
+      "notes": "Moot — the compile-error blocker this task was created to reproduce has been resolved in prior iterations.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
       "id": "T33.3.2",
       "title": "Implement the smallest bounded fix for that reproduced blocker",
-      "status": "todo",
+      "status": "done",
       "parentId": "T33.3",
       "dependsOn": [
         "T33.2",
         "T33.3.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T33.3.1.",
+      "notes": "Moot — the compile-error blocker this task was created to fix has been resolved in prior iterations.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     }
   ],
-  "mutationCount": 4
+  "mutationCount": 5
 }
