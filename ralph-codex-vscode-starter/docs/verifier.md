@@ -131,6 +131,8 @@ Hard limits keep remediation from turning into ad hoc planning:
 - applying a proposal is rejected if the parent task is missing or already done, if a child id duplicates an existing task or the parent id, or if a proposed dependency does not resolve inside the approved task set
 - even after approval, Ralph only adds the proposed children and gates the parent on them; it does not rewrite unrelated tasks or the broader plan
 
+The `ralphCodex.autoApplyRemediation` setting controls which remediation actions Ralph may apply automatically during iteration execution without waiting for operator approval. Only two actions are eligible: `decompose_task` and `mark_blocked`. Setting `autonomyMode = autonomous` enables both at runtime regardless of the stored value. All other remediation actions — `reframe_task`, `request_human_review`, and `no_action` — are permanently excluded from auto-apply. `reframe_task` requires the operator to decide whether the task title and scope should change before another attempt; writing that change automatically would bypass the human judgment the action is designed to invoke. `request_human_review` indicates that the recorded evidence no longer supports a safe automatic retry; automating it would contradict its purpose by continuing without the human decision it requests.
+
 When auto-apply is enabled for `decompose_task`, Ralph uses that same bounded proposal-application path during iteration execution. The remediation artifact is still persisted first, and any validation failure is surfaced as a warning instead of silently mutating the task graph.
 
 `decompose_task` has a deliberately narrow shape so the operator can predict what Ralph will propose before opening the artifact:

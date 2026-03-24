@@ -543,7 +543,11 @@ function buildPreflightContext(report) {
         .filter((diagnostic) => diagnostic.severity !== 'info')
         .slice(0, 3)
         .map((diagnostic) => `- ${diagnostic.category} ${diagnostic.severity}: ${diagnostic.message}`);
-    return salientDiagnostics.length > 0 ? [...lines, ...salientDiagnostics] : lines;
+    const handoffDiagnostic = report.diagnostics.find((d) => d.code === 'session_handoff_available');
+    const handoffLines = handoffDiagnostic ? [`- sessionHandoff: ${handoffDiagnostic.message}`] : [];
+    return salientDiagnostics.length > 0 || handoffLines.length > 0
+        ? [...lines, ...salientDiagnostics, ...handoffLines]
+        : lines;
 }
 function buildRepoContext(summary, kind, target, selectedTask, detail) {
     const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(summary);

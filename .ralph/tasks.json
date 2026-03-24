@@ -1289,7 +1289,7 @@
     {
       "id": "T33",
       "title": "Auto-apply decompose_task and mark_blocked remediation actions without operator intervention",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T36",
         "T33.1",
@@ -1344,12 +1344,12 @@
     {
       "id": "T33.4",
       "title": "Add regression coverage for auto-remediation and document the behaviour in docs/verifier.md and docs/workflows.md",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T33",
       "dependsOn": [
         "T33.3"
       ],
-      "notes": "Add tests in test/iterationEngine.integration.test.ts covering: mark_blocked is auto-applied when the action matches and the setting includes it; decompose_task is auto-applied and the resulting tasks.json contains the expected child tasks; neither action is applied when the setting is empty; reframe_task is never auto-applied regardless of setting; request_human_review is never auto-applied regardless of setting; auto-application is recorded in the iteration result warnings. In docs/verifier.md under Task Remediation, add a paragraph describing the autoApplyRemediation setting, which actions are eligible, and why reframe_task and request_human_review are excluded. Add a brief note to docs/workflows.md under Run The Ralph Loop. Run npm run validate.",
+      "notes": "Added 3 regression tests for auto-remediation exclusion cases and documented autoApplyRemediation setting in docs/verifier.md and docs/workflows.md",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1740,7 +1740,7 @@
     {
       "id": "T41.2.2",
       "title": "Preflight output",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T41.2",
       "dependsOn": [
         "T41.1",
@@ -1773,5 +1773,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm test"
     }
   ],
-  "mutationCount": 5
+  "mutationCount": 6
 }

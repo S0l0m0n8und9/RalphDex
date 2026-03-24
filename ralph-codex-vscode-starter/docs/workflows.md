@@ -225,6 +225,8 @@ Treat `autonomous` as a trust-conserving convenience mode, not a principal chang
 
 If a stop reason is `repeated_no_progress` or `repeated_identical_failure` on the same selected task, Ralph records a narrow remediation action so the operator can decide whether to decompose the task, reframe it around a deterministic failure, mark it blocked after repeated blocked starts, or request human review before starting another run.
 
+`ralphCodex.autoApplyRemediation` accepts only `decompose_task` and `mark_blocked`. Configuring `reframe_task` or `request_human_review` has no effect: `reframe_task` requires an operator decision about task scope before the next attempt, and `request_human_review` signals that the loop evidence no longer supports automated continuation. Auto-applying either would bypass the human judgment each action is designed to surface. Auto-application of a supported action is recorded in the iteration result warnings so operators can confirm what changed.
+
 Use the remediation surfaces in this order when a loop stops repeatedly:
 
 1. `Show Status` to read the remediation summary, action, attempt count, human-review flag, and proposal path.

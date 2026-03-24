@@ -1715,3 +1715,57 @@ test('buildPrompt is deterministic across equivalent inputs', async () => {
   assert.equal(first.prompt, second.prompt);
   assert.equal(JSON.stringify(first.evidence), JSON.stringify(second.evidence));
 });
+
+test('buildPreflightContext surfaces session_handoff_available diagnostic in the preflight snapshot', async () => {
+  const templateDir = await createTemplateDir();
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 3,
+    selectionReason: 'Continuing from a prior clean handoff.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 2 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Preflight handoff test task', status: 'todo' }]
+    },
+    selectedTask: { id: 'T1', title: 'Preflight handoff test task', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: [
+        {
+          category: 'workspaceRuntime',
+          severity: 'info',
+          code: 'session_handoff_available',
+          message: 'Resuming from handoff note default-002.json: Prior iteration completed cleanly.'
+        }
+      ]
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.ok(
+    render.evidence.inputs.preflightContext.includes(
+      '- sessionHandoff: Resuming from handoff note default-002.json: Prior iteration completed cleanly.'
+    ),
+    'preflightContext should contain the session handoff line'
+  );
+  // The info diagnostic must NOT appear via the salient-warning block (severity filter excludes it)
+  assert.ok(
+    !render.evidence.inputs.preflightContext.some((line) => /workspaceRuntime info:/.test(line)),
+    'info diagnostics should not appear via salient-warning block'
+  );
+});

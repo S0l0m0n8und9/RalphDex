@@ -33,7 +33,8 @@
     "T41",
     "T39",
     "T32.3",
-    "T28"
+    "T28",
+    "T33.4"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",

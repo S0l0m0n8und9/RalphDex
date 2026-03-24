@@ -3062,6 +3062,258 @@ test('runCliIteration records a warning when auto-applying decompose_task remedi
   assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1']);
 });
 
+test('runCliIteration does not auto-apply any remediation when autoApplyRemediation is empty', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T0', title: 'Foundation', status: 'done' },
+      { id: 'T1', title: 'Broad task with no durable progress', status: 'todo', dependsOn: ['T0'] }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState', 'gitDiff'],
+    noProgressThreshold: 2,
+    gitCheckpointMode: 'off',
+    autoApplyRemediation: []
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([{ run: async () => ({ lastMessage: 'No durable changes.' }) }], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Still no durable changes.' }) }], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+
+  assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.equal(secondRun.result.remediation?.action, 'decompose_task');
+  assert.deepEqual(taskFile.tasks.map((task) => task.id), ['T0', 'T1']);
+  assert.ok(!secondRun.result.warnings.some((w) => w.includes('Remediation auto-applied')));
+});
+
+test('runCliIteration does not auto-apply reframe_task remediation even when all auto-apply options are enabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Stabilize the deterministic validation failure',
+        status: 'todo',
+        validation: 'node -e "console.error(\'deterministic failure\'); process.exit(1)"'
+      }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'taskState'],
+    noProgressThreshold: 2,
+    repeatedFailureThreshold: 2,
+    gitCheckpointMode: 'off',
+    stopOnHumanReviewNeeded: false,
+    autoApplyRemediation: ['decompose_task', 'mark_blocked']
+  });
+
+  const sharedMemento = new MemoryMemento();
+  const first = createEngine([{ run: async () => ({ lastMessage: 'First retry preserved the failure.' }) }], sharedMemento);
+  const firstRun = await first.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(firstRun.result.completionClassification, 'no_progress');
+
+  const second = createEngine([{ run: async () => ({ lastMessage: 'Second retry hit the same validation failure.' }) }], sharedMemento);
+  const secondRun = await second.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const task = taskFile.tasks.find((t) => t.id === 'T1');
+
+  assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
+  assert.equal(secondRun.result.remediation?.action, 'reframe_task');
+  // reframe_task never writes to tasks.json — no child tasks are added even though
+  // suggestedChildTasks may be populated in the artifact
+  assert.deepEqual(taskFile.tasks.map((t) => t.id), ['T1']);
+  assert.ok(!secondRun.result.warnings.some((w) => w.includes('Remediation auto-applied')));
+});
+
+test('runCliIteration does not auto-apply request_human_review remediation regardless of setting', async () => {
+  // request_human_review is not part of AutoApplyRemediationAction and is never checked
+  // in the auto-apply conditions in iterationEngine.ts. This test verifies that even when
+  // mark_blocked is the recommended remediation action, it is only applied when it is in
+  // autoApplyRemediation — and request_human_review never appears as an auto-applied action.
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Wait for an external dependency', status: 'todo' },
+      { id: 'T2', title: 'Follow-up task remains actionable', status: 'todo' }
+    ]
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    repeatedFailureThreshold: 2,
+    stopOnHumanReviewNeeded: false,
+    gitCheckpointMode: 'off',
+    autoApplyRemediation: ['decompose_task']
+  });
+
+  const sharedMemento = new MemoryMemento();
+  await sharedMemento.update(`ralphCodex.workspaceState:${rootPath}`, {
+    version: 2,
+    objectivePreview: null,
+    nextIteration: 2,
+    lastPromptKind: 'iteration',
+    lastPromptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+    lastRun: null,
+    runHistory: [],
+    lastIteration: {
+      schemaVersion: 1,
+      agentId: DEFAULT_CONFIG.agentId,
+      iteration: 1,
+      selectedTaskId: 'T1',
+      selectedTaskTitle: 'Wait for an external dependency',
+      promptKind: 'iteration',
+      promptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+      artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
+      adapterUsed: 'cliExec',
+      executionIntegrity: null,
+      executionStatus: 'succeeded',
+      verificationStatus: 'failed',
+      completionClassification: 'blocked',
+      followUpAction: 'stop',
+      startedAt: '2026-03-19T00:00:00.000Z',
+      finishedAt: '2026-03-19T00:00:01.000Z',
+      phaseTimestamps: {
+        inspectStartedAt: '2026-03-19T00:00:00.000Z',
+        inspectFinishedAt: '2026-03-19T00:00:00.000Z',
+        taskSelectedAt: '2026-03-19T00:00:00.000Z',
+        promptGeneratedAt: '2026-03-19T00:00:00.000Z',
+        resultCollectedAt: '2026-03-19T00:00:01.000Z',
+        verificationFinishedAt: '2026-03-19T00:00:01.000Z',
+        classifiedAt: '2026-03-19T00:00:01.000Z'
+      },
+      summary: 'Selected T1: Wait for an external dependency | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 2',
+      warnings: [],
+      errors: [],
+      execution: {
+        exitCode: 0
+      },
+      verification: {
+        taskValidationHint: null,
+        effectiveValidationCommand: null,
+        normalizedValidationCommandFrom: null,
+        primaryCommand: null,
+        validationFailureSignature: null,
+        verifiers: []
+      },
+      backlog: {
+        remainingTaskCount: 2,
+        actionableTaskAvailable: true
+      },
+      diffSummary: null,
+      noProgressSignals: [],
+      remediation: null,
+      stopReason: 'repeated_identical_failure'
+    },
+    iterationHistory: [
+      {
+        schemaVersion: 1,
+        agentId: DEFAULT_CONFIG.agentId,
+        iteration: 1,
+        selectedTaskId: 'T1',
+        selectedTaskTitle: 'Wait for an external dependency',
+        promptKind: 'iteration',
+        promptPath: path.join(rootPath, '.ralph', 'generated', 'prompt-001.md'),
+        artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
+        adapterUsed: 'cliExec',
+        executionIntegrity: null,
+        executionStatus: 'succeeded',
+        verificationStatus: 'failed',
+        completionClassification: 'blocked',
+        followUpAction: 'stop',
+        startedAt: '2026-03-19T00:00:00.000Z',
+        finishedAt: '2026-03-19T00:00:01.000Z',
+        phaseTimestamps: {
+          inspectStartedAt: '2026-03-19T00:00:00.000Z',
+          inspectFinishedAt: '2026-03-19T00:00:00.000Z',
+          taskSelectedAt: '2026-03-19T00:00:00.000Z',
+          promptGeneratedAt: '2026-03-19T00:00:00.000Z',
+          resultCollectedAt: '2026-03-19T00:00:01.000Z',
+          verificationFinishedAt: '2026-03-19T00:00:01.000Z',
+          classifiedAt: '2026-03-19T00:00:01.000Z'
+        },
+        summary: 'Selected T1: Wait for an external dependency | Execution: succeeded | Verification: failed | Outcome: blocked | Backlog remaining: 2',
+        warnings: [],
+        errors: [],
+        execution: {
+          exitCode: 0
+        },
+        verification: {
+          taskValidationHint: null,
+          effectiveValidationCommand: null,
+          normalizedValidationCommandFrom: null,
+          primaryCommand: null,
+          validationFailureSignature: null,
+          verifiers: []
+        },
+        backlog: {
+          remainingTaskCount: 2,
+          actionableTaskAvailable: true
+        },
+        diffSummary: null,
+        noProgressSignals: [],
+        remediation: null,
+        stopReason: 'repeated_identical_failure'
+      }
+    ],
+    updatedAt: '2026-03-19T00:00:01.000Z'
+  });
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'blocked',
+          progressNote: 'Still waiting on the upstream dependency.',
+          blocker: 'Upstream dependency is still not ready.'
+        }, 'The task is still blocked.')
+      })
+    }
+  ], sharedMemento);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const selectedTask = taskFile.tasks.find((task) => task.id === 'T1');
+
+  assert.equal(summary.result.stopReason, 'repeated_identical_failure');
+  assert.equal(summary.result.remediation?.action, 'mark_blocked');
+  // The task is blocked by completion-report reconciliation (requestedStatus: 'blocked'),
+  // but the mark_blocked auto-apply did not run because it is not in autoApplyRemediation.
+  // The blocker text therefore comes from the completion report, not the remediation summary.
+  assert.equal(selectedTask?.status, 'blocked');
+  assert.notEqual(selectedTask?.blocker, summary.result.remediation?.summary);
+  assert.ok(!summary.result.warnings.some((w) => w.includes('Remediation auto-applied')));
+  // request_human_review is not part of AutoApplyRemediationAction and is never auto-applied
+  assert.ok(!summary.result.warnings.some((w) => w.includes('request_human_review')));
+});
+
 test('runCliIteration records a non-proposal remediation artifact for repeated identical human-review failures', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {

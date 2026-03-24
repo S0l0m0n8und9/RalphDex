@@ -148,3 +148,4 @@
 - Fixed ledger inconsistency (T39 todo→in_progress), added runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, registered runScmAgent command stub, created missing test/packageManifest.test.ts source file. All 342 tests pass.
 - Regression coverage and docs/workflows.md auto-reload section are in place; prior TypeScript blocker no longer exists; 347 tests pass.
 - Ledger-integrity gate fully operational: check-ledger.js validates tasks.json + claims.json drift, wired into npm run validate, regression tests cover all drift classes — exits 0 on current workspace
+- Added 3 regression tests for auto-remediation exclusion cases and documented autoApplyRemediation setting in docs/verifier.md and docs/workflows.md
