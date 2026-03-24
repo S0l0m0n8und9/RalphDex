@@ -422,7 +422,8 @@ export async function prepareIterationContext(
     taskValidationHint,
     effectiveValidationCommand,
     normalizedValidationCommandFrom,
-    validationCommand: effectiveValidationCommand
+    validationCommand: effectiveValidationCommand,
+    sessionHandoff
   });
   progress.report({ message: preflightReport.summary });
   logger.appendText(renderPreflightReport(preflightReport));

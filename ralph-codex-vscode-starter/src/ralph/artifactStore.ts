@@ -12,6 +12,7 @@ import {
   RalphPreflightReport,
   RalphPromptEvidence,
   RalphPromptKind,
+  RalphPromptSessionHandoff,
   RalphPromptTarget,
   RalphProvenanceBundle,
   RalphProvenanceTrustLevel,
@@ -642,6 +643,10 @@ function renderPreflightSummary(report: RalphPersistedPreflightReport): string {
     ? report.diagnostics.map(formatDiagnosticLine)
     : ['- ok'];
 
+  const handoffLine = report.sessionHandoff
+    ? `- Session handoff: ${report.sessionHandoff.agentId}-${String(report.sessionHandoff.iteration).padStart(3, '0')}.json | ${report.sessionHandoff.humanSummary}`
+    : '- Session handoff: none';
+
   return [
     `# Ralph Preflight ${report.iteration}`,
     '',
@@ -658,6 +663,7 @@ function renderPreflightSummary(report: RalphPersistedPreflightReport): string {
     `- Validation: ${formatOptional(report.validationCommand)}`,
     `- Summary: ${report.summary}`,
     `- Active claim state: ${report.activeClaimSummary ?? 'none'}`,
+    handoffLine,
     `- Report: ${report.reportPath}`,
     '',
     headline,
@@ -1776,6 +1782,7 @@ export async function writePreflightArtifacts(input: {
   effectiveValidationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
+  sessionHandoff?: RalphPromptSessionHandoff | null;
 }): Promise<{ latestPaths: RalphLatestArtifactPaths; persistedReport: RalphPersistedPreflightReport; humanSummary: string }> {
   await fs.mkdir(input.paths.directory, { recursive: true });
 
@@ -1803,7 +1810,8 @@ export async function writePreflightArtifacts(input: {
     summaryPath: input.paths.summaryPath,
     blocked: !input.report.ready,
     createdAt: new Date().toISOString(),
-    diagnostics: input.report.diagnostics
+    diagnostics: input.report.diagnostics,
+    sessionHandoff: input.sessionHandoff ?? null
   };
   const humanSummary = renderPreflightSummary(persistedReport);
 

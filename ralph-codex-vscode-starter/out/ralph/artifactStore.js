@@ -438,6 +438,9 @@ function renderPreflightSummary(report) {
     const diagnostics = report.diagnostics.length > 0
         ? report.diagnostics.map(formatDiagnosticLine)
         : ['- ok'];
+    const handoffLine = report.sessionHandoff
+        ? `- Session handoff: ${report.sessionHandoff.agentId}-${String(report.sessionHandoff.iteration).padStart(3, '0')}.json | ${report.sessionHandoff.humanSummary}`
+        : '- Session handoff: none';
     return [
         `# Ralph Preflight ${report.iteration}`,
         '',
@@ -454,6 +457,7 @@ function renderPreflightSummary(report) {
         `- Validation: ${formatOptional(report.validationCommand)}`,
         `- Summary: ${report.summary}`,
         `- Active claim state: ${report.activeClaimSummary ?? 'none'}`,
+        handoffLine,
         `- Report: ${report.reportPath}`,
         '',
         headline,
@@ -1392,7 +1396,8 @@ async function writePreflightArtifacts(input) {
         summaryPath: input.paths.summaryPath,
         blocked: !input.report.ready,
         createdAt: new Date().toISOString(),
-        diagnostics: input.report.diagnostics
+        diagnostics: input.report.diagnostics,
+        sessionHandoff: input.sessionHandoff ?? null
     };
     const humanSummary = renderPreflightSummary(persistedReport);
     await Promise.all([

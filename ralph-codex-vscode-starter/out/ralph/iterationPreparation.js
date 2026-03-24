@@ -299,7 +299,8 @@ async function prepareIterationContext(input) {
         taskValidationHint,
         effectiveValidationCommand,
         normalizedValidationCommandFrom,
-        validationCommand: effectiveValidationCommand
+        validationCommand: effectiveValidationCommand,
+        sessionHandoff
     });
     progress.report({ message: preflightReport.summary });
     logger.appendText((0, preflight_1.renderPreflightReport)(preflightReport));

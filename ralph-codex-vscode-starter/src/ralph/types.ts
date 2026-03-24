@@ -123,6 +123,7 @@ export interface RalphPersistedPreflightReport {
   blocked: boolean;
   createdAt: string;
   diagnostics: RalphPreflightDiagnostic[];
+  sessionHandoff?: RalphPromptSessionHandoff | null;
 }
 
 export type RalphPromptKind =
