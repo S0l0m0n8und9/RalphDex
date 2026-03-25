@@ -42,6 +42,15 @@ exports.DEFAULT_CONFIG = {
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
     openSidebarCommandId: 'claude.openSidebar',
-    newChatCommandId: 'claude.newChat'
+    newChatCommandId: 'claude.newChat',
+    modelTiering: {
+        enabled: false,
+        simpleModel: 'claude-haiku-4-5-20251001',
+        mediumModel: 'claude-sonnet-4-6',
+        complexModel: 'claude-opus-4-6',
+        simpleThreshold: 2,
+        complexThreshold: 6
+    },
+    hooks: {}
 };
 //# sourceMappingURL=defaults.js.map

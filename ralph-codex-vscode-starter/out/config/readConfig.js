@@ -114,6 +114,45 @@ function readPromptBudgetOverrideMap(config, key) {
     }
     return normalized;
 }
+function readModelTiering(config, fallback) {
+    const raw = config.get('modelTiering');
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return fallback;
+    }
+    const record = raw;
+    return {
+        enabled: typeof record.enabled === 'boolean' ? record.enabled : fallback.enabled,
+        simpleModel: typeof record.simpleModel === 'string' && record.simpleModel.trim()
+            ? record.simpleModel.trim()
+            : fallback.simpleModel,
+        mediumModel: typeof record.mediumModel === 'string' && record.mediumModel.trim()
+            ? record.mediumModel.trim()
+            : fallback.mediumModel,
+        complexModel: typeof record.complexModel === 'string' && record.complexModel.trim()
+            ? record.complexModel.trim()
+            : fallback.complexModel,
+        simpleThreshold: typeof record.simpleThreshold === 'number' && Number.isFinite(record.simpleThreshold)
+            ? Math.floor(record.simpleThreshold)
+            : fallback.simpleThreshold,
+        complexThreshold: typeof record.complexThreshold === 'number' && Number.isFinite(record.complexThreshold)
+            ? Math.floor(record.complexThreshold)
+            : fallback.complexThreshold
+    };
+}
+function readHooks(config, fallback) {
+    const raw = config.get('hooks');
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return fallback;
+    }
+    const record = raw;
+    const hooks = {};
+    for (const key of ['beforeIteration', 'afterIteration', 'onTaskComplete', 'onStop', 'onFailure']) {
+        if (typeof record[key] === 'string' && record[key].trim()) {
+            hooks[key] = record[key].trim();
+        }
+    }
+    return hooks;
+}
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider);
@@ -175,7 +214,9 @@ function readConfig(workspaceFolder) {
         approvalMode: readEnum(config, 'approvalMode', ['never', 'on-request', 'untrusted'], defaults_1.DEFAULT_CONFIG.approvalMode),
         sandboxMode: readEnum(config, 'sandboxMode', ['read-only', 'workspace-write', 'danger-full-access'], defaults_1.DEFAULT_CONFIG.sandboxMode),
         openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
-        newChatCommandId: readString(config, 'newChatCommandId', newChatFallback)
+        newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
+        modelTiering: readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering),
+        hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks)
     };
 }
 //# sourceMappingURL=readConfig.js.map

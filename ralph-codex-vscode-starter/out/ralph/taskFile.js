@@ -81,7 +81,8 @@ const SUPPORTED_TASK_FIELDS = new Set([
     'dependsOn',
     'notes',
     'validation',
-    'blocker'
+    'blocker',
+    'priority'
 ]);
 const LIKELY_TASK_FIELD_MISTAKES = new Map([
     ['dependencies', 'dependsOn'],
@@ -370,6 +371,12 @@ function normalizeOptionalString(record, key) {
         ? record[key].trim()
         : undefined;
 }
+function normalizeTaskPriority(value) {
+    if (value === 'low' || value === 'normal' || value === 'high') {
+        return value;
+    }
+    return undefined;
+}
 function normalizeDependencyList(record) {
     if (!Array.isArray(record.dependsOn)) {
         return undefined;
@@ -591,6 +598,7 @@ function normalizeTask(candidate, source) {
         notes: normalizeOptionalString(record, 'notes'),
         validation: normalizeOptionalString(record, 'validation'),
         blocker: normalizeOptionalString(record, 'blocker'),
+        priority: normalizeTaskPriority(record.priority),
         source
     };
 }
@@ -1007,11 +1015,17 @@ function countTaskStatuses(taskFile) {
     }
     return counts;
 }
+const PRIORITY_ORDER = { high: 0, normal: 1, low: 2 };
+function taskPriorityOrder(task) {
+    return PRIORITY_ORDER[task.priority ?? 'normal'];
+}
 function listSelectableTasks(taskFile) {
-    return [
-        ...taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task)),
-        ...taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
-    ];
+    const inProgress = taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task));
+    const todo = taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task));
+    // Within each status bucket, sort by priority (high first) while preserving
+    // original array order for equal-priority tasks (stable sort).
+    const sortByPriority = (tasks) => [...tasks].sort((left, right) => taskPriorityOrder(left) - taskPriorityOrder(right));
+    return [...sortByPriority(inProgress), ...sortByPriority(todo)];
 }
 function selectNextTask(taskFile) {
     return listSelectableTasks(taskFile)[0] ?? null;
