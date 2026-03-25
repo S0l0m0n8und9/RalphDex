@@ -8,6 +8,7 @@ import {
   RalphTaskClaimFile,
   RalphTaskCounts,
   RalphTaskFile,
+  RalphTaskPriority,
   RalphTaskSourceLocation,
   RalphTaskStatus
 } from './types';
@@ -36,7 +37,8 @@ const SUPPORTED_TASK_FIELDS = new Set([
   'dependsOn',
   'notes',
   'validation',
-  'blocker'
+  'blocker',
+  'priority'
 ]);
 
 const LIKELY_TASK_FIELD_MISTAKES = new Map<string, string>([
@@ -465,6 +467,13 @@ function normalizeOptionalString(record: Record<string, unknown>, key: string): 
     : undefined;
 }
 
+function normalizeTaskPriority(value: unknown): RalphTaskPriority | undefined {
+  if (value === 'low' || value === 'normal' || value === 'high') {
+    return value;
+  }
+  return undefined;
+}
+
 function normalizeDependencyList(record: Record<string, unknown>): string[] | undefined {
   if (!Array.isArray(record.dependsOn)) {
     return undefined;
@@ -731,6 +740,7 @@ function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): Ra
     notes: normalizeOptionalString(record, 'notes'),
     validation: normalizeOptionalString(record, 'validation'),
     blocker: normalizeOptionalString(record, 'blocker'),
+    priority: normalizeTaskPriority(record.priority),
     source
   };
 }
@@ -1267,11 +1277,22 @@ export function countTaskStatuses(taskFile: RalphTaskFile): RalphTaskCounts {
   return counts;
 }
 
+const PRIORITY_ORDER: Record<RalphTaskPriority, number> = { high: 0, normal: 1, low: 2 };
+
+function taskPriorityOrder(task: RalphTask): number {
+  return PRIORITY_ORDER[task.priority ?? 'normal'];
+}
+
 export function listSelectableTasks(taskFile: RalphTaskFile): RalphTask[] {
-  return [
-    ...taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task)),
-    ...taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task))
-  ];
+  const inProgress = taskFile.tasks.filter((task) => task.status === 'in_progress' && isTaskSelectable(taskFile, task));
+  const todo = taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task));
+
+  // Within each status bucket, sort by priority (high first) while preserving
+  // original array order for equal-priority tasks (stable sort).
+  const sortByPriority = (tasks: RalphTask[]): RalphTask[] =>
+    [...tasks].sort((left, right) => taskPriorityOrder(left) - taskPriorityOrder(right));
+
+  return [...sortByPriority(inProgress), ...sortByPriority(todo)];
 }
 
 export function selectNextTask(taskFile: RalphTaskFile): RalphTask | null {

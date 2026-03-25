@@ -25,6 +25,46 @@ export type AutoApplyRemediationAction = 'decompose_task' | 'mark_blocked';
 
 export type RalphAutonomyMode = 'supervised' | 'autonomous';
 
+/**
+ * Maps task-complexity tiers to Claude model IDs.
+ * Adopted from Ruflo's smart task-routing pattern: simple tasks use cheaper/faster
+ * models while complex or repeatedly-failing tasks escalate to more capable models.
+ * Only active when `modelTiering.enabled` is true.
+ */
+export interface RalphModelTieringConfig {
+  /** Enable complexity-based model selection. Default: false (always use config.model). */
+  enabled: boolean;
+  /** Model used for low-complexity tasks (score < simpleThreshold). */
+  simpleModel: string;
+  /** Model used for medium-complexity tasks (score between thresholds). */
+  mediumModel: string;
+  /** Model used for high-complexity tasks (score >= complexThreshold). */
+  complexModel: string;
+  /** Complexity score below which the simple model is selected. Default: 2. */
+  simpleThreshold: number;
+  /** Complexity score at or above which the complex model is selected. Default: 6. */
+  complexThreshold: number;
+}
+
+/**
+ * Shell commands run at key iteration lifecycle points.
+ * Adopted from Ruflo's hook system. Each value is a shell command string.
+ * Hook failures are logged but never stop the loop.
+ * Available env vars: RALPH_TASK_ID, RALPH_OUTCOME, RALPH_STOP_REASON, RALPH_AGENT_ID.
+ */
+export interface RalphHooksConfig {
+  /** Run before a CLI iteration executes. */
+  beforeIteration?: string;
+  /** Run after a CLI iteration completes (regardless of outcome). */
+  afterIteration?: string;
+  /** Run when a task transitions to done. */
+  onTaskComplete?: string;
+  /** Run when the loop stops for any reason. */
+  onStop?: string;
+  /** Run when an iteration fails (executionStatus === 'failed'). */
+  onFailure?: string;
+}
+
 export interface RalphCodexConfig {
   cliProvider: CliProviderId;
   codexCommandPath: string;
@@ -67,4 +107,6 @@ export interface RalphCodexConfig {
   sandboxMode: CodexSandboxMode;
   openSidebarCommandId: string;
   newChatCommandId: string;
+  modelTiering: RalphModelTieringConfig;
+  hooks: RalphHooksConfig;
 }

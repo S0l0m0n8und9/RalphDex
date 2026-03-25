@@ -43,6 +43,8 @@ const iterationPreparation_1 = require("./iterationPreparation");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const loopLogic_1 = require("./loopLogic");
+const complexityScorer_1 = require("./complexityScorer");
+const hookRunner_1 = require("./hookRunner");
 const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
 const reconciliation_1 = require("./reconciliation");
@@ -945,9 +947,44 @@ class RalphIterationEngine {
             let lastMessage = '';
             let invocation;
             const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
+            // Model tiering: select the appropriate Claude model based on task complexity.
+            // Adopted from Ruflo's smart task-routing pattern.
+            const { model: selectedModel, score: complexityScore } = prepared.selectedTask
+                ? (0, complexityScorer_1.selectModelForTask)({
+                    task: prepared.selectedTask,
+                    taskFile: prepared.beforeCoreState.taskFile,
+                    iterationHistory: prepared.state.iterationHistory,
+                    tiering: prepared.config.modelTiering,
+                    fallbackModel: prepared.config.model
+                })
+                : { model: prepared.config.model, score: null };
+            if (complexityScore !== null) {
+                this.logger.info('Model tiering selected model for task.', {
+                    taskId: prepared.selectedTask?.id ?? null,
+                    model: selectedModel,
+                    complexityScore: complexityScore.score,
+                    signals: complexityScore.signals
+                });
+            }
             if (shouldExecutePrompt) {
                 const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
                 const runArtifacts = this.stateManager.runArtifactPaths(prepared.paths, artifactBaseName);
+                // Run beforeIteration hook (adopted from Ruflo's hook system).
+                const hookContext = {
+                    agentId: prepared.config.agentId,
+                    taskId: prepared.selectedTask?.id ?? null,
+                    outcome: 'pending',
+                    stopReason: null,
+                    cwd: prepared.rootPath
+                };
+                const beforeHookResult = await (0, hookRunner_1.runHook)('beforeIteration', prepared.config.hooks, hookContext);
+                if (!beforeHookResult.skipped && beforeHookResult.exitCode !== 0) {
+                    this.logger.warn('beforeIteration hook exited non-zero.', {
+                        command: beforeHookResult.command,
+                        exitCode: beforeHookResult.exitCode,
+                        stderr: beforeHookResult.stderr.slice(0, 500)
+                    });
+                }
                 this.logger.info('Running Ralph iteration.', {
                     iteration: prepared.iteration,
                     mode,
@@ -988,7 +1025,7 @@ class RalphIterationEngine {
                         promptByteLength: verifiedPlan.promptByteLength,
                         transcriptPath: runArtifacts.transcriptPath,
                         lastMessagePath: runArtifacts.lastMessagePath,
-                        model: prepared.config.model,
+                        model: selectedModel,
                         reasoningEffort: prepared.config.reasoningEffort,
                         sandboxMode: prepared.config.sandboxMode,
                         approvalMode: prepared.config.approvalMode,
@@ -1069,6 +1106,34 @@ class RalphIterationEngine {
                 executionWarnings = ['No actionable Ralph task was selected; execution was skipped.'];
                 phaseTimestamps.executionStartedAt = new Date().toISOString();
                 phaseTimestamps.executionFinishedAt = phaseTimestamps.executionStartedAt;
+            }
+            // Run afterIteration / onFailure hooks (adopted from Ruflo's hook system).
+            if (shouldExecutePrompt) {
+                const postHookContext = {
+                    agentId: prepared.config.agentId,
+                    taskId: prepared.selectedTask?.id ?? null,
+                    outcome: executionStatus,
+                    stopReason: null,
+                    cwd: prepared.rootPath
+                };
+                const afterHookResult = await (0, hookRunner_1.runHook)('afterIteration', prepared.config.hooks, postHookContext);
+                if (!afterHookResult.skipped && afterHookResult.exitCode !== 0) {
+                    this.logger.warn('afterIteration hook exited non-zero.', {
+                        command: afterHookResult.command,
+                        exitCode: afterHookResult.exitCode,
+                        stderr: afterHookResult.stderr.slice(0, 500)
+                    });
+                }
+                if (executionStatus === 'failed') {
+                    const failureHookResult = await (0, hookRunner_1.runHook)('onFailure', prepared.config.hooks, postHookContext);
+                    if (!failureHookResult.skipped && failureHookResult.exitCode !== 0) {
+                        this.logger.warn('onFailure hook exited non-zero.', {
+                            command: failureHookResult.command,
+                            exitCode: failureHookResult.exitCode,
+                            stderr: failureHookResult.stderr.slice(0, 500)
+                        });
+                    }
+                }
             }
             phaseTimestamps.resultCollectedAt = new Date().toISOString();
             const afterCoreStateBeforeReconciliation = await (0, verifier_1.captureCoreState)(prepared.paths);
@@ -1438,6 +1503,24 @@ class RalphIterationEngine {
                     }
                 }
             }
+            // Run onStop hook when the loop will not continue (adopted from Ruflo's hook system).
+            if (result.stopReason) {
+                const stopHookContext = {
+                    agentId: prepared.config.agentId,
+                    taskId: result.selectedTaskId,
+                    outcome: result.completionClassification,
+                    stopReason: result.stopReason,
+                    cwd: prepared.rootPath
+                };
+                const stopHookResult = await (0, hookRunner_1.runHook)('onStop', prepared.config.hooks, stopHookContext);
+                if (!stopHookResult.skipped && stopHookResult.exitCode !== 0) {
+                    this.logger.warn('onStop hook exited non-zero.', {
+                        command: stopHookResult.command,
+                        exitCode: stopHookResult.exitCode,
+                        stderr: stopHookResult.stderr.slice(0, 500)
+                    });
+                }
+            }
             try {
                 await updateAgentIdentityRecord({
                     rootPath: prepared.rootPath,
@@ -1450,6 +1533,24 @@ class RalphIterationEngine {
             }
             catch (error) {
                 result.warnings.push(`Failed to update agent identity record for ${prepared.config.agentId}: ${toErrorMessage(error)}`);
+            }
+            // Run onTaskComplete hook when a task transitions to done (adopted from Ruflo's hook system).
+            if (taskStateVerification.selectedTaskCompleted && prepared.selectedTask) {
+                const taskCompleteHookContext = {
+                    agentId: prepared.config.agentId,
+                    taskId: prepared.selectedTask.id,
+                    outcome: result.completionClassification,
+                    stopReason: result.stopReason ?? '',
+                    cwd: prepared.rootPath
+                };
+                const taskCompleteHookResult = await (0, hookRunner_1.runHook)('onTaskComplete', prepared.config.hooks, taskCompleteHookContext);
+                if (!taskCompleteHookResult.skipped && taskCompleteHookResult.exitCode !== 0) {
+                    this.logger.warn('onTaskComplete hook exited non-zero.', {
+                        command: taskCompleteHookResult.command,
+                        exitCode: taskCompleteHookResult.exitCode,
+                        stderr: taskCompleteHookResult.stderr.slice(0, 500)
+                    });
+                }
             }
             if (prepared.config.scmStrategy === 'commit-on-done'
                 && taskStateVerification.selectedTaskCompleted

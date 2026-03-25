@@ -11,6 +11,8 @@ import {
   RalphCodexConfig,
   RalphAutonomyMode,
   RalphGitCheckpointMode,
+  RalphHooksConfig,
+  RalphModelTieringConfig,
   RalphScmStrategy,
   RalphVerifierMode
 } from './types';
@@ -140,6 +142,57 @@ function readPromptBudgetOverrideMap(
   }
 
   return normalized;
+}
+
+function readModelTiering(
+  config: vscode.WorkspaceConfiguration,
+  fallback: RalphModelTieringConfig
+): RalphModelTieringConfig {
+  const raw = config.get<unknown>('modelTiering');
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const record = raw as Record<string, unknown>;
+  return {
+    enabled: typeof record.enabled === 'boolean' ? record.enabled : fallback.enabled,
+    simpleModel: typeof record.simpleModel === 'string' && record.simpleModel.trim()
+      ? record.simpleModel.trim()
+      : fallback.simpleModel,
+    mediumModel: typeof record.mediumModel === 'string' && record.mediumModel.trim()
+      ? record.mediumModel.trim()
+      : fallback.mediumModel,
+    complexModel: typeof record.complexModel === 'string' && record.complexModel.trim()
+      ? record.complexModel.trim()
+      : fallback.complexModel,
+    simpleThreshold: typeof record.simpleThreshold === 'number' && Number.isFinite(record.simpleThreshold)
+      ? Math.floor(record.simpleThreshold)
+      : fallback.simpleThreshold,
+    complexThreshold: typeof record.complexThreshold === 'number' && Number.isFinite(record.complexThreshold)
+      ? Math.floor(record.complexThreshold)
+      : fallback.complexThreshold
+  };
+}
+
+function readHooks(
+  config: vscode.WorkspaceConfiguration,
+  fallback: RalphHooksConfig
+): RalphHooksConfig {
+  const raw = config.get<unknown>('hooks');
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const hooks: RalphHooksConfig = {};
+
+  for (const key of ['beforeIteration', 'afterIteration', 'onTaskComplete', 'onStop', 'onFailure'] as const) {
+    if (typeof record[key] === 'string' && record[key].trim()) {
+      hooks[key] = record[key].trim();
+    }
+  }
+
+  return hooks;
 }
 
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
@@ -336,6 +389,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       DEFAULT_CONFIG.sandboxMode
     ),
     openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
-    newChatCommandId: readString(config, 'newChatCommandId', newChatFallback)
+    newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
+    modelTiering: readModelTiering(config, DEFAULT_CONFIG.modelTiering),
+    hooks: readHooks(config, DEFAULT_CONFIG.hooks)
   };
 }

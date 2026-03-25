@@ -8,6 +8,8 @@ export interface RalphTaskSourceLocation {
   column: number;
 }
 
+export type RalphTaskPriority = 'low' | 'normal' | 'high';
+
 export interface RalphTask {
   id: string;
   title: string;
@@ -17,6 +19,8 @@ export interface RalphTask {
   notes?: string;
   validation?: string;
   blocker?: string;
+  /** Optional priority hint. Higher-priority tasks are selected first when multiple tasks are actionable. Defaults to 'normal'. */
+  priority?: RalphTaskPriority;
   source?: RalphTaskSourceLocation;
 }
 

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.containsHumanReviewMarker = containsHumanReviewMarker;
+exports.normalizeFailureMessage = normalizeFailureMessage;
 exports.buildValidationFailureSignature = buildValidationFailureSignature;
 exports.classifyVerificationStatus = classifyVerificationStatus;
 exports.detectNoProgressSignals = detectNoProgressSignals;
@@ -39,6 +40,38 @@ function containsHumanReviewMarker(value) {
     return normalized.includes('[human-review-needed]')
         || normalized.includes('human review')
         || normalized.includes('manual review');
+}
+/**
+ * Normalizes a raw validation failure message to a canonical form by stripping
+ * surface-level variation (absolute paths, line/column numbers, timestamps,
+ * content hashes) that differs across runs even when the underlying root cause
+ * is identical.  The normalized form is used exclusively for repeated-failure
+ * detection; the original raw text is always preserved in artifacts.
+ *
+ * Adopted from Ruflo's pattern-based failure routing approach.
+ */
+function normalizeFailureMessage(raw) {
+    return raw
+        // ISO timestamps first (must come before line:col so colons inside timestamps
+        // are consumed here rather than matching the line:col pattern below)
+        .replace(/\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?/g, '<ts>')
+        // Windows-style absolute paths → <path>
+        .replace(/[A-Za-z]:\\[^\s]*/g, '<path>')
+        // Absolute Unix file paths → <path>
+        .replace(/(?:\/[^\s/:]+)+(?:\/[^\s/:]*)?/g, '<path>')
+        // Parenthesised "line N" or "line N, col M" references → <loc>
+        .replace(/\(\s*line\s+\d+[^)]*\)/gi, '<loc>')
+        // Bare "line N" or "line N, col M" word-boundary references → <loc>
+        .replace(/\bline\s+\d+(?:[,\s]+col(?:umn)?\s+\d+)?\b/gi, '<loc>')
+        // Colon-prefixed line:col references like :42 or :42:10 → <loc>
+        // Lookahead: not followed by another digit (handles :42:10: where colon follows)
+        .replace(/:\d+(?::\d+)?(?=[^0-9]|$)/g, '<loc>')
+        // Hex hashes (8+ chars) → <id>
+        .replace(/\b[0-9a-f]{8,64}\b/gi, '<id>')
+        // Collapse whitespace
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase();
 }
 function buildValidationFailureSignature(command, exitCode, stdout, stderr) {
     if (exitCode === null || exitCode === 0) {
@@ -89,7 +122,9 @@ function detectNoProgressSignals(input, currentClassification) {
         signals.push('same_task_selected_repeatedly');
     }
     if (input.validationFailureSignature
-        && previous?.verification.validationFailureSignature === input.validationFailureSignature) {
+        && previous?.verification.validationFailureSignature != null
+        && normalizeFailureMessage(previous.verification.validationFailureSignature)
+            === normalizeFailureMessage(input.validationFailureSignature)) {
         signals.push('same_validation_failure_signature');
     }
     if (input.relevantFileChanges.length === 0) {
@@ -166,10 +201,12 @@ function failureSignature(result) {
     if (!['blocked', 'failed', 'needs_human_review'].includes(result.completionClassification)) {
         return null;
     }
+    const rawSig = result.verification.validationFailureSignature ?? 'none';
+    const normalizedSig = rawSig !== 'none' ? normalizeFailureMessage(rawSig) : 'none';
     return [
         result.completionClassification,
         result.selectedTaskId ?? 'none',
-        result.verification.validationFailureSignature ?? 'none'
+        normalizedSig
     ].join('::');
 }
 function countTrailingSameTaskClassifications(results, taskId, agentId, classifications) {
