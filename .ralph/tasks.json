@@ -1671,7 +1671,7 @@
     {
       "id": "T41",
       "title": "Session handoff protocol — serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T37",
         "T41.1",
@@ -1693,7 +1693,7 @@
     {
       "id": "T41.2",
       "title": "Include the latest handoff note in the next iteration's prompt context and preflight output",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T41",
       "dependsOn": [
         "T41.1",
@@ -1740,7 +1740,7 @@
     {
       "id": "T41.2.2",
       "title": "Preflight output",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T41.2",
       "dependsOn": [
         "T41.1",
@@ -1771,7 +1771,98 @@
       ],
       "notes": "Moot — the compile-error blocker this task was created to fix has been resolved in prior iterations.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
+    },
+    {
+      "id": "T42",
+      "title": "Add timeout support to runProcess and apply it to validation command execution",
+      "status": "todo",
+      "notes": "processRunner.ts has no timeout parameter — a hung validation command or CLI exec blocks the loop indefinitely with no recovery. Add a timeoutMs?: number option to ProcessRunOptions; when set, use a setTimeout to kill the child process and reject with a clear error. Apply a sensible default (e.g. 5 minutes) in runValidationCommandVerifier in verifier.ts. Add regression coverage proving the timeout fires and surfaces a clean error. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T43",
+      "title": "Remove dead appendProgressBullet code from reconciliation.ts and stateManager.ts",
+      "status": "todo",
+      "notes": "Two dead functions exist: appendProgressBullet in src/ralph/reconciliation.ts (line 373, never called — superseded by updateTaskFileWithVerification and updateTaskFileWithProgress which write progress.md inside the task-file lock) and RalphStateManager.appendProgressBullet in src/ralph/stateManager.ts (line 816, public method with no callers in src/). Both are vestiges of the pre-lock consolidation and risk being called without lock protection if someone reaches for them in future. Delete both. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T44",
+      "title": "Fix stale Gap 2 description in parallel-verification-gaps.md",
+      "status": "todo",
+      "notes": "docs/parallel-verification-gaps.md line 43 says the escalate_to_human watchdog action 'still calls appendProgressBullet outside any lock'. This is no longer true — processWatchdogActions now calls updateTaskFileWithProgress (which holds withTaskFileLock) for that branch. Update Gap 2's Remaining exposure note to reflect that the escalate_to_human path is now protected, and that the remaining open race is the broader decompose_task / resolve_stale_claim vs concurrent build-agent claim acquisition (already described in Gap 4). Run npm run check:docs.",
+      "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
+    },
+    {
+      "id": "T45",
+      "title": "Add ESLint to the validation gate",
+      "status": "todo",
+      "notes": "The current 'lint' script is tsc --noEmit only — it catches type errors but not unused variables, unreachable code, or explicit-any escapes. Add @typescript-eslint/eslint-plugin and @typescript-eslint/parser; configure at minimum: no-unused-vars (catches dead code like the appendProgressBullet functions), @typescript-eslint/no-explicit-any, @typescript-eslint/no-floating-promises. Wire 'eslint src test' into the lint script so it runs as part of npm run validate. Fix any violations found. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T46",
+      "title": "Increase the default lock retry window and consider surfacing it as config",
+      "status": "todo",
+      "notes": "Both withTaskFileLock and withClaimFileLock default to 40 retries × 25ms = 1 second total wait. withStateLock defaults to 50 retries × 25ms = 1.25 seconds. In a multi-agent or slow-machine scenario where a lock holder runs a lengthy operation, any concurrent agent times out in under two seconds. Increase the defaults to at least 120 retries × 250ms = 30 seconds, matching a realistic validation command duration. Optionally expose ralphCodex.lockRetryCount and ralphCodex.lockRetryDelayMs as settings. Add or update regression coverage to confirm the timeout is correctly surfaced. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T47",
+      "title": "Surface DEFAULT_CLAIM_TTL_MS and STALE_LOCK_THRESHOLD_MS as VS Code settings",
+      "status": "todo",
+      "notes": "DEFAULT_CLAIM_TTL_MS (24 hours) and STALE_LOCK_THRESHOLD_MS (5 minutes) are hardcoded constants in src/ralph/taskFile.ts with no way to override them from settings. Operators on slow machines or with long-running agents may need different values. Add ralphCodex.claimTtlHours and ralphCodex.staleLockThresholdMinutes (or similar) settings in package.json; read them in readConfig.ts; pass them through to acquireClaim and withTaskFileLock / withClaimFileLock options. Document in docs/invariants.md. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T48",
+      "title": "Add array size cap to suggestedChildTasks in the completion report parser",
+      "status": "todo",
+      "notes": "parseSuggestedChildTasks in src/ralph/completionReportParser.ts has no limit on the number of child tasks a completion report may propose. taskDecomposition.ts caps proposals at 3 children but the parser enforces no equivalent limit, so a malformed model response could propose an unbounded array. Add a MAX_SUGGESTED_CHILD_TASKS constant (value: 10, giving headroom above the 3-task proposal limit) and reject — with a descriptive parseError — any suggestedChildTasks array that exceeds it. Add a test case. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T49",
+      "title": "Further decompose iterationEngine.ts (provenance-bundle and SCM paths)",
+      "status": "todo",
+      "notes": "iterationEngine.ts is 1,970 lines — significantly above the target set by T27 (1,073) due to post-T27 feature additions (watchdog, autonomy, SCM, handoff). docs/architecture.md line 55 identifies the next decomposition candidate: provenance-bundle and prepared-context assembly, which mixes bundle persistence, execution-plan wiring, and prompt-preparation orchestration. The SCM branch-per-task and PR-on-parent-done paths are also self-contained. Extract at least one of these into a new sibling module (e.g. src/ralph/scmOrchestration.ts or src/ralph/provenanceAssembly.ts). Aim for iterationEngine.ts under 1,400 lines. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T50",
+      "title": "Fix backward-walk escape sequence bug in extractTrailingJsonObject",
+      "status": "todo",
+      "notes": "In src/ralph/completionReportParser.ts, extractTrailingJsonObject walks the string right-to-left. The escaped flag logic is inverted for backward traversal: when the walker encounters a '\"' while inString it immediately toggles the state, but it has already walked past the '\\' that would have made it escaped. For a JSON string like \"say \\\"hi\\\"\", the backward walker incorrectly exits the string at the escaped quote. Impact is low — the fenced ```json...``` extraction (line 256) runs first and the trailing-object path is only a fallback — but the function is incorrect. Replace the backward walk with a simpler approach: scan forward for '```json' fenced blocks; if none, find the last '{' that opens a balanced JSON object by walking forward with proper escape handling. Add or extend tests to cover strings with escaped quotes in trailing JSON. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T51",
+      "title": "Close Gap 4: move claim graph read inside the claim lock for resolve_stale_claim",
+      "status": "todo",
+      "notes": "In reconciliation.ts processWatchdogActions, the resolve_stale_claim branch calls inspectTaskClaimGraph (outside the claim lock) and then resolveStaleClaim (inside the claim lock). Between those two calls a build agent could acquire the task's claim, making the watchdog's inspected canonical claim stale. The failure mode is safe (resolveStaleClaim returns not_eligible and the watchdog logs a warning), but it means the watchdog may silently skip a resolution that was valid at read time. Close this by moving the inspectTaskClaimGraph call inside the resolveStaleClaim critical section, or by adding a version check inside resolveStaleClaim. Document the chosen approach in docs/parallel-verification-gaps.md Gap 4. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T52",
+      "title": "Automate prompt budget calibration in the validation gate",
+      "status": "todo",
+      "notes": "npm run prompt:calibrate is a manual operator step that requires a live Claude token measurement. Token targets in the budget policy matrix are currently estimated, not empirically measured. Investigate whether the calibration script can be made deterministic without a live model call — for example by measuring rendered byte counts and applying a fixed chars-per-token ratio, or by recording a committed baseline and failing when rendered size deviates by more than a configurable threshold (e.g. ±20%). If a fully automated gate is feasible, wire it into npm run validate. If not, document the manual recalibration trigger conditions more precisely in docs/prompt-calibration.md. Run npm run validate (or npm run check:docs if the change is docs-only).",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T53",
+      "title": "Decompose registerCommands.ts into logical command groups",
+      "status": "todo",
+      "notes": "src/commands/registerCommands.ts is 1,451 lines and registers 18 commands with their full handler implementations inline. The file mixes VS Code API orchestration (progress UI, workspace trust, error translation) with domain logic (artifact caching, status formatting, cleanup coordination). Split handlers into logical groups — for example: iterationCommands.ts (Run CLI Iteration, Run CLI Loop, Prepare Prompt, Open Codex IDE), artifactCommands.ts (Open Latest * commands, Cleanup, Reveal, Apply Decomposition), agentCommands.ts (Review, Watchdog, SCM agents) — while keeping registerCommands.ts as a thin registration layer that imports and wires them. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T54",
+      "title": "Cache workspace scan results within a loop session",
+      "status": "todo",
+      "notes": "scanWorkspace in src/services/workspaceInspection.ts rescans the filesystem on every iteration. For large repos or slow networked filesystems this adds measurable latency per iteration. The scan is used for: validation command inference, package manager detection, and nested-root selection — none of which change during a loop session unless the operator modifies the workspace mid-run. Add a session-scoped cache (keyed by workspace root path + inspectionRootOverride) so the scan runs once per loop and is reused across iterations. Invalidate on control-plane reload. Add a test asserting the scan is not repeated when called with the same root in the same session. Run npm run validate.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 6
+  "mutationCount": 7
 }
