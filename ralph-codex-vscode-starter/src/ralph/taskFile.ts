@@ -1,6 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { sleep } from '../util/async';
+import { withFileLock } from '../util/fileLock';
 import {
   RalphPreflightDiagnostic,
   RalphSuggestedChildTask,
@@ -22,13 +22,6 @@ const EMPTY_COUNTS: RalphTaskCounts = {
 };
 
 export const DEFAULT_CLAIM_TTL_MS = 1000 * 60 * 60 * 24;
-const DEFAULT_LOCK_RETRY_COUNT = 40;
-const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
-// Lock files older than this threshold are considered left by a crashed process and
-// are removed automatically so the next agent does not have to wait for a manual
-// operator to delete them.  5 minutes is generous enough to cover slow machines
-// while still recovering long before any realistic TTL or user-visible timeout.
-const STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
 
 const SUPPORTED_TASK_FIELDS = new Set([
   'id',
@@ -352,50 +345,14 @@ async function withClaimFileLock<T>(
   fn: () => Promise<T>
 ): Promise<T> {
   const lockPath = `${claimFilePath}.lock`;
-  const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
-  const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
-
-  for (let attempt = 0; ; attempt += 1) {
-    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
-    try {
-      await fs.mkdir(path.dirname(lockPath), { recursive: true });
-      handle = await fs.open(lockPath, 'wx');
-      try {
-        return await fn();
-      } finally {
-        await handle.close();
-        await fs.rm(lockPath, { force: true });
-      }
-    } catch (error) {
-      if (handle) {
-        await handle.close().catch(() => undefined);
-      }
-
-      const code = typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code?: unknown }).code)
-        : '';
-      // On Windows, opening a file held exclusively by another process with 'wx'
-      // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
-      const isContention = code === 'EEXIST' || code === 'EPERM';
-      if (!isContention || attempt >= retryCount) {
-        throw error;
-      }
-
-      // Stale-lock recovery: if the lock file is older than the threshold it was
-      // left by a crashed process.  Remove it and retry immediately.
-      try {
-        const lockStat = await fs.stat(lockPath);
-        if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
-          await fs.rm(lockPath, { force: true });
-          continue;
-        }
-      } catch {
-        // lock was already removed between EEXIST/EPERM and stat; retry normally
-      }
-
-      await sleep(retryDelayMs);
-    }
+  const result = await withFileLock(lockPath, {
+    lockRetryCount: options?.lockRetryCount,
+    lockRetryDelayMs: options?.lockRetryDelayMs
+  }, fn);
+  if (result.outcome === 'lock_timeout') {
+    throw new Error(`Claim file lock timeout after ${result.attempts} attempts at ${result.lockPath}`);
   }
+  return result.value;
 }
 
 export async function withTaskFileLock<T>(
@@ -404,58 +361,10 @@ export async function withTaskFileLock<T>(
   fn: () => Promise<T>
 ): Promise<RalphTaskFileLockResult<T>> {
   const lockPath = path.join(path.dirname(taskFilePath), 'tasks.lock');
-  const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
-  const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
-
-  for (let attempt = 0; ; attempt += 1) {
-    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
-    try {
-      await fs.mkdir(path.dirname(lockPath), { recursive: true });
-      handle = await fs.open(lockPath, 'wx');
-      try {
-        return {
-          outcome: 'ok',
-          value: await fn()
-        };
-      } finally {
-        await handle.close();
-        await fs.rm(lockPath, { force: true });
-      }
-    } catch (error) {
-      if (handle) {
-        await handle.close().catch(() => undefined);
-      }
-
-      const code = typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code?: unknown }).code)
-        : '';
-      if (code !== 'EEXIST') {
-        throw error;
-      }
-
-      if (attempt >= retryCount) {
-        return {
-          outcome: 'lock_timeout',
-          lockPath,
-          attempts: attempt + 1
-        };
-      }
-
-      // Stale-lock recovery: if the lock file is older than the threshold it was
-      // left by a crashed process.  Remove it and retry immediately.
-      try {
-        const lockStat = await fs.stat(lockPath);
-        if (Date.now() - lockStat.mtimeMs > STALE_LOCK_THRESHOLD_MS) {
-          await fs.rm(lockPath, { force: true });
-          continue;
-        }
-      } catch {
-        // lock was already removed between EEXIST and stat; retry normally
-      }
-
-      await sleep(retryDelayMs);
-    }
-  }
+  return await withFileLock(lockPath, {
+    lockRetryCount: options?.lockRetryCount,
+    lockRetryDelayMs: options?.lockRetryDelayMs
+  }, fn) as RalphTaskFileLockResult<T>;
 }
 
 function normalizeOptionalString(record: Record<string, unknown>, key: string): string | undefined {
