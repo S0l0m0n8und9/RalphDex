@@ -383,7 +383,10 @@ async function collectStatusSnapshot(
       diagnostics: []
     };
   const taskCounts = taskInspection.taskFile
-    ? await stateManager.taskCounts(inspection.paths).catch(() => null)
+    ? await stateManager.taskCounts(inspection.paths).catch((err) => {
+        logger.warn('Failed to read task counts for status snapshot.', { error: err });
+        return null;
+      })
     : null;
   let taskFileError: string | null = null;
   let selectedTask = null;
