@@ -45,6 +45,7 @@ import { Logger } from '../services/logger';
 import { sleep } from '../util/async';
 import { toErrorMessage } from '../util/error';
 import { pathExists } from '../util/fs';
+import { buildPrefixedAgentId, validateRecord } from '../util/validate';
 import { scanWorkspace } from '../services/workspaceScanner';
 import { requireTrustedWorkspace } from './workspaceSupport';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
@@ -168,78 +169,50 @@ async function firstExistingPath(candidates: Array<string | null | undefined>): 
 }
 
 function normalizeExecutionPlan(candidate: unknown): RalphExecutionPlan | null {
-  if (typeof candidate !== 'object' || candidate === null) {
-    return null;
-  }
-
-  const record = candidate as Record<string, unknown>;
-  if (record.kind !== 'executionPlan'
-    || typeof record.iteration !== 'number'
-    || typeof record.promptKind !== 'string'
-    || typeof record.promptTarget !== 'string'
-    || typeof record.templatePath !== 'string'
-    || typeof record.promptArtifactPath !== 'string'
-    || typeof record.promptHash !== 'string') {
-    return null;
-  }
-
-  return record as unknown as RalphExecutionPlan;
+  return validateRecord<RalphExecutionPlan>(candidate, {
+    kind: ['literal', 'executionPlan'],
+    iteration: 'number',
+    promptKind: 'string',
+    promptTarget: 'string',
+    templatePath: 'string',
+    promptArtifactPath: 'string',
+    promptHash: 'string'
+  });
 }
 
 function normalizePromptEvidence(candidate: unknown): RalphPromptEvidence | null {
-  if (typeof candidate !== 'object' || candidate === null) {
-    return null;
-  }
-
-  const record = candidate as Record<string, unknown>;
-  if (typeof record.iteration !== 'number'
-    || typeof record.kind !== 'string'
-    || typeof record.target !== 'string'
-    || typeof record.templatePath !== 'string'
-    || typeof record.selectionReason !== 'string') {
-    return null;
-  }
-
-  return record as unknown as RalphPromptEvidence;
+  return validateRecord<RalphPromptEvidence>(candidate, {
+    iteration: 'number',
+    kind: 'string',
+    target: 'string',
+    templatePath: 'string',
+    selectionReason: 'string'
+  });
 }
 
 function normalizeCliInvocation(candidate: unknown): RalphCliInvocation | null {
-  if (typeof candidate !== 'object' || candidate === null) {
-    return null;
-  }
-
-  const record = candidate as Record<string, unknown>;
-  if (record.kind !== 'cliInvocation'
-    || typeof record.iteration !== 'number'
-    || typeof record.commandPath !== 'string'
-    || !Array.isArray(record.args)
-    || typeof record.promptArtifactPath !== 'string'
-    || typeof record.stdinHash !== 'string') {
-    return null;
-  }
-
-  return record as unknown as RalphCliInvocation;
+  return validateRecord<RalphCliInvocation>(candidate, {
+    kind: ['literal', 'cliInvocation'],
+    iteration: 'number',
+    commandPath: 'string',
+    args: 'array',
+    promptArtifactPath: 'string',
+    stdinHash: 'string'
+  });
 }
 
 function normalizeProvenanceBundle(candidate: unknown): RalphProvenanceBundle | null {
-  if (typeof candidate !== 'object' || candidate === null) {
-    return null;
-  }
-
-  const record = candidate as Record<string, unknown>;
-  if (record.kind !== 'provenanceBundle'
-    || typeof record.provenanceId !== 'string'
-    || typeof record.iteration !== 'number'
-    || typeof record.promptKind !== 'string'
-    || typeof record.promptTarget !== 'string'
-    || typeof record.trustLevel !== 'string'
-    || typeof record.bundleDir !== 'string'
-    || typeof record.status !== 'string'
-    || typeof record.summary !== 'string') {
-    return null;
-  }
-
-  return record as unknown as RalphProvenanceBundle;
+  return validateRecord<RalphProvenanceBundle>(candidate, {
+    kind: ['literal', 'provenanceBundle'],
+    provenanceId: 'string',
+    iteration: 'number',
+    promptKind: 'string',
+    promptTarget: 'string',
+    trustLevel: 'string',
+    bundleDir: 'string',
+    status: 'string',
+    summary: 'string'
+  });
 }
 
 function normalizeLatestRemediation(candidate: unknown): RalphLatestRemediationStatus | null {
@@ -366,13 +339,11 @@ function normalizeCompletionReportArtifact(candidate: unknown): CompletionReport
 }
 
 function buildReviewAgentId(agentId: string): string {
-  const trimmed = agentId.trim() || 'default';
-  return trimmed.startsWith('review-') ? trimmed : `review-${trimmed}`;
+  return buildPrefixedAgentId('review', agentId);
 }
 
 function buildScmAgentId(agentId: string): string {
-  const trimmed = agentId.trim() || 'default';
-  return trimmed.startsWith('scm-') ? trimmed : `scm-${trimmed}`;
+  return buildPrefixedAgentId('scm', agentId);
 }
 
 function renderSuggestedChildTasksForOutput(tasks: RalphSuggestedChildTask[]): string {
