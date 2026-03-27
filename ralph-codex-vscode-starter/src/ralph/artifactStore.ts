@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { pathExists, readJsonRecord } from '../util/fs';
 import { stableJson } from './integrity';
 import {
   RalphCliInvocation,
@@ -1123,30 +1124,11 @@ async function ensureProvenanceBundleDirectory(paths: RalphProvenanceBundlePaths
   await fs.mkdir(paths.directory, { recursive: true });
 }
 
-async function readJsonRecord(target: string): Promise<Record<string, unknown> | null> {
-  try {
-    const raw = await fs.readFile(target, 'utf8');
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
-}
-
 async function readTextRecord(target: string): Promise<string | null> {
   try {
     return await fs.readFile(target, 'utf8');
   } catch {
     return null;
-  }
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
   }
 }
 

@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
+import { sleep } from '../util/async';
+import { pathExists } from '../util/fs';
 import { resolveRalphPaths, RalphPaths } from './pathResolver';
 import {
   cleanupGeneratedArtifacts,
@@ -41,10 +43,6 @@ const ITERATION_HISTORY_LIMIT = 30;
 
 const DEFAULT_LOCK_RETRY_COUNT = 50;
 const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
-
-function sleep(delayMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, delayMs));
-}
 
 export interface RalphStateLockOptions {
   lockRetryCount?: number;
@@ -587,14 +585,7 @@ async function ensureFile(target: string, content: string): Promise<void> {
   }
 }
 
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 async function readText(target: string, fallback = ''): Promise<string> {
   try {

@@ -16,47 +16,16 @@ async function hasGitMetadata(rootPath: string): Promise<boolean> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Legacy exported functions — thin wrappers over CodexCliProvider for
-// backwards compatibility with existing tests and call sites.
-// ---------------------------------------------------------------------------
-
-const defaultCodexProvider = new CodexCliProvider({
-  reasoningEffort: 'medium',
-  sandboxMode: 'workspace-write',
-  approvalMode: 'never'
-});
-
-export function buildCodexExecArgs(request: CodexExecRequest, includeSkipGitRepoCheck: boolean): string[] {
-  return defaultCodexProvider.buildArgs(request, includeSkipGitRepoCheck);
-}
-
-export function buildCodexExecTranscript(result: CodexExecResult, request: CodexExecRequest): string {
-  return defaultCodexProvider.buildTranscript(result, request);
-}
-
-export function summarizeCodexExecResultMessage(input: {
-  exitCode: number;
-  stderr: string;
-  lastMessage: string;
-}): string {
-  return defaultCodexProvider.summarizeResult(input);
-}
-
-export function describeCodexExecLaunchError(request: CodexExecRequest, error: ProcessLaunchError): string {
-  return defaultCodexProvider.describeLaunchError(request.commandPath, error);
-}
-
-// ---------------------------------------------------------------------------
-// Strategy implementation — delegates to the injected CliProvider.
-// ---------------------------------------------------------------------------
-
 export class CliExecCodexStrategy implements CodexStrategy {
   public readonly id = 'cliExec' as const;
   private readonly provider: CliProvider;
 
   public constructor(private readonly logger: Logger, provider?: CliProvider) {
-    this.provider = provider ?? defaultCodexProvider;
+    this.provider = provider ?? new CodexCliProvider({
+      reasoningEffort: 'medium',
+      sandboxMode: 'workspace-write',
+      approvalMode: 'never'
+    });
   }
 
   public async runExec(request: CodexExecRequest): Promise<CodexExecResult> {

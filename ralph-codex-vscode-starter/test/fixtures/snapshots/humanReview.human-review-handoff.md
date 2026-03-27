@@ -40,7 +40,7 @@ Capture explicit human-review blockers without inventing closure.
 - Current iteration number: 2
 - Next iteration recorded in state: 2
 - Last prompt kind: iteration
-- Last prompt path: .ralph\prompts\iteration-001.prompt.md
+- Last prompt path: .ralph/prompts/iteration-001.prompt.md
 - Last run: succeeded at iteration 1
 - Last iteration outcome: needs_human_review at iteration 1
 - Last iteration summary: The fixture baseline cannot proceed without explicit reviewer confirmation.

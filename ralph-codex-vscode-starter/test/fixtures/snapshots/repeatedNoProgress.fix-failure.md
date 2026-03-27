@@ -48,7 +48,7 @@ Keep fixture generation reproducible when remediation is required.
 - Current iteration number: 2
 - Next iteration recorded in state: 2
 - Last prompt kind: iteration
-- Last prompt path: .ralph\prompts\iteration-001.prompt.md
+- Last prompt path: .ralph/prompts/iteration-001.prompt.md
 - Last run: succeeded at iteration 1
 - Last iteration outcome: no_progress at iteration 1
 - Last iteration summary: Two retries produced no durable movement on the fixture task.

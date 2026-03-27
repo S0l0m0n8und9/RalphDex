@@ -5,6 +5,7 @@ import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { createArtifactBaseName } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
 import { runProcess } from '../services/processRunner';
+import { toErrorMessage } from '../util/error';
 import { RalphStateManager } from './stateManager';
 import { hashText, stableJson } from './integrity';
 import {
@@ -146,10 +147,6 @@ export interface RalphIterationRunSummary {
   result: RalphIterationResult;
   loopDecision: RalphLoopDecision;
   createdPaths: string[];
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function summarizeLastMessage(lastMessage: string, exitCode: number | null): string {

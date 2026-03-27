@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { sleep } from '../util/async';
 import {
   RalphPreflightDiagnostic,
   RalphSuggestedChildTask,
@@ -134,10 +135,6 @@ export interface RalphResolveStaleClaimResult {
 
 function isTaskStatus(value: unknown): value is RalphTaskStatus {
   return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
-}
-
-function sleep(delayMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
 function normalizeClaimStatus(value: unknown): RalphTaskClaim['status'] {

@@ -1,5 +1,6 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { pathExists } from '../util/fs';
 
 export interface DocsValidationIssue {
   code: string;
@@ -851,11 +852,3 @@ function toMarkdownSlug(value: string): string {
     .replace(/\s+/g, '-');
 }
 
-async function pathExists(targetPath: string): Promise<boolean> {
-  try {
-    await fs.access(targetPath);
-    return true;
-  } catch {
-    return false;
-  }
-}

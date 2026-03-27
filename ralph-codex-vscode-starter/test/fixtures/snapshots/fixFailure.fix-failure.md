@@ -48,7 +48,7 @@ Repair fixture regressions without losing deterministic failure evidence.
 - Current iteration number: 2
 - Next iteration recorded in state: 2
 - Last prompt kind: iteration
-- Last prompt path: .ralph\prompts\iteration-001.prompt.md
+- Last prompt path: .ralph/prompts/iteration-001.prompt.md
 - Last run: failed at iteration 1
 - Last iteration outcome: failed at iteration 1
 - Last iteration summary: Fixture compile failed with a stable prompt-scenario regression.

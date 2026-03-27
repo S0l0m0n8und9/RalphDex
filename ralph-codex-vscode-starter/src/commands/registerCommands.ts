@@ -42,6 +42,9 @@ import {
 import { inspectCodexExecActivity } from '../services/cliActivity';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
+import { sleep } from '../util/async';
+import { toErrorMessage } from '../util/error';
+import { pathExists } from '../util/fs';
 import { scanWorkspace } from '../services/workspaceScanner';
 import { requireTrustedWorkspace } from './workspaceSupport';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
@@ -51,10 +54,6 @@ interface RegisteredCommandSpec {
   label: string;
   requiresTrustedWorkspace?: boolean;
   handler: (progress: vscode.Progress<{ message?: string; increment?: number }>) => Promise<void>;
-}
-
-function toErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
 }
 
 function createdPathSummary(rootPath: string, createdPaths: string[]): string | null {
@@ -71,12 +70,6 @@ function createdPathSummary(rootPath: string, createdPaths: string[]): string | 
 
 function deletedCountSummary(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
-}
-
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, milliseconds);
-  });
 }
 
 const RALPH_GITIGNORE_CONTENT = [
@@ -121,19 +114,6 @@ async function readJsonArtifact(target: string | null): Promise<unknown | null> 
     return JSON.parse(await fs.readFile(target, 'utf8'));
   } catch {
     return null;
-  }
-}
-
-async function pathExists(target: string | null | undefined): Promise<boolean> {
-  if (!target) {
-    return false;
-  }
-
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -1228,7 +1208,7 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
               iteration: lastRun.result.iteration,
               stopReason: lastRun.result.stopReason
             });
-            await delay(1500);
+            await sleep(1500);
             await vscode.commands.executeCommand('workbench.action.reloadWindow');
             return;
           }

@@ -3,6 +3,7 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import { RalphPaths } from '../ralph/pathResolver';
+import { pathExists } from '../util/fs';
 import { findTaskById, remainingSubtasks, selectNextTask } from '../ralph/taskFile';
 import {
   RalphAgentRole,
@@ -1117,15 +1118,6 @@ function renderTemplate(template: string, values: Record<string, string>): strin
   }
 
   return `${rendered.replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export async function resolvePromptTemplateDirectory(

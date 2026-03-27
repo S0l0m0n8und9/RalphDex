@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
+import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
@@ -7,18 +8,6 @@ export interface CodexCliProviderOptions {
   reasoningEffort: CodexReasoningEffort;
   sandboxMode: CodexSandboxMode;
   approvalMode: CodexApprovalMode;
-}
-
-function firstNonEmptyLine(text: string): string | null {
-  return text
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.length > 0)
-    ?? null;
-}
-
-function truncateSummary(value: string, maxLength = 240): string {
-  return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
 }
 
 export class CodexCliProvider implements CliProvider {
