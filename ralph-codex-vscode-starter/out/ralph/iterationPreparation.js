@@ -171,7 +171,10 @@ async function prepareIterationContext(input) {
     const [progressText, taskInspection, taskCounts, summary, initialCoreState] = await Promise.all([
         stateManager.readProgressText(snapshot.paths),
         stateManager.inspectTaskFile(snapshot.paths),
-        stateManager.taskCounts(snapshot.paths).catch(() => null),
+        stateManager.taskCounts(snapshot.paths).catch((err) => {
+            logger.warn('Failed to read task counts during iteration preparation.', { error: err });
+            return null;
+        }),
         (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name, {
             focusPath,
             inspectionRootOverride: config.inspectionRootOverride

@@ -35,16 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
-function firstNonEmptyLine(text) {
-    return text
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-        ?? null;
-}
-function truncateSummary(value, maxLength = 240) {
-    return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-}
+const text_1 = require("../util/text");
 class CodexCliProvider {
     options;
     id = 'codex';
@@ -85,7 +76,7 @@ class CodexCliProvider {
     }
     summarizeResult(input) {
         if (input.exitCode === 0) {
-            return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? 'codex exec completed successfully.');
+            return (0, text_1.truncateSummary)((0, text_1.firstNonEmptyLine)(input.lastMessage) ?? 'codex exec completed successfully.');
         }
         const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
         return detail
@@ -137,16 +128,16 @@ class CodexCliProvider {
             if (/^ERROR:/i.test(line)
                 && !/failed to shutdown rollout recorder/i.test(line)
                 && !/no last agent message/i.test(line)) {
-                return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
+                return (0, text_1.truncateSummary)(line.replace(/^ERROR:\s*/i, ''));
             }
         }
-        const lastMessageLine = firstNonEmptyLine(lastMessage);
+        const lastMessageLine = (0, text_1.firstNonEmptyLine)(lastMessage);
         if (lastMessageLine) {
-            return truncateSummary(lastMessageLine);
+            return (0, text_1.truncateSummary)(lastMessageLine);
         }
         for (const line of [...stderrLines].reverse()) {
             if (!this.isIgnorableStderrLine(line)) {
-                return truncateSummary(line.replace(/^ERROR:\s*/i, ''));
+                return (0, text_1.truncateSummary)(line.replace(/^ERROR:\s*/i, ''));
             }
         }
         return null;

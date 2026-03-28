@@ -41,6 +41,7 @@ exports.renderPreflightReport = renderPreflightReport;
 exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const fs_1 = require("../util/fs");
 const artifactStore_1 = require("./artifactStore");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
@@ -137,25 +138,6 @@ function summarizeActiveClaimsByAgent(claimGraph, taskTitles) {
         .map(([agentId, claims]) => `${agentId}: ${claims.join(', ')}`)
         .join('; ');
 }
-async function pathExists(target) {
-    try {
-        await fs.access(target);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
-async function readJsonRecord(target) {
-    try {
-        const raw = await fs.readFile(target, 'utf8');
-        const parsed = JSON.parse(raw);
-        return typeof parsed === 'object' && parsed !== null ? parsed : null;
-    }
-    catch {
-        return null;
-    }
-}
 function readStringField(record, key) {
     const value = record?.[key];
     return typeof value === 'string' && value.trim().length > 0 ? value : null;
@@ -248,7 +230,7 @@ async function checkStaleState(input) {
         // lock file absent — expected during normal operation
     }
     // Read claims.json for active-claim checks
-    const claimsRecord = await readJsonRecord(input.claimFilePath);
+    const claimsRecord = await (0, fs_1.readJsonRecord)(input.claimFilePath);
     if (!claimsRecord) {
         return diagnostics;
     }
@@ -267,7 +249,7 @@ async function checkStaleState(input) {
             const resultPath = path.join(input.artifactDir, e.name, 'iteration-result.json');
             try {
                 const stat = await fs.stat(resultPath);
-                const record = await readJsonRecord(resultPath);
+                const record = await (0, fs_1.readJsonRecord)(resultPath);
                 iterationSignals.push({
                     provenanceId: readStringField(record, 'provenanceId'),
                     selectedTaskId: readStringField(record, 'selectedTaskId'),
@@ -284,7 +266,7 @@ async function checkStaleState(input) {
         // artifactDir absent or unreadable
     }
     // Read state.json run and iteration history for claim-specific offline detection.
-    const stateRecord = await readJsonRecord(input.stateFilePath);
+    const stateRecord = await (0, fs_1.readJsonRecord)(input.stateFilePath);
     const stateSignals = [];
     const pushStateSignal = (record) => {
         if (!record) {
@@ -361,16 +343,16 @@ async function inspectPreflightArtifactReadiness(input) {
     const diagnostics = [];
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(input.artifactRootDir);
     const [latestResultRecord, latestPreflightRecord, latestPromptEvidenceRecord, latestExecutionPlanRecord, latestCliInvocationRecord, latestProvenanceBundleRecord, latestProvenanceFailureRecord, latestSummaryExists, latestPreflightSummaryExists, latestProvenanceSummaryExists, generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
-        readJsonRecord(latestPaths.latestResultPath),
-        readJsonRecord(latestPaths.latestPreflightReportPath),
-        readJsonRecord(latestPaths.latestPromptEvidencePath),
-        readJsonRecord(latestPaths.latestExecutionPlanPath),
-        readJsonRecord(latestPaths.latestCliInvocationPath),
-        readJsonRecord(latestPaths.latestProvenanceBundlePath),
-        readJsonRecord(latestPaths.latestProvenanceFailurePath),
-        pathExists(latestPaths.latestSummaryPath),
-        pathExists(latestPaths.latestPreflightSummaryPath),
-        pathExists(latestPaths.latestProvenanceSummaryPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestResultPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestPreflightReportPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestPromptEvidencePath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestExecutionPlanPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestCliInvocationPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestProvenanceBundlePath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestProvenanceFailurePath),
+        (0, fs_1.pathExists)(latestPaths.latestSummaryPath),
+        (0, fs_1.pathExists)(latestPaths.latestPreflightSummaryPath),
+        (0, fs_1.pathExists)(latestPaths.latestProvenanceSummaryPath),
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: input.artifactRootDir,
             promptDir: input.promptDir,
@@ -440,7 +422,7 @@ async function inspectPreflightArtifactReadiness(input) {
         const targetPaths = fields
             .map((field) => record[field])
             .filter((value) => typeof value === 'string' && value.trim().length > 0);
-        const missingTargets = (await Promise.all(targetPaths.map(async (targetPath) => await pathExists(targetPath) ? null : targetPath))).filter((value) => value !== null);
+        const missingTargets = (await Promise.all(targetPaths.map(async (targetPath) => await (0, fs_1.pathExists)(targetPath) ? null : targetPath))).filter((value) => value !== null);
         if (missingTargets.length > 0) {
             missingPointerTargets.push(`${path.basename(latestArtifactPath)} -> ${basenameList(input.rootPath, missingTargets)}`);
         }
@@ -449,7 +431,7 @@ async function inspectPreflightArtifactReadiness(input) {
         artifactRootDir: input.artifactRootDir,
         promptDir: input.promptDir
     });
-    const missingPromptEvidenceTargets = (await Promise.all(promptEvidenceTargets.map(async (targetPath) => await pathExists(targetPath) ? null : targetPath))).filter((value) => value !== null);
+    const missingPromptEvidenceTargets = (await Promise.all(promptEvidenceTargets.map(async (targetPath) => await (0, fs_1.pathExists)(targetPath) ? null : targetPath))).filter((value) => value !== null);
     if (missingPromptEvidenceTargets.length > 0) {
         missingPointerTargets.push(`latest-prompt-evidence.json -> ${basenameList(input.rootPath, missingPromptEvidenceTargets)}`);
     }

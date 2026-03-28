@@ -37,60 +37,20 @@ exports.RalphStateManager = void 0;
 exports.withStateLock = withStateLock;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const fs_1 = require("../util/fs");
+const fileLock_1 = require("../util/fileLock");
 const pathResolver_1 = require("./pathResolver");
 const artifactStore_1 = require("./artifactStore");
 const taskFile_1 = require("./taskFile");
 const types_1 = require("./types");
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
-const DEFAULT_LOCK_RETRY_COUNT = 50;
-const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
-function sleep(delayMs) {
-    return new Promise((resolve) => setTimeout(resolve, delayMs));
-}
 async function withStateLock(stateFilePath, options, fn) {
     const lockPath = path.join(path.dirname(stateFilePath), 'state.lock');
-    const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
-    const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
-    for (let attempt = 0;; attempt += 1) {
-        let handle = null;
-        try {
-            await fs.mkdir(path.dirname(lockPath), { recursive: true });
-            handle = await fs.open(lockPath, 'wx');
-            try {
-                return {
-                    outcome: 'ok',
-                    value: await fn()
-                };
-            }
-            finally {
-                await handle.close();
-                await fs.rm(lockPath, { force: true });
-            }
-        }
-        catch (error) {
-            if (handle) {
-                await handle.close().catch(() => undefined);
-            }
-            const code = typeof error === 'object' && error !== null && 'code' in error
-                ? String(error.code)
-                : '';
-            // On Windows, opening a file held exclusively by another process with 'wx'
-            // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
-            const isContention = code === 'EEXIST' || code === 'EPERM';
-            if (!isContention) {
-                throw error;
-            }
-            if (attempt >= retryCount) {
-                return {
-                    outcome: 'lock_timeout',
-                    lockPath,
-                    attempts: attempt + 1
-                };
-            }
-            await sleep(retryDelayMs);
-        }
-    }
+    return await (0, fileLock_1.withFileLock)(lockPath, {
+        lockRetryCount: options?.lockRetryCount,
+        lockRetryDelayMs: options?.lockRetryDelayMs
+    }, fn);
 }
 const DEFAULT_PRD = [
     '# Product / project brief',
@@ -529,15 +489,6 @@ async function ensureFile(target, content) {
         await fs.writeFile(target, `${content.trimEnd()}\n`, 'utf8');
     }
 }
-async function pathExists(target) {
-    try {
-        await fs.access(target);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
 async function readText(target, fallback = '') {
     try {
         return await fs.readFile(target, 'utf8');
@@ -569,25 +520,25 @@ class RalphStateManager {
         const paths = this.resolvePaths(rootPath, config);
         const createdPaths = [];
         for (const dir of [paths.handoffDir, paths.promptDir, paths.runDir, paths.logDir, paths.artifactDir]) {
-            if (!(await pathExists(dir))) {
+            if (!(await (0, fs_1.pathExists)(dir))) {
                 createdPaths.push(dir);
             }
             await fs.mkdir(dir, { recursive: true });
         }
-        if (!(await pathExists(paths.prdPath))) {
+        if (!(await (0, fs_1.pathExists)(paths.prdPath))) {
             createdPaths.push(paths.prdPath);
         }
         await ensureFile(paths.prdPath, DEFAULT_PRD);
-        if (!(await pathExists(paths.progressPath))) {
+        if (!(await (0, fs_1.pathExists)(paths.progressPath))) {
             createdPaths.push(paths.progressPath);
         }
         await ensureFile(paths.progressPath, DEFAULT_PROGRESS);
-        if (!(await pathExists(paths.taskFilePath))) {
+        if (!(await (0, fs_1.pathExists)(paths.taskFilePath))) {
             createdPaths.push(paths.taskFilePath);
             await fs.mkdir(path.dirname(paths.taskFilePath), { recursive: true });
             await fs.writeFile(paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)((0, taskFile_1.createDefaultTaskFile)()), 'utf8');
         }
-        const stateFileExists = await pathExists(paths.stateFilePath);
+        const stateFileExists = await (0, fs_1.pathExists)(paths.stateFilePath);
         const state = await this.loadState(rootPath, paths);
         await this.saveState(rootPath, paths, state);
         if (!stateFileExists) {
@@ -836,14 +787,14 @@ class RalphStateManager {
     }
     async collectFileStatus(paths) {
         const [prdPath, progressPath, taskFilePath, stateFilePath, promptDir, runDir, logDir, artifactDir] = await Promise.all([
-            pathExists(paths.prdPath),
-            pathExists(paths.progressPath),
-            pathExists(paths.taskFilePath),
-            pathExists(paths.stateFilePath),
-            pathExists(paths.promptDir),
-            pathExists(paths.runDir),
-            pathExists(paths.logDir),
-            pathExists(paths.artifactDir)
+            (0, fs_1.pathExists)(paths.prdPath),
+            (0, fs_1.pathExists)(paths.progressPath),
+            (0, fs_1.pathExists)(paths.taskFilePath),
+            (0, fs_1.pathExists)(paths.stateFilePath),
+            (0, fs_1.pathExists)(paths.promptDir),
+            (0, fs_1.pathExists)(paths.runDir),
+            (0, fs_1.pathExists)(paths.logDir),
+            (0, fs_1.pathExists)(paths.artifactDir)
         ]);
         return {
             prdPath,
