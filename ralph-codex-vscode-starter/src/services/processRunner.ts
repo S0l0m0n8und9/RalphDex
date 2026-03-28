@@ -7,6 +7,7 @@ export interface ProcessRunOptions {
   onStderrChunk?: (chunk: string) => void;
   shell?: boolean;
   env?: NodeJS.ProcessEnv;
+  timeoutMs?: number;
 }
 
 export interface ProcessRunResult {
@@ -36,6 +37,20 @@ export class ProcessLaunchError extends Error {
   }
 }
 
+export class ProcessTimeoutError extends Error {
+  public readonly command: string;
+  public readonly args: string[];
+  public readonly timeoutMs: number;
+
+  public constructor(command: string, args: string[], timeoutMs: number) {
+    super(`Process timed out after ${timeoutMs}ms: ${command}`);
+    this.name = 'ProcessTimeoutError';
+    this.command = command;
+    this.args = args;
+    this.timeoutMs = timeoutMs;
+  }
+}
+
 let processRunnerOverride: ProcessRunnerOverride | null = null;
 
 export function setProcessRunnerOverride(override: ProcessRunnerOverride | null): void {
@@ -56,6 +71,20 @@ export async function runProcess(command: string, args: string[], options: Proce
 
     let stdout = '';
     let stderr = '';
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    if (options.timeoutMs !== undefined && options.timeoutMs > 0) {
+      timer = setTimeout(() => {
+        timedOut = true;
+        child.kill('SIGTERM');
+        setTimeout(() => {
+          if (!child.killed) {
+            child.kill('SIGKILL');
+          }
+        }, 5000);
+      }, options.timeoutMs);
+    }
 
     child.stdout.on('data', (chunk) => {
       const text = chunk.toString();
@@ -69,8 +98,16 @@ export async function runProcess(command: string, args: string[], options: Proce
       options.onStderrChunk?.(text);
     });
 
-    child.on('error', (error) => reject(new ProcessLaunchError(command, args, error)));
+    child.on('error', (error) => {
+      if (timer) { clearTimeout(timer); }
+      reject(new ProcessLaunchError(command, args, error));
+    });
     child.on('close', (code) => {
+      if (timer) { clearTimeout(timer); }
+      if (timedOut) {
+        reject(new ProcessTimeoutError(command, args, options.timeoutMs!));
+        return;
+      }
       resolve({
         code: code ?? 1,
         stdout,

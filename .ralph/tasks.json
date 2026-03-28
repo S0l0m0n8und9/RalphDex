@@ -1775,22 +1775,22 @@
     {
       "id": "T42",
       "title": "Add timeout support to runProcess and apply it to validation command execution",
-      "status": "todo",
-      "notes": "processRunner.ts has no timeout parameter — a hung validation command or CLI exec blocks the loop indefinitely with no recovery. Add a timeoutMs?: number option to ProcessRunOptions; when set, use a setTimeout to kill the child process and reject with a clear error. Apply a sensible default (e.g. 5 minutes) in runValidationCommandVerifier in verifier.ts. Add regression coverage proving the timeout fires and surfaces a clean error. Run npm run validate.",
+      "status": "done",
+      "notes": "Added timeoutMs option to ProcessRunOptions with ProcessTimeoutError. Applied a 5-minute default timeout in runValidationCommandVerifier. Timeout kills the process (SIGTERM then SIGKILL) and surfaces a clean error with timedOut metadata in the validation artifact. Added 3 regression tests. 400 tests pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T43",
       "title": "Remove dead appendProgressBullet code from reconciliation.ts and stateManager.ts",
-      "status": "todo",
-      "notes": "Two dead functions exist: appendProgressBullet in src/ralph/reconciliation.ts (line 373, never called — superseded by updateTaskFileWithVerification and updateTaskFileWithProgress which write progress.md inside the task-file lock) and RalphStateManager.appendProgressBullet in src/ralph/stateManager.ts (line 816, public method with no callers in src/). Both are vestiges of the pre-lock consolidation and risk being called without lock protection if someone reaches for them in future. Delete both. Run npm run validate.",
+      "status": "done",
+      "notes": "Deleted the dead appendProgressBullet function from reconciliation.ts and the dead public appendProgressBullet method from stateManager.ts. Both were superseded by updateTaskFileWithVerification/updateTaskFileWithProgress. npm run validate passes with 400 tests.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T44",
       "title": "Fix stale Gap 2 description in parallel-verification-gaps.md",
-      "status": "todo",
-      "notes": "docs/parallel-verification-gaps.md line 43 says the escalate_to_human watchdog action 'still calls appendProgressBullet outside any lock'. This is no longer true — processWatchdogActions now calls updateTaskFileWithProgress (which holds withTaskFileLock) for that branch. Update Gap 2's Remaining exposure note to reflect that the escalate_to_human path is now protected, and that the remaining open race is the broader decompose_task / resolve_stale_claim vs concurrent build-agent claim acquisition (already described in Gap 4). Run npm run check:docs.",
+      "status": "done",
+      "notes": "Updated Gap 2 heading, description, Remaining exposure note, shared state inventory, and summary table to reflect that the escalate_to_human watchdog path now uses updateTaskFileWithProgress under withTaskFileLock. The remaining open race is the broader decompose_task/resolve_stale_claim vs concurrent build-agent claim acquisition described in Gap 4.",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
@@ -1817,8 +1817,8 @@
     {
       "id": "T48",
       "title": "Add array size cap to suggestedChildTasks in the completion report parser",
-      "status": "todo",
-      "notes": "parseSuggestedChildTasks in src/ralph/completionReportParser.ts has no limit on the number of child tasks a completion report may propose. taskDecomposition.ts caps proposals at 3 children but the parser enforces no equivalent limit, so a malformed model response could propose an unbounded array. Add a MAX_SUGGESTED_CHILD_TASKS constant (value: 10, giving headroom above the 3-task proposal limit) and reject — with a descriptive parseError — any suggestedChildTasks array that exceeds it. Add a test case. Run npm run validate.",
+      "status": "done",
+      "notes": "Added MAX_SUGGESTED_CHILD_TASKS=10 constant in completionReportParser.ts. Arrays exceeding the cap are rejected with a descriptive parseError. Added a regression test with 11 children proving the rejection. npm run validate passes with 400 tests.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1831,8 +1831,8 @@
     {
       "id": "T50",
       "title": "Fix backward-walk escape sequence bug in extractTrailingJsonObject",
-      "status": "todo",
-      "notes": "In src/ralph/completionReportParser.ts, extractTrailingJsonObject walks the string right-to-left. The escaped flag logic is inverted for backward traversal: when the walker encounters a '\"' while inString it immediately toggles the state, but it has already walked past the '\\' that would have made it escaped. For a JSON string like \"say \\\"hi\\\"\", the backward walker incorrectly exits the string at the escaped quote. Impact is low — the fenced ```json...``` extraction (line 256) runs first and the trailing-object path is only a fallback — but the function is incorrect. Replace the backward walk with a simpler approach: scan forward for '```json' fenced blocks; if none, find the last '{' that opens a balanced JSON object by walking forward with proper escape handling. Add or extend tests to cover strings with escaped quotes in trailing JSON. Run npm run validate.",
+      "status": "done",
+      "notes": "Replaced the backward-walk implementation with a forward-scanning approach: find each candidate '{' from the end, then verify balance by walking forward with correct escape handling. Added a regression test with escaped quotes in trailing JSON. npm run validate passes with 400 tests.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {

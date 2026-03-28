@@ -117,11 +117,16 @@ function parseSuggestedChildTask(candidate: unknown): RalphSuggestedChildTask | 
   };
 }
 
+const MAX_SUGGESTED_CHILD_TASKS = 10;
+
 function parseSuggestedChildTasks(candidate: unknown): RalphSuggestedChildTask[] | undefined | null {
   if (candidate === undefined) {
     return undefined;
   }
   if (!Array.isArray(candidate)) {
+    return null;
+  }
+  if (candidate.length > MAX_SUGGESTED_CHILD_TASKS) {
     return null;
   }
 
@@ -202,44 +207,65 @@ export function extractTrailingJsonObject(text: string): string | null {
     return null;
   }
 
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
+  // Walk forward to find the last '{' that opens a balanced JSON object,
+  // handling string escapes correctly (forward traversal avoids the
+  // backward-walk escape-sequence inversion bug).
+  let lastBalancedStart = -1;
 
-  for (let index = trimmed.length - 1; index >= 0; index -= 1) {
-    const char = trimmed[index];
+  for (let start = trimmed.length - 1; start >= 0; start -= 1) {
+    if (trimmed[start] !== '{') {
+      continue;
+    }
 
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (char === '\\') {
-        escaped = true;
-      } else if (char === '"') {
-        inString = false;
+    // Try to match a balanced object starting at this '{'
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+    let balanced = false;
+
+    for (let i = start; i < trimmed.length; i += 1) {
+      const char = trimmed[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char === '\\') {
+          escaped = true;
+        } else if (char === '"') {
+          inString = false;
+        }
+        continue;
       }
-      continue;
-    }
 
-    if (char === '"') {
-      inString = true;
-      continue;
-    }
-
-    if (char === '}') {
-      depth += 1;
-      continue;
-    }
-
-    if (char === '{') {
-      depth -= 1;
-      if (depth === 0) {
-        const candidate = trimmed.slice(index);
-        return candidate.trim();
+      if (char === '"') {
+        inString = true;
+        continue;
       }
+
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          if (i === trimmed.length - 1) {
+            balanced = true;
+          }
+          break;
+        }
+      }
+    }
+
+    if (balanced) {
+      lastBalancedStart = start;
+      break;
     }
   }
 
-  return null;
+  if (lastBalancedStart === -1) {
+    return null;
+  }
+
+  return trimmed.slice(lastBalancedStart).trim();
 }
 
 export function parseCompletionReport(lastMessage: string): ParsedCompletionReport {

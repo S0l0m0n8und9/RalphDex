@@ -753,17 +753,6 @@ export class RalphStateManager {
     return locked.value;
   }
 
-  public async appendProgressBullet(paths: RalphPaths, bullet: string): Promise<void> {
-    const current = await this.readProgressText(paths);
-    const trimmed = bullet.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
-    await fs.writeFile(paths.progressPath, nextText, 'utf8');
-  }
-
   public async selectedTask(paths: RalphPaths, taskId: string | null): Promise<RalphTask | null> {
     return findTaskById(await this.readTaskFile(paths), taskId);
   }

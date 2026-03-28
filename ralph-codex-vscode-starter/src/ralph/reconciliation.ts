@@ -370,17 +370,6 @@ async function updateTaskFileWithVerification(
   return { claimContested, canonicalHolder, progressChanged };
 }
 
-async function appendProgressBullet(progressPath: string, bullet: string): Promise<void> {
-  const trimmed = bullet.trim();
-  if (!trimmed) {
-    return;
-  }
-
-  const current = await fs.readFile(progressPath, 'utf8');
-  const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
-  await fs.writeFile(progressPath, nextText, 'utf8');
-}
-
 async function processWatchdogActions(
   input: ReconcileCompletionReportInput,
   watchdogActions: RalphWatchdogAction[]
