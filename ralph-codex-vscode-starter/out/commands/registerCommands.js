@@ -365,7 +365,7 @@ function registerCommand(context, logger, spec) {
         }
     }));
 }
-function registerCommands(context, logger) {
+function registerCommands(context, logger, broadcaster) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
@@ -468,8 +468,20 @@ function registerCommands(context, logger) {
         label: 'Ralph Codex: Run CLI Iteration',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            broadcaster?.emitIterationStart({
+                iteration: 0,
+                iterationCap: 1,
+                selectedTaskId: null,
+                selectedTaskTitle: null
+            });
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                reachedIterationCap: false
+                reachedIterationCap: false,
+                broadcaster
+            });
+            broadcaster?.emitIterationEnd({
+                iteration: run.result.iteration,
+                classification: run.result.completionClassification,
+                stopReason: run.result.stopReason
             });
             if (run.result.executionStatus === 'failed') {
                 throw new Error(iterationFailureMessage(run.result));
@@ -577,16 +589,30 @@ function registerCommands(context, logger) {
                 noProgressThreshold: config.noProgressThreshold,
                 repeatedFailureThreshold: config.repeatedFailureThreshold
             });
+            broadcaster?.emitLoopStart(config.ralphIterationCap);
             let lastRun = null;
             for (let index = 0; index < config.ralphIterationCap; index += 1) {
                 progress.report({
                     message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
                     increment: 100 / config.ralphIterationCap
                 });
+                broadcaster?.emitIterationStart({
+                    iteration: index + 1,
+                    iterationCap: config.ralphIterationCap,
+                    selectedTaskId: null,
+                    selectedTaskTitle: null
+                });
                 lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
-                    reachedIterationCap: index + 1 >= config.ralphIterationCap
+                    reachedIterationCap: index + 1 >= config.ralphIterationCap,
+                    broadcaster
+                });
+                broadcaster?.emitIterationEnd({
+                    iteration: lastRun.result.iteration,
+                    classification: lastRun.result.completionClassification,
+                    stopReason: lastRun.result.stopReason
                 });
                 if (lastRun.result.executionStatus === 'failed') {
+                    broadcaster?.emitLoopEnd(index + 1, 'execution_failed');
                     throw new Error(iterationFailureMessage(lastRun.result));
                 }
                 if (!lastRun.loopDecision.shouldContinue) {
@@ -600,10 +626,12 @@ function registerCommands(context, logger) {
                         await vscode.commands.executeCommand('workbench.action.reloadWindow');
                         return;
                     }
+                    broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
                     void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
                     return;
                 }
             }
+            broadcaster?.emitLoopEnd(config.ralphIterationCap, lastRun?.result.stopReason ?? null);
             void vscode.window.showInformationMessage(lastRun
                 ? `Ralph CLI loop completed ${config.ralphIterationCap} iteration(s). Last outcome: ${lastRun.result.completionClassification}.`
                 : 'Ralph CLI loop completed with no iterations.');

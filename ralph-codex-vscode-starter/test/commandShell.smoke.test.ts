@@ -34,7 +34,8 @@ class MemoryMemento implements vscode.Memento {
 function createExtensionContext(): vscode.ExtensionContext {
   return {
     subscriptions: [],
-    workspaceState: new MemoryMemento()
+    workspaceState: new MemoryMemento(),
+    extensionUri: vscode.Uri.file(__dirname)
   } as unknown as vscode.ExtensionContext;
 }
 

@@ -44,13 +44,44 @@ function nextMessageChoice(items) {
 const outputChannels = new Map();
 const registeredCommands = new Map();
 
+class StubEventEmitter {
+  constructor() {
+    this._listeners = [];
+  }
+  get event() {
+    const self = this;
+    const fn = (listener) => {
+      self._listeners.push(listener);
+      return { dispose() { const idx = self._listeners.indexOf(listener); if (idx >= 0) self._listeners.splice(idx, 1); } };
+    };
+    return fn;
+  }
+  fire(data) {
+    for (const listener of this._listeners) listener(data);
+  }
+  dispose() {
+    this._listeners = [];
+  }
+}
+
 const vscodeStub = {
+  EventEmitter: StubEventEmitter,
   ProgressLocation: {
     Notification: 15
+  },
+  StatusBarAlignment: {
+    Left: 1,
+    Right: 2
   },
   Uri: {
     file(fsPath) {
       return { fsPath };
+    }
+  },
+  RelativePattern: class RelativePattern {
+    constructor(base, pattern) {
+      this.base = base;
+      this.pattern = pattern;
     }
   },
   env: {
@@ -99,6 +130,14 @@ const vscodeStub = {
         get(key) {
           return state.configuration[key];
         }
+      };
+    },
+    createFileSystemWatcher() {
+      return {
+        onDidChange() { return { dispose() {} }; },
+        onDidCreate() { return { dispose() {} }; },
+        onDidDelete() { return { dispose() {} }; },
+        dispose() {}
       };
     },
     async openTextDocument(uriOrPath) {
@@ -152,6 +191,22 @@ const vscodeStub = {
     async showTextDocument(document) {
       state.shownDocuments.push(document.fileName ?? document.uri?.fsPath ?? null);
       return document;
+    },
+    async showQuickPick() {
+      return undefined;
+    },
+    createStatusBarItem() {
+      return {
+        text: '',
+        tooltip: '',
+        command: undefined,
+        show() {},
+        hide() {},
+        dispose() {}
+      };
+    },
+    registerWebviewViewProvider() {
+      return { dispose() {} };
     }
   }
 };
