@@ -12,6 +12,7 @@
   "license": "MIT",
   "files": [
     "out/**",
+    "media/**",
     "prompt-templates/**",
     "docs/**",
     "AGENTS.md",
@@ -96,7 +97,8 @@
     "onCommand:ralphCodex.cleanupRalphRuntimeArtifacts",
     "onCommand:ralphCodex.resetRalphWorkspaceState",
     "onCommand:ralphCodex.runWatchdogAgent",
-    "onCommand:ralphCodex.runScmAgent"
+    "onCommand:ralphCodex.runScmAgent",
+    "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -180,8 +182,30 @@
       {
         "command": "ralphCodex.runScmAgent",
         "title": "Ralph: Run SCM Agent"
+      },
+      {
+        "command": "ralphCodex.openDashboard",
+        "title": "Ralph Codex: Open Dashboard"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ralphCodex",
+          "title": "Ralph Codex",
+          "icon": "media/ralph-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ralphCodex": [
+        {
+          "type": "webview",
+          "id": "ralphCodex.dashboard",
+          "name": "Dashboard"
+        }
+      ]
+    },
     "configuration": {
       "title": "Ralph Codex Workbench",
       "properties": {
@@ -439,7 +463,7 @@
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
-    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js",
+    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run lint && npm run test",

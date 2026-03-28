@@ -72,6 +72,7 @@ import {
   buildRemediationArtifact,
   normalizeRemediationForTask
 } from './taskDecomposition';
+import type { IterationBroadcaster } from '../ui/iterationBroadcaster';
 
 const EMPTY_GIT_STATUS: GitStatusSnapshot = {
   available: false,
@@ -867,8 +868,11 @@ export class RalphIterationEngine {
     options: {
       reachedIterationCap: boolean;
       configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>;
+      broadcaster?: IterationBroadcaster;
     }
   ): Promise<RalphIterationRunSummary> {
+    const broadcaster = options.broadcaster;
+    broadcaster?.emitPhase(0, 'inspect');
     const prepared = await prepareIterationContext({
       workspaceFolder,
       progress,
@@ -892,9 +896,11 @@ export class RalphIterationEngine {
       classifiedAt: startedAt
     };
 
+    broadcaster?.emitPhase(prepared.iteration, 'prompt');
     progress.report({
       message: `Executing Ralph iteration ${prepared.iteration}`
     });
+    broadcaster?.emitPhase(prepared.iteration, 'execute');
 
     this.strategies.configureCliProvider(prepared.config);
     const execStrategy = this.strategies.getCliExecStrategy();
@@ -1126,6 +1132,7 @@ export class RalphIterationEngine {
     const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
     const afterGit = shouldCaptureGit ? await captureGitStatus(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
 
+    broadcaster?.emitPhase(prepared.iteration, 'verify');
     progress.report({ message: 'Running Ralph verifiers' });
 
     const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
@@ -1265,6 +1272,7 @@ export class RalphIterationEngine {
     const afterTaskCounts = countTaskStatuses(afterCoreState.taskFile);
     const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
     const nextActionableTask = selectNextTask(afterCoreState.taskFile);
+    broadcaster?.emitPhase(prepared.iteration, 'classify');
     const outcome = classifyIterationOutcome({
       selectedTaskId: prepared.selectedTask?.id ?? null,
       selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
@@ -1582,6 +1590,7 @@ export class RalphIterationEngine {
       }
     }
 
+    broadcaster?.emitPhase(prepared.iteration, 'persist');
     await writeIterationArtifacts({
       paths: artifactPaths,
       artifactRootDir: prepared.paths.artifactDir,

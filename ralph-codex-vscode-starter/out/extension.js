@@ -39,10 +39,41 @@ const vscode = __importStar(require("vscode"));
 const registerCommands_1 = require("./commands/registerCommands");
 const readConfig_1 = require("./config/readConfig");
 const logger_1 = require("./services/logger");
+const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
+const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
+const stateWatcher_1 = require("./ui/stateWatcher");
+const statusBarItem_1 = require("./ui/statusBarItem");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
     context.subscriptions.push(logger);
-    (0, registerCommands_1.registerCommands)(context, logger);
+    // UI infrastructure
+    const broadcaster = new iterationBroadcaster_1.IterationBroadcaster();
+    context.subscriptions.push(broadcaster);
+    const statusBar = new statusBarItem_1.RalphStatusBar();
+    context.subscriptions.push(statusBar);
+    const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster);
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebarViewProvider_1.RalphSidebarViewProvider.viewType, sidebarProvider));
+    // Status bar quick-pick command
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
+    // Dashboard focus command
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
+        void vscode.commands.executeCommand('ralphCodex.dashboard.focus');
+    }));
+    // Wire broadcaster events to status bar
+    context.subscriptions.push(broadcaster.onEvent((event) => statusBar.updateFromBroadcast(event)));
+    // State watcher — responds to .ralph/ file changes
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (workspaceRoot) {
+        const watcher = new stateWatcher_1.RalphStateWatcher(workspaceRoot);
+        context.subscriptions.push(watcher);
+        watcher.onStateChange((state) => {
+            statusBar.updateFromWatchedState(state);
+            sidebarProvider.updateFromWatchedState(state);
+        });
+        // Initial read
+        void watcher.refresh();
+    }
+    (0, registerCommands_1.registerCommands)(context, logger, broadcaster);
     logger.info('Activated Ralph Codex Workbench extension.', {
         workspaceTrusted: vscode.workspace.isTrusted,
         activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'

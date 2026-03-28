@@ -636,6 +636,8 @@ class RalphIterationEngine {
         };
     }
     async runCliIteration(workspaceFolder, mode, progress, options) {
+        const broadcaster = options.broadcaster;
+        broadcaster?.emitPhase(0, 'inspect');
         const prepared = await (0, iterationPreparation_1.prepareIterationContext)({
             workspaceFolder,
             progress,
@@ -658,9 +660,11 @@ class RalphIterationEngine {
                 verificationFinishedAt: startedAt,
                 classifiedAt: startedAt
             };
+            broadcaster?.emitPhase(prepared.iteration, 'prompt');
             progress.report({
                 message: `Executing Ralph iteration ${prepared.iteration}`
             });
+            broadcaster?.emitPhase(prepared.iteration, 'execute');
             this.strategies.configureCliProvider(prepared.config);
             const execStrategy = this.strategies.getCliExecStrategy();
             if (!execStrategy.runExec) {
@@ -870,6 +874,7 @@ class RalphIterationEngine {
             const afterCoreStateBeforeReconciliation = await (0, verifier_1.captureCoreState)(prepared.paths);
             const shouldCaptureGit = prepared.config.verifierModes.includes('gitDiff') || prepared.config.gitCheckpointMode !== 'off';
             const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
+            broadcaster?.emitPhase(prepared.iteration, 'verify');
             progress.report({ message: 'Running Ralph verifiers' });
             const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
                 ? await (0, verifier_1.runValidationCommandVerifier)({
@@ -1004,6 +1009,7 @@ class RalphIterationEngine {
             const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(afterCoreState.taskFile);
             const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
             const nextActionableTask = (0, taskFile_1.selectNextTask)(afterCoreState.taskFile);
+            broadcaster?.emitPhase(prepared.iteration, 'classify');
             const outcome = (0, loopLogic_1.classifyIterationOutcome)({
                 selectedTaskId: prepared.selectedTask?.id ?? null,
                 selectedTaskCompleted: taskStateVerification.selectedTaskCompleted,
@@ -1305,6 +1311,7 @@ class RalphIterationEngine {
                     });
                 }
             }
+            broadcaster?.emitPhase(prepared.iteration, 'persist');
             await (0, artifactStore_1.writeIterationArtifacts)({
                 paths: artifactPaths,
                 artifactRootDir: prepared.paths.artifactDir,

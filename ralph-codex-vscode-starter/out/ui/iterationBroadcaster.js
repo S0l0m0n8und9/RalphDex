@@ -1,0 +1,72 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IterationBroadcaster = void 0;
+const vscode = __importStar(require("vscode"));
+/**
+ * Broadcasts iteration lifecycle events so the sidebar and status bar can
+ * update in real time during a running loop.
+ */
+class IterationBroadcaster {
+    _onEvent = new vscode.EventEmitter();
+    onEvent = this._onEvent.event;
+    emitPhase(iteration, phase) {
+        const event = {
+            type: 'phase',
+            iteration,
+            phase,
+            timestamp: new Date().toISOString()
+        };
+        this._onEvent.fire(event);
+    }
+    emitIterationStart(input) {
+        this._onEvent.fire({ type: 'iteration-start', ...input });
+    }
+    emitIterationEnd(input) {
+        this._onEvent.fire({ type: 'iteration-end', ...input });
+    }
+    emitLoopStart(iterationCap) {
+        const event = { type: 'loop-start', iterationCap };
+        this._onEvent.fire(event);
+    }
+    emitLoopEnd(totalIterations, stopReason) {
+        this._onEvent.fire({ type: 'loop-end', totalIterations, stopReason });
+    }
+    dispose() {
+        this._onEvent.dispose();
+    }
+}
+exports.IterationBroadcaster = IterationBroadcaster;
+//# sourceMappingURL=iterationBroadcaster.js.map
