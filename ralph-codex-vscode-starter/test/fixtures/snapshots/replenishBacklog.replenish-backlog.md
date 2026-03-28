@@ -46,14 +46,14 @@ Keep Ralph moving when the current durable backlog is fully consumed.
 - Current iteration number: 2
 - Next iteration recorded in state: 2
 - Last prompt kind: iteration
-- Last prompt path: .ralph\prompts\iteration-001.prompt.md
+- Last prompt path: .ralph/prompts/iteration-001.prompt.md
 - Last run: succeeded at iteration 1
 - Last iteration outcome: complete at iteration 1
-- PRD path: .ralph\prd.md
-- Progress path: .ralph\progress.md
-- Task file path: .ralph\tasks.json
-- Runtime state path: .ralph\state.json
-- Artifact root: .ralph\artifacts
+- PRD path: .ralph/prd.md
+- Progress path: .ralph/progress.md
+- Task file path: .ralph/tasks.json
+- Runtime state path: .ralph/state.json
+- Artifact root: .ralph/artifacts
 - Last iteration summary: Finished the last actionable backlog task.
 
 ## Backlog Replenishment Focus

@@ -49,11 +49,11 @@ Build durable prompt fixtures for deterministic testing.
 - Last prompt path: none
 - Last run: none yet
 - Last iteration outcome: none yet
-- PRD path: .ralph\prd.md
-- Progress path: .ralph\progress.md
-- Task file path: .ralph\tasks.json
-- Runtime state path: .ralph\state.json
-- Artifact root: .ralph\artifacts
+- PRD path: .ralph/prd.md
+- Progress path: .ralph/progress.md
+- Task file path: .ralph/tasks.json
+- Runtime state path: .ralph/state.json
+- Artifact root: .ralph/artifacts
 
 ## Task Focus
 - Backlog counts: todo 1, in_progress 0, blocked 0, done 0

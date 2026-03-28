@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
+import { pathExists } from '../util/fs';
 import { deriveRootPolicy } from './rootPolicy';
 import {
   inspectGeneratedArtifactRetention,
@@ -84,15 +85,6 @@ export interface RalphStatusSnapshot {
   preflightReport: RalphPreflightReport;
   claimGraph: RalphTaskClaimGraphInspection | null;
   currentProvenanceId: string | null;
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {

@@ -4,16 +4,19 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import {
-  CliExecCodexStrategy,
-  buildCodexExecArgs,
-  buildCodexExecTranscript,
-  describeCodexExecLaunchError,
-  summarizeCodexExecResultMessage
+  CliExecCodexStrategy
 } from '../src/codex/cliExecStrategy';
+import { CodexCliProvider } from '../src/codex/codexCliProvider';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { Logger } from '../src/services/logger';
 import { ProcessLaunchError } from '../src/services/processRunner';
+
+const codexProvider = new CodexCliProvider({
+  reasoningEffort: 'medium',
+  sandboxMode: 'workspace-write',
+  approvalMode: 'on-request'
+});
 
 function request(): CodexExecRequest {
   return {
@@ -42,7 +45,7 @@ function result(): CodexExecResult {
     exitCode: 0,
     stdout: 'stdout text',
     stderr: '',
-    args: buildCodexExecArgs(request(), false),
+    args: codexProvider.buildArgs(request(), false),
     stdinHash: hashText('Ship it.'),
     transcriptPath: '/workspace/.ralph/runs/bootstrap-001.transcript.md',
     lastMessagePath: '/workspace/.ralph/runs/bootstrap-001.last-message.md',
@@ -59,8 +62,8 @@ function createLogger(): Logger {
   } as never);
 }
 
-test('buildCodexExecArgs appends stdin marker and optional git-skip flag', () => {
-  assert.deepEqual(buildCodexExecArgs(request(), false), [
+test('buildArgs appends stdin marker and optional git-skip flag', () => {
+  assert.deepEqual(codexProvider.buildArgs(request(), false), [
     'exec',
     '--model', 'gpt-5.4',
     '--config', 'model_reasoning_effort="medium"',
@@ -71,7 +74,7 @@ test('buildCodexExecArgs appends stdin marker and optional git-skip flag', () =>
     '-'
   ]);
 
-  assert.deepEqual(buildCodexExecArgs(request(), true), [
+  assert.deepEqual(codexProvider.buildArgs(request(), true), [
     'exec',
     '--model', 'gpt-5.4',
     '--config', 'model_reasoning_effort="medium"',
@@ -84,8 +87,8 @@ test('buildCodexExecArgs appends stdin marker and optional git-skip flag', () =>
   ]);
 });
 
-test('buildCodexExecTranscript captures command metadata and last message', () => {
-  const transcript = buildCodexExecTranscript(result(), request());
+test('buildTranscript captures command metadata and last message', () => {
+  const transcript = codexProvider.buildTranscript(result(), request());
 
   assert.match(transcript, /Codex Exec Transcript/);
   assert.match(transcript, /--model gpt-5.4/);
@@ -99,8 +102,8 @@ test('buildCodexExecTranscript captures command metadata and last message', () =
   assert.match(transcript, /Final answer/);
 });
 
-test('buildCodexExecArgs allows deliberate high reasoning escalation', () => {
-  assert.deepEqual(buildCodexExecArgs({
+test('buildArgs allows deliberate high reasoning escalation', () => {
+  assert.deepEqual(codexProvider.buildArgs({
     ...request(),
     reasoningEffort: 'high'
   }, false), [
@@ -115,7 +118,7 @@ test('buildCodexExecArgs allows deliberate high reasoning escalation', () => {
   ]);
 });
 
-test('describeCodexExecLaunchError explains a missing Codex CLI path', () => {
+test('describeLaunchError explains a missing Codex CLI path', () => {
   const launchError = new ProcessLaunchError(
     'codex',
     ['exec'],
@@ -123,14 +126,14 @@ test('describeCodexExecLaunchError explains a missing Codex CLI path', () => {
   );
 
   assert.match(
-    describeCodexExecLaunchError(request(), launchError),
+    codexProvider.describeLaunchError('codex', launchError),
     /Codex CLI was not found/
   );
 });
 
-test('summarizeCodexExecResultMessage surfaces the root failure detail from stderr', () => {
+test('summarizeResult surfaces the root failure detail from stderr', () => {
   assert.equal(
-    summarizeCodexExecResultMessage({
+    codexProvider.summarizeResult({
       exitCode: 1,
       stderr: [
         'WARNING: failed to clean up stale arg0 temp dirs',

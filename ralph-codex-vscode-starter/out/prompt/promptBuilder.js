@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolvePromptTemplateDirectory = resolvePromptTemplateDirectory;
 exports.decidePromptKind = decidePromptKind;
@@ -42,7 +45,10 @@ exports.buildPrompt = buildPrompt;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const rootPolicy_1 = require("../ralph/rootPolicy");
+const fs_1 = require("../util/fs");
 const taskFile_1 = require("../ralph/taskFile");
+const promptBudget_1 = require("./promptBudget");
+__exportStar(require("./promptBudget"), exports);
 const DEFAULT_TEMPLATE_DIR_CANDIDATES = [
     path.resolve(__dirname, '../../prompt-templates'),
     path.resolve(__dirname, '../../../prompt-templates'),
@@ -64,259 +70,6 @@ const PROMPT_INTRO_BY_KIND = {
     'fix-failure': 'A prior Ralph iteration failed, stalled, or produced a blocking verifier signal. Repair the concrete cause instead of repeating the same attempt.',
     'continue-progress': 'A prior Ralph iteration made partial progress. Resume from that durable state and finish the next coherent slice without redoing settled work.',
     'human-review-handoff': 'A prior Ralph iteration surfaced a blocker that may need human review. Preserve deterministic evidence, do not fake closure, and make the next safe move explicit.'
-};
-const REQUIRED_PROMPT_SECTIONS = [
-    'strategyContext',
-    'preflightContext',
-    'objectiveContext',
-    'taskContext',
-    'operatingRules',
-    'executionContract',
-    'finalResponseContract'
-];
-const CODEX_PROMPT_BUDGET_POLICIES = {
-    'bootstrap:cliExec': {
-        name: 'bootstrap:cliExec',
-        targetTokens: 2100,
-        minimumContextBias: 'broad objective, expanded repo scan, standard runtime pointers',
-        objectiveLines: 12,
-        objectiveChars: 1400,
-        progressLines: 6,
-        progressChars: 640,
-        priorBudget: 4,
-        repoDetail: 'expanded',
-        runtimeDetail: 'standard',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['priorIterationContext']
-    },
-    'bootstrap:ideHandoff': {
-        name: 'bootstrap:ideHandoff',
-        targetTokens: 1500,
-        minimumContextBias: 'broad objective, lighter runtime and repo detail for human review',
-        objectiveLines: 10,
-        objectiveChars: 1000,
-        progressLines: 4,
-        progressChars: 320,
-        priorBudget: 3,
-        repoDetail: 'standard',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
-    },
-    'iteration:cliExec': {
-        name: 'iteration:cliExec',
-        targetTokens: 1600,
-        minimumContextBias: 'selected task plus compact repo/runtime context',
-        objectiveLines: 9,
-        objectiveChars: 960,
-        progressLines: 5,
-        progressChars: 420,
-        priorBudget: 6,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
-    },
-    'iteration:ideHandoff': {
-        name: 'iteration:ideHandoff',
-        targetTokens: 1000,
-        minimumContextBias: 'selected task plus compact review-oriented context',
-        objectiveLines: 8,
-        objectiveChars: 720,
-        progressLines: 4,
-        progressChars: 300,
-        priorBudget: 4,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
-    },
-    'replenish-backlog:cliExec': {
-        name: 'replenish-backlog:cliExec',
-        targetTokens: 1800,
-        minimumContextBias: 'PRD, backlog counts, and expanded repo/runtime context for task generation',
-        objectiveLines: 10,
-        objectiveChars: 1100,
-        progressLines: 6,
-        progressChars: 560,
-        priorBudget: 4,
-        repoDetail: 'expanded',
-        runtimeDetail: 'standard',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['priorIterationContext']
-    },
-    'replenish-backlog:ideHandoff': {
-        name: 'replenish-backlog:ideHandoff',
-        targetTokens: 1300,
-        minimumContextBias: 'PRD, backlog counts, and explicit next-task generation context',
-        objectiveLines: 9,
-        objectiveChars: 900,
-        progressLines: 5,
-        progressChars: 420,
-        priorBudget: 4,
-        repoDetail: 'expanded',
-        runtimeDetail: 'standard',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['priorIterationContext']
-    },
-    'fix-failure:cliExec': {
-        name: 'fix-failure:cliExec',
-        targetTokens: 1700,
-        minimumContextBias: 'failure signature, blocker, remediation, validation context',
-        objectiveLines: 9,
-        objectiveChars: 900,
-        progressLines: 5,
-        progressChars: 420,
-        priorBudget: 6,
-        repoDetail: 'standard',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
-    },
-    'fix-failure:ideHandoff': {
-        name: 'fix-failure:ideHandoff',
-        targetTokens: 1100,
-        minimumContextBias: 'failure signature and blocker summary for manual inspection',
-        objectiveLines: 8,
-        objectiveChars: 760,
-        progressLines: 4,
-        progressChars: 320,
-        priorBudget: 6,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
-    },
-    'continue-progress:cliExec': {
-        name: 'continue-progress:cliExec',
-        targetTokens: 1600,
-        minimumContextBias: 'selected task plus compact recent progress and prior iteration state',
-        objectiveLines: 9,
-        objectiveChars: 960,
-        progressLines: 5,
-        progressChars: 420,
-        priorBudget: 5,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
-    },
-    'continue-progress:ideHandoff': {
-        name: 'continue-progress:ideHandoff',
-        targetTokens: 1000,
-        minimumContextBias: 'selected task plus compact carry-forward state for human review',
-        objectiveLines: 8,
-        objectiveChars: 720,
-        progressLines: 4,
-        progressChars: 300,
-        priorBudget: 4,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
-    },
-    'human-review-handoff:cliExec': {
-        name: 'human-review-handoff:cliExec',
-        targetTokens: 1500,
-        minimumContextBias: 'blocker, remediation, and current task state over broad history',
-        objectiveLines: 8,
-        objectiveChars: 820,
-        progressLines: 4,
-        progressChars: 320,
-        priorBudget: 6,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
-    },
-    'human-review-handoff:ideHandoff': {
-        name: 'human-review-handoff:ideHandoff',
-        targetTokens: 1100,
-        minimumContextBias: 'blocker and review decision points over broad history',
-        objectiveLines: 8,
-        objectiveChars: 760,
-        progressLines: 4,
-        progressChars: 320,
-        priorBudget: 6,
-        repoDetail: 'minimal',
-        runtimeDetail: 'minimal',
-        requiredSections: REQUIRED_PROMPT_SECTIONS,
-        optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
-    }
-};
-const CLAUDE_PROMPT_BUDGET_POLICIES = {
-    'bootstrap:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['bootstrap:cliExec'],
-        name: 'claude/bootstrap:cliExec',
-        targetTokens: 3200,
-        minimumContextBias: 'placeholder Claude profile: broader objective, expanded repo scan, standard runtime pointers'
-    },
-    'bootstrap:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['bootstrap:ideHandoff'],
-        name: 'claude/bootstrap:ideHandoff',
-        targetTokens: 2200,
-        minimumContextBias: 'placeholder Claude profile: broader objective with lighter runtime and repo detail for human review'
-    },
-    'iteration:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['iteration:cliExec'],
-        name: 'claude/iteration:cliExec',
-        targetTokens: 2400,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer repo/runtime context'
-    },
-    'iteration:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['iteration:ideHandoff'],
-        name: 'claude/iteration:ideHandoff',
-        targetTokens: 1500,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer review-oriented context'
-    },
-    'replenish-backlog:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:cliExec'],
-        name: 'claude/replenish-backlog:cliExec',
-        targetTokens: 2800,
-        minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and richer repo/runtime context for task generation'
-    },
-    'replenish-backlog:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:ideHandoff'],
-        name: 'claude/replenish-backlog:ideHandoff',
-        targetTokens: 1900,
-        minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and explicit next-task generation context'
-    },
-    'fix-failure:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['fix-failure:cliExec'],
-        name: 'claude/fix-failure:cliExec',
-        targetTokens: 2500,
-        minimumContextBias: 'placeholder Claude profile: failure signature, blocker, remediation, and fuller validation context'
-    },
-    'fix-failure:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['fix-failure:ideHandoff'],
-        name: 'claude/fix-failure:ideHandoff',
-        targetTokens: 1700,
-        minimumContextBias: 'placeholder Claude profile: failure signature and blocker summary for manual inspection'
-    },
-    'continue-progress:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['continue-progress:cliExec'],
-        name: 'claude/continue-progress:cliExec',
-        targetTokens: 2400,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer recent progress and prior iteration state'
-    },
-    'continue-progress:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['continue-progress:ideHandoff'],
-        name: 'claude/continue-progress:ideHandoff',
-        targetTokens: 1500,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer carry-forward state for human review'
-    },
-    'human-review-handoff:cliExec': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:cliExec'],
-        name: 'claude/human-review-handoff:cliExec',
-        targetTokens: 2300,
-        minimumContextBias: 'placeholder Claude profile: blocker, remediation, and current task state over broader history'
-    },
-    'human-review-handoff:ideHandoff': {
-        ...CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:ideHandoff'],
-        name: 'claude/human-review-handoff:ideHandoff',
-        targetTokens: 1700,
-        minimumContextBias: 'placeholder Claude profile: blocker and review decision points over broader history'
-    }
 };
 function formatOptional(value) {
     return value && value.trim().length > 0 ? value.trim() : 'none';
@@ -353,16 +106,6 @@ function compactList(values, limit) {
     const remaining = values.length - visible.length;
     return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
 }
-function estimateTokenCount(text) {
-    return Math.max(1, Math.ceil(Buffer.byteLength(text, 'utf8') / 4));
-}
-function estimateTokenRange(estimatedTokens) {
-    const spread = Math.max(16, Math.ceil(estimatedTokens * 0.12));
-    return {
-        min: Math.max(1, estimatedTokens - spread),
-        max: estimatedTokens + spread
-    };
-}
 function taskKeywords(task) {
     return [
         task?.title ?? '',
@@ -370,29 +113,6 @@ function taskKeywords(task) {
         task?.validation ?? '',
         task?.blocker ?? ''
     ].join(' ').toLowerCase();
-}
-function buildPromptBudgetPolicy(kind, target, profile = 'codex', customPromptBudget = {}) {
-    const key = `${kind}:${target}`;
-    const codexFallback = CODEX_PROMPT_BUDGET_POLICIES['iteration:cliExec'];
-    const codexPolicy = CODEX_PROMPT_BUDGET_POLICIES[key] ?? codexFallback;
-    if (profile === 'claude') {
-        return CLAUDE_PROMPT_BUDGET_POLICIES[key]
-            ?? CLAUDE_PROMPT_BUDGET_POLICIES['iteration:cliExec'];
-    }
-    if (profile === 'custom') {
-        const overriddenTarget = customPromptBudget[key];
-        return {
-            ...codexPolicy,
-            name: `custom/${key}`,
-            targetTokens: typeof overriddenTarget === 'number' && Number.isFinite(overriddenTarget) && overriddenTarget > 0
-                ? Math.floor(overriddenTarget)
-                : codexPolicy.targetTokens,
-            minimumContextBias: typeof overriddenTarget === 'number' && Number.isFinite(overriddenTarget) && overriddenTarget > 0
-                ? `${codexPolicy.minimumContextBias}; custom targetTokens override`
-                : `${codexPolicy.minimumContextBias}; custom profile using codex fallback target`
-        };
-    }
-    return codexPolicy;
 }
 function trimContextLines(lines, budget) {
     if (budget <= 0 || lines.length <= budget) {
@@ -925,27 +645,18 @@ function renderTemplate(template, values) {
     }
     return `${rendered.replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
 }
-async function pathExists(target) {
-    try {
-        await fs.access(target);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
 async function resolvePromptTemplateDirectory(rootPath, overrideDirectory) {
     if (overrideDirectory.trim()) {
         const resolved = path.isAbsolute(overrideDirectory)
             ? overrideDirectory
             : path.join(rootPath, overrideDirectory);
-        if (await pathExists(resolved)) {
+        if (await (0, fs_1.pathExists)(resolved)) {
             return resolved;
         }
         throw new Error(`Configured Ralph prompt template directory does not exist: ${resolved}`);
     }
     for (const candidate of DEFAULT_TEMPLATE_DIR_CANDIDATES) {
-        if (await pathExists(candidate)) {
+        if (await (0, fs_1.pathExists)(candidate)) {
             return candidate;
         }
     }
@@ -1035,7 +746,7 @@ async function buildPrompt(input) {
     const agentRole = effectiveAgentRole(input.config);
     const { templatePath, templateText } = await loadTemplate(input.kind, input.paths.rootPath, input.config.promptTemplateDirectory, agentRole);
     const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(input.preflightReport.diagnostics);
-    const budgetPolicy = buildPromptBudgetPolicy(input.kind, input.target, input.config.promptBudgetProfile ?? 'codex', input.config.customPromptBudget ?? {});
+    const budgetPolicy = (0, promptBudget_1.buildPromptBudgetPolicy)(input.kind, input.target, input.config.promptBudgetProfile ?? 'codex', input.config.customPromptBudget ?? {});
     const sectionBodies = {
         strategyContext: buildStrategyContext(input.target, input.kind, agentRole, taskLedgerDriftMessages),
         preflightContext: buildPreflightContext(input.preflightReport),
@@ -1088,14 +799,14 @@ async function buildPrompt(input) {
         template_selection_reason: input.selectionReason
     });
     let prompt = renderPrompt();
-    let estimatedTokens = estimateTokenCount(prompt);
+    let estimatedTokens = (0, promptBudget_1.estimateTokenCount)(prompt);
     for (const sectionName of budgetPolicy.optionalSectionOrder) {
         if (estimatedTokens <= budgetPolicy.targetTokens) {
             break;
         }
         omittedSections.add(sectionName);
         prompt = renderPrompt();
-        estimatedTokens = estimateTokenCount(prompt);
+        estimatedTokens = (0, promptBudget_1.estimateTokenCount)(prompt);
     }
     const withinTarget = estimatedTokens <= budgetPolicy.targetTokens;
     const budgetDeltaTokens = estimatedTokens - budgetPolicy.targetTokens;
@@ -1120,7 +831,7 @@ async function buildPrompt(input) {
             estimatedTokens,
             withinTarget,
             budgetDeltaTokens,
-            estimatedTokenRange: estimateTokenRange(estimatedTokens),
+            estimatedTokenRange: (0, promptBudget_1.estimateTokenRange)(estimatedTokens),
             requiredSections: budgetPolicy.requiredSections,
             optionalSections: budgetPolicy.optionalSectionOrder,
             omissionOrder: budgetPolicy.optionalSectionOrder,

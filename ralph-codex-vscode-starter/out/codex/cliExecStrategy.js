@@ -34,10 +34,6 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CliExecCodexStrategy = void 0;
-exports.buildCodexExecArgs = buildCodexExecArgs;
-exports.buildCodexExecTranscript = buildCodexExecTranscript;
-exports.summarizeCodexExecResultMessage = summarizeCodexExecResultMessage;
-exports.describeCodexExecLaunchError = describeCodexExecLaunchError;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("../ralph/integrity");
@@ -52,37 +48,17 @@ async function hasGitMetadata(rootPath) {
         return false;
     }
 }
-// ---------------------------------------------------------------------------
-// Legacy exported functions — thin wrappers over CodexCliProvider for
-// backwards compatibility with existing tests and call sites.
-// ---------------------------------------------------------------------------
-const defaultCodexProvider = new codexCliProvider_1.CodexCliProvider({
-    reasoningEffort: 'medium',
-    sandboxMode: 'workspace-write',
-    approvalMode: 'never'
-});
-function buildCodexExecArgs(request, includeSkipGitRepoCheck) {
-    return defaultCodexProvider.buildArgs(request, includeSkipGitRepoCheck);
-}
-function buildCodexExecTranscript(result, request) {
-    return defaultCodexProvider.buildTranscript(result, request);
-}
-function summarizeCodexExecResultMessage(input) {
-    return defaultCodexProvider.summarizeResult(input);
-}
-function describeCodexExecLaunchError(request, error) {
-    return defaultCodexProvider.describeLaunchError(request.commandPath, error);
-}
-// ---------------------------------------------------------------------------
-// Strategy implementation — delegates to the injected CliProvider.
-// ---------------------------------------------------------------------------
 class CliExecCodexStrategy {
     logger;
     id = 'cliExec';
     provider;
     constructor(logger, provider) {
         this.logger = logger;
-        this.provider = provider ?? defaultCodexProvider;
+        this.provider = provider ?? new codexCliProvider_1.CodexCliProvider({
+            reasoningEffort: 'medium',
+            sandboxMode: 'workspace-write',
+            approvalMode: 'never'
+        });
     }
     async runExec(request) {
         await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });

@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { CliSupportResult, CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
+import { pathExists, readJsonRecord } from '../util/fs';
 import { RalphWorkspaceFileStatus } from './stateManager';
 import { RalphTaskClaimGraphInspection, RalphTaskFileInspection } from './taskFile';
 import {
@@ -190,25 +191,6 @@ export interface RalphPreflightArtifactReadinessInput {
   stateFilePath: string;
   generatedArtifactRetentionCount: number;
   provenanceBundleRetentionCount: number;
-}
-
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readJsonRecord(target: string): Promise<Record<string, unknown> | null> {
-  try {
-    const raw = await fs.readFile(target, 'utf8');
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
 }
 
 interface IterationResultSignal {

@@ -45,7 +45,7 @@ Keep prompt rendering deterministic across fresh sessions.
 - Current iteration number: 2
 - Next iteration recorded in state: 2
 - Last prompt kind: iteration
-- Last prompt path: .ralph\prompts\iteration-001.prompt.md
+- Last prompt path: .ralph/prompts/iteration-001.prompt.md
 - Last run: succeeded at iteration 1
 - Last iteration outcome: partial_progress at iteration 1
 - Last iteration summary: Started fixture rendering coverage but left follow-up assertions pending.

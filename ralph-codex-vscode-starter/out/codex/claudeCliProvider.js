@@ -35,16 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClaudeCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
-function firstNonEmptyLine(text) {
-    return text
-        .split('\n')
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-        ?? null;
-}
-function truncateSummary(value, maxLength = 240) {
-    return value.length > maxLength ? `${value.slice(0, maxLength - 3)}...` : value;
-}
+const text_1 = require("../util/text");
 class ClaudeCliProvider {
     options;
     id = 'claude';
@@ -130,7 +121,7 @@ class ClaudeCliProvider {
     }
     summarizeResult(input) {
         if (input.exitCode === 0) {
-            return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? 'claude completed successfully.');
+            return (0, text_1.truncateSummary)((0, text_1.firstNonEmptyLine)(input.lastMessage) ?? 'claude completed successfully.');
         }
         const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
         return detail
@@ -181,16 +172,16 @@ class ClaudeCliProvider {
             .filter((line) => line.length > 0);
         for (const line of [...stderrLines].reverse()) {
             if (/^error:/i.test(line)) {
-                return truncateSummary(line.replace(/^error:\s*/i, ''));
+                return (0, text_1.truncateSummary)(line.replace(/^error:\s*/i, ''));
             }
         }
-        const lastMessageLine = firstNonEmptyLine(lastMessage);
+        const lastMessageLine = (0, text_1.firstNonEmptyLine)(lastMessage);
         if (lastMessageLine) {
-            return truncateSummary(lastMessageLine);
+            return (0, text_1.truncateSummary)(lastMessageLine);
         }
         for (const line of [...stderrLines].reverse()) {
             if (!this.isIgnorableStderrLine(line)) {
-                return truncateSummary(line);
+                return (0, text_1.truncateSummary)(line);
             }
         }
         return null;

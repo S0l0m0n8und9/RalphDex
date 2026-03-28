@@ -37,6 +37,7 @@ exports.validateRepositoryDocs = validateRepositoryDocs;
 exports.formatDocsValidationReport = formatDocsValidationReport;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
+const fs_1 = require("../util/fs");
 const REQUIRED_DOCS = [
     'AGENTS.md',
     'README.md',
@@ -255,7 +256,7 @@ async function validateRepositoryDocs(rootDir) {
     const markdownCache = new Map();
     for (const relativePath of REQUIRED_DOCS) {
         const absolutePath = path.join(repoRoot, relativePath);
-        if (!(await pathExists(absolutePath))) {
+        if (!(await (0, fs_1.pathExists)(absolutePath))) {
             issues.push({
                 code: 'missing_required_doc',
                 filePath: relativePath,
@@ -404,7 +405,7 @@ async function validateLocalMarkdownLinks(input) {
                 });
                 continue;
             }
-            if (!(await pathExists(resolved.absoluteFilePath))) {
+            if (!(await (0, fs_1.pathExists)(resolved.absoluteFilePath))) {
                 input.issues.push({
                     code: 'broken_link',
                     filePath: sourcePath,
@@ -448,7 +449,7 @@ async function validateVerifierDocumentationAlignment(input) {
     const packageJsonPath = path.join(input.repoRoot, 'package.json');
     const ralphTypesPath = path.join(input.repoRoot, 'src/ralph/types.ts');
     const verifierDoc = input.markdownCache.get('docs/verifier.md');
-    if (!(await pathExists(packageJsonPath)) || !(await pathExists(ralphTypesPath)) || !verifierDoc) {
+    if (!(await (0, fs_1.pathExists)(packageJsonPath)) || !(await (0, fs_1.pathExists)(ralphTypesPath)) || !verifierDoc) {
         return;
     }
     const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
@@ -561,7 +562,7 @@ async function validateRequiredSectionLinks(input) {
 async function validateBacktickedFileReferences(input) {
     for (const token of extractBacktickedFileReferences(input.sectionBody)) {
         const absolutePath = path.resolve(input.repoRoot, token);
-        if (!(await pathExists(absolutePath))) {
+        if (!(await (0, fs_1.pathExists)(absolutePath))) {
             input.issues.push({
                 code: 'missing_file_reference',
                 filePath: input.sourcePath,
@@ -714,14 +715,5 @@ function toMarkdownSlug(value) {
         .replace(/[`"]/g, '')
         .replace(/[^\w\s-]/g, '')
         .replace(/\s+/g, '-');
-}
-async function pathExists(targetPath) {
-    try {
-        await fs.access(targetPath);
-        return true;
-    }
-    catch {
-        return false;
-    }
 }
 //# sourceMappingURL=docsValidator.js.map

@@ -3,6 +3,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
+import { pathExists } from '../util/fs';
+import { FileLockResult, withFileLock } from '../util/fileLock';
 import { resolveRalphPaths, RalphPaths } from './pathResolver';
 import {
   cleanupGeneratedArtifacts,
@@ -39,29 +41,13 @@ import {
 const RUN_HISTORY_LIMIT = 20;
 const ITERATION_HISTORY_LIMIT = 30;
 
-const DEFAULT_LOCK_RETRY_COUNT = 50;
-const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
-
-function sleep(delayMs: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, delayMs));
-}
-
 export interface RalphStateLockOptions {
   lockRetryCount?: number;
   lockRetryDelayMs?: number;
 }
 
-export interface RalphStateLockTimeout {
-  outcome: 'lock_timeout';
-  lockPath: string;
-  attempts: number;
-}
-
-export interface RalphStateLockAcquired<T> {
-  outcome: 'ok';
-  value: T;
-}
-
+export type RalphStateLockTimeout = { outcome: 'lock_timeout'; lockPath: string; attempts: number };
+export type RalphStateLockAcquired<T> = { outcome: 'ok'; value: T };
 export type RalphStateLockResult<T> = RalphStateLockAcquired<T> | RalphStateLockTimeout;
 
 export async function withStateLock<T>(
@@ -70,49 +56,10 @@ export async function withStateLock<T>(
   fn: () => Promise<T>
 ): Promise<RalphStateLockResult<T>> {
   const lockPath = path.join(path.dirname(stateFilePath), 'state.lock');
-  const retryCount = Math.max(0, Math.floor(options?.lockRetryCount ?? DEFAULT_LOCK_RETRY_COUNT));
-  const retryDelayMs = Math.max(0, Math.floor(options?.lockRetryDelayMs ?? DEFAULT_LOCK_RETRY_DELAY_MS));
-
-  for (let attempt = 0; ; attempt += 1) {
-    let handle: Awaited<ReturnType<typeof fs.open>> | null = null;
-    try {
-      await fs.mkdir(path.dirname(lockPath), { recursive: true });
-      handle = await fs.open(lockPath, 'wx');
-      try {
-        return {
-          outcome: 'ok',
-          value: await fn()
-        };
-      } finally {
-        await handle.close();
-        await fs.rm(lockPath, { force: true });
-      }
-    } catch (error) {
-      if (handle) {
-        await handle.close().catch(() => undefined);
-      }
-
-      const code = typeof error === 'object' && error !== null && 'code' in error
-        ? String((error as { code?: unknown }).code)
-        : '';
-      // On Windows, opening a file held exclusively by another process with 'wx'
-      // can return EPERM instead of EEXIST.  Treat both as lock-contention errors.
-      const isContention = code === 'EEXIST' || code === 'EPERM';
-      if (!isContention) {
-        throw error;
-      }
-
-      if (attempt >= retryCount) {
-        return {
-          outcome: 'lock_timeout',
-          lockPath,
-          attempts: attempt + 1
-        };
-      }
-
-      await sleep(retryDelayMs);
-    }
-  }
+  return await withFileLock(lockPath, {
+    lockRetryCount: options?.lockRetryCount,
+    lockRetryDelayMs: options?.lockRetryDelayMs
+  }, fn) as FileLockResult<T>;
 }
 
 const DEFAULT_PRD = [
@@ -587,14 +534,7 @@ async function ensureFile(target: string, content: string): Promise<void> {
   }
 }
 
-async function pathExists(target: string): Promise<boolean> {
-  try {
-    await fs.access(target);
-    return true;
-  } catch {
-    return false;
-  }
-}
+
 
 async function readText(target: string, fallback = ''): Promise<string> {
   try {

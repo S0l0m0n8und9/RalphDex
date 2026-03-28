@@ -35,19 +35,10 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveLatestStatusArtifacts = resolveLatestStatusArtifacts;
 exports.buildStatusReport = buildStatusReport;
-const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const fs_1 = require("../util/fs");
 const rootPolicy_1 = require("./rootPolicy");
 const artifactStore_1 = require("./artifactStore");
-async function pathExists(target) {
-    try {
-        await fs.access(target);
-        return true;
-    }
-    catch {
-        return false;
-    }
-}
 function relativeFromRoot(rootPath, target) {
     if (!target) {
         return 'none';
@@ -135,34 +126,34 @@ async function resolveLatestStatusArtifacts(paths) {
     const repair = await (0, artifactStore_1.repairLatestArtifactSurfaces)(paths.artifactDir);
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(paths.artifactDir);
     return {
-        latestSummaryPath: await pathExists(latestPaths.latestSummaryPath) ? latestPaths.latestSummaryPath : null,
-        latestResultPath: await pathExists(latestPaths.latestResultPath) ? latestPaths.latestResultPath : null,
-        latestPreflightReportPath: await pathExists(latestPaths.latestPreflightReportPath)
+        latestSummaryPath: await (0, fs_1.pathExists)(latestPaths.latestSummaryPath) ? latestPaths.latestSummaryPath : null,
+        latestResultPath: await (0, fs_1.pathExists)(latestPaths.latestResultPath) ? latestPaths.latestResultPath : null,
+        latestPreflightReportPath: await (0, fs_1.pathExists)(latestPaths.latestPreflightReportPath)
             ? latestPaths.latestPreflightReportPath
             : null,
-        latestPreflightSummaryPath: await pathExists(latestPaths.latestPreflightSummaryPath)
+        latestPreflightSummaryPath: await (0, fs_1.pathExists)(latestPaths.latestPreflightSummaryPath)
             ? latestPaths.latestPreflightSummaryPath
             : null,
-        latestPromptPath: await pathExists(latestPaths.latestPromptPath) ? latestPaths.latestPromptPath : null,
-        latestPromptEvidencePath: await pathExists(latestPaths.latestPromptEvidencePath)
+        latestPromptPath: await (0, fs_1.pathExists)(latestPaths.latestPromptPath) ? latestPaths.latestPromptPath : null,
+        latestPromptEvidencePath: await (0, fs_1.pathExists)(latestPaths.latestPromptEvidencePath)
             ? latestPaths.latestPromptEvidencePath
             : null,
-        latestExecutionPlanPath: await pathExists(latestPaths.latestExecutionPlanPath)
+        latestExecutionPlanPath: await (0, fs_1.pathExists)(latestPaths.latestExecutionPlanPath)
             ? latestPaths.latestExecutionPlanPath
             : null,
-        latestCliInvocationPath: await pathExists(latestPaths.latestCliInvocationPath)
+        latestCliInvocationPath: await (0, fs_1.pathExists)(latestPaths.latestCliInvocationPath)
             ? latestPaths.latestCliInvocationPath
             : null,
-        latestRemediationPath: await pathExists(latestPaths.latestRemediationPath)
+        latestRemediationPath: await (0, fs_1.pathExists)(latestPaths.latestRemediationPath)
             ? latestPaths.latestRemediationPath
             : null,
-        latestProvenanceBundlePath: await pathExists(latestPaths.latestProvenanceBundlePath)
+        latestProvenanceBundlePath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceBundlePath)
             ? latestPaths.latestProvenanceBundlePath
             : null,
-        latestProvenanceSummaryPath: await pathExists(latestPaths.latestProvenanceSummaryPath)
+        latestProvenanceSummaryPath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceSummaryPath)
             ? latestPaths.latestProvenanceSummaryPath
             : null,
-        latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
+        latestProvenanceFailurePath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceFailurePath)
             ? latestPaths.latestProvenanceFailurePath
             : null,
         repair
