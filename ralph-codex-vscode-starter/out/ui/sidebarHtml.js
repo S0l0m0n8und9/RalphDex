@@ -411,19 +411,19 @@ function buildDashboardHtml(state, nonce) {
   <div class="section-label">Agents</div>
   <hr class="section-rule">
   <div class="btn-grid">
-    <button class="btn" onclick="runCommand('ralphCodex.runRalphLoop')" ${isRunning ? 'disabled' : ''}>◆ Build</button>
-    <button class="btn" onclick="runCommand('ralphCodex.runReviewAgent')" ${isRunning ? 'disabled' : ''}>◇ Review</button>
-    <button class="btn" onclick="runCommand('ralphCodex.runWatchdogAgent')" ${isRunning ? 'disabled' : ''}>⬡ Watch</button>
-    <button class="btn" onclick="runCommand('ralphCodex.runScmAgent')" ${isRunning ? 'disabled' : ''}>⎔ SCM</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runRalphLoop')">◆ Build</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runReviewAgent')">◇ Review</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runWatchdogAgent')">⬡ Watch</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runScmAgent')">⎔ SCM</button>
   </div>
 
   <div class="section-label">Actions</div>
   <hr class="section-rule">
   <div class="btn-grid">
-    <button class="btn" onclick="runCommand('ralphCodex.runRalphLoop')" ${isRunning ? 'disabled' : ''}>▸ Run Loop</button>
-    <button class="btn" onclick="runCommand('ralphCodex.runRalphIteration')" ${isRunning ? 'disabled' : ''}>▸ Run Iter</button>
-    <button class="btn" onclick="runCommand('ralphCodex.generatePrompt')" ${isRunning ? 'disabled' : ''}>⎙ Prep Prompt</button>
-    <button class="btn" onclick="runCommand('ralphCodex.initializeWorkspace')" ${isRunning ? 'disabled' : ''}>⏻ Init</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runRalphLoop')">▸ Run Loop</button>
+    <button class="btn" onclick="runCommand('ralphCodex.runRalphIteration')">▸ Run Iter</button>
+    <button class="btn" onclick="runCommand('ralphCodex.generatePrompt')">⎙ Prep Prompt</button>
+    <button class="btn" onclick="runCommand('ralphCodex.initializeWorkspace')">⏻ Init</button>
   </div>
 
   <div class="section-label">History</div>
