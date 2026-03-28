@@ -643,15 +643,6 @@ class RalphStateManager {
         }
         return locked.value;
     }
-    async appendProgressBullet(paths, bullet) {
-        const current = await this.readProgressText(paths);
-        const trimmed = bullet.trim();
-        if (!trimmed) {
-            return;
-        }
-        const nextText = `${current.trimEnd()}\n- ${trimmed}\n`;
-        await fs.writeFile(paths.progressPath, nextText, 'utf8');
-    }
     async selectedTask(paths, taskId) {
         return (0, taskFile_1.findTaskById)(await this.readTaskFile(paths), taskId);
     }

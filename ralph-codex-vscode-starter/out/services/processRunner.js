@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProcessLaunchError = void 0;
+exports.ProcessTimeoutError = exports.ProcessLaunchError = void 0;
 exports.setProcessRunnerOverride = setProcessRunnerOverride;
 exports.runProcess = runProcess;
 const child_process_1 = require("child_process");
@@ -18,6 +18,19 @@ class ProcessLaunchError extends Error {
     }
 }
 exports.ProcessLaunchError = ProcessLaunchError;
+class ProcessTimeoutError extends Error {
+    command;
+    args;
+    timeoutMs;
+    constructor(command, args, timeoutMs) {
+        super(`Process timed out after ${timeoutMs}ms: ${command}`);
+        this.name = 'ProcessTimeoutError';
+        this.command = command;
+        this.args = args;
+        this.timeoutMs = timeoutMs;
+    }
+}
+exports.ProcessTimeoutError = ProcessTimeoutError;
 let processRunnerOverride = null;
 function setProcessRunnerOverride(override) {
     processRunnerOverride = override;
@@ -34,6 +47,19 @@ async function runProcess(command, args, options) {
         });
         let stdout = '';
         let stderr = '';
+        let timedOut = false;
+        let timer;
+        if (options.timeoutMs !== undefined && options.timeoutMs > 0) {
+            timer = setTimeout(() => {
+                timedOut = true;
+                child.kill('SIGTERM');
+                setTimeout(() => {
+                    if (!child.killed) {
+                        child.kill('SIGKILL');
+                    }
+                }, 5000);
+            }, options.timeoutMs);
+        }
         child.stdout.on('data', (chunk) => {
             const text = chunk.toString();
             stdout += text;
@@ -44,8 +70,20 @@ async function runProcess(command, args, options) {
             stderr += text;
             options.onStderrChunk?.(text);
         });
-        child.on('error', (error) => reject(new ProcessLaunchError(command, args, error)));
+        child.on('error', (error) => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            reject(new ProcessLaunchError(command, args, error));
+        });
         child.on('close', (code) => {
+            if (timer) {
+                clearTimeout(timer);
+            }
+            if (timedOut) {
+                reject(new ProcessTimeoutError(command, args, options.timeoutMs));
+                return;
+            }
             resolve({
                 code: code ?? 1,
                 stdout,
