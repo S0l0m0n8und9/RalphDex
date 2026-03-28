@@ -85,11 +85,12 @@ test('buildDashboardHtml shows phase tracker when running', () => {
   assert.ok(html.includes('class="phase-step active"'));
 });
 
-test('buildDashboardHtml disables agent buttons during running state', () => {
+test('buildDashboardHtml keeps all buttons enabled during running state for parallel launches', () => {
   const html = buildDashboardHtml(defaultState({ loopState: 'running' }), 'n5');
-  // All action buttons should be disabled
-  const disabledCount = (html.match(/disabled/g) ?? []).length;
-  assert.ok(disabledCount >= 8, `Expected at least 8 disabled buttons, got ${disabledCount}`);
+  // Agents are designed for concurrent operation — claims handle contention.
+  // No button elements should have the disabled attribute.
+  const disabledButtons = (html.match(/<button[^>]*disabled[^>]*>/g) ?? []).length;
+  assert.equal(disabledButtons, 0, `Expected 0 disabled buttons, got ${disabledButtons}`);
 });
 
 test('buildDashboardHtml shows diagnostics when not ready', () => {
