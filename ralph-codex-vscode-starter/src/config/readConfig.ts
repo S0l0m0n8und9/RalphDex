@@ -390,6 +390,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ),
     openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),
     newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
+    claimTtlHours: readNumber(config, 'claimTtlHours', DEFAULT_CONFIG.claimTtlHours, 1),
+    staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
     modelTiering: readModelTiering(config, DEFAULT_CONFIG.modelTiering),
     hooks: readHooks(config, DEFAULT_CONFIG.hooks)
   };

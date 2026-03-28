@@ -250,15 +250,6 @@ async function updateTaskFileWithProgress(taskFilePath, progressPath, progressNo
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
 }
-async function updateTaskFile(taskFilePath, transform) {
-    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
-        const nextTaskFile = (0, taskFile_1.bumpMutationCount)(transform((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'))));
-        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
-}
 // Acquires the task-file lock once and, inside that single critical section:
 // 1. Re-verifies claim ownership (eliminates the TOCTOU window between the prior standalone
 //    inspectClaimOwnership call and the subsequent updateTaskFile call).
@@ -301,20 +292,15 @@ async function processWatchdogActions(input, watchdogActions) {
     const warnings = [];
     for (const action of watchdogActions) {
         if (action.action === 'resolve_stale_claim') {
-            const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(input.prepared.paths.claimFilePath);
-            const taskEntry = claimGraph.tasks.find((entry) => entry.taskId === action.taskId);
-            const canonicalClaim = taskEntry?.canonicalClaim?.claim ?? null;
-            if (!canonicalClaim || canonicalClaim.agentId !== action.agentId) {
-                warnings.push(`Watchdog action resolve_stale_claim could not find a canonical active claim for ${action.taskId} held by ${action.agentId}.`);
-                continue;
-            }
-            const resolved = await (0, taskFile_1.resolveStaleClaim)(input.prepared.paths.claimFilePath, {
-                expectedClaim: canonicalClaim,
+            const resolved = await (0, taskFile_1.resolveStaleClaimByTask)(input.prepared.paths.claimFilePath, action.taskId, action.agentId, {
                 resolutionReason: buildWatchdogResolutionReason(action),
                 resolvedBy: input.prepared.config.agentId,
                 status: 'stale'
             });
-            if (resolved.outcome !== 'resolved') {
+            if (resolved.lookupMiss) {
+                warnings.push(`Watchdog action resolve_stale_claim could not find a canonical active claim for ${action.taskId} held by ${action.agentId}.`);
+            }
+            else if (resolved.outcome !== 'resolved') {
                 warnings.push(`Watchdog action resolve_stale_claim was not eligible for ${action.taskId} held by ${action.agentId}.`);
             }
             continue;

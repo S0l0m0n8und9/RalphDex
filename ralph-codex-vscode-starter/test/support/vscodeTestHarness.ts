@@ -30,6 +30,7 @@ export interface VscodeTestHarness {
 }
 
 declare global {
+  // eslint-disable-next-line no-var
   var __RALPH_VSCODE_STUB__: VscodeTestHarness | undefined;
 }
 

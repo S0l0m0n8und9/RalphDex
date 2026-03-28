@@ -159,7 +159,7 @@ async function withMockedRunCliIteration<T>(
   }
 }
 
-async function withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
+async function _withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
   const originalSetTimeout = globalThis.setTimeout;
   globalThis.setTimeout = ((callback: (...args: unknown[]) => void, _delay?: number, ...args: unknown[]) => {
     callback(...args);

@@ -669,7 +669,6 @@ async function cleanupGeneratedArtifacts(input) {
             .filter((entry) => retainedHandoffFiles.has(entry.name))
             .map((entry) => entry.name);
     }
-    ;
     return summary;
 }
 async function inspectGeneratedArtifactRetention(input) {

@@ -38,6 +38,7 @@ exports.acquireClaim = acquireClaim;
 exports.releaseClaim = releaseClaim;
 exports.inspectClaimOwnership = inspectClaimOwnership;
 exports.inspectTaskClaimGraph = inspectTaskClaimGraph;
+exports.resolveStaleClaimByTask = resolveStaleClaimByTask;
 exports.resolveStaleClaim = resolveStaleClaim;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
@@ -381,6 +382,69 @@ async function inspectTaskClaimGraph(claimFilePath, options) {
             claimFile,
             tasks,
             latestResolvedClaim: describeClaim(latestResolvedClaim(claimFile), options)
+        };
+    });
+}
+/**
+ * Resolve a stale claim by looking up the canonical claim for a task+agent
+ * inside the claim lock, closing the TOCTOU race where a build agent could
+ * acquire the task's claim between an unlocked graph read and the locked
+ * resolution (Gap 4 in parallel-verification-gaps.md).
+ */
+async function resolveStaleClaimByTask(claimFilePath, taskId, agentId, options) {
+    return withClaimFileLock(claimFilePath, options, async () => {
+        const claimFile = await readTaskClaimFile(claimFilePath);
+        const canonicalClaim = canonicalClaimForTask(claimFile, taskId);
+        if (!canonicalClaim || canonicalClaim.agentId !== agentId) {
+            return {
+                outcome: 'not_eligible',
+                resolvedClaim: null,
+                canonicalClaim: describeClaim(canonicalClaim, options),
+                claimFile,
+                lookupMiss: true
+            };
+        }
+        const describedCanonicalClaim = describeClaim(canonicalClaim, options);
+        if (canonicalClaim.status !== 'active' || !describedCanonicalClaim?.stale) {
+            return {
+                outcome: 'not_eligible',
+                resolvedClaim: null,
+                canonicalClaim: describedCanonicalClaim,
+                claimFile,
+                lookupMiss: false
+            };
+        }
+        const resolvedAt = (options.now ?? new Date()).toISOString();
+        const nextStatus = options.status ?? 'stale';
+        let resolvedClaim = null;
+        const nextClaimFile = {
+            version: 1,
+            claims: claimFile.claims.map((claim) => {
+                if (!claimRecordMatches(claim, canonicalClaim)) {
+                    return claim;
+                }
+                resolvedClaim = {
+                    ...claim,
+                    status: nextStatus,
+                    resolvedAt,
+                    resolvedBy: options.resolvedBy?.trim() || undefined,
+                    resolutionReason: options.resolutionReason.trim()
+                };
+                return resolvedClaim;
+            })
+        };
+        await writeTaskClaimFile(claimFilePath, nextClaimFile);
+        const verifiedClaimFile = await readTaskClaimFile(claimFilePath);
+        const verifiedResolvedClaim = resolvedClaim ? findClaim(verifiedClaimFile, resolvedClaim) : null;
+        if (!resolvedClaim || !verifiedResolvedClaim) {
+            throw new Error(`resolveStaleClaimByTask: Claim file write did not persist the resolved claim for task ${taskId}.`);
+        }
+        return {
+            outcome: 'resolved',
+            resolvedClaim: describeClaim(verifiedResolvedClaim, options),
+            canonicalClaim: describeClaim(canonicalClaimForTask(verifiedClaimFile, taskId), options),
+            claimFile: verifiedClaimFile,
+            lookupMiss: false
         };
     });
 }

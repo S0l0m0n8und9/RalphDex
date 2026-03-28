@@ -1,12 +1,9 @@
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
 import { deriveRootPolicy } from './rootPolicy';
 import {
-  inspectGeneratedArtifactRetention,
-  inspectProvenanceBundleRetention,
   RalphGeneratedArtifactRetentionSummary,
   RalphLatestArtifactRepairSummary,
   RalphProvenanceRetentionSummary,

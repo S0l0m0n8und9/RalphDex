@@ -7,7 +7,6 @@ import { RalphIterationEngine } from '../ralph/iterationEngine';
 import {
   buildStatusReport,
   resolveLatestStatusArtifacts,
-  RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { RalphStateManager } from '../ralph/stateManager';
 import {

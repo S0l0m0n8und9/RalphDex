@@ -451,6 +451,18 @@
           "type": "string",
           "default": "claude.newChat",
           "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
+        },
+        "ralphCodex.claimTtlHours": {
+          "type": "number",
+          "default": 24,
+          "minimum": 1,
+          "description": "Hours before a task claim expires. Increase for long-running agents on slow machines."
+        },
+        "ralphCodex.staleLockThresholdMinutes": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "description": "Minutes before an orphaned lock file is treated as stale and automatically removed."
         }
       }
     }
@@ -459,7 +471,7 @@
     "compile": "tsc -p ./",
     "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
-    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
+    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json && eslint src test --ext .ts",
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",

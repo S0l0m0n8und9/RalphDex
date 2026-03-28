@@ -35,7 +35,6 @@ import {
   RalphTask,
   RalphTaskFile,
   RalphTaskCounts,
-  RalphVerificationStatus,
 } from './types';
 import {
   countTaskStatuses,
@@ -1445,7 +1444,7 @@ export class RalphIterationEngine {
       );
     }
 
-    let effectiveTaskFile = afterCoreState.taskFile;
+    let _effectiveTaskFile = afterCoreState.taskFile;
     phaseTimestamps.persistedAt = new Date().toISOString();
     const remediationArtifact = buildRemediationArtifact({
       result,
@@ -1461,7 +1460,7 @@ export class RalphIterationEngine {
       && result.selectedTaskId
       && prepared.config.autoApplyRemediation.includes('mark_blocked')) {
       try {
-        effectiveTaskFile = await autoApplyMarkBlockedRemediation({
+        _effectiveTaskFile = await autoApplyMarkBlockedRemediation({
           taskFilePath: prepared.paths.taskFilePath,
           taskId: result.selectedTaskId,
           blocker: result.remediation.summary
@@ -1493,7 +1492,7 @@ export class RalphIterationEngine {
         );
       } else {
         try {
-          effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
+          _effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
             taskFilePath: prepared.paths.taskFilePath,
             remediationArtifact: remediationArtifact as NonNullable<RalphTaskRemediationArtifact>
           });

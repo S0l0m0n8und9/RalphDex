@@ -1,11 +1,8 @@
 import type {
   RalphCompletionClassification,
-  RalphIterationResult,
   RalphStopReason,
-  RalphTask,
   RalphTaskCounts,
   RalphTaskStatus,
-  RalphWorkspaceState
 } from '../ralph/types';
 
 // ---------------------------------------------------------------------------

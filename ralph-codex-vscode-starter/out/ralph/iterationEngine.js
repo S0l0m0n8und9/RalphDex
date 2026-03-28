@@ -1176,7 +1176,7 @@ class RalphIterationEngine {
                 result.remediation = null;
                 result.warnings.push(`Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`);
             }
-            let effectiveTaskFile = afterCoreState.taskFile;
+            let _effectiveTaskFile = afterCoreState.taskFile;
             phaseTimestamps.persistedAt = new Date().toISOString();
             const remediationArtifact = (0, taskDecomposition_1.buildRemediationArtifact)({
                 result,
@@ -1191,7 +1191,7 @@ class RalphIterationEngine {
                 && result.selectedTaskId
                 && prepared.config.autoApplyRemediation.includes('mark_blocked')) {
                 try {
-                    effectiveTaskFile = await autoApplyMarkBlockedRemediation({
+                    _effectiveTaskFile = await autoApplyMarkBlockedRemediation({
                         taskFilePath: prepared.paths.taskFilePath,
                         taskId: result.selectedTaskId,
                         blocker: result.remediation.summary
@@ -1220,7 +1220,7 @@ class RalphIterationEngine {
                 }
                 else {
                     try {
-                        effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
+                        _effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
                             taskFilePath: prepared.paths.taskFilePath,
                             remediationArtifact: remediationArtifact
                         });
