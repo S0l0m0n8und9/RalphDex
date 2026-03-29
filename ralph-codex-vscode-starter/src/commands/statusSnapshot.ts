@@ -30,7 +30,7 @@ import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/co
 import { Logger } from '../services/logger';
 import { pathExists } from '../util/fs';
 import { validateRecord } from '../util/validate';
-import { scanWorkspace } from '../services/workspaceScanner';
+import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
@@ -262,7 +262,7 @@ export async function collectStatusSnapshot(
     : null;
   const availableCommands = await vscode.commands.getCommands(true);
   const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
-    scanWorkspace(workspaceFolder.uri.fsPath, workspaceFolder.name, {
+    scanWorkspaceCached(workspaceFolder.uri.fsPath, workspaceFolder.name, {
       focusPath,
       inspectionRootOverride: config.inspectionRootOverride
     }),

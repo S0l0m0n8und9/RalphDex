@@ -606,7 +606,7 @@ async function fakeShellCommand(command: string, cwd: string): Promise<ProcessRu
   throw new Error(`Unsupported fake shell command: ${trimmed}`);
 }
 
-async function fakeCliCommand(command: string, options: ProcessRunOptions): Promise<ProcessRunResult> {
+async function fakeCliCommand(command: string, _options: ProcessRunOptions): Promise<ProcessRunResult> {
   if (!(await pathExists(command))) {
     throw Object.assign(new Error(`spawn ${command} ENOENT`), { code: 'ENOENT' });
   }

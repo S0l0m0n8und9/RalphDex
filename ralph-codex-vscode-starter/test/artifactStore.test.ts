@@ -9,9 +9,7 @@ import {
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
   resolveIterationArtifactPaths,
-  resolvePreflightArtifactPaths,
   resolveProvenanceBundlePaths,
-  writePreflightArtifacts,
   writeProvenanceBundle
 } from '../src/ralph/artifactStore';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';

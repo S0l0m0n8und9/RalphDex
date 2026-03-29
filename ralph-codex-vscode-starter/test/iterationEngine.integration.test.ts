@@ -3137,7 +3137,7 @@ test('runCliIteration does not auto-apply reframe_task remediation even when all
   });
 
   const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
-  const task = taskFile.tasks.find((t) => t.id === 'T1');
+  const _task = taskFile.tasks.find((t) => t.id === 'T1');
 
   assert.equal(secondRun.result.stopReason, 'repeated_no_progress');
   assert.equal(secondRun.result.remediation?.action, 'reframe_task');

@@ -2,8 +2,8 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { sleep } from './async';
 
-const DEFAULT_LOCK_RETRY_COUNT = 50;
-const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
+const DEFAULT_LOCK_RETRY_COUNT = 120;
+const DEFAULT_LOCK_RETRY_DELAY_MS = 250;
 const DEFAULT_STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
 
 export interface FileLockOptions {

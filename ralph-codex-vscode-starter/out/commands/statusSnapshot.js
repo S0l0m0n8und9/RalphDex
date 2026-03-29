@@ -261,7 +261,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         : null;
     const availableCommands = await vscode.commands.getCommands(true);
     const [workspaceScan, latestArtifacts, codexCliSupport] = await Promise.all([
-        (0, workspaceScanner_1.scanWorkspace)(workspaceFolder.uri.fsPath, workspaceFolder.name, {
+        (0, workspaceScanner_1.scanWorkspaceCached)(workspaceFolder.uri.fsPath, workspaceFolder.name, {
             focusPath,
             inspectionRootOverride: config.inspectionRootOverride
         }),

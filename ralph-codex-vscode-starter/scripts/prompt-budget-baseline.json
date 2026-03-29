@@ -1,0 +1,132 @@
+{
+  "generatedAt": "2026-03-28T18:37:56.715Z",
+  "thresholdPercent": 20,
+  "measurements": {
+    "freshWorkspace:bootstrap:cliExec": {
+      "scenario": "freshWorkspace",
+      "kind": "bootstrap",
+      "target": "cliExec",
+      "estimatedTokens": 1046,
+      "targetTokens": 2100,
+      "budgetDeltaTokens": -1054,
+      "budgetMode": "within_budget"
+    },
+    "freshWorkspace:bootstrap:ideHandoff": {
+      "scenario": "freshWorkspace",
+      "kind": "bootstrap",
+      "target": "ideHandoff",
+      "estimatedTokens": 968,
+      "targetTokens": 1500,
+      "budgetDeltaTokens": -532,
+      "budgetMode": "within_budget"
+    },
+    "partialProgress:continue-progress:cliExec": {
+      "scenario": "partialProgress",
+      "kind": "continue-progress",
+      "target": "cliExec",
+      "estimatedTokens": 1151,
+      "targetTokens": 1600,
+      "budgetDeltaTokens": -449,
+      "budgetMode": "within_budget"
+    },
+    "partialProgress:continue-progress:ideHandoff": {
+      "scenario": "partialProgress",
+      "kind": "continue-progress",
+      "target": "ideHandoff",
+      "estimatedTokens": 881,
+      "targetTokens": 1000,
+      "budgetDeltaTokens": -119,
+      "budgetMode": "trimmed"
+    },
+    "repeatedNoProgress:fix-failure:cliExec": {
+      "scenario": "repeatedNoProgress",
+      "kind": "fix-failure",
+      "target": "cliExec",
+      "estimatedTokens": 1236,
+      "targetTokens": 1700,
+      "budgetDeltaTokens": -464,
+      "budgetMode": "within_budget"
+    },
+    "repeatedNoProgress:fix-failure:ideHandoff": {
+      "scenario": "repeatedNoProgress",
+      "kind": "fix-failure",
+      "target": "ideHandoff",
+      "estimatedTokens": 963,
+      "targetTokens": 1100,
+      "budgetDeltaTokens": -137,
+      "budgetMode": "trimmed"
+    },
+    "blockedTask:iteration:cliExec": {
+      "scenario": "blockedTask",
+      "kind": "iteration",
+      "target": "cliExec",
+      "estimatedTokens": 1088,
+      "targetTokens": 1600,
+      "budgetDeltaTokens": -512,
+      "budgetMode": "within_budget"
+    },
+    "blockedTask:iteration:ideHandoff": {
+      "scenario": "blockedTask",
+      "kind": "iteration",
+      "target": "ideHandoff",
+      "estimatedTokens": 982,
+      "targetTokens": 1000,
+      "budgetDeltaTokens": -18,
+      "budgetMode": "trimmed"
+    },
+    "fixFailure:fix-failure:cliExec": {
+      "scenario": "fixFailure",
+      "kind": "fix-failure",
+      "target": "cliExec",
+      "estimatedTokens": 1202,
+      "targetTokens": 1700,
+      "budgetDeltaTokens": -498,
+      "budgetMode": "within_budget"
+    },
+    "fixFailure:fix-failure:ideHandoff": {
+      "scenario": "fixFailure",
+      "kind": "fix-failure",
+      "target": "ideHandoff",
+      "estimatedTokens": 1076,
+      "targetTokens": 1100,
+      "budgetDeltaTokens": -24,
+      "budgetMode": "trimmed"
+    },
+    "replenishBacklog:replenish-backlog:cliExec": {
+      "scenario": "replenishBacklog",
+      "kind": "replenish-backlog",
+      "target": "cliExec",
+      "estimatedTokens": 1172,
+      "targetTokens": 1800,
+      "budgetDeltaTokens": -628,
+      "budgetMode": "within_budget"
+    },
+    "replenishBacklog:replenish-backlog:ideHandoff": {
+      "scenario": "replenishBacklog",
+      "kind": "replenish-backlog",
+      "target": "ideHandoff",
+      "estimatedTokens": 1175,
+      "targetTokens": 1300,
+      "budgetDeltaTokens": -125,
+      "budgetMode": "within_budget"
+    },
+    "humanReview:human-review-handoff:cliExec": {
+      "scenario": "humanReview",
+      "kind": "human-review-handoff",
+      "target": "cliExec",
+      "estimatedTokens": 1169,
+      "targetTokens": 1500,
+      "budgetDeltaTokens": -331,
+      "budgetMode": "within_budget"
+    },
+    "humanReview:human-review-handoff:ideHandoff": {
+      "scenario": "humanReview",
+      "kind": "human-review-handoff",
+      "target": "ideHandoff",
+      "estimatedTokens": 1035,
+      "targetTokens": 1100,
+      "budgetDeltaTokens": -65,
+      "budgetMode": "trimmed"
+    }
+  }
+}

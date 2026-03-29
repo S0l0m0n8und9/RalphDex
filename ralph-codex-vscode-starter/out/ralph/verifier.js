@@ -319,10 +319,66 @@ async function runValidationCommandVerifier(input) {
             }
         };
     }
-    const run = await (0, processRunner_1.runProcess)(input.command, [], {
-        cwd: input.rootPath,
-        shell: true
-    });
+    const DEFAULT_VALIDATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    let run;
+    try {
+        run = await (0, processRunner_1.runProcess)(input.command, [], {
+            cwd: input.rootPath,
+            shell: true,
+            timeoutMs: DEFAULT_VALIDATION_TIMEOUT_MS
+        });
+    }
+    catch (err) {
+        if (err instanceof processRunner_1.ProcessTimeoutError) {
+            const stdoutPath = path.join(input.artifactDir, 'validation-command.stdout.log');
+            const stderrPath = path.join(input.artifactDir, 'validation-command.stderr.log');
+            const summaryPath = path.join(input.artifactDir, 'validation-command.json');
+            await fs.mkdir(input.artifactDir, { recursive: true });
+            await Promise.all([
+                fs.writeFile(stdoutPath, '', 'utf8'),
+                fs.writeFile(stderrPath, '', 'utf8')
+            ]);
+            const timeoutSummary = `Validation command timed out after ${DEFAULT_VALIDATION_TIMEOUT_MS}ms: ${input.command}`;
+            const result = {
+                verifier: 'validationCommand',
+                status: 'failed',
+                summary: timeoutSummary,
+                warnings: [],
+                errors: [timeoutSummary],
+                command: input.command,
+                artifactPath: summaryPath,
+                failureSignature: `timeout:${input.command}`,
+                metadata: {
+                    exitCode: null,
+                    taskValidationHint: input.taskValidationHint ?? null,
+                    normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
+                    stdoutPath,
+                    stderrPath,
+                    timedOut: true,
+                    timeoutMs: DEFAULT_VALIDATION_TIMEOUT_MS
+                }
+            };
+            await writeJsonArtifact(summaryPath, {
+                command: input.command,
+                taskValidationHint: input.taskValidationHint ?? null,
+                normalizedValidationCommandFrom: input.normalizedValidationCommandFrom ?? null,
+                exitCode: null,
+                stdoutPath,
+                stderrPath,
+                failureSignature: `timeout:${input.command}`,
+                timedOut: true,
+                timeoutMs: DEFAULT_VALIDATION_TIMEOUT_MS
+            });
+            return {
+                command: input.command,
+                stdout: '',
+                stderr: '',
+                exitCode: null,
+                result
+            };
+        }
+        throw err;
+    }
     const stdoutPath = path.join(input.artifactDir, 'validation-command.stdout.log');
     const stderrPath = path.join(input.artifactDir, 'validation-command.stderr.log');
     const summaryPath = path.join(input.artifactDir, 'validation-command.json');

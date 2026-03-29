@@ -175,7 +175,7 @@ async function prepareIterationContext(input) {
             logger.warn('Failed to read task counts during iteration preparation.', { error: err });
             return null;
         }),
-        (0, workspaceScanner_1.scanWorkspace)(rootPath, workspaceFolder.name, {
+        (0, workspaceScanner_1.scanWorkspaceCached)(rootPath, workspaceFolder.name, {
             focusPath,
             inspectionRootOverride: config.inspectionRootOverride
         }),
@@ -262,7 +262,8 @@ async function prepareIterationContext(input) {
             taskFilePath: snapshot.paths.taskFilePath,
             claimFilePath: snapshot.paths.claimFilePath,
             artifactDir: snapshot.paths.artifactDir,
-            staleClaimTtlMs: config.watchdogStaleTtlMs
+            staleClaimTtlMs: config.claimTtlHours * 60 * 60 * 1000,
+            staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
         })
     ]);
     const preflightReport = (0, preflight_1.buildPreflightReport)({
@@ -474,7 +475,10 @@ async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claim
         const claimBranches = config.scmStrategy === 'branch-per-task'
             ? await prepareTaskBranchWorkspace(rootPath, candidate)
             : null;
-        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId, claimBranches ?? undefined);
+        const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId, {
+            ...(claimBranches ?? {}),
+            ttlMs: config.claimTtlHours * 60 * 60 * 1000
+        });
         if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
             if (candidate.status === 'todo') {
                 await (0, taskFile_1.markTaskInProgress)(taskFilePath, candidate.id);

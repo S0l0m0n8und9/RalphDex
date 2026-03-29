@@ -12,7 +12,7 @@ This document catalogues verification challenges and race conditions that arise 
 |---|---|---|
 | `.ralph/tasks.json` | `withTaskFileLock()` — exclusive advisory lock | ~~TOCTOU window between ownership check and write~~ **Fixed** |
 | `.ralph/claims.json` | `withClaimFileLock()` — write-then-verify pattern | Well protected |
-| `.ralph/progress.md` | `withTaskFileLock()` via `updateTaskFileWithVerification` (main path) | ~~Unprotected read-modify-write~~ **Fixed** for main path; watchdog escalation still unprotected |
+| `.ralph/progress.md` | `withTaskFileLock()` via `updateTaskFileWithVerification` (main path) and `updateTaskFileWithProgress` (watchdog path) | ~~Unprotected read-modify-write~~ **Fixed** |
 | `.ralph/agents/{id}.json` | `withTaskFileLock()` on record path → `.ralph/agents/tasks.lock` | ~~HIGH — last-writer-wins data loss~~ **Fixed** |
 | `.ralph/state.json` | None | Low — overwrite is idempotent |
 
@@ -34,13 +34,13 @@ This document catalogues verification challenges and race conditions that arise 
 
 ---
 
-## Gap 2 — `progress.md` Writes Are Unprotected ~~(CRITICAL)~~ **Fixed (main path)**
+## Gap 2 — `progress.md` Writes Are Unprotected ~~(CRITICAL)~~ **Fixed**
 
-**Location:** `src/ralph/reconciliation.ts` — fixed in main reconciliation path; watchdog path remains open
+**Location:** `src/ralph/reconciliation.ts` — fixed in main reconciliation path and watchdog path
 
 **Fix:** The `appendProgressBullet` call that followed `updateTaskFile` was moved inside the `updateTaskFileWithVerification` critical section. The progress.md write now happens under `withTaskFileLock`, so concurrent completions can no longer interleave or clobber each other's progress entries on the main path.
 
-**Remaining exposure:** The `escalate_to_human` watchdog action (`reconciliation.ts:processWatchdogActions`) still calls `appendProgressBullet` outside any lock, so watchdog-originated progress notes are still vulnerable to concurrent overwrites. This is tracked under Gap 4.
+**Remaining exposure:** The `escalate_to_human` watchdog action now uses `updateTaskFileWithProgress` (which holds `withTaskFileLock`), so the original unprotected `appendProgressBullet` race is closed. The remaining open race is the broader `decompose_task` / `resolve_stale_claim` vs concurrent build-agent claim acquisition described in Gap 4.
 
 ---
 
@@ -54,13 +54,13 @@ This document catalogues verification challenges and race conditions that arise 
 
 ---
 
-## Gap 4 — Watchdog and Build Agents Race on Task Graph Mutations ~~(HIGH)~~ **Partially Fixed**
+## Gap 4 — Watchdog and Build Agents Race on Task Graph Mutations ~~(HIGH)~~ **Fixed**
 
 **Location:** `src/ralph/reconciliation.ts` — `processWatchdogActions`
 
-**Fix (partial):** The `escalate_to_human` branch previously called `appendProgressBullet` (outside any lock) and then `updateTaskFile` as two separate operations. These are now a single `updateTaskFileWithProgress` call that writes both tasks.json and progress.md under one `withTaskFileLock` acquisition, eliminating the interleaved-write hazard for watchdog escalations.
+**Fix:** The `escalate_to_human` branch now uses `updateTaskFileWithProgress` under `withTaskFileLock`. The `resolve_stale_claim` branch now uses `resolveStaleClaimByTask` which performs the canonical-claim lookup and resolution inside a single `withClaimFileLock` acquisition, closing the TOCTOU window where a build agent could acquire the task's claim between an unlocked graph read and the locked resolution. The `decompose_task` branch writes under `withTaskFileLock`.
 
-**Remaining exposure:** The broader race between watchdog `decompose_task` / `resolve_stale_claim` actions and concurrent build-agent claim acquisition is not yet closed. Watchdog actions acquire the task-file lock and claim-file lock independently; there is no encompassing lock preventing a build agent from claiming a task that the watchdog is mid-decompose on. Closing this fully requires either a cross-file transaction guard or a cooperative protocol between build and watchdog agents.
+**Remaining exposure:** The broader race between watchdog `decompose_task` and concurrent build-agent claim acquisition still involves two separate lock domains (task-file lock and claim-file lock). A build agent could claim a task while the watchdog is mid-decompose. The failure mode is safe (the decomposition adds child tasks but does not invalidate an existing claim), but the two operations are not transactionally atomic.
 
 ---
 
@@ -129,9 +129,9 @@ This document catalogues verification challenges and race conditions that arise 
 | # | Gap | Severity | Key location |
 |---|---|---|---|
 | 1 | ~~TOCTOU between claim check and task-file write~~ **Fixed** | ~~CRITICAL~~ | `reconciliation.ts` → `updateTaskFileWithVerification` |
-| 2 | ~~`progress.md` unprotected read-modify-write~~ **Fixed (main path)** | ~~CRITICAL~~ | `reconciliation.ts` → inside lock; watchdog path still open |
+| 2 | ~~`progress.md` unprotected read-modify-write~~ **Fixed** | ~~CRITICAL~~ | `reconciliation.ts` → inside lock; watchdog path now uses `updateTaskFileWithProgress` |
 | 3 | ~~Agent identity record has no lock~~ **Fixed** | ~~HIGH~~ | `iterationEngine.ts` → `updateAgentIdentityRecord` now uses `withTaskFileLock` |
-| 4 | ~~Watchdog escalation progress.md race~~ **Fixed**; broader watchdog/build race open | ~~HIGH~~ | `reconciliation.ts` → `updateTaskFileWithProgress` |
+| 4 | ~~Watchdog and build agents race on task graph mutations~~ **Fixed** | ~~HIGH~~ | `reconciliation.ts` → `resolveStaleClaimByTask` + `updateTaskFileWithProgress` |
 | 5 | ~~Validation execution unverified~~ **Fixed (observability)** | ~~MEDIUM~~ | `reconciliation.ts` → non-blocking `validationRan` warning |
 | 6 | ~~Stale task context between prepare and execute~~ **Fixed** | ~~MEDIUM~~ | `iterationEngine.ts` → `StaleTaskContextError` guard |
 | 7 | ~~Ledger drift detected one cycle too late~~ **Fixed** | ~~MEDIUM~~ | `loopLogic.ts` + `reconciliation.ts` → immediate `inspectTaskGraph` check |

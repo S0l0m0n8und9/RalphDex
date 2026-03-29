@@ -33,6 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.clearScanCache = clearScanCache;
+exports.scanWorkspaceCached = scanWorkspaceCached;
 exports.scanWorkspace = scanWorkspace;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -272,6 +274,24 @@ async function chooseScanRoot(workspaceRootPath, options = {}) {
             override: resolvedOverride
         }
     };
+}
+// Session-scoped scan cache keyed by rootPath + inspectionRootOverride.
+const scanCache = new Map();
+function scanCacheKey(rootPath, override, focusPath) {
+    return `${rootPath}::${override ?? ''}::${focusPath ?? ''}`;
+}
+function clearScanCache() {
+    scanCache.clear();
+}
+async function scanWorkspaceCached(workspaceRootPath, workspaceName, options = {}) {
+    const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride, options.focusPath);
+    const cached = scanCache.get(key);
+    if (cached) {
+        return cached;
+    }
+    const result = await scanWorkspace(workspaceRootPath, workspaceName, options);
+    scanCache.set(key, result);
+    return result;
 }
 async function scanWorkspace(workspaceRootPath, workspaceName = path.basename(workspaceRootPath), options = {}) {
     const { selectedRootPath, rootSelection } = await chooseScanRoot(workspaceRootPath, options);

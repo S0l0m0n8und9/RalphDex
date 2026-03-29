@@ -306,6 +306,35 @@ async function chooseScanRoot(
   };
 }
 
+// Session-scoped scan cache keyed by rootPath + inspectionRootOverride.
+const scanCache = new Map<string, WorkspaceScan>();
+
+function scanCacheKey(rootPath: string, override: string | null | undefined, focusPath: string | null | undefined): string {
+  return `${rootPath}::${override ?? ''}::${focusPath ?? ''}`;
+}
+
+export function clearScanCache(): void {
+  scanCache.clear();
+}
+
+export async function scanWorkspaceCached(
+  workspaceRootPath: string,
+  workspaceName?: string,
+  options: {
+    focusPath?: string | null;
+    inspectionRootOverride?: string | null;
+  } = {}
+): Promise<WorkspaceScan> {
+  const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride, options.focusPath);
+  const cached = scanCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const result = await scanWorkspace(workspaceRootPath, workspaceName, options);
+  scanCache.set(key, result);
+  return result;
+}
+
 export async function scanWorkspace(
   workspaceRootPath: string,
   workspaceName = path.basename(workspaceRootPath),

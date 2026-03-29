@@ -107,6 +107,8 @@ export interface RalphCodexConfig {
   sandboxMode: CodexSandboxMode;
   openSidebarCommandId: string;
   newChatCommandId: string;
+  claimTtlHours: number;
+  staleLockThresholdMinutes: number;
   modelTiering: RalphModelTieringConfig;
   hooks: RalphHooksConfig;
 }

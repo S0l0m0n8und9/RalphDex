@@ -207,3 +207,36 @@ test('parseCompletionReport reports missing when no trailing report block exists
     parseError: null
   });
 });
+
+test('extractTrailingJsonObject handles escaped quotes inside JSON strings', () => {
+  const value = extractTrailingJsonObject(
+    'Result:\n{"note":"say \\"hi\\"","id":"T1","requestedStatus":"done"}'
+  );
+  assert.equal(
+    value,
+    '{"note":"say \\"hi\\"","id":"T1","requestedStatus":"done"}'
+  );
+});
+
+test('parseCompletionReport rejects suggestedChildTasks array exceeding size cap', () => {
+  const children = Array.from({ length: 11 }, (_, i) => ({
+    id: `T1.${i}`,
+    title: `Child ${i}`,
+    parentId: 'T1',
+    dependsOn: [],
+    validation: 'npm test',
+    rationale: 'Filler task.'
+  }));
+  const parsed = parseCompletionReport([
+    '```json',
+    JSON.stringify({
+      selectedTaskId: 'T1',
+      requestedStatus: 'in_progress',
+      suggestedChildTasks: children
+    }),
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+  assert.match(parsed.parseError ?? '', /suggestedChildTasks/);
+});

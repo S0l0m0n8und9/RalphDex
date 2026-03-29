@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
-import { CliSupportResult, CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
+import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
 import { pathExists, readJsonRecord } from '../util/fs';
 import { RalphWorkspaceFileStatus } from './stateManager';
 import { RalphTaskClaimGraphInspection, RalphTaskFileInspection } from './taskFile';

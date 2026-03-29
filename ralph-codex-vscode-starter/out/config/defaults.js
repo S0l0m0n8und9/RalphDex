@@ -43,6 +43,8 @@ exports.DEFAULT_CONFIG = {
     sandboxMode: 'workspace-write',
     openSidebarCommandId: 'claude.openSidebar',
     newChatCommandId: 'claude.newChat',
+    claimTtlHours: 24,
+    staleLockThresholdMinutes: 5,
     modelTiering: {
         enabled: false,
         simpleModel: 'claude-haiku-4-5-20251001',

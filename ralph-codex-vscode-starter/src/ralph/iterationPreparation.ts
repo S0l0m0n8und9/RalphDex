@@ -6,7 +6,7 @@ import { RalphCodexConfig } from '../config/types';
 import { buildPrompt, createPromptFileName, decidePromptKind } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
 import { runProcess } from '../services/processRunner';
-import { scanWorkspace } from '../services/workspaceScanner';
+import { scanWorkspace, scanWorkspaceCached } from '../services/workspaceScanner';
 import { inspectCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
@@ -116,7 +116,7 @@ export interface PreparedIterationContext extends PreparedPromptContext {
   };
 }
 
-export interface PreparedPrompt extends PreparedPromptContext {}
+export type PreparedPrompt = PreparedPromptContext;
 
 export interface PrepareIterationContextInput {
   workspaceFolder: vscode.WorkspaceFolder;
@@ -287,7 +287,7 @@ export async function prepareIterationContext(
       logger.warn('Failed to read task counts during iteration preparation.', { error: err });
       return null;
     }),
-    scanWorkspace(rootPath, workspaceFolder.name, {
+    scanWorkspaceCached(rootPath, workspaceFolder.name, {
       focusPath,
       inspectionRootOverride: config.inspectionRootOverride
     }),
@@ -382,7 +382,8 @@ export async function prepareIterationContext(
       taskFilePath: snapshot.paths.taskFilePath,
       claimFilePath: snapshot.paths.claimFilePath,
       artifactDir: snapshot.paths.artifactDir,
-      staleClaimTtlMs: config.watchdogStaleTtlMs
+      staleClaimTtlMs: config.claimTtlHours * 60 * 60 * 1000,
+      staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
     })
   ]);
   const preflightReport = buildPreflightReport({
@@ -620,7 +621,10 @@ async function selectClaimedTask(
       candidate.id,
       agentId,
       provenanceId,
-      claimBranches ?? undefined
+      {
+        ...(claimBranches ?? {}),
+        ttlMs: config.claimTtlHours * 60 * 60 * 1000
+      }
     );
     if (claimResult.outcome === 'acquired' || claimResult.outcome === 'already_held') {
       if (candidate.status === 'todo') {

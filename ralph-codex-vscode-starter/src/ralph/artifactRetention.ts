@@ -914,7 +914,7 @@ export async function cleanupGeneratedArtifacts(input: {
     summary.retainedHandoffFiles = inspection.handoffFiles
       .filter((entry) => retainedHandoffFiles.has(entry.name))
       .map((entry) => entry.name);
-  };
+  }
 
   return summary;
 }

@@ -37,8 +37,8 @@ exports.withFileLock = withFileLock;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const async_1 = require("./async");
-const DEFAULT_LOCK_RETRY_COUNT = 50;
-const DEFAULT_LOCK_RETRY_DELAY_MS = 25;
+const DEFAULT_LOCK_RETRY_COUNT = 120;
+const DEFAULT_LOCK_RETRY_DELAY_MS = 250;
 const DEFAULT_STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000;
 /**
  * Acquires an exclusive file lock at `lockPath`, runs `fn`, and releases the
