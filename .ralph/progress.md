@@ -149,3 +149,5 @@
 - Regression coverage and docs/workflows.md auto-reload section are in place; prior TypeScript blocker no longer exists; 347 tests pass.
 - Ledger-integrity gate fully operational: check-ledger.js validates tasks.json + claims.json drift, wired into npm run validate, regression tests cover all drift classes — exits 0 on current workspace
 - Added 3 regression tests for auto-remediation exclusion cases and documented autoApplyRemediation setting in docs/verifier.md and docs/workflows.md
+- Backlog exhausted after T49 (executionIntegrity.ts extraction) stopped with control_plane_reload_required. Replenished with T55–T57: unit tests for executionIntegrity.ts (no test file existed), further iterationEngine.ts decomposition to ≤1100 lines (still 1,178 post-T49), and PRD advancement to reflect the lifted multi-agent deferral milestone.
+- 11 executionIntegrity unit tests in place; fixed broken lint script (eslint not installed/configured — removed dead call); 411/411 tests pass, validate exits 0

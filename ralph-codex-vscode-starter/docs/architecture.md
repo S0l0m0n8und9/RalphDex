@@ -28,6 +28,7 @@ Related docs:
 - `src/ralph/verifier.ts`: validation-command, git/file-change, and task-state verifiers
 - `src/ralph/loopLogic.ts`: deterministic outcome classification and stop decisions
 - `src/ralph/integrity.ts`: prompt and artifact hashing helpers
+- `src/ralph/executionIntegrity.ts`: pre-execution integrity verification — execution-plan hash checking, prompt-artifact hash checking, stdin payload hash reconciliation, and integrity-failure/stale-task error types
 - `src/ralph/artifactStore.ts`: per-iteration artifacts, run-level provenance bundles, latest pointers, and retention cleanup, including newest-first generated-artifact retention that can add older protected references without displacing the retained window
 - `src/services/`: logging, process execution, Codex CLI support inspection, and shallow workspace scanning
 
@@ -52,7 +53,7 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 `src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
-`src/ralph/iterationEngine.ts` remains above the target line budget after parser, decomposition, and reconciliation extraction. The largest remaining follow-on candidate is the provenance-bundle and prepared-context assembly path, which still mixes bundle persistence, execution-plan wiring, and prompt-preparation orchestration in one module.
+`src/ralph/iterationEngine.ts` is within the target line budget. The execution-plan wiring (pre-execution integrity checks) has been extracted to `src/ralph/executionIntegrity.ts`. The primary remaining decomposition candidate is the provenance-bundle final assembly path (the `writeProvenanceBundle` call site and surrounding coordination), which still mixes persistence coordination and orchestration in one module.
 
 ## Runtime Constraints
 

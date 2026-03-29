@@ -108,7 +108,7 @@ function toRelativePath(rootPath: string, target: string | null | undefined): st
     return 'none';
   }
 
-  return path.relative(rootPath, target) || '.';
+  return (path.relative(rootPath, target) || '.').split(path.sep).join('/');
 }
 
 function clipText(text: string, maximumLines: number, maximumChars: number, fromEnd = false): string {

@@ -34,7 +34,8 @@
     "T39",
     "T32.3",
     "T28",
-    "T33.4"
+    "T33.4",
+    "T55"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -69,6 +70,8 @@
     ".ralph/state.lock",
     ".ralph/tasks.json",
     "ralph-codex-vscode-starter/.gitignore",
+    "ralph-codex-vscode-starter/AGENTS.md",
+    "ralph-codex-vscode-starter/docs/architecture.md",
     "ralph-codex-vscode-starter/docs/boundaries.md",
     "ralph-codex-vscode-starter/docs/invariants.md",
     "ralph-codex-vscode-starter/docs/prompt-calibration.md",
@@ -91,6 +94,8 @@
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js.map",
     "ralph-codex-vscode-starter/out/ralph/completionReportParser.js",
     "ralph-codex-vscode-starter/out/ralph/completionReportParser.js.map",
+    "ralph-codex-vscode-starter/out/ralph/executionIntegrity.js",
+    "ralph-codex-vscode-starter/out/ralph/executionIntegrity.js.map",
     "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
     "ralph-codex-vscode-starter/out/ralph/iterationEngine.js.map",
     "ralph-codex-vscode-starter/out/ralph/iterationPreparation.js",
@@ -129,6 +134,7 @@
     "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
     "ralph-codex-vscode-starter/src/ralph/artifactStore.ts",
     "ralph-codex-vscode-starter/src/ralph/completionReportParser.ts",
+    "ralph-codex-vscode-starter/src/ralph/executionIntegrity.ts",
     "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
     "ralph-codex-vscode-starter/src/ralph/iterationPreparation.ts",
     "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
@@ -146,6 +152,7 @@
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
     "ralph-codex-vscode-starter/test/completionReportParser.test.ts",
     "ralph-codex-vscode-starter/test/docsValidator.test.ts",
+    "ralph-codex-vscode-starter/test/executionIntegrity.test.ts",
     "ralph-codex-vscode-starter/test/fixtures/promptScenarios.ts",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/blockedTask.iteration.md",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/fixFailure.fix-failure.md",

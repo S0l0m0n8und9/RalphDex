@@ -38,7 +38,6 @@ const fs = __importStar(require("fs/promises"));
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const error_1 = require("../util/error");
 const iterationScm_1 = require("./iterationScm");
-const integrity_1 = require("./integrity");
 const iterationPreparation_1 = require("./iterationPreparation");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
@@ -50,6 +49,7 @@ const artifactStore_1 = require("./artifactStore");
 const reconciliation_1 = require("./reconciliation");
 const taskDecomposition_1 = require("./taskDecomposition");
 const provenancePersistence_1 = require("./provenancePersistence");
+const executionIntegrity_1 = require("./executionIntegrity");
 const EMPTY_GIT_STATUS = {
     available: false,
     raw: '',
@@ -138,114 +138,6 @@ async function autoApplyDecomposeTaskRemediation(input) {
 }
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
-}
-class RalphIntegrityFailureError extends Error {
-    details;
-    constructor(details) {
-        super(details.message);
-        this.details = details;
-        this.name = 'RalphIntegrityFailureError';
-    }
-}
-// Thrown inside the pre-exec integrity window when the selected task was already
-// completed by a concurrent agent between preparation and execution (gap 6).
-class StaleTaskContextError extends Error {
-    taskId;
-    constructor(taskId) {
-        super(`Task ${taskId} was already completed by a concurrent agent.`);
-        this.taskId = taskId;
-        this.name = 'StaleTaskContextError';
-    }
-}
-async function readVerifiedExecutionPlanArtifact(executionPlanPath, expectedExecutionPlanHash) {
-    const planText = await fs.readFile(executionPlanPath, 'utf8').catch((error) => {
-        throw new RalphIntegrityFailureError({
-            stage: 'executionPlanHash',
-            message: `Execution integrity check failed before launch: could not read execution plan ${executionPlanPath}: ${(0, error_1.toErrorMessage)(error)}`,
-            expectedExecutionPlanHash,
-            actualExecutionPlanHash: null,
-            expectedPromptHash: null,
-            actualPromptHash: null,
-            expectedPayloadHash: null,
-            actualPayloadHash: null
-        });
-    });
-    const actualExecutionPlanHash = (0, integrity_1.hashText)(planText);
-    if (actualExecutionPlanHash !== expectedExecutionPlanHash) {
-        throw new RalphIntegrityFailureError({
-            stage: 'executionPlanHash',
-            message: `Execution integrity check failed before launch: execution plan hash ${actualExecutionPlanHash} did not match expected plan hash ${expectedExecutionPlanHash}.`,
-            expectedExecutionPlanHash,
-            actualExecutionPlanHash,
-            expectedPromptHash: null,
-            actualPromptHash: null,
-            expectedPayloadHash: null,
-            actualPayloadHash: null
-        });
-    }
-    try {
-        return JSON.parse(planText);
-    }
-    catch (error) {
-        throw new RalphIntegrityFailureError({
-            stage: 'executionPlanHash',
-            message: `Execution integrity check failed before launch: could not parse execution plan ${executionPlanPath}: ${(0, error_1.toErrorMessage)(error)}`,
-            expectedExecutionPlanHash,
-            actualExecutionPlanHash,
-            expectedPromptHash: null,
-            actualPromptHash: null,
-            expectedPayloadHash: null,
-            actualPayloadHash: null
-        });
-    }
-}
-async function readVerifiedPromptArtifact(plan) {
-    const promptArtifactText = await fs.readFile(plan.promptArtifactPath, 'utf8').catch((error) => {
-        throw new RalphIntegrityFailureError({
-            stage: 'promptArtifactHash',
-            message: `Execution integrity check failed before launch: could not read prompt artifact ${plan.promptArtifactPath}: ${(0, error_1.toErrorMessage)(error)}`,
-            expectedExecutionPlanHash: null,
-            actualExecutionPlanHash: null,
-            expectedPromptHash: plan.promptHash,
-            actualPromptHash: null,
-            expectedPayloadHash: null,
-            actualPayloadHash: null
-        });
-    });
-    const artifactHash = (0, integrity_1.hashText)(promptArtifactText);
-    if (artifactHash !== plan.promptHash) {
-        throw new RalphIntegrityFailureError({
-            stage: 'promptArtifactHash',
-            message: `Execution integrity check failed before launch: prompt artifact hash ${artifactHash} did not match planned prompt hash ${plan.promptHash}.`,
-            expectedExecutionPlanHash: null,
-            actualExecutionPlanHash: null,
-            expectedPromptHash: plan.promptHash,
-            actualPromptHash: artifactHash,
-            expectedPayloadHash: null,
-            actualPayloadHash: null
-        });
-    }
-    return promptArtifactText;
-}
-function toIntegrityFailureError(error, prepared) {
-    if (error instanceof RalphIntegrityFailureError) {
-        return error;
-    }
-    const message = (0, error_1.toErrorMessage)(error);
-    const stdinHashMatch = message.match(/stdin payload hash (\S+) did not match planned prompt hash (\S+)\./);
-    if (stdinHashMatch) {
-        return new RalphIntegrityFailureError({
-            stage: 'stdinPayloadHash',
-            message,
-            expectedExecutionPlanHash: prepared.executionPlanHash,
-            actualExecutionPlanHash: prepared.executionPlanHash,
-            expectedPromptHash: prepared.executionPlan.promptHash,
-            actualPromptHash: prepared.executionPlan.promptHash,
-            expectedPayloadHash: stdinHashMatch[2],
-            actualPayloadHash: stdinHashMatch[1]
-        });
-    }
-    return null;
 }
 function runRecordFromIteration(mode, prepared, startedAt, result) {
     if (result.executionStatus === 'skipped') {
@@ -423,8 +315,8 @@ class RalphIterationEngine {
                     if (this.hooks.beforeCliExecutionIntegrityCheck) {
                         await this.hooks.beforeCliExecutionIntegrityCheck(prepared);
                     }
-                    const verifiedPlan = await readVerifiedExecutionPlanArtifact(prepared.executionPlanPath, prepared.executionPlanHash);
-                    const promptArtifactText = await readVerifiedPromptArtifact(verifiedPlan);
+                    const verifiedPlan = await (0, executionIntegrity_1.readVerifiedExecutionPlanArtifact)(prepared.executionPlanPath, prepared.executionPlanHash);
+                    const promptArtifactText = await (0, executionIntegrity_1.readVerifiedPromptArtifact)(verifiedPlan);
                     // Gap 6: Re-read the selected task status immediately before shelling out.
                     // Another agent may have completed this task in the window between
                     // prepareIterationContext (where the prompt was built) and now.
@@ -433,7 +325,7 @@ class RalphIterationEngine {
                     if (prepared.selectedTask) {
                         const freshTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(prepared.paths.taskFilePath, 'utf8')), prepared.selectedTask.id);
                         if (freshTask?.status === 'done') {
-                            throw new StaleTaskContextError(prepared.selectedTask.id);
+                            throw new executionIntegrity_1.StaleTaskContextError(prepared.selectedTask.id);
                         }
                     }
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
@@ -508,7 +400,7 @@ class RalphIterationEngine {
                     });
                 }
                 catch (error) {
-                    if (error instanceof StaleTaskContextError) {
+                    if (error instanceof executionIntegrity_1.StaleTaskContextError) {
                         // Gap 6: selected task was completed by a concurrent agent between
                         // prepare and execute.  Treat as a clean skip rather than a failure.
                         executionStatus = 'skipped';
@@ -517,7 +409,7 @@ class RalphIterationEngine {
                         phaseTimestamps.executionFinishedAt = new Date().toISOString();
                     }
                     else {
-                        const integrityFailure = toIntegrityFailureError(error, prepared);
+                        const integrityFailure = (0, executionIntegrity_1.toIntegrityFailureError)(error, prepared);
                         if (integrityFailure) {
                             phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
                             phaseTimestamps.executionFinishedAt = new Date().toISOString();

@@ -78,7 +78,7 @@ function toRelativePath(rootPath, target) {
     if (!target) {
         return 'none';
     }
-    return path.relative(rootPath, target) || '.';
+    return (path.relative(rootPath, target) || '.').split(path.sep).join('/');
 }
 function clipText(text, maximumLines, maximumChars, fromEnd = false) {
     const lines = text

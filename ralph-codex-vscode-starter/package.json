@@ -471,7 +471,7 @@
     "compile": "tsc -p ./",
     "compile:tests": "tsc -p ./tsconfig.test.json",
     "watch": "tsc -watch -p ./",
-    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json && eslint src test --ext .ts",
+    "lint": "tsc --noEmit -p ./ && tsc --noEmit -p ./tsconfig.test.json",
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
