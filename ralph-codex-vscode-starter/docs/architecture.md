@@ -25,6 +25,8 @@ Related docs:
 - `src/ralph/taskFile.ts`: explicit task-schema parsing, normalization, deterministic selection, graph diagnostics, and task-claim file coordination
 - `src/ralph/preflight.ts`: categorized readiness diagnostics before CLI execution
 - `src/ralph/iterationEngine.ts`: explicit Ralph loop orchestration
+- `src/ralph/cliOutputFormatter.ts`: claude stream-json event parsing and log-label formatting
+- `src/ralph/reviewPolicy.ts`: review-agent file-change anomaly detection and policy enforcement
 - `src/ralph/verifier.ts`: validation-command, git/file-change, and task-state verifiers
 - `src/ralph/loopLogic.ts`: deterministic outcome classification and stop decisions
 - `src/ralph/integrity.ts`: prompt and artifact hashing helpers
@@ -53,7 +55,7 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 `src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
-`src/ralph/iterationEngine.ts` is within the target line budget. The execution-plan wiring (pre-execution integrity checks) has been extracted to `src/ralph/executionIntegrity.ts`. The primary remaining decomposition candidate is the provenance-bundle final assembly path (the `writeProvenanceBundle` call site and surrounding coordination), which still mixes persistence coordination and orchestration in one module.
+`src/ralph/iterationEngine.ts` is within the target line budget (≤1100 lines). Stream-formatting helpers live in `src/ralph/cliOutputFormatter.ts`, auto-remediation helpers live in `src/ralph/taskDecomposition.ts`, and review-agent policy lives in `src/ralph/reviewPolicy.ts`.
 
 ## Runtime Constraints
 

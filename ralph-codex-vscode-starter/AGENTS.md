@@ -35,7 +35,9 @@ Ralph Codex Workbench is a VS Code extension that:
 - `src/prompt/promptBuilder.ts`: prompt-kind selection, template rendering, and prompt evidence
 - `src/ralph/iterationEngine.ts`: loop orchestration and phase order
 - `src/ralph/completionReportParser.ts`: completion-report parsing and structured extraction from Codex output
-- `src/ralph/taskDecomposition.ts`: remediation artifact shaping and deterministic child-task decomposition
+- `src/ralph/taskDecomposition.ts`: remediation artifact shaping, deterministic child-task decomposition, and auto-remediation application (mark_blocked, decompose_task)
+- `src/ralph/cliOutputFormatter.ts`: claude stream-json line formatting for log output
+- `src/ralph/reviewPolicy.ts`: review-agent file-change anomaly detection and policy enforcement
 - `src/ralph/reconciliation.ts`: completion-report reconciliation into task-state updates and warnings
 - `src/ralph/preflight.ts`: deterministic preflight diagnostics and blocking behavior
 - `src/ralph/taskFile.ts`: task schema, normalization, and deterministic selection

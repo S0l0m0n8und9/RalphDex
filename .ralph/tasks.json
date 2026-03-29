@@ -1876,11 +1876,11 @@
     {
       "id": "T56",
       "title": "Extract formatClaudeStreamLine and auto-remediation helpers from iterationEngine.ts (target ≤1100 lines)",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T55"
       ],
-      "notes": "iterationEngine.ts is 1,178 lines — above the T27 target of 1,073 and the result of post-T49 extraction still leaving inline helpers. Three cohesive groups are candidates: (1) formatClaudeStreamLine + ClaudeStreamEvent interface → new src/ralph/cliOutputFormatter.ts; (2) autoApplyMarkBlockedRemediation + autoApplyDecomposeTaskRemediation → move into src/ralph/taskDecomposition.ts alongside the existing buildRemediationArtifact and normalizeRemediationForTask helpers; (3) applyReviewAgentFileChangePolicy → consider co-locating with review-agent logic in src/ralph/iterationPreparation.ts or a new src/ralph/reviewPolicy.ts. After extraction update imports, code-owner entries in AGENTS.md, and architecture.md module map. Aim for iterationEngine.ts at or below 1,100 lines. Run npm run validate.",
+      "notes": "Extracted formatClaudeStreamLine+ClaudeStreamEvent to cliOutputFormatter.ts, autoApplyMarkBlockedRemediation+autoApplyDecomposeTaskRemediation to taskDecomposition.ts, and applyReviewAgentFileChangePolicy to reviewPolicy.ts; iterationEngine.ts now 1035 lines (target ≤1100); updated AGENTS.md and architecture.md",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1894,5 +1894,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     }
   ],
-  "mutationCount": 11
+  "mutationCount": 12
 }

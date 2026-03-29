@@ -35,7 +35,8 @@
     "T32.3",
     "T28",
     "T33.4",
-    "T55"
+    "T55",
+    "T56"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -92,6 +93,8 @@
     "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js.map",
+    "ralph-codex-vscode-starter/out/ralph/cliOutputFormatter.js",
+    "ralph-codex-vscode-starter/out/ralph/cliOutputFormatter.js.map",
     "ralph-codex-vscode-starter/out/ralph/completionReportParser.js",
     "ralph-codex-vscode-starter/out/ralph/completionReportParser.js.map",
     "ralph-codex-vscode-starter/out/ralph/executionIntegrity.js",
@@ -108,6 +111,8 @@
     "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
     "ralph-codex-vscode-starter/out/ralph/reconciliation.js",
     "ralph-codex-vscode-starter/out/ralph/reconciliation.js.map",
+    "ralph-codex-vscode-starter/out/ralph/reviewPolicy.js",
+    "ralph-codex-vscode-starter/out/ralph/reviewPolicy.js.map",
     "ralph-codex-vscode-starter/out/ralph/stateManager.js",
     "ralph-codex-vscode-starter/out/ralph/stateManager.js.map",
     "ralph-codex-vscode-starter/out/ralph/statusReport.js",
@@ -133,6 +138,7 @@
     "ralph-codex-vscode-starter/src/extension.ts",
     "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
     "ralph-codex-vscode-starter/src/ralph/artifactStore.ts",
+    "ralph-codex-vscode-starter/src/ralph/cliOutputFormatter.ts",
     "ralph-codex-vscode-starter/src/ralph/completionReportParser.ts",
     "ralph-codex-vscode-starter/src/ralph/executionIntegrity.ts",
     "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
@@ -141,6 +147,7 @@
     "ralph-codex-vscode-starter/src/ralph/pathResolver.ts",
     "ralph-codex-vscode-starter/src/ralph/preflight.ts",
     "ralph-codex-vscode-starter/src/ralph/reconciliation.ts",
+    "ralph-codex-vscode-starter/src/ralph/reviewPolicy.ts",
     "ralph-codex-vscode-starter/src/ralph/stateManager.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/src/ralph/taskDecomposition.ts",

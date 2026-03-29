@@ -48,6 +48,8 @@ const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
 const reconciliation_1 = require("./reconciliation");
 const taskDecomposition_1 = require("./taskDecomposition");
+const cliOutputFormatter_1 = require("./cliOutputFormatter");
+const reviewPolicy_1 = require("./reviewPolicy");
 const provenancePersistence_1 = require("./provenancePersistence");
 const executionIntegrity_1 = require("./executionIntegrity");
 const EMPTY_GIT_STATUS = {
@@ -55,40 +57,6 @@ const EMPTY_GIT_STATUS = {
     raw: '',
     entries: []
 };
-function formatClaudeStreamLine(line) {
-    if (!line) {
-        return null;
-    }
-    try {
-        const event = JSON.parse(line);
-        switch (event.type) {
-            case 'assistant': {
-                const content = event.message?.content ?? [];
-                const toolUses = content.filter((c) => c.type === 'tool_use').map((c) => c.name ?? 'tool');
-                if (toolUses.length > 0) {
-                    return `claude [tool_use]: ${toolUses.join(', ')}`;
-                }
-                const textItem = content.find((c) => c.type === 'text');
-                if (textItem?.text) {
-                    const firstLine = textItem.text.trim().split('\n')[0].slice(0, 120);
-                    return firstLine ? `claude: ${firstLine}` : null;
-                }
-                return null;
-            }
-            case 'result': {
-                const status = event.is_error ? 'error' : (event.subtype ?? 'done');
-                const turns = event.num_turns != null ? ` (${event.num_turns} turns)` : '';
-                const cost = event.cost_usd != null ? ` $${event.cost_usd.toFixed(4)}` : '';
-                return `claude [result]: ${status}${turns}${cost}`;
-            }
-            default:
-                return null;
-        }
-    }
-    catch {
-        return null;
-    }
-}
 function summarizeLastMessage(lastMessage, exitCode) {
     return lastMessage
         .split('\n')
@@ -106,35 +74,6 @@ function controlPlaneRuntimeChanges(changedFiles) {
         }
     }
     return Array.from(matches).sort();
-}
-async function autoApplyMarkBlockedRemediation(input) {
-    const locked = await (0, taskFile_1.withTaskFileLock)(input.taskFilePath, undefined, async () => {
-        const taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
-        const nextTaskFile = {
-            ...taskFile,
-            tasks: taskFile.tasks.map((task) => (task.id === input.taskId
-                ? {
-                    ...task,
-                    status: 'blocked',
-                    blocker: input.blocker
-                }
-                : task))
-        };
-        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
-        return nextTaskFile;
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
-    const updatedTask = locked.value.tasks.find((task) => task.id === input.taskId);
-    if (!updatedTask) {
-        throw new Error(`Task ${input.taskId} was not found in tasks.json while auto-applying mark_blocked remediation.`);
-    }
-    return locked.value;
-}
-async function autoApplyDecomposeTaskRemediation(input) {
-    const applied = await (0, taskDecomposition_1.applyTaskDecompositionProposalArtifact)(input.taskFilePath, input.remediationArtifact);
-    return applied.taskFile;
 }
 function isBacklogExhausted(taskCounts) {
     return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
@@ -157,38 +96,6 @@ function runRecordFromIteration(mode, prepared, startedAt, result) {
         transcriptPath: result.execution.transcriptPath,
         lastMessagePath: result.execution.lastMessagePath,
         summary: result.summary
-    };
-}
-function uniqueSorted(values) {
-    return Array.from(new Set(values.filter((value) => value.trim().length > 0))).sort((left, right) => left.localeCompare(right));
-}
-function applyReviewAgentFileChangePolicy(input) {
-    const relevantChangedFiles = input.fileChangeVerification.diffSummary?.relevantChangedFiles ?? [];
-    if (input.agentRole !== 'review' || relevantChangedFiles.length === 0) {
-        return {
-            fileChangeVerification: input.fileChangeVerification,
-            relevantFileChangesForOutcome: relevantChangedFiles
-        };
-    }
-    const anomaly = `Review-agent anomaly: detected source-file modifications during a review-only pass (${relevantChangedFiles.join(', ')}).`;
-    return {
-        fileChangeVerification: {
-            ...input.fileChangeVerification,
-            result: {
-                ...input.fileChangeVerification.result,
-                status: 'failed',
-                summary: `Review-agent anomaly: detected ${relevantChangedFiles.length} relevant workspace change(s) during a review-only pass.`,
-                warnings: uniqueSorted([
-                    ...input.fileChangeVerification.result.warnings,
-                    anomaly
-                ]),
-                errors: uniqueSorted([
-                    ...input.fileChangeVerification.result.errors,
-                    'Review agents must not modify source files during review-only execution.'
-                ])
-            }
-        },
-        relevantFileChangesForOutcome: []
     };
 }
 class RalphIterationEngine {
@@ -352,7 +259,7 @@ class RalphIterationEngine {
                                 const lines = claudeLineBuffer.split('\n');
                                 claudeLineBuffer = lines.pop() ?? '';
                                 for (const line of lines) {
-                                    const label = formatClaudeStreamLine(line.trim());
+                                    const label = (0, cliOutputFormatter_1.formatClaudeStreamLine)(line.trim());
                                     if (label) {
                                         this.logger.appendText(label);
                                     }
@@ -506,7 +413,7 @@ class RalphIterationEngine {
                         errors: []
                     }
                 };
-            const roleAdjustedFileChange = applyReviewAgentFileChangePolicy({
+            const roleAdjustedFileChange = (0, reviewPolicy_1.applyReviewAgentFileChangePolicy)({
                 agentRole: prepared.config.agentRole,
                 fileChangeVerification
             });
@@ -773,7 +680,7 @@ class RalphIterationEngine {
                 && result.selectedTaskId
                 && prepared.config.autoApplyRemediation.includes('mark_blocked')) {
                 try {
-                    _effectiveTaskFile = await autoApplyMarkBlockedRemediation({
+                    _effectiveTaskFile = await (0, taskDecomposition_1.autoApplyMarkBlockedRemediation)({
                         taskFilePath: prepared.paths.taskFilePath,
                         taskId: result.selectedTaskId,
                         blocker: result.remediation.summary
@@ -802,7 +709,7 @@ class RalphIterationEngine {
                 }
                 else {
                     try {
-                        _effectiveTaskFile = await autoApplyDecomposeTaskRemediation({
+                        _effectiveTaskFile = await (0, taskDecomposition_1.autoApplyDecomposeTaskRemediation)({
                             taskFilePath: prepared.paths.taskFilePath,
                             remediationArtifact: remediationArtifact
                         });

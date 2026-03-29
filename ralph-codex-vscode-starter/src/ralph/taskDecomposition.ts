@@ -1,3 +1,4 @@
+import * as fs from 'fs/promises';
 import {
   RalphIterationResult,
   RalphSuggestedChildTask,
@@ -6,7 +7,7 @@ import {
   RalphTaskRemediationArtifact,
   RalphTaskRemediationHistoryEntry
 } from './types';
-import { applySuggestedChildTasksToFile, findTaskById } from './taskFile';
+import { applySuggestedChildTasksToFile, findTaskById, parseTaskFile, stringifyTaskFile, withTaskFileLock } from './taskFile';
 
 const MAX_REMEDIATION_CHILD_TASKS = 3;
 
@@ -331,4 +332,50 @@ export function remediationRationale(result: RalphIterationResult): string {
 
 export function remediationSummary(result: RalphIterationResult): string | null {
   return result.remediation?.summary ?? null;
+}
+
+export async function autoApplyMarkBlockedRemediation(input: {
+  taskFilePath: string;
+  taskId: string;
+  blocker: string;
+}): Promise<RalphTaskFile> {
+  const locked = await withTaskFileLock(input.taskFilePath, undefined, async () => {
+    const taskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+    const nextTaskFile: RalphTaskFile = {
+      ...taskFile,
+      tasks: taskFile.tasks.map((task) => (
+        task.id === input.taskId
+          ? {
+            ...task,
+            status: 'blocked',
+            blocker: input.blocker
+          }
+          : task
+      ))
+    };
+
+    await fs.writeFile(input.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    return nextTaskFile;
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+
+  const updatedTask = locked.value.tasks.find((task) => task.id === input.taskId);
+  if (!updatedTask) {
+    throw new Error(`Task ${input.taskId} was not found in tasks.json while auto-applying mark_blocked remediation.`);
+  }
+
+  return locked.value;
+}
+
+export async function autoApplyDecomposeTaskRemediation(input: {
+  taskFilePath: string;
+  remediationArtifact: NonNullable<RalphTaskRemediationArtifact>;
+}): Promise<RalphTaskFile> {
+  const applied = await applyTaskDecompositionProposalArtifact(input.taskFilePath, input.remediationArtifact);
+  return applied.taskFile;
 }

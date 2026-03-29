@@ -20,7 +20,6 @@ import {
   RalphRunMode,
   RalphRunRecord,
   RalphTaskRemediationArtifact,
-  RalphTaskFile,
   RalphTaskCounts,
 } from './types';
 import {
@@ -30,8 +29,6 @@ import {
   releaseClaim,
   remainingSubtasks,
   selectNextTask,
-  stringifyTaskFile,
-  withTaskFileLock
 } from './taskFile';
 import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
 import { selectModelForTask } from './complexityScorer';
@@ -52,10 +49,13 @@ import {
 } from './artifactStore';
 import { reconcileCompletionReport } from './reconciliation';
 import {
-  applyTaskDecompositionProposalArtifact,
+  autoApplyDecomposeTaskRemediation,
+  autoApplyMarkBlockedRemediation,
   buildRemediationArtifact,
   normalizeRemediationForTask
 } from './taskDecomposition';
+import { formatClaudeStreamLine } from './cliOutputFormatter';
+import { applyReviewAgentFileChangePolicy } from './reviewPolicy';
 import {
   createProvenanceBundle,
   persistPreparedProvenanceBundle,
@@ -80,56 +80,6 @@ const EMPTY_GIT_STATUS: GitStatusSnapshot = {
   raw: '',
   entries: []
 };
-
-// ---------------------------------------------------------------------------
-// Claude stream-json output formatter
-// ---------------------------------------------------------------------------
-
-interface ClaudeStreamEvent {
-  type?: string;
-  subtype?: string;
-  is_error?: boolean;
-  result?: string;
-  cost_usd?: number;
-  num_turns?: number;
-  message?: {
-    content?: Array<{ type: string; text?: string; name?: string }>;
-  };
-}
-
-function formatClaudeStreamLine(line: string): string | null {
-  if (!line) {
-    return null;
-  }
-  try {
-    const event = JSON.parse(line) as ClaudeStreamEvent;
-    switch (event.type) {
-      case 'assistant': {
-        const content = event.message?.content ?? [];
-        const toolUses = content.filter((c) => c.type === 'tool_use').map((c) => c.name ?? 'tool');
-        if (toolUses.length > 0) {
-          return `claude [tool_use]: ${toolUses.join(', ')}`;
-        }
-        const textItem = content.find((c) => c.type === 'text');
-        if (textItem?.text) {
-          const firstLine = textItem.text.trim().split('\n')[0].slice(0, 120);
-          return firstLine ? `claude: ${firstLine}` : null;
-        }
-        return null;
-      }
-      case 'result': {
-        const status = event.is_error ? 'error' : (event.subtype ?? 'done');
-        const turns = event.num_turns != null ? ` (${event.num_turns} turns)` : '';
-        const cost = event.cost_usd != null ? ` $${event.cost_usd.toFixed(4)}` : '';
-        return `claude [result]: ${status}${turns}${cost}`;
-      }
-      default:
-        return null;
-    }
-  } catch {
-    return null;
-  }
-}
 
 export interface RalphIterationEngineHooks {
   beforeCliExecutionIntegrityCheck?: (prepared: PreparedIterationContext) => Promise<void>;
@@ -164,52 +114,6 @@ function controlPlaneRuntimeChanges(changedFiles: string[]): string[] {
   return Array.from(matches).sort();
 }
 
-async function autoApplyMarkBlockedRemediation(input: {
-  taskFilePath: string;
-  taskId: string;
-  blocker: string;
-}): Promise<RalphTaskFile> {
-  const locked = await withTaskFileLock(input.taskFilePath, undefined, async () => {
-    const taskFile = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
-    const nextTaskFile: RalphTaskFile = {
-      ...taskFile,
-      tasks: taskFile.tasks.map((task) => (
-        task.id === input.taskId
-          ? {
-            ...task,
-            status: 'blocked',
-            blocker: input.blocker
-          }
-          : task
-      ))
-    };
-
-    await fs.writeFile(input.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
-    return nextTaskFile;
-  });
-
-  if (locked.outcome === 'lock_timeout') {
-    throw new Error(
-      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
-    );
-  }
-
-  const updatedTask = locked.value.tasks.find((task) => task.id === input.taskId);
-  if (!updatedTask) {
-    throw new Error(`Task ${input.taskId} was not found in tasks.json while auto-applying mark_blocked remediation.`);
-  }
-
-  return locked.value;
-}
-
-async function autoApplyDecomposeTaskRemediation(input: {
-  taskFilePath: string;
-  remediationArtifact: NonNullable<RalphTaskRemediationArtifact>;
-}): Promise<RalphTaskFile> {
-  const applied = await applyTaskDecompositionProposalArtifact(input.taskFilePath, input.remediationArtifact);
-  return applied.taskFile;
-}
-
 function isBacklogExhausted(taskCounts: RalphTaskCounts): boolean {
   return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
 }
@@ -238,53 +142,6 @@ function runRecordFromIteration(
     transcriptPath: result.execution.transcriptPath,
     lastMessagePath: result.execution.lastMessagePath,
     summary: result.summary
-  };
-}
-
-function uniqueSorted(values: readonly string[]): string[] {
-  return Array.from(new Set(values.filter((value) => value.trim().length > 0))).sort((left, right) => left.localeCompare(right));
-}
-
-function applyReviewAgentFileChangePolicy(input: {
-  agentRole: PreparedIterationContext['config']['agentRole'];
-  fileChangeVerification: {
-    diffSummary: RalphDiffSummary | null;
-    result: RalphIterationResult['verification']['verifiers'][number];
-  };
-}): {
-  fileChangeVerification: {
-    diffSummary: RalphDiffSummary | null;
-    result: RalphIterationResult['verification']['verifiers'][number];
-  };
-  relevantFileChangesForOutcome: string[];
-} {
-  const relevantChangedFiles = input.fileChangeVerification.diffSummary?.relevantChangedFiles ?? [];
-  if (input.agentRole !== 'review' || relevantChangedFiles.length === 0) {
-    return {
-      fileChangeVerification: input.fileChangeVerification,
-      relevantFileChangesForOutcome: relevantChangedFiles
-    };
-  }
-
-  const anomaly = `Review-agent anomaly: detected source-file modifications during a review-only pass (${relevantChangedFiles.join(', ')}).`;
-  return {
-    fileChangeVerification: {
-      ...input.fileChangeVerification,
-      result: {
-        ...input.fileChangeVerification.result,
-        status: 'failed',
-        summary: `Review-agent anomaly: detected ${relevantChangedFiles.length} relevant workspace change(s) during a review-only pass.`,
-        warnings: uniqueSorted([
-          ...input.fileChangeVerification.result.warnings,
-          anomaly
-        ]),
-        errors: uniqueSorted([
-          ...input.fileChangeVerification.result.errors,
-          'Review agents must not modify source files during review-only execution.'
-        ])
-      }
-    },
-    relevantFileChangesForOutcome: []
   };
 }
 
