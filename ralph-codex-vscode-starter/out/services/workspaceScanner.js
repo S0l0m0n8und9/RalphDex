@@ -277,14 +277,14 @@ async function chooseScanRoot(workspaceRootPath, options = {}) {
 }
 // Session-scoped scan cache keyed by rootPath + inspectionRootOverride.
 const scanCache = new Map();
-function scanCacheKey(rootPath, override) {
-    return `${rootPath}::${override ?? ''}`;
+function scanCacheKey(rootPath, override, focusPath) {
+    return `${rootPath}::${override ?? ''}::${focusPath ?? ''}`;
 }
 function clearScanCache() {
     scanCache.clear();
 }
 async function scanWorkspaceCached(workspaceRootPath, workspaceName, options = {}) {
-    const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride);
+    const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride, options.focusPath);
     const cached = scanCache.get(key);
     if (cached) {
         return cached;

@@ -74,12 +74,14 @@ export async function runProcess(command: string, args: string[], options: Proce
     let timedOut = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
+    let exited = false;
+
     if (options.timeoutMs !== undefined && options.timeoutMs > 0) {
       timer = setTimeout(() => {
         timedOut = true;
         child.kill('SIGTERM');
         setTimeout(() => {
-          if (!child.killed) {
+          if (!exited) {
             child.kill('SIGKILL');
           }
         }, 5000);
@@ -103,6 +105,7 @@ export async function runProcess(command: string, args: string[], options: Proce
       reject(new ProcessLaunchError(command, args, error));
     });
     child.on('close', (code) => {
+      exited = true;
       if (timer) { clearTimeout(timer); }
       if (timedOut) {
         reject(new ProcessTimeoutError(command, args, options.timeoutMs!));

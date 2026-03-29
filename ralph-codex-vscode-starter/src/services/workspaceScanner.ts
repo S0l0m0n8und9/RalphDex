@@ -309,8 +309,8 @@ async function chooseScanRoot(
 // Session-scoped scan cache keyed by rootPath + inspectionRootOverride.
 const scanCache = new Map<string, WorkspaceScan>();
 
-function scanCacheKey(rootPath: string, override: string | null | undefined): string {
-  return `${rootPath}::${override ?? ''}`;
+function scanCacheKey(rootPath: string, override: string | null | undefined, focusPath: string | null | undefined): string {
+  return `${rootPath}::${override ?? ''}::${focusPath ?? ''}`;
 }
 
 export function clearScanCache(): void {
@@ -325,7 +325,7 @@ export async function scanWorkspaceCached(
     inspectionRootOverride?: string | null;
   } = {}
 ): Promise<WorkspaceScan> {
-  const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride);
+  const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride, options.focusPath);
   const cached = scanCache.get(key);
   if (cached) {
     return cached;
