@@ -475,10 +475,11 @@
     "check:docs": "node ./scripts/check-docs.js",
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
+    "check:prompt-budget": "node ./scripts/validate-prompt-budget.js",
     "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",
-    "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run lint && npm run test",
+    "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
     "package": "npm run check:runtime && vsce package --no-dependencies"

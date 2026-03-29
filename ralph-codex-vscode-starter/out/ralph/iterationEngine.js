@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphIterationEngine = void 0;
 const fs = __importStar(require("fs/promises"));
-const path = __importStar(require("path"));
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const error_1 = require("../util/error");
 const iterationScm_1 = require("./iterationScm");
@@ -50,19 +49,12 @@ const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
 const reconciliation_1 = require("./reconciliation");
 const taskDecomposition_1 = require("./taskDecomposition");
+const provenancePersistence_1 = require("./provenancePersistence");
 const EMPTY_GIT_STATUS = {
     available: false,
     raw: '',
     entries: []
 };
-const CLEAN_TERMINAL_HANDOFF_STOP_REASONS = new Set([
-    'task_marked_complete',
-    'iteration_cap_reached',
-    'control_plane_reload_required',
-    'human_review_needed',
-    'no_actionable_task',
-    'verification_passed_no_remaining_subtasks'
-]);
 function formatClaudeStreamLine(line) {
     if (!line) {
         return null;
@@ -307,91 +299,6 @@ function applyReviewAgentFileChangePolicy(input) {
         relevantFileChangesForOutcome: []
     };
 }
-function isCleanTerminalHandoffStopReason(stopReason) {
-    return typeof stopReason === 'string' && CLEAN_TERMINAL_HANDOFF_STOP_REASONS.has(stopReason);
-}
-function buildHandoffHumanSummary(note) {
-    const taskLabel = note.selectedTaskId
-        ? `${note.selectedTaskId}${note.selectedTaskTitle ? ` (${note.selectedTaskTitle})` : ''}`
-        : 'No selected task';
-    const detail = note.progressNote
-        ?? note.pendingBlocker
-        ?? note.validationFailureSignature
-        ?? note.completionClassification;
-    return `${taskLabel} stopped with ${note.stopReason}. ${detail}`.trim();
-}
-async function writeAtomicJsonFile(targetPath, value) {
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    const temporaryPath = `${targetPath}.tmp`;
-    await fs.writeFile(temporaryPath, (0, integrity_1.stableJson)(value), 'utf8');
-    await fs.rename(temporaryPath, targetPath);
-}
-function normalizeAgentIdentityRecord(candidate, agentId, firstSeenAt) {
-    if (typeof candidate !== 'object' || candidate === null) {
-        return {
-            agentId,
-            firstSeenAt,
-            completedTaskIds: [],
-            touchedFiles: []
-        };
-    }
-    const record = candidate;
-    const completedTaskIds = Array.isArray(record.completedTaskIds)
-        ? record.completedTaskIds.filter((item) => typeof item === 'string')
-        : [];
-    const touchedFiles = Array.isArray(record.touchedFiles)
-        ? record.touchedFiles.filter((item) => typeof item === 'string')
-        : [];
-    return {
-        agentId,
-        firstSeenAt: typeof record.firstSeenAt === 'string' && record.firstSeenAt.trim().length > 0
-            ? record.firstSeenAt
-            : firstSeenAt,
-        completedTaskIds,
-        touchedFiles
-    };
-}
-async function updateAgentIdentityRecord(input) {
-    const agentDirectoryPath = path.join(input.rootPath, '.ralph', 'agents');
-    const recordPath = path.join(agentDirectoryPath, `${input.agentId}.json`);
-    // Wrap the entire read-compute-write cycle in withTaskFileLock so that concurrent agents
-    // sharing the same agentId serialise on .ralph/agents/tasks.lock instead of racing.
-    // The temp-file rename is kept for crash safety; the lock eliminates the TOCTOU race.
-    await fs.mkdir(agentDirectoryPath, { recursive: true });
-    const locked = await (0, taskFile_1.withTaskFileLock)(recordPath, undefined, async () => {
-        let existing = null;
-        try {
-            existing = JSON.parse(await fs.readFile(recordPath, 'utf8'));
-        }
-        catch (error) {
-            const code = error.code;
-            if (code !== 'ENOENT') {
-                throw error;
-            }
-        }
-        const record = normalizeAgentIdentityRecord(existing, input.agentId, input.startedAt);
-        const completedTaskIds = [...record.completedTaskIds];
-        if (input.selectedTaskCompleted && input.selectedTaskId) {
-            completedTaskIds.push(input.selectedTaskId);
-        }
-        const nextRecord = {
-            agentId: input.agentId,
-            firstSeenAt: record.firstSeenAt,
-            completedTaskIds,
-            touchedFiles: uniqueSorted([
-                ...record.touchedFiles,
-                ...(input.diffSummary?.changedFiles ?? [])
-            ])
-        };
-        const tempPath = path.join(agentDirectoryPath, `${input.agentId}.${process.pid}.${Date.now()}.tmp`);
-        await fs.writeFile(tempPath, `${JSON.stringify(nextRecord, null, 2)}\n`, 'utf8');
-        await fs.rm(recordPath, { force: true });
-        await fs.rename(tempPath, recordPath);
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring agent record lock for ${input.agentId} after ${locked.attempts} attempt(s).`);
-    }
-}
 class RalphIterationEngine {
     stateManager;
     strategies;
@@ -403,223 +310,6 @@ class RalphIterationEngine {
         this.logger = logger;
         this.hooks = hooks;
     }
-    createProvenanceBundle(input) {
-        const { prepared, status, summary, executionPayloadHash = null, executionPayloadMatched = null, mismatchReason = null, cliInvocationPath = null, iterationResultPath = null, provenanceFailurePath = null, provenanceFailureSummaryPath = null } = input;
-        return {
-            schemaVersion: 1,
-            kind: 'provenanceBundle',
-            agentId: prepared.config.agentId,
-            provenanceId: prepared.provenanceId,
-            iteration: prepared.iteration,
-            promptKind: prepared.promptKind,
-            promptTarget: prepared.promptTarget,
-            trustLevel: prepared.trustLevel,
-            status,
-            summary,
-            rootPolicy: prepared.rootPolicy,
-            selectedTaskId: prepared.selectedTask?.id ?? null,
-            selectedTaskTitle: prepared.selectedTask?.title ?? null,
-            artifactDir: (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration).directory,
-            bundleDir: prepared.provenanceBundlePaths.directory,
-            preflightReportPath: prepared.provenanceBundlePaths.preflightReportPath,
-            preflightSummaryPath: prepared.provenanceBundlePaths.preflightSummaryPath,
-            promptArtifactPath: prepared.provenanceBundlePaths.promptPath,
-            promptEvidencePath: prepared.provenanceBundlePaths.promptEvidencePath,
-            executionPlanPath: prepared.provenanceBundlePaths.executionPlanPath,
-            executionPlanHash: prepared.executionPlanHash,
-            cliInvocationPath,
-            iterationResultPath,
-            provenanceFailurePath,
-            provenanceFailureSummaryPath,
-            promptHash: prepared.executionPlan.promptHash,
-            promptByteLength: prepared.executionPlan.promptByteLength,
-            executionPayloadHash,
-            executionPayloadMatched,
-            mismatchReason,
-            createdAt: prepared.executionPlan.createdAt,
-            updatedAt: new Date().toISOString()
-        };
-    }
-    async persistPreparedProvenanceBundle(prepared) {
-        const bundle = this.createProvenanceBundle({
-            prepared,
-            status: prepared.promptTarget === 'cliExec' ? 'prepared' : 'prepared',
-            summary: prepared.promptTarget === 'cliExec'
-                ? 'Prepared CLI execution provenance bundle.'
-                : 'Prepared prompt provenance bundle for IDE handoff.'
-        });
-        const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
-            artifactRootDir: prepared.paths.artifactDir,
-            paths: prepared.provenanceBundlePaths,
-            bundle,
-            preflightReport: prepared.persistedPreflightReport,
-            preflightSummary: prepared.preflightSummaryText,
-            prompt: prepared.prompt,
-            promptEvidence: prepared.promptEvidence,
-            executionPlan: prepared.executionPlan,
-            retentionCount: prepared.config.provenanceBundleRetentionCount
-        });
-        if (writeResult.retention.deletedBundleIds.length > 0) {
-            this.logger.info('Cleaned up old Ralph provenance bundles after prepare.', {
-                deletedBundleIds: writeResult.retention.deletedBundleIds,
-                retentionCount: prepared.config.provenanceBundleRetentionCount
-            });
-        }
-        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'prepare');
-    }
-    async persistBlockedPreflightBundle(input) {
-        const provenanceBundlePaths = (0, artifactStore_1.resolveProvenanceBundlePaths)(input.paths.artifactDir, input.provenanceId);
-        const bundle = {
-            schemaVersion: 1,
-            kind: 'provenanceBundle',
-            agentId: input.persistedPreflightReport.agentId,
-            provenanceId: input.provenanceId,
-            iteration: input.iteration,
-            promptKind: input.promptKind,
-            promptTarget: input.promptTarget,
-            trustLevel: input.trustLevel,
-            status: 'blocked',
-            summary: input.persistedPreflightReport.summary,
-            rootPolicy: input.rootPolicy,
-            selectedTaskId: input.selectedTask?.id ?? null,
-            selectedTaskTitle: input.selectedTask?.title ?? null,
-            artifactDir: (0, artifactStore_1.resolveIterationArtifactPaths)(input.paths.artifactDir, input.iteration).directory,
-            bundleDir: provenanceBundlePaths.directory,
-            preflightReportPath: provenanceBundlePaths.preflightReportPath,
-            preflightSummaryPath: provenanceBundlePaths.preflightSummaryPath,
-            promptArtifactPath: null,
-            promptEvidencePath: null,
-            executionPlanPath: null,
-            executionPlanHash: null,
-            cliInvocationPath: null,
-            iterationResultPath: null,
-            provenanceFailurePath: null,
-            provenanceFailureSummaryPath: null,
-            promptHash: null,
-            promptByteLength: null,
-            executionPayloadHash: null,
-            executionPayloadMatched: null,
-            mismatchReason: null,
-            createdAt: input.persistedPreflightReport.createdAt,
-            updatedAt: new Date().toISOString()
-        };
-        const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
-            artifactRootDir: input.paths.artifactDir,
-            paths: provenanceBundlePaths,
-            bundle,
-            preflightReport: input.persistedPreflightReport,
-            preflightSummary: input.preflightSummaryText,
-            retentionCount: input.provenanceRetentionCount
-        });
-        if (writeResult.retention.deletedBundleIds.length > 0) {
-            this.logger.info('Cleaned up old Ralph provenance bundles after blocked preflight.', {
-                deletedBundleIds: writeResult.retention.deletedBundleIds
-            });
-        }
-        await this.cleanupGeneratedArtifacts(input.paths, input.generatedArtifactRetentionCount, 'blocked preflight');
-    }
-    async persistIntegrityFailureBundle(prepared, failureError) {
-        const failure = {
-            schemaVersion: 1,
-            kind: 'integrityFailure',
-            provenanceId: prepared.provenanceId,
-            iteration: prepared.iteration,
-            promptKind: prepared.promptKind,
-            promptTarget: prepared.promptTarget,
-            trustLevel: prepared.trustLevel,
-            stage: failureError.details.stage,
-            blocked: true,
-            summary: `Blocked before launch because ${failureError.details.stage} verification failed.`,
-            message: failureError.details.message,
-            artifactDir: (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration).directory,
-            executionPlanPath: prepared.executionPlanPath,
-            promptArtifactPath: prepared.executionPlan.promptArtifactPath,
-            cliInvocationPath: null,
-            expectedExecutionPlanHash: failureError.details.expectedExecutionPlanHash,
-            actualExecutionPlanHash: failureError.details.actualExecutionPlanHash,
-            expectedPromptHash: failureError.details.expectedPromptHash,
-            actualPromptHash: failureError.details.actualPromptHash,
-            expectedPayloadHash: failureError.details.expectedPayloadHash,
-            actualPayloadHash: failureError.details.actualPayloadHash,
-            createdAt: new Date().toISOString()
-        };
-        const bundle = this.createProvenanceBundle({
-            prepared,
-            status: 'blocked',
-            summary: failure.summary,
-            executionPayloadHash: failure.actualPayloadHash,
-            executionPayloadMatched: false,
-            mismatchReason: failure.message,
-            provenanceFailurePath: prepared.provenanceBundlePaths.provenanceFailurePath,
-            provenanceFailureSummaryPath: prepared.provenanceBundlePaths.provenanceFailureSummaryPath
-        });
-        const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
-            artifactRootDir: prepared.paths.artifactDir,
-            paths: prepared.provenanceBundlePaths,
-            bundle,
-            preflightReport: prepared.persistedPreflightReport,
-            preflightSummary: prepared.preflightSummaryText,
-            prompt: prepared.prompt,
-            promptEvidence: prepared.promptEvidence,
-            executionPlan: prepared.executionPlan,
-            failure,
-            retentionCount: prepared.config.provenanceBundleRetentionCount
-        });
-        if (writeResult.retention.deletedBundleIds.length > 0) {
-            this.logger.info('Cleaned up old Ralph provenance bundles after integrity failure.', {
-                deletedBundleIds: writeResult.retention.deletedBundleIds,
-                retentionCount: prepared.config.provenanceBundleRetentionCount
-            });
-        }
-        await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'integrity failure');
-    }
-    async cleanupGeneratedArtifacts(paths, retentionCount, stage) {
-        const retention = await (0, artifactStore_1.cleanupGeneratedArtifacts)({
-            artifactRootDir: paths.artifactDir,
-            promptDir: paths.promptDir,
-            runDir: paths.runDir,
-            handoffDir: paths.handoffDir,
-            stateFilePath: paths.stateFilePath,
-            retentionCount
-        });
-        if (retention.deletedIterationDirectories.length === 0
-            && retention.deletedPromptFiles.length === 0
-            && retention.deletedRunArtifactBaseNames.length === 0
-            && (retention.deletedHandoffFiles?.length ?? 0) === 0) {
-            return;
-        }
-        this.logger.info(`Cleaned up generated Ralph artifacts after ${stage}.`, {
-            retentionCount,
-            deletedIterationDirectories: retention.deletedIterationDirectories,
-            protectedRetainedIterationDirectories: retention.protectedRetainedIterationDirectories,
-            deletedPromptFiles: retention.deletedPromptFiles,
-            protectedRetainedPromptFiles: retention.protectedRetainedPromptFiles,
-            deletedRunArtifactBaseNames: retention.deletedRunArtifactBaseNames,
-            protectedRetainedRunArtifactBaseNames: retention.protectedRetainedRunArtifactBaseNames,
-            deletedHandoffFiles: retention.deletedHandoffFiles ?? []
-        });
-    }
-    async writeLoopTerminationHandoff(input) {
-        if (!isCleanTerminalHandoffStopReason(input.result.stopReason)) {
-            return;
-        }
-        const note = {
-            agentId: input.result.agentId ?? types_1.DEFAULT_RALPH_AGENT_ID,
-            iteration: input.result.iteration,
-            selectedTaskId: input.result.selectedTaskId,
-            selectedTaskTitle: input.result.selectedTaskTitle,
-            stopReason: input.result.stopReason,
-            completionClassification: input.result.completionClassification,
-            progressNote: input.progressNote ?? undefined,
-            pendingBlocker: input.pendingBlocker ?? undefined,
-            validationFailureSignature: input.result.verification.validationFailureSignature ?? undefined,
-            backlog: input.result.backlog
-        };
-        await writeAtomicJsonFile(path.join(input.paths.handoffDir, `${note.agentId}-${String(note.iteration).padStart(3, '0')}.json`), {
-            ...note,
-            humanSummary: buildHandoffHumanSummary(note)
-        });
-    }
     async preparePrompt(workspaceFolder, progress, options) {
         const prepared = await (0, iterationPreparation_1.prepareIterationContext)({
             workspaceFolder,
@@ -628,8 +318,8 @@ class RalphIterationEngine {
             configOverrides: options?.configOverrides,
             stateManager: this.stateManager,
             logger: this.logger,
-            persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
-            persistPreparedProvenanceBundle: (preparedContext) => this.persistPreparedProvenanceBundle(preparedContext)
+            persistBlockedPreflightBundle: (input) => (0, provenancePersistence_1.persistBlockedPreflightBundle)(input, this.logger),
+            persistPreparedProvenanceBundle: (preparedContext) => (0, provenancePersistence_1.persistPreparedProvenanceBundle)(preparedContext, this.logger)
         });
         return {
             ...prepared
@@ -645,8 +335,8 @@ class RalphIterationEngine {
             configOverrides: options.configOverrides,
             stateManager: this.stateManager,
             logger: this.logger,
-            persistBlockedPreflightBundle: (input) => this.persistBlockedPreflightBundle(input),
-            persistPreparedProvenanceBundle: (preparedContext) => this.persistPreparedProvenanceBundle(preparedContext)
+            persistBlockedPreflightBundle: (input) => (0, provenancePersistence_1.persistBlockedPreflightBundle)(input, this.logger),
+            persistPreparedProvenanceBundle: (preparedContext) => (0, provenancePersistence_1.persistPreparedProvenanceBundle)(preparedContext, this.logger)
         });
         try {
             const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration);
@@ -831,7 +521,7 @@ class RalphIterationEngine {
                         if (integrityFailure) {
                             phaseTimestamps.executionStartedAt = phaseTimestamps.executionStartedAt ?? new Date().toISOString();
                             phaseTimestamps.executionFinishedAt = new Date().toISOString();
-                            await this.persistIntegrityFailureBundle(prepared, integrityFailure);
+                            await (0, provenancePersistence_1.persistIntegrityFailureBundle)(prepared, integrityFailure.details, this.logger);
                         }
                         throw error;
                     }
@@ -1259,7 +949,7 @@ class RalphIterationEngine {
                 }
             }
             try {
-                await updateAgentIdentityRecord({
+                await (0, provenancePersistence_1.updateAgentIdentityRecord)({
                     rootPath: prepared.rootPath,
                     agentId: prepared.config.agentId,
                     startedAt,
@@ -1355,7 +1045,7 @@ class RalphIterationEngine {
             const writeResult = await (0, artifactStore_1.writeProvenanceBundle)({
                 artifactRootDir: prepared.paths.artifactDir,
                 paths: prepared.provenanceBundlePaths,
-                bundle: this.createProvenanceBundle({
+                bundle: (0, provenancePersistence_1.createProvenanceBundle)({
                     prepared,
                     status: 'executed',
                     summary: result.summary,
@@ -1382,13 +1072,13 @@ class RalphIterationEngine {
             }
             const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
             await this.stateManager.recordIteration(prepared.rootPath, prepared.paths, prepared.state, result, prepared.objectiveText, runRecord);
-            await this.writeLoopTerminationHandoff({
+            await (0, provenancePersistence_1.writeLoopTerminationHandoff)({
                 paths: prepared.paths,
                 result,
                 progressNote: completionReconciliation.artifact.report?.progressNote ?? null,
                 pendingBlocker: selectedTaskAfter?.blocker ?? completionReconciliation.artifact.report?.blocker ?? null
             });
-            await this.cleanupGeneratedArtifacts(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution');
+            await (0, provenancePersistence_1.cleanupGeneratedArtifactsHelper)(prepared.paths, prepared.config.generatedArtifactRetentionCount, 'execution', this.logger);
             this.logger.info('Completed Ralph iteration.', {
                 iteration: prepared.iteration,
                 selectedTaskId: prepared.selectedTask?.id ?? null,
