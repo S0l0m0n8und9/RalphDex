@@ -1916,10 +1916,11 @@
     {
       "id": "T60",
       "title": "Add Show Multi-Agent Status command that renders per-agent iteration history, current claim, and last-stop reason from agents/<agentId>.json files",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T59"
       ],
+      "notes": "Added ralphCodex.showMultiAgentStatus VS Code command that reads .ralph/agents/<agentId>.json files + latest handoff notes to render per-agent iteration history, current claim, and last-stop reason; package.json activation + command contribution, packageManifest test, AGENTS.md + workflows.md docs updated; 413/413 tests pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1932,5 +1933,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 16
+  "mutationCount": 17
 }

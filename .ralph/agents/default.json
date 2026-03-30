@@ -39,7 +39,8 @@
     "T56",
     "T57",
     "T58",
-    "T59"
+    "T59",
+    "T60"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -85,6 +86,8 @@
     "ralph-codex-vscode-starter/docs/verifier.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
     "ralph-codex-vscode-starter/out/codex/claudeCliProvider.js",
+    "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
+    "ralph-codex-vscode-starter/out/commands/artifactCommands.js.map",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
     "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
@@ -137,6 +140,7 @@
     "ralph-codex-vscode-starter/prompt-templates/watchdog-agent.md",
     "ralph-codex-vscode-starter/README.md",
     "ralph-codex-vscode-starter/scripts/calibrate-prompt-budget.js",
+    "ralph-codex-vscode-starter/src/commands/artifactCommands.ts",
     "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
     "ralph-codex-vscode-starter/src/commands/statusSnapshot.ts",
     "ralph-codex-vscode-starter/src/config/defaults.ts",

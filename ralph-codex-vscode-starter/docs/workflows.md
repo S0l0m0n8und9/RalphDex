@@ -211,6 +211,17 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 
 Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique base value (or rely on the auto-suffix scheme) so claim attribution in `.ralph/claims.json` stays distinct.
 
+### Show Multi-Agent Status
+
+Run `Ralph Codex: Show Multi-Agent Status` to display a per-agent summary in the Ralph Codex output channel. For each agent identity record found under `.ralph/agents/`, the report shows:
+
+- `agentId` and `firstSeenAt` timestamp
+- number of tasks completed by that agent
+- current active claim task id (from `.ralph/claims.json`), or `none`
+- last iteration number, selected task, completion classification, stop reason, and progress note (from the latest `.ralph/handoff/<agentId>-NNN.json`)
+
+This command reads only persisted durable state and does not run any CLI iteration. It is available in untrusted workspaces.
+
 ### Autonomous Loop Mode
 
 `ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces three effective settings at runtime regardless of their stored values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.

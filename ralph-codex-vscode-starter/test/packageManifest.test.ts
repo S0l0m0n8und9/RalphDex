@@ -61,3 +61,17 @@ test('package manifest contributes and activates the multi-agent loop command', 
     'package.json must contribute the Run Multi-Agent Loop command'
   );
 });
+
+test('package manifest contributes and activates the show multi-agent status command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.showMultiAgentStatus'),
+    'package.json must activate on ralphCodex.showMultiAgentStatus'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.showMultiAgentStatus' && entry.title === 'Ralph Codex: Show Multi-Agent Status'),
+    'package.json must contribute the Show Multi-Agent Status command'
+  );
+});

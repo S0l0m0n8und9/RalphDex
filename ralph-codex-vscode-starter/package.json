@@ -89,6 +89,7 @@
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.runMultiAgentLoop",
     "onCommand:ralphCodex.showRalphStatus",
+    "onCommand:ralphCodex.showMultiAgentStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
     "onCommand:ralphCodex.openLatestProvenanceBundle",
     "onCommand:ralphCodex.openLatestPromptEvidence",
@@ -144,6 +145,10 @@
       {
         "command": "ralphCodex.showRalphStatus",
         "title": "Ralph Codex: Show Status"
+      },
+      {
+        "command": "ralphCodex.showMultiAgentStatus",
+        "title": "Ralph Codex: Show Multi-Agent Status"
       },
       {
         "command": "ralphCodex.openLatestRalphSummary",

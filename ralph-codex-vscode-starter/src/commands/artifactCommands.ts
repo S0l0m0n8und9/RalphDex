@@ -1,3 +1,4 @@
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
@@ -8,6 +9,7 @@ import {
 import { RalphStateManager } from '../ralph/stateManager';
 import {
   resolveStaleClaim,
+  inspectTaskClaimGraph
 } from '../ralph/taskFile';
 import {
   applyTaskDecompositionProposalArtifact,
@@ -369,6 +371,149 @@ async function resolveStaleTaskClaim(
 }
 
 // ---------------------------------------------------------------------------
+// Multi-agent status helpers
+// ---------------------------------------------------------------------------
+
+interface AgentHandoffSummary {
+  iteration: number;
+  selectedTaskId: string | null;
+  selectedTaskTitle: string | null;
+  stopReason: string | null;
+  completionClassification: string | null;
+  progressNote: string | null;
+}
+
+interface AgentStatusSummary {
+  agentId: string;
+  firstSeenAt: string;
+  completedTaskCount: number;
+  activeClaimTaskId: string | null;
+  latestHandoff: AgentHandoffSummary | null;
+}
+
+function normalizeHandoffNote(candidate: unknown): AgentHandoffSummary | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.iteration !== 'number') {
+    return null;
+  }
+
+  return {
+    iteration: record.iteration,
+    selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
+    selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,
+    stopReason: typeof record.stopReason === 'string' ? record.stopReason : null,
+    completionClassification: typeof record.completionClassification === 'string' ? record.completionClassification : null,
+    progressNote: typeof record.progressNote === 'string' ? record.progressNote : null
+  };
+}
+
+async function resolveLatestHandoffForAgent(handoffDir: string, agentId: string): Promise<AgentHandoffSummary | null> {
+  let entries: string[];
+
+  try {
+    const allEntries = await fs.readdir(handoffDir);
+    entries = allEntries.filter((entry) => entry.startsWith(`${agentId}-`) && entry.endsWith('.json'));
+  } catch {
+    return null;
+  }
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  // Pick highest iteration: entries are <agentId>-NNN.json, sort descending by numeric suffix
+  entries.sort((left, right) => right.localeCompare(left));
+  const latestEntry = entries[0];
+  const content = await readJsonArtifact(path.join(handoffDir, latestEntry));
+  return normalizeHandoffNote(content);
+}
+
+async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: string): Promise<AgentStatusSummary[]> {
+  const agentsDir = path.join(ralphDir, 'agents');
+  const handoffDir = path.join(ralphDir, 'handoff');
+
+  let agentFiles: string[];
+
+  try {
+    const allFiles = await fs.readdir(agentsDir);
+    agentFiles = allFiles.filter((entry) => entry.endsWith('.json') && !entry.endsWith('.tmp'));
+  } catch {
+    return [];
+  }
+
+  const claimGraph = await inspectTaskClaimGraph(claimFilePath).catch(() => null);
+
+  const summaries = await Promise.all(
+    agentFiles.map(async (fileName): Promise<AgentStatusSummary> => {
+      const agentId = fileName.replace(/\.json$/, '');
+      const record = await readJsonArtifact(path.join(agentsDir, fileName));
+      const normalized = typeof record === 'object' && record !== null ? record as Record<string, unknown> : {};
+
+      const firstSeenAt = typeof normalized.firstSeenAt === 'string' ? normalized.firstSeenAt : '';
+      const completedTaskIds = Array.isArray(normalized.completedTaskIds) ? normalized.completedTaskIds : [];
+      const completedTaskCount = completedTaskIds.length;
+
+      const activeClaimEntry = claimGraph?.tasks.find(
+        (entry) => entry.canonicalClaim?.claim.agentId === agentId && entry.canonicalClaim?.claim.status === 'active'
+      );
+      const activeClaimTaskId = activeClaimEntry?.taskId ?? null;
+
+      const latestHandoff = await resolveLatestHandoffForAgent(handoffDir, agentId);
+
+      return {
+        agentId,
+        firstSeenAt,
+        completedTaskCount,
+        activeClaimTaskId,
+        latestHandoff
+      };
+    })
+  );
+
+  return summaries.sort((left, right) => left.agentId.localeCompare(right.agentId));
+}
+
+function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): string {
+  const lines: string[] = ['=== Multi-Agent Status ===', ''];
+
+  if (summaries.length === 0) {
+    lines.push('No agent identity records found under .ralph/agents/.');
+    lines.push('Run at least one CLI iteration to populate agent state.');
+    return lines.join('\n');
+  }
+
+  for (const summary of summaries) {
+    lines.push(`Agent: ${summary.agentId}${summary.firstSeenAt ? ` (first seen: ${summary.firstSeenAt})` : ''}`);
+    lines.push(`  Tasks completed: ${summary.completedTaskCount}`);
+    lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}`);
+
+    if (summary.latestHandoff) {
+      const handoff = summary.latestHandoff;
+      const taskLabel = handoff.selectedTaskId
+        ? handoff.selectedTaskTitle
+          ? `${handoff.selectedTaskId}: ${handoff.selectedTaskTitle}`
+          : handoff.selectedTaskId
+        : 'none';
+      lines.push(`  Last iteration: ${handoff.iteration} | task: ${taskLabel}`);
+      lines.push(`  Last outcome: ${handoff.completionClassification ?? 'unknown'} | stopped: ${handoff.stopReason ?? 'unknown'}`);
+      if (handoff.progressNote) {
+        lines.push(`  Progress: ${handoff.progressNote}`);
+      }
+    } else {
+      lines.push('  Last iteration: none');
+    }
+
+    lines.push('');
+  }
+
+  return lines.join('\n').trimEnd();
+}
+
+// ---------------------------------------------------------------------------
 // Public registration entry point
 // ---------------------------------------------------------------------------
 
@@ -488,6 +633,40 @@ export function registerArtifactAndMaintenanceCommands(
       progress.report({ message: 'Revealing latest Ralph provenance bundle directory' });
       const workspaceFolder = await withWorkspaceFolder();
       await revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger);
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.showMultiAgentStatus',
+    label: 'Ralph Codex: Show Multi-Agent Status',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Collecting per-agent status' });
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
+      const claimFilePath = path.join(ralphDir, 'claims.json');
+
+      const summaries = await readMultiAgentStatusSummaries(ralphDir, claimFilePath);
+      const report = buildMultiAgentStatusReport(summaries);
+
+      logger.show(false);
+      logger.appendText(report);
+      logger.info('Multi-agent status snapshot generated.', {
+        workspace: workspaceFolder.name,
+        agentCount: summaries.length
+      });
+
+      void vscode.window.showInformationMessage(
+        summaries.length > 0
+          ? `Multi-agent status for ${summaries.length} agent(s) is available in the Ralph Codex output channel.`
+          : 'No agent identity records found. Run at least one CLI iteration to populate agent state.',
+        'Show Output'
+      ).then((choice) => {
+        if (choice === 'Show Output') {
+          logger.show(false);
+        }
+      });
     }
   });
 
