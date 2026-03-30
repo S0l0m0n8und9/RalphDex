@@ -59,6 +59,12 @@ class RalphDashboardPanel {
         this.extensionUri = extensionUri;
         this.broadcaster = broadcaster;
         this.latestState = (0, sidebarViewProvider_1.defaultDashboardState)();
+        // Eagerly populate config so settings are visible on first render
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (workspaceFolder) {
+            const initialConfig = (0, readConfig_1.readConfig)(workspaceFolder);
+            this.latestState = { ...this.latestState, config: (0, sidebarViewProvider_1.snapshotConfig)(initialConfig) };
+        }
         panel.webview.options = { enableScripts: true };
         // Listen for commands and settings updates from the webview
         panel.webview.onDidReceiveMessage(async (msg) => {

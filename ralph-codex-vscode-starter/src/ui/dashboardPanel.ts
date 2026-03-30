@@ -31,6 +31,13 @@ export class RalphDashboardPanel implements vscode.Disposable {
     this.broadcaster = broadcaster;
     this.latestState = defaultDashboardState();
 
+    // Eagerly populate config so settings are visible on first render
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    if (workspaceFolder) {
+      const initialConfig = readConfig(workspaceFolder);
+      this.latestState = { ...this.latestState, config: snapshotConfig(initialConfig) };
+    }
+
     panel.webview.options = { enableScripts: true };
 
     // Listen for commands and settings updates from the webview
