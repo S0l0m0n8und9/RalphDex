@@ -1926,12 +1926,13 @@
     {
       "id": "T61",
       "title": "Surface watchdog-triggered alert actions as durable diagnostic artifacts in .ralph/artifacts/watchdog/ included in generated-artifact retention",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T60"
       ],
+      "notes": "Watchdog diagnostic artifacts written to <artifactRootDir>/watchdog/<agentId>-<paddedIteration>.json on every processWatchdogActions invocation; retention cleanup added to cleanupGeneratedArtifacts and inspectGeneratedArtifactRetention; 2 new tests added; 415/415 pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 17
+  "mutationCount": 18
 }

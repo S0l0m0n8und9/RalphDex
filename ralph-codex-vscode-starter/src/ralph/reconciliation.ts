@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
+import { writeWatchdogDiagnosticArtifact } from './artifactStore';
 import {
   applySuggestedChildTasksToFile,
   autoCompleteSatisfiedAncestors,
@@ -363,6 +364,16 @@ async function processWatchdogActions(
   let taskFileChanged = false;
   let progressChanged = false;
   const warnings: string[] = [];
+
+  await writeWatchdogDiagnosticArtifact({
+    artifactRootDir: input.prepared.paths.artifactDir,
+    agentId: input.prepared.config.agentId,
+    provenanceId: input.prepared.provenanceId,
+    iteration: input.prepared.iteration,
+    actions: watchdogActions
+  }).catch((err: unknown) => {
+    warnings.push(`Failed to write watchdog diagnostic artifact: ${err instanceof Error ? err.message : String(err)}`);
+  });
 
   for (const action of watchdogActions) {
     if (action.action === 'resolve_stale_claim') {

@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.reconcileCompletionReport = reconcileCompletionReport;
 const fs = __importStar(require("fs/promises"));
 const completionReportParser_1 = require("./completionReportParser");
+const artifactStore_1 = require("./artifactStore");
 const taskFile_1 = require("./taskFile");
 async function reconcileCompletionReport(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
@@ -290,6 +291,15 @@ async function processWatchdogActions(input, watchdogActions) {
     let taskFileChanged = false;
     let progressChanged = false;
     const warnings = [];
+    await (0, artifactStore_1.writeWatchdogDiagnosticArtifact)({
+        artifactRootDir: input.prepared.paths.artifactDir,
+        agentId: input.prepared.config.agentId,
+        provenanceId: input.prepared.provenanceId,
+        iteration: input.prepared.iteration,
+        actions: watchdogActions
+    }).catch((err) => {
+        warnings.push(`Failed to write watchdog diagnostic artifact: ${err instanceof Error ? err.message : String(err)}`);
+    });
     for (const action of watchdogActions) {
         if (action.action === 'resolve_stale_claim') {
             const resolved = await (0, taskFile_1.resolveStaleClaimByTask)(input.prepared.paths.claimFilePath, action.taskId, action.agentId, {

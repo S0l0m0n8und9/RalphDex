@@ -24,7 +24,8 @@ import type {
   RalphProvenanceBundle,
   RalphProvenanceTrustLevel,
   RalphTaskRemediationArtifact,
-  RalphVerificationResult
+  RalphVerificationResult,
+  RalphWatchdogAction
 } from './types';
 
 // Re-export submodules for backward compatibility.
@@ -194,6 +195,19 @@ export interface RalphGeneratedArtifactRetentionSummary {
   protectedRetainedRunArtifactBaseNames: string[];
   deletedHandoffFiles?: string[];
   retainedHandoffFiles?: string[];
+  deletedWatchdogFiles?: string[];
+  retainedWatchdogFiles?: string[];
+}
+
+export interface RalphWatchdogDiagnosticArtifact {
+  schemaVersion: 1;
+  kind: 'watchdogDiagnostic';
+  agentId: string;
+  provenanceId: string;
+  iteration: number;
+  triggeredAt: string;
+  actionCount: number;
+  actions: RalphWatchdogAction[];
 }
 
 export function resolveIterationArtifactPaths(artifactRootDir: string, iteration: number): RalphIterationArtifactPaths {
@@ -595,4 +609,33 @@ export async function writeProvenanceBundle(input: {
     summary,
     retention
   };
+}
+
+export async function writeWatchdogDiagnosticArtifact(input: {
+  artifactRootDir: string;
+  agentId: string;
+  provenanceId: string;
+  iteration: number;
+  actions: RalphWatchdogAction[];
+}): Promise<string> {
+  const watchdogDir = path.join(input.artifactRootDir, 'watchdog');
+  await fs.mkdir(watchdogDir, { recursive: true });
+
+  const paddedIteration = String(input.iteration).padStart(3, '0');
+  const fileName = `${input.agentId}-${paddedIteration}.json`;
+  const filePath = path.join(watchdogDir, fileName);
+
+  const artifact: RalphWatchdogDiagnosticArtifact = {
+    schemaVersion: 1,
+    kind: 'watchdogDiagnostic',
+    agentId: input.agentId,
+    provenanceId: input.provenanceId,
+    iteration: input.iteration,
+    triggeredAt: new Date().toISOString(),
+    actionCount: input.actions.length,
+    actions: input.actions
+  };
+
+  await fs.writeFile(filePath, stableJson(artifact), 'utf8');
+  return filePath;
 }

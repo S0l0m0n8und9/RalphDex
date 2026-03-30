@@ -40,7 +40,8 @@
     "T57",
     "T58",
     "T59",
-    "T60"
+    "T60",
+    "T61"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -100,6 +101,8 @@
     "ralph-codex-vscode-starter/out/extension.js.map",
     "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
     "ralph-codex-vscode-starter/out/prompt/promptBuilder.js.map",
+    "ralph-codex-vscode-starter/out/ralph/artifactRetention.js",
+    "ralph-codex-vscode-starter/out/ralph/artifactRetention.js.map",
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js.map",
     "ralph-codex-vscode-starter/out/ralph/cliOutputFormatter.js",
@@ -148,6 +151,7 @@
     "ralph-codex-vscode-starter/src/config/types.ts",
     "ralph-codex-vscode-starter/src/extension.ts",
     "ralph-codex-vscode-starter/src/prompt/promptBuilder.ts",
+    "ralph-codex-vscode-starter/src/ralph/artifactRetention.ts",
     "ralph-codex-vscode-starter/src/ralph/artifactStore.ts",
     "ralph-codex-vscode-starter/src/ralph/cliOutputFormatter.ts",
     "ralph-codex-vscode-starter/src/ralph/completionReportParser.ts",

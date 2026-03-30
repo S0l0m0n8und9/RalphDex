@@ -37,6 +37,7 @@ interface RalphGeneratedArtifactRetentionInspection {
   promptFiles: { iteration: number; name: string }[];
   runArtifacts: { baseName: string; iteration: number; fileNames: string[] }[];
   handoffFiles: { iteration: number; name: string }[];
+  watchdogFiles: { iteration: number; name: string }[];
   protectedArtifacts: RalphProtectedGeneratedArtifacts;
   iterationDirectoryDecision: {
     retainedNames: Set<string>;
@@ -51,6 +52,9 @@ interface RalphGeneratedArtifactRetentionInspection {
     protectedRetainedNames: string[];
   };
   handoffFileDecision: {
+    retainedNames: Set<string>;
+  };
+  watchdogFileDecision: {
     retainedNames: Set<string>;
   };
 }
@@ -684,7 +688,8 @@ async function collectGeneratedArtifactRetentionInspection(input: {
   retentionCount: number;
   protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphGeneratedArtifactRetentionInspection> {
-  const [artifactEntries, promptEntries, runEntries, protectedArtifacts] = await Promise.all([
+  const watchdogDir = path.join(input.artifactRootDir, 'watchdog');
+  const [artifactEntries, promptEntries, runEntries, protectedArtifacts, watchdogEntries] = await Promise.all([
     fs.readdir(input.artifactRootDir, { withFileTypes: true }).catch(() => []),
     fs.readdir(input.promptDir, { withFileTypes: true }).catch(() => []),
     fs.readdir(input.runDir, { withFileTypes: true }).catch(() => []),
@@ -694,7 +699,8 @@ async function collectGeneratedArtifactRetentionInspection(input: {
       runDir: input.runDir,
       stateFilePath: input.stateFilePath,
       protectionScope: input.protectionScope
-    })
+    }),
+    fs.readdir(watchdogDir, { withFileTypes: true }).catch(() => [])
   ]);
   const handoffEntries = input.handoffDir
     ? await fs.readdir(input.handoffDir, { withFileTypes: true }).catch(() => [])
@@ -738,8 +744,13 @@ async function collectGeneratedArtifactRetentionInspection(input: {
     .map((entry) => parseHandoffFileName(entry.name))
     .filter((entry): entry is { iteration: number; name: string } => entry !== null)
     .sort(sortByIterationDesc);
+  const watchdogFiles = watchdogEntries
+    .filter((entry) => entry.isFile())
+    .map((entry) => parseHandoffFileName(entry.name))
+    .filter((entry): entry is { iteration: number; name: string } => entry !== null)
+    .sort(sortByIterationDesc);
   const effectiveRetentionCount = input.retentionCount <= 0
-    ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length, handoffFiles.length)
+    ? Math.max(iterationDirectories.length, promptFiles.length, runArtifacts.length, handoffFiles.length, watchdogFiles.length)
     : input.retentionCount;
 
   return {
@@ -747,6 +758,7 @@ async function collectGeneratedArtifactRetentionInspection(input: {
     promptFiles,
     runArtifacts,
     handoffFiles,
+    watchdogFiles,
     protectedArtifacts,
     iterationDirectoryDecision: retentionDecisionByNewestAndProtected(
       iterationDirectories,
@@ -769,6 +781,14 @@ async function collectGeneratedArtifactRetentionInspection(input: {
     handoffFileDecision: {
       retainedNames: retainedNamesByNewestAndProtected(
         handoffFiles,
+        effectiveRetentionCount,
+        [],
+        (entry) => entry.name
+      )
+    },
+    watchdogFileDecision: {
+      retainedNames: retainedNamesByNewestAndProtected(
+        watchdogFiles,
         effectiveRetentionCount,
         [],
         (entry) => entry.name
@@ -841,7 +861,9 @@ export async function cleanupGeneratedArtifacts(input: {
       protectedRetainedPromptFiles: [],
       deletedRunArtifactBaseNames: [],
       retainedRunArtifactBaseNames: [],
-      protectedRetainedRunArtifactBaseNames: []
+      protectedRetainedRunArtifactBaseNames: [],
+      deletedWatchdogFiles: [],
+      retainedWatchdogFiles: []
     };
     if (input.handoffDir) {
       summary.deletedHandoffFiles = [];
@@ -916,6 +938,21 @@ export async function cleanupGeneratedArtifacts(input: {
       .map((entry) => entry.name);
   }
 
+  const watchdogDir = path.join(input.artifactRootDir, 'watchdog');
+  const retainedWatchdogFiles = inspection.watchdogFileDecision.retainedNames;
+  const deletedWatchdogFiles: string[] = [];
+  for (const entry of inspection.watchdogFiles.slice(input.retentionCount)) {
+    if (retainedWatchdogFiles.has(entry.name)) {
+      continue;
+    }
+    await fs.rm(path.join(watchdogDir, entry.name), { force: true });
+    deletedWatchdogFiles.push(entry.name);
+  }
+  summary.deletedWatchdogFiles = deletedWatchdogFiles;
+  summary.retainedWatchdogFiles = inspection.watchdogFiles
+    .filter((entry) => retainedWatchdogFiles.has(entry.name))
+    .map((entry) => entry.name);
+
   return summary;
 }
 
@@ -953,6 +990,11 @@ export async function inspectGeneratedArtifactRetention(input: {
       .filter((entry) => inspection.handoffFileDecision.retainedNames.has(entry.name))
       .map((entry) => entry.name);
   }
+
+  summary.deletedWatchdogFiles = [];
+  summary.retainedWatchdogFiles = inspection.watchdogFiles
+    .filter((entry) => inspection.watchdogFileDecision.retainedNames.has(entry.name))
+    .map((entry) => entry.name);
 
   return summary;
 }

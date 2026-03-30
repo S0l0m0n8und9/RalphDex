@@ -48,6 +48,7 @@ exports.writeCliInvocationArtifact = writeCliInvocationArtifact;
 exports.writePreflightArtifacts = writePreflightArtifacts;
 exports.writeIterationArtifacts = writeIterationArtifacts;
 exports.writeProvenanceBundle = writeProvenanceBundle;
+exports.writeWatchdogDiagnosticArtifact = writeWatchdogDiagnosticArtifact;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
@@ -422,5 +423,24 @@ async function writeProvenanceBundle(input) {
         summary,
         retention
     };
+}
+async function writeWatchdogDiagnosticArtifact(input) {
+    const watchdogDir = path.join(input.artifactRootDir, 'watchdog');
+    await fs.mkdir(watchdogDir, { recursive: true });
+    const paddedIteration = String(input.iteration).padStart(3, '0');
+    const fileName = `${input.agentId}-${paddedIteration}.json`;
+    const filePath = path.join(watchdogDir, fileName);
+    const artifact = {
+        schemaVersion: 1,
+        kind: 'watchdogDiagnostic',
+        agentId: input.agentId,
+        provenanceId: input.provenanceId,
+        iteration: input.iteration,
+        triggeredAt: new Date().toISOString(),
+        actionCount: input.actions.length,
+        actions: input.actions
+    };
+    await fs.writeFile(filePath, (0, integrity_1.stableJson)(artifact), 'utf8');
+    return filePath;
 }
 //# sourceMappingURL=artifactStore.js.map

@@ -10,7 +10,8 @@ import {
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
   resolveIterationArtifactPaths,
   resolveProvenanceBundlePaths,
-  writeProvenanceBundle
+  writeProvenanceBundle,
+  writeWatchdogDiagnosticArtifact
 } from '../src/ralph/artifactStore';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import {
@@ -789,7 +790,9 @@ test('cleanupGeneratedArtifacts leaves generated files untouched when automatic 
     protectedRetainedPromptFiles: [],
     deletedRunArtifactBaseNames: [],
     retainedRunArtifactBaseNames: [],
-    protectedRetainedRunArtifactBaseNames: []
+    protectedRetainedRunArtifactBaseNames: [],
+    deletedWatchdogFiles: [],
+    retainedWatchdogFiles: []
   });
   assert.deepEqual((await fs.readdir(artifactRootDir)).sort(), ['iteration-001']);
   assert.deepEqual((await fs.readdir(promptDir)).sort(), ['iteration-001.prompt.md']);
@@ -2293,4 +2296,63 @@ test('cleanupGeneratedArtifacts ignores unrelated path-like fields outside the p
     'iteration-011.last-message.md',
     'iteration-011.transcript.md'
   ]);
+});
+
+test('writeWatchdogDiagnosticArtifact writes expected JSON to watchdog/ subdir', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const actions = [
+    {
+      taskId: 'T99',
+      agentId: 'agent-1',
+      action: 'escalate_to_human' as const,
+      severity: 'HIGH' as const,
+      reason: 'No progress for 3 iterations',
+      evidence: 'No files changed',
+      trailingNoProgressCount: 3,
+      trailingRepeatedFailureCount: 0
+    }
+  ];
+
+  const filePath = await writeWatchdogDiagnosticArtifact({
+    artifactRootDir,
+    agentId: 'agent-1',
+    provenanceId: 'run-test-provenance',
+    iteration: 7,
+    actions
+  });
+
+  assert.equal(filePath, path.join(artifactRootDir, 'watchdog', 'agent-1-007.json'));
+  const contents = JSON.parse(await fs.readFile(filePath, 'utf8'));
+  assert.equal(contents.schemaVersion, 1);
+  assert.equal(contents.kind, 'watchdogDiagnostic');
+  assert.equal(contents.agentId, 'agent-1');
+  assert.equal(contents.provenanceId, 'run-test-provenance');
+  assert.equal(contents.iteration, 7);
+  assert.equal(contents.actionCount, 1);
+  assert.deepEqual(contents.actions, actions);
+  assert.ok(typeof contents.triggeredAt === 'string' && contents.triggeredAt.length > 0);
+});
+
+test('cleanupGeneratedArtifacts prunes older watchdog files', async () => {
+  const { artifactRootDir, promptDir, runDir, stateFilePath } = await makeGeneratedArtifactDirs();
+  const watchdogDir = path.join(artifactRootDir, 'watchdog');
+  await fs.mkdir(watchdogDir, { recursive: true });
+
+  await Promise.all([
+    fs.writeFile(path.join(watchdogDir, 'default-008.json'), '{}', 'utf8'),
+    fs.writeFile(path.join(watchdogDir, 'default-009.json'), '{}', 'utf8'),
+    fs.writeFile(path.join(watchdogDir, 'default-010.json'), '{}', 'utf8')
+  ]);
+
+  const retention = await cleanupGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    retentionCount: 1
+  });
+
+  assert.deepEqual(retention.deletedWatchdogFiles, ['default-009.json', 'default-008.json']);
+  assert.deepEqual(retention.retainedWatchdogFiles, ['default-010.json']);
+  assert.deepEqual(await fs.readdir(watchdogDir), ['default-010.json']);
 });
