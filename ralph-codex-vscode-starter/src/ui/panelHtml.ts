@@ -35,23 +35,28 @@ body {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 20px;
-  margin-top: 12px;
+  gap: 24px;
+  margin-top: 18px;
 }
 
 .card {
   border: 1px solid var(--ralph-border);
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ralph-amber) 2%, transparent);
 }
 
 .card-title {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: bold;
   letter-spacing: 1.5px;
   text-transform: uppercase;
-  color: var(--ralph-dim);
-  margin-bottom: 6px;
+  color: var(--ralph-amber);
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--ralph-amber) 7%, transparent);
+  padding: 6px 8px 4px 0;
+  border-radius: 4px;
 }
 
 /* Wider task ID in panel */
@@ -419,7 +424,7 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
     group('Advanced', [
       row('Open Sidebar Command ID', textInput('openSidebarCommandId', cfg.openSidebarCommandId)),
       row('New Chat Command ID', textInput('newChatCommandId', cfg.newChatCommandId))
-    ].join('\n'))
+    ].join('\n'), false)
   ];
 
   return sections.join('\n');
@@ -448,6 +453,7 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
   // Disable loop/iteration buttons when running
   const loopDisabled = isRunning ? ' disabled' : '';
 
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -458,9 +464,14 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
   <style nonce="${nonce}">${buildPanelCss()}</style>
 </head>
 <body>
-  <div class="header">
-    <div class="header-title">Ralph Codex</div>
-    <div class="header-state">${esc(state.workspaceName)} · ${stateLabel} · ${esc(state.agentRole)}</div>
+  <div class="header" style="display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <div class="header-title">Ralph Codex</div>
+      <div class="header-state">${esc(state.workspaceName)} · ${stateLabel} · ${esc(state.agentRole)}</div>
+    </div>
+    <button class="help-btn" title="Help & Onboarding" style="background: none; border: none; cursor: pointer; font-size: 18px; color: var(--ralph-amber);" onclick="window.open('https://github.com/ralph-codex/docs','_blank')" aria-label="Help and onboarding">
+      ?
+    </button>
   </div>
 
   ${buildPhaseTracker(state.currentPhase, state.currentIteration)}
@@ -497,20 +508,20 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
       <div class="card">
         <div class="card-title">Agents</div>
         <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphLoop" title="Run the main build agent (◆ Build)"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runReviewAgent" title="Run the review agent (◇ Review)"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runWatchdogAgent" title="Run the watchdog agent (⬡ Watch)"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runScmAgent" title="Run the SCM agent (⎔ SCM)"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">Actions</div>
         <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled} title="Run the full agent loop (▸ Run Loop)"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled} title="Run a single agent iteration (▸ Run Iter)"><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.generatePrompt" title="Prepare the next prompt (⎙ Prep Prompt)"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.initializeWorkspace" title="Initialize the workspace (⏻ Init)"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
         </div>
       </div>
 
