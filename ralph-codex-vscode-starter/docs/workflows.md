@@ -199,6 +199,18 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
 4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
 
+### Run The Multi-Agent Loop
+
+1. Set `ralphCodex.agentCount` to the number of concurrent agents you want (minimum 2 for parallel mode).
+2. Run `Ralph Codex: Run Multi-Agent Loop`.
+3. Ralph spawns `ralphCodex.agentCount` concurrent iteration loops, each using a distinct `agentId` derived from `ralphCodex.agentId` (e.g., `default-1`, `default-2`).
+4. Each agent loop acquires task claims independently using the existing claim mechanism in `.ralph/claims.json`, so agents pick up different tasks without coordination overhead.
+5. All agent loops run concurrently and Ralph waits for all of them to finish before reporting the combined summary.
+6. If `ralphCodex.agentCount` is 1 the command behaves like `Run CLI Loop` and surfaces a warning suggesting you increase the count.
+7. If any agent hits `control_plane_reload_required` and `autoReloadOnControlPlaneChange` is enabled, Ralph reloads the extension host once all other loops have settled.
+
+Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique base value (or rely on the auto-suffix scheme) so claim attribution in `.ralph/claims.json` stays distinct.
+
 ### Autonomous Loop Mode
 
 `ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces three effective settings at runtime regardless of their stored values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.

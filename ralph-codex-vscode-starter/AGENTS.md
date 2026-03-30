@@ -56,6 +56,7 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Open Codex IDE`
 - `Ralph Codex: Run CLI Iteration`
 - `Ralph Codex: Run CLI Loop`
+- `Ralph Codex: Run Multi-Agent Loop`
 - `Ralph Codex: Show Status`
 - `Ralph Codex: Open Latest Ralph Summary`
 - `Ralph Codex: Open Latest Provenance Bundle`

@@ -524,6 +524,101 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
     }
   });
 
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.runMultiAgentLoop',
+    label: 'Ralph Codex: Run Multi-Agent Loop',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const agentCount = config.agentCount;
+
+      logger.show(false);
+      logger.info('Starting multi-agent loop.', {
+        rootPath: workspaceFolder.uri.fsPath,
+        agentCount,
+        iterationCap: config.ralphIterationCap
+      });
+
+      if (agentCount < 2) {
+        void vscode.window.showWarningMessage(
+          'ralphCodex.agentCount is 1. Running a single-agent loop. Set agentCount ≥ 2 for concurrent multi-agent mode.'
+        );
+      }
+
+      progress.report({ message: `Starting ${agentCount} concurrent agent loop(s)` });
+
+      // Build distinct agentId per slot. Use suffix only when multiple agents share the same base id.
+      const agentSlots = Array.from({ length: agentCount }, (_, i) => ({
+        slotIndex: i,
+        agentId: agentCount > 1 ? `${config.agentId}-${i + 1}` : config.agentId
+      }));
+
+      type SlotResult = { agentId: string; lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null; reloadRequired: boolean };
+
+      const agentLoops = agentSlots.map(async ({ agentId }): Promise<SlotResult> => {
+        let lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null = null;
+
+        for (let index = 0; index < config.ralphIterationCap; index += 1) {
+          lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
+            reachedIterationCap: index + 1 >= config.ralphIterationCap,
+            configOverrides: { agentId }
+          });
+
+          if (lastRun.result.executionStatus === 'failed') {
+            throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
+          }
+
+          if (!lastRun.loopDecision.shouldContinue) {
+            if (
+              lastRun.result.stopReason === 'control_plane_reload_required'
+              && config.autoReloadOnControlPlaneChange
+            ) {
+              logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
+              return { agentId, lastRun, reloadRequired: true };
+            }
+
+            logger.info('Multi-agent loop: agent stopped early.', {
+              agentId,
+              iteration: lastRun.result.iteration,
+              stopReason: lastRun.result.stopReason,
+              message: lastRun.loopDecision.message
+            });
+            return { agentId, lastRun, reloadRequired: false };
+          }
+        }
+
+        return { agentId, lastRun, reloadRequired: false };
+      });
+
+      const settled = await Promise.allSettled(agentLoops);
+
+      const failures = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
+      const fulfilled = settled.filter((r): r is PromiseFulfilledResult<SlotResult> => r.status === 'fulfilled');
+
+      if (fulfilled.some((r) => r.value.reloadRequired)) {
+        logger.info('Multi-agent loop: reloading extension host to apply control-plane changes.', {});
+        await sleep(1500);
+        await vscode.commands.executeCommand('workbench.action.reloadWindow');
+        return;
+      }
+
+      if (failures.length > 0) {
+        const messages = failures.map((r) => toErrorMessage(r.reason)).join('; ');
+        throw new Error(`${failures.length} of ${agentCount} agent(s) failed: ${messages}`);
+      }
+
+      const summary = fulfilled
+        .map(({ value: { agentId, lastRun } }) =>
+          lastRun ? `${agentId}: ${lastRun.result.completionClassification}` : `${agentId}: no iterations`
+        )
+        .join('; ');
+
+      void vscode.window.showInformationMessage(
+        `Ralph multi-agent loop finished (${agentCount} agent(s)). ${summary}`
+      );
+    }
+  });
+
   // Delegate artifact-inspection and maintenance commands to the extracted module.
   registerArtifactAndMaintenanceCommands(context, logger, stateManager, registerCommand);
 }

@@ -87,6 +87,7 @@
     "onCommand:ralphCodex.runWatchdogAgent",
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runRalphLoop",
+    "onCommand:ralphCodex.runMultiAgentLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openLatestRalphSummary",
     "onCommand:ralphCodex.openLatestProvenanceBundle",
@@ -135,6 +136,10 @@
       {
         "command": "ralphCodex.runRalphLoop",
         "title": "Ralph Codex: Run CLI Loop"
+      },
+      {
+        "command": "ralphCodex.runMultiAgentLoop",
+        "title": "Ralph Codex: Run Multi-Agent Loop"
       },
       {
         "command": "ralphCodex.showRalphStatus",

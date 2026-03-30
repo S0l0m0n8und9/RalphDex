@@ -47,3 +47,17 @@ test('package manifest contributes and activates the scm command', async () => {
     'package.json must contribute the Run SCM Agent command'
   );
 });
+
+test('package manifest contributes and activates the multi-agent loop command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.runMultiAgentLoop'),
+    'package.json must activate on ralphCodex.runMultiAgentLoop'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.runMultiAgentLoop' && entry.title === 'Ralph Codex: Run Multi-Agent Loop'),
+    'package.json must contribute the Run Multi-Agent Loop command'
+  );
+});

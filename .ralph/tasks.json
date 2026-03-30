@@ -1906,10 +1906,11 @@
     {
       "id": "T59",
       "title": "Implement runMultiAgentLoop VS Code command that spawns N concurrent iteration loops with distinct agentIds using the existing claim mechanism",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T58"
       ],
+      "notes": "Added ralphCodex.runMultiAgentLoop VS Code command that spawns N concurrent iteration loops with distinct agentIds (agentId-1..N) using the existing claim mechanism; package.json activation + command contribution, registerCommands.ts handler, packageManifest test, AGENTS.md + workflows.md docs updated; 412/412 tests pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1931,5 +1932,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 15
+  "mutationCount": 16
 }
