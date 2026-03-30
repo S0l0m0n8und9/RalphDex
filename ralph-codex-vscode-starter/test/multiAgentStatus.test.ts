@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   computeStuckScore,
+  buildNoProgressHeatmap,
   buildMultiAgentStatusReport,
   STUCK_SCORE_THRESHOLD,
+  HEATMAP_WINDOW,
   type AgentHandoffSummary,
   type AgentStatusSummary,
 } from '../src/ralph/multiAgentStatus';
@@ -77,11 +79,76 @@ test('computeStuckScore: handles unsorted input by sorting on iteration before c
 });
 
 // ---------------------------------------------------------------------------
-// STUCK_SCORE_THRESHOLD
+// STUCK_SCORE_THRESHOLD / HEATMAP_WINDOW constants
 // ---------------------------------------------------------------------------
 
 test('STUCK_SCORE_THRESHOLD is 3', () => {
   assert.strictEqual(STUCK_SCORE_THRESHOLD, 3);
+});
+
+test('HEATMAP_WINDOW is 10', () => {
+  assert.strictEqual(HEATMAP_WINDOW, 10);
+});
+
+// ---------------------------------------------------------------------------
+// buildNoProgressHeatmap
+// ---------------------------------------------------------------------------
+
+test('buildNoProgressHeatmap: returns empty string for empty history', () => {
+  assert.strictEqual(buildNoProgressHeatmap([]), '');
+});
+
+test('buildNoProgressHeatmap: single no_progress entry renders X', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+  ];
+  assert.strictEqual(buildNoProgressHeatmap(handoffs), '[X]');
+});
+
+test('buildNoProgressHeatmap: non-no_progress entry renders dot', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'task_complete', progressNote: null },
+  ];
+  assert.strictEqual(buildNoProgressHeatmap(handoffs), '[.]');
+});
+
+test('buildNoProgressHeatmap: mixed history renders correct symbols in order', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'task_complete', progressNote: null },
+    { iteration: 2, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+    { iteration: 3, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+  ];
+  assert.strictEqual(buildNoProgressHeatmap(handoffs), '[.XX]');
+});
+
+test('buildNoProgressHeatmap: unsorted input is sorted by iteration before rendering', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 3, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'task_complete', progressNote: null },
+    { iteration: 2, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+  ];
+  assert.strictEqual(buildNoProgressHeatmap(handoffs), '[.XX]');
+});
+
+test('buildNoProgressHeatmap: windows to last maxLen entries', () => {
+  const handoffs: AgentHandoffSummary[] = Array.from({ length: 12 }, (_, i) => ({
+    iteration: i + 1,
+    selectedTaskId: 'T1',
+    selectedTaskTitle: null,
+    stopReason: null,
+    completionClassification: i < 2 ? 'task_complete' : 'no_progress',
+    progressNote: null,
+  }));
+  // iterations 1 and 2 are task_complete (.), rest are no_progress (X)
+  // window of last 10 = iterations 3–12, all no_progress
+  assert.strictEqual(buildNoProgressHeatmap(handoffs, 10), '[XXXXXXXXXX]');
+});
+
+test('buildNoProgressHeatmap: null completionClassification renders as dot', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: null, progressNote: null },
+  ];
+  assert.strictEqual(buildNoProgressHeatmap(handoffs), '[.]');
 });
 
 // ---------------------------------------------------------------------------
@@ -170,4 +237,22 @@ test('buildMultiAgentStatusReport: renders none for current claim when absent', 
   const agent = makeAgent({ activeClaimTaskId: null });
   const report = buildMultiAgentStatusReport([agent]);
   assert.ok(report.includes('Current claim: none'));
+});
+
+test('buildMultiAgentStatusReport: renders heatmap line when handoff history is present', () => {
+  const handoffs: AgentHandoffSummary[] = [
+    { iteration: 1, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'task_complete', progressNote: null },
+    { iteration: 2, selectedTaskId: 'T1', selectedTaskTitle: null, stopReason: null, completionClassification: 'no_progress', progressNote: null },
+  ];
+  const agent = makeAgent({ handoffHistory: handoffs, latestHandoff: handoffs[1] });
+  const report = buildMultiAgentStatusReport([agent]);
+  assert.ok(report.includes('No-progress heatmap'), 'should include heatmap label');
+  assert.ok(report.includes('[.X]'), 'should include correct heatmap symbols');
+  assert.ok(report.includes('X = no_progress'), 'should include legend');
+});
+
+test('buildMultiAgentStatusReport: does not render heatmap line when handoff history is empty', () => {
+  const agent = makeAgent({ handoffHistory: [] });
+  const report = buildMultiAgentStatusReport([agent]);
+  assert.ok(!report.includes('No-progress heatmap'), 'should not include heatmap when no history');
 });

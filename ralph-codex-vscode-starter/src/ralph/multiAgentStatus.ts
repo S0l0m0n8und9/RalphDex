@@ -34,6 +34,9 @@ export interface AgentStatusSummary {
 /** Agents at or above this consecutive-no-progress count are flagged as stuck. */
 export const STUCK_SCORE_THRESHOLD = 3;
 
+/** Maximum number of iterations shown in a single heatmap strip. */
+export const HEATMAP_WINDOW = 10;
+
 /**
  * Compute the stuck score for an agent from its full handoff history.
  *
@@ -71,6 +74,27 @@ export function computeStuckScore(handoffs: AgentHandoffSummary[]): number {
 }
 
 /**
+ * Render a compact no-progress heatmap strip for a single agent's handoff history.
+ *
+ * Each cell represents one iteration (up to maxLen most-recent ones) rendered
+ * in ascending chronological order.  'X' = no_progress; '.' = any other
+ * classification.  Returns an empty string when there are no handoffs.
+ */
+export function buildNoProgressHeatmap(
+  handoffs: AgentHandoffSummary[],
+  maxLen: number = HEATMAP_WINDOW
+): string {
+  if (handoffs.length === 0) {
+    return '';
+  }
+
+  const sorted = [...handoffs].sort((a, b) => a.iteration - b.iteration);
+  const window = sorted.slice(-maxLen);
+  const cells = window.map((h) => (h.completionClassification === 'no_progress' ? 'X' : '.'));
+  return `[${cells.join('')}]`;
+}
+
+/**
  * Render the multi-agent status report for the output channel.
  *
  * Agents with stuckScore >= STUCK_SCORE_THRESHOLD are rendered with a
@@ -96,6 +120,11 @@ export function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): st
       lines.push(
         `  STUCK: ${summary.stuckScore} consecutive no-progress stop(s) on task ${summary.latestHandoff?.selectedTaskId ?? 'unknown'} — investigate or resolve stale claim`
       );
+    }
+
+    if (summary.handoffHistory.length > 0) {
+      const heatmap = buildNoProgressHeatmap(summary.handoffHistory);
+      lines.push(`  No-progress heatmap (last ${HEATMAP_WINDOW}): ${heatmap}  (X = no_progress, . = other)`);
     }
 
     if (summary.latestHandoff) {

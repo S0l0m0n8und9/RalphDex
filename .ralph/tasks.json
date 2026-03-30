@@ -1999,15 +1999,15 @@
     {
       "id": "T62.2",
       "title": "Repeated-no-progress heatmap to Show Multi-Agent Status",
-      "status": "todo",
+      "status": "done",
       "parentId": "T62",
       "dependsOn": [
         "T61",
         "T62.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T62.1.",
+      "notes": "Added buildNoProgressHeatmap (HEATMAP_WINDOW=10, X=no_progress/dot=other) to multiAgentStatus.ts; wired heatmap line into buildMultiAgentStatusReport; added 9 new tests covering heatmap rendering; 472/472 pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 20
+  "mutationCount": 21
 }

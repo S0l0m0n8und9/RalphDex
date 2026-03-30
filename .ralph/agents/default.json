@@ -42,7 +42,8 @@
     "T59",
     "T60",
     "T61",
-    "T62.1"
+    "T62.1",
+    "T62.2"
   ],
   "touchedFiles": [
     ".claude/settings.local.json",
