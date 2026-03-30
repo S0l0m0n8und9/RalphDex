@@ -1988,13 +1988,13 @@
     {
       "id": "T62.1",
       "title": "Stale-claim",
-      "status": "todo",
+      "status": "done",
       "parentId": "T62",
       "dependsOn": [
         "T61"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Narrow T62 to a deterministic first step before retrying the parent task."
+      "notes": "Confirmed T62.1 is complete: multiAgentStatus.ts implements computeStuckScore + buildMultiAgentStatusReport with WARNING/STUCK rendering; artifactCommands.ts wires IO (readAllHandoffsForAgent, readMultiAgentStatusSummaries); 17 regression tests pass; full validate gate: 462/462 pass",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T62.2",
@@ -2005,9 +2005,9 @@
         "T61",
         "T62.1"
       ],
-      "validation": "cd ralph-codex-vscode-starter && npm run validate",
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T62.1."
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T62.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 19
+  "mutationCount": 20
 }

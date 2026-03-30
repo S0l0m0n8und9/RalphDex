@@ -41,7 +41,8 @@
     "T58",
     "T59",
     "T60",
-    "T61"
+    "T61",
+    "T62.1"
   ],
   "touchedFiles": [
     ".claude/settings.local.json",
@@ -211,6 +212,7 @@
     "ralph-codex-vscode-starter/test/taskDecomposition.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts",
     "ralph-codex-vscode-starter/test/ui/panelHtml.test.ts",
-    "ralph-codex-vscode-starter/test/ui/sidebarHtml.test.ts"
+    "ralph-codex-vscode-starter/test/ui/sidebarHtml.test.ts",
+    "ralph.code-workspace"
   ]
 }
