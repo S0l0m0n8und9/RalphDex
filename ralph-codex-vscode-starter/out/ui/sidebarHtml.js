@@ -100,59 +100,68 @@ function buildDashboardHtml(state, nonce) {
   <div class="section-label">Agents</div>
   <hr class="section-rule">
   <div class="btn-grid">
-    <button class="btn" data-command="ralphCodex.runRalphLoop" onclick="runCommand(this)"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.runReviewAgent" onclick="runCommand(this)"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.runWatchdogAgent" onclick="runCommand(this)"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.runScmAgent" onclick="runCommand(this)"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
   </div>
 
   <div class="section-label">Actions</div>
   <hr class="section-rule">
   <div class="btn-grid">
-    <button class="btn" data-command="ralphCodex.runRalphLoop" onclick="runCommand(this)"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.runRalphIteration" onclick="runCommand(this)"><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.generatePrompt" onclick="runCommand(this)"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
-    <button class="btn" data-command="ralphCodex.initializeWorkspace" onclick="runCommand(this)"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runRalphIteration"><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
   </div>
 
-  <button class="open-dashboard" onclick="runCommand(this)" data-command="ralphCodex.openDashboard">Open Dashboard</button>
+  <button class="open-dashboard" data-command="ralphCodex.openDashboard">Open Dashboard</button>
 
   <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
+    (function() {
+      var vscode = acquireVsCodeApi();
+      var ackTimeouts = new WeakMap();
 
-    function runCommand(el) {
-      const cmd = el.getAttribute('data-command');
-      if (!cmd || el.disabled) return;
-      el.classList.add('loading');
-      el.disabled = true;
-      vscode.postMessage({ type: 'command', command: cmd });
-      // Timeout fallback: re-enable after 10s if no ack
-      el._ackTimeout = setTimeout(function() { resetButton(el); }, 10000);
-    }
-
-    function resetButton(el) {
-      el.classList.remove('loading');
-      el.disabled = false;
-      if (el._ackTimeout) { clearTimeout(el._ackTimeout); el._ackTimeout = null; }
-    }
-
-    window.addEventListener('message', function(event) {
-      var msg = event.data;
-      if (msg.type === 'phase') {
-        var indicator = document.querySelector('.phase-indicator');
-        if (indicator) {
-          indicator.textContent = 'iter ' + msg.iteration + ' · ' + msg.phase;
-        }
+      function runCommand(el) {
+        var cmd = el.getAttribute('data-command');
+        if (!cmd || el.disabled) return;
+        el.classList.add('loading');
+        el.disabled = true;
+        vscode.postMessage({ type: 'command', command: cmd });
+        var t = setTimeout(function() { resetButton(el); }, 10000);
+        ackTimeouts.set(el, t);
       }
-      if (msg.type === 'command-ack') {
-        var btns = document.querySelectorAll('[data-command="' + msg.command + '"]');
-        btns.forEach(function(btn) {
-          if (msg.status === 'done' || msg.status === 'error') {
-            resetButton(btn);
+
+      function resetButton(el) {
+        el.classList.remove('loading');
+        el.disabled = false;
+        var t = ackTimeouts.get(el);
+        if (t) { clearTimeout(t); ackTimeouts.delete(el); }
+      }
+
+      document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-command]');
+        if (btn) { runCommand(btn); }
+      });
+
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (msg.type === 'phase') {
+          var indicator = document.querySelector('.phase-indicator');
+          if (indicator) {
+            indicator.textContent = 'iter ' + msg.iteration + ' \\u00b7 ' + msg.phase;
           }
-        });
-      }
-    });
+        }
+        if (msg.type === 'command-ack') {
+          var btns = document.querySelectorAll('[data-command="' + msg.command + '"]');
+          btns.forEach(function(btn) {
+            if (msg.status === 'done' || msg.status === 'error') {
+              resetButton(btn);
+            }
+          });
+        }
+      });
+    })();
   </script>
 </body>
 </html>`;

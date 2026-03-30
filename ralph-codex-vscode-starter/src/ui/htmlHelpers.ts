@@ -82,7 +82,7 @@ export function buildTaskRow(task: RalphDashboardTask, isRunning: boolean): stri
   const currentClass = task.isCurrent ? (isRunning ? 'current running' : 'current') : '';
   const check = task.status === 'done' ? '✓' : '';
 
-  return `<div class="task-row ${statusClass} ${currentClass}" data-task-id="${esc(task.id)}" onclick="toggleTask('${esc(task.id)}')">
+  return `<div class="task-row ${statusClass} ${currentClass}" data-task-id="${esc(task.id)}">
     <span class="task-glyph">${glyph}</span>
     <span class="task-id">${esc(task.id)}</span>
     <span class="task-title">${esc(task.title)}</span>
@@ -120,7 +120,7 @@ export function buildIterationRow(iter: RalphDashboardIteration): string {
   const glyph = CLASSIFICATION_CHAR[iter.classification] ?? '?';
   const taskLabel = iter.taskId ?? '—';
 
-  return `<div class="iter-row" onclick="openArtifact('${esc(iter.artifactDir)}')">
+  return `<div class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}">
     <span class="iter-num">#${iter.iteration}</span>
     <span class="iter-task">${esc(taskLabel)}</span>
     <span class="iter-class">${iter.classification.replace(/_/g, ' ')}</span>

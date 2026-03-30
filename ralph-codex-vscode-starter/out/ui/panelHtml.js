@@ -168,20 +168,20 @@ function buildPanelDashboardHtml(state, nonce) {
       <div class="card">
         <div class="card-title">Agents</div>
         <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop" onclick="runCommand(this)"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runReviewAgent" onclick="runCommand(this)"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runWatchdogAgent" onclick="runCommand(this)"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runScmAgent" onclick="runCommand(this)"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-title">Actions</div>
         <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop" onclick="runCommand(this)"${loopDisabled}><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runRalphIteration" onclick="runCommand(this)"${loopDisabled}><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.generatePrompt" onclick="runCommand(this)"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.initializeWorkspace" onclick="runCommand(this)"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
         </div>
       </div>
 
@@ -200,54 +200,69 @@ function buildPanelDashboardHtml(state, nonce) {
   </div>
 
   <script nonce="${nonce}">
-    const vscode = acquireVsCodeApi();
+    (function() {
+      var vscode = acquireVsCodeApi();
+      var ackTimeouts = new WeakMap();
 
-    function runCommand(el) {
-      const cmd = el.getAttribute('data-command');
-      if (!cmd || el.disabled) return;
-      el.classList.add('loading');
-      el.disabled = true;
-      vscode.postMessage({ type: 'command', command: cmd });
-      // Timeout fallback: re-enable after 10s if no ack
-      el._ackTimeout = setTimeout(function() { resetButton(el); }, 10000);
-    }
-
-    function resetButton(el) {
-      el.classList.remove('loading');
-      el.disabled = false;
-      if (el._ackTimeout) { clearTimeout(el._ackTimeout); el._ackTimeout = null; }
-    }
-
-    function toggleTask(taskId) {
-      var el = document.getElementById('detail-' + taskId);
-      if (el) {
-        el.style.display = el.style.display === 'none' ? 'block' : 'none';
+      function runCommand(el) {
+        var cmd = el.getAttribute('data-command');
+        if (!cmd || el.disabled) return;
+        el.classList.add('loading');
+        el.disabled = true;
+        vscode.postMessage({ type: 'command', command: cmd });
+        var t = setTimeout(function() { resetButton(el); }, 10000);
+        ackTimeouts.set(el, t);
       }
-    }
 
-    function openArtifact(dir) {
-      vscode.postMessage({ type: 'command', command: 'ralphCodex.openLatestRalphSummary' });
-    }
-
-    window.addEventListener('message', function(event) {
-      var msg = event.data;
-      if (msg.type === 'phase') {
-        var steps = document.querySelectorAll('.phase-step');
-        var phases = ${JSON.stringify(htmlHelpers_1.PHASE_LABELS)};
-        var activeIdx = phases.indexOf(msg.phase);
-        steps.forEach(function(step, i) {
-          step.className = 'phase-step' + (i < activeIdx ? ' done' : i === activeIdx ? ' active' : '');
-        });
+      function resetButton(el) {
+        el.classList.remove('loading');
+        el.disabled = false;
+        var t = ackTimeouts.get(el);
+        if (t) { clearTimeout(t); ackTimeouts.delete(el); }
       }
-      if (msg.type === 'command-ack') {
-        var btns = document.querySelectorAll('.btn[data-command="' + msg.command + '"]');
-        btns.forEach(function(btn) {
-          if (msg.status === 'done' || msg.status === 'error') {
-            resetButton(btn);
+
+      // Event delegation — no inline handlers needed (CSP blocks onclick)
+      document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-command]');
+        if (btn) { runCommand(btn); return; }
+
+        var taskRow = e.target.closest('.task-row[data-task-id]');
+        if (taskRow) {
+          var taskId = taskRow.getAttribute('data-task-id');
+          var detail = document.getElementById('detail-' + taskId);
+          if (detail) {
+            detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
           }
-        });
-      }
-    });
+          return;
+        }
+
+        var iterRow = e.target.closest('.iter-row[data-artifact-dir]');
+        if (iterRow) {
+          vscode.postMessage({ type: 'command', command: 'ralphCodex.openLatestRalphSummary' });
+          return;
+        }
+      });
+
+      window.addEventListener('message', function(event) {
+        var msg = event.data;
+        if (msg.type === 'phase') {
+          var steps = document.querySelectorAll('.phase-step');
+          var phases = ${JSON.stringify(htmlHelpers_1.PHASE_LABELS)};
+          var activeIdx = phases.indexOf(msg.phase);
+          steps.forEach(function(step, i) {
+            step.className = 'phase-step' + (i < activeIdx ? ' done' : i === activeIdx ? ' active' : '');
+          });
+        }
+        if (msg.type === 'command-ack') {
+          var btns = document.querySelectorAll('[data-command="' + msg.command + '"]');
+          btns.forEach(function(btn) {
+            if (msg.status === 'done' || msg.status === 'error') {
+              resetButton(btn);
+            }
+          });
+        }
+      });
+    })();
   </script>
 </body>
 </html>`;
