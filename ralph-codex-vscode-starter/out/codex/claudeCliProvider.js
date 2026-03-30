@@ -42,7 +42,7 @@ class ClaudeCliProvider {
     constructor(options) {
         this.options = options;
     }
-    buildArgs(request, _skipGitCheck) {
+    buildLaunchSpec(request, _skipGitCheck) {
         const args = [
             '-p', '-',
             '--model', request.model,
@@ -55,7 +55,11 @@ class ClaudeCliProvider {
         if (this.options.permissionMode === 'dangerously-skip-permissions') {
             args.push('--dangerously-skip-permissions');
         }
-        return args;
+        return {
+            args,
+            cwd: request.executionRoot,
+            stdinText: request.prompt
+        };
     }
     async extractResponseText(stdout, _stderr, lastMessagePath) {
         const trimmed = stdout.trim();

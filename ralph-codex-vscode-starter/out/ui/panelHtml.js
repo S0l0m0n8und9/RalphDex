@@ -290,7 +290,7 @@ function buildSettingsSection(cfg) {
     }
     const sections = [
         group('Provider & Model', [
-            row('CLI Provider', select('cliProvider', cfg.cliProvider, ['codex', 'claude'])),
+            row('CLI Provider', select('cliProvider', cfg.cliProvider, ['codex', 'claude', 'copilot'])),
             row('Model', textInput('model', cfg.model)),
             row('Reasoning Effort', select('reasoningEffort', cfg.reasoningEffort, ['medium', 'high'])),
             row('Prompt Budget', select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom']))
@@ -311,6 +311,9 @@ function buildSettingsSection(cfg) {
             row('Max Turns', numberInput('claudeMaxTurns', cfg.claudeMaxTurns, 1, 500)),
             row('Permission Mode', select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default']))
         ].join('\n')),
+        group('Copilot CLI', [
+            row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive']))
+        ].join('\n')),
         group('Codex CLI', [
             row('Approval Mode', select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])),
             row('Sandbox Mode', select('sandboxMode', cfg.sandboxMode, ['read-only', 'workspace-write', 'danger-full-access']))
@@ -329,6 +332,7 @@ function buildSettingsSection(cfg) {
         group('Paths', [
             row('Codex Command Path', textInput('codexCommandPath', cfg.codexCommandPath)),
             row('Claude Command Path', textInput('claudeCommandPath', cfg.claudeCommandPath)),
+            row('Copilot Command Path', textInput('copilotCommandPath', cfg.copilotCommandPath)),
             row('Inspection Root Override', textInput('inspectionRootOverride', cfg.inspectionRootOverride)),
             row('Artifact Retention Path', textInput('artifactRetentionPath', cfg.artifactRetentionPath)),
             row('Task File Path', textInput('ralphTaskFilePath', cfg.ralphTaskFilePath)),

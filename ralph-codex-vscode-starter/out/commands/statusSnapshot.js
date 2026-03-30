@@ -45,6 +45,7 @@ exports.normalizeCompletionReportArtifact = normalizeCompletionReportArtifact;
 exports.collectStatusSnapshot = collectStatusSnapshot;
 const fs = __importStar(require("fs/promises"));
 const vscode = __importStar(require("vscode"));
+const providers_1 = require("../config/providers");
 const readConfig_1 = require("../config/readConfig");
 const preflight_1 = require("../ralph/preflight");
 const rootPolicy_1 = require("../ralph/rootPolicy");
@@ -266,7 +267,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             inspectionRootOverride: config.inspectionRootOverride
         }),
         (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths),
-        (0, codexCliSupport_1.inspectCodexCliSupport)(config.cliProvider === 'claude' ? config.claudeCommandPath : config.codexCommandPath)
+        (0, codexCliSupport_1.inspectCodexCliSupport)((0, providers_1.getCliCommandPath)(config))
     ]);
     const rootPolicy = (0, rootPolicy_1.deriveRootPolicy)(workspaceScan);
     const gitStatus = await (0, verifier_1.captureGitStatus)(rootPolicy.verificationRootPath);

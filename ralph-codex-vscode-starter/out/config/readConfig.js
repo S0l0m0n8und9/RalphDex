@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.readConfig = readConfig;
 const vscode = __importStar(require("vscode"));
 const defaults_1 = require("./defaults");
+const providers_1 = require("./providers");
 function readString(config, key, fallback, legacyKeys = []) {
     const value = config.get(key);
     if (typeof value === 'string' && value.trim()) {
@@ -155,10 +156,10 @@ function readHooks(config, fallback) {
 }
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot'], defaults_1.DEFAULT_CONFIG.cliProvider);
     const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], defaults_1.DEFAULT_CONFIG.autonomyMode);
-    const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
-    const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
+    const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
+    const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
     const autoReplenishBacklog = readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog);
     const autoReloadOnControlPlaneChange = readBoolean(config, 'autoReloadOnControlPlaneChange', defaults_1.DEFAULT_CONFIG.autoReloadOnControlPlaneChange);
     const autoApplyRemediation = readEnumArray(config, 'autoApplyRemediation', ['decompose_task', 'mark_blocked'], defaults_1.DEFAULT_CONFIG.autoApplyRemediation);
@@ -177,8 +178,10 @@ function readConfig(workspaceFolder) {
         cliProvider,
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
+        copilotCommandPath: readString(config, 'copilotCommandPath', defaults_1.DEFAULT_CONFIG.copilotCommandPath),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),
+        copilotApprovalMode: readEnum(config, 'copilotApprovalMode', ['allow-all', 'allow-tools-only', 'interactive'], defaults_1.DEFAULT_CONFIG.copilotApprovalMode),
         agentId: readString(config, 'agentId', defaults_1.DEFAULT_CONFIG.agentId),
         agentRole: readEnum(config, 'agentRole', ['build', 'review', 'watchdog', 'scm'], defaults_1.DEFAULT_CONFIG.agentRole),
         preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], defaults_1.DEFAULT_CONFIG.preferredHandoffMode),

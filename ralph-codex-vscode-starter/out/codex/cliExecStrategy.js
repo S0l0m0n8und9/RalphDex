@@ -63,7 +63,8 @@ class CliExecCodexStrategy {
     async runExec(request) {
         await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
         await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-        const args = this.provider.buildArgs(request, !(await hasGitMetadata(request.executionRoot)));
+        const launchSpec = this.provider.buildLaunchSpec(request, !(await hasGitMetadata(request.executionRoot)));
+        const args = launchSpec.args;
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
         if (stdinHash !== request.promptHash) {
             throw new Error(`Execution integrity check failed before launch: stdin payload hash ${stdinHash} did not match planned prompt hash ${request.promptHash}.`);
@@ -73,13 +74,14 @@ class CliExecCodexStrategy {
             workspaceRoot: request.workspaceRoot,
             executionRoot: request.executionRoot,
             promptPath: request.promptPath,
+            launchCwd: launchSpec.cwd,
             args
         });
         let processResult;
         try {
             processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
-                cwd: request.executionRoot,
-                stdinText: request.prompt,
+                cwd: launchSpec.cwd,
+                stdinText: launchSpec.stdinText,
                 onStdoutChunk: request.onStdoutChunk,
                 onStderrChunk: request.onStderrChunk
             });

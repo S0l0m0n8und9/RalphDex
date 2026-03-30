@@ -41,6 +41,7 @@ exports.renderPreflightReport = renderPreflightReport;
 exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const providers_1 = require("../config/providers");
 const fs_1 = require("../util/fs");
 const artifactStore_1 = require("./artifactStore");
 const types_1 = require("./types");
@@ -557,7 +558,7 @@ function buildPreflightReport(input) {
     }
     if (input.codexCliSupport) {
         const cliSupport = input.codexCliSupport;
-        const providerLabel = cliSupport.provider === 'claude' ? 'Claude' : 'Codex';
+        const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');
         const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
         if (input.codexCliSupport.check === 'pathMissing') {
             diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));

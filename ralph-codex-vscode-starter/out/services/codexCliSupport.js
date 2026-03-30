@@ -87,10 +87,15 @@ async function inspectCodexCliSupport(commandPath) {
 }
 async function inspectCliSupport(provider, commandPath) {
     const base = await inspectCodexCliSupport(commandPath);
+    const configKey = provider === 'claude'
+        ? 'ralphCodex.claudeCommandPath'
+        : provider === 'copilot'
+            ? 'ralphCodex.copilotCommandPath'
+            : 'ralphCodex.codexCommandPath';
     return {
         ...base,
         provider,
-        configKey: provider === 'claude' ? 'ralphCodex.claudeCommandPath' : 'ralphCodex.codexCommandPath'
+        configKey
     };
 }
 function commandIsDisabled(commandId) {

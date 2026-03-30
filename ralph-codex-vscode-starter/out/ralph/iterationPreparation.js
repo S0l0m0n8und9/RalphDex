@@ -37,6 +37,7 @@ exports.prepareIterationContext = prepareIterationContext;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
+const providers_1 = require("../config/providers");
 const readConfig_1 = require("../config/readConfig");
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const processRunner_1 = require("../services/processRunner");
@@ -234,9 +235,7 @@ async function prepareIterationContext(input) {
         rootPath: rootPolicy.verificationRootPath
     });
     const trustLevel = trustLevelForTarget(promptTarget);
-    const cliCommandPath = config.cliProvider === 'claude'
-        ? config.claudeCommandPath
-        : config.codexCommandPath;
+    const cliCommandPath = (0, providers_1.getCliCommandPath)(config);
     const [availableCommands, codexCliSupport] = await Promise.all([
         vscode.commands.getCommands(true),
         (0, codexCliSupport_1.inspectCliSupport)(config.cliProvider, cliCommandPath)

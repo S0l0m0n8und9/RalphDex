@@ -4,6 +4,7 @@ exports.CodexStrategyRegistry = void 0;
 const claudeCliProvider_1 = require("./claudeCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
+const copilotCliProvider_1 = require("./copilotCliProvider");
 const codexCliProvider_1 = require("./codexCliProvider");
 const ideCommandStrategy_1 = require("./ideCommandStrategy");
 function createCliProvider(config) {
@@ -11,6 +12,11 @@ function createCliProvider(config) {
         return new claudeCliProvider_1.ClaudeCliProvider({
             maxTurns: config.claudeMaxTurns,
             permissionMode: config.claudePermissionMode
+        });
+    }
+    if (config.cliProvider === 'copilot') {
+        return new copilotCliProvider_1.CopilotCliProvider({
+            approvalMode: config.copilotApprovalMode
         });
     }
     return new codexCliProvider_1.CodexCliProvider({

@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphIterationEngine = void 0;
 const fs = __importStar(require("fs/promises"));
+const providers_1 = require("../config/providers");
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const error_1 = require("../util/error");
 const iterationScm_1 = require("./iterationScm");
@@ -238,9 +239,7 @@ class RalphIterationEngine {
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
                     let claudeLineBuffer = '';
                     const execResult = await execStrategy.runExec({
-                        commandPath: prepared.config.cliProvider === 'claude'
-                            ? prepared.config.claudeCommandPath
-                            : prepared.config.codexCommandPath,
+                        commandPath: (0, providers_1.getCliCommandPath)(prepared.config),
                         workspaceRoot: prepared.rootPath,
                         executionRoot: prepared.rootPolicy.executionRootPath,
                         prompt: promptArtifactText,
@@ -285,9 +284,7 @@ class RalphIterationEngine {
                         agentId: prepared.config.agentId,
                         provenanceId: prepared.provenanceId,
                         iteration: prepared.iteration,
-                        commandPath: prepared.config.cliProvider === 'claude'
-                            ? prepared.config.claudeCommandPath
-                            : prepared.config.codexCommandPath,
+                        commandPath: (0, providers_1.getCliCommandPath)(prepared.config),
                         args: execResult.args,
                         reasoningEffort: prepared.config.reasoningEffort,
                         workspaceRoot: prepared.rootPath,

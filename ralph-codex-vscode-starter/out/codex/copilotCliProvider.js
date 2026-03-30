@@ -33,70 +33,66 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CodexCliProvider = void 0;
+exports.CopilotCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
 const text_1 = require("../util/text");
-class CodexCliProvider {
+class CopilotCliProvider {
     options;
-    id = 'codex';
+    id = 'copilot';
     constructor(options) {
         this.options = options;
     }
-    buildLaunchSpec(request, skipGitCheck) {
-        const args = [
-            'exec',
-            '--model', request.model,
-            '--config', `model_reasoning_effort="${request.reasoningEffort}"`,
-            '--sandbox', request.sandboxMode,
-            '--config', `approval_policy="${request.approvalMode}"`,
-            '--cd', request.executionRoot,
-            '--output-last-message', request.lastMessagePath
-        ];
-        if (skipGitCheck) {
-            args.push('--skip-git-repo-check');
+    buildLaunchSpec(request, _skipGitCheck) {
+        const args = ['-s'];
+        if (request.model.trim()) {
+            args.push('--model', request.model);
         }
-        args.push('-');
+        if (this.options.approvalMode === 'allow-all') {
+            args.push('--allow-all');
+        }
+        else if (this.options.approvalMode === 'allow-tools-only') {
+            args.push('--allow-tool', 'shell');
+        }
+        args.push('-p', request.prompt);
         return {
             args,
-            cwd: request.executionRoot,
-            stdinText: request.prompt
+            cwd: request.executionRoot
         };
     }
-    async extractResponseText(_stdout, _stderr, lastMessagePath) {
-        return fs.readFile(lastMessagePath, 'utf8').catch(() => '');
+    async extractResponseText(stdout, _stderr, lastMessagePath) {
+        const text = stdout.trim();
+        if (text) {
+            await fs.writeFile(lastMessagePath, text, 'utf8').catch(() => { });
+        }
+        return text;
     }
     isIgnorableStderrLine(line) {
-        return /^WARNING:/i.test(line)
-            || /^Reconnecting\.\.\./.test(line)
-            || /^mcp:/i.test(line)
-            || /^mcp startup:/i.test(line)
-            || /^OpenAI Codex\b/.test(line)
-            || /^-+$/.test(line)
-            || /^(workdir|model|provider|approval|sandbox|reasoning effort|reasoning summaries|session id):/i.test(line)
-            || /^user$/i.test(line)
-            || /^# Ralph Prompt:/.test(line)
-            || /^## /.test(line)
-            || /^- /.test(line);
+        return /^\s*$/.test(line)
+            || /^GitHub Copilot CLI\b/i.test(line)
+            || /^Using model:/i.test(line)
+            || /^Authenticated as/i.test(line)
+            || /^Session ID:/i.test(line)
+            || /^warning:/i.test(line);
     }
     summarizeResult(input) {
         if (input.exitCode === 0) {
-            return (0, text_1.truncateSummary)((0, text_1.firstNonEmptyLine)(input.lastMessage) ?? 'codex exec completed successfully.');
+            return (0, text_1.truncateSummary)((0, text_1.firstNonEmptyLine)(input.lastMessage) ?? 'copilot completed successfully.');
         }
         const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
         return detail
-            ? `codex exec exited with code ${input.exitCode}: ${detail}`
-            : `codex exec exited with code ${input.exitCode}.`;
+            ? `copilot exited with code ${input.exitCode}: ${detail}`
+            : `copilot exited with code ${input.exitCode}.`;
     }
     describeLaunchError(commandPath, error) {
         if (error.code === 'ENOENT') {
-            return `Codex CLI was not found at "${commandPath}". Install Codex CLI or update ralphCodex.codexCommandPath.`;
+            return `GitHub Copilot CLI was not found at "${commandPath}". Install Copilot CLI or update ralphCodex.copilotCommandPath.`;
         }
-        return `Failed to start codex exec with "${commandPath}": ${error.message}`;
+        return `Failed to start GitHub Copilot CLI with "${commandPath}": ${error.message}`;
     }
     buildTranscript(result, request) {
         const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
         return [
-            '# Codex Exec Transcript',
+            '# GitHub Copilot CLI Transcript',
             '',
             `- Command: ${request.commandPath} ${result.args.join(' ')}`,
             `- Workspace root: ${request.workspaceRoot}`,
@@ -104,10 +100,10 @@ class CodexCliProvider {
             `- Prompt path: ${request.promptPath}`,
             `- Prompt hash: ${request.promptHash}`,
             `- Prompt bytes: ${request.promptByteLength}`,
-            `- Reasoning effort: ${request.reasoningEffort}`,
+            `- Model: ${request.model}`,
+            `- Approval mode: ${this.options.approvalMode}`,
             `- Stdin hash: ${result.stdinHash}`,
             `- Payload matched prompt artifact: ${payloadMatched}`,
-            `- Last message path: ${request.lastMessagePath}`,
             `- Exit code: ${result.exitCode}`,
             '',
             '## Stdout',
@@ -118,7 +114,7 @@ class CodexCliProvider {
             '',
             result.stderr || '(empty)',
             '',
-            '## Last Message',
+            '## Extracted Response',
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
@@ -128,24 +124,17 @@ class CodexCliProvider {
             .split('\n')
             .map((line) => line.trim())
             .filter((line) => line.length > 0);
-        for (const line of [...stderrLines].reverse()) {
-            if (/^ERROR:/i.test(line)
-                && !/failed to shutdown rollout recorder/i.test(line)
-                && !/no last agent message/i.test(line)) {
-                return (0, text_1.truncateSummary)(line.replace(/^ERROR:\s*/i, ''));
-            }
-        }
         const lastMessageLine = (0, text_1.firstNonEmptyLine)(lastMessage);
         if (lastMessageLine) {
             return (0, text_1.truncateSummary)(lastMessageLine);
         }
         for (const line of [...stderrLines].reverse()) {
             if (!this.isIgnorableStderrLine(line)) {
-                return (0, text_1.truncateSummary)(line.replace(/^ERROR:\s*/i, ''));
+                return (0, text_1.truncateSummary)(line.replace(/^error:\s*/i, ''));
             }
         }
         return null;
     }
 }
-exports.CodexCliProvider = CodexCliProvider;
-//# sourceMappingURL=codexCliProvider.js.map
+exports.CopilotCliProvider = CopilotCliProvider;
+//# sourceMappingURL=copilotCliProvider.js.map
