@@ -531,6 +531,7 @@ function buildPreflightReport(input) {
     for (const diagnostic of input.agentHealthDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('agentHealth', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
+    diagnostics.push(createDiagnostic('agentHealth', 'info', 'configured_agent_count', `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`));
     if (!input.workspaceTrusted) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'workspace_untrusted', 'Workspace is not trusted; only read-only Ralph status inspection is supported.'));
     }

@@ -37,7 +37,8 @@
     "T33.4",
     "T55",
     "T56",
-    "T57"
+    "T57",
+    "T58"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -85,6 +86,8 @@
     "ralph-codex-vscode-starter/out/codex/claudeCliProvider.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js.map",
     "ralph-codex-vscode-starter/out/config/defaults.js",
     "ralph-codex-vscode-starter/out/config/defaults.js.map",
     "ralph-codex-vscode-starter/out/config/readConfig.js",
@@ -134,6 +137,7 @@
     "ralph-codex-vscode-starter/README.md",
     "ralph-codex-vscode-starter/scripts/calibrate-prompt-budget.js",
     "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
+    "ralph-codex-vscode-starter/src/commands/statusSnapshot.ts",
     "ralph-codex-vscode-starter/src/config/defaults.ts",
     "ralph-codex-vscode-starter/src/config/readConfig.ts",
     "ralph-codex-vscode-starter/src/config/types.ts",

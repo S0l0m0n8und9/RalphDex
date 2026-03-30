@@ -543,6 +543,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
     gitCheckpointMode: 'off',
     validationCommandOverride: null,
+    agentCount: 1,
     workspaceScan,
     gitStatus: {
       available: false,

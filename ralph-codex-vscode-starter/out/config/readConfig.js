@@ -217,6 +217,7 @@ function readConfig(workspaceFolder) {
         newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
         claimTtlHours: readNumber(config, 'claimTtlHours', defaults_1.DEFAULT_CONFIG.claimTtlHours, 1),
         staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', defaults_1.DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
+        agentCount: readNumber(config, 'agentCount', defaults_1.DEFAULT_CONFIG.agentCount, 1),
         modelTiering: readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering),
         hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks)
     };

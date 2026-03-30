@@ -226,6 +226,7 @@ function buildStatusReport(snapshot) {
         '',
         '## Loop',
         `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
+        `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
         `- Next iteration: ${snapshot.nextIteration}`,
         `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}` : 'none'}`,
         `- Current prompt kind: ${latestPlan?.promptKind ?? 'none'}`,

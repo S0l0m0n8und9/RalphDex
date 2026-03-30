@@ -720,10 +720,11 @@ test('buildPreflightReport routes agentHealthDiagnostics into the agentHealth ca
   });
 
   const agentHealthDiags = report.diagnostics.filter((d) => d.category === 'agentHealth');
-  assert.equal(agentHealthDiags.length, 2);
+  assert.equal(agentHealthDiags.length, 3);
   assert.ok(agentHealthDiags.some((d) => d.code === 'stale_state_lock'));
   assert.ok(agentHealthDiags.some((d) => d.code === 'stale_active_claim_agent_offline'));
-  assert.match(report.summary, /Agent Health: 2 warnings/);
+  assert.ok(agentHealthDiags.some((d) => d.code === 'configured_agent_count'));
+  assert.match(report.summary, /Agent Health: 2 warnings, 1 info/);
 });
 
 test('checkStaleState ignores released and non-stale active claims', async () => {

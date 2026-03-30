@@ -397,6 +397,7 @@ export async function collectStatusSnapshot(
     verifierModes: config.verifierModes,
     gitCheckpointMode: config.gitCheckpointMode,
     validationCommandOverride: config.validationCommandOverride || null,
+    agentCount: config.agentCount,
     workspaceScan,
     gitStatus,
     preflightReport,

@@ -109,6 +109,7 @@ export interface RalphCodexConfig {
   newChatCommandId: string;
   claimTtlHours: number;
   staleLockThresholdMinutes: number;
+  agentCount: number;
   modelTiering: RalphModelTieringConfig;
   hooks: RalphHooksConfig;
 }

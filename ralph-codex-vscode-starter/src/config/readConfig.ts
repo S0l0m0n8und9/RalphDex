@@ -392,6 +392,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
     claimTtlHours: readNumber(config, 'claimTtlHours', DEFAULT_CONFIG.claimTtlHours, 1),
     staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
+    agentCount: readNumber(config, 'agentCount', DEFAULT_CONFIG.agentCount, 1),
     modelTiering: readModelTiering(config, DEFAULT_CONFIG.modelTiering),
     hooks: readHooks(config, DEFAULT_CONFIG.hooks)
   };

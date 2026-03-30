@@ -44,6 +44,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   newChatCommandId: 'claude.newChat',
   claimTtlHours: 24,
   staleLockThresholdMinutes: 5,
+  agentCount: 1,
   modelTiering: {
     enabled: false,
     simpleModel: 'claude-haiku-4-5-20251001',

@@ -744,6 +744,13 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     ));
   }
 
+  diagnostics.push(createDiagnostic(
+    'agentHealth',
+    'info',
+    'configured_agent_count',
+    `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`
+  ));
+
   if (!input.workspaceTrusted) {
     diagnostics.push(createDiagnostic(
       'workspaceRuntime',

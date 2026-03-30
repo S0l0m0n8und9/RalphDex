@@ -69,7 +69,8 @@
         "ralphCodex.approvalMode",
         "ralphCodex.sandboxMode",
         "ralphCodex.openSidebarCommandId",
-        "ralphCodex.newChatCommandId"
+        "ralphCodex.newChatCommandId",
+        "ralphCodex.agentCount"
       ]
     },
     "virtualWorkspaces": {
@@ -463,6 +464,13 @@
           "default": 5,
           "minimum": 1,
           "description": "Minutes before an orphaned lock file is treated as stale and automatically removed."
+        },
+        "ralphCodex.agentCount": {
+          "type": "number",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of concurrent Ralph agent instances configured for this workspace. Surfaced in preflight and Show Status so operators can verify the intended parallelism before starting a loop."
         }
       }
     }
