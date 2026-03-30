@@ -180,6 +180,40 @@ details[open] > .completed-toggle::before {
 .settings-group-title:first-child {
   margin-top: 0;
 }
+
+/* Key-value editor */
+.kv-editor { display: flex; flex-direction: column; gap: 4px; }
+.kv-row { display: flex; gap: 4px; align-items: center; }
+.kv-row input.kv-key { flex: 1; }
+.kv-row input.kv-value { width: 60px; }
+.kv-remove, .kv-add {
+  font-family: var(--ralph-font);
+  font-size: 10px;
+  background: transparent;
+  border: 1px solid var(--ralph-border);
+  color: var(--ralph-dim);
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.kv-remove:hover, .kv-add:hover {
+  border-color: var(--ralph-amber);
+  color: var(--ralph-amber);
+}
+
+/* Advanced section */
+.settings-advanced-toggle {
+  font-family: var(--ralph-font);
+  font-size: 10px;
+  color: var(--ralph-dim);
+  cursor: pointer;
+  padding: 6px 0;
+  list-style: none;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.settings-advanced-toggle::-webkit-details-marker { display: none; }
+.settings-advanced-toggle::before { content: '▸ '; font-size: 10px; }
+details[open] > .settings-advanced-toggle::before { content: '▾ '; }
 `;
 }
 
@@ -204,6 +238,43 @@ function textInput(key: string, value: string): string {
 
 function checkbox(key: string, value: boolean, label: string): string {
   return `<label class="setting-check"><input type="checkbox" data-setting="${esc(key)}"${value ? ' checked' : ''}> ${esc(label)}</label>`;
+}
+
+function multiCheckbox(key: string, selected: string[], allOptions: readonly string[]): string {
+  return allOptions.map((opt) => {
+    const checked = selected.includes(opt) ? ' checked' : '';
+    return `<label class="setting-check">
+      <input type="checkbox" data-setting-multi="${esc(key)}" value="${esc(opt)}"${checked}> ${esc(opt)}
+    </label>`;
+  }).join('');
+}
+
+function keyValueEditor(key: string, map: Partial<Record<string, number>>): string {
+  const entries = Object.entries(map);
+  const rows = entries.map(([k, v]) =>
+    `<div class="kv-row" data-setting-kv="${esc(key)}">
+      <input type="text" class="kv-key" value="${esc(k)}" placeholder="key">
+      <input type="number" class="kv-value" value="${v}" min="0">
+      <button class="kv-remove" title="Remove">✕</button>
+    </div>`
+  ).join('');
+  return `<div class="kv-editor" data-setting-kv-group="${esc(key)}">
+    ${rows}
+    <button class="kv-add" data-setting-kv-add="${esc(key)}">+ Add entry</button>
+  </div>`;
+}
+
+function nestedInput(parentKey: string, subKey: string, type: 'text' | 'number' | 'checkbox', value: string | number | boolean, label?: string): string {
+  const fullKey = `${parentKey}.${subKey}`;
+  if (type === 'checkbox') {
+    return `<label class="setting-check">
+      <input type="checkbox" data-setting-nested="${esc(fullKey)}"${value ? ' checked' : ''}> ${esc(label ?? subKey)}
+    </label>`;
+  }
+  if (type === 'number') {
+    return `<input type="number" data-setting-nested="${esc(fullKey)}" value="${value}">`;
+  }
+  return `<input type="text" data-setting-nested="${esc(fullKey)}" value="${esc(String(value))}">`;
 }
 
 function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
@@ -292,6 +363,9 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
         <span class="setting-label">Git Checkpoint</span>
         <div class="setting-control">${select('gitCheckpointMode', cfg.gitCheckpointMode, ['off', 'snapshot', 'snapshotAndDiff'])}</div>
       </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('scmPrOnParentDone', cfg.scmPrOnParentDone, 'Create PR on parent done')}
+      </div>
 
       <div class="settings-group-title">Behaviour</div>
       <div class="setting-row" style="grid-column: 1 / -1">
@@ -306,6 +380,154 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
       <div class="setting-row" style="grid-column: 1 / -1">
         ${checkbox('autoReloadOnControlPlaneChange', cfg.autoReloadOnControlPlaneChange, 'Auto-reload on control plane change')}
       </div>
+
+      <div class="settings-group-title">Paths</div>
+      <div class="setting-row">
+        <span class="setting-label">Codex Command Path</span>
+        <div class="setting-control">${textInput('codexCommandPath', cfg.codexCommandPath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Claude Command Path</span>
+        <div class="setting-control">${textInput('claudeCommandPath', cfg.claudeCommandPath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Inspection Root Override</span>
+        <div class="setting-control">${textInput('inspectionRootOverride', cfg.inspectionRootOverride)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Artifact Retention Path</span>
+        <div class="setting-control">${textInput('artifactRetentionPath', cfg.artifactRetentionPath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Task File Path</span>
+        <div class="setting-control">${textInput('ralphTaskFilePath', cfg.ralphTaskFilePath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">PRD Path</span>
+        <div class="setting-control">${textInput('prdPath', cfg.prdPath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Progress Path</span>
+        <div class="setting-control">${textInput('progressPath', cfg.progressPath)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Prompt Template Directory</span>
+        <div class="setting-control">${textInput('promptTemplateDirectory', cfg.promptTemplateDirectory)}</div>
+      </div>
+
+      <div class="settings-group-title">Verifier</div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        <span class="setting-label">Verifier Modes</span>
+        <div class="setting-control">${multiCheckbox('verifierModes', cfg.verifierModes, ['validationCommand', 'gitDiff', 'taskState'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Validation Command Override</span>
+        <div class="setting-control">${textInput('validationCommandOverride', cfg.validationCommandOverride)}</div>
+      </div>
+
+      <div class="settings-group-title">Prompt</div>
+      <div class="setting-row">
+        <span class="setting-label">Prior Context Budget</span>
+        <div class="setting-control">${numberInput('promptPriorContextBudget', cfg.promptPriorContextBudget, 0, 100000)}</div>
+      </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('promptIncludeVerifierFeedback', cfg.promptIncludeVerifierFeedback, 'Include verifier feedback')}
+      </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        <span class="setting-label">Custom Prompt Budget</span>
+        <div class="setting-control">${keyValueEditor('customPromptBudget', cfg.customPromptBudget)}</div>
+      </div>
+
+      <div class="settings-group-title">Retention</div>
+      <div class="setting-row">
+        <span class="setting-label">Artifact Retention Count</span>
+        <div class="setting-control">${numberInput('generatedArtifactRetentionCount', cfg.generatedArtifactRetentionCount, 0, 100)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Provenance Bundle Count</span>
+        <div class="setting-control">${numberInput('provenanceBundleRetentionCount', cfg.provenanceBundleRetentionCount, 0, 100)}</div>
+      </div>
+
+      <div class="settings-group-title">Timing</div>
+      <div class="setting-row">
+        <span class="setting-label">Watchdog Stale TTL (ms)</span>
+        <div class="setting-control">${numberInput('watchdogStaleTtlMs', cfg.watchdogStaleTtlMs, 0, 604800000)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Claim TTL (hours)</span>
+        <div class="setting-control">${numberInput('claimTtlHours', cfg.claimTtlHours, 1, 720)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Stale Lock Threshold (min)</span>
+        <div class="setting-control">${numberInput('staleLockThresholdMinutes', cfg.staleLockThresholdMinutes, 1, 1440)}</div>
+      </div>
+
+      <div class="settings-group-title">Remediation</div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        <span class="setting-label">Auto-Apply Remediation</span>
+        <div class="setting-control">${multiCheckbox('autoApplyRemediation', cfg.autoApplyRemediation, ['decompose_task', 'mark_blocked'])}</div>
+      </div>
+
+      <div class="settings-group-title">Model Tiering</div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')}
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Simple Model</span>
+        <div class="setting-control">${nestedInput('modelTiering', 'simpleModel', 'text', cfg.modelTiering.simpleModel)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Medium Model</span>
+        <div class="setting-control">${nestedInput('modelTiering', 'mediumModel', 'text', cfg.modelTiering.mediumModel)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Complex Model</span>
+        <div class="setting-control">${nestedInput('modelTiering', 'complexModel', 'text', cfg.modelTiering.complexModel)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Simple Threshold</span>
+        <div class="setting-control">${nestedInput('modelTiering', 'simpleThreshold', 'number', cfg.modelTiering.simpleThreshold)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Complex Threshold</span>
+        <div class="setting-control">${nestedInput('modelTiering', 'complexThreshold', 'number', cfg.modelTiering.complexThreshold)}</div>
+      </div>
+
+      <div class="settings-group-title">Hooks</div>
+      <div class="setting-row">
+        <span class="setting-label">Before Iteration</span>
+        <div class="setting-control">${nestedInput('hooks', 'beforeIteration', 'text', cfg.hooks.beforeIteration ?? '')}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">After Iteration</span>
+        <div class="setting-control">${nestedInput('hooks', 'afterIteration', 'text', cfg.hooks.afterIteration ?? '')}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">On Task Complete</span>
+        <div class="setting-control">${nestedInput('hooks', 'onTaskComplete', 'text', cfg.hooks.onTaskComplete ?? '')}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">On Stop</span>
+        <div class="setting-control">${nestedInput('hooks', 'onStop', 'text', cfg.hooks.onStop ?? '')}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">On Failure</span>
+        <div class="setting-control">${nestedInput('hooks', 'onFailure', 'text', cfg.hooks.onFailure ?? '')}</div>
+      </div>
+
+      <details>
+        <summary class="settings-advanced-toggle">Advanced</summary>
+        <div class="settings-grid">
+          <div class="setting-row">
+            <span class="setting-label">Open Sidebar Command ID</span>
+            <div class="setting-control">${textInput('openSidebarCommandId', cfg.openSidebarCommandId)}</div>
+          </div>
+          <div class="setting-row">
+            <span class="setting-label">New Chat Command ID</span>
+            <div class="setting-control">${textInput('newChatCommandId', cfg.newChatCommandId)}</div>
+          </div>
+        </div>
+      </details>
     </div>`;
 }
 
@@ -435,6 +657,28 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
       // Settings change handler
       document.addEventListener('change', function(e) {
         var el = e.target;
+
+        // Multi-select checkbox group
+        var multiKey = el.getAttribute('data-setting-multi');
+        if (multiKey) {
+          var checkboxes = document.querySelectorAll('[data-setting-multi="' + multiKey + '"]');
+          var selected = [];
+          checkboxes.forEach(function(cb) { if (cb.checked) selected.push(cb.value); });
+          vscode.postMessage({ type: 'update-setting', key: multiKey, value: selected });
+          return;
+        }
+
+        // Nested object field
+        var nestedKey = el.getAttribute('data-setting-nested');
+        if (nestedKey) {
+          var value;
+          if (el.type === 'checkbox') { value = el.checked; }
+          else if (el.type === 'number') { value = parseInt(el.value, 10); if (isNaN(value)) return; }
+          else { value = el.value; }
+          vscode.postMessage({ type: 'update-setting', key: nestedKey, value: value });
+          return;
+        }
+
         var key = el.getAttribute('data-setting');
         if (!key) return;
         var value;
@@ -454,6 +698,33 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); return; }
 
+        var kvAdd = e.target.closest('[data-setting-kv-add]');
+        if (kvAdd) {
+          var groupKey = kvAdd.getAttribute('data-setting-kv-add');
+          var container = document.querySelector('[data-setting-kv-group="' + groupKey + '"]');
+          if (container) {
+            var row = document.createElement('div');
+            row.className = 'kv-row';
+            row.setAttribute('data-setting-kv', groupKey);
+            row.innerHTML = '<input type="text" class="kv-key" value="" placeholder="key">' +
+              '<input type="number" class="kv-value" value="0" min="0">' +
+              '<button class="kv-remove" title="Remove">✕</button>';
+            container.insertBefore(row, kvAdd);
+          }
+          return;
+        }
+
+        var kvRemove = e.target.closest('.kv-remove');
+        if (kvRemove) {
+          var kvRow = kvRemove.closest('.kv-row');
+          if (kvRow) {
+            var kvGroup = kvRow.getAttribute('data-setting-kv');
+            kvRow.remove();
+            collectAndSendKv(kvGroup);
+          }
+          return;
+        }
+
         var taskRow = e.target.closest('.task-row[data-task-id]');
         if (taskRow) {
           var taskId = taskRow.getAttribute('data-task-id');
@@ -468,6 +739,26 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         if (iterRow) {
           vscode.postMessage({ type: 'command', command: 'ralphCodex.openLatestRalphSummary' });
           return;
+        }
+      });
+
+      function collectAndSendKv(groupKey) {
+        var container = document.querySelector('[data-setting-kv-group="' + groupKey + '"]');
+        if (!container) return;
+        var rows = container.querySelectorAll('[data-setting-kv="' + groupKey + '"]');
+        var map = {};
+        rows.forEach(function(row) {
+          var k = row.querySelector('.kv-key').value.trim();
+          var v = parseInt(row.querySelector('.kv-value').value, 10);
+          if (k && !isNaN(v) && v >= 0) map[k] = v;
+        });
+        vscode.postMessage({ type: 'update-setting', key: groupKey, value: map });
+      }
+
+      document.addEventListener('input', function(e) {
+        var kvRow = e.target.closest('.kv-row[data-setting-kv]');
+        if (kvRow) {
+          collectAndSendKv(kvRow.getAttribute('data-setting-kv'));
         }
       });
 

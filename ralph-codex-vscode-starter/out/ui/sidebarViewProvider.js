@@ -260,7 +260,31 @@ function snapshotConfig(config) {
         clipboardAutoCopy: config.clipboardAutoCopy,
         autoReplenishBacklog: config.autoReplenishBacklog,
         autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
-        promptBudgetProfile: config.promptBudgetProfile
+        promptBudgetProfile: config.promptBudgetProfile,
+        codexCommandPath: config.codexCommandPath,
+        claudeCommandPath: config.claudeCommandPath,
+        inspectionRootOverride: config.inspectionRootOverride,
+        artifactRetentionPath: config.artifactRetentionPath,
+        ralphTaskFilePath: config.ralphTaskFilePath,
+        prdPath: config.prdPath,
+        progressPath: config.progressPath,
+        promptTemplateDirectory: config.promptTemplateDirectory,
+        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
+        provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
+        watchdogStaleTtlMs: config.watchdogStaleTtlMs,
+        claimTtlHours: config.claimTtlHours,
+        staleLockThresholdMinutes: config.staleLockThresholdMinutes,
+        promptPriorContextBudget: config.promptPriorContextBudget,
+        scmPrOnParentDone: config.scmPrOnParentDone,
+        promptIncludeVerifierFeedback: config.promptIncludeVerifierFeedback,
+        validationCommandOverride: config.validationCommandOverride,
+        verifierModes: [...config.verifierModes],
+        autoApplyRemediation: [...config.autoApplyRemediation],
+        customPromptBudget: { ...config.customPromptBudget },
+        modelTiering: { ...config.modelTiering },
+        hooks: { ...config.hooks },
+        openSidebarCommandId: config.openSidebarCommandId,
+        newChatCommandId: config.newChatCommandId
     };
 }
 //# sourceMappingURL=sidebarViewProvider.js.map

@@ -74,7 +74,17 @@ class RalphDashboardPanel {
             }
             if (msg.type === 'update-setting') {
                 const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
-                await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
+                if (msg.key.includes('.')) {
+                    const dotIdx = msg.key.indexOf('.');
+                    const parentKey = msg.key.slice(0, dotIdx);
+                    const subKey = msg.key.slice(dotIdx + 1);
+                    const current = wsConfig.get(parentKey) ?? {};
+                    const updated = { ...current, [subKey]: msg.value };
+                    await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
+                }
+                else {
+                    await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
+                }
                 // Re-read config and re-render to reflect the change
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
                 if (workspaceFolder) {

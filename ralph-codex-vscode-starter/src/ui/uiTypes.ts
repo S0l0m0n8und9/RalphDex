@@ -124,6 +124,57 @@ export interface RalphDashboardConfigSnapshot {
   autoReplenishBacklog: boolean;
   autoReloadOnControlPlaneChange: boolean;
   promptBudgetProfile: string;
+
+  // Paths
+  codexCommandPath: string;
+  claudeCommandPath: string;
+  inspectionRootOverride: string;
+  artifactRetentionPath: string;
+  ralphTaskFilePath: string;
+  prdPath: string;
+  progressPath: string;
+  promptTemplateDirectory: string;
+
+  // Numbers
+  generatedArtifactRetentionCount: number;
+  provenanceBundleRetentionCount: number;
+  watchdogStaleTtlMs: number;
+  claimTtlHours: number;
+  staleLockThresholdMinutes: number;
+  promptPriorContextBudget: number;
+
+  // Booleans
+  scmPrOnParentDone: boolean;
+  promptIncludeVerifierFeedback: boolean;
+
+  // String
+  validationCommandOverride: string;
+
+  // Multi-select arrays
+  verifierModes: string[];
+  autoApplyRemediation: string[];
+
+  // Complex objects
+  customPromptBudget: Partial<Record<string, number>>;
+  modelTiering: {
+    enabled: boolean;
+    simpleModel: string;
+    mediumModel: string;
+    complexModel: string;
+    simpleThreshold: number;
+    complexThreshold: number;
+  };
+  hooks: {
+    beforeIteration?: string;
+    afterIteration?: string;
+    onTaskComplete?: string;
+    onStop?: string;
+    onFailure?: string;
+  };
+
+  // Internal/Advanced
+  openSidebarCommandId: string;
+  newChatCommandId: string;
 }
 
 export interface RalphDashboardState {
