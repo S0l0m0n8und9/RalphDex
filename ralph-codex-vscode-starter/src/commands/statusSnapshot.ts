@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
+import { getCliCommandPath } from '../config/providers';
 import { readConfig } from '../config/readConfig';
 import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness } from '../ralph/preflight';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
@@ -267,7 +268,7 @@ export async function collectStatusSnapshot(
       inspectionRootOverride: config.inspectionRootOverride
     }),
     resolveLatestStatusArtifacts(inspection.paths),
-    inspectCodexCliSupport(config.cliProvider === 'claude' ? config.claudeCommandPath : config.codexCommandPath)
+    inspectCodexCliSupport(getCliCommandPath(config))
   ]);
   const rootPolicy = deriveRootPolicy(workspaceScan);
   const gitStatus = await captureGitStatus(rootPolicy.verificationRootPath);

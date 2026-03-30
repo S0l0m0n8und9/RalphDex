@@ -34,6 +34,8 @@
       "description": "Ralph Codex Workbench supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and Codex CLI execution require workspace trust.",
       "restrictedConfigurations": [
         "ralphCodex.codexCommandPath",
+        "ralphCodex.claudeCommandPath",
+        "ralphCodex.copilotCommandPath",
         "ralphCodex.preferredHandoffMode",
         "ralphCodex.agentId",
         "ralphCodex.agentRole",
@@ -68,6 +70,8 @@
         "ralphCodex.reasoningEffort",
         "ralphCodex.approvalMode",
         "ralphCodex.sandboxMode",
+        "ralphCodex.claudePermissionMode",
+        "ralphCodex.copilotApprovalMode",
         "ralphCodex.openSidebarCommandId",
         "ralphCodex.newChatCommandId",
         "ralphCodex.agentCount"
@@ -222,9 +226,9 @@
       "properties": {
         "ralphCodex.cliProvider": {
           "type": "string",
-          "enum": ["codex", "claude"],
+          "enum": ["codex", "claude", "copilot"],
           "default": "claude",
-          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI."
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, and 'copilot' uses the GitHub Copilot CLI."
         },
         "ralphCodex.codexCommandPath": {
           "type": "string",
@@ -235,6 +239,11 @@
           "type": "string",
           "default": "claude",
           "description": "Path or command name for the Claude CLI executable."
+        },
+        "ralphCodex.copilotCommandPath": {
+          "type": "string",
+          "default": "copilot",
+          "description": "Path or command name for the GitHub Copilot CLI executable."
         },
         "ralphCodex.claudeMaxTurns": {
           "type": "number",
@@ -248,6 +257,12 @@
           "enum": ["dangerously-skip-permissions", "default"],
           "default": "dangerously-skip-permissions",
           "description": "Permission mode for Claude CLI runs. 'dangerously-skip-permissions' runs without approval prompts (suitable for unattended Ralph iterations). 'default' uses Claude's standard permission system."
+        },
+        "ralphCodex.copilotApprovalMode": {
+          "type": "string",
+          "enum": ["allow-all", "allow-tools-only", "interactive"],
+          "default": "allow-all",
+          "description": "Approval posture for GitHub Copilot CLI runs. 'allow-all' favors unattended Ralph iterations, 'allow-tools-only' pre-approves tools but stays more restrictive, and 'interactive' leaves Copilot in its default approval flow."
         },
         "ralphCodex.agentId": {
           "type": "string",
@@ -433,35 +448,35 @@
         "ralphCodex.model": {
           "type": "string",
           "default": "claude-sonnet-4-6",
-          "description": "Default model for CLI runs (e.g. gpt-5.4 for Codex, claude-sonnet-4-6 for Claude)."
+          "description": "Default model for CLI runs. The configured provider decides which model IDs are valid."
         },
         "ralphCodex.reasoningEffort": {
           "type": "string",
           "enum": ["medium", "high"],
           "default": "medium",
-          "description": "Reasoning effort to pass to Codex CLI for scripted runs. Keep the default medium for normal work and raise it to high only for deliberate escalation cases such as architecture, hard debugging, or remediation-heavy tasks."
+          "description": "Reasoning effort to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
         "ralphCodex.approvalMode": {
           "type": "string",
           "enum": ["never", "on-request", "untrusted"],
           "default": "never",
-          "description": "Approval mode to pass to Codex CLI for scripted runs. The default favors unattended solo-developer Ralph iterations; raise it only when you explicitly want approval pauses."
+          "description": "Approval mode to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
         "ralphCodex.sandboxMode": {
           "type": "string",
           "enum": ["read-only", "workspace-write", "danger-full-access"],
           "default": "workspace-write",
-          "description": "Sandbox mode to pass to Codex CLI for scripted runs."
+          "description": "Sandbox mode to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
         "ralphCodex.openSidebarCommandId": {
           "type": "string",
           "default": "claude.openSidebar",
-          "description": "VS Code command id to use when attempting to reveal the AI sidebar (e.g. chatgpt.openSidebar, claude.openSidebar). Works with any VS Code extension that registers a sidebar command."
+          "description": "VS Code command id to use when attempting to reveal the active AI chat surface (e.g. chatgpt.openSidebar, claude.openSidebar, or none)."
         },
         "ralphCodex.newChatCommandId": {
           "type": "string",
           "default": "claude.newChat",
-          "description": "VS Code command id to use when attempting to start a new AI chat (e.g. chatgpt.newChat, claude.newChat). Works with any VS Code extension that registers a new-chat command."
+          "description": "VS Code command id to use when attempting to start a new AI chat or agent session (e.g. chatgpt.newChat, claude.newChat, github.copilot.cli.newSession)."
         },
         "ralphCodex.claimTtlHours": {
           "type": "number",

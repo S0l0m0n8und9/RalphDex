@@ -57,7 +57,7 @@ This is a hard lifecycle boundary, not a best-effort hint: `Prepare Prompt` and 
 Handoff behavior on this path is intentionally explicit:
 
 - `Prepare Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.
-- `Open Codex IDE` with `preferredHandoffMode = clipboard` copies the prompt only. It does not execute `openSidebarCommandId` or `newChatCommandId`.
+- `Open Codex IDE` is the provider-neutral AI handoff command. With `preferredHandoffMode = clipboard` it copies the prompt only and does not execute `openSidebarCommandId` or `newChatCommandId`.
 - `Open Codex IDE` with `preferredHandoffMode = ideCommand` copies the prompt and then best-effort runs the configured VS Code command IDs. If either command is missing or throws, Ralph warns and tells the operator to open Codex manually and paste the prepared prompt.
 - `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real `codex exec` automation.
 

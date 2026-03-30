@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { getCliCommandPath } from '../config/providers';
 import { readConfig } from '../config/readConfig';
 import { RalphCodexConfig } from '../config/types';
 import { buildPrompt, createPromptFileName, decidePromptKind } from '../prompt/promptBuilder';
@@ -354,9 +355,7 @@ export async function prepareIterationContext(
     rootPath: rootPolicy.verificationRootPath
   });
   const trustLevel = trustLevelForTarget(promptTarget);
-  const cliCommandPath = config.cliProvider === 'claude'
-    ? config.claudeCommandPath
-    : config.codexCommandPath;
+  const cliCommandPath = getCliCommandPath(config);
   const [availableCommands, codexCliSupport] = await Promise.all([
     vscode.commands.getCommands(true),
     inspectCliSupport(config.cliProvider, cliCommandPath)

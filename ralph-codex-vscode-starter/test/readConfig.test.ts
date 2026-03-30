@@ -92,3 +92,20 @@ test('readConfig reads watchdogStaleTtlMs and falls back to 24 hours', () => {
   const fallback = readConfig(workspaceFolder('C:\\repo'));
   assert.equal(fallback.watchdogStaleTtlMs, 24 * 60 * 60 * 1000);
 });
+
+test('readConfig supports Copilot provider defaults and overrides', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'copilot',
+    copilotCommandPath: 'copilot-custom',
+    copilotApprovalMode: 'interactive'
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.cliProvider, 'copilot');
+  assert.equal(config.copilotCommandPath, 'copilot-custom');
+  assert.equal(config.copilotApprovalMode, 'interactive');
+  assert.equal(config.openSidebarCommandId, 'none');
+  assert.equal(config.newChatCommandId, 'github.copilot.cli.newSession');
+});

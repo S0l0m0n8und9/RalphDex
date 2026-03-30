@@ -727,6 +727,44 @@ test('buildPreflightReport routes agentHealthDiagnostics into the agentHealth ca
   assert.match(report.summary, /Agent Health: 2 warnings, 1 info/);
 });
 
+test('buildPreflightReport uses GitHub Copilot labels and config keys for Copilot CLI support', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot',
+      copilotCommandPath: 'copilot'
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    claimGraph: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus,
+    codexCliSupport: {
+      commandPath: 'copilot',
+      configuredAs: 'pathLookup',
+      check: 'pathLookupAssumed',
+      confidence: 'assumed',
+      provider: 'copilot',
+      configKey: 'ralphCodex.copilotCommandPath'
+    } as any
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) =>
+    diagnostic.message.includes('GitHub Copilot CLI will be resolved from PATH at runtime: copilot')
+  ));
+});
+
 test('checkStaleState ignores released and non-stale active claims', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
   const ralphDir = path.join(rootPath, '.ralph');

@@ -30,7 +30,8 @@ function provider(options?: Partial<{ maxTurns: number; permissionMode: 'dangero
 }
 
 test('buildArgs produces Claude CLI arguments with -p stdin marker', () => {
-  const args = provider().buildArgs(request(), false);
+  const launch = provider().buildLaunchSpec(request(), false);
+  const args = launch.args;
 
   assert.deepEqual(args, [
     '-p', '-',
@@ -42,10 +43,12 @@ test('buildArgs produces Claude CLI arguments with -p stdin marker', () => {
     '--no-session-persistence',
     '--dangerously-skip-permissions'
   ]);
+  assert.equal(launch.cwd, '/workspace/repo');
+  assert.equal(launch.stdinText, 'Ship it.');
 });
 
 test('buildArgs omits --dangerously-skip-permissions in default permission mode', () => {
-  const args = provider({ permissionMode: 'default' }).buildArgs(request(), false);
+  const args = provider({ permissionMode: 'default' }).buildLaunchSpec(request(), false).args;
 
   assert.ok(!args.includes('--dangerously-skip-permissions'));
   assert.deepEqual(args, [
@@ -60,15 +63,15 @@ test('buildArgs omits --dangerously-skip-permissions in default permission mode'
 });
 
 test('buildArgs respects custom maxTurns', () => {
-  const args = provider({ maxTurns: 10 }).buildArgs(request(), false);
+  const args = provider({ maxTurns: 10 }).buildLaunchSpec(request(), false).args;
 
   assert.ok(args.includes('--max-turns'));
   assert.ok(args.includes('10'));
 });
 
 test('buildArgs ignores skipGitCheck flag (not applicable to Claude)', () => {
-  const withSkip = provider().buildArgs(request(), true);
-  const withoutSkip = provider().buildArgs(request(), false);
+  const withSkip = provider().buildLaunchSpec(request(), true);
+  const withoutSkip = provider().buildLaunchSpec(request(), false);
 
   assert.deepEqual(withSkip, withoutSkip);
 });
@@ -199,7 +202,7 @@ test('buildTranscript produces Claude-specific transcript format', () => {
     exitCode: 0,
     stdout: '{"type":"result","result":"done"}',
     stderr: '',
-    args: p.buildArgs(req, false),
+    args: p.buildLaunchSpec(req, false).args,
     stdinHash: hashText('Ship it.'),
     transcriptPath: req.transcriptPath,
     lastMessagePath: req.lastMessagePath,

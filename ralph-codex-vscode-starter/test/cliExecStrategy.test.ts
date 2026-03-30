@@ -6,11 +6,12 @@ import test from 'node:test';
 import {
   CliExecCodexStrategy
 } from '../src/codex/cliExecStrategy';
+import { CopilotCliProvider } from '../src/codex/copilotCliProvider';
 import { CodexCliProvider } from '../src/codex/codexCliProvider';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { Logger } from '../src/services/logger';
-import { ProcessLaunchError } from '../src/services/processRunner';
+import { ProcessLaunchError, setProcessRunnerOverride } from '../src/services/processRunner';
 
 const codexProvider = new CodexCliProvider({
   reasoningEffort: 'medium',
@@ -45,7 +46,7 @@ function result(): CodexExecResult {
     exitCode: 0,
     stdout: 'stdout text',
     stderr: '',
-    args: codexProvider.buildArgs(request(), false),
+    args: codexProvider.buildLaunchSpec(request(), false).args,
     stdinHash: hashText('Ship it.'),
     transcriptPath: '/workspace/.ralph/runs/bootstrap-001.transcript.md',
     lastMessagePath: '/workspace/.ralph/runs/bootstrap-001.last-message.md',
@@ -63,7 +64,7 @@ function createLogger(): Logger {
 }
 
 test('buildArgs appends stdin marker and optional git-skip flag', () => {
-  assert.deepEqual(codexProvider.buildArgs(request(), false), [
+  assert.deepEqual(codexProvider.buildLaunchSpec(request(), false).args, [
     'exec',
     '--model', 'gpt-5.4',
     '--config', 'model_reasoning_effort="medium"',
@@ -74,7 +75,7 @@ test('buildArgs appends stdin marker and optional git-skip flag', () => {
     '-'
   ]);
 
-  assert.deepEqual(codexProvider.buildArgs(request(), true), [
+  assert.deepEqual(codexProvider.buildLaunchSpec(request(), true).args, [
     'exec',
     '--model', 'gpt-5.4',
     '--config', 'model_reasoning_effort="medium"',
@@ -103,10 +104,10 @@ test('buildTranscript captures command metadata and last message', () => {
 });
 
 test('buildArgs allows deliberate high reasoning escalation', () => {
-  assert.deepEqual(codexProvider.buildArgs({
+  assert.deepEqual(codexProvider.buildLaunchSpec({
     ...request(),
     reasoningEffort: 'high'
-  }, false), [
+  }, false).args, [
     'exec',
     '--model', 'gpt-5.4',
     '--config', 'model_reasoning_effort="high"',
@@ -116,6 +117,47 @@ test('buildArgs allows deliberate high reasoning escalation', () => {
     '--output-last-message', '/workspace/.ralph/runs/bootstrap-001.last-message.md',
     '-'
   ]);
+});
+
+test('CliExecCodexStrategy supports argv-prompt providers such as Copilot', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-cli-'));
+  let capturedArgs: string[] = [];
+  let capturedStdinText: string | undefined;
+  let capturedCwd = '';
+
+  setProcessRunnerOverride(async (_command, args, options) => {
+    capturedArgs = args;
+    capturedStdinText = options.stdinText;
+    capturedCwd = options.cwd;
+    return {
+      code: 0,
+      stdout: 'Copilot response',
+      stderr: ''
+    };
+  });
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new CopilotCliProvider({ approvalMode: 'allow-all' })
+    );
+    const result = await strategy.runExec({
+      ...request(),
+      commandPath: 'copilot',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+    });
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.lastMessage, 'Copilot response');
+    assert.equal(capturedCwd, root);
+    assert.equal(capturedStdinText, undefined);
+    assert.deepEqual(capturedArgs, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', 'Ship it.']);
+  } finally {
+    setProcessRunnerOverride(null);
+  }
 });
 
 test('describeLaunchError explains a missing Codex CLI path', () => {
@@ -166,27 +208,30 @@ test('CliExecCodexStrategy fails before launch when the stdin payload hash diver
 
 test('CliExecCodexStrategy records a summarized stderr failure reason', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-failure-'));
-  const commandPath = path.join(root, 'fake-codex.sh');
-  await fs.writeFile(commandPath, [
-    '#!/bin/sh',
-    'cat >/dev/null',
-    'echo "ERROR: stream disconnected before completion: network offline" >&2',
-    'echo "ERROR: Failed to shutdown rollout recorder" >&2',
-    'exit 1'
-  ].join('\n'), 'utf8');
-  await fs.chmod(commandPath, 0o755);
+  setProcessRunnerOverride(async () => ({
+    code: 1,
+    stdout: '',
+    stderr: [
+      'ERROR: stream disconnected before completion: network offline',
+      'ERROR: Failed to shutdown rollout recorder'
+    ].join('\n')
+  }));
 
-  const strategy = new CliExecCodexStrategy(createLogger());
-  const result = await strategy.runExec({
-    ...request(),
-    commandPath,
-    workspaceRoot: root,
-    executionRoot: root,
-    transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
-    lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
-  });
+  try {
+    const strategy = new CliExecCodexStrategy(createLogger());
+    const result = await strategy.runExec({
+      ...request(),
+      commandPath: 'codex',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+    });
 
-  assert.equal(result.exitCode, 1);
-  assert.equal(result.message, 'codex exec exited with code 1: stream disconnected before completion: network offline');
-  assert.match(result.stderr, /network offline/);
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.message, 'codex exec exited with code 1: stream disconnected before completion: network offline');
+    assert.match(result.stderr, /network offline/);
+  } finally {
+    setProcessRunnerOverride(null);
+  }
 });

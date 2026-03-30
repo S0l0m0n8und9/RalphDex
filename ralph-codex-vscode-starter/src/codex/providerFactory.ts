@@ -4,6 +4,7 @@ import { ClaudeCliProvider } from './claudeCliProvider';
 import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
 import { ClipboardCodexStrategy } from './clipboardStrategy';
+import { CopilotCliProvider } from './copilotCliProvider';
 import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
@@ -13,6 +14,12 @@ function createCliProvider(config: RalphCodexConfig): CliProvider {
     return new ClaudeCliProvider({
       maxTurns: config.claudeMaxTurns,
       permissionMode: config.claudePermissionMode
+    });
+  }
+
+  if (config.cliProvider === 'copilot') {
+    return new CopilotCliProvider({
+      approvalMode: config.copilotApprovalMode
     });
   }
 

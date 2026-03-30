@@ -112,6 +112,7 @@ export interface RalphDashboardConfigSnapshot {
   preferredHandoffMode: string;
   claudeMaxTurns: number;
   claudePermissionMode: string;
+  copilotApprovalMode: string;
   reasoningEffort: string;
   approvalMode: string;
   sandboxMode: string;
@@ -128,6 +129,7 @@ export interface RalphDashboardConfigSnapshot {
   // Paths
   codexCommandPath: string;
   claudeCommandPath: string;
+  copilotCommandPath: string;
   inspectionRootOverride: string;
   artifactRetentionPath: string;
   ralphTaskFilePath: string;

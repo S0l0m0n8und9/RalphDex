@@ -6,8 +6,8 @@ Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loop
 
 The extension has two execution paths:
 
-- prepare a prompt for IDE handoff through clipboard plus configurable VS Code command IDs
-- run deterministic `codex exec` iterations with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+- prepare a prompt for AI-IDE handoff through clipboard plus configurable VS Code command IDs
+- run deterministic CLI iterations through the configured provider (`codex`, `claude`, or `copilot`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
 
 ## Package Root Versus Repo Root
 
@@ -34,7 +34,7 @@ The initializer refuses to run when `.ralph/prd.md` already exists so it does no
 3. Run `cd ralph-codex-vscode-starter && npm run compile`.
 4. Start the Extension Development Host with `F5` from the repo root, or open this folder directly if you intentionally want the package-only workflow.
 5. Use `Ralph Codex: Show Status` to inspect the current workspace state.
-6. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+6. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want. The IDE handoff command targets the currently configured AI chat surface rather than only Codex.
 
 For a distributable local build, run `npm run package` from the extension root and then install the generated `ralph-codex-workbench-<version>.vsix` through `Extensions: Install from VSIX...` or `code --install-extension`. The package now ships a curated runtime payload plus the bundled license and operator docs instead of the full development tree. The full operator flow lives in [docs/workflows.md](docs/workflows.md).
 
@@ -131,7 +131,7 @@ For manual prompt-budget recalibration, run `npm run prompt:calibrate -- <worksp
 - Prompt templates live in `prompt-templates/` and are selected deterministically.
 - Prompt generation uses a deterministic shallow repo scan that inspects the workspace root and, when needed, a better-scoring immediate child repo root. The exact structured repo-context snapshot used for rendering is persisted in `prompt-evidence.json`.
 - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos and you want Ralph to inspect, execute, and verify from a specific directory inside the workspace.
-- CLI runs default `ralphCodex.reasoningEffort` to `medium` to control token burn. Raise it to `high` only as an explicit escalation for architecture, hard debugging, or remediation-heavy work; the chosen value is recorded in the CLI transcript and iteration integrity artifacts.
+- CLI runs default `ralphCodex.reasoningEffort` to `medium` to control token burn for Codex-backed runs. Raise it to `high` only as an explicit escalation for architecture, hard debugging, or remediation-heavy work; the chosen value is recorded in the CLI transcript and iteration integrity artifacts.
 - When scan selection picks a nested child repo, Ralph keeps `.ralph/` under the workspace root but records an explicit root policy and runs `codex exec` plus CLI verifiers from the selected child root instead of requiring manual `cd ... && ...` prefixes.
 - The shipped automation surface is still a sequential single-agent loop, and multi-agent orchestration remains a planned milestone with explicit acceptance criteria in [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md).
 - The control plane persists `prompt-evidence.json`, `execution-plan.json`, verifier artifacts, and run-level provenance bundles so the latest prepared or executed attempt remains inspectable.

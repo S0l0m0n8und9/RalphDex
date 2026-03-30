@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { getCliProviderLabel } from '../config/providers';
 import { RalphCodexConfig } from '../config/types';
 import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
 import { pathExists, readJsonRecord } from '../util/fs';
@@ -807,7 +808,7 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
 
   if (input.codexCliSupport) {
     const cliSupport = input.codexCliSupport as CodexCliSupport & { provider?: string; configKey?: string };
-    const providerLabel = cliSupport.provider === 'claude' ? 'Claude' : 'Codex';
+    const providerLabel = getCliProviderLabel((cliSupport.provider as typeof input.config.cliProvider | undefined) ?? 'codex');
     const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
     if (input.codexCliSupport.check === 'pathMissing') {
       diagnostics.push(createDiagnostic(

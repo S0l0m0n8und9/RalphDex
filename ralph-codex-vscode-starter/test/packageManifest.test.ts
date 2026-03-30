@@ -6,6 +6,11 @@ import test from 'node:test';
 type PackageManifest = {
   activationEvents?: string[];
   contributes?: {
+    configuration?: {
+      properties?: Record<string, {
+        enum?: string[];
+      }>;
+    };
     commands?: Array<{
       command?: string;
       title?: string;
@@ -74,4 +79,13 @@ test('package manifest contributes and activates the show multi-agent status com
     commands.some((entry) => entry.command === 'ralphCodex.showMultiAgentStatus' && entry.title === 'Ralph Codex: Show Multi-Agent Status'),
     'package.json must contribute the Show Multi-Agent Status command'
   );
+});
+
+test('package manifest exposes Copilot as a CLI provider with dedicated settings', async () => {
+  const manifest = await readPackageManifest();
+  const properties = manifest.contributes?.configuration?.properties ?? {};
+
+  assert.ok(properties['ralphCodex.cliProvider']?.enum?.includes('copilot'));
+  assert.ok(properties['ralphCodex.copilotCommandPath']);
+  assert.ok(properties['ralphCodex.copilotApprovalMode']?.enum?.includes('allow-all'));
 });

@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
-import { CliProvider } from './cliProvider';
+import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
 export interface CodexCliProviderOptions {
@@ -15,7 +15,7 @@ export class CodexCliProvider implements CliProvider {
 
   public constructor(private readonly options: CodexCliProviderOptions) {}
 
-  public buildArgs(request: CodexExecRequest, skipGitCheck: boolean): string[] {
+  public buildLaunchSpec(request: CodexExecRequest, skipGitCheck: boolean): CliLaunchSpec {
     const args = [
       'exec',
       '--model', request.model,
@@ -31,7 +31,11 @@ export class CodexCliProvider implements CliProvider {
     }
 
     args.push('-');
-    return args;
+    return {
+      args,
+      cwd: request.executionRoot,
+      stdinText: request.prompt
+    };
   }
 
   public async extractResponseText(_stdout: string, _stderr: string, lastMessagePath: string): Promise<string> {

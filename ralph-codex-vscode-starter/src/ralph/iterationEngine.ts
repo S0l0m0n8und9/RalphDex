@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as vscode from 'vscode';
+import { getCliCommandPath } from '../config/providers';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { createArtifactBaseName } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
@@ -317,9 +318,7 @@ export class RalphIterationEngine {
         phaseTimestamps.executionStartedAt = new Date().toISOString();
         let claudeLineBuffer = '';
         const execResult = await execStrategy.runExec({
-          commandPath: prepared.config.cliProvider === 'claude'
-            ? prepared.config.claudeCommandPath
-            : prepared.config.codexCommandPath,
+          commandPath: getCliCommandPath(prepared.config),
           workspaceRoot: prepared.rootPath,
           executionRoot: prepared.rootPolicy.executionRootPath,
           prompt: promptArtifactText,
@@ -366,9 +365,7 @@ export class RalphIterationEngine {
           agentId: prepared.config.agentId,
           provenanceId: prepared.provenanceId,
           iteration: prepared.iteration,
-          commandPath: prepared.config.cliProvider === 'claude'
-            ? prepared.config.claudeCommandPath
-            : prepared.config.codexCommandPath,
+          commandPath: getCliCommandPath(prepared.config),
           args: execResult.args,
           reasoningEffort: prepared.config.reasoningEffort,
           workspaceRoot: prepared.rootPath,

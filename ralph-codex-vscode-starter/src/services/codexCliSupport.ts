@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { getCliProviderLabel } from '../config/providers';
 import { CliProviderId, CodexHandoffMode } from '../config/types';
 
 export interface CodexCliSupport {
@@ -77,10 +78,15 @@ export async function inspectCliSupport(
   commandPath: string
 ): Promise<CliSupportResult> {
   const base = await inspectCodexCliSupport(commandPath);
+  const configKey = provider === 'claude'
+    ? 'ralphCodex.claudeCommandPath'
+    : provider === 'copilot'
+      ? 'ralphCodex.copilotCommandPath'
+      : 'ralphCodex.codexCommandPath';
   return {
     ...base,
     provider,
-    configKey: provider === 'claude' ? 'ralphCodex.claudeCommandPath' : 'ralphCodex.codexCommandPath'
+    configKey
   };
 }
 

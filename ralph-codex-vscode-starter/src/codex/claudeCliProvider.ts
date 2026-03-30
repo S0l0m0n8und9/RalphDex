@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
-import { CliProvider } from './cliProvider';
+import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
 export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
@@ -26,7 +26,7 @@ export class ClaudeCliProvider implements CliProvider {
 
   public constructor(private readonly options: ClaudeCliProviderOptions) {}
 
-  public buildArgs(request: CodexExecRequest, _skipGitCheck: boolean): string[] {
+  public buildLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): CliLaunchSpec {
     const args = [
       '-p', '-',
       '--model', request.model,
@@ -41,7 +41,11 @@ export class ClaudeCliProvider implements CliProvider {
       args.push('--dangerously-skip-permissions');
     }
 
-    return args;
+    return {
+      args,
+      cwd: request.executionRoot,
+      stdinText: request.prompt
+    };
   }
 
   public async extractResponseText(stdout: string, _stderr: string, lastMessagePath: string): Promise<string> {

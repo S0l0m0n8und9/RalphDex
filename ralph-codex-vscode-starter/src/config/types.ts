@@ -1,6 +1,6 @@
 import { RalphAgentRole } from '../ralph/types';
 
-export type CliProviderId = 'codex' | 'claude';
+export type CliProviderId = 'codex' | 'claude' | 'copilot';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
 
@@ -11,6 +11,7 @@ export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-ac
 export type CodexReasoningEffort = 'medium' | 'high';
 
 export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
+export type CopilotApprovalMode = 'allow-all' | 'allow-tools-only' | 'interactive';
 
 export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
 
@@ -69,8 +70,10 @@ export interface RalphCodexConfig {
   cliProvider: CliProviderId;
   codexCommandPath: string;
   claudeCommandPath: string;
+  copilotCommandPath: string;
   claudeMaxTurns: number;
   claudePermissionMode: ClaudePermissionMode;
+  copilotApprovalMode: CopilotApprovalMode;
   agentId: string;
   agentRole: RalphAgentRole;
   preferredHandoffMode: CodexHandoffMode;

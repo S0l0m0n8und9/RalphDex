@@ -31,7 +31,8 @@ export class CliExecCodexStrategy implements CodexStrategy {
   public async runExec(request: CodexExecRequest): Promise<CodexExecResult> {
     await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
     await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-    const args = this.provider.buildArgs(request, !(await hasGitMetadata(request.executionRoot)));
+    const launchSpec = this.provider.buildLaunchSpec(request, !(await hasGitMetadata(request.executionRoot)));
+    const args = launchSpec.args;
     const stdinHash = hashText(request.prompt);
 
     if (stdinHash !== request.promptHash) {
@@ -45,14 +46,15 @@ export class CliExecCodexStrategy implements CodexStrategy {
       workspaceRoot: request.workspaceRoot,
       executionRoot: request.executionRoot,
       promptPath: request.promptPath,
+      launchCwd: launchSpec.cwd,
       args
     });
 
     let processResult;
     try {
       processResult = await runProcess(request.commandPath, args, {
-        cwd: request.executionRoot,
-        stdinText: request.prompt,
+        cwd: launchSpec.cwd,
+        stdinText: launchSpec.stdinText,
         onStdoutChunk: request.onStdoutChunk,
         onStderrChunk: request.onStderrChunk
       });

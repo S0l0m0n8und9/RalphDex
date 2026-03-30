@@ -197,6 +197,7 @@ function fullConfig() {
     preferredHandoffMode: 'ideCommand',
     claudeMaxTurns: 50,
     claudePermissionMode: 'dangerously-skip-permissions',
+    copilotApprovalMode: 'allow-all',
     reasoningEffort: 'medium',
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
@@ -211,6 +212,7 @@ function fullConfig() {
     promptBudgetProfile: 'claude',
     codexCommandPath: 'codex',
     claudeCommandPath: 'claude',
+    copilotCommandPath: 'copilot',
     inspectionRootOverride: '',
     artifactRetentionPath: '.ralph/artifacts',
     ralphTaskFilePath: '.ralph/tasks.json',
@@ -269,6 +271,7 @@ test('buildPanelDashboardHtml renders new path settings', () => {
   const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'n14');
   assert.ok(html.includes('data-setting="codexCommandPath"'));
   assert.ok(html.includes('data-setting="claudeCommandPath"'));
+  assert.ok(html.includes('data-setting="copilotCommandPath"'));
   assert.ok(html.includes('data-setting="artifactRetentionPath"'));
   assert.ok(html.includes('data-setting="ralphTaskFilePath"'));
   assert.ok(html.includes('data-setting="prdPath"'));

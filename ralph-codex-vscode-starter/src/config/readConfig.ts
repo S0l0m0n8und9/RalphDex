@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { DEFAULT_CONFIG } from './defaults';
+import { getDefaultNewChatCommandId, getDefaultOpenSidebarCommandId } from './providers';
 import {
   AutoApplyRemediationAction,
   ClaudePermissionMode,
   CliProviderId,
+  CopilotApprovalMode,
   CodexApprovalMode,
   CodexHandoffMode,
   CodexReasoningEffort,
@@ -201,7 +203,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
-    ['codex', 'claude'],
+    ['codex', 'claude', 'copilot'],
     DEFAULT_CONFIG.cliProvider
   );
   const autonomyMode = readEnum<RalphAutonomyMode>(
@@ -210,8 +212,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ['supervised', 'autonomous'],
     DEFAULT_CONFIG.autonomyMode
   );
-  const openSidebarFallback = cliProvider === 'claude' ? 'claude.openSidebar' : 'chatgpt.openSidebar';
-  const newChatFallback = cliProvider === 'claude' ? 'claude.newChat' : 'chatgpt.newChat';
+  const openSidebarFallback = getDefaultOpenSidebarCommandId(cliProvider);
+  const newChatFallback = getDefaultNewChatCommandId(cliProvider);
   const autoReplenishBacklog = readBoolean(
     config,
     'autoReplenishBacklog',
@@ -244,12 +246,19 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     cliProvider,
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
+    copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
     claudePermissionMode: readEnum<ClaudePermissionMode>(
       config,
       'claudePermissionMode',
       ['dangerously-skip-permissions', 'default'],
       DEFAULT_CONFIG.claudePermissionMode
+    ),
+    copilotApprovalMode: readEnum<CopilotApprovalMode>(
+      config,
+      'copilotApprovalMode',
+      ['allow-all', 'allow-tools-only', 'interactive'],
+      DEFAULT_CONFIG.copilotApprovalMode
     ),
     agentId: readString(config, 'agentId', DEFAULT_CONFIG.agentId),
     agentRole: readEnum(
