@@ -34,12 +34,15 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphSidebarViewProvider = void 0;
+exports.defaultDashboardState = defaultDashboardState;
+exports.buildDashboardTasks = buildDashboardTasks;
+exports.countTasks = countTasks;
 const vscode = __importStar(require("vscode"));
 const crypto = __importStar(require("crypto"));
 const readConfig_1 = require("../config/readConfig");
 const sidebarHtml_1 = require("./sidebarHtml");
 /**
- * Provides the sidebar webview dashboard for Ralph Codex.
+ * Provides the sidebar webview launcher for Ralph Codex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
  */
 class RalphSidebarViewProvider {
@@ -51,6 +54,7 @@ class RalphSidebarViewProvider {
     currentPhase = null;
     currentIteration = null;
     broadcastDisposable;
+    lastRenderTime = 0;
     constructor(extensionUri, broadcaster) {
         this.extensionUri = extensionUri;
         this.broadcaster = broadcaster;
@@ -59,10 +63,17 @@ class RalphSidebarViewProvider {
     resolveWebviewView(webviewView, _context, _token) {
         this.view = webviewView;
         webviewView.webview.options = { enableScripts: true };
-        // Listen for commands from the webview
-        webviewView.webview.onDidReceiveMessage((msg) => {
+        // Listen for commands from the webview — with ack feedback
+        webviewView.webview.onDidReceiveMessage(async (msg) => {
             if (msg.type === 'command' && msg.command) {
-                void vscode.commands.executeCommand(msg.command);
+                this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
+                try {
+                    await vscode.commands.executeCommand(msg.command);
+                    this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
+                }
+                catch {
+                    this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+                }
             }
         });
         // Listen for broadcast events
@@ -151,6 +162,12 @@ class RalphSidebarViewProvider {
         if (!this.view) {
             return;
         }
+        // Debounce: skip renders within 100ms of last render
+        const now = Date.now();
+        if (now - this.lastRenderTime < 100) {
+            return;
+        }
+        this.lastRenderTime = now;
         const nonce = crypto.randomBytes(16).toString('hex');
         this.view.webview.html = (0, sidebarHtml_1.buildDashboardHtml)(this.latestState, nonce);
     }
@@ -163,7 +180,7 @@ class RalphSidebarViewProvider {
 }
 exports.RalphSidebarViewProvider = RalphSidebarViewProvider;
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (exported for reuse by dashboard panel)
 // ---------------------------------------------------------------------------
 function defaultDashboardState() {
     return {

@@ -15,7 +15,7 @@ import type {
 } from './uiTypes';
 
 /**
- * Provides the sidebar webview dashboard for Ralph Codex.
+ * Provides the sidebar webview launcher for Ralph Codex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
  */
 export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
@@ -26,6 +26,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
   private currentPhase: RalphIterationPhase | null = null;
   private currentIteration: number | null = null;
   private broadcastDisposable: vscode.Disposable | undefined;
+  private lastRenderTime = 0;
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
@@ -42,10 +43,16 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
 
-    // Listen for commands from the webview
-    webviewView.webview.onDidReceiveMessage((msg: RalphWebviewCommand) => {
+    // Listen for commands from the webview — with ack feedback
+    webviewView.webview.onDidReceiveMessage(async (msg: RalphWebviewCommand) => {
       if (msg.type === 'command' && msg.command) {
-        void vscode.commands.executeCommand(msg.command);
+        this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
+        try {
+          await vscode.commands.executeCommand(msg.command);
+          this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
+        } catch {
+          this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+        }
       }
     });
 
@@ -143,6 +150,13 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     if (!this.view) {
       return;
     }
+    // Debounce: skip renders within 100ms of last render
+    const now = Date.now();
+    if (now - this.lastRenderTime < 100) {
+      return;
+    }
+    this.lastRenderTime = now;
+
     const nonce = crypto.randomBytes(16).toString('hex');
     this.view.webview.html = buildDashboardHtml(this.latestState, nonce);
   }
@@ -157,10 +171,10 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers (exported for reuse by dashboard panel)
 // ---------------------------------------------------------------------------
 
-function defaultDashboardState(): RalphDashboardState {
+export function defaultDashboardState(): RalphDashboardState {
   return {
     workspaceName: 'workspace',
     loopState: 'idle',
@@ -178,7 +192,7 @@ function defaultDashboardState(): RalphDashboardState {
   };
 }
 
-function buildDashboardTasks(taskFile: RalphTaskFile | null, selectedTaskId: string | null): RalphDashboardTask[] {
+export function buildDashboardTasks(taskFile: RalphTaskFile | null, selectedTaskId: string | null): RalphDashboardTask[] {
   if (!taskFile) {
     return [];
   }
@@ -207,7 +221,7 @@ function buildDashboardTasks(taskFile: RalphTaskFile | null, selectedTaskId: str
   }));
 }
 
-function countTasks(taskFile: RalphTaskFile): { todo: number; in_progress: number; blocked: number; done: number } {
+export function countTasks(taskFile: RalphTaskFile): { todo: number; in_progress: number; blocked: number; done: number } {
   const counts = { todo: 0, in_progress: 0, blocked: 0, done: 0 };
   for (const task of taskFile.tasks) {
     if (task.status in counts) {

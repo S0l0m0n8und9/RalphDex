@@ -1345,11 +1345,11 @@
       "status": "released"
     },
     {
-      "taskId": "T61",
       "agentId": "default",
-      "provenanceId": "run-i012-cli-20260330T012422Z",
+      "taskId": "T61",
       "claimedAt": "2026-03-30T01:24:22.279Z",
-      "status": "active"
+      "provenanceId": "run-i012-cli-20260330T012422Z",
+      "status": "released"
     }
   ]
 }

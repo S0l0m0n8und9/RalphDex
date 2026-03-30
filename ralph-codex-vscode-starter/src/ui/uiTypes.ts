@@ -120,7 +120,8 @@ export interface RalphDashboardState {
 /** Messages sent from extension to webview. */
 export type RalphWebviewMessage =
   | { type: 'state'; state: RalphDashboardState }
-  | { type: 'phase'; phase: RalphIterationPhase; iteration: number };
+  | { type: 'phase'; phase: RalphIterationPhase; iteration: number }
+  | { type: 'command-ack'; command: string; status: 'started' | 'done' | 'error' };
 
 /** Messages sent from webview to extension. */
 export type RalphWebviewCommand =

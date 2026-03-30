@@ -39,6 +39,7 @@ const vscode = __importStar(require("vscode"));
 const registerCommands_1 = require("./commands/registerCommands");
 const readConfig_1 = require("./config/readConfig");
 const logger_1 = require("./services/logger");
+const dashboardPanel_1 = require("./ui/dashboardPanel");
 const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
 const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
 const stateWatcher_1 = require("./ui/stateWatcher");
@@ -55,12 +56,15 @@ function activate(context) {
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebarViewProvider_1.RalphSidebarViewProvider.viewType, sidebarProvider));
     // Status bar quick-pick command
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
-    // Dashboard focus command
+    // Dashboard panel command — opens full dashboard in editor area
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-        void vscode.commands.executeCommand('ralphCodex.dashboard.focus');
+        dashboardPanel_1.RalphDashboardPanel.createOrShow(context.extensionUri, broadcaster);
     }));
-    // Wire broadcaster events to status bar
-    context.subscriptions.push(broadcaster.onEvent((event) => statusBar.updateFromBroadcast(event)));
+    // Wire broadcaster events to status bar and panel
+    context.subscriptions.push(broadcaster.onEvent((event) => {
+        statusBar.updateFromBroadcast(event);
+        dashboardPanel_1.RalphDashboardPanel.currentPanel?.updateFromBroadcast(event);
+    }));
     // State watcher — responds to .ralph/ file changes
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (workspaceRoot) {
@@ -69,6 +73,7 @@ function activate(context) {
         watcher.onStateChange((state) => {
             statusBar.updateFromWatchedState(state);
             sidebarProvider.updateFromWatchedState(state);
+            dashboardPanel_1.RalphDashboardPanel.currentPanel?.updateFromWatchedState(state);
         });
         // Initial read
         void watcher.refresh();

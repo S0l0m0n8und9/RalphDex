@@ -8,7 +8,13 @@
       "Bash(node:*)",
       "Bash(gh repo:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -rn \"TODO\\\\|STUB\\\\|FIXME\\\\|not implemented\\\\|throw new Error\" /c/Users/ben.jones/Repos/RalphDex/ralph-codex-vscode-starter/src/commands/*.ts)",
+      "Bash(/tmp/commands_check.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); tasks=d[''''tasks'''']; statuses={}; [statuses.__setitem__\\(t[''''status''''], statuses.get\\(t[''''status''''],0\\)+1\\) for t in tasks]; print\\(f''''Total tasks: {len\\(tasks\\)}''''\\); [print\\(f''''  {k}: {v}''''\\) for k,v in sorted\\(statuses.items\\(\\)\\)]\")",
+      "Bash(npm run:*)"
     ]
   }
 }

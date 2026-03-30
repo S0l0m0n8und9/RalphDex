@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { registerCommands } from './commands/registerCommands';
 import { readConfig } from './config/readConfig';
 import { Logger } from './services/logger';
+import { RalphDashboardPanel } from './ui/dashboardPanel';
 import { IterationBroadcaster } from './ui/iterationBroadcaster';
 import { RalphSidebarViewProvider } from './ui/sidebarViewProvider';
 import { RalphStateWatcher } from './ui/stateWatcher';
@@ -28,16 +29,19 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', showStatusBarQuickPick)
   );
 
-  // Dashboard focus command
+  // Dashboard panel command — opens full dashboard in editor area
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-      void vscode.commands.executeCommand('ralphCodex.dashboard.focus');
+      RalphDashboardPanel.createOrShow(context.extensionUri, broadcaster);
     })
   );
 
-  // Wire broadcaster events to status bar
+  // Wire broadcaster events to status bar and panel
   context.subscriptions.push(
-    broadcaster.onEvent((event) => statusBar.updateFromBroadcast(event))
+    broadcaster.onEvent((event) => {
+      statusBar.updateFromBroadcast(event);
+      RalphDashboardPanel.currentPanel?.updateFromBroadcast(event);
+    })
   );
 
   // State watcher — responds to .ralph/ file changes
@@ -49,6 +53,7 @@ export function activate(context: vscode.ExtensionContext): void {
     watcher.onStateChange((state) => {
       statusBar.updateFromWatchedState(state);
       sidebarProvider.updateFromWatchedState(state);
+      RalphDashboardPanel.currentPanel?.updateFromWatchedState(state);
     });
 
     // Initial read
