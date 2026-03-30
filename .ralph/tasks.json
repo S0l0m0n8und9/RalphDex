@@ -1886,13 +1886,13 @@
     {
       "id": "T57",
       "title": "Advance prd.md to the next delivery horizon now that multi-agent deferral is lifted",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T56"
       ],
-      "notes": "The PRD still reads 'Do not expand broad multi-agent orchestration until root-selection and execution-root semantics are aligned' but progress.md records that the multi-agent deferral was lifted on 2026-03-17 (T36 milestone satisfied). The PRD's 'Non-goal for now' and 'Current implementation priority' sections are now stale. Update prd.md to: (1) record the nested-repo control-plane milestone as satisfied; (2) define the next delivery horizon — concrete candidates based on the implemented surface are: parallel multi-agent loop execution (run two or more agents concurrently against disjoint task sets), operator-facing dashboard for multi-agent health, and end-to-end delivery pipeline automation from PRD to merged PR. Keep the update grounded in the current repo capabilities rather than speculative roadmap. Run npm run check:docs.",
+      "notes": "Replaced stale 'Non-goal for now'/'Current implementation priority' sections with milestone record (satisfied 2026-03-17) and next delivery horizon (parallel multi-agent execution, health dashboard, end-to-end pipeline automation)",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     }
   ],
-  "mutationCount": 12
+  "mutationCount": 13
 }

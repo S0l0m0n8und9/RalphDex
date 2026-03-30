@@ -36,7 +36,8 @@
     "T28",
     "T33.4",
     "T55",
-    "T56"
+    "T56",
+    "T57"
   ],
   "touchedFiles": [
     ".ralph/agents/default.json",
@@ -67,6 +68,7 @@
     ".ralph/handoff/default-147.json",
     ".ralph/handoff/default-148.json",
     ".ralph/handoff/default-150.json",
+    ".ralph/prd.md",
     ".ralph/progress.md",
     ".ralph/state.lock",
     ".ralph/tasks.json",

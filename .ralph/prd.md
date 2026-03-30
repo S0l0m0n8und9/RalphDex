@@ -36,18 +36,40 @@ Ralph should support multi-repo or umbrella workspaces safely, but remain shallo
 - allow explicit inspection-root override when ambiguity exists
 - keep CLI/provenance trust stronger than IDE-prepared-only handoff
 
-### Non-goal for now
+### Nested-repo control-plane milestone — satisfied 2026-03-17
 
-Do not expand broad multi-agent orchestration until root-selection and execution-root semantics are aligned, tested, and documented.
+The nested-repo control-plane work that previously blocked multi-agent expansion is complete:
 
-### Current implementation priority
+- Chosen inspection, execution, and verifier roots are persisted in prompt evidence, execution plans, provenance bundles, and status surfaces.
+- Explicit `ralphCodex.inspectionRootOverride` escape hatch is available for ambiguous umbrella workspaces.
+- Root-selection behaviour is covered by regression tests and documented in `docs/` and `AGENTS.md`.
 
-Complete nested-repo control-plane semantics before broadening multi-agent orchestration.
+The multi-agent deferral was formally lifted when all three acceptance criteria in `docs/multi-agent-readiness.md` were satisfied:
+- Task Ownership: atomic claim acquisition in `taskFile.ts` backed by `.ralph/claims.json`, with preflight stale/contested reporting and reconciliation gating.
+- Write Serialisation: `withTaskFileLock` wraps every `tasks.json` mutation path; concurrent-write contention is deterministic.
+- Remediation Isolation: `agentId` is a field on `RalphIterationResult`; `countTrailingSameTaskClassifications` is scoped per agent.
 
-Near-term sequence:
-1. Persist chosen inspection root across prompt evidence, execution plans, provenance bundles, and status surfaces.
-2. Define deterministic execution-root and verifier-root policy.
-3. Implement explicit override support for ambiguous multi-repo workspaces.
-4. Add regression coverage and docs for root-selection behavior.
+### Next delivery horizon
 
-Broad multi-agent orchestration is deferred until these root semantics are aligned and evidence-backed.
+With the control-plane milestone satisfied, the following capabilities are the concrete next targets. Each is grounded in the surface already shipped.
+
+**1. Parallel multi-agent loop execution**
+
+The claim/lock/agentId infrastructure is in place. The next step is running two or more agent loops concurrently against disjoint task sets in the same `.ralph/` workspace. Concrete work:
+- A launcher that starts N agent processes and assigns non-overlapping task subsets via the claim mechanism.
+- Preflight and Show Status rendering that aggregates health across all active agents.
+- Conflict-free SCM orchestration across concurrent branch-per-task agents.
+
+**2. Operator-facing multi-agent health dashboard**
+
+The watchdog agent template, `agents/<agentId>.json` history, and active-claim aggregation in preflight are already present. Concrete work:
+- A consolidated Show Multi-Agent Status command that renders per-agent iteration history, claim state, and last-stop reason.
+- Watchdog-triggered alerts surfaced as durable diagnostic artifacts (not only in the output channel).
+- Stale-claim and repeated-no-progress heatmap so operators can spot stuck agents without reading individual run transcripts.
+
+**3. End-to-end delivery pipeline automation**
+
+The SCM agent, branch-per-task orchestration, review agent, and `scmPrOnParentDone` are in place. Concrete work:
+- A top-level pipeline command that accepts a PRD fragment, decomposes it into tasks, runs the agent loop, opens a review-agent pass, and submits a PR — all from a single operator invocation.
+- Durable pipeline-run provenance linking PRD input → task graph snapshot → iteration history → PR URL.
+- Configurable human-review gates that pause the pipeline and resume on operator approval.
