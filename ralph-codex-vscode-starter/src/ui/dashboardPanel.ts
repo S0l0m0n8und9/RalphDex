@@ -4,7 +4,7 @@ import type { IterationBroadcaster } from './iterationBroadcaster';
 import type { RalphBroadcastEvent, RalphIterationPhase, RalphWebviewCommand } from './uiTypes';
 import type { RalphWatchedState } from './stateWatcher';
 import { buildPanelDashboardHtml } from './panelHtml';
-import { buildDashboardTasks, countTasks, defaultDashboardState } from './sidebarViewProvider';
+import { buildDashboardTasks, countTasks, defaultDashboardState, snapshotConfig } from './sidebarViewProvider';
 import type { RalphDashboardState, RalphDashboardIteration } from './uiTypes';
 import { readConfig } from '../config/readConfig';
 
@@ -33,7 +33,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
     panel.webview.options = { enableScripts: true };
 
-    // Listen for commands from the webview
+    // Listen for commands and settings updates from the webview
     panel.webview.onDidReceiveMessage(async (msg: RalphWebviewCommand) => {
       if (msg.type === 'command' && msg.command) {
         this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
@@ -42,6 +42,18 @@ export class RalphDashboardPanel implements vscode.Disposable {
           this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
         } catch {
           this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+        }
+      }
+      if (msg.type === 'update-setting') {
+        const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
+        await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
+        // Re-read config and re-render to reflect the change
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (workspaceFolder) {
+          const freshConfig = readConfig(workspaceFolder);
+          this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
+          this.lastRenderTime = 0; // force render
+          this.fullRender();
         }
       }
     });
@@ -108,7 +120,8 @@ export class RalphDashboardPanel implements vscode.Disposable {
       preflightSummary: 'ok',
       diagnostics: [],
       currentPhase: this.currentPhase,
-      currentIteration: this.currentIteration
+      currentIteration: this.currentIteration,
+      config: config ? snapshotConfig(config) : null
     };
 
     this.fullRender();

@@ -219,6 +219,9 @@ Run `Ralph Codex: Show Multi-Agent Status` to display a per-agent summary in the
 - number of tasks completed by that agent
 - current active claim task id (from `.ralph/claims.json`), or `none`
 - last iteration number, selected task, completion classification, stop reason, and progress note (from the latest `.ralph/handoff/<agentId>-NNN.json`)
+- a stuck-score warning when the agent has 3 or more consecutive `no_progress` stops on the same task
+
+The stuck score is the count of trailing handoff entries (sorted ascending by iteration) that share the same `selectedTaskId` and have `completionClassification === 'no_progress'`. Any break in task id or classification resets the streak. Agents at or above the threshold of 3 are rendered with a `WARNING Agent` prefix and a `STUCK` line that names the affected task and suggests investigating or resolving the stale claim.
 
 This command reads only persisted durable state and does not run any CLI iteration. It is available in untrusted workspaces.
 

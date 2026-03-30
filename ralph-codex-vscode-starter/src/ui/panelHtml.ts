@@ -1,4 +1,5 @@
 import type {
+  RalphDashboardConfigSnapshot,
   RalphDashboardState
 } from './uiTypes';
 import {
@@ -115,7 +116,197 @@ details[open] > .completed-toggle::before {
 .btn .btn-spinner { display: none; }
 .btn.loading .btn-label { opacity: 0.5; }
 .btn.loading .btn-spinner { display: inline-block; }
+
+/* Settings form */
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+}
+
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-label {
+  font-size: 10px;
+  color: var(--ralph-dim);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.setting-control select,
+.setting-control input[type="text"],
+.setting-control input[type="number"] {
+  width: 100%;
+  padding: 3px 6px;
+  font-family: var(--ralph-font);
+  font-size: 11px;
+  background: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #ccc);
+  border: 1px solid var(--ralph-border);
+  outline: none;
+}
+
+.setting-control select:focus,
+.setting-control input:focus {
+  border-color: var(--ralph-amber);
+}
+
+.setting-control input[type="checkbox"] {
+  accent-color: var(--ralph-amber);
+  margin-right: 4px;
+}
+
+.setting-check {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.settings-group-title {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ralph-amber);
+  margin: 8px 0 4px 0;
+  grid-column: 1 / -1;
+}
+
+.settings-group-title:first-child {
+  margin-top: 0;
+}
 `;
+}
+
+// ---------------------------------------------------------------------------
+// Settings section builder
+// ---------------------------------------------------------------------------
+
+function select(key: string, value: string, options: readonly string[]): string {
+  const opts = options.map((o) =>
+    `<option value="${esc(o)}"${o === value ? ' selected' : ''}>${esc(o)}</option>`
+  ).join('');
+  return `<select data-setting="${esc(key)}">${opts}</select>`;
+}
+
+function numberInput(key: string, value: number, min: number, max: number): string {
+  return `<input type="number" data-setting="${esc(key)}" value="${value}" min="${min}" max="${max}">`;
+}
+
+function textInput(key: string, value: string): string {
+  return `<input type="text" data-setting="${esc(key)}" value="${esc(value)}">`;
+}
+
+function checkbox(key: string, value: boolean, label: string): string {
+  return `<label class="setting-check"><input type="checkbox" data-setting="${esc(key)}"${value ? ' checked' : ''}> ${esc(label)}</label>`;
+}
+
+function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
+  return `
+    <div class="settings-grid">
+      <div class="settings-group-title">Provider & Model</div>
+      <div class="setting-row">
+        <span class="setting-label">CLI Provider</span>
+        <div class="setting-control">${select('cliProvider', cfg.cliProvider, ['codex', 'claude'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Model</span>
+        <div class="setting-control">${textInput('model', cfg.model)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Reasoning Effort</span>
+        <div class="setting-control">${select('reasoningEffort', cfg.reasoningEffort, ['medium', 'high'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Prompt Budget</span>
+        <div class="setting-control">${select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom'])}</div>
+      </div>
+
+      <div class="settings-group-title">Agent</div>
+      <div class="setting-row">
+        <span class="setting-label">Role</span>
+        <div class="setting-control">${select('agentRole', cfg.agentRole, ['build', 'review', 'watchdog', 'scm'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Agent ID</span>
+        <div class="setting-control">${textInput('agentId', cfg.agentId)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Agent Count</span>
+        <div class="setting-control">${numberInput('agentCount', cfg.agentCount, 1, 20)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Autonomy</span>
+        <div class="setting-control">${select('autonomyMode', cfg.autonomyMode, ['supervised', 'autonomous'])}</div>
+      </div>
+
+      <div class="settings-group-title">Execution</div>
+      <div class="setting-row">
+        <span class="setting-label">Iteration Cap</span>
+        <div class="setting-control">${numberInput('ralphIterationCap', cfg.ralphIterationCap, 1, 100)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Handoff Mode</span>
+        <div class="setting-control">${select('preferredHandoffMode', cfg.preferredHandoffMode, ['ideCommand', 'clipboard', 'cliExec'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">No-Progress Stop</span>
+        <div class="setting-control">${numberInput('noProgressThreshold', cfg.noProgressThreshold, 1, 20)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Failure Stop</span>
+        <div class="setting-control">${numberInput('repeatedFailureThreshold', cfg.repeatedFailureThreshold, 1, 20)}</div>
+      </div>
+
+      <div class="settings-group-title">Claude CLI</div>
+      <div class="setting-row">
+        <span class="setting-label">Max Turns</span>
+        <div class="setting-control">${numberInput('claudeMaxTurns', cfg.claudeMaxTurns, 1, 500)}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Permission Mode</span>
+        <div class="setting-control">${select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default'])}</div>
+      </div>
+
+      <div class="settings-group-title">Codex CLI</div>
+      <div class="setting-row">
+        <span class="setting-label">Approval Mode</span>
+        <div class="setting-control">${select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Sandbox Mode</span>
+        <div class="setting-control">${select('sandboxMode', cfg.sandboxMode, ['read-only', 'workspace-write', 'danger-full-access'])}</div>
+      </div>
+
+      <div class="settings-group-title">SCM & Git</div>
+      <div class="setting-row">
+        <span class="setting-label">SCM Strategy</span>
+        <div class="setting-control">${select('scmStrategy', cfg.scmStrategy, ['none', 'commit-on-done', 'branch-per-task'])}</div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">Git Checkpoint</span>
+        <div class="setting-control">${select('gitCheckpointMode', cfg.gitCheckpointMode, ['off', 'snapshot', 'snapshotAndDiff'])}</div>
+      </div>
+
+      <div class="settings-group-title">Behaviour</div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('stopOnHumanReviewNeeded', cfg.stopOnHumanReviewNeeded, 'Stop on human review needed')}
+      </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('clipboardAutoCopy', cfg.clipboardAutoCopy, 'Auto-copy prompts to clipboard')}
+      </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('autoReplenishBacklog', cfg.autoReplenishBacklog, 'Auto-replenish backlog')}
+      </div>
+      <div class="setting-row" style="grid-column: 1 / -1">
+        ${checkbox('autoReloadOnControlPlaneChange', cfg.autoReloadOnControlPlaneChange, 'Auto-reload on control plane change')}
+      </div>
+    </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -178,6 +369,10 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
             </details>`
           : ''}
       </div>
+      ${state.config ? `<div class="card">
+        <div class="card-title">Settings</div>
+        ${buildSettingsSection(state.config)}
+      </div>` : ''}
     </div>
 
     <div class="panel-right">
@@ -236,6 +431,23 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         var t = ackTimeouts.get(el);
         if (t) { clearTimeout(t); ackTimeouts.delete(el); }
       }
+
+      // Settings change handler
+      document.addEventListener('change', function(e) {
+        var el = e.target;
+        var key = el.getAttribute('data-setting');
+        if (!key) return;
+        var value;
+        if (el.type === 'checkbox') {
+          value = el.checked;
+        } else if (el.type === 'number') {
+          value = parseInt(el.value, 10);
+          if (isNaN(value)) return;
+        } else {
+          value = el.value;
+        }
+        vscode.postMessage({ type: 'update-setting', key: key, value: value });
+      });
 
       // Event delegation — no inline handlers needed (CSP blocks onclick)
       document.addEventListener('click', function(e) {

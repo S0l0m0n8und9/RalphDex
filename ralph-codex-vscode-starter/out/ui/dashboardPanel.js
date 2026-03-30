@@ -60,7 +60,7 @@ class RalphDashboardPanel {
         this.broadcaster = broadcaster;
         this.latestState = (0, sidebarViewProvider_1.defaultDashboardState)();
         panel.webview.options = { enableScripts: true };
-        // Listen for commands from the webview
+        // Listen for commands and settings updates from the webview
         panel.webview.onDidReceiveMessage(async (msg) => {
             if (msg.type === 'command' && msg.command) {
                 this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
@@ -70,6 +70,18 @@ class RalphDashboardPanel {
                 }
                 catch {
                     this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+                }
+            }
+            if (msg.type === 'update-setting') {
+                const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
+                await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
+                // Re-read config and re-render to reflect the change
+                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                if (workspaceFolder) {
+                    const freshConfig = (0, readConfig_1.readConfig)(workspaceFolder);
+                    this.latestState = { ...this.latestState, config: (0, sidebarViewProvider_1.snapshotConfig)(freshConfig) };
+                    this.lastRenderTime = 0; // force render
+                    this.fullRender();
                 }
             }
         });
@@ -121,7 +133,8 @@ class RalphDashboardPanel {
             preflightSummary: 'ok',
             diagnostics: [],
             currentPhase: this.currentPhase,
-            currentIteration: this.currentIteration
+            currentIteration: this.currentIteration,
+            config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null
         };
         this.fullRender();
     }

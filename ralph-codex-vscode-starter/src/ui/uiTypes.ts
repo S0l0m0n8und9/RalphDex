@@ -101,6 +101,31 @@ export interface RalphDashboardIteration {
   artifactDir: string;
 }
 
+export interface RalphDashboardConfigSnapshot {
+  cliProvider: string;
+  model: string;
+  agentRole: string;
+  agentId: string;
+  agentCount: number;
+  autonomyMode: string;
+  ralphIterationCap: number;
+  preferredHandoffMode: string;
+  claudeMaxTurns: number;
+  claudePermissionMode: string;
+  reasoningEffort: string;
+  approvalMode: string;
+  sandboxMode: string;
+  scmStrategy: string;
+  gitCheckpointMode: string;
+  noProgressThreshold: number;
+  repeatedFailureThreshold: number;
+  stopOnHumanReviewNeeded: boolean;
+  clipboardAutoCopy: boolean;
+  autoReplenishBacklog: boolean;
+  autoReloadOnControlPlaneChange: boolean;
+  promptBudgetProfile: string;
+}
+
 export interface RalphDashboardState {
   workspaceName: string;
   loopState: RalphUiLoopState;
@@ -115,6 +140,7 @@ export interface RalphDashboardState {
   diagnostics: Array<{ severity: string; message: string }>;
   currentPhase: RalphIterationPhase | null;
   currentIteration: number | null;
+  config: RalphDashboardConfigSnapshot | null;
 }
 
 /** Messages sent from extension to webview. */
@@ -126,4 +152,5 @@ export type RalphWebviewMessage =
 /** Messages sent from webview to extension. */
 export type RalphWebviewCommand =
   | { type: 'command'; command: string }
-  | { type: 'expand-task'; taskId: string };
+  | { type: 'expand-task'; taskId: string }
+  | { type: 'update-setting'; key: string; value: unknown };

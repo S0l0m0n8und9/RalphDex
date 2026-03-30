@@ -18,6 +18,12 @@ import {
 import { inspectCodexExecActivity } from '../services/cliActivity';
 import { Logger } from '../services/logger';
 import {
+  type AgentHandoffSummary,
+  type AgentStatusSummary,
+  buildMultiAgentStatusReport,
+  computeStuckScore,
+} from '../ralph/multiAgentStatus';
+import {
   collectStatusSnapshot,
   firstExistingPath,
   normalizeCliInvocation,
@@ -374,23 +380,6 @@ async function resolveStaleTaskClaim(
 // Multi-agent status helpers
 // ---------------------------------------------------------------------------
 
-interface AgentHandoffSummary {
-  iteration: number;
-  selectedTaskId: string | null;
-  selectedTaskTitle: string | null;
-  stopReason: string | null;
-  completionClassification: string | null;
-  progressNote: string | null;
-}
-
-interface AgentStatusSummary {
-  agentId: string;
-  firstSeenAt: string;
-  completedTaskCount: number;
-  activeClaimTaskId: string | null;
-  latestHandoff: AgentHandoffSummary | null;
-}
-
 function normalizeHandoffNote(candidate: unknown): AgentHandoffSummary | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
@@ -411,25 +400,30 @@ function normalizeHandoffNote(candidate: unknown): AgentHandoffSummary | null {
   };
 }
 
-async function resolveLatestHandoffForAgent(handoffDir: string, agentId: string): Promise<AgentHandoffSummary | null> {
+async function readAllHandoffsForAgent(handoffDir: string, agentId: string): Promise<AgentHandoffSummary[]> {
   let entries: string[];
 
   try {
     const allEntries = await fs.readdir(handoffDir);
     entries = allEntries.filter((entry) => entry.startsWith(`${agentId}-`) && entry.endsWith('.json'));
   } catch {
-    return null;
+    return [];
   }
 
   if (entries.length === 0) {
-    return null;
+    return [];
   }
 
-  // Pick highest iteration: entries are <agentId>-NNN.json, sort descending by numeric suffix
-  entries.sort((left, right) => right.localeCompare(left));
-  const latestEntry = entries[0];
-  const content = await readJsonArtifact(path.join(handoffDir, latestEntry));
-  return normalizeHandoffNote(content);
+  const handoffs = await Promise.all(
+    entries.map(async (entry) => {
+      const content = await readJsonArtifact(path.join(handoffDir, entry));
+      return normalizeHandoffNote(content);
+    })
+  );
+
+  return handoffs
+    .filter((h): h is AgentHandoffSummary => h !== null)
+    .sort((a, b) => a.iteration - b.iteration);
 }
 
 async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: string): Promise<AgentStatusSummary[]> {
@@ -462,55 +456,23 @@ async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: st
       );
       const activeClaimTaskId = activeClaimEntry?.taskId ?? null;
 
-      const latestHandoff = await resolveLatestHandoffForAgent(handoffDir, agentId);
+      const handoffHistory = await readAllHandoffsForAgent(handoffDir, agentId);
+      const stuckScore = computeStuckScore(handoffHistory);
+      const latestHandoff = handoffHistory.length > 0 ? handoffHistory[handoffHistory.length - 1] : null;
 
       return {
         agentId,
         firstSeenAt,
         completedTaskCount,
         activeClaimTaskId,
-        latestHandoff
+        handoffHistory,
+        latestHandoff,
+        stuckScore,
       };
     })
   );
 
   return summaries.sort((left, right) => left.agentId.localeCompare(right.agentId));
-}
-
-function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): string {
-  const lines: string[] = ['=== Multi-Agent Status ===', ''];
-
-  if (summaries.length === 0) {
-    lines.push('No agent identity records found under .ralph/agents/.');
-    lines.push('Run at least one CLI iteration to populate agent state.');
-    return lines.join('\n');
-  }
-
-  for (const summary of summaries) {
-    lines.push(`Agent: ${summary.agentId}${summary.firstSeenAt ? ` (first seen: ${summary.firstSeenAt})` : ''}`);
-    lines.push(`  Tasks completed: ${summary.completedTaskCount}`);
-    lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}`);
-
-    if (summary.latestHandoff) {
-      const handoff = summary.latestHandoff;
-      const taskLabel = handoff.selectedTaskId
-        ? handoff.selectedTaskTitle
-          ? `${handoff.selectedTaskId}: ${handoff.selectedTaskTitle}`
-          : handoff.selectedTaskId
-        : 'none';
-      lines.push(`  Last iteration: ${handoff.iteration} | task: ${taskLabel}`);
-      lines.push(`  Last outcome: ${handoff.completionClassification ?? 'unknown'} | stopped: ${handoff.stopReason ?? 'unknown'}`);
-      if (handoff.progressNote) {
-        lines.push(`  Progress: ${handoff.progressNote}`);
-      }
-    } else {
-      lines.push('  Last iteration: none');
-    }
-
-    lines.push('');
-  }
-
-  return lines.join('\n').trimEnd();
 }
 
 // ---------------------------------------------------------------------------

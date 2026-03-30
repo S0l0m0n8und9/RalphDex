@@ -18,6 +18,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     diagnostics: [],
     currentPhase: null,
     currentIteration: null,
+    config: null,
     ...overrides
   };
 }

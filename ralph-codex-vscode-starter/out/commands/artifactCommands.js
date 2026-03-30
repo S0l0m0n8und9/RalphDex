@@ -42,6 +42,7 @@ const statusReport_1 = require("../ralph/statusReport");
 const taskFile_1 = require("../ralph/taskFile");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
 const cliActivity_1 = require("../services/cliActivity");
+const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 const statusSnapshot_1 = require("./statusSnapshot");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
@@ -262,6 +263,9 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
     void vscode.window.showInformationMessage(`Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`);
     return true;
 }
+// ---------------------------------------------------------------------------
+// Multi-agent status helpers
+// ---------------------------------------------------------------------------
 function normalizeHandoffNote(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -279,23 +283,25 @@ function normalizeHandoffNote(candidate) {
         progressNote: typeof record.progressNote === 'string' ? record.progressNote : null
     };
 }
-async function resolveLatestHandoffForAgent(handoffDir, agentId) {
+async function readAllHandoffsForAgent(handoffDir, agentId) {
     let entries;
     try {
         const allEntries = await fs.readdir(handoffDir);
         entries = allEntries.filter((entry) => entry.startsWith(`${agentId}-`) && entry.endsWith('.json'));
     }
     catch {
-        return null;
+        return [];
     }
     if (entries.length === 0) {
-        return null;
+        return [];
     }
-    // Pick highest iteration: entries are <agentId>-NNN.json, sort descending by numeric suffix
-    entries.sort((left, right) => right.localeCompare(left));
-    const latestEntry = entries[0];
-    const content = await (0, statusSnapshot_1.readJsonArtifact)(path.join(handoffDir, latestEntry));
-    return normalizeHandoffNote(content);
+    const handoffs = await Promise.all(entries.map(async (entry) => {
+        const content = await (0, statusSnapshot_1.readJsonArtifact)(path.join(handoffDir, entry));
+        return normalizeHandoffNote(content);
+    }));
+    return handoffs
+        .filter((h) => h !== null)
+        .sort((a, b) => a.iteration - b.iteration);
 }
 async function readMultiAgentStatusSummaries(ralphDir, claimFilePath) {
     const agentsDir = path.join(ralphDir, 'agents');
@@ -318,47 +324,20 @@ async function readMultiAgentStatusSummaries(ralphDir, claimFilePath) {
         const completedTaskCount = completedTaskIds.length;
         const activeClaimEntry = claimGraph?.tasks.find((entry) => entry.canonicalClaim?.claim.agentId === agentId && entry.canonicalClaim?.claim.status === 'active');
         const activeClaimTaskId = activeClaimEntry?.taskId ?? null;
-        const latestHandoff = await resolveLatestHandoffForAgent(handoffDir, agentId);
+        const handoffHistory = await readAllHandoffsForAgent(handoffDir, agentId);
+        const stuckScore = (0, multiAgentStatus_1.computeStuckScore)(handoffHistory);
+        const latestHandoff = handoffHistory.length > 0 ? handoffHistory[handoffHistory.length - 1] : null;
         return {
             agentId,
             firstSeenAt,
             completedTaskCount,
             activeClaimTaskId,
-            latestHandoff
+            handoffHistory,
+            latestHandoff,
+            stuckScore,
         };
     }));
     return summaries.sort((left, right) => left.agentId.localeCompare(right.agentId));
-}
-function buildMultiAgentStatusReport(summaries) {
-    const lines = ['=== Multi-Agent Status ===', ''];
-    if (summaries.length === 0) {
-        lines.push('No agent identity records found under .ralph/agents/.');
-        lines.push('Run at least one CLI iteration to populate agent state.');
-        return lines.join('\n');
-    }
-    for (const summary of summaries) {
-        lines.push(`Agent: ${summary.agentId}${summary.firstSeenAt ? ` (first seen: ${summary.firstSeenAt})` : ''}`);
-        lines.push(`  Tasks completed: ${summary.completedTaskCount}`);
-        lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}`);
-        if (summary.latestHandoff) {
-            const handoff = summary.latestHandoff;
-            const taskLabel = handoff.selectedTaskId
-                ? handoff.selectedTaskTitle
-                    ? `${handoff.selectedTaskId}: ${handoff.selectedTaskTitle}`
-                    : handoff.selectedTaskId
-                : 'none';
-            lines.push(`  Last iteration: ${handoff.iteration} | task: ${taskLabel}`);
-            lines.push(`  Last outcome: ${handoff.completionClassification ?? 'unknown'} | stopped: ${handoff.stopReason ?? 'unknown'}`);
-            if (handoff.progressNote) {
-                lines.push(`  Progress: ${handoff.progressNote}`);
-            }
-        }
-        else {
-            lines.push('  Last iteration: none');
-        }
-        lines.push('');
-    }
-    return lines.join('\n').trimEnd();
 }
 // ---------------------------------------------------------------------------
 // Public registration entry point
@@ -474,7 +453,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
             const claimFilePath = path.join(ralphDir, 'claims.json');
             const summaries = await readMultiAgentStatusSummaries(ralphDir, claimFilePath);
-            const report = buildMultiAgentStatusReport(summaries);
+            const report = (0, multiAgentStatus_1.buildMultiAgentStatusReport)(summaries);
             logger.show(false);
             logger.appendText(report);
             logger.info('Multi-agent status snapshot generated.', {

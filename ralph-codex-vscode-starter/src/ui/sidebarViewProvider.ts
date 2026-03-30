@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { readConfig } from '../config/readConfig';
+import type { RalphCodexConfig } from '../config/types';
 import type { RalphTaskFile } from '../ralph/types';
 import type { IterationBroadcaster } from './iterationBroadcaster';
 import { buildDashboardHtml } from './sidebarHtml';
 import type { RalphWatchedState } from './stateWatcher';
 import type {
+  RalphDashboardConfigSnapshot,
   RalphDashboardIteration,
   RalphDashboardState,
   RalphDashboardTask,
@@ -140,7 +142,8 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
       preflightSummary: 'ok',
       diagnostics: [],
       currentPhase: this.currentPhase,
-      currentIteration: this.currentIteration
+      currentIteration: this.currentIteration,
+      config: config ? snapshotConfig(config) : null
     };
 
     this.fullRender();
@@ -188,7 +191,8 @@ export function defaultDashboardState(): RalphDashboardState {
     preflightSummary: 'ok',
     diagnostics: [],
     currentPhase: null,
-    currentIteration: null
+    currentIteration: null,
+    config: null
   };
 }
 
@@ -229,4 +233,31 @@ export function countTasks(taskFile: RalphTaskFile): { todo: number; in_progress
     }
   }
   return counts;
+}
+
+export function snapshotConfig(config: RalphCodexConfig): RalphDashboardConfigSnapshot {
+  return {
+    cliProvider: config.cliProvider,
+    model: config.model,
+    agentRole: config.agentRole,
+    agentId: config.agentId,
+    agentCount: config.agentCount,
+    autonomyMode: config.autonomyMode,
+    ralphIterationCap: config.ralphIterationCap,
+    preferredHandoffMode: config.preferredHandoffMode,
+    claudeMaxTurns: config.claudeMaxTurns,
+    claudePermissionMode: config.claudePermissionMode,
+    reasoningEffort: config.reasoningEffort,
+    approvalMode: config.approvalMode,
+    sandboxMode: config.sandboxMode,
+    scmStrategy: config.scmStrategy,
+    gitCheckpointMode: config.gitCheckpointMode,
+    noProgressThreshold: config.noProgressThreshold,
+    repeatedFailureThreshold: config.repeatedFailureThreshold,
+    stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
+    clipboardAutoCopy: config.clipboardAutoCopy,
+    autoReplenishBacklog: config.autoReplenishBacklog,
+    autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
+    promptBudgetProfile: config.promptBudgetProfile
+  };
 }

@@ -37,6 +37,7 @@ exports.RalphSidebarViewProvider = void 0;
 exports.defaultDashboardState = defaultDashboardState;
 exports.buildDashboardTasks = buildDashboardTasks;
 exports.countTasks = countTasks;
+exports.snapshotConfig = snapshotConfig;
 const vscode = __importStar(require("vscode"));
 const crypto = __importStar(require("crypto"));
 const readConfig_1 = require("../config/readConfig");
@@ -154,7 +155,8 @@ class RalphSidebarViewProvider {
             preflightSummary: 'ok',
             diagnostics: [],
             currentPhase: this.currentPhase,
-            currentIteration: this.currentIteration
+            currentIteration: this.currentIteration,
+            config: config ? snapshotConfig(config) : null
         };
         this.fullRender();
     }
@@ -196,7 +198,8 @@ function defaultDashboardState() {
         preflightSummary: 'ok',
         diagnostics: [],
         currentPhase: null,
-        currentIteration: null
+        currentIteration: null,
+        config: null
     };
 }
 function buildDashboardTasks(taskFile, selectedTaskId) {
@@ -233,5 +236,31 @@ function countTasks(taskFile) {
         }
     }
     return counts;
+}
+function snapshotConfig(config) {
+    return {
+        cliProvider: config.cliProvider,
+        model: config.model,
+        agentRole: config.agentRole,
+        agentId: config.agentId,
+        agentCount: config.agentCount,
+        autonomyMode: config.autonomyMode,
+        ralphIterationCap: config.ralphIterationCap,
+        preferredHandoffMode: config.preferredHandoffMode,
+        claudeMaxTurns: config.claudeMaxTurns,
+        claudePermissionMode: config.claudePermissionMode,
+        reasoningEffort: config.reasoningEffort,
+        approvalMode: config.approvalMode,
+        sandboxMode: config.sandboxMode,
+        scmStrategy: config.scmStrategy,
+        gitCheckpointMode: config.gitCheckpointMode,
+        noProgressThreshold: config.noProgressThreshold,
+        repeatedFailureThreshold: config.repeatedFailureThreshold,
+        stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
+        clipboardAutoCopy: config.clipboardAutoCopy,
+        autoReplenishBacklog: config.autoReplenishBacklog,
+        autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
+        promptBudgetProfile: config.promptBudgetProfile
+    };
 }
 //# sourceMappingURL=sidebarViewProvider.js.map

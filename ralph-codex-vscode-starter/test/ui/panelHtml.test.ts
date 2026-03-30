@@ -18,6 +18,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     diagnostics: [],
     currentPhase: null,
     currentIteration: null,
+    config: null,
     ...overrides
   };
 }
@@ -182,4 +183,50 @@ test('buildPanelDashboardHtml includes task detail sections for expandable tasks
   assert.ok(html.includes('T1a, T1b'));
   assert.ok(html.includes('T0'));
   assert.ok(html.includes('high'));
+});
+
+test('buildPanelDashboardHtml renders settings section when config is present', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    config: {
+      cliProvider: 'claude',
+      model: 'claude-sonnet-4-6',
+      agentRole: 'build',
+      agentId: 'default',
+      agentCount: 1,
+      autonomyMode: 'supervised',
+      ralphIterationCap: 20,
+      preferredHandoffMode: 'ideCommand',
+      claudeMaxTurns: 50,
+      claudePermissionMode: 'dangerously-skip-permissions',
+      reasoningEffort: 'medium',
+      approvalMode: 'never',
+      sandboxMode: 'workspace-write',
+      scmStrategy: 'none',
+      gitCheckpointMode: 'snapshotAndDiff',
+      noProgressThreshold: 5,
+      repeatedFailureThreshold: 5,
+      stopOnHumanReviewNeeded: true,
+      clipboardAutoCopy: true,
+      autoReplenishBacklog: false,
+      autoReloadOnControlPlaneChange: false,
+      promptBudgetProfile: 'claude'
+    }
+  }), 'n12');
+
+  // Settings section rendered
+  assert.ok(html.includes('settings-grid'));
+  assert.ok(html.includes('data-setting="cliProvider"'));
+  assert.ok(html.includes('data-setting="model"'));
+  assert.ok(html.includes('data-setting="agentRole"'));
+  assert.ok(html.includes('data-setting="ralphIterationCap"'));
+  assert.ok(html.includes('data-setting="scmStrategy"'));
+  assert.ok(html.includes('data-setting="autonomyMode"'));
+  // Current values rendered
+  assert.ok(html.includes('claude-sonnet-4-6'));
+  assert.ok(html.includes('update-setting'));
+});
+
+test('buildPanelDashboardHtml hides settings section when config is null', () => {
+  const html = buildPanelDashboardHtml(defaultState({ config: null }), 'n13');
+  assert.ok(!html.includes('data-setting='));
 });

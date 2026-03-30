@@ -44,6 +44,7 @@
     "T61"
   ],
   "touchedFiles": [
+    ".claude/settings.local.json",
     ".ralph/agents/default.json",
     ".ralph/claims.json",
     ".ralph/handoff/default-117.json",
@@ -117,6 +118,8 @@
     "ralph-codex-vscode-starter/out/ralph/iterationPreparation.js.map",
     "ralph-codex-vscode-starter/out/ralph/loopLogic.js",
     "ralph-codex-vscode-starter/out/ralph/loopLogic.js.map",
+    "ralph-codex-vscode-starter/out/ralph/multiAgentStatus.js",
+    "ralph-codex-vscode-starter/out/ralph/multiAgentStatus.js.map",
     "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
     "ralph-codex-vscode-starter/out/ralph/pathResolver.js.map",
     "ralph-codex-vscode-starter/out/ralph/preflight.js",
@@ -136,6 +139,12 @@
     "ralph-codex-vscode-starter/out/ralph/types.js.map",
     "ralph-codex-vscode-starter/out/services/processRunner.js",
     "ralph-codex-vscode-starter/out/services/processRunner.js.map",
+    "ralph-codex-vscode-starter/out/ui/dashboardPanel.js",
+    "ralph-codex-vscode-starter/out/ui/dashboardPanel.js.map",
+    "ralph-codex-vscode-starter/out/ui/panelHtml.js",
+    "ralph-codex-vscode-starter/out/ui/panelHtml.js.map",
+    "ralph-codex-vscode-starter/out/ui/sidebarViewProvider.js",
+    "ralph-codex-vscode-starter/out/ui/sidebarViewProvider.js.map",
     "ralph-codex-vscode-starter/out/validation/docsValidator.js",
     "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
     "ralph-codex-vscode-starter/package.json",
@@ -159,6 +168,7 @@
     "ralph-codex-vscode-starter/src/ralph/iterationEngine.ts",
     "ralph-codex-vscode-starter/src/ralph/iterationPreparation.ts",
     "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
+    "ralph-codex-vscode-starter/src/ralph/multiAgentStatus.ts",
     "ralph-codex-vscode-starter/src/ralph/pathResolver.ts",
     "ralph-codex-vscode-starter/src/ralph/preflight.ts",
     "ralph-codex-vscode-starter/src/ralph/reconciliation.ts",
@@ -169,6 +179,10 @@
     "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
     "ralph-codex-vscode-starter/src/ralph/types.ts",
     "ralph-codex-vscode-starter/src/services/processRunner.ts",
+    "ralph-codex-vscode-starter/src/ui/dashboardPanel.ts",
+    "ralph-codex-vscode-starter/src/ui/panelHtml.ts",
+    "ralph-codex-vscode-starter/src/ui/sidebarViewProvider.ts",
+    "ralph-codex-vscode-starter/src/ui/uiTypes.ts",
     "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
     "ralph-codex-vscode-starter/test/artifactStore.test.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
@@ -184,6 +198,7 @@
     "ralph-codex-vscode-starter/test/fixtures/snapshots/repeatedNoProgress.fix-failure.md",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/replenishBacklog.replenish-backlog.md",
     "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
+    "ralph-codex-vscode-starter/test/multiAgentStatus.test.ts",
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.content.test.ts",
@@ -194,6 +209,8 @@
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/support/processTestHarness.ts",
     "ralph-codex-vscode-starter/test/taskDecomposition.test.ts",
-    "ralph-codex-vscode-starter/test/taskFile.test.ts"
+    "ralph-codex-vscode-starter/test/taskFile.test.ts",
+    "ralph-codex-vscode-starter/test/ui/panelHtml.test.ts",
+    "ralph-codex-vscode-starter/test/ui/sidebarHtml.test.ts"
   ]
 }

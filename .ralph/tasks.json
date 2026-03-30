@@ -1932,7 +1932,82 @@
       ],
       "notes": "Watchdog diagnostic artifacts written to <artifactRootDir>/watchdog/<agentId>-<paddedIteration>.json on every processWatchdogActions invocation; retention cleanup added to cleanupGeneratedArtifacts and inspectGeneratedArtifactRetention; 2 new tests added; 415/415 pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T62",
+      "title": "Add stale-claim and repeated-no-progress heatmap to Show Multi-Agent Status",
+      "status": "in_progress",
+      "dependsOn": [
+        "T61",
+        "T62.1",
+        "T62.2"
+      ],
+      "notes": "Read .ralph/agents/<agentId>.json iteration history and watchdog artifacts to compute a per-agent stuck score (count of consecutive same-task no-progress stops). Render agents above a threshold (>=3) as warnings in the Show Multi-Agent Status output channel. Add regression coverage for stuck-score computation and rendering; update docs/workflows.md.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T63",
+      "title": "Implement ralphCodex.runPipeline command skeleton: decompose PRD fragment to tasks then invoke multi-agent loop",
+      "status": "todo",
+      "dependsOn": [
+        "T62"
+      ],
+      "notes": "Add ralphCodex.runPipeline command to package.json (activation + contribution) and registerCommands.ts. On invocation: hash .ralph/prd.md, call bounded task decomposition to create child tasks under a new pipeline-root parent, invoke runMultiAgentLoop against that parent's subtask set, and write a durable pipeline-run artifact to .ralph/artifacts/pipelines/<runId>.json containing: prd hash, decomposed task ids, loop start time, and status. Add packageManifest test and basic command smoke coverage; update AGENTS.md and docs/workflows.md.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T64",
+      "title": "Wire review-agent pass and PR submission into runPipeline for full end-to-end pipeline flow",
+      "status": "todo",
+      "dependsOn": [
+        "T63"
+      ],
+      "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review→PR path and update the pipeline-run artifact schema in docs/provenance.md.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T65",
+      "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
+      "status": "todo",
+      "dependsOn": [
+        "T64"
+      ],
+      "notes": "At pipeline start, capture a task-graph snapshot (parentId + child task ids + statuses). After pipeline completion, resolve per-agent iteration history artifact paths and write a fully linked pipeline provenance bundle to .ralph/artifacts/pipelines/<runId>-provenance.json. Surface the pipeline run in Show Status (latest pipeline section) and add an Open Latest Pipeline Run command that opens the provenance bundle. Add regression coverage for the provenance bundle structure and the new command; update docs/provenance.md with the pipeline-run provenance section.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T66",
+      "title": "Configurable human-review gate in runPipeline: pause before PR submission and resume via approveHumanReview command",
+      "status": "todo",
+      "dependsOn": [
+        "T65"
+      ],
+      "notes": "Add ralphCodex.pipelineHumanGates boolean setting (default false) to package.json, config types, defaults, and readConfig. When enabled, runPipeline pauses after the review-agent pass and writes an 'awaiting_human_approval' handoff note to .ralph/handoff/pipeline-<runId>-pending.json instead of submitting the PR. Add ralphCodex.approveHumanReview command that reads the pending pipeline handoff and resumes from the PR submission step. Add packageManifest test, gate-enabled and gate-disabled smoke coverage, and update docs/workflows.md and docs/config with the new setting.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T62.1",
+      "title": "Stale-claim",
+      "status": "todo",
+      "parentId": "T62",
+      "dependsOn": [
+        "T61"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Narrow T62 to a deterministic first step before retrying the parent task."
+    },
+    {
+      "id": "T62.2",
+      "title": "Repeated-no-progress heatmap to Show Multi-Agent Status",
+      "status": "todo",
+      "parentId": "T62",
+      "dependsOn": [
+        "T61",
+        "T62.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T62.1."
     }
   ],
-  "mutationCount": 18
+  "mutationCount": 19
 }
