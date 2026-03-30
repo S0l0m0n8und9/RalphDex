@@ -167,6 +167,7 @@ details[open] > .completed-toggle::before {
   padding: 2px 0;
 }
 
+/* Legacy group title — kept for compatibility */
 .settings-group-title {
   font-size: 10px;
   font-weight: bold;
@@ -175,10 +176,6 @@ details[open] > .completed-toggle::before {
   color: var(--ralph-amber);
   margin: 8px 0 4px 0;
   grid-column: 1 / -1;
-}
-
-.settings-group-title:first-child {
-  margin-top: 0;
 }
 
 /* Key-value editor */
@@ -200,7 +197,30 @@ details[open] > .completed-toggle::before {
   color: var(--ralph-amber);
 }
 
-/* Advanced section */
+/* Collapsible settings sections */
+.settings-section { border-bottom: 1px solid var(--ralph-border); }
+.settings-section:last-child { border-bottom: none; }
+
+.settings-section-toggle {
+  font-family: var(--ralph-font);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ralph-amber);
+  cursor: pointer;
+  padding: 6px 0;
+  list-style: none;
+}
+.settings-section-toggle::-webkit-details-marker { display: none; }
+.settings-section-toggle::before { content: '▸ '; font-size: 10px; }
+details[open] > .settings-section-toggle::before { content: '▾ '; }
+
+.settings-section > .settings-grid {
+  padding: 4px 0 8px 0;
+}
+
+/* Advanced section (same styling, dimmer) */
 .settings-advanced-toggle {
   font-family: var(--ralph-font);
   font-size: 10px;
@@ -278,257 +298,131 @@ function nestedInput(parentKey: string, subKey: string, type: 'text' | 'number' 
 }
 
 function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
-  return `
-    <div class="settings-grid">
-      <div class="settings-group-title">Provider & Model</div>
-      <div class="setting-row">
-        <span class="setting-label">CLI Provider</span>
-        <div class="setting-control">${select('cliProvider', cfg.cliProvider, ['codex', 'claude'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Model</span>
-        <div class="setting-control">${textInput('model', cfg.model)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Reasoning Effort</span>
-        <div class="setting-control">${select('reasoningEffort', cfg.reasoningEffort, ['medium', 'high'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Prompt Budget</span>
-        <div class="setting-control">${select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom'])}</div>
-      </div>
+  function group(title: string, content: string, open = false): string {
+    const sectionId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    return `<details class="settings-section" data-section="${esc(sectionId)}"${open ? ' open' : ''}>
+      <summary class="settings-section-toggle">${esc(title)}</summary>
+      <div class="settings-grid">${content}</div>
+    </details>`;
+  }
 
-      <div class="settings-group-title">Agent</div>
-      <div class="setting-row">
-        <span class="setting-label">Role</span>
-        <div class="setting-control">${select('agentRole', cfg.agentRole, ['build', 'review', 'watchdog', 'scm'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Agent ID</span>
-        <div class="setting-control">${textInput('agentId', cfg.agentId)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Agent Count</span>
-        <div class="setting-control">${numberInput('agentCount', cfg.agentCount, 1, 20)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Autonomy</span>
-        <div class="setting-control">${select('autonomyMode', cfg.autonomyMode, ['supervised', 'autonomous'])}</div>
-      </div>
-
-      <div class="settings-group-title">Execution</div>
-      <div class="setting-row">
-        <span class="setting-label">Iteration Cap</span>
-        <div class="setting-control">${numberInput('ralphIterationCap', cfg.ralphIterationCap, 1, 100)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Handoff Mode</span>
-        <div class="setting-control">${select('preferredHandoffMode', cfg.preferredHandoffMode, ['ideCommand', 'clipboard', 'cliExec'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">No-Progress Stop</span>
-        <div class="setting-control">${numberInput('noProgressThreshold', cfg.noProgressThreshold, 1, 20)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Failure Stop</span>
-        <div class="setting-control">${numberInput('repeatedFailureThreshold', cfg.repeatedFailureThreshold, 1, 20)}</div>
-      </div>
-
-      <div class="settings-group-title">Claude CLI</div>
-      <div class="setting-row">
-        <span class="setting-label">Max Turns</span>
-        <div class="setting-control">${numberInput('claudeMaxTurns', cfg.claudeMaxTurns, 1, 500)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Permission Mode</span>
-        <div class="setting-control">${select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default'])}</div>
-      </div>
-
-      <div class="settings-group-title">Codex CLI</div>
-      <div class="setting-row">
-        <span class="setting-label">Approval Mode</span>
-        <div class="setting-control">${select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Sandbox Mode</span>
-        <div class="setting-control">${select('sandboxMode', cfg.sandboxMode, ['read-only', 'workspace-write', 'danger-full-access'])}</div>
-      </div>
-
-      <div class="settings-group-title">SCM & Git</div>
-      <div class="setting-row">
-        <span class="setting-label">SCM Strategy</span>
-        <div class="setting-control">${select('scmStrategy', cfg.scmStrategy, ['none', 'commit-on-done', 'branch-per-task'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Git Checkpoint</span>
-        <div class="setting-control">${select('gitCheckpointMode', cfg.gitCheckpointMode, ['off', 'snapshot', 'snapshotAndDiff'])}</div>
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('scmPrOnParentDone', cfg.scmPrOnParentDone, 'Create PR on parent done')}
-      </div>
-
-      <div class="settings-group-title">Behaviour</div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('stopOnHumanReviewNeeded', cfg.stopOnHumanReviewNeeded, 'Stop on human review needed')}
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('clipboardAutoCopy', cfg.clipboardAutoCopy, 'Auto-copy prompts to clipboard')}
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('autoReplenishBacklog', cfg.autoReplenishBacklog, 'Auto-replenish backlog')}
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('autoReloadOnControlPlaneChange', cfg.autoReloadOnControlPlaneChange, 'Auto-reload on control plane change')}
-      </div>
-
-      <div class="settings-group-title">Paths</div>
-      <div class="setting-row">
-        <span class="setting-label">Codex Command Path</span>
-        <div class="setting-control">${textInput('codexCommandPath', cfg.codexCommandPath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Claude Command Path</span>
-        <div class="setting-control">${textInput('claudeCommandPath', cfg.claudeCommandPath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Inspection Root Override</span>
-        <div class="setting-control">${textInput('inspectionRootOverride', cfg.inspectionRootOverride)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Artifact Retention Path</span>
-        <div class="setting-control">${textInput('artifactRetentionPath', cfg.artifactRetentionPath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Task File Path</span>
-        <div class="setting-control">${textInput('ralphTaskFilePath', cfg.ralphTaskFilePath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">PRD Path</span>
-        <div class="setting-control">${textInput('prdPath', cfg.prdPath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Progress Path</span>
-        <div class="setting-control">${textInput('progressPath', cfg.progressPath)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Prompt Template Directory</span>
-        <div class="setting-control">${textInput('promptTemplateDirectory', cfg.promptTemplateDirectory)}</div>
-      </div>
-
-      <div class="settings-group-title">Verifier</div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        <span class="setting-label">Verifier Modes</span>
-        <div class="setting-control">${multiCheckbox('verifierModes', cfg.verifierModes, ['validationCommand', 'gitDiff', 'taskState'])}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Validation Command Override</span>
-        <div class="setting-control">${textInput('validationCommandOverride', cfg.validationCommandOverride)}</div>
-      </div>
-
-      <div class="settings-group-title">Prompt</div>
-      <div class="setting-row">
-        <span class="setting-label">Prior Context Budget</span>
-        <div class="setting-control">${numberInput('promptPriorContextBudget', cfg.promptPriorContextBudget, 0, 100000)}</div>
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${checkbox('promptIncludeVerifierFeedback', cfg.promptIncludeVerifierFeedback, 'Include verifier feedback')}
-      </div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        <span class="setting-label">Custom Prompt Budget</span>
-        <div class="setting-control">${keyValueEditor('customPromptBudget', cfg.customPromptBudget)}</div>
-      </div>
-
-      <div class="settings-group-title">Retention</div>
-      <div class="setting-row">
-        <span class="setting-label">Artifact Retention Count</span>
-        <div class="setting-control">${numberInput('generatedArtifactRetentionCount', cfg.generatedArtifactRetentionCount, 0, 100)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Provenance Bundle Count</span>
-        <div class="setting-control">${numberInput('provenanceBundleRetentionCount', cfg.provenanceBundleRetentionCount, 0, 100)}</div>
-      </div>
-
-      <div class="settings-group-title">Timing</div>
-      <div class="setting-row">
-        <span class="setting-label">Watchdog Stale TTL (ms)</span>
-        <div class="setting-control">${numberInput('watchdogStaleTtlMs', cfg.watchdogStaleTtlMs, 0, 604800000)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Claim TTL (hours)</span>
-        <div class="setting-control">${numberInput('claimTtlHours', cfg.claimTtlHours, 1, 720)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Stale Lock Threshold (min)</span>
-        <div class="setting-control">${numberInput('staleLockThresholdMinutes', cfg.staleLockThresholdMinutes, 1, 1440)}</div>
-      </div>
-
-      <div class="settings-group-title">Remediation</div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        <span class="setting-label">Auto-Apply Remediation</span>
-        <div class="setting-control">${multiCheckbox('autoApplyRemediation', cfg.autoApplyRemediation, ['decompose_task', 'mark_blocked'])}</div>
-      </div>
-
-      <div class="settings-group-title">Model Tiering</div>
-      <div class="setting-row" style="grid-column: 1 / -1">
-        ${nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')}
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Simple Model</span>
-        <div class="setting-control">${nestedInput('modelTiering', 'simpleModel', 'text', cfg.modelTiering.simpleModel)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Medium Model</span>
-        <div class="setting-control">${nestedInput('modelTiering', 'mediumModel', 'text', cfg.modelTiering.mediumModel)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Complex Model</span>
-        <div class="setting-control">${nestedInput('modelTiering', 'complexModel', 'text', cfg.modelTiering.complexModel)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Simple Threshold</span>
-        <div class="setting-control">${nestedInput('modelTiering', 'simpleThreshold', 'number', cfg.modelTiering.simpleThreshold)}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">Complex Threshold</span>
-        <div class="setting-control">${nestedInput('modelTiering', 'complexThreshold', 'number', cfg.modelTiering.complexThreshold)}</div>
-      </div>
-
-      <div class="settings-group-title">Hooks</div>
-      <div class="setting-row">
-        <span class="setting-label">Before Iteration</span>
-        <div class="setting-control">${nestedInput('hooks', 'beforeIteration', 'text', cfg.hooks.beforeIteration ?? '')}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">After Iteration</span>
-        <div class="setting-control">${nestedInput('hooks', 'afterIteration', 'text', cfg.hooks.afterIteration ?? '')}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">On Task Complete</span>
-        <div class="setting-control">${nestedInput('hooks', 'onTaskComplete', 'text', cfg.hooks.onTaskComplete ?? '')}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">On Stop</span>
-        <div class="setting-control">${nestedInput('hooks', 'onStop', 'text', cfg.hooks.onStop ?? '')}</div>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label">On Failure</span>
-        <div class="setting-control">${nestedInput('hooks', 'onFailure', 'text', cfg.hooks.onFailure ?? '')}</div>
-      </div>
-
-      <details>
-        <summary class="settings-advanced-toggle">Advanced</summary>
-        <div class="settings-grid">
-          <div class="setting-row">
-            <span class="setting-label">Open Sidebar Command ID</span>
-            <div class="setting-control">${textInput('openSidebarCommandId', cfg.openSidebarCommandId)}</div>
-          </div>
-          <div class="setting-row">
-            <span class="setting-label">New Chat Command ID</span>
-            <div class="setting-control">${textInput('newChatCommandId', cfg.newChatCommandId)}</div>
-          </div>
-        </div>
-      </details>
+  function row(label: string, control: string, full = false): string {
+    return `<div class="setting-row"${full ? ' style="grid-column: 1 / -1"' : ''}>
+      <span class="setting-label">${esc(label)}</span>
+      <div class="setting-control">${control}</div>
     </div>`;
+  }
+
+  function checkRow(control: string): string {
+    return `<div class="setting-row" style="grid-column: 1 / -1">${control}</div>`;
+  }
+
+  const sections = [
+    group('Provider & Model', [
+      row('CLI Provider', select('cliProvider', cfg.cliProvider, ['codex', 'claude'])),
+      row('Model', textInput('model', cfg.model)),
+      row('Reasoning Effort', select('reasoningEffort', cfg.reasoningEffort, ['medium', 'high'])),
+      row('Prompt Budget', select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom']))
+    ].join('\n'), true),
+
+    group('Agent', [
+      row('Role', select('agentRole', cfg.agentRole, ['build', 'review', 'watchdog', 'scm'])),
+      row('Agent ID', textInput('agentId', cfg.agentId)),
+      row('Agent Count', numberInput('agentCount', cfg.agentCount, 1, 20)),
+      row('Autonomy', select('autonomyMode', cfg.autonomyMode, ['supervised', 'autonomous']))
+    ].join('\n'), true),
+
+    group('Execution', [
+      row('Iteration Cap', numberInput('ralphIterationCap', cfg.ralphIterationCap, 1, 100)),
+      row('Handoff Mode', select('preferredHandoffMode', cfg.preferredHandoffMode, ['ideCommand', 'clipboard', 'cliExec'])),
+      row('No-Progress Stop', numberInput('noProgressThreshold', cfg.noProgressThreshold, 1, 20)),
+      row('Failure Stop', numberInput('repeatedFailureThreshold', cfg.repeatedFailureThreshold, 1, 20))
+    ].join('\n')),
+
+    group('Claude CLI', [
+      row('Max Turns', numberInput('claudeMaxTurns', cfg.claudeMaxTurns, 1, 500)),
+      row('Permission Mode', select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default']))
+    ].join('\n')),
+
+    group('Codex CLI', [
+      row('Approval Mode', select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])),
+      row('Sandbox Mode', select('sandboxMode', cfg.sandboxMode, ['read-only', 'workspace-write', 'danger-full-access']))
+    ].join('\n')),
+
+    group('SCM & Git', [
+      row('SCM Strategy', select('scmStrategy', cfg.scmStrategy, ['none', 'commit-on-done', 'branch-per-task'])),
+      row('Git Checkpoint', select('gitCheckpointMode', cfg.gitCheckpointMode, ['off', 'snapshot', 'snapshotAndDiff'])),
+      checkRow(checkbox('scmPrOnParentDone', cfg.scmPrOnParentDone, 'Create PR on parent done'))
+    ].join('\n')),
+
+    group('Behaviour', [
+      checkRow(checkbox('stopOnHumanReviewNeeded', cfg.stopOnHumanReviewNeeded, 'Stop on human review needed')),
+      checkRow(checkbox('clipboardAutoCopy', cfg.clipboardAutoCopy, 'Auto-copy prompts to clipboard')),
+      checkRow(checkbox('autoReplenishBacklog', cfg.autoReplenishBacklog, 'Auto-replenish backlog')),
+      checkRow(checkbox('autoReloadOnControlPlaneChange', cfg.autoReloadOnControlPlaneChange, 'Auto-reload on control plane change'))
+    ].join('\n')),
+
+    group('Paths', [
+      row('Codex Command Path', textInput('codexCommandPath', cfg.codexCommandPath)),
+      row('Claude Command Path', textInput('claudeCommandPath', cfg.claudeCommandPath)),
+      row('Inspection Root Override', textInput('inspectionRootOverride', cfg.inspectionRootOverride)),
+      row('Artifact Retention Path', textInput('artifactRetentionPath', cfg.artifactRetentionPath)),
+      row('Task File Path', textInput('ralphTaskFilePath', cfg.ralphTaskFilePath)),
+      row('PRD Path', textInput('prdPath', cfg.prdPath)),
+      row('Progress Path', textInput('progressPath', cfg.progressPath)),
+      row('Prompt Template Directory', textInput('promptTemplateDirectory', cfg.promptTemplateDirectory))
+    ].join('\n')),
+
+    group('Verifier', [
+      row('Verifier Modes', multiCheckbox('verifierModes', cfg.verifierModes, ['validationCommand', 'gitDiff', 'taskState']), true),
+      row('Validation Command Override', textInput('validationCommandOverride', cfg.validationCommandOverride))
+    ].join('\n')),
+
+    group('Prompt', [
+      row('Prior Context Budget', numberInput('promptPriorContextBudget', cfg.promptPriorContextBudget, 0, 100000)),
+      checkRow(checkbox('promptIncludeVerifierFeedback', cfg.promptIncludeVerifierFeedback, 'Include verifier feedback')),
+      row('Custom Prompt Budget', keyValueEditor('customPromptBudget', cfg.customPromptBudget), true)
+    ].join('\n')),
+
+    group('Retention', [
+      row('Artifact Retention Count', numberInput('generatedArtifactRetentionCount', cfg.generatedArtifactRetentionCount, 0, 100)),
+      row('Provenance Bundle Count', numberInput('provenanceBundleRetentionCount', cfg.provenanceBundleRetentionCount, 0, 100))
+    ].join('\n')),
+
+    group('Timing', [
+      row('Watchdog Stale TTL (ms)', numberInput('watchdogStaleTtlMs', cfg.watchdogStaleTtlMs, 0, 604800000)),
+      row('Claim TTL (hours)', numberInput('claimTtlHours', cfg.claimTtlHours, 1, 720)),
+      row('Stale Lock Threshold (min)', numberInput('staleLockThresholdMinutes', cfg.staleLockThresholdMinutes, 1, 1440))
+    ].join('\n')),
+
+    group('Remediation', [
+      row('Auto-Apply Remediation', multiCheckbox('autoApplyRemediation', cfg.autoApplyRemediation, ['decompose_task', 'mark_blocked']), true)
+    ].join('\n')),
+
+    group('Model Tiering', [
+      checkRow(nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')),
+      row('Simple Model', nestedInput('modelTiering', 'simpleModel', 'text', cfg.modelTiering.simpleModel)),
+      row('Medium Model', nestedInput('modelTiering', 'mediumModel', 'text', cfg.modelTiering.mediumModel)),
+      row('Complex Model', nestedInput('modelTiering', 'complexModel', 'text', cfg.modelTiering.complexModel)),
+      row('Simple Threshold', nestedInput('modelTiering', 'simpleThreshold', 'number', cfg.modelTiering.simpleThreshold)),
+      row('Complex Threshold', nestedInput('modelTiering', 'complexThreshold', 'number', cfg.modelTiering.complexThreshold))
+    ].join('\n')),
+
+    group('Hooks', [
+      row('Before Iteration', nestedInput('hooks', 'beforeIteration', 'text', cfg.hooks.beforeIteration ?? '')),
+      row('After Iteration', nestedInput('hooks', 'afterIteration', 'text', cfg.hooks.afterIteration ?? '')),
+      row('On Task Complete', nestedInput('hooks', 'onTaskComplete', 'text', cfg.hooks.onTaskComplete ?? '')),
+      row('On Stop', nestedInput('hooks', 'onStop', 'text', cfg.hooks.onStop ?? '')),
+      row('On Failure', nestedInput('hooks', 'onFailure', 'text', cfg.hooks.onFailure ?? ''))
+    ].join('\n')),
+
+    group('Advanced', [
+      row('Open Sidebar Command ID', textInput('openSidebarCommandId', cfg.openSidebarCommandId)),
+      row('New Chat Command ID', textInput('newChatCommandId', cfg.newChatCommandId))
+    ].join('\n'))
+  ];
+
+  return sections.join('\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -591,10 +485,12 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
             </details>`
           : ''}
       </div>
-      ${state.config ? `<div class="card">
-        <div class="card-title">Settings</div>
-        ${buildSettingsSection(state.config)}
-      </div>` : ''}
+      <details class="card" data-section="settings">
+        <summary class="card-title" style="cursor: pointer;">Settings</summary>
+        ${state.config
+          ? buildSettingsSection(state.config)
+          : '<div class="empty">Config not loaded — reload window</div>'}
+      </details>
     </div>
 
     <div class="panel-right">
@@ -636,6 +532,36 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
     (function() {
       var vscode = acquireVsCodeApi();
       var ackTimeouts = new WeakMap();
+
+      // Persist <details> open/close state across re-renders
+      function saveDetailsState() {
+        var state = vscode.getState() || {};
+        var openSections = {};
+        document.querySelectorAll('details[data-section]').forEach(function(el) {
+          openSections[el.getAttribute('data-section')] = el.open;
+        });
+        state.openSections = openSections;
+        vscode.setState(state);
+      }
+
+      function restoreDetailsState() {
+        var state = vscode.getState();
+        if (!state || !state.openSections) return;
+        document.querySelectorAll('details[data-section]').forEach(function(el) {
+          var key = el.getAttribute('data-section');
+          if (key in state.openSections) {
+            el.open = state.openSections[key];
+          }
+        });
+      }
+
+      restoreDetailsState();
+
+      document.addEventListener('toggle', function(e) {
+        if (e.target.matches('details[data-section]')) {
+          saveDetailsState();
+        }
+      }, true);
 
       function runCommand(el) {
         var cmd = el.getAttribute('data-command');

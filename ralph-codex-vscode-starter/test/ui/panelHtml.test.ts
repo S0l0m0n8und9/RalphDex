@@ -74,8 +74,8 @@ test('buildPanelDashboardHtml shows all-done summary when every task is complete
 
   assert.ok(html.includes('all-done-card'));
   assert.ok(html.includes('All 5 tasks completed'));
-  // Should NOT show the collapsed details section when all done
-  assert.ok(!html.includes('<details>'));
+  // Should NOT show the completed-tasks collapsible summary when all tasks are done
+  assert.ok(!html.includes(`Completed (${doneTasks.length})</summary>`));
 });
 
 test('buildPanelDashboardHtml disables loop and iteration buttons when running', () => {
