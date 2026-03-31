@@ -147,7 +147,10 @@ function taskKeywords(task: RalphTask | null): string {
     task?.title ?? '',
     task?.notes ?? '',
     task?.validation ?? '',
-    task?.blocker ?? ''
+    task?.blocker ?? '',
+    ...(task?.acceptance ?? []),
+    ...(task?.constraints ?? []),
+    ...(task?.context ?? [])
   ].join(' ').toLowerCase();
 }
 
@@ -526,7 +529,10 @@ function buildTaskContext(
     `- Effective validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none detected'}`,
     `- Validation command normalized from: ${normalizedValidationCommandFrom ?? 'none'}`,
     `- Notes: ${selectedTask.notes ?? 'none'}`,
-    `- Blocker: ${selectedTask.blocker ?? 'none'}`
+    `- Blocker: ${selectedTask.blocker ?? 'none'}`,
+    `- Acceptance criteria: ${selectedTask.acceptance ? selectedTask.acceptance.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+    `- Constraints: ${selectedTask.constraints ? selectedTask.constraints.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+    `- Relevant files: ${selectedTask.context ? selectedTask.context.join(', ') : 'none'}`
   ];
 }
 

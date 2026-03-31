@@ -75,13 +75,25 @@ const SUPPORTED_TASK_FIELDS = new Set([
     'notes',
     'validation',
     'blocker',
-    'priority'
+    'priority',
+    'acceptance',
+    'constraints',
+    'context'
 ]);
 const LIKELY_TASK_FIELD_MISTAKES = new Map([
     ['dependencies', 'dependsOn'],
     ['dependency', 'dependsOn'],
     ['dependson', 'dependsOn'],
-    ['depends_on', 'dependsOn']
+    ['depends_on', 'dependsOn'],
+    ['acceptancecriteria', 'acceptance'],
+    ['acceptance_criteria', 'acceptance'],
+    ['donecriteria', 'acceptance'],
+    ['done_criteria', 'acceptance'],
+    ['guardrails', 'constraints'],
+    ['guard_rails', 'constraints'],
+    ['files', 'context'],
+    ['relevantfiles', 'context'],
+    ['relevant_files', 'context']
 ]);
 function isTaskStatus(value) {
     return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
@@ -103,6 +115,16 @@ function normalizeTaskPriority(value) {
         return value;
     }
     return undefined;
+}
+function normalizeOptionalStringArray(record, key) {
+    if (!Array.isArray(record[key])) {
+        return undefined;
+    }
+    const normalized = record[key]
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    return normalized.length > 0 ? normalized : undefined;
 }
 function normalizeDependencyList(record) {
     if (!Array.isArray(record.dependsOn)) {
@@ -326,6 +348,9 @@ function normalizeTask(candidate, source) {
         validation: normalizeOptionalString(record, 'validation'),
         blocker: normalizeOptionalString(record, 'blocker'),
         priority: normalizeTaskPriority(record.priority),
+        acceptance: normalizeOptionalStringArray(record, 'acceptance'),
+        constraints: normalizeOptionalStringArray(record, 'constraints'),
+        context: normalizeOptionalStringArray(record, 'context'),
         source
     };
 }
@@ -866,7 +891,10 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
         parentId: child.parentId,
         dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
         validation: child.validation ?? undefined,
-        notes: child.rationale
+        notes: child.rationale,
+        acceptance: child.acceptance,
+        constraints: child.constraints,
+        context: child.context
     }));
     const parentDependencies = Array.from(new Set([
         ...(parentTask.dependsOn ?? []),

@@ -65,6 +65,9 @@ Keep prompt rendering deterministic across fresh sessions.
 - Validation command normalized from: npm run compile
 - Notes: none
 - Blocker: none
+- Acceptance criteria: none
+- Constraints: none
+- Relevant files: none
 
 ## Recent Progress
 # Progress

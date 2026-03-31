@@ -26,6 +26,16 @@ function isAllowedWatchdogActionType(value) {
 function isAllowedWatchdogActionSeverity(value) {
     return value === 'MEDIUM' || value === 'HIGH' || value === 'CRITICAL';
 }
+function parseOptionalStringArray(value) {
+    if (!Array.isArray(value)) {
+        return undefined;
+    }
+    const items = value
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    return items.length > 0 ? items : undefined;
+}
 function parseSuggestedTaskDependency(candidate) {
     if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
         return null;
@@ -71,13 +81,19 @@ function parseSuggestedChildTask(candidate) {
     if (dependsOn.length !== record.dependsOn.length) {
         return null;
     }
+    const acceptance = parseOptionalStringArray(record.acceptance);
+    const constraints = parseOptionalStringArray(record.constraints);
+    const context = parseOptionalStringArray(record.context);
     return {
         id: record.id.trim(),
         title: record.title.trim(),
         parentId: record.parentId.trim(),
         dependsOn,
         validation: typeof record.validation === 'string' ? sanitizeCompletionText(record.validation) ?? record.validation.trim() : null,
-        rationale: sanitizeCompletionText(record.rationale) ?? record.rationale.trim()
+        rationale: sanitizeCompletionText(record.rationale) ?? record.rationale.trim(),
+        ...(acceptance ? { acceptance } : {}),
+        ...(constraints ? { constraints } : {}),
+        ...(context ? { context } : {})
     };
 }
 const MAX_SUGGESTED_CHILD_TASKS = 10;

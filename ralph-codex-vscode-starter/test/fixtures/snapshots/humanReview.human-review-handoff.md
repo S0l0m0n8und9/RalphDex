@@ -60,6 +60,9 @@ Capture explicit human-review blockers without inventing closure.
 - Validation command normalized from: npm run compile
 - Notes: none
 - Blocker: [human-review-needed] Fixture baseline requires explicit reviewer sign-off before proceeding.
+- Acceptance criteria: none
+- Constraints: none
+- Relevant files: none
 
 ## Recent Progress
 - A prior iteration surfaced a reviewer gate.

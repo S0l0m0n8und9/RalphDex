@@ -68,6 +68,9 @@ Keep fixture generation reproducible when remediation is required.
 - Validation command normalized from: npm run compile
 - Notes: Create fixtures and a small proposed child-task set with dependencies.
 - Blocker: none
+- Acceptance criteria: none
+- Constraints: none
+- Relevant files: none
 
 ## Recent Progress
 # Progress

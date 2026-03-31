@@ -32,14 +32,26 @@ const SUPPORTED_TASK_FIELDS = new Set([
   'notes',
   'validation',
   'blocker',
-  'priority'
+  'priority',
+  'acceptance',
+  'constraints',
+  'context'
 ]);
 
 const LIKELY_TASK_FIELD_MISTAKES = new Map<string, string>([
   ['dependencies', 'dependsOn'],
   ['dependency', 'dependsOn'],
   ['dependson', 'dependsOn'],
-  ['depends_on', 'dependsOn']
+  ['depends_on', 'dependsOn'],
+  ['acceptancecriteria', 'acceptance'],
+  ['acceptance_criteria', 'acceptance'],
+  ['donecriteria', 'acceptance'],
+  ['done_criteria', 'acceptance'],
+  ['guardrails', 'constraints'],
+  ['guard_rails', 'constraints'],
+  ['files', 'context'],
+  ['relevantfiles', 'context'],
+  ['relevant_files', 'context']
 ]);
 
 export interface RalphTaskFileInspection {
@@ -94,6 +106,19 @@ function normalizeTaskPriority(value: unknown): RalphTaskPriority | undefined {
     return value;
   }
   return undefined;
+}
+
+function normalizeOptionalStringArray(record: Record<string, unknown>, key: string): string[] | undefined {
+  if (!Array.isArray(record[key])) {
+    return undefined;
+  }
+
+  const normalized = record[key]
+    .filter((item): item is string => typeof item === 'string')
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function normalizeDependencyList(record: Record<string, unknown>): string[] | undefined {
@@ -363,6 +388,9 @@ function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): Ra
     validation: normalizeOptionalString(record, 'validation'),
     blocker: normalizeOptionalString(record, 'blocker'),
     priority: normalizeTaskPriority(record.priority),
+    acceptance: normalizeOptionalStringArray(record, 'acceptance'),
+    constraints: normalizeOptionalStringArray(record, 'constraints'),
+    context: normalizeOptionalStringArray(record, 'context'),
     source
   };
 }
@@ -1067,7 +1095,10 @@ export function applySuggestedChildTasks(
     parentId: child.parentId,
     dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
     validation: child.validation ?? undefined,
-    notes: child.rationale
+    notes: child.rationale,
+    acceptance: child.acceptance,
+    constraints: child.constraints,
+    context: child.context
   }));
 
   const parentDependencies = Array.from(new Set([

@@ -61,6 +61,9 @@ Surface blocked tasks without mutating the durable backlog unexpectedly.
 - Validation command normalized from: npm run compile
 - Notes: none
 - Blocker: Waiting on a reproducible fixture input from an external dependency.
+- Acceptance criteria: none
+- Constraints: none
+- Relevant files: none
 
 ## Recent Progress
 # Progress

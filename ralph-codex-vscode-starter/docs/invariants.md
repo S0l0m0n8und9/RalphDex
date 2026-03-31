@@ -36,7 +36,10 @@ These paths are stable parts of the product contract:
     {
       "id": "T1",
       "title": "Top-level task",
-      "status": "in_progress"
+      "status": "in_progress",
+      "acceptance": ["All child tasks are complete", "Validation passes"],
+      "constraints": ["Do not change the task file schema"],
+      "context": ["src/ralph/taskFile.ts", "src/ralph/types.ts"]
     },
     {
       "id": "T1.1",

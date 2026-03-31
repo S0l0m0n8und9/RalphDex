@@ -21,6 +21,12 @@ export interface RalphTask {
   blocker?: string;
   /** Optional priority hint. Higher-priority tasks are selected first when multiple tasks are actionable. Defaults to 'normal'. */
   priority?: RalphTaskPriority;
+  /** Concrete done-criteria: the task is complete when every item in this list is satisfied. */
+  acceptance?: string[];
+  /** Per-task guardrails: things the agent must not do while working on this task. */
+  constraints?: string[];
+  /** Pointers to relevant files or modules so the agent knows where to look first. */
+  context?: string[];
   source?: RalphTaskSourceLocation;
 }
 
@@ -212,6 +218,9 @@ export interface RalphSuggestedChildTask {
   dependsOn: RalphSuggestedTaskDependency[];
   validation: string | null;
   rationale: string;
+  acceptance?: string[];
+  constraints?: string[];
+  context?: string[];
 }
 
 export interface RalphTaskRemediationArtifact {
