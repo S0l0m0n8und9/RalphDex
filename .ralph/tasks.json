@@ -2024,15 +2024,15 @@
     {
       "id": "T64.2",
       "title": "PR submission into runPipeline for full end-to-end pipeline flow",
-      "status": "todo",
+      "status": "done",
       "parentId": "T64",
       "dependsOn": [
         "T63",
         "T64.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T64.1.",
+      "notes": "Added smoke test covering PR URL extraction: seeds SCM completion-report.json with a PR URL in progressNote, asserts pipeline artifact prUrl and info message suffix are correct. 489/489 pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 24
+  "mutationCount": 25
 }

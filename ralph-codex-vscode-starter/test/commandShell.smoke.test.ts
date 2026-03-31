@@ -1818,3 +1818,69 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
     /Ralph pipeline .+ finished with status: complete/
   );
 });
+
+test('Run Pipeline writes prUrl to artifact when SCM completion report contains a PR URL', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+
+  const PR_URL = 'https://github.com/acme/repo/pull/42';
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown } } | undefined;
+      const agentRole = runOptions?.configOverrides?.agentRole;
+      const mockRun = createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+
+      if (agentRole === 'scm') {
+        // Seed completion-report.json so extractPrUrl finds the PR URL.
+        await fs.mkdir(mockRun.result.artifactDir, { recursive: true });
+        const completionReport = {
+          schemaVersion: 1,
+          kind: 'completionReport',
+          status: 'accepted',
+          selectedTaskId: null,
+          warnings: [],
+          report: {
+            selectedTaskId: null,
+            requestedStatus: 'done',
+            progressNote: `SCM agent submitted PR at ${PR_URL} for review.`
+          }
+        };
+        await fs.writeFile(
+          path.join(mockRun.result.artifactDir, 'completion-report.json'),
+          JSON.stringify(completionReport),
+          'utf8'
+        );
+      }
+
+      return mockRun;
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as { status: string; prUrl?: string };
+
+  assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
+  assert.equal(artifact.prUrl, PR_URL, 'Pipeline artifact must record the PR URL from the SCM completion report');
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /PR: https:\/\/github\.com\/acme\/repo\/pull\/42/,
+    'Info message must include the PR URL suffix'
+  );
+});

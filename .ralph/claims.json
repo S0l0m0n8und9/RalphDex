@@ -1457,11 +1457,21 @@
       "status": "released"
     },
     {
-      "taskId": "T64.1",
       "agentId": "watchdog",
-      "provenanceId": "run-i029-cli-20260331T075045Z",
+      "taskId": "T64.1",
       "claimedAt": "2026-03-31T07:50:45.976Z",
-      "status": "active"
+      "provenanceId": "run-i029-cli-20260331T075045Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T64.2",
+      "agentId": "default",
+      "provenanceId": "run-i030-cli-20260331T082358Z",
+      "claimedAt": "2026-03-31T08:23:59.854Z",
+      "status": "active",
+      "baseBranch": "main",
+      "integrationBranch": "ralph/integration/T64",
+      "featureBranch": "ralph/T64.2"
     }
   ]
 }
