@@ -115,6 +115,49 @@ async function initializeFreshWorkspace(rootPath) {
         gitignorePath
     };
 }
+/**
+ * Prompt the user to enter one or more task titles interactively.
+ * Returns the collected tasks (may be empty if the user skips).
+ */
+async function collectInitialTasks() {
+    const tasks = [];
+    let counter = 1;
+    while (true) {
+        const title = await vscode.window.showInputBox({
+            prompt: tasks.length === 0
+                ? 'Enter your first task title (press Escape to skip)'
+                : `Task ${counter} added. Enter another task title (press Escape when done)`,
+            placeHolder: 'Example: Set up the project scaffold and CI pipeline',
+            ignoreFocusOut: true
+        });
+        if (!title?.trim()) {
+            break;
+        }
+        tasks.push({ id: `T${counter}`, title: title.trim(), status: 'todo' });
+        counter++;
+    }
+    return tasks;
+}
+/**
+ * Append tasks to an existing tasks.json file under lock.
+ */
+async function appendTasksToFile(tasksPath, newTasks) {
+    if (newTasks.length === 0) {
+        return;
+    }
+    const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
+        const raw = await fs.readFile(tasksPath, 'utf8');
+        const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+        const next = (0, taskFile_1.bumpMutationCount)({
+            ...taskFile,
+            tasks: [...taskFile.tasks, ...newTasks]
+        });
+        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+}
 function buildReviewAgentId(agentId) {
     return (0, validate_1.buildPrefixedAgentId)('review', agentId);
 }
@@ -187,8 +230,72 @@ function registerCommands(context, logger, broadcaster) {
                 progressPath: result.progressPath,
                 gitignorePath: result.gitignorePath
             });
+            // Step 1: Ask for project objective immediately
+            const objective = await vscode.window.showInputBox({
+                prompt: 'Enter a short project objective for this workspace (press Escape to fill in prd.md manually)',
+                placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
+                ignoreFocusOut: true
+            });
+            if (objective?.trim()) {
+                const prdContent = `# Product / project brief\n\n${objective.trim()}\n`;
+                await fs.writeFile(result.prdPath, prdContent, 'utf8');
+                logger.info('Seeded PRD with user-provided objective.');
+            }
+            // Step 2: Offer to add initial tasks
+            const addTasksChoice = await vscode.window.showQuickPick([
+                { label: '$(add) Add initial tasks now', value: 'yes' },
+                { label: '$(close) Skip — I\'ll add tasks later', value: 'no' }
+            ], { placeHolder: 'Would you like to add your initial tasks?', ignoreFocusOut: true });
+            if (addTasksChoice?.value === 'yes') {
+                const tasks = await collectInitialTasks();
+                if (tasks.length > 0) {
+                    await appendTasksToFile(result.tasksPath, tasks);
+                    logger.info(`Added ${tasks.length} initial task(s) to tasks.json.`);
+                    void vscode.window.showInformationMessage(`Ralph workspace ready. Added ${tasks.length} task(s) to .ralph/tasks.json.`);
+                }
+                else {
+                    void vscode.window.showInformationMessage('Ralph workspace initialized. Add tasks to .ralph/tasks.json before running iterations.');
+                }
+            }
+            else {
+                void vscode.window.showInformationMessage(objective?.trim()
+                    ? 'Ralph workspace initialized with your objective. Add tasks to .ralph/tasks.json before running iterations.'
+                    : 'Ralph workspace initialized. Fill in .ralph/prd.md and add tasks before running iterations.');
+            }
             await openTextFile(result.prdPath);
-            void vscode.window.showInformationMessage('Initialized a fresh Ralph workspace scaffold under .ralph/. Fill in .ralph/prd.md before running Ralph commands.');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.addTask',
+        label: 'Ralph Codex: Add Task',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
+            if (!(await (0, fs_1.pathExists)(tasksPath))) {
+                void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralph Codex: Initialize Workspace" first.');
+                return;
+            }
+            const tasks = await collectInitialTasks();
+            if (tasks.length === 0) {
+                return;
+            }
+            // Determine next available T-prefix ID to avoid collisions
+            const raw = await fs.readFile(tasksPath, 'utf8');
+            const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+            const existingIds = new Set(taskFile.tasks.map((t) => t.id));
+            let counter = taskFile.tasks.length + 1;
+            const numbered = tasks.map((t) => {
+                while (existingIds.has(`T${counter}`)) {
+                    counter++;
+                }
+                const id = `T${counter}`;
+                existingIds.add(id);
+                counter++;
+                return { ...t, id };
+            });
+            await appendTasksToFile(tasksPath, numbered);
+            logger.info(`Added ${numbered.length} task(s) via addTask command.`);
+            void vscode.window.showInformationMessage(`Added ${numbered.length} task(s): ${numbered.map((t) => t.id).join(', ')}`);
         }
     });
     registerCommand(context, logger, {
