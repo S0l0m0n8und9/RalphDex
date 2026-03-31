@@ -174,7 +174,8 @@ export type RalphStopReason =
   | 'repeated_identical_failure'
   | 'human_review_needed'
   | 'execution_failed'
-  | 'no_actionable_task';
+  | 'no_actionable_task'
+  | 'cancelled';
 export type RalphVerifierId = 'validationCommand' | 'gitDiff' | 'taskState';
 export type RalphTaskRemediationAction =
   | 'decompose_task'

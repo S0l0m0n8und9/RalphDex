@@ -149,8 +149,8 @@ function registerCommand(context, logger, spec) {
             await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: spec.label,
-                cancellable: false
-            }, async (progress) => spec.handler(progress));
+                cancellable: spec.cancellable ?? false
+            }, async (progress, token) => spec.handler(progress, token));
             logger.info('Command completed.', { commandId: spec.commandId });
         }
         catch (error) {
@@ -376,7 +376,8 @@ function registerCommands(context, logger, broadcaster) {
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphLoop',
         label: 'Ralph Codex: Run CLI Loop',
-        handler: async (progress) => {
+        cancellable: true,
+        handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             logger.show(false);
@@ -390,6 +391,11 @@ function registerCommands(context, logger, broadcaster) {
             broadcaster?.emitLoopStart(config.ralphIterationCap);
             let lastRun = null;
             for (let index = 0; index < config.ralphIterationCap; index += 1) {
+                if (token.isCancellationRequested) {
+                    broadcaster?.emitLoopEnd(index, 'cancelled');
+                    void vscode.window.showInformationMessage(`Ralph CLI loop cancelled after ${index} iteration(s).`);
+                    return;
+                }
                 progress.report({
                     message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
                     increment: 100 / config.ralphIterationCap
@@ -477,7 +483,8 @@ function registerCommands(context, logger, broadcaster) {
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runMultiAgentLoop',
         label: 'Ralph Codex: Run Multi-Agent Loop',
-        handler: async (progress) => {
+        cancellable: true,
+        handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const agentCount = config.agentCount;
@@ -500,6 +507,10 @@ function registerCommands(context, logger, broadcaster) {
             const agentLoops = agentSlots.map(async ({ agentId }) => {
                 let lastRun = null;
                 for (let index = 0; index < config.ralphIterationCap; index += 1) {
+                    if (token.isCancellationRequested) {
+                        logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
+                        return { agentId, lastRun, reloadRequired: false };
+                    }
                     broadcaster?.emitIterationStart({
                         iteration: index + 1,
                         iterationCap: config.ralphIterationCap,

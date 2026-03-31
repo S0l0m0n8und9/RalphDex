@@ -83,6 +83,18 @@
       "type": "directory"
     },
     {
+      "path": "ralph-codex-vscode-starter\\src\\commands\\registerCommands.ts",
+      "accessCount": 7,
+      "lastAccessed": 1774985301955,
+      "type": "file"
+    },
+    {
+      "path": "ralph-codex-vscode-starter\\src\\ralph\\types.ts",
+      "accessCount": 4,
+      "lastAccessed": 1774985328168,
+      "type": "directory"
+    },
+    {
       "path": "ralph-codex-vscode-starter\\src\\ralph\\taskFile.ts",
       "accessCount": 3,
       "lastAccessed": 1774984801924,
@@ -98,12 +110,6 @@
       "path": "ralph-codex-vscode-starter\\src",
       "accessCount": 2,
       "lastAccessed": 1774984728018,
-      "type": "directory"
-    },
-    {
-      "path": "ralph-codex-vscode-starter\\src\\ralph\\types.ts",
-      "accessCount": 2,
-      "lastAccessed": 1774984752826,
       "type": "directory"
     },
     {
@@ -125,6 +131,18 @@
       "type": "file"
     },
     {
+      "path": "ralph-codex-vscode-starter/src/ralph/types.ts",
+      "accessCount": 2,
+      "lastAccessed": 1774985314687,
+      "type": "directory"
+    },
+    {
+      "path": "ralph-codex-vscode-starter\\docs\\verifier.md",
+      "accessCount": 2,
+      "lastAccessed": 1774985352935,
+      "type": "file"
+    },
+    {
       "path": "",
       "accessCount": 1,
       "lastAccessed": 1774984704022,
@@ -140,6 +158,24 @@
       "path": "ralph-codex-vscode-starter",
       "accessCount": 1,
       "lastAccessed": 1774984871075,
+      "type": "directory"
+    },
+    {
+      "path": "ralph-codex-vscode-starter\\src\\ralph\\iterationEngine.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774985201201,
+      "type": "file"
+    },
+    {
+      "path": "ralph-codex-vscode-starter\\src\\ralph\\stateManager.ts",
+      "accessCount": 1,
+      "lastAccessed": 1774985206941,
+      "type": "file"
+    },
+    {
+      "path": "ralph-codex-vscode-starter/docs/verifier.md",
+      "accessCount": 1,
+      "lastAccessed": 1774985343666,
       "type": "directory"
     }
   ],

@@ -171,7 +171,7 @@ const vscodeStub = {
       return outputChannels.get(name);
     },
     async withProgress(_options, task) {
-      return task({ report() {} });
+      return task({ report() {} }, { isCancellationRequested: false, onCancellationRequested() { return { dispose() {} }; } });
     },
     async showInputBox() {
       return state.inputBoxValue;

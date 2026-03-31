@@ -85,6 +85,7 @@ The loop may stop for:
 - `human_review_needed`
 - `execution_failed`
 - `no_actionable_task`
+- `cancelled`
 
 The stop decision uses durable task state, verifier results, and configured thresholds such as `noProgressThreshold`, `repeatedFailureThreshold`, and `stopOnHumanReviewNeeded`.
 

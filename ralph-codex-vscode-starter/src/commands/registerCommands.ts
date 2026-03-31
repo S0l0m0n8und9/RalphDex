@@ -30,7 +30,8 @@ interface RegisteredCommandSpec {
   commandId: string;
   label: string;
   requiresTrustedWorkspace?: boolean;
-  handler: (progress: vscode.Progress<{ message?: string; increment?: number }>) => Promise<void>;
+  cancellable?: boolean;
+  handler: (progress: vscode.Progress<{ message?: string; increment?: number }>, token: vscode.CancellationToken) => Promise<void>;
 }
 
 function createdPathSummary(rootPath: string, createdPaths: string[]): string | null {
@@ -166,9 +167,9 @@ function registerCommand(
         {
           location: vscode.ProgressLocation.Notification,
           title: spec.label,
-          cancellable: false
+          cancellable: spec.cancellable ?? false
         },
-        async (progress) => spec.handler(progress)
+        async (progress, token) => spec.handler(progress, token)
       );
 
       logger.info('Command completed.', { commandId: spec.commandId });
@@ -452,7 +453,8 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
   registerCommand(context, logger, {
     commandId: 'ralphCodex.runRalphLoop',
     label: 'Ralph Codex: Run CLI Loop',
-    handler: async (progress) => {
+    cancellable: true,
+    handler: async (progress, token) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
       logger.show(false);
@@ -467,6 +469,12 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       broadcaster?.emitLoopStart(config.ralphIterationCap);
       let lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null = null;
       for (let index = 0; index < config.ralphIterationCap; index += 1) {
+        if (token.isCancellationRequested) {
+          broadcaster?.emitLoopEnd(index, 'cancelled');
+          void vscode.window.showInformationMessage(`Ralph CLI loop cancelled after ${index} iteration(s).`);
+          return;
+        }
+
         progress.report({
           message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
           increment: 100 / config.ralphIterationCap
@@ -568,7 +576,8 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
   registerCommand(context, logger, {
     commandId: 'ralphCodex.runMultiAgentLoop',
     label: 'Ralph Codex: Run Multi-Agent Loop',
-    handler: async (progress) => {
+    cancellable: true,
+    handler: async (progress, token) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
       const agentCount = config.agentCount;
@@ -601,6 +610,11 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         let lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null = null;
 
         for (let index = 0; index < config.ralphIterationCap; index += 1) {
+          if (token.isCancellationRequested) {
+            logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
+            return { agentId, lastRun, reloadRequired: false };
+          }
+
           broadcaster?.emitIterationStart({
             iteration: index + 1,
             iterationCap: config.ralphIterationCap,
