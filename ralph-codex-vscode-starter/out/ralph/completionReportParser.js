@@ -81,7 +81,7 @@ function parseSuggestedChildTask(candidate) {
     if (dependsOn.length !== record.dependsOn.length) {
         return null;
     }
-    const acceptance = parseOptionalStringArray(record.acceptance);
+    const acceptance = parseOptionalStringArray(record.acceptance ?? record.acceptanceCriteria ?? record.acceptance_criteria);
     const constraints = parseOptionalStringArray(record.constraints);
     const context = parseOptionalStringArray(record.context);
     return {

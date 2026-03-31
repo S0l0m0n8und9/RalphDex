@@ -2024,7 +2024,7 @@
     {
       "id": "T64.2",
       "title": "PR submission into runPipeline for full end-to-end pipeline flow",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T64",
       "dependsOn": [
         "T63",

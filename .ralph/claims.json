@@ -1457,9 +1457,8 @@
       "status": "released"
     },
     {
-      "taskId": "T64.1",
       "agentId": "watchdog",
-      "provenanceId": "run-i029-cli-20260331T075045Z",
+      "taskId": "T64.1",
       "claimedAt": "2026-03-31T07:50:45.976Z",
       "status": "released"
     }
