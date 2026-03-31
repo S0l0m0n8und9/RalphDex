@@ -16,8 +16,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     preflightReady: true,
     preflightSummary: 'ok',
     diagnostics: [],
-    currentPhase: null,
-    currentIteration: null,
+    agentLanes: [],
     config: null,
     ...overrides
   };
@@ -44,8 +43,7 @@ test('buildDashboardHtml shows progress bar with block characters', () => {
 test('buildDashboardHtml shows phase indicator when running', () => {
   const html = buildDashboardHtml(defaultState({
     loopState: 'running',
-    currentPhase: 'execute',
-    currentIteration: 3
+    agentLanes: [{ agentId: 'default', phase: 'execute', iteration: 3 }]
   }), 'n4');
 
   assert.ok(html.includes('phase-indicator'));

@@ -16,8 +16,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     preflightReady: true,
     preflightSummary: 'ok',
     diagnostics: [],
-    currentPhase: null,
-    currentIteration: null,
+    agentLanes: [],
     config: null,
     ...overrides
   };
@@ -136,8 +135,7 @@ test('buildPanelDashboardHtml renders iteration history rows', () => {
 test('buildPanelDashboardHtml shows phase tracker when running', () => {
   const html = buildPanelDashboardHtml(defaultState({
     loopState: 'running',
-    currentPhase: 'execute',
-    currentIteration: 3
+    agentLanes: [{ agentId: 'default', phase: 'execute', iteration: 3 }]
   }), 'n8');
 
   assert.ok(html.includes('phase-step'));

@@ -82,10 +82,18 @@ body {
 export function buildDashboardHtml(state: RalphDashboardState, nonce: string): string {
   const stateLabel = LOOP_STATE_LABEL[state.loopState];
 
-  // Compact phase indicator (single line when running)
+  // Compact phase indicator (single line per active lane)
   let phaseIndicator = '';
-  if (state.currentPhase !== null && state.currentIteration !== null) {
-    phaseIndicator = `<div class="phase-indicator">iter ${state.currentIteration} · ${state.currentPhase}</div>`;
+  if (state.agentLanes.length > 0) {
+    const lines = state.agentLanes
+      .filter((lane) => lane.phase !== null && lane.iteration !== null)
+      .map((lane) => {
+        const prefix = state.agentLanes.length > 1 ? `${lane.agentId} · ` : '';
+        return `iter ${lane.iteration} · ${prefix}${lane.phase}`;
+      });
+    if (lines.length > 0) {
+      phaseIndicator = lines.map((l) => `<div class="phase-indicator">${l}</div>`).join('');
+    }
   }
 
   return `<!DOCTYPE html>
@@ -157,9 +165,9 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
       window.addEventListener('message', function(event) {
         var msg = event.data;
         if (msg.type === 'phase') {
-          var indicator = document.querySelector('.phase-indicator');
-          if (indicator) {
-            indicator.textContent = 'iter ' + msg.iteration + ' \\u00b7 ' + msg.phase;
+          var indicators = document.querySelectorAll('.phase-indicator');
+          if (indicators.length === 1) {
+            indicators[0].textContent = 'iter ' + msg.iteration + ' \u00b7 ' + msg.phase;
           }
         }
         if (msg.type === 'command-ack') {

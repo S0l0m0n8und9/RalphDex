@@ -52,8 +52,7 @@ class RalphSidebarViewProvider {
     static viewType = 'ralphCodex.dashboard';
     view;
     latestState;
-    currentPhase = null;
-    currentIteration = null;
+    agentLanesMap = new Map();
     broadcastDisposable;
     lastRenderTime = 0;
     constructor(extensionUri, broadcaster) {
@@ -81,36 +80,41 @@ class RalphSidebarViewProvider {
         this.broadcastDisposable?.dispose();
         this.broadcastDisposable = this.broadcaster.onEvent((event) => {
             switch (event.type) {
-                case 'phase':
-                    this.currentPhase = event.phase;
-                    this.currentIteration = event.iteration;
+                case 'phase': {
+                    const laneKey = event.agentId ?? 'default';
+                    this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
                     // Send lightweight phase update (no full re-render)
-                    this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration });
+                    this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
                     break;
+                }
                 case 'loop-start':
                     this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
                     this.fullRender();
                     break;
-                case 'iteration-start':
-                    this.currentPhase = 'inspect';
-                    this.currentIteration = event.iteration;
+                case 'iteration-start': {
+                    const laneKey = event.agentId ?? 'default';
+                    this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
                     this.latestState = {
                         ...this.latestState,
                         loopState: 'running',
-                        currentPhase: 'inspect',
-                        currentIteration: event.iteration
+                        agentLanes: this.getLanes()
                     };
                     this.fullRender();
                     break;
-                case 'iteration-end':
+                }
+                case 'iteration-end': {
+                    const laneKey = event.agentId ?? 'default';
+                    this.agentLanesMap.delete(laneKey);
+                    this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
+                    this.fullRender();
+                    break;
+                }
                 case 'loop-end':
-                    this.currentPhase = null;
-                    this.currentIteration = null;
+                    this.agentLanesMap.clear();
                     this.latestState = {
                         ...this.latestState,
-                        loopState: event.type === 'loop-end' ? (event.stopReason ? 'stopped' : 'idle') : this.latestState.loopState,
-                        currentPhase: null,
-                        currentIteration: null
+                        loopState: event.stopReason ? 'stopped' : 'idle',
+                        agentLanes: []
                     };
                     this.fullRender();
                     break;
@@ -140,7 +144,8 @@ class RalphSidebarViewProvider {
             taskTitle: iter.selectedTaskTitle,
             classification: iter.completionClassification,
             stopReason: iter.stopReason,
-            artifactDir: iter.artifactDir
+            artifactDir: iter.artifactDir,
+            agentId: iter.agentId
         }));
         this.latestState = {
             workspaceName: workspaceFolder?.name ?? 'unknown',
@@ -154,11 +159,17 @@ class RalphSidebarViewProvider {
             preflightReady: true,
             preflightSummary: 'ok',
             diagnostics: [],
-            currentPhase: this.currentPhase,
-            currentIteration: this.currentIteration,
+            agentLanes: this.getLanes(),
             config: config ? snapshotConfig(config) : null
         };
         this.fullRender();
+    }
+    getLanes() {
+        return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
+            agentId,
+            phase: lane.phase,
+            iteration: lane.iteration
+        }));
     }
     fullRender() {
         if (!this.view) {
@@ -197,8 +208,7 @@ function defaultDashboardState() {
         preflightReady: true,
         preflightSummary: 'ok',
         diagnostics: [],
-        currentPhase: null,
-        currentIteration: null,
+        agentLanes: [],
         config: null
     };
 }

@@ -418,7 +418,7 @@ function buildPanelDashboardHtml(state, nonce) {
     <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
   </div>
 
-  ${(0, htmlHelpers_1.buildPhaseTracker)(state.currentPhase, state.currentIteration)}
+  ${(0, htmlHelpers_1.buildAgentLanes)(state.agentLanes)}
   ${(0, htmlHelpers_1.buildProgressBar)(state.taskCounts)}
 
   <div class="dashboard-grid">
@@ -646,9 +646,13 @@ function buildPanelDashboardHtml(state, nonce) {
       window.addEventListener('message', function(event) {
         var msg = event.data;
         if (msg.type === 'phase') {
-          var steps = document.querySelectorAll('.phase-step');
           var phases = ${JSON.stringify(htmlHelpers_1.PHASE_LABELS)};
           var activeIdx = phases.indexOf(msg.phase);
+          var scope = msg.agentId
+            ? document.querySelector('.agent-lane[data-agent-id="' + msg.agentId + '"]')
+            : (document.querySelector('.agent-lane') || document);
+          var container = scope || document;
+          var steps = container.querySelectorAll('.phase-step');
           steps.forEach(function(step, i) {
             step.className = 'phase-step' + (i < activeIdx ? ' done' : i === activeIdx ? ' active' : '');
           });
