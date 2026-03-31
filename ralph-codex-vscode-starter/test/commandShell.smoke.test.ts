@@ -397,7 +397,7 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   });
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
   assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'prd.md')]);
-  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Initialized a fresh Ralph workspace scaffold/);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Ralph workspace initialized/);
 });
 
 test('Initialize Workspace aborts with a warning when .ralph/prd.md already exists', async () => {

@@ -84,6 +84,7 @@
   },
   "activationEvents": [
     "onCommand:ralphCodex.initializeWorkspace",
+    "onCommand:ralphCodex.addTask",
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
@@ -114,6 +115,10 @@
       {
         "command": "ralphCodex.initializeWorkspace",
         "title": "Ralph Codex: Initialize Workspace"
+      },
+      {
+        "command": "ralphCodex.addTask",
+        "title": "Ralph Codex: Add Task"
       },
       {
         "command": "ralphCodex.generatePrompt",
