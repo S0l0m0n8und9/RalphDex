@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.commitOnDone = commitOnDone;
+exports.listGitConflictPaths = listGitConflictPaths;
 exports.reconcileBranchPerTaskScm = reconcileBranchPerTaskScm;
 const fs = __importStar(require("fs/promises"));
 const error_1 = require("../util/error");
@@ -222,9 +223,20 @@ async function reconcileBranchPerTaskScm(input) {
     const selectedTask = input.prepared.selectedTask;
     const selectedClaim = input.prepared.selectedTaskClaim?.claim;
     if (!selectedTask || !selectedClaim?.featureBranch || !selectedClaim.baseBranch) {
-        return { warnings: [] };
+        return { warnings: [], parentCompletedAndMerged: false, parentTask: null };
     }
     const warnings = [];
+    let parentCompletedAndMerged = false;
+    let completedParentTask = null;
+    // Track the branches involved in the most recent merge attempt so the
+    // conflict resolver has accurate context if that merge throws.
+    let lastMergeSource = selectedClaim.featureBranch;
+    let lastMergeTarget = selectedClaim.integrationBranch ?? selectedClaim.baseBranch;
+    const runMerge = async (mergeInput) => {
+        lastMergeSource = mergeInput.sourceBranch;
+        lastMergeTarget = mergeInput.targetBranch;
+        await mergeGitBranch(mergeInput);
+    };
     try {
         await checkoutGitBranch(input.prepared.rootPath, selectedClaim.featureBranch);
         warnings.push(await commitOnDone({
@@ -236,7 +248,7 @@ async function reconcileBranchPerTaskScm(input) {
             validationStatus: input.validationStatus
         }));
         if (selectedClaim.integrationBranch) {
-            await mergeGitBranch({
+            await runMerge({
                 rootPath: input.prepared.rootPath,
                 targetBranch: selectedClaim.integrationBranch,
                 sourceBranch: selectedClaim.featureBranch,
@@ -252,7 +264,7 @@ async function reconcileBranchPerTaskScm(input) {
                 ? (0, taskFile_1.findTaskById)(input.prepared.taskFile, selectedTask.parentId)
                 : null;
             if (parentTask && parentTask.status === 'done' && parentTaskBefore?.status !== 'done') {
-                await mergeGitBranch({
+                await runMerge({
                     rootPath: input.prepared.rootPath,
                     targetBranch: selectedClaim.baseBranch,
                     sourceBranch: selectedClaim.integrationBranch,
@@ -261,6 +273,8 @@ async function reconcileBranchPerTaskScm(input) {
                     agentId: input.prepared.config.agentId
                 });
                 warnings.push(`SCM branch-per-task merged ${selectedClaim.integrationBranch} into ${selectedClaim.baseBranch} for parent ${parentTask.id}.`);
+                parentCompletedAndMerged = true;
+                completedParentTask = parentTask;
                 const childTasks = input.taskFileAfter.tasks.filter((task) => task.parentId === parentTask.id);
                 warnings.push(...await createParentPullRequestOnDone({
                     prepared: input.prepared,
@@ -275,7 +289,7 @@ async function reconcileBranchPerTaskScm(input) {
             }
         }
         else {
-            await mergeGitBranch({
+            await runMerge({
                 rootPath: input.prepared.rootPath,
                 targetBranch: selectedClaim.baseBranch,
                 sourceBranch: selectedClaim.featureBranch,
@@ -294,16 +308,38 @@ async function reconcileBranchPerTaskScm(input) {
             && (0, taskFile_1.findTaskById)(input.prepared.taskFile, selectedTask.parentId)?.status !== 'done'
             ? selectedTask.parentId
             : selectedTask.id;
-        const blocker = conflictPaths.length > 0
-            ? `Merge conflict while reconciling branch-per-task SCM: ${conflictPaths.join(', ')}`
-            : `Merge conflict while reconciling branch-per-task SCM: ${(0, error_1.toErrorMessage)(error)}`;
-        await reopenTaskWithMergeBlocker({
-            taskFilePath: input.prepared.paths.taskFilePath,
-            taskId: mergeTargetTaskId,
-            blocker
-        });
-        warnings.push(`SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`);
+        let resolved = false;
+        if (conflictPaths.length > 0 && input.conflictResolver) {
+            try {
+                const resolverResult = await input.conflictResolver({
+                    rootPath: input.prepared.rootPath,
+                    conflictedFiles: conflictPaths,
+                    taskId: mergeTargetTaskId,
+                    sourceBranch: lastMergeSource,
+                    targetBranch: lastMergeTarget,
+                    agentId: input.prepared.config.agentId
+                });
+                resolved = resolverResult.resolved;
+                if (resolved) {
+                    warnings.push(`SCM conflict resolver resolved conflicts in: ${conflictPaths.join(', ')}`);
+                }
+            }
+            catch (resolverError) {
+                warnings.push(`SCM conflict resolver failed: ${(0, error_1.toErrorMessage)(resolverError)}`);
+            }
+        }
+        if (!resolved) {
+            const blocker = conflictPaths.length > 0
+                ? `Merge conflict while reconciling branch-per-task SCM: ${conflictPaths.join(', ')}`
+                : `Merge conflict while reconciling branch-per-task SCM: ${(0, error_1.toErrorMessage)(error)}`;
+            await reopenTaskWithMergeBlocker({
+                taskFilePath: input.prepared.paths.taskFilePath,
+                taskId: mergeTargetTaskId,
+                blocker
+            });
+            warnings.push(`SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`);
+        }
     }
-    return { warnings };
+    return { warnings, parentCompletedAndMerged, parentTask: completedParentTask };
 }
 //# sourceMappingURL=iterationScm.js.map

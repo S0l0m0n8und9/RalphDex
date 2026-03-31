@@ -124,6 +124,8 @@ export interface PrepareIterationContextInput {
   progress: vscode.Progress<{ message?: string; increment?: number }>;
   includeVerifierContext: boolean;
   configOverrides?: Partial<Pick<RalphCodexConfig, 'agentId' | 'agentRole'>>;
+  /** When set, task selection prefers this task ID (e.g. directing a review agent to a just-completed parent). */
+  focusTaskId?: string;
   stateManager: RalphStateManager;
   logger: Logger;
   persistBlockedPreflightBundle: (input: {
@@ -314,7 +316,8 @@ export async function prepareIterationContext(
       snapshot.paths.taskFilePath,
       snapshot.paths.claimFilePath,
       provenanceId,
-      config.agentId
+      config.agentId,
+      input.focusTaskId
     )
     : {
       task: selectNextTask(taskFile),
@@ -609,9 +612,15 @@ async function selectClaimedTask(
   taskFilePath: string,
   claimFilePath: string,
   provenanceId: string,
-  agentId: string
+  agentId: string,
+  focusTaskId?: string
 ): Promise<{ task: RalphTask | null; claim: RalphTaskClaimDetails | null }> {
-  for (const candidate of listSelectableTasks(taskFile)) {
+  const selectable = listSelectableTasks(taskFile);
+  // When a focusTaskId is provided, sort so that task comes first.
+  const candidates = focusTaskId
+    ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
+    : selectable;
+  for (const candidate of candidates) {
     const claimBranches = config.scmStrategy === 'branch-per-task'
       ? await prepareTaskBranchWorkspace(rootPath, candidate)
       : null;

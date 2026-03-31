@@ -63,6 +63,8 @@ const TEMPLATE_FILE_BY_KIND = {
     'human-review-handoff': 'human-review-handoff.md'
 };
 const REVIEW_AGENT_TEMPLATE_FILE = 'review-agent.md';
+const WATCHDOG_AGENT_TEMPLATE_FILE = 'watchdog-agent.md';
+const SCM_AGENT_TEMPLATE_FILE = 'scm-agent.md';
 const PROMPT_INTRO_BY_KIND = {
     bootstrap: 'You are starting a fresh Ralph-guided Codex run inside an existing repository. Treat the repository and durable Ralph files as the source of truth.',
     iteration: 'You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.',
@@ -670,7 +672,13 @@ async function resolvePromptTemplateDirectory(rootPath, overrideDirectory) {
 }
 async function loadTemplate(kind, rootPath, overrideDirectory, agentRole) {
     const directory = await resolvePromptTemplateDirectory(rootPath, overrideDirectory);
-    const templateFile = agentRole === 'review' ? REVIEW_AGENT_TEMPLATE_FILE : TEMPLATE_FILE_BY_KIND[kind];
+    const templateFile = agentRole === 'review'
+        ? REVIEW_AGENT_TEMPLATE_FILE
+        : agentRole === 'watchdog'
+            ? WATCHDOG_AGENT_TEMPLATE_FILE
+            : agentRole === 'scm'
+                ? SCM_AGENT_TEMPLATE_FILE
+                : TEMPLATE_FILE_BY_KIND[kind];
     const templatePath = path.join(directory, templateFile);
     const templateText = await fs.readFile(templatePath, 'utf8').catch((error) => {
         throw new Error(`Failed to read Ralph prompt template ${templatePath}: ${error instanceof Error ? error.message : String(error)}`);

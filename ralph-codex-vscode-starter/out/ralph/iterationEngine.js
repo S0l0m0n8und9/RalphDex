@@ -134,6 +134,7 @@ class RalphIterationEngine {
             progress,
             includeVerifierContext: true,
             configOverrides: options.configOverrides,
+            focusTaskId: options.focusTaskId,
             stateManager: this.stateManager,
             logger: this.logger,
             persistBlockedPreflightBundle: (input) => (0, provenancePersistence_1.persistBlockedPreflightBundle)(input, this.logger),
@@ -448,16 +449,44 @@ class RalphIterationEngine {
                 logger: this.logger
             });
             const branchPerTaskWarnings = [];
+            let autoReviewContext;
             if (prepared.config.scmStrategy === 'branch-per-task'
                 && completionReconciliation.selectedTask?.status === 'done'
                 && prepared.selectedTask) {
                 const taskFileAfterCompletion = (0, taskFile_1.parseTaskFile)(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
+                let conflictResolver;
+                if (prepared.config.autoScmOnConflict) {
+                    const retryLimit = prepared.config.scmConflictRetryLimit;
+                    const capturedWorkspaceFolder = workspaceFolder;
+                    const capturedProgress = progress;
+                    conflictResolver = async (ctx) => {
+                        for (let attempt = 0; attempt < retryLimit; attempt++) {
+                            const scmRun = await this.runCliIteration(capturedWorkspaceFolder, 'singleExec', capturedProgress, {
+                                reachedIterationCap: false,
+                                configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` }
+                            });
+                            if (scmRun.result.executionStatus === 'failed')
+                                break;
+                            const remaining = await (0, iterationScm_1.listGitConflictPaths)(ctx.rootPath);
+                            if (remaining.length === 0)
+                                return { resolved: true };
+                        }
+                        return { resolved: false };
+                    };
+                }
                 const branchScm = await (0, iterationScm_1.reconcileBranchPerTaskScm)({
                     prepared,
                     validationStatus: validationVerification.result.status,
-                    taskFileAfter: taskFileAfterCompletion
+                    taskFileAfter: taskFileAfterCompletion,
+                    conflictResolver
                 });
                 branchPerTaskWarnings.push(...branchScm.warnings);
+                if (branchScm.parentCompletedAndMerged && branchScm.parentTask) {
+                    autoReviewContext = {
+                        parentTaskId: branchScm.parentTask.id,
+                        parentTaskTitle: branchScm.parentTask.title
+                    };
+                }
             }
             const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
             const taskStateVerification = prepared.config.verifierModes.includes('taskState')
@@ -894,7 +923,8 @@ class RalphIterationEngine {
                 prepared,
                 result,
                 loopDecision,
-                createdPaths: prepared.createdPaths
+                createdPaths: prepared.createdPaths,
+                autoReviewContext
             };
         }
         finally {

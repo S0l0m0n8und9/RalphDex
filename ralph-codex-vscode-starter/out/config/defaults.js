@@ -56,6 +56,11 @@ exports.DEFAULT_CONFIG = {
         simpleThreshold: 2,
         complexThreshold: 6
     },
-    hooks: {}
+    hooks: {},
+    autoWatchdogOnStall: false,
+    autoReviewOnParentDone: false,
+    autoReviewOnLoopComplete: false,
+    autoScmOnConflict: false,
+    scmConflictRetryLimit: 1
 };
 //# sourceMappingURL=defaults.js.map

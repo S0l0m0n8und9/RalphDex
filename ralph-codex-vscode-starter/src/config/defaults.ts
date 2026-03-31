@@ -55,5 +55,10 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
     simpleThreshold: 2,
     complexThreshold: 6
   } satisfies RalphModelTieringConfig,
-  hooks: {} satisfies RalphHooksConfig
+  hooks: {} satisfies RalphHooksConfig,
+  autoWatchdogOnStall: false,
+  autoReviewOnParentDone: false,
+  autoReviewOnLoopComplete: false,
+  autoScmOnConflict: false,
+  scmConflictRetryLimit: 1
 };

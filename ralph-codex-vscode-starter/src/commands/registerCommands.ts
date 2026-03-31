@@ -495,6 +495,19 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
           throw new Error(iterationFailureMessage(lastRun.result));
         }
 
+        if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
+          progress.report({ message: `Parent ${lastRun.autoReviewContext.parentTaskId} done — running review agent` });
+          try {
+            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+              reachedIterationCap: false,
+              configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+              focusTaskId: lastRun.autoReviewContext.parentTaskId
+            });
+          } catch (reviewError) {
+            logger.warn('Auto-review after parent-done failed.', { error: toErrorMessage(reviewError) });
+          }
+        }
+
         if (!lastRun.loopDecision.shouldContinue) {
           if (
             lastRun.result.stopReason === 'control_plane_reload_required'
@@ -509,11 +522,37 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
             return;
           }
 
+          const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+            || lastRun.result.stopReason === 'repeated_identical_failure';
+          if (isStallStop && config.autoWatchdogOnStall) {
+            progress.report({ message: 'Loop stalled — running watchdog agent' });
+            try {
+              await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false,
+                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+              });
+            } catch (watchdogError) {
+              logger.warn('Auto-watchdog after stall failed.', { error: toErrorMessage(watchdogError) });
+            }
+          }
+
           broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
           void vscode.window.showInformationMessage(
             `Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`
           );
           return;
+        }
+      }
+
+      if (config.autoReviewOnLoopComplete && lastRun) {
+        progress.report({ message: 'Loop complete — running review agent' });
+        try {
+          await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+            reachedIterationCap: false,
+            configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) }
+          });
+        } catch (reviewError) {
+          logger.warn('Auto-review on loop complete failed.', { error: toErrorMessage(reviewError) });
         }
       }
 
@@ -587,6 +626,18 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
             throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
           }
 
+          if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
+            try {
+              await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                reachedIterationCap: false,
+                configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
+                focusTaskId: lastRun.autoReviewContext.parentTaskId
+              });
+            } catch (reviewError) {
+              logger.warn('Multi-agent auto-review after parent-done failed.', { agentId, error: toErrorMessage(reviewError) });
+            }
+          }
+
           if (!lastRun.loopDecision.shouldContinue) {
             if (
               lastRun.result.stopReason === 'control_plane_reload_required'
@@ -594,6 +645,19 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
             ) {
               logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
               return { agentId, lastRun, reloadRequired: true };
+            }
+
+            const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+              || lastRun.result.stopReason === 'repeated_identical_failure';
+            if (isStallStop && config.autoWatchdogOnStall) {
+              try {
+                await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                  reachedIterationCap: false,
+                  configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                });
+              } catch (watchdogError) {
+                logger.warn('Multi-agent auto-watchdog after stall failed.', { agentId, error: toErrorMessage(watchdogError) });
+              }
             }
 
             logger.info('Multi-agent loop: agent stopped early.', {
