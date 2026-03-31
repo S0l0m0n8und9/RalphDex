@@ -413,6 +413,19 @@ function registerCommands(context, logger, broadcaster) {
                     broadcaster?.emitLoopEnd(index + 1, 'execution_failed');
                     throw new Error(iterationFailureMessage(lastRun.result));
                 }
+                if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
+                    progress.report({ message: `Parent ${lastRun.autoReviewContext.parentTaskId} done — running review agent` });
+                    try {
+                        await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                            reachedIterationCap: false,
+                            configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+                            focusTaskId: lastRun.autoReviewContext.parentTaskId
+                        });
+                    }
+                    catch (reviewError) {
+                        logger.warn('Auto-review after parent-done failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
+                    }
+                }
                 if (!lastRun.loopDecision.shouldContinue) {
                     if (lastRun.result.stopReason === 'control_plane_reload_required'
                         && config.autoReloadOnControlPlaneChange) {
@@ -424,9 +437,35 @@ function registerCommands(context, logger, broadcaster) {
                         await vscode.commands.executeCommand('workbench.action.reloadWindow');
                         return;
                     }
+                    const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+                        || lastRun.result.stopReason === 'repeated_identical_failure';
+                    if (isStallStop && config.autoWatchdogOnStall) {
+                        progress.report({ message: 'Loop stalled — running watchdog agent' });
+                        try {
+                            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                reachedIterationCap: false,
+                                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                            });
+                        }
+                        catch (watchdogError) {
+                            logger.warn('Auto-watchdog after stall failed.', { error: (0, error_1.toErrorMessage)(watchdogError) });
+                        }
+                    }
                     broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
                     void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
                     return;
+                }
+            }
+            if (config.autoReviewOnLoopComplete && lastRun) {
+                progress.report({ message: 'Loop complete — running review agent' });
+                try {
+                    await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                        reachedIterationCap: false,
+                        configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) }
+                    });
+                }
+                catch (reviewError) {
+                    logger.warn('Auto-review on loop complete failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
                 }
             }
             broadcaster?.emitLoopEnd(config.ralphIterationCap, lastRun?.result.stopReason ?? null);
@@ -482,11 +521,36 @@ function registerCommands(context, logger, broadcaster) {
                     if (lastRun.result.executionStatus === 'failed') {
                         throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
                     }
+                    if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
+                        try {
+                            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                reachedIterationCap: false,
+                                configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
+                                focusTaskId: lastRun.autoReviewContext.parentTaskId
+                            });
+                        }
+                        catch (reviewError) {
+                            logger.warn('Multi-agent auto-review after parent-done failed.', { agentId, error: (0, error_1.toErrorMessage)(reviewError) });
+                        }
+                    }
                     if (!lastRun.loopDecision.shouldContinue) {
                         if (lastRun.result.stopReason === 'control_plane_reload_required'
                             && config.autoReloadOnControlPlaneChange) {
                             logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
                             return { agentId, lastRun, reloadRequired: true };
+                        }
+                        const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+                            || lastRun.result.stopReason === 'repeated_identical_failure';
+                        if (isStallStop && config.autoWatchdogOnStall) {
+                            try {
+                                await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                    reachedIterationCap: false,
+                                    configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                                });
+                            }
+                            catch (watchdogError) {
+                                logger.warn('Multi-agent auto-watchdog after stall failed.', { agentId, error: (0, error_1.toErrorMessage)(watchdogError) });
+                            }
                         }
                         logger.info('Multi-agent loop: agent stopped early.', {
                             agentId,

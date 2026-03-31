@@ -115,4 +115,9 @@ export interface RalphCodexConfig {
   agentCount: number;
   modelTiering: RalphModelTieringConfig;
   hooks: RalphHooksConfig;
+  autoWatchdogOnStall: boolean;
+  autoReviewOnParentDone: boolean;
+  autoReviewOnLoopComplete: boolean;
+  autoScmOnConflict: boolean;
+  scmConflictRetryLimit: number;
 }

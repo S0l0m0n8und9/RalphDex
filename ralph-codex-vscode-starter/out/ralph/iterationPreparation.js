@@ -195,7 +195,7 @@ async function prepareIterationContext(input) {
         createdAt: taskSelectedAt
     });
     const claimedSelection = promptTarget === 'cliExec'
-        ? await selectClaimedTask(rootPath, config, taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId)
+        ? await selectClaimedTask(rootPath, config, taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId, input.focusTaskId)
         : {
             task: (0, taskFile_1.selectNextTask)(taskFile),
             claim: null
@@ -469,8 +469,13 @@ async function prepareIterationContext(input) {
     await input.persistPreparedProvenanceBundle(preparedContext);
     return preparedContext;
 }
-async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId) {
-    for (const candidate of (0, taskFile_1.listSelectableTasks)(taskFile)) {
+async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId, focusTaskId) {
+    const selectable = (0, taskFile_1.listSelectableTasks)(taskFile);
+    // When a focusTaskId is provided, sort so that task comes first.
+    const candidates = focusTaskId
+        ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
+        : selectable;
+    for (const candidate of candidates) {
         const claimBranches = config.scmStrategy === 'branch-per-task'
             ? await prepareTaskBranchWorkspace(rootPath, candidate)
             : null;

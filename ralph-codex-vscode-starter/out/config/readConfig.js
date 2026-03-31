@@ -222,7 +222,12 @@ function readConfig(workspaceFolder) {
         staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', defaults_1.DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
         agentCount: readNumber(config, 'agentCount', defaults_1.DEFAULT_CONFIG.agentCount, 1),
         modelTiering: readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering),
-        hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks)
+        hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks),
+        autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', defaults_1.DEFAULT_CONFIG.autoWatchdogOnStall),
+        autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', defaults_1.DEFAULT_CONFIG.autoReviewOnParentDone),
+        autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete),
+        autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', defaults_1.DEFAULT_CONFIG.autoScmOnConflict),
+        scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1)
     };
 }
 //# sourceMappingURL=readConfig.js.map

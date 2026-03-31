@@ -5,7 +5,7 @@ import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { createArtifactBaseName } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
 import { toErrorMessage } from '../util/error';
-import { commitOnDone, reconcileBranchPerTaskScm } from './iterationScm';
+import { commitOnDone, listGitConflictPaths, reconcileBranchPerTaskScm, ScmConflictResolver } from './iterationScm';
 import { RalphStateManager } from './stateManager';
 import {
   prepareIterationContext,
@@ -91,6 +91,8 @@ export interface RalphIterationRunSummary {
   result: RalphIterationResult;
   loopDecision: RalphLoopDecision;
   createdPaths: string[];
+  /** Set when a parent task completed and its integration branch was merged, signalling a review pass is appropriate. */
+  autoReviewContext?: { parentTaskId: string; parentTaskTitle: string };
 }
 
 function summarizeLastMessage(lastMessage: string, exitCode: number | null): string {
@@ -185,6 +187,8 @@ export class RalphIterationEngine {
       reachedIterationCap: boolean;
       configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>;
       broadcaster?: IterationBroadcaster;
+      /** When set, task selection will prefer this task ID (used to direct review agents to a specific parent task). */
+      focusTaskId?: string;
     }
   ): Promise<RalphIterationRunSummary> {
     const broadcaster = options.broadcaster;
@@ -195,6 +199,7 @@ export class RalphIterationEngine {
       progress,
       includeVerifierContext: true,
       configOverrides: options.configOverrides,
+      focusTaskId: options.focusTaskId,
       stateManager: this.stateManager,
       logger: this.logger,
       persistBlockedPreflightBundle: (input) => persistBlockedPreflightBundle(input, this.logger),
@@ -535,16 +540,49 @@ export class RalphIterationEngine {
       logger: this.logger
     });
     const branchPerTaskWarnings: string[] = [];
+    let autoReviewContext: RalphIterationRunSummary['autoReviewContext'];
     if (prepared.config.scmStrategy === 'branch-per-task'
       && completionReconciliation.selectedTask?.status === 'done'
       && prepared.selectedTask) {
       const taskFileAfterCompletion = parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
+
+      let conflictResolver: ScmConflictResolver | undefined;
+      if (prepared.config.autoScmOnConflict) {
+        const retryLimit = prepared.config.scmConflictRetryLimit;
+        const capturedWorkspaceFolder = workspaceFolder;
+        const capturedProgress = progress;
+        conflictResolver = async (ctx) => {
+          for (let attempt = 0; attempt < retryLimit; attempt++) {
+            const scmRun = await this.runCliIteration(
+              capturedWorkspaceFolder,
+              'singleExec',
+              capturedProgress,
+              {
+                reachedIterationCap: false,
+                configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` }
+              }
+            );
+            if (scmRun.result.executionStatus === 'failed') break;
+            const remaining = await listGitConflictPaths(ctx.rootPath);
+            if (remaining.length === 0) return { resolved: true };
+          }
+          return { resolved: false };
+        };
+      }
+
       const branchScm = await reconcileBranchPerTaskScm({
         prepared,
         validationStatus: validationVerification.result.status,
-        taskFileAfter: taskFileAfterCompletion
+        taskFileAfter: taskFileAfterCompletion,
+        conflictResolver
       });
       branchPerTaskWarnings.push(...branchScm.warnings);
+      if (branchScm.parentCompletedAndMerged && branchScm.parentTask) {
+        autoReviewContext = {
+          parentTaskId: branchScm.parentTask.id,
+          parentTaskTitle: branchScm.parentTask.title
+        };
+      }
     }
     const afterCoreState = await captureCoreState(prepared.paths);
     const taskStateVerification = prepared.config.verifierModes.includes('taskState')
@@ -1011,7 +1049,8 @@ export class RalphIterationEngine {
       prepared,
       result,
       loopDecision,
-      createdPaths: prepared.createdPaths
+      createdPaths: prepared.createdPaths,
+      autoReviewContext
     };
     } finally {
       if (prepared.selectedTask) {
