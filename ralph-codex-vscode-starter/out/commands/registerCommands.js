@@ -115,6 +115,92 @@ async function initializeFreshWorkspace(rootPath) {
         gitignorePath
     };
 }
+/**
+ * Derive initial task drafts from PRD text.
+ * Returns tasks whose titles come from the PRD's headings (or a placeholder).
+ * IDs start at T<offset+1>.
+ */
+function draftTasksFromPrd(prdText, idOffset = 0) {
+    const sections = (0, pipeline_1.parsePrdSections)(prdText);
+    return sections.map((title, i) => ({
+        id: `T${idOffset + i + 1}`,
+        title,
+        status: 'todo'
+    }));
+}
+const RALPH_PROJECTS_DIR = 'projects';
+/**
+ * Produce a filesystem-safe slug from a human-readable project name.
+ * Lowercases, collapses non-alphanumeric runs to hyphens, trims edge hyphens.
+ */
+function slugify(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+/** Absolute paths for a named project directory. */
+function projectAbsolutePaths(ralphDir, slug) {
+    const dir = path.join(ralphDir, RALPH_PROJECTS_DIR, slug);
+    return {
+        dir,
+        prdPath: path.join(dir, 'prd.md'),
+        tasksPath: path.join(dir, 'tasks.json'),
+        progressPath: path.join(dir, 'progress.md')
+    };
+}
+/** Workspace-relative settings values for a named project. */
+function projectRelativePaths(slug) {
+    const base = `.ralph/${RALPH_PROJECTS_DIR}/${slug}`;
+    return { prdPath: `${base}/prd.md`, tasksPath: `${base}/tasks.json`, progressPath: `${base}/progress.md` };
+}
+/**
+ * List slugs of projects that already exist under .ralph/projects/.
+ * A directory qualifies if it contains a prd.md file.
+ */
+async function listExistingProjects(ralphDir) {
+    const projectsDir = path.join(ralphDir, RALPH_PROJECTS_DIR);
+    try {
+        const entries = await fs.readdir(projectsDir, { withFileTypes: true });
+        const slugs = [];
+        for (const entry of entries) {
+            if (entry.isDirectory() && await (0, fs_1.pathExists)(path.join(projectsDir, entry.name, 'prd.md'))) {
+                slugs.push(entry.name);
+            }
+        }
+        return slugs.sort();
+    }
+    catch {
+        return [];
+    }
+}
+/**
+ * Update the three workspace settings that define which project Ralph uses.
+ * Relative paths are resolved from the workspace root at runtime by readConfig.
+ */
+async function switchToProject(workspaceFolder, prdPath, tasksPath, progressPath) {
+    const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
+    await config.update('prdPath', prdPath, vscode.ConfigurationTarget.Workspace);
+    await config.update('ralphTaskFilePath', tasksPath, vscode.ConfigurationTarget.Workspace);
+    await config.update('progressPath', progressPath, vscode.ConfigurationTarget.Workspace);
+}
+/**
+ * Append tasks to an existing tasks.json file under lock.
+ */
+async function appendTasksToFile(tasksPath, newTasks) {
+    if (newTasks.length === 0) {
+        return;
+    }
+    const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
+        const raw = await fs.readFile(tasksPath, 'utf8');
+        const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+        const next = (0, taskFile_1.bumpMutationCount)({
+            ...taskFile,
+            tasks: [...taskFile.tasks, ...newTasks]
+        });
+        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+}
 function buildReviewAgentId(agentId) {
     return (0, validate_1.buildPrefixedAgentId)('review', agentId);
 }
@@ -187,8 +273,160 @@ function registerCommands(context, logger, broadcaster) {
                 progressPath: result.progressPath,
                 gitignorePath: result.gitignorePath
             });
+            // Step 1: Seed the PRD with a brief objective
+            const objective = await vscode.window.showInputBox({
+                prompt: 'Enter a short project objective (press Escape to fill in prd.md manually)',
+                placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
+                ignoreFocusOut: true
+            });
+            const prdText = objective?.trim()
+                ? `# Product / project brief\n\n${objective.trim()}\n`
+                : RALPH_PRD_PLACEHOLDER;
+            if (objective?.trim()) {
+                await fs.writeFile(result.prdPath, prdText, 'utf8');
+                logger.info('Seeded PRD with user-provided objective.');
+            }
+            // Step 2: Auto-generate starter tasks from PRD headings
+            const drafts = draftTasksFromPrd(prdText);
+            await appendTasksToFile(result.tasksPath, drafts);
+            logger.info(`Generated ${drafts.length} starter task(s) from PRD.`);
+            // Open both files side-by-side so the user can review and refine
             await openTextFile(result.prdPath);
-            void vscode.window.showInformationMessage('Initialized a fresh Ralph workspace scaffold under .ralph/. Fill in .ralph/prd.md before running Ralph commands.');
+            await openTextFile(result.tasksPath);
+            void vscode.window.showInformationMessage(`Ralph workspace ready. Review prd.md and tasks.json — refine them with your AI assistant before running your first loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.addTask',
+        label: 'Ralph Codex: Add Task',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
+            const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
+            if (!(await (0, fs_1.pathExists)(tasksPath))) {
+                void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralph Codex: Initialize Workspace" first.');
+                return;
+            }
+            const raw = await fs.readFile(tasksPath, 'utf8');
+            const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+            const idOffset = taskFile.tasks.length;
+            const prdText = (await (0, fs_1.pathExists)(prdPath))
+                ? await fs.readFile(prdPath, 'utf8')
+                : '';
+            const drafts = draftTasksFromPrd(prdText, idOffset);
+            // Avoid collisions with existing IDs
+            const existingIds = new Set(taskFile.tasks.map((t) => t.id));
+            let counter = idOffset + 1;
+            const deduped = drafts.map((t) => {
+                while (existingIds.has(`T${counter}`)) {
+                    counter++;
+                }
+                const id = `T${counter}`;
+                existingIds.add(id);
+                counter++;
+                return { ...t, id };
+            });
+            await appendTasksToFile(tasksPath, deduped);
+            logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
+            await openTextFile(tasksPath);
+            void vscode.window.showInformationMessage(`Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.newProject',
+        label: 'Ralph Codex: New Project',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
+            if (!(await (0, fs_1.pathExists)(ralphDir))) {
+                void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralph Codex: Initialize Workspace" first.');
+                return;
+            }
+            const name = await vscode.window.showInputBox({
+                prompt: 'Enter a name for the new project',
+                placeHolder: 'Example: auth-refactor, api-v2, mobile-app',
+                ignoreFocusOut: true,
+                validateInput: (v) => {
+                    if (!v.trim()) {
+                        return 'Name is required';
+                    }
+                    if (!slugify(v)) {
+                        return 'Name must contain at least one letter or number';
+                    }
+                    return null;
+                }
+            });
+            if (!name?.trim()) {
+                return;
+            }
+            const slug = slugify(name.trim());
+            const absPaths = projectAbsolutePaths(ralphDir, slug);
+            if (await (0, fs_1.pathExists)(absPaths.prdPath)) {
+                void vscode.window.showWarningMessage(`Project "${slug}" already exists. Use "Ralph Codex: Switch Project" to select it.`);
+                return;
+            }
+            const objective = await vscode.window.showInputBox({
+                prompt: `Describe the objective for "${slug}" (press Escape to fill in manually)`,
+                placeHolder: 'Example: Redesign the authentication layer with OAuth2 support',
+                ignoreFocusOut: true
+            });
+            progress.report({ message: `Creating project "${slug}"` });
+            await fs.mkdir(absPaths.dir, { recursive: true });
+            const prdText = objective?.trim()
+                ? `# Product / project brief\n\n${objective.trim()}\n`
+                : RALPH_PRD_PLACEHOLDER;
+            await fs.writeFile(absPaths.prdPath, prdText, 'utf8');
+            const emptyLocked = await (0, taskFile_1.withTaskFileLock)(absPaths.tasksPath, undefined, async () => {
+                await fs.writeFile(absPaths.tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
+            });
+            if (emptyLocked.outcome === 'lock_timeout') {
+                throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
+            }
+            await appendTasksToFile(absPaths.tasksPath, draftTasksFromPrd(prdText));
+            await fs.writeFile(absPaths.progressPath, '', 'utf8');
+            logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });
+            const relPaths = projectRelativePaths(slug);
+            await switchToProject(workspaceFolder, relPaths.prdPath, relPaths.tasksPath, relPaths.progressPath);
+            await openTextFile(absPaths.prdPath);
+            await openTextFile(absPaths.tasksPath);
+            void vscode.window.showInformationMessage(`Project "${slug}" created and active. Review prd.md and tasks.json, then run your loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.switchProject',
+        label: 'Ralph Codex: Switch Project',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
+            const slugs = await listExistingProjects(ralphDir);
+            const items = [
+                { label: '$(home) default', description: '.ralph/prd.md  ·  .ralph/tasks.json', slug: '__default__' },
+                ...slugs.map((slug) => ({
+                    label: `$(folder) ${slug}`,
+                    description: `.ralph/projects/${slug}/prd.md`,
+                    slug
+                }))
+            ];
+            if (slugs.length === 0) {
+                void vscode.window.showInformationMessage('No named projects yet. Use "Ralph Codex: New Project" to create one.');
+                return;
+            }
+            const picked = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select a Ralph project to make active',
+                ignoreFocusOut: true
+            });
+            if (!picked) {
+                return;
+            }
+            if (picked.slug === '__default__') {
+                await switchToProject(workspaceFolder, '.ralph/prd.md', '.ralph/tasks.json', '.ralph/progress.md');
+                void vscode.window.showInformationMessage('Switched to default Ralph project.');
+            }
+            else {
+                const relPaths = projectRelativePaths(picked.slug);
+                await switchToProject(workspaceFolder, relPaths.prdPath, relPaths.tasksPath, relPaths.progressPath);
+                void vscode.window.showInformationMessage(`Switched to project "${picked.slug}".`);
+            }
         }
     });
     registerCommand(context, logger, {

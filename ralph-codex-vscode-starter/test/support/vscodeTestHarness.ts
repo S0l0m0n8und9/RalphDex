@@ -5,6 +5,7 @@ export interface VscodeMessageCall {
 
 export interface VscodeStubState {
   configuration: Record<string, unknown>;
+  updatedSettings: Record<string, unknown>;
   workspaceFolders: unknown[];
   isTrusted: boolean;
   availableCommands: string[];
