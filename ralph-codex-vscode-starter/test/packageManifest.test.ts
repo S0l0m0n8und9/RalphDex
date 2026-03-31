@@ -89,3 +89,17 @@ test('package manifest exposes Copilot as a CLI provider with dedicated settings
   assert.ok(properties['ralphCodex.copilotCommandPath']);
   assert.ok(properties['ralphCodex.copilotApprovalMode']?.enum?.includes('allow-all'));
 });
+
+test('package manifest contributes and activates the runPipeline command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.runPipeline'),
+    'package.json must activate on ralphCodex.runPipeline'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralph Codex: Run Pipeline'),
+    'package.json must contribute the Run Pipeline command'
+  );
+});

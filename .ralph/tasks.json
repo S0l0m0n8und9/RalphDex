@@ -1948,11 +1948,11 @@
     {
       "id": "T63",
       "title": "Implement ralphCodex.runPipeline command skeleton: decompose PRD fragment to tasks then invoke multi-agent loop",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T62"
       ],
-      "notes": "Add ralphCodex.runPipeline command to package.json (activation + contribution) and registerCommands.ts. On invocation: hash .ralph/prd.md, call bounded task decomposition to create child tasks under a new pipeline-root parent, invoke runMultiAgentLoop against that parent's subtask set, and write a durable pipeline-run artifact to .ralph/artifacts/pipelines/<runId>.json containing: prd hash, decomposed task ids, loop start time, and status. Add packageManifest test and basic command smoke coverage; update AGENTS.md and docs/workflows.md.",
+      "notes": "Added ralphCodex.runPipeline command skeleton: scaffolds pipeline-root + child tasks from PRD headings, writes .ralph/artifacts/pipelines/<runId>.json, invokes multi-agent loop. 482/482 tests pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2009,5 +2009,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 22
+  "mutationCount": 23
 }

@@ -105,6 +105,7 @@
     "onCommand:ralphCodex.resetRalphWorkspaceState",
     "onCommand:ralphCodex.runWatchdogAgent",
     "onCommand:ralphCodex.runScmAgent",
+    "onCommand:ralphCodex.runPipeline",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -201,6 +202,10 @@
       {
         "command": "ralphCodex.openDashboard",
         "title": "Ralph Codex: Open Dashboard"
+      },
+      {
+        "command": "ralphCodex.runPipeline",
+        "title": "Ralph Codex: Run Pipeline"
       }
     ],
     "viewsContainers": {

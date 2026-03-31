@@ -68,6 +68,7 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Reveal Latest Provenance Bundle Directory`
 - `Ralph Codex: Cleanup Runtime Artifacts`
 - `Ralph Codex: Reset Runtime State`
+- `Ralph Codex: Run Pipeline`
 
 Validation entry points:
 

@@ -23,6 +23,8 @@ import {
   readJsonArtifact
 } from './statusSnapshot';
 import { registerArtifactAndMaintenanceCommands } from './artifactCommands';
+import { scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
+import { resolveRalphPaths } from '../ralph/pathResolver';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -615,6 +617,59 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
 
       void vscode.window.showInformationMessage(
         `Ralph multi-agent loop finished (${agentCount} agent(s)). ${summary}`
+      );
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.runPipeline',
+    label: 'Ralph Codex: Run Pipeline',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+
+      progress.report({ message: 'Scaffolding pipeline: decomposing PRD into tasks' });
+
+      const { artifact, artifactPath, rootTaskId, childTaskIds } = await scaffoldPipelineRun({
+        prdPath: paths.prdPath,
+        taskFilePath: paths.taskFilePath,
+        artifactDir: paths.artifactDir
+      });
+
+      logger.info('Pipeline scaffold created.', {
+        runId: artifact.runId,
+        rootTaskId,
+        childTaskIds,
+        artifactPath
+      });
+
+      progress.report({ message: `Pipeline ${artifact.runId}: starting multi-agent loop (${childTaskIds.length} task(s))` });
+
+      let loopStatus: 'complete' | 'failed' = 'complete';
+      try {
+        await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
+      } catch (error) {
+        loopStatus = 'failed';
+        logger.error('Pipeline multi-agent loop failed.', error);
+      }
+
+      const finalArtifact = {
+        ...artifact,
+        status: loopStatus,
+        loopEndTime: new Date().toISOString()
+      } as const;
+
+      await writePipelineArtifact(paths.artifactDir, finalArtifact);
+
+      logger.info('Pipeline run complete.', {
+        runId: artifact.runId,
+        status: loopStatus,
+        artifactPath
+      });
+
+      void vscode.window.showInformationMessage(
+        `Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).`
       );
     }
   });

@@ -162,3 +162,4 @@
 - Confirmed T62.1 is complete: multiAgentStatus.ts implements computeStuckScore + buildMultiAgentStatusReport with WARNING/STUCK rendering; artifactCommands.ts wires IO (readAllHandoffsForAgent, readMultiAgentStatusSummaries); 17 regression tests pass; full validate gate: 462/462 pass
 - Added buildNoProgressHeatmap (HEATMAP_WINDOW=10, X=no_progress/dot=other) to multiAgentStatus.ts; wired heatmap line into buildMultiAgentStatusReport; added 9 new tests covering heatmap rendering; 472/472 pass
 - Added no-progress heatmap bullet to Show Multi-Agent Status section in docs/workflows.md; all implementation and tests already complete from T62.1 and T62.2
+- Added ralphCodex.runPipeline command skeleton: scaffolds pipeline-root + child tasks from PRD headings, writes .ralph/artifacts/pipelines/<runId>.json, invokes multi-agent loop. 482/482 tests pass.

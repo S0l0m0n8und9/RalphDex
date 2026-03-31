@@ -131,6 +131,25 @@ After that recovery step, the task is eligible for normal deterministic reselect
 
 When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph prunes older generated prompt files, iteration directories, transcript or last-message pairs, and session handoff files after iteration provenance is persisted. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. Session handoff files are retained by newest iteration only; they are not protected by latest-pointer JSON artifacts. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
 
+## Run A Pipeline
+
+1. Ensure `.ralph/prd.md` contains the real objective with `##` section headings for each phase.
+2. Run `Ralph Codex: Run Pipeline`.
+3. Ralph hashes `.ralph/prd.md`, parses up to three `##`-level section headings as phase titles, creates a pipeline-root parent task plus sequential child tasks in `.ralph/tasks.json`, and writes an initial pipeline artifact to `.ralph/artifacts/pipelines/<runId>.json`.
+4. Ralph then invokes the multi-agent loop against the full task graph. The newly created child tasks are the next actionable items and will be claimed and executed by the loop agents.
+5. When the loop finishes, Ralph writes a final pipeline artifact with `status: complete` (or `status: failed`) and the `loopEndTime`.
+
+The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
+
+- `runId` — a stable, timestamp-based identifier for the pipeline run
+- `prdHash` — SHA-256 of the PRD text at the moment the pipeline started
+- `rootTaskId` — the auto-generated pipeline-root parent task id
+- `decomposedTaskIds` — the child task ids derived from the PRD sections
+- `loopStartTime` and `loopEndTime` — ISO-8601 timestamps
+- `status` — `running`, `complete`, or `failed`
+
+This command is the supported end-to-end pipeline path. It does not bypass the normal task-graph, claim, or iteration-cap constraints; it only adds the scaffold tasks and then delegates execution to the existing multi-agent loop.
+
 ## Prompt Budgeting And Quota Control
 
 Ralph keeps prompt generation deterministic, but it does not render every prompt shape at the same size. Prompt budget policy is selected by prompt kind plus target so CLI execution gets enough context to act while IDE handoff stays tighter and easier to review.

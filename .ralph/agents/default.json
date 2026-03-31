@@ -44,7 +44,8 @@
     "T61",
     "T62.1",
     "T62.2",
-    "T62"
+    "T62",
+    "T63"
   ],
   "touchedFiles": [
     ".claude/settings.local.json",
@@ -125,6 +126,8 @@
     "ralph-codex-vscode-starter/out/ralph/multiAgentStatus.js.map",
     "ralph-codex-vscode-starter/out/ralph/pathResolver.js",
     "ralph-codex-vscode-starter/out/ralph/pathResolver.js.map",
+    "ralph-codex-vscode-starter/out/ralph/pipeline.js",
+    "ralph-codex-vscode-starter/out/ralph/pipeline.js.map",
     "ralph-codex-vscode-starter/out/ralph/preflight.js",
     "ralph-codex-vscode-starter/out/ralph/preflight.js.map",
     "ralph-codex-vscode-starter/out/ralph/reconciliation.js",
@@ -173,6 +176,7 @@
     "ralph-codex-vscode-starter/src/ralph/loopLogic.ts",
     "ralph-codex-vscode-starter/src/ralph/multiAgentStatus.ts",
     "ralph-codex-vscode-starter/src/ralph/pathResolver.ts",
+    "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
     "ralph-codex-vscode-starter/src/ralph/preflight.ts",
     "ralph-codex-vscode-starter/src/ralph/reconciliation.ts",
     "ralph-codex-vscode-starter/src/ralph/reviewPolicy.ts",
@@ -203,6 +207,7 @@
     "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
     "ralph-codex-vscode-starter/test/multiAgentStatus.test.ts",
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",
+    "ralph-codex-vscode-starter/test/pipeline.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.content.test.ts",
     "ralph-codex-vscode-starter/test/promptBuilder.snapshot.test.ts",
