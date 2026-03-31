@@ -116,27 +116,17 @@ async function initializeFreshWorkspace(rootPath) {
     };
 }
 /**
- * Prompt the user to enter one or more task titles interactively.
- * Returns the collected tasks (may be empty if the user skips).
+ * Derive initial task drafts from PRD text.
+ * Returns tasks whose titles come from the PRD's headings (or a placeholder).
+ * IDs start at T<offset+1>.
  */
-async function collectInitialTasks() {
-    const tasks = [];
-    let counter = 1;
-    while (true) {
-        const title = await vscode.window.showInputBox({
-            prompt: tasks.length === 0
-                ? 'Enter your first task title (press Escape to skip)'
-                : `Task ${counter} added. Enter another task title (press Escape when done)`,
-            placeHolder: 'Example: Set up the project scaffold and CI pipeline',
-            ignoreFocusOut: true
-        });
-        if (!title?.trim()) {
-            break;
-        }
-        tasks.push({ id: `T${counter}`, title: title.trim(), status: 'todo' });
-        counter++;
-    }
-    return tasks;
+function draftTasksFromPrd(prdText, idOffset = 0) {
+    const sections = (0, pipeline_1.parsePrdSections)(prdText);
+    return sections.map((title, i) => ({
+        id: `T${idOffset + i + 1}`,
+        title,
+        status: 'todo'
+    }));
 }
 /**
  * Append tasks to an existing tasks.json file under lock.
@@ -230,39 +220,27 @@ function registerCommands(context, logger, broadcaster) {
                 progressPath: result.progressPath,
                 gitignorePath: result.gitignorePath
             });
-            // Step 1: Ask for project objective immediately
+            // Step 1: Seed the PRD with a brief objective
             const objective = await vscode.window.showInputBox({
-                prompt: 'Enter a short project objective for this workspace (press Escape to fill in prd.md manually)',
+                prompt: 'Enter a short project objective (press Escape to fill in prd.md manually)',
                 placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
                 ignoreFocusOut: true
             });
+            const prdText = objective?.trim()
+                ? `# Product / project brief\n\n${objective.trim()}\n`
+                : RALPH_PRD_PLACEHOLDER;
             if (objective?.trim()) {
-                const prdContent = `# Product / project brief\n\n${objective.trim()}\n`;
-                await fs.writeFile(result.prdPath, prdContent, 'utf8');
+                await fs.writeFile(result.prdPath, prdText, 'utf8');
                 logger.info('Seeded PRD with user-provided objective.');
             }
-            // Step 2: Offer to add initial tasks
-            const addTasksChoice = await vscode.window.showQuickPick([
-                { label: '$(add) Add initial tasks now', value: 'yes' },
-                { label: '$(close) Skip — I\'ll add tasks later', value: 'no' }
-            ], { placeHolder: 'Would you like to add your initial tasks?', ignoreFocusOut: true });
-            if (addTasksChoice?.value === 'yes') {
-                const tasks = await collectInitialTasks();
-                if (tasks.length > 0) {
-                    await appendTasksToFile(result.tasksPath, tasks);
-                    logger.info(`Added ${tasks.length} initial task(s) to tasks.json.`);
-                    void vscode.window.showInformationMessage(`Ralph workspace ready. Added ${tasks.length} task(s) to .ralph/tasks.json.`);
-                }
-                else {
-                    void vscode.window.showInformationMessage('Ralph workspace initialized. Add tasks to .ralph/tasks.json before running iterations.');
-                }
-            }
-            else {
-                void vscode.window.showInformationMessage(objective?.trim()
-                    ? 'Ralph workspace initialized with your objective. Add tasks to .ralph/tasks.json before running iterations.'
-                    : 'Ralph workspace initialized. Fill in .ralph/prd.md and add tasks before running iterations.');
-            }
+            // Step 2: Auto-generate starter tasks from PRD headings
+            const drafts = draftTasksFromPrd(prdText);
+            await appendTasksToFile(result.tasksPath, drafts);
+            logger.info(`Generated ${drafts.length} starter task(s) from PRD.`);
+            // Open both files side-by-side so the user can review and refine
             await openTextFile(result.prdPath);
+            await openTextFile(result.tasksPath);
+            void vscode.window.showInformationMessage(`Ralph workspace ready. Review prd.md and tasks.json — refine them with your AI assistant before running your first loop.`, 'Got it');
         }
     });
     registerCommand(context, logger, {
@@ -271,20 +249,22 @@ function registerCommands(context, logger, broadcaster) {
         handler: async () => {
             const workspaceFolder = await withWorkspaceFolder();
             const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
+            const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
             if (!(await (0, fs_1.pathExists)(tasksPath))) {
                 void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralph Codex: Initialize Workspace" first.');
                 return;
             }
-            const tasks = await collectInitialTasks();
-            if (tasks.length === 0) {
-                return;
-            }
-            // Determine next available T-prefix ID to avoid collisions
             const raw = await fs.readFile(tasksPath, 'utf8');
             const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+            const idOffset = taskFile.tasks.length;
+            const prdText = (await (0, fs_1.pathExists)(prdPath))
+                ? await fs.readFile(prdPath, 'utf8')
+                : '';
+            const drafts = draftTasksFromPrd(prdText, idOffset);
+            // Avoid collisions with existing IDs
             const existingIds = new Set(taskFile.tasks.map((t) => t.id));
-            let counter = taskFile.tasks.length + 1;
-            const numbered = tasks.map((t) => {
+            let counter = idOffset + 1;
+            const deduped = drafts.map((t) => {
                 while (existingIds.has(`T${counter}`)) {
                     counter++;
                 }
@@ -293,9 +273,10 @@ function registerCommands(context, logger, broadcaster) {
                 counter++;
                 return { ...t, id };
             });
-            await appendTasksToFile(tasksPath, numbered);
-            logger.info(`Added ${numbered.length} task(s) via addTask command.`);
-            void vscode.window.showInformationMessage(`Added ${numbered.length} task(s): ${numbered.map((t) => t.id).join(', ')}`);
+            await appendTasksToFile(tasksPath, deduped);
+            logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
+            await openTextFile(tasksPath);
+            void vscode.window.showInformationMessage(`Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`, 'Got it');
         }
     });
     registerCommand(context, logger, {
