@@ -23,7 +23,7 @@ import {
   readJsonArtifact
 } from './statusSnapshot';
 import { registerArtifactAndMaintenanceCommands } from './artifactCommands';
-import { scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
+import { extractPrUrl, scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 
 interface RegisteredCommandSpec {
@@ -673,11 +673,47 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         logger.error('Pipeline multi-agent loop failed.', error);
       }
 
+      // Review→PR phase: only run when the multi-agent loop succeeded.
+      let reviewTranscriptPath: string | undefined;
+      let prUrl: string | undefined;
+
+      if (loopStatus === 'complete') {
+        progress.report({ message: `Pipeline ${artifact.runId}: running review agent` });
+        try {
+          const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+            reachedIterationCap: false,
+            configOverrides: {
+              agentRole: 'review',
+              agentId: buildReviewAgentId(config.agentId)
+            }
+          });
+          reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
+
+          if (reviewRun.result.executionStatus !== 'failed') {
+            progress.report({ message: `Pipeline ${artifact.runId}: running SCM agent` });
+            const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+              reachedIterationCap: false,
+              configOverrides: {
+                agentRole: 'scm',
+                agentId: buildScmAgentId(config.agentId)
+              }
+            });
+            const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
+            const scmReport = await readJsonArtifact(scmReportPath).then(normalizeCompletionReportArtifact);
+            prUrl = extractPrUrl(scmReport?.report?.progressNote);
+          }
+        } catch (error) {
+          logger.error('Pipeline review/SCM phase failed.', error);
+        }
+      }
+
       const finalArtifact = {
         ...artifact,
         status: loopStatus,
-        loopEndTime: new Date().toISOString()
-      } as const;
+        loopEndTime: new Date().toISOString(),
+        ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
+        ...(prUrl !== undefined && { prUrl })
+      };
 
       await writePipelineArtifact(paths.artifactDir, finalArtifact);
 
@@ -687,8 +723,9 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         artifactPath
       });
 
+      const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
       void vscode.window.showInformationMessage(
-        `Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).`
+        `Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).${prSuffix}`
       );
     }
   });

@@ -7,6 +7,7 @@ import {
   buildPipelineChildTasks,
   buildPipelineRootTask,
   buildPipelineRunId,
+  extractPrUrl,
   parsePrdSections,
   scaffoldPipelineRun,
   writePipelineArtifact
@@ -83,6 +84,80 @@ test('writePipelineArtifact writes a valid JSON artifact', async () => {
     assert.equal(parsed.runId, 'pipeline-test-001');
     assert.equal(parsed.status, 'running');
     assert.deepEqual(parsed.decomposedTaskIds, ['Tpipe-test-001.01']);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('extractPrUrl returns the PR URL when present in a progress note', () => {
+  const note = 'Opened PR at https://github.com/acme/repo/pull/42 for review.';
+  assert.equal(extractPrUrl(note), 'https://github.com/acme/repo/pull/42');
+});
+
+test('extractPrUrl returns undefined when no PR URL is present', () => {
+  assert.equal(extractPrUrl('No URL here.'), undefined);
+  assert.equal(extractPrUrl(undefined), undefined);
+  assert.equal(extractPrUrl(''), undefined);
+});
+
+test('extractPrUrl handles GitLab-style PR URLs', () => {
+  const note = 'MR submitted: https://gitlab.com/group/project/-/merge_requests/99 done';
+  // GitLab merge requests do not match the /pull/ pattern — confirm no false positive
+  assert.equal(extractPrUrl(note), undefined);
+});
+
+test('writePipelineArtifact persists reviewTranscriptPath and prUrl', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-pipeline-review-test-'));
+  try {
+    const artifact = {
+      schemaVersion: 1 as const,
+      kind: 'pipelineRun' as const,
+      runId: 'pipeline-review-test-001',
+      prdHash: 'sha256:abc',
+      prdPath: '/some/path/prd.md',
+      rootTaskId: 'Tpipe-review-001',
+      decomposedTaskIds: ['Tpipe-review-001.01'],
+      loopStartTime: new Date().toISOString(),
+      status: 'complete' as const,
+      loopEndTime: new Date().toISOString(),
+      reviewTranscriptPath: '/tmp/transcripts/review.jsonl',
+      prUrl: 'https://github.com/acme/repo/pull/7'
+    };
+
+    const artifactPath = await writePipelineArtifact(tmpDir, artifact);
+    const raw = await fs.readFile(artifactPath, 'utf8');
+    const parsed = JSON.parse(raw);
+
+    assert.equal(parsed.status, 'complete');
+    assert.equal(parsed.reviewTranscriptPath, '/tmp/transcripts/review.jsonl');
+    assert.equal(parsed.prUrl, 'https://github.com/acme/repo/pull/7');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('writePipelineArtifact omits reviewTranscriptPath and prUrl when not provided', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-pipeline-nopr-test-'));
+  try {
+    const artifact = {
+      schemaVersion: 1 as const,
+      kind: 'pipelineRun' as const,
+      runId: 'pipeline-nopr-test-001',
+      prdHash: 'sha256:def',
+      prdPath: '/some/path/prd.md',
+      rootTaskId: 'Tpipe-nopr-001',
+      decomposedTaskIds: [],
+      loopStartTime: new Date().toISOString(),
+      status: 'failed' as const
+    };
+
+    const artifactPath = await writePipelineArtifact(tmpDir, artifact);
+    const raw = await fs.readFile(artifactPath, 'utf8');
+    const parsed = JSON.parse(raw);
+
+    assert.equal(parsed.status, 'failed');
+    assert.equal(parsed.reviewTranscriptPath, undefined);
+    assert.equal(parsed.prUrl, undefined);
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }

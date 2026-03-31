@@ -24,6 +24,25 @@ export interface PipelineRunArtifact {
   loopStartTime: string;
   status: PipelineRunStatus;
   loopEndTime?: string;
+  /** Path to the review-agent transcript produced after the multi-agent loop. */
+  reviewTranscriptPath?: string;
+  /** PR URL extracted from the SCM agent completion report, if available. */
+  prUrl?: string;
+}
+
+const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
+
+/**
+ * Extract the first GitHub/GitLab PR URL from a progress note string.
+ * Returns undefined when no match is found.
+ */
+export function extractPrUrl(progressNote: string | undefined): string | undefined {
+  if (!progressNote) {
+    return undefined;
+  }
+
+  const match = PR_URL_PATTERN.exec(progressNote);
+  return match ? match[0] : undefined;
 }
 
 /**

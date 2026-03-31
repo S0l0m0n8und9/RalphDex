@@ -144,6 +144,27 @@ That recovery does not widen the trust model:
 
 `Open Latest CLI Transcript` is related but slightly different: it is an inspection fallback, not a provenance repair. When the latest CLI invocation still exists but its transcript path is absent or stale, Ralph may open the surviving last-message artifact instead so the operator can still inspect the newest CLI-visible output without claiming that the full transcript survived.
 
+## Pipeline Run Artifact Schema
+
+The `ralphCodex.runPipeline` command mints a pipeline-run artifact at `.ralph/artifacts/pipelines/<runId>.json`. The artifact tracks the full lifecycle of a pipeline execution:
+
+| Field | Type | Description |
+|---|---|---|
+| `schemaVersion` | `1` | Schema version |
+| `kind` | `"pipelineRun"` | Artifact discriminator |
+| `runId` | `string` | Deterministic run identifier (`pipeline-<yyyyMMddTHHmmssZ>-<hex>`) |
+| `prdHash` | `string` | `sha256:` hash of the PRD text at scaffold time |
+| `prdPath` | `string` | Absolute path to the PRD file |
+| `rootTaskId` | `string` | ID of the auto-generated pipeline-root task |
+| `decomposedTaskIds` | `string[]` | IDs of the child tasks scaffolded from PRD sections |
+| `loopStartTime` | `string` | ISO-8601 timestamp when the multi-agent loop started |
+| `status` | `"running" \| "complete" \| "failed"` | Final status after the loop and review/SCM phases |
+| `loopEndTime` | `string?` | ISO-8601 timestamp when the loop finished |
+| `reviewTranscriptPath` | `string?` | Path to the review-agent transcript produced after the loop |
+| `prUrl` | `string?` | PR URL extracted from the SCM agent completion report, if available |
+
+`reviewTranscriptPath` and `prUrl` are only written when the multi-agent loop completes successfully and the review and SCM phases run without error. A missing `prUrl` means either the loop failed, the review phase failed, or the SCM agent did not include a recognizable PR URL in its completion report progress note.
+
 ## What Operators Can Verify
 
 To confirm what actually ran for a CLI iteration, inspect:

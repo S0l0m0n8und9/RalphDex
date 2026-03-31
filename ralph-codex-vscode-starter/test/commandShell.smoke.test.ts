@@ -123,6 +123,7 @@ function createMockRun(
       stopReason,
       artifactDir: path.join(rootPath, '.ralph', 'artifacts', 'iteration-001'),
       followUpAction: 'continue_same_task',
+      execution: { transcriptPath: undefined },
       ...overrides
     },
     loopDecision: {
@@ -1753,5 +1754,67 @@ test('Cleanup Runtime Artifacts leaves files untouched when confirmation is dism
   assert.match(
     harness.state.warningMessages[0]?.message ?? '',
     /Cleanup Ralph runtime artifacts/
+  );
+});
+
+test('Run Pipeline runs review agent and SCM agent after the multi-agent loop succeeds', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+
+  type InvocationRecord = { mode: 'singleExec' | 'loop'; agentRole?: unknown; agentId?: unknown };
+  const invocations: InvocationRecord[] = [];
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown; agentId?: unknown } } | undefined;
+      invocations.push({
+        mode,
+        agentRole: runOptions?.configOverrides?.agentRole,
+        agentId: runOptions?.configOverrides?.agentId
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  // Expect: 1 loop iteration (multi-agent), then review, then SCM
+  const loopInvocations = invocations.filter((inv) => inv.mode === 'loop');
+  const reviewInvocation = invocations.find((inv) => inv.agentRole === 'review');
+  const scmInvocation = invocations.find((inv) => inv.agentRole === 'scm');
+
+  assert.ok(loopInvocations.length >= 1, 'Expected at least one loop invocation from the multi-agent loop');
+  assert.ok(reviewInvocation, 'Expected a review-agent invocation after the loop');
+  assert.ok(scmInvocation, 'Expected an SCM-agent invocation after the review');
+
+  assert.deepEqual(reviewInvocation?.agentId, 'review-default');
+  assert.deepEqual(scmInvocation?.agentId, 'scm-default');
+
+  // Review must come before SCM in the invocation sequence
+  const reviewIndex = invocations.indexOf(reviewInvocation!);
+  const scmIndex = invocations.indexOf(scmInvocation!);
+  assert.ok(reviewIndex < scmIndex, 'Review agent must run before SCM agent');
+
+  // Pipeline artifact must be written with status complete
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as { status: string; reviewTranscriptPath?: string };
+  assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph pipeline .+ finished with status: complete/
   );
 });

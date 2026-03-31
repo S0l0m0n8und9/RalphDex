@@ -15,7 +15,12 @@
       "Read(//tmp/**)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); tasks=d[''''tasks'''']; statuses={}; [statuses.__setitem__\\(t[''''status''''], statuses.get\\(t[''''status''''],0\\)+1\\) for t in tasks]; print\\(f''''Total tasks: {len\\(tasks\\)}''''\\); [print\\(f''''  {k}: {v}''''\\) for k,v in sorted\\(statuses.items\\(\\)\\)]\")",
       "Bash(npm run:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ]
   }
 }

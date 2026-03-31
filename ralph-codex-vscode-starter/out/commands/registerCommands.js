@@ -547,10 +547,44 @@ function registerCommands(context, logger, broadcaster) {
                 loopStatus = 'failed';
                 logger.error('Pipeline multi-agent loop failed.', error);
             }
+            // Review→PR phase: only run when the multi-agent loop succeeded.
+            let reviewTranscriptPath;
+            let prUrl;
+            if (loopStatus === 'complete') {
+                progress.report({ message: `Pipeline ${artifact.runId}: running review agent` });
+                try {
+                    const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                        reachedIterationCap: false,
+                        configOverrides: {
+                            agentRole: 'review',
+                            agentId: buildReviewAgentId(config.agentId)
+                        }
+                    });
+                    reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
+                    if (reviewRun.result.executionStatus !== 'failed') {
+                        progress.report({ message: `Pipeline ${artifact.runId}: running SCM agent` });
+                        const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                            reachedIterationCap: false,
+                            configOverrides: {
+                                agentRole: 'scm',
+                                agentId: buildScmAgentId(config.agentId)
+                            }
+                        });
+                        const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
+                        const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
+                        prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
+                    }
+                }
+                catch (error) {
+                    logger.error('Pipeline review/SCM phase failed.', error);
+                }
+            }
             const finalArtifact = {
                 ...artifact,
                 status: loopStatus,
-                loopEndTime: new Date().toISOString()
+                loopEndTime: new Date().toISOString(),
+                ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
+                ...(prUrl !== undefined && { prUrl })
             };
             await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, finalArtifact);
             logger.info('Pipeline run complete.', {
@@ -558,7 +592,8 @@ function registerCommands(context, logger, broadcaster) {
                 status: loopStatus,
                 artifactPath
             });
-            void vscode.window.showInformationMessage(`Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).`);
+            const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
+            void vscode.window.showInformationMessage(`Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).${prSuffix}`);
         }
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.

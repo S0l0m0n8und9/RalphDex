@@ -1958,9 +1958,11 @@
     {
       "id": "T64",
       "title": "Wire review-agent pass and PR submission into runPipeline for full end-to-end pipeline flow",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
-        "T63"
+        "T63",
+        "T64.1",
+        "T64.2"
       ],
       "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review→PR path and update the pipeline-run artifact schema in docs/provenance.md.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -2007,7 +2009,30 @@
       ],
       "notes": "Added buildNoProgressHeatmap (HEATMAP_WINDOW=10, X=no_progress/dot=other) to multiAgentStatus.ts; wired heatmap line into buildMultiAgentStatusReport; added 9 new tests covering heatmap rendering; 472/472 pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T64.1",
+      "title": "Wire review-agent pass",
+      "status": "done",
+      "parentId": "T64",
+      "dependsOn": [
+        "T63"
+      ],
+      "notes": "Added Run Pipeline smoke test verifying review-agent → SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T64.2",
+      "title": "PR submission into runPipeline for full end-to-end pipeline flow",
+      "status": "todo",
+      "parentId": "T64",
+      "dependsOn": [
+        "T63",
+        "T64.1"
+      ],
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T64.1.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 23
+  "mutationCount": 24
 }

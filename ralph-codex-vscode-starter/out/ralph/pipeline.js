@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.extractPrUrl = extractPrUrl;
 exports.buildPipelineRunId = buildPipelineRunId;
 exports.parsePrdSections = parsePrdSections;
 exports.buildPipelineRootTask = buildPipelineRootTask;
@@ -45,6 +46,18 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
 const taskFile_1 = require("./taskFile");
+const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
+/**
+ * Extract the first GitHub/GitLab PR URL from a progress note string.
+ * Returns undefined when no match is found.
+ */
+function extractPrUrl(progressNote) {
+    if (!progressNote) {
+        return undefined;
+    }
+    const match = PR_URL_PATTERN.exec(progressNote);
+    return match ? match[0] : undefined;
+}
 /**
  * Generate a deterministic pipeline run ID from a timestamp.
  * Format: pipeline-<yyyyMMddTHHmmssZ>-<4 hex chars>
