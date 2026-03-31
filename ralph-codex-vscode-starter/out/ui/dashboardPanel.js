@@ -51,8 +51,7 @@ class RalphDashboardPanel {
     broadcaster;
     broadcastDisposable;
     latestState;
-    currentPhase = null;
-    currentIteration = null;
+    agentLanesMap = new Map();
     lastRenderTime = 0;
     constructor(panel, extensionUri, broadcaster) {
         this.panel = panel;
@@ -134,7 +133,8 @@ class RalphDashboardPanel {
             taskTitle: iter.selectedTaskTitle,
             classification: iter.completionClassification,
             stopReason: iter.stopReason,
-            artifactDir: iter.artifactDir
+            artifactDir: iter.artifactDir,
+            agentId: iter.agentId
         }));
         this.latestState = {
             workspaceName: workspaceFolder?.name ?? 'unknown',
@@ -148,8 +148,7 @@ class RalphDashboardPanel {
             preflightReady: true,
             preflightSummary: 'ok',
             diagnostics: [],
-            currentPhase: this.currentPhase,
-            currentIteration: this.currentIteration,
+            agentLanes: this.getLanes(),
             config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null
         };
         this.fullRender();
@@ -157,37 +156,53 @@ class RalphDashboardPanel {
     updateFromBroadcast(event) {
         this.handleBroadcast(event);
     }
+    getLanes() {
+        return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
+            agentId,
+            phase: lane.phase,
+            iteration: lane.iteration
+        }));
+    }
     handleBroadcast(event) {
         switch (event.type) {
-            case 'phase':
-                this.currentPhase = event.phase;
-                this.currentIteration = event.iteration;
-                this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration });
+            case 'phase': {
+                const laneKey = event.agentId ?? 'default';
+                this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
+                this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
+                this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
                 break;
+            }
             case 'loop-start':
                 this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
                 this.fullRender();
                 break;
-            case 'iteration-start':
-                this.currentPhase = 'inspect';
-                this.currentIteration = event.iteration;
+            case 'iteration-start': {
+                const laneKey = event.agentId ?? 'default';
+                this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
                 this.latestState = {
                     ...this.latestState,
                     loopState: 'running',
-                    currentPhase: 'inspect',
-                    currentIteration: event.iteration
+                    agentLanes: this.getLanes()
                 };
                 this.fullRender();
                 break;
-            case 'iteration-end':
-            case 'loop-end':
-                this.currentPhase = null;
-                this.currentIteration = null;
+            }
+            case 'iteration-end': {
+                const laneKey = event.agentId ?? 'default';
+                this.agentLanesMap.delete(laneKey);
                 this.latestState = {
                     ...this.latestState,
-                    loopState: event.type === 'loop-end' ? (event.stopReason ? 'stopped' : 'idle') : this.latestState.loopState,
-                    currentPhase: null,
-                    currentIteration: null
+                    agentLanes: this.getLanes()
+                };
+                this.fullRender();
+                break;
+            }
+            case 'loop-end':
+                this.agentLanesMap.clear();
+                this.latestState = {
+                    ...this.latestState,
+                    loopState: event.stopReason ? 'stopped' : 'idle',
+                    agentLanes: []
                 };
                 this.fullRender();
                 break;

@@ -7,6 +7,7 @@ import type { IterationBroadcaster } from './iterationBroadcaster';
 import { buildDashboardHtml } from './sidebarHtml';
 import type { RalphWatchedState } from './stateWatcher';
 import type {
+  RalphAgentLaneState,
   RalphDashboardConfigSnapshot,
   RalphDashboardIteration,
   RalphDashboardState,
@@ -25,8 +26,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
 
   private view: vscode.WebviewView | undefined;
   private latestState: RalphDashboardState;
-  private currentPhase: RalphIterationPhase | null = null;
-  private currentIteration: number | null = null;
+  private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
   private broadcastDisposable: vscode.Disposable | undefined;
   private lastRenderTime = 0;
 
@@ -62,36 +62,41 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     this.broadcastDisposable?.dispose();
     this.broadcastDisposable = this.broadcaster.onEvent((event) => {
       switch (event.type) {
-        case 'phase':
-          this.currentPhase = event.phase;
-          this.currentIteration = event.iteration;
+        case 'phase': {
+          const laneKey = event.agentId ?? 'default';
+          this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
           // Send lightweight phase update (no full re-render)
-          this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration });
+          this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
           break;
+        }
         case 'loop-start':
           this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
           this.fullRender();
           break;
-        case 'iteration-start':
-          this.currentPhase = 'inspect';
-          this.currentIteration = event.iteration;
+        case 'iteration-start': {
+          const laneKey = event.agentId ?? 'default';
+          this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
           this.latestState = {
             ...this.latestState,
             loopState: 'running',
-            currentPhase: 'inspect',
-            currentIteration: event.iteration
+            agentLanes: this.getLanes()
           };
           this.fullRender();
           break;
-        case 'iteration-end':
+        }
+        case 'iteration-end': {
+          const laneKey = event.agentId ?? 'default';
+          this.agentLanesMap.delete(laneKey);
+          this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
+          this.fullRender();
+          break;
+        }
         case 'loop-end':
-          this.currentPhase = null;
-          this.currentIteration = null;
+          this.agentLanesMap.clear();
           this.latestState = {
             ...this.latestState,
-            loopState: event.type === 'loop-end' ? (event.stopReason ? 'stopped' : 'idle') : this.latestState.loopState,
-            currentPhase: null,
-            currentIteration: null
+            loopState: event.stopReason ? 'stopped' : 'idle',
+            agentLanes: []
           };
           this.fullRender();
           break;
@@ -126,7 +131,8 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
         taskTitle: iter.selectedTaskTitle,
         classification: iter.completionClassification,
         stopReason: iter.stopReason,
-        artifactDir: iter.artifactDir
+        artifactDir: iter.artifactDir,
+        agentId: iter.agentId
       }));
 
     this.latestState = {
@@ -141,12 +147,19 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
       preflightReady: true,
       preflightSummary: 'ok',
       diagnostics: [],
-      currentPhase: this.currentPhase,
-      currentIteration: this.currentIteration,
+      agentLanes: this.getLanes(),
       config: config ? snapshotConfig(config) : null
     };
 
     this.fullRender();
+  }
+
+  private getLanes(): RalphAgentLaneState[] {
+    return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
+      agentId,
+      phase: lane.phase,
+      iteration: lane.iteration
+    }));
   }
 
   private fullRender(): void {
@@ -190,8 +203,7 @@ export function defaultDashboardState(): RalphDashboardState {
     preflightReady: true,
     preflightSummary: 'ok',
     diagnostics: [],
-    currentPhase: null,
-    currentIteration: null,
+    agentLanes: [],
     config: null
   };
 }

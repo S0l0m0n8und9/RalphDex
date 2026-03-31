@@ -34,11 +34,18 @@ export type RalphIterationPhase =
   | 'classify'
   | 'persist';
 
+export interface RalphAgentLaneState {
+  agentId: string;
+  phase: RalphIterationPhase | null;
+  iteration: number | null;
+}
+
 export interface RalphPhaseEvent {
   type: 'phase';
   iteration: number;
   phase: RalphIterationPhase;
   timestamp: string;
+  agentId?: string;
 }
 
 export interface RalphIterationStartEvent {
@@ -47,6 +54,7 @@ export interface RalphIterationStartEvent {
   iterationCap: number;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
+  agentId?: string;
 }
 
 export interface RalphIterationEndEvent {
@@ -54,6 +62,7 @@ export interface RalphIterationEndEvent {
   iteration: number;
   classification: RalphCompletionClassification;
   stopReason: RalphStopReason | null;
+  agentId?: string;
 }
 
 export interface RalphLoopStartEvent {
@@ -99,6 +108,7 @@ export interface RalphDashboardIteration {
   classification: RalphCompletionClassification;
   stopReason: RalphStopReason | null;
   artifactDir: string;
+  agentId?: string;
 }
 
 export interface RalphDashboardConfigSnapshot {
@@ -191,15 +201,14 @@ export interface RalphDashboardState {
   preflightReady: boolean;
   preflightSummary: string;
   diagnostics: Array<{ severity: string; message: string }>;
-  currentPhase: RalphIterationPhase | null;
-  currentIteration: number | null;
+  agentLanes: RalphAgentLaneState[];
   config: RalphDashboardConfigSnapshot | null;
 }
 
 /** Messages sent from extension to webview. */
 export type RalphWebviewMessage =
   | { type: 'state'; state: RalphDashboardState }
-  | { type: 'phase'; phase: RalphIterationPhase; iteration: number }
+  | { type: 'phase'; phase: RalphIterationPhase; iteration: number; agentId?: string }
   | { type: 'command-ack'; command: string; status: 'started' | 'done' | 'error' };
 
 /** Messages sent from webview to extension. */

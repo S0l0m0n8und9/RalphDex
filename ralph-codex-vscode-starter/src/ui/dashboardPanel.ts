@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import type { IterationBroadcaster } from './iterationBroadcaster';
-import type { RalphBroadcastEvent, RalphIterationPhase, RalphWebviewCommand } from './uiTypes';
+import type { RalphAgentLaneState, RalphBroadcastEvent, RalphIterationPhase, RalphWebviewCommand } from './uiTypes';
 import type { RalphWatchedState } from './stateWatcher';
 import { buildPanelDashboardHtml } from './panelHtml';
 import { buildDashboardTasks, countTasks, defaultDashboardState, snapshotConfig } from './sidebarViewProvider';
@@ -21,8 +21,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
   private readonly broadcaster: IterationBroadcaster;
   private broadcastDisposable: vscode.Disposable | undefined;
   private latestState: RalphDashboardState;
-  private currentPhase: RalphIterationPhase | null = null;
-  private currentIteration: number | null = null;
+  private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
   private lastRenderTime = 0;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, broadcaster: IterationBroadcaster) {
@@ -120,7 +119,8 @@ export class RalphDashboardPanel implements vscode.Disposable {
         taskTitle: iter.selectedTaskTitle,
         classification: iter.completionClassification,
         stopReason: iter.stopReason,
-        artifactDir: iter.artifactDir
+        artifactDir: iter.artifactDir,
+        agentId: iter.agentId
       }));
 
     this.latestState = {
@@ -135,8 +135,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       preflightReady: true,
       preflightSummary: 'ok',
       diagnostics: [],
-      currentPhase: this.currentPhase,
-      currentIteration: this.currentIteration,
+      agentLanes: this.getLanes(),
       config: config ? snapshotConfig(config) : null
     };
 
@@ -147,37 +146,54 @@ export class RalphDashboardPanel implements vscode.Disposable {
     this.handleBroadcast(event);
   }
 
+  private getLanes(): RalphAgentLaneState[] {
+    return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
+      agentId,
+      phase: lane.phase,
+      iteration: lane.iteration
+    }));
+  }
+
   private handleBroadcast(event: RalphBroadcastEvent): void {
     switch (event.type) {
-      case 'phase':
-        this.currentPhase = event.phase;
-        this.currentIteration = event.iteration;
-        this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration });
+      case 'phase': {
+        const laneKey = event.agentId ?? 'default';
+        this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
+        this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
+        this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
         break;
+      }
       case 'loop-start':
         this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
         this.fullRender();
         break;
-      case 'iteration-start':
-        this.currentPhase = 'inspect';
-        this.currentIteration = event.iteration;
+      case 'iteration-start': {
+        const laneKey = event.agentId ?? 'default';
+        this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
         this.latestState = {
           ...this.latestState,
           loopState: 'running',
-          currentPhase: 'inspect',
-          currentIteration: event.iteration
+          agentLanes: this.getLanes()
         };
         this.fullRender();
         break;
-      case 'iteration-end':
-      case 'loop-end':
-        this.currentPhase = null;
-        this.currentIteration = null;
+      }
+      case 'iteration-end': {
+        const laneKey = event.agentId ?? 'default';
+        this.agentLanesMap.delete(laneKey);
         this.latestState = {
           ...this.latestState,
-          loopState: event.type === 'loop-end' ? (event.stopReason ? 'stopped' : 'idle') : this.latestState.loopState,
-          currentPhase: null,
-          currentIteration: null
+          agentLanes: this.getLanes()
+        };
+        this.fullRender();
+        break;
+      }
+      case 'loop-end':
+        this.agentLanesMap.clear();
+        this.latestState = {
+          ...this.latestState,
+          loopState: event.stopReason ? 'stopped' : 'idle',
+          agentLanes: []
         };
         this.fullRender();
         break;
