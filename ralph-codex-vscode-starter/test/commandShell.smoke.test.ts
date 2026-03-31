@@ -391,13 +391,17 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
 
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'prd.md'), 'utf8'), '<!-- TODO: Replace with your Ralph objective before running iterations. -->\n');
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8'), '');
-  assert.deepEqual(JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')), {
-    version: 2,
-    tasks: []
-  });
+  const tasksJson = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'));
+  assert.equal(tasksJson.version, 2);
+  assert.equal(tasksJson.tasks.length, 1);
+  assert.equal(tasksJson.tasks[0].id, 'T1');
+  assert.equal(tasksJson.tasks[0].status, 'todo');
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
-  assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'prd.md')]);
-  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Ralph workspace initialized/);
+  assert.deepEqual(harness.state.shownDocuments, [
+    path.join(rootPath, '.ralph', 'prd.md'),
+    path.join(rootPath, '.ralph', 'tasks.json')
+  ]);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Ralph workspace ready/);
 });
 
 test('Initialize Workspace aborts with a warning when .ralph/prd.md already exists', async () => {
