@@ -450,6 +450,7 @@ function registerCommands(context, logger, broadcaster) {
                 void vscode.window.showWarningMessage('ralphCodex.agentCount is 1. Running a single-agent loop. Set agentCount ≥ 2 for concurrent multi-agent mode.');
             }
             progress.report({ message: `Starting ${agentCount} concurrent agent loop(s)` });
+            broadcaster?.emitLoopStart(config.ralphIterationCap);
             // Build distinct agentId per slot. Use suffix only when multiple agents share the same base id.
             const agentSlots = Array.from({ length: agentCount }, (_, i) => ({
                 slotIndex: i,
@@ -458,9 +459,23 @@ function registerCommands(context, logger, broadcaster) {
             const agentLoops = agentSlots.map(async ({ agentId }) => {
                 let lastRun = null;
                 for (let index = 0; index < config.ralphIterationCap; index += 1) {
+                    broadcaster?.emitIterationStart({
+                        iteration: index + 1,
+                        iterationCap: config.ralphIterationCap,
+                        selectedTaskId: null,
+                        selectedTaskTitle: null,
+                        agentId
+                    });
                     lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
                         reachedIterationCap: index + 1 >= config.ralphIterationCap,
-                        configOverrides: { agentId }
+                        configOverrides: { agentId },
+                        broadcaster
+                    });
+                    broadcaster?.emitIterationEnd({
+                        iteration: lastRun.result.iteration,
+                        classification: lastRun.result.completionClassification,
+                        stopReason: lastRun.result.stopReason,
+                        agentId
                     });
                     if (lastRun.result.executionStatus === 'failed') {
                         throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
@@ -498,6 +513,7 @@ function registerCommands(context, logger, broadcaster) {
             const summary = fulfilled
                 .map(({ value: { agentId, lastRun } }) => lastRun ? `${agentId}: ${lastRun.result.completionClassification}` : `${agentId}: no iterations`)
                 .join('; ');
+            broadcaster?.emitLoopEnd(config.ralphIterationCap, null);
             void vscode.window.showInformationMessage(`Ralph multi-agent loop finished (${agentCount} agent(s)). ${summary}`);
         }
     });

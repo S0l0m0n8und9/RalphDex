@@ -3,10 +3,10 @@ import type {
   RalphDashboardState
 } from './uiTypes';
 import {
+  buildAgentLanes,
   buildBaseCss,
   buildDiagnostics,
   buildIterationRow,
-  buildPhaseTracker,
   buildProgressBar,
   buildTaskRow,
   esc,
@@ -468,7 +468,7 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
     <div class="header-state">${esc(state.workspaceName)} · ${stateLabel} · ${esc(state.agentRole)}</div>
   </div>
 
-  ${buildPhaseTracker(state.currentPhase, state.currentIteration)}
+  ${buildAgentLanes(state.agentLanes)}
   ${buildProgressBar(state.taskCounts)}
 
   <div class="dashboard-grid">
@@ -696,9 +696,13 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
       window.addEventListener('message', function(event) {
         var msg = event.data;
         if (msg.type === 'phase') {
-          var steps = document.querySelectorAll('.phase-step');
           var phases = ${JSON.stringify(PHASE_LABELS)};
           var activeIdx = phases.indexOf(msg.phase);
+          var scope = msg.agentId
+            ? document.querySelector('.agent-lane[data-agent-id="' + msg.agentId + '"]')
+            : (document.querySelector('.agent-lane') || document);
+          var container = scope || document;
+          var steps = container.querySelectorAll('.phase-step');
           steps.forEach(function(step, i) {
             step.className = 'phase-step' + (i < activeIdx ? ' done' : i === activeIdx ? ' active' : '');
           });

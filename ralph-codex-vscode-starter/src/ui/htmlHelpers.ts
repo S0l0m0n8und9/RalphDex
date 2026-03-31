@@ -1,5 +1,6 @@
 import type { RalphTaskCounts } from '../ralph/types';
 import type {
+  RalphAgentLaneState,
   RalphDashboardIteration,
   RalphDashboardState,
   RalphDashboardTask,
@@ -119,13 +120,28 @@ export function buildPhaseTracker(currentPhase: RalphIterationPhase | null, curr
 export function buildIterationRow(iter: RalphDashboardIteration): string {
   const glyph = CLASSIFICATION_CHAR[iter.classification] ?? '?';
   const taskLabel = iter.taskId ?? '—';
+  const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '';
 
   return `<div class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}">
     <span class="iter-num">#${iter.iteration}</span>
+    ${agentLabel}
     <span class="iter-task">${esc(taskLabel)}</span>
     <span class="iter-class">${iter.classification.replace(/_/g, ' ')}</span>
     <span class="iter-glyph">${glyph}</span>
   </div>`;
+}
+
+export function buildAgentLanes(lanes: RalphAgentLaneState[]): string {
+  if (lanes.length === 0) {
+    return '';
+  }
+  if (lanes.length === 1) {
+    return buildPhaseTracker(lanes[0].phase, lanes[0].iteration);
+  }
+  return lanes.map((lane) => `<div class="agent-lane" data-agent-id="${esc(lane.agentId)}">
+    <span class="agent-lane-id">${esc(lane.agentId)}</span>
+    ${buildPhaseTracker(lane.phase, lane.iteration)}
+  </div>`).join('\n');
 }
 
 export function buildDiagnostics(state: RalphDashboardState): string {
@@ -341,17 +357,37 @@ export function buildBaseCss(): string {
 }
 
 .iter-num { width: 28px; flex-shrink: 0; color: var(--ralph-dim); }
+.iter-agent { width: 72px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--ralph-amber); }
 .iter-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iter-class { width: 100px; flex-shrink: 0; text-align: right; font-size: 10px; color: var(--ralph-dim); }
 .iter-glyph { width: 16px; flex-shrink: 0; text-align: center; }
 
+/* Agent swim lanes */
+.agent-lane {
+  margin-bottom: 6px;
+}
+
+.agent-lane-id {
+  display: inline-block;
+  font-size: 10px;
+  color: var(--ralph-amber);
+  letter-spacing: 0.5px;
+  width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
 /* Phase tracker */
 .phase-tracker {
-  display: flex;
+  display: inline-flex;
   gap: 2px;
   font-size: 10px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
   flex-wrap: wrap;
+  vertical-align: middle;
 }
 
 .phase-step {
