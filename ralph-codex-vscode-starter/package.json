@@ -85,6 +85,8 @@
   "activationEvents": [
     "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.addTask",
+    "onCommand:ralphCodex.newProject",
+    "onCommand:ralphCodex.switchProject",
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
@@ -119,6 +121,14 @@
       {
         "command": "ralphCodex.addTask",
         "title": "Ralph Codex: Add Task"
+      },
+      {
+        "command": "ralphCodex.newProject",
+        "title": "Ralph Codex: New Project"
+      },
+      {
+        "command": "ralphCodex.switchProject",
+        "title": "Ralph Codex: Switch Project"
       },
       {
         "command": "ralphCodex.generatePrompt",

@@ -3,6 +3,7 @@ const Module = require('node:module');
 
 const state = {
   configuration: {},
+  updatedSettings: {},
   workspaceFolders: [],
   isTrusted: true,
   availableCommands: [],
@@ -29,6 +30,7 @@ function reset() {
   state.executedCommands = [];
   state.inputBoxValue = undefined;
   state.messageChoice = undefined;
+  state.updatedSettings = {};
   outputChannels.clear();
   registeredCommands.clear();
 }
@@ -68,6 +70,11 @@ const vscodeStub = {
   EventEmitter: StubEventEmitter,
   ProgressLocation: {
     Notification: 15
+  },
+  ConfigurationTarget: {
+    Global: 1,
+    Workspace: 2,
+    WorkspaceFolder: 3
   },
   StatusBarAlignment: {
     Left: 1,
@@ -129,6 +136,11 @@ const vscodeStub = {
       return {
         get(key) {
           return state.configuration[key];
+        },
+        update(key, value) {
+          state.configuration[key] = value;
+          state.updatedSettings[key] = value;
+          return Promise.resolve();
         }
       };
     },
