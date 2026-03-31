@@ -1936,13 +1936,13 @@
     {
       "id": "T62",
       "title": "Add stale-claim and repeated-no-progress heatmap to Show Multi-Agent Status",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T61",
         "T62.1",
         "T62.2"
       ],
-      "notes": "Read .ralph/agents/<agentId>.json iteration history and watchdog artifacts to compute a per-agent stuck score (count of consecutive same-task no-progress stops). Render agents above a threshold (>=3) as warnings in the Show Multi-Agent Status output channel. Add regression coverage for stuck-score computation and rendering; update docs/workflows.md.",
+      "notes": "Added no-progress heatmap bullet to Show Multi-Agent Status section in docs/workflows.md; all implementation and tests already complete from T62.1 and T62.2",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2009,5 +2009,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 21
+  "mutationCount": 22
 }
