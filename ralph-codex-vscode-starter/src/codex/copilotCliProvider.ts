@@ -9,20 +9,13 @@ export interface CopilotCliProviderOptions {
   approvalMode: CopilotApprovalMode;
 }
 
-/**
- * Maximum safe argv byte length.  Windows CMD has a ~32 KB limit; POSIX
- * systems typically allow ~128 KB but some shells truncate sooner.  When
- * the prompt exceeds this size we switch to stdin delivery.
- */
-export const MAX_ARGV_PROMPT_BYTES = 30_000;
-
 export class CopilotCliProvider implements CliProvider {
   public readonly id = 'copilot' as const;
 
   public constructor(private readonly options: CopilotCliProviderOptions) {}
 
   public buildLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): CliLaunchSpec {
-    const args = ['-s'];
+    const args = ['-s', '--no-ask-user'];
 
     if (request.model.trim()) {
       args.push('--model', request.model);
@@ -34,11 +27,15 @@ export class CopilotCliProvider implements CliProvider {
       args.push('--allow-tool', 'shell');
     }
 
-    // Always use stdin delivery for prompt content.  Multi-line markdown
-    // prompts contain characters (# | & > etc.) that break shell expansion
-    // on Windows where the copilot wrapper is a .bat/.cmd file executed via
-    // cmd.exe.  Stdin delivery avoids all quoting/escaping issues.
-    args.push('-p', '-');
+    // The Copilot CLI supports two programmatic prompt-delivery modes:
+    //   1. `copilot -p "inline prompt"` — limited by argv length
+    //   2. `echo "prompt" | copilot`   — piped via stdin, no `-p` flag
+    //
+    // NOTE: "Piped input is ignored if you also provide a prompt with
+    // the -p or --prompt option."  (GitHub docs)
+    //
+    // We always pipe via stdin because Ralph prompts are multi-line
+    // markdown that can easily exceed argv limits on Windows (~32 KB).
     return {
       args,
       cwd: request.executionRoot,

@@ -141,7 +141,8 @@ async function generateProjectDraft(objective, config, cwd) {
         sandboxMode: config.sandboxMode,
         approvalMode: config.approvalMode
     }, true);
-    const result = await (0, processRunner_1.runProcess)(commandPath, launchSpec.args, {
+    let result;
+    result = await (0, processRunner_1.runProcess)(commandPath, launchSpec.args, {
         cwd: launchSpec.cwd,
         stdinText: launchSpec.stdinText
     });

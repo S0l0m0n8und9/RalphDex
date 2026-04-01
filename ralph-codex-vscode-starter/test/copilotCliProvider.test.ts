@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { CopilotCliProvider, MAX_ARGV_PROMPT_BYTES } from '../src/codex/copilotCliProvider';
+import { CopilotCliProvider } from '../src/codex/copilotCliProvider';
 import { CodexExecResult, CodexExecRequest } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 
@@ -29,23 +29,32 @@ function provider(approvalMode: 'allow-all' | 'allow-tools-only' | 'interactive'
   return new CopilotCliProvider({ approvalMode });
 }
 
-test('buildLaunchSpec uses stdin prompt delivery and executionRoot cwd', () => {
+test('buildLaunchSpec pipes prompt via stdin without -p flag', () => {
   const launch = provider().buildLaunchSpec(request(), false);
 
-  assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
-  assert.equal(launch.cwd, '/workspace/repo');
+  // Should deliver prompt via stdinText — the Copilot CLI reads piped
+  // input when no -p flag is present.
   assert.equal(launch.stdinText, 'Ship it.');
+
+  // Must NOT include -p (piped input is ignored when -p is present).
+  assert.ok(!launch.args.includes('-p'), 'should not have -p flag');
+  assert.ok(!launch.args.includes('--prompt'), 'should not have --prompt flag');
+
+  assert.ok(launch.args.includes('-s'), 'should include -s for silent mode');
+  assert.ok(launch.args.includes('--no-ask-user'), 'should include --no-ask-user');
+  assert.equal(launch.cwd, '/workspace/repo');
 });
 
 test('buildLaunchSpec supports allow-tools-only and interactive modes', () => {
-  assert.deepEqual(
-    provider('allow-tools-only').buildLaunchSpec(request(), false).args,
-    ['-s', '--model', 'gpt-5.4', '--allow-tool', 'shell', '-p', '-']
-  );
-  assert.deepEqual(
-    provider('interactive').buildLaunchSpec(request(), false).args,
-    ['-s', '--model', 'gpt-5.4', '-p', '-']
-  );
+  const toolsLaunch = provider('allow-tools-only').buildLaunchSpec(request(), false);
+  assert.ok(toolsLaunch.args.includes('--allow-tool'));
+  assert.ok(toolsLaunch.args.includes('shell'));
+  assert.equal(toolsLaunch.stdinText, 'Ship it.');
+
+  const interactiveLaunch = provider('interactive').buildLaunchSpec(request(), false);
+  assert.ok(!interactiveLaunch.args.includes('--allow-all'));
+  assert.ok(!interactiveLaunch.args.includes('--allow-tool'));
+  assert.equal(interactiveLaunch.stdinText, 'Ship it.');
 });
 
 test('extractResponseText returns stdout text and persists it', async () => {
@@ -67,6 +76,7 @@ test('describeLaunchError explains missing Copilot CLI path', () => {
 test('buildTranscript produces Copilot-specific transcript format', () => {
   const p = provider();
   const req = request();
+  const launch = p.buildLaunchSpec(req, false);
   const res: CodexExecResult = {
     strategy: 'cliExec',
     success: true,
@@ -75,7 +85,7 @@ test('buildTranscript produces Copilot-specific transcript format', () => {
     exitCode: 0,
     stdout: 'done',
     stderr: '',
-    args: p.buildLaunchSpec(req, false).args,
+    args: launch.args,
     stdinHash: hashText('Ship it.'),
     transcriptPath: req.transcriptPath,
     lastMessagePath: req.lastMessagePath,
@@ -94,21 +104,21 @@ test('buildTranscript produces Copilot-specific transcript format', () => {
 // Stdin prompt delivery for large prompts
 // ---------------------------------------------------------------------------
 
-test('buildLaunchSpec always uses stdin delivery regardless of prompt size', () => {
-  const largePrompt = 'x'.repeat(MAX_ARGV_PROMPT_BYTES + 1);
+test('buildLaunchSpec uses stdin for any prompt size', () => {
+  const largePrompt = 'x'.repeat(100_000);
   const req = { ...request(), prompt: largePrompt, promptHash: hashText(largePrompt), promptByteLength: Buffer.byteLength(largePrompt, 'utf8') };
   const launch = provider().buildLaunchSpec(req, false);
 
-  assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
   assert.equal(launch.stdinText, largePrompt);
+  assert.ok(!launch.args.includes('-p'), 'should not have -p for large prompts');
 
-  // Small prompts also use stdin to avoid shell quoting issues on Windows.
+  // Small prompts also use stdin for consistency.
   const smallPrompt = 'Hello';
   const smallReq = { ...request(), prompt: smallPrompt, promptHash: hashText(smallPrompt), promptByteLength: Buffer.byteLength(smallPrompt, 'utf8') };
   const smallLaunch = provider().buildLaunchSpec(smallReq, false);
 
-  assert.ok(!smallLaunch.args.includes(smallPrompt));
   assert.equal(smallLaunch.stdinText, smallPrompt);
+  assert.ok(!smallLaunch.args.includes('-p'), 'should not have -p for small prompts');
 });
 
 // ---------------------------------------------------------------------------

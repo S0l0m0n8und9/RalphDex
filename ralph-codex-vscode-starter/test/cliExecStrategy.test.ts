@@ -119,7 +119,7 @@ test('buildArgs allows deliberate high reasoning escalation', () => {
   ]);
 });
 
-test('CliExecCodexStrategy supports argv-prompt providers such as Copilot', async () => {
+test('CliExecCodexStrategy supports stdin-pipe providers such as Copilot', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-cli-'));
   let capturedArgs: string[] = [];
   let capturedStdinText: string | undefined;
@@ -153,8 +153,9 @@ test('CliExecCodexStrategy supports argv-prompt providers such as Copilot', asyn
     assert.equal(result.exitCode, 0);
     assert.equal(result.lastMessage, 'Copilot response');
     assert.equal(capturedCwd, root);
+    // Copilot provider pipes via stdin, no -p flag
     assert.equal(capturedStdinText, 'Ship it.');
-    assert.deepEqual(capturedArgs, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
+    assert.ok(!capturedArgs.includes('-p'), 'should not have -p flag');
   } finally {
     setProcessRunnerOverride(null);
   }

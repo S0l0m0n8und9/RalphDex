@@ -33,15 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CopilotCliProvider = exports.MAX_ARGV_PROMPT_BYTES = void 0;
+exports.CopilotCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
 const text_1 = require("../util/text");
-/**
- * Maximum safe argv byte length.  Windows CMD has a ~32 KB limit; POSIX
- * systems typically allow ~128 KB but some shells truncate sooner.  When
- * the prompt exceeds this size we switch to stdin delivery.
- */
-exports.MAX_ARGV_PROMPT_BYTES = 30_000;
 class CopilotCliProvider {
     options;
     id = 'copilot';
@@ -49,7 +43,7 @@ class CopilotCliProvider {
         this.options = options;
     }
     buildLaunchSpec(request, _skipGitCheck) {
-        const args = ['-s'];
+        const args = ['-s', '--no-ask-user'];
         if (request.model.trim()) {
             args.push('--model', request.model);
         }
@@ -59,11 +53,15 @@ class CopilotCliProvider {
         else if (this.options.approvalMode === 'allow-tools-only') {
             args.push('--allow-tool', 'shell');
         }
-        // Always use stdin delivery for prompt content.  Multi-line markdown
-        // prompts contain characters (# | & > etc.) that break shell expansion
-        // on Windows where the copilot wrapper is a .bat/.cmd file executed via
-        // cmd.exe.  Stdin delivery avoids all quoting/escaping issues.
-        args.push('-p', '-');
+        // The Copilot CLI supports two programmatic prompt-delivery modes:
+        //   1. `copilot -p "inline prompt"` — limited by argv length
+        //   2. `echo "prompt" | copilot`   — piped via stdin, no `-p` flag
+        //
+        // NOTE: "Piped input is ignored if you also provide a prompt with
+        // the -p or --prompt option."  (GitHub docs)
+        //
+        // We always pipe via stdin because Ralph prompts are multi-line
+        // markdown that can easily exceed argv limits on Windows (~32 KB).
         return {
             args,
             cwd: request.executionRoot,
