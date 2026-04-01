@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
@@ -29,6 +30,7 @@ import {
 import { registerArtifactAndMaintenanceCommands } from './artifactCommands';
 import { extractPrUrl, parsePrdSections, scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
 import { resolveRalphPaths } from '../ralph/pathResolver';
+import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -323,26 +325,48 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         gitignorePath: result.gitignorePath
       });
 
-      // Step 1: Seed the PRD with a brief objective
+      // Read config to know which CLI provider to use for generation
+      const config = readConfig(workspaceFolder);
+
+      // Step 1: Prompt for objective
       const objective = await vscode.window.showInputBox({
         prompt: 'Enter a short project objective (press Escape to fill in prd.md manually)',
         placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
         ignoreFocusOut: true
       });
 
-      const prdText = objective?.trim()
-        ? `# Product / project brief\n\n${objective.trim()}\n`
-        : RALPH_PRD_PLACEHOLDER;
+      let prdText: string;
+      let drafts: Pick<RalphTask, 'id' | 'title' | 'status'>[];
 
       if (objective?.trim()) {
-        await fs.writeFile(result.prdPath, prdText, 'utf8');
-        logger.info('Seeded PRD with user-provided objective.');
+        progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
+        try {
+          const generated = await generateProjectDraft(objective.trim(), config, workspaceFolder.uri.fsPath);
+          prdText = generated.prdText;
+          drafts = generated.tasks;
+          logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
+        } catch (err) {
+          const reason = err instanceof ProjectGenerationError || err instanceof Error
+            ? err.message
+            : String(err);
+          logger.info(`AI generation failed, falling back to template. Reason: ${reason}`);
+          void vscode.window.showWarningMessage(
+            `AI generation failed — files seeded with a starter template. Refine before running. (${reason})`
+          );
+          prdText = `# Product / project brief\n\n${objective.trim()}\n`;
+          drafts = draftTasksFromPrd(prdText);
+        }
+      } else {
+        prdText = RALPH_PRD_PLACEHOLDER;
+        drafts = draftTasksFromPrd(prdText);
       }
 
-      // Step 2: Auto-generate starter tasks from PRD headings
-      const drafts = draftTasksFromPrd(prdText);
+      await fs.writeFile(result.prdPath, prdText, 'utf8');
+      logger.info('Wrote prd.md.');
+
+      // Step 2: Write starter tasks
       await appendTasksToFile(result.tasksPath, drafts);
-      logger.info(`Generated ${drafts.length} starter task(s) from PRD.`);
+      logger.info(`Wrote ${drafts.length} starter task(s) to tasks.json.`);
 
       // Open both files side-by-side so the user can review and refine
       await openTextFile(result.prdPath);
