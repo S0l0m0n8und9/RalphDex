@@ -1958,7 +1958,7 @@
     {
       "id": "T64",
       "title": "Wire review-agent pass and PR submission into runPipeline for full end-to-end pipeline flow",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T63",
         "T64.1",
@@ -1970,7 +1970,7 @@
     {
       "id": "T65",
       "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T64"
       ],
@@ -1980,11 +1980,11 @@
     {
       "id": "T66",
       "title": "Configurable human-review gate in runPipeline: pause before PR submission and resume via approveHumanReview command",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T65"
       ],
-      "notes": "Add ralphCodex.pipelineHumanGates boolean setting (default false) to package.json, config types, defaults, and readConfig. When enabled, runPipeline pauses after the review-agent pass and writes an 'awaiting_human_approval' handoff note to .ralph/handoff/pipeline-<runId>-pending.json instead of submitting the PR. Add ralphCodex.approveHumanReview command that reads the pending pipeline handoff and resumes from the PR submission step. Add packageManifest test, gate-enabled and gate-disabled smoke coverage, and update docs/workflows.md and docs/config with the new setting.",
+      "notes": "Released stale T64.2 active claim that blocked check:ledger; added Configurable Human-Review Gate section to docs/workflows.md documenting pipelineHumanGates and approveHumanReview; all 509 tests pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2034,5 +2034,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 25
+  "mutationCount": 26
 }

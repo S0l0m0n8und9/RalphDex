@@ -146,9 +146,19 @@ The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
 - `rootTaskId` — the auto-generated pipeline-root parent task id
 - `decomposedTaskIds` — the child task ids derived from the PRD sections
 - `loopStartTime` and `loopEndTime` — ISO-8601 timestamps
-- `status` — `running`, `complete`, or `failed`
+- `status` — `running`, `complete`, `failed`, or `awaiting_human_approval`
+- `reviewTranscriptPath` — path to the review-agent transcript (when the review pass ran)
+- `prUrl` — GitHub/GitLab PR URL extracted from the SCM agent completion report (when available)
 
 This command is the supported end-to-end pipeline path. It does not bypass the normal task-graph, claim, or iteration-cap constraints; it only adds the scaffold tasks and then delegates execution to the existing multi-agent loop.
+
+### Configurable Human-Review Gate
+
+When `ralphCodex.pipelineHumanGates` is `true`, Ralph pauses after the review-agent pass instead of immediately submitting the PR. It writes a pending-handoff file to `.ralph/handoff/pipeline-<runId>-pending.json` and sets the pipeline artifact status to `awaiting_human_approval`. No SCM agent is invoked at this point.
+
+To resume, run `Ralph Codex: Approve Human Review`. Ralph discovers all pending handoff files in `.ralph/handoff/`, prompts for a selection if more than one is found, then runs the SCM agent to submit the PR, updates the pipeline artifact to `status: complete`, and removes the pending handoff file.
+
+`ralphCodex.pipelineHumanGates` defaults to `false`. With the default, the SCM agent runs immediately after the review pass with no human checkpoint.
 
 ## Prompt Budgeting And Quota Control
 

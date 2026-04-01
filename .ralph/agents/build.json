@@ -2,9 +2,37 @@
   "agentId": "build",
   "firstSeenAt": "2026-04-01T06:42:55.514Z",
   "completedTaskIds": [
-    "T64.2"
+    "T64.2",
+    "T66"
   ],
   "touchedFiles": [
-    "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts"
+    "ralph-codex-vscode-starter/docs/workflows.md",
+    "ralph-codex-vscode-starter/out/codex/providerFactory.js",
+    "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
+    "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
+    "ralph-codex-vscode-starter/out/config/defaults.js",
+    "ralph-codex-vscode-starter/out/config/readConfig.js",
+    "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
+    "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+    "ralph-codex-vscode-starter/out/ralph/completionReportParser.js",
+    "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
+    "ralph-codex-vscode-starter/out/ralph/iterationPreparation.js",
+    "ralph-codex-vscode-starter/out/ralph/iterationScm.js",
+    "ralph-codex-vscode-starter/out/ralph/pipeline.js",
+    "ralph-codex-vscode-starter/out/ralph/projectGenerator.js",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+    "ralph-codex-vscode-starter/out/ui/panelHtml.js",
+    "ralph-codex-vscode-starter/out/ui/sidebarHtml.js",
+    "ralph-codex-vscode-starter/package-lock.json",
+    "ralph-codex-vscode-starter/package.json",
+    "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
+    "ralph-codex-vscode-starter/src/config/defaults.ts",
+    "ralph-codex-vscode-starter/src/config/readConfig.ts",
+    "ralph-codex-vscode-starter/src/config/types.ts",
+    "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
+    "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+    "ralph-codex-vscode-starter/test/packageManifest.test.ts",
+    "ralph-codex-vscode-starter/test/pipeline.test.ts"
   ]
 }

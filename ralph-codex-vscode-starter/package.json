@@ -74,7 +74,8 @@
         "ralphCodex.copilotApprovalMode",
         "ralphCodex.openSidebarCommandId",
         "ralphCodex.newChatCommandId",
-        "ralphCodex.agentCount"
+        "ralphCodex.agentCount",
+        "ralphCodex.pipelineHumanGates"
       ]
     },
     "virtualWorkspaces": {
@@ -109,6 +110,7 @@
     "onCommand:ralphCodex.runWatchdogAgent",
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runPipeline",
+    "onCommand:ralphCodex.approveHumanReview",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -221,6 +223,10 @@
       {
         "command": "ralphCodex.runPipeline",
         "title": "Ralph Codex: Run Pipeline"
+      },
+      {
+        "command": "ralphCodex.approveHumanReview",
+        "title": "Ralph Codex: Approve Human Review"
       }
     ],
     "viewsContainers": {
@@ -246,7 +252,11 @@
       "properties": {
         "ralphCodex.cliProvider": {
           "type": "string",
-          "enum": ["codex", "claude", "copilot"],
+          "enum": [
+            "codex",
+            "claude",
+            "copilot"
+          ],
           "default": "claude",
           "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, and 'copilot' uses the GitHub Copilot CLI."
         },
@@ -274,13 +284,20 @@
         },
         "ralphCodex.claudePermissionMode": {
           "type": "string",
-          "enum": ["dangerously-skip-permissions", "default"],
+          "enum": [
+            "dangerously-skip-permissions",
+            "default"
+          ],
           "default": "dangerously-skip-permissions",
           "description": "Permission mode for Claude CLI runs. 'dangerously-skip-permissions' runs without approval prompts (suitable for unattended Ralph iterations). 'default' uses Claude's standard permission system."
         },
         "ralphCodex.copilotApprovalMode": {
           "type": "string",
-          "enum": ["allow-all", "allow-tools-only", "interactive"],
+          "enum": [
+            "allow-all",
+            "allow-tools-only",
+            "interactive"
+          ],
           "default": "allow-all",
           "description": "Approval posture for GitHub Copilot CLI runs. 'allow-all' favors unattended Ralph iterations, 'allow-tools-only' pre-approves tools but stays more restrictive, and 'interactive' leaves Copilot in its default approval flow."
         },
@@ -291,13 +308,22 @@
         },
         "ralphCodex.agentRole": {
           "type": "string",
-          "enum": ["build", "review", "watchdog", "scm"],
+          "enum": [
+            "build",
+            "review",
+            "watchdog",
+            "scm"
+          ],
           "default": "build",
           "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, 'watchdog' performs bounded claim/task recovery, and 'scm' performs source-control follow-through for branch-per-task flows."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",
-          "enum": ["ideCommand", "clipboard", "cliExec"],
+          "enum": [
+            "ideCommand",
+            "clipboard",
+            "cliExec"
+          ],
           "default": "ideCommand",
           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
         },
@@ -317,9 +343,17 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["validationCommand", "gitDiff", "taskState"]
+            "enum": [
+              "validationCommand",
+              "gitDiff",
+              "taskState"
+            ]
           },
-          "default": ["validationCommand", "gitDiff", "taskState"],
+          "default": [
+            "validationCommand",
+            "gitDiff",
+            "taskState"
+          ],
           "description": "Verifier layers to run after each CLI iteration. validationCommand runs the selected validation command, gitDiff checks for relevant file changes, and taskState compares durable Ralph task/progress state."
         },
         "ralphCodex.noProgressThreshold": {
@@ -357,13 +391,21 @@
         },
         "ralphCodex.gitCheckpointMode": {
           "type": "string",
-          "enum": ["off", "snapshot", "snapshotAndDiff"],
+          "enum": [
+            "off",
+            "snapshot",
+            "snapshotAndDiff"
+          ],
           "default": "snapshotAndDiff",
           "description": "Controls optional Git safety artifacts. snapshot records pre/post status when Git is available. snapshotAndDiff also records a working-tree diff summary."
         },
         "ralphCodex.scmStrategy": {
           "type": "string",
-          "enum": ["none", "commit-on-done", "branch-per-task"],
+          "enum": [
+            "none",
+            "commit-on-done",
+            "branch-per-task"
+          ],
           "default": "commit-on-done",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
@@ -390,7 +432,10 @@
         },
         "ralphCodex.autonomyMode": {
           "type": "string",
-          "enum": ["supervised", "autonomous"],
+          "enum": [
+            "supervised",
+            "autonomous"
+          ],
           "default": "autonomous",
           "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on, while preserving hard stops such as blocked preflight, request_human_review, and manual PRD authorship."
         },
@@ -408,9 +453,14 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["decompose_task", "mark_blocked"]
+            "enum": [
+              "decompose_task",
+              "mark_blocked"
+            ]
           },
-          "default": ["decompose_task"],
+          "default": [
+            "decompose_task"
+          ],
           "description": "Opt-in remediation actions Ralph may auto-apply after repeated-stop evidence. Leave this empty to preserve review-only behavior; set one or both of decompose_task and mark_blocked to allow only those actions."
         },
         "ralphCodex.ralphTaskFilePath": {
@@ -447,7 +497,11 @@
         },
         "ralphCodex.promptBudgetProfile": {
           "type": "string",
-          "enum": ["codex", "claude", "custom"],
+          "enum": [
+            "codex",
+            "claude",
+            "custom"
+          ],
           "default": "claude",
           "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context placeholder matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
         },
@@ -472,19 +526,30 @@
         },
         "ralphCodex.reasoningEffort": {
           "type": "string",
-          "enum": ["medium", "high"],
+          "enum": [
+            "medium",
+            "high"
+          ],
           "default": "medium",
           "description": "Reasoning effort to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
         "ralphCodex.approvalMode": {
           "type": "string",
-          "enum": ["never", "on-request", "untrusted"],
+          "enum": [
+            "never",
+            "on-request",
+            "untrusted"
+          ],
           "default": "never",
           "description": "Approval mode to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
         "ralphCodex.sandboxMode": {
           "type": "string",
-          "enum": ["read-only", "workspace-write", "danger-full-access"],
+          "enum": [
+            "read-only",
+            "workspace-write",
+            "danger-full-access"
+          ],
           "default": "workspace-write",
           "description": "Sandbox mode to pass to Codex CLI scripted runs. This setting is Codex-specific."
         },
@@ -516,6 +581,11 @@
           "minimum": 1,
           "maximum": 20,
           "description": "Number of concurrent Ralph agent instances configured for this workspace. Surfaced in preflight and Show Status so operators can verify the intended parallelism before starting a loop."
+        },
+        "ralphCodex.pipelineHumanGates": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the Run Pipeline command pauses after the review-agent pass and writes an awaiting_human_approval handoff note to .ralph/handoff/ instead of immediately submitting the PR. Use Approve Human Review to resume from the PR submission step."
         }
       }
     }
@@ -538,10 +608,10 @@
     "package": "npm run check:runtime && vsce package --no-dependencies"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.19.15",
     "@types/vscode": "^1.95.0",
     "@vscode/test-electron": "^2.5.2",
-    "typescript": "^5.8.2",
-    "@vscode/vsce": "^3.7.1"
+    "@vscode/vsce": "^3.7.1",
+    "typescript": "^5.8.2"
   }
 }

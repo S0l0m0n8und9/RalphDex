@@ -11,7 +11,7 @@ import {
 } from './taskFile';
 import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
-export type PipelineRunStatus = 'running' | 'complete' | 'failed';
+export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
 
 export interface PipelineRunArtifact {
   schemaVersion: 1;
@@ -202,4 +202,41 @@ export async function scaffoldPipelineRun(input: {
 
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
   return { artifact, artifactPath, rootTaskId, childTaskIds };
+}
+
+export interface PipelinePendingHandoff {
+  schemaVersion: 1;
+  kind: 'pipelinePendingHandoff';
+  runId: string;
+  artifactPath: string;
+  reviewTranscriptPath?: string;
+  createdAt: string;
+}
+
+/**
+ * Return the canonical path for a pipeline pending-handoff file.
+ */
+export function resolvePendingHandoffPath(handoffDir: string, runId: string): string {
+  return path.join(handoffDir, `pipeline-${runId}-pending.json`);
+}
+
+/**
+ * Write a pending-handoff file to .ralph/handoff/ and return its path.
+ */
+export async function writePipelinePendingHandoff(
+  handoffDir: string,
+  handoff: PipelinePendingHandoff
+): Promise<string> {
+  await fs.mkdir(handoffDir, { recursive: true });
+  const handoffPath = resolvePendingHandoffPath(handoffDir, handoff.runId);
+  await fs.writeFile(handoffPath, stableJson(handoff), 'utf8');
+  return handoffPath;
+}
+
+/**
+ * Read and parse a pending-handoff file from disk.
+ */
+export async function readPipelinePendingHandoff(handoffPath: string): Promise<PipelinePendingHandoff> {
+  const raw = await fs.readFile(handoffPath, 'utf8');
+  return JSON.parse(raw) as PipelinePendingHandoff;
 }

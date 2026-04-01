@@ -1457,10 +1457,24 @@
       "status": "released"
     },
     {
-      "taskId": "T64.2",
       "agentId": "build",
-      "provenanceId": "run-i033-cli-20260401T064255Z",
+      "taskId": "T64.2",
       "claimedAt": "2026-04-01T06:42:55.995Z",
+      "provenanceId": "run-i033-cli-20260401T064255Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T66",
+      "claimedAt": "2026-04-01T09:20:20.785Z",
+      "provenanceId": "run-i041-cli-20260401T092020Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T66",
+      "agentId": "build",
+      "provenanceId": "run-i042-cli-20260401T153839Z",
+      "claimedAt": "2026-04-01T15:38:39.925Z",
       "status": "active"
     }
   ]

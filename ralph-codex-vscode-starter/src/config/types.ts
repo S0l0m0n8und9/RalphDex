@@ -120,4 +120,5 @@ export interface RalphCodexConfig {
   autoReviewOnLoopComplete: boolean;
   autoScmOnConflict: boolean;
   scmConflictRetryLimit: number;
+  pipelineHumanGates: boolean;
 }

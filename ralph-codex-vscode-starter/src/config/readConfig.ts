@@ -408,6 +408,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', DEFAULT_CONFIG.autoReviewOnParentDone),
     autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', DEFAULT_CONFIG.autoReviewOnLoopComplete),
     autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', DEFAULT_CONFIG.autoScmOnConflict),
-    scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1)
+    scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1),
+    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', DEFAULT_CONFIG.pipelineHumanGates)
   };
 }

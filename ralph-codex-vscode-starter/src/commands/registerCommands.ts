@@ -27,7 +27,15 @@ import {
   readJsonArtifact
 } from './statusSnapshot';
 import { registerArtifactAndMaintenanceCommands } from './artifactCommands';
-import { extractPrUrl, parsePrdSections, scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
+import {
+  extractPrUrl,
+  parsePrdSections,
+  scaffoldPipelineRun,
+  writePipelineArtifact,
+  writePipelinePendingHandoff,
+  readPipelinePendingHandoff,
+  resolvePendingHandoffPath
+} from '../ralph/pipeline';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 
@@ -1124,6 +1132,40 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
           reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
 
           if (reviewRun.result.executionStatus !== 'failed') {
+            if (config.pipelineHumanGates) {
+              // Pause: write a pending-handoff file instead of submitting the PR.
+              const handoffPath = await writePipelinePendingHandoff(paths.handoffDir, {
+                schemaVersion: 1,
+                kind: 'pipelinePendingHandoff',
+                runId: artifact.runId,
+                artifactPath: path.join(paths.artifactDir, 'pipelines', `${artifact.runId}.json`),
+                ...(reviewRun.result.execution.transcriptPath !== undefined && {
+                  reviewTranscriptPath: reviewRun.result.execution.transcriptPath
+                }),
+                createdAt: new Date().toISOString()
+              });
+
+              const pausedArtifact = {
+                ...artifact,
+                status: 'awaiting_human_approval' as const,
+                loopEndTime: new Date().toISOString(),
+                ...(reviewRun.result.execution.transcriptPath !== undefined && {
+                  reviewTranscriptPath: reviewRun.result.execution.transcriptPath
+                })
+              };
+              await writePipelineArtifact(paths.artifactDir, pausedArtifact);
+
+              logger.info('Pipeline paused for human review.', {
+                runId: artifact.runId,
+                handoffPath
+              });
+
+              void vscode.window.showInformationMessage(
+                `Ralph pipeline ${artifact.runId} paused for human review. Run "Ralph Codex: Approve Human Review" to submit the PR.`
+              );
+              return;
+            }
+
             progress.report({ message: `Pipeline ${artifact.runId}: running SCM agent` });
             const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
               reachedIterationCap: false,
@@ -1160,6 +1202,97 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
       void vscode.window.showInformationMessage(
         `Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).${prSuffix}`
+      );
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.approveHumanReview',
+    label: 'Ralph Codex: Approve Human Review',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+
+      // Discover all pending pipeline handoff files.
+      let pendingFiles: string[];
+      try {
+        const entries = await fs.readdir(paths.handoffDir);
+        pendingFiles = entries
+          .filter((e) => /^pipeline-.+-pending\.json$/.test(e))
+          .map((e) => path.join(paths.handoffDir, e));
+      } catch {
+        pendingFiles = [];
+      }
+
+      if (pendingFiles.length === 0) {
+        void vscode.window.showWarningMessage('No pending pipeline human-review handoffs found.');
+        return;
+      }
+
+      let selectedPath: string;
+      if (pendingFiles.length === 1) {
+        selectedPath = pendingFiles[0];
+      } else {
+        const items = pendingFiles.map((p) => path.basename(p));
+        const picked = await vscode.window.showQuickPick(items, {
+          placeHolder: 'Select a pending pipeline handoff to approve'
+        });
+        if (!picked) {
+          return;
+        }
+        selectedPath = path.join(paths.handoffDir, picked);
+      }
+
+      const handoff = await readPipelinePendingHandoff(selectedPath);
+      progress.report({ message: `Approving pipeline ${handoff.runId}: running SCM agent` });
+
+      let prUrl: string | undefined;
+      try {
+        const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+          reachedIterationCap: false,
+          configOverrides: {
+            agentRole: 'scm',
+            agentId: buildScmAgentId(config.agentId)
+          }
+        });
+        const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
+        const scmReport = await readJsonArtifact(scmReportPath).then(normalizeCompletionReportArtifact);
+        prUrl = extractPrUrl(scmReport?.report?.progressNote);
+      } catch (error) {
+        logger.error('approveHumanReview: SCM agent failed.', error);
+        void vscode.window.showErrorMessage(`Ralph pipeline ${handoff.runId} PR submission failed.`);
+        return;
+      }
+
+      // Update the pipeline artifact to complete.
+      try {
+        const rawArtifact = await readJsonArtifact(handoff.artifactPath);
+        if (rawArtifact && typeof rawArtifact === 'object') {
+          const updatedArtifact = {
+            ...rawArtifact,
+            status: 'complete',
+            loopEndTime: new Date().toISOString(),
+            ...(prUrl !== undefined && { prUrl })
+          };
+          await fs.writeFile(handoff.artifactPath, JSON.stringify(updatedArtifact, null, 2) + '\n', 'utf8');
+        }
+      } catch (error) {
+        logger.error('approveHumanReview: failed to update pipeline artifact.', error);
+      }
+
+      // Remove the pending handoff file.
+      try {
+        await fs.unlink(selectedPath);
+      } catch (error) {
+        logger.error('approveHumanReview: failed to remove pending handoff file.', error);
+      }
+
+      logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
+
+      const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
+      void vscode.window.showInformationMessage(
+        `Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`
       );
     }
   });

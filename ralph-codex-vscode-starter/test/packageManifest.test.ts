@@ -9,6 +9,7 @@ type PackageManifest = {
     configuration?: {
       properties?: Record<string, {
         enum?: string[];
+        type?: string;
       }>;
     };
     commands?: Array<{
@@ -102,4 +103,26 @@ test('package manifest contributes and activates the runPipeline command', async
     commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralph Codex: Run Pipeline'),
     'package.json must contribute the Run Pipeline command'
   );
+});
+
+test('package manifest contributes and activates the approveHumanReview command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.approveHumanReview'),
+    'package.json must activate on ralphCodex.approveHumanReview'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.approveHumanReview' && entry.title === 'Ralph Codex: Approve Human Review'),
+    'package.json must contribute the Approve Human Review command'
+  );
+});
+
+test('package manifest exposes the pipelineHumanGates boolean setting', async () => {
+  const manifest = await readPackageManifest();
+  const properties = manifest.contributes?.configuration?.properties ?? {};
+
+  assert.ok(properties['ralphCodex.pipelineHumanGates'], 'pipelineHumanGates setting must be present');
+  assert.equal((properties['ralphCodex.pipelineHumanGates'] as { type?: string }).type, 'boolean');
 });

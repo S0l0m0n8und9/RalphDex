@@ -12,5 +12,8 @@
     "skipLibCheck": true,
     "types": ["node", "vscode"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [
+    { "path": "./tsconfig.test.json" }
+  ]
 }
