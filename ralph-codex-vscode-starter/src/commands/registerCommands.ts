@@ -473,9 +473,33 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       progress.report({ message: `Creating project "${slug}"` });
       await fs.mkdir(absPaths.dir, { recursive: true });
 
-      const prdText = objective?.trim()
-        ? `# Product / project brief\n\n${objective.trim()}\n`
-        : RALPH_PRD_PLACEHOLDER;
+      const config = readConfig(workspaceFolder);
+
+      let prdText: string;
+      let drafts: Pick<RalphTask, 'id' | 'title' | 'status'>[];
+
+      if (objective?.trim()) {
+        progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
+        try {
+          const generated = await generateProjectDraft(objective.trim(), config, workspaceFolder.uri.fsPath);
+          prdText = generated.prdText;
+          drafts = generated.tasks;
+          logger.info(`Generated PRD and tasks for project "${slug}" via AI.`, { taskCount: drafts.length });
+        } catch (err) {
+          const reason = err instanceof ProjectGenerationError || err instanceof Error
+            ? err.message
+            : String(err);
+          logger.info(`AI generation failed for "${slug}", falling back to template. Reason: ${reason}`);
+          void vscode.window.showWarningMessage(
+            `AI generation failed — files seeded with a starter template. Refine before running. (${reason})`
+          );
+          prdText = `# Product / project brief\n\n${objective.trim()}\n`;
+          drafts = draftTasksFromPrd(prdText);
+        }
+      } else {
+        prdText = RALPH_PRD_PLACEHOLDER;
+        drafts = draftTasksFromPrd(prdText);
+      }
 
       await fs.writeFile(absPaths.prdPath, prdText, 'utf8');
 
@@ -486,7 +510,7 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
       }
 
-      await appendTasksToFile(absPaths.tasksPath, draftTasksFromPrd(prdText));
+      await appendTasksToFile(absPaths.tasksPath, drafts);
       await fs.writeFile(absPaths.progressPath, '', 'utf8');
 
       logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });
