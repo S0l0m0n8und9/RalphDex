@@ -41,7 +41,8 @@ export class CopilotCliProvider implements CliProvider {
       return {
         args,
         cwd: request.executionRoot,
-        stdinText: request.prompt
+        stdinText: request.prompt,
+        shell: process.platform === 'win32'
       };
     }
 
@@ -49,7 +50,8 @@ export class CopilotCliProvider implements CliProvider {
 
     return {
       args,
-      cwd: request.executionRoot
+      cwd: request.executionRoot,
+      shell: process.platform === 'win32'
     };
   }
 

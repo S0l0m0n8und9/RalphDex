@@ -55,6 +55,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
       processResult = await runProcess(request.commandPath, args, {
         cwd: launchSpec.cwd,
         stdinText: launchSpec.stdinText,
+        shell: launchSpec.shell,
         onStdoutChunk: request.onStdoutChunk,
         onStderrChunk: request.onStderrChunk
       });

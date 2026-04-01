@@ -6,6 +6,8 @@ export interface CliLaunchSpec {
   args: string[];
   cwd: string;
   stdinText?: string;
+  /** When true the command is executed inside a shell (required for .bat/.cmd on Windows). */
+  shell?: boolean;
 }
 
 export interface CliProvider {
