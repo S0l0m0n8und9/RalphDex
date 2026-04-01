@@ -893,6 +893,10 @@ function registerCommands(context, logger, broadcaster) {
                 taskFilePath: paths.taskFilePath,
                 artifactDir: paths.artifactDir
             });
+            // Write the initial provenance bundle at scaffold time (task-graph snapshot).
+            const initialBundle = (0, pipeline_1.buildInitialPipelineProvenanceBundle)(artifact, childTaskIds);
+            await (0, pipeline_1.writePipelineProvenanceBundle)(paths.artifactDir, initialBundle);
+            await (0, pipeline_1.writeLatestPipelineRunPointer)(paths.artifactDir, initialBundle);
             logger.info('Pipeline scaffold created.', {
                 runId: artifact.runId,
                 rootTaskId,
@@ -940,14 +944,34 @@ function registerCommands(context, logger, broadcaster) {
                     logger.error('Pipeline review/SCM phase failed.', error);
                 }
             }
+            const completedAt = new Date().toISOString();
             const finalArtifact = {
                 ...artifact,
                 status: loopStatus,
-                loopEndTime: new Date().toISOString(),
+                loopEndTime: completedAt,
                 ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
                 ...(prUrl !== undefined && { prUrl })
             };
             await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, finalArtifact);
+            // Resolve per-agent iteration history for child tasks and write the
+            // fully linked pipeline provenance bundle.
+            const childTaskIdSet = new Set(childTaskIds);
+            const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+            const iterationHistory = childTaskIds.map((taskId) => ({
+                taskId,
+                iterationArtifactDirs: inspection.state.iterationHistory
+                    .filter((entry) => entry.selectedTaskId === taskId)
+                    .map((entry) => entry.artifactDir)
+            }));
+            const finalBundle = {
+                ...initialBundle,
+                iterationHistory,
+                status: loopStatus,
+                completedAt,
+                ...(prUrl !== undefined && { prUrl })
+            };
+            await (0, pipeline_1.writePipelineProvenanceBundle)(paths.artifactDir, finalBundle);
+            await (0, pipeline_1.writeLatestPipelineRunPointer)(paths.artifactDir, finalBundle);
             logger.info('Pipeline run complete.', {
                 runId: artifact.runId,
                 status: loopStatus,

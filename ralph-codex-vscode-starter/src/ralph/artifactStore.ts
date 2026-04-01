@@ -79,6 +79,7 @@ export interface RalphLatestArtifactPaths {
   latestProvenanceBundlePath: string;
   latestProvenanceSummaryPath: string;
   latestProvenanceFailurePath: string;
+  latestPipelineRunPath: string;
 }
 
 export interface RalphLatestArtifactRepairSummary {
@@ -268,7 +269,8 @@ export function resolveLatestArtifactPaths(artifactRootDir: string): RalphLatest
     latestRemediationPath: path.join(artifactRootDir, 'latest-remediation.json'),
     latestProvenanceBundlePath: path.join(artifactRootDir, 'latest-provenance-bundle.json'),
     latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
-    latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
+    latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json'),
+    latestPipelineRunPath: path.join(artifactRootDir, 'latest-pipeline-run.json')
   };
 }
 

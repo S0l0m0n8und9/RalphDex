@@ -27,7 +27,15 @@ import {
   readJsonArtifact
 } from './statusSnapshot';
 import { registerArtifactAndMaintenanceCommands } from './artifactCommands';
-import { extractPrUrl, parsePrdSections, scaffoldPipelineRun, writePipelineArtifact } from '../ralph/pipeline';
+import {
+  buildInitialPipelineProvenanceBundle,
+  extractPrUrl,
+  parsePrdSections,
+  scaffoldPipelineRun,
+  writePipelineArtifact,
+  writePipelineProvenanceBundle,
+  writeLatestPipelineRunPointer
+} from '../ralph/pipeline';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 
@@ -1090,6 +1098,11 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         artifactDir: paths.artifactDir
       });
 
+      // Write the initial provenance bundle at scaffold time (task-graph snapshot).
+      const initialBundle = buildInitialPipelineProvenanceBundle(artifact, childTaskIds);
+      await writePipelineProvenanceBundle(paths.artifactDir, initialBundle);
+      await writeLatestPipelineRunPointer(paths.artifactDir, initialBundle);
+
       logger.info('Pipeline scaffold created.', {
         runId: artifact.runId,
         rootTaskId,
@@ -1141,15 +1154,37 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         }
       }
 
+      const completedAt = new Date().toISOString();
       const finalArtifact = {
         ...artifact,
         status: loopStatus,
-        loopEndTime: new Date().toISOString(),
+        loopEndTime: completedAt,
         ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
         ...(prUrl !== undefined && { prUrl })
       };
 
       await writePipelineArtifact(paths.artifactDir, finalArtifact);
+
+      // Resolve per-agent iteration history for child tasks and write the
+      // fully linked pipeline provenance bundle.
+      const childTaskIdSet = new Set(childTaskIds);
+      const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+      const iterationHistory = childTaskIds.map((taskId) => ({
+        taskId,
+        iterationArtifactDirs: inspection.state.iterationHistory
+          .filter((entry) => entry.selectedTaskId === taskId)
+          .map((entry) => entry.artifactDir)
+      }));
+
+      const finalBundle = {
+        ...initialBundle,
+        iterationHistory,
+        status: loopStatus,
+        completedAt,
+        ...(prUrl !== undefined && { prUrl })
+      };
+      await writePipelineProvenanceBundle(paths.artifactDir, finalBundle);
+      await writeLatestPipelineRunPointer(paths.artifactDir, finalBundle);
 
       logger.info('Pipeline run complete.', {
         runId: artifact.runId,

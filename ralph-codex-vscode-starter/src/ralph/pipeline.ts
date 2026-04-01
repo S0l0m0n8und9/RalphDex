@@ -203,3 +203,108 @@ export async function scaffoldPipelineRun(input: {
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
   return { artifact, artifactPath, rootTaskId, childTaskIds };
 }
+
+// ---------------------------------------------------------------------------
+// Pipeline provenance bundle
+// ---------------------------------------------------------------------------
+
+/**
+ * Snapshot of the task graph at pipeline scaffold time.
+ */
+export interface TaskGraphSnapshot {
+  parentId: string;
+  childTaskIds: string[];
+  /** Initial status of each task at snapshot time (all 'todo' at scaffold). */
+  taskStatuses: Record<string, string>;
+  capturedAt: string;
+}
+
+/**
+ * Per-agent iteration history entry linking a task to its iteration artifact dirs.
+ */
+export interface PipelineIterationHistoryEntry {
+  taskId: string;
+  iterationArtifactDirs: string[];
+}
+
+/**
+ * Fully linked pipeline provenance bundle. Written to
+ * `.ralph/artifacts/pipelines/<runId>-provenance.json` and mirrored to
+ * `.ralph/artifacts/latest-pipeline-run.json`.
+ */
+export interface PipelineProvenanceBundle {
+  schemaVersion: 1;
+  kind: 'pipelineProvenance';
+  runId: string;
+  prdPath: string;
+  prdHash: string;
+  taskGraphSnapshot: TaskGraphSnapshot;
+  iterationHistory: PipelineIterationHistoryEntry[];
+  status: PipelineRunStatus;
+  prUrl?: string;
+  completedAt?: string;
+}
+
+/**
+ * Build the initial pipeline provenance bundle at scaffold time.
+ */
+export function buildInitialPipelineProvenanceBundle(
+  artifact: PipelineRunArtifact,
+  childTaskIds: string[]
+): PipelineProvenanceBundle {
+  const taskStatuses: Record<string, string> = {};
+  taskStatuses[artifact.rootTaskId] = 'todo';
+  for (const id of childTaskIds) {
+    taskStatuses[id] = 'todo';
+  }
+
+  return {
+    schemaVersion: 1,
+    kind: 'pipelineProvenance',
+    runId: artifact.runId,
+    prdPath: artifact.prdPath,
+    prdHash: artifact.prdHash,
+    taskGraphSnapshot: {
+      parentId: artifact.rootTaskId,
+      childTaskIds,
+      taskStatuses,
+      capturedAt: artifact.loopStartTime
+    },
+    iterationHistory: [],
+    status: 'running'
+  };
+}
+
+/**
+ * Write the pipeline provenance bundle to
+ * `.ralph/artifacts/pipelines/<runId>-provenance.json`.
+ */
+export async function writePipelineProvenanceBundle(
+  artifactDir: string,
+  bundle: PipelineProvenanceBundle
+): Promise<string> {
+  const pipelinesDir = path.join(artifactDir, 'pipelines');
+  await fs.mkdir(pipelinesDir, { recursive: true });
+  const bundlePath = path.join(pipelinesDir, `${bundle.runId}-provenance.json`);
+  await fs.writeFile(bundlePath, stableJson(bundle), 'utf8');
+  return bundlePath;
+}
+
+/**
+ * Write (or overwrite) the stable latest-pipeline-run.json pointer at the
+ * artifact root so operator commands can open it without knowing the run id.
+ */
+export async function writeLatestPipelineRunPointer(
+  artifactDir: string,
+  bundle: PipelineProvenanceBundle
+): Promise<void> {
+  const pointerPath = path.join(artifactDir, 'latest-pipeline-run.json');
+  await fs.writeFile(pointerPath, stableJson(bundle), 'utf8');
+}
+
+/**
+ * Resolve the stable path to the latest pipeline run pointer file.
+ */
+export function resolveLatestPipelineRunPath(artifactDir: string): string {
+  return path.join(artifactDir, 'latest-pipeline-run.json');
+}

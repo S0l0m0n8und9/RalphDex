@@ -1810,11 +1810,13 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   const scmIndex = invocations.indexOf(scmInvocation!);
   assert.ok(reviewIndex < scmIndex, 'Review agent must run before SCM agent');
 
-  // Pipeline artifact must be written with status complete
+  // Pipeline artifact must be written with status complete; provenance bundle is also written
   const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
   const pipelineFiles = await fs.readdir(pipelinesDir);
-  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
-  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  assert.equal(pipelineFiles.length, 2, 'Expected pipeline artifact and provenance bundle');
+  const artifactFile = pipelineFiles.find((f) => !f.endsWith('-provenance.json'));
+  assert.ok(artifactFile, 'Expected a non-provenance pipeline artifact file');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, artifactFile!), 'utf8');
   const artifact = JSON.parse(artifactRaw) as { status: string; reviewTranscriptPath?: string };
   assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
   assert.match(
@@ -1884,8 +1886,10 @@ test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artif
 
   const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
   const pipelineFiles = await fs.readdir(pipelinesDir);
-  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
-  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  assert.equal(pipelineFiles.length, 2, 'Expected pipeline artifact and provenance bundle');
+  const artifactFile = pipelineFiles.find((f) => !f.endsWith('-provenance.json'));
+  assert.ok(artifactFile, 'Expected a non-provenance pipeline artifact file');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, artifactFile!), 'utf8');
   const artifact = JSON.parse(artifactRaw) as {
     status: string;
     reviewTranscriptPath?: string;

@@ -1457,11 +1457,59 @@
       "status": "released"
     },
     {
-      "taskId": "T64.2",
       "agentId": "build",
-      "provenanceId": "run-i033-cli-20260401T064255Z",
+      "taskId": "T64.2",
       "claimedAt": "2026-04-01T06:42:55.995Z",
-      "status": "active"
+      "provenanceId": "run-i033-cli-20260401T064255Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T64",
+      "claimedAt": "2026-04-01T06:48:43.889Z",
+      "provenanceId": "run-i034-cli-20260401T064843Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T64",
+      "claimedAt": "2026-04-01T06:53:04.461Z",
+      "provenanceId": "run-i035-cli-20260401T065304Z",
+      "status": "released"
+    },
+    {
+      "agentId": "watchdog",
+      "taskId": "T64",
+      "claimedAt": "2026-04-01T07:16:30.262Z",
+      "provenanceId": "run-i036-cli-20260401T071630Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build-2",
+      "taskId": "T65",
+      "claimedAt": "2026-04-01T07:44:54.415Z",
+      "provenanceId": "run-i037-cli-20260401T074453Z",
+      "status": "released",
+      "baseBranch": "main",
+      "featureBranch": "ralph/T65"
+    },
+    {
+      "agentId": "build-1",
+      "taskId": "T65",
+      "claimedAt": "2026-04-01T07:44:56.241Z",
+      "provenanceId": "run-i038-cli-20260401T074455Z",
+      "status": "released",
+      "baseBranch": "ralph/T65",
+      "featureBranch": "ralph/T65"
+    },
+    {
+      "taskId": "T65",
+      "agentId": "build",
+      "provenanceId": "run-i039-cli-20260401T080642Z",
+      "claimedAt": "2026-04-01T08:06:42.691Z",
+      "status": "active",
+      "baseBranch": "ralph/T65",
+      "featureBranch": "ralph/T65"
     }
   ]
 }

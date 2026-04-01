@@ -165,6 +165,31 @@ The `ralphCodex.runPipeline` command mints a pipeline-run artifact at `.ralph/ar
 
 `reviewTranscriptPath` and `prUrl` are only written when the multi-agent loop completes successfully and the review and SCM phases run without error. A missing `prUrl` means either the loop failed, the review phase failed, or the SCM agent did not include a recognizable PR URL in its completion report progress note.
 
+## Pipeline Run Provenance Bundle
+
+In addition to the pipeline-run artifact, Ralph writes a fully linked provenance bundle at `.ralph/artifacts/pipelines/<runId>-provenance.json` and mirrors it to `.ralph/artifacts/latest-pipeline-run.json` so operator commands can open it without knowing the run ID.
+
+| Field | Type | Description |
+|---|---|---|
+| `schemaVersion` | `1` | Schema version |
+| `kind` | `"pipelineProvenance"` | Artifact discriminator |
+| `runId` | `string` | Same run identifier as the pipeline-run artifact |
+| `prdPath` | `string` | Absolute path to the PRD file at scaffold time |
+| `prdHash` | `string` | `sha256:` hash of the PRD text at scaffold time |
+| `taskGraphSnapshot` | `object` | Snapshot of the task graph captured at scaffold time |
+| `taskGraphSnapshot.parentId` | `string` | ID of the pipeline-root task |
+| `taskGraphSnapshot.childTaskIds` | `string[]` | IDs of the child tasks scaffolded from PRD sections |
+| `taskGraphSnapshot.taskStatuses` | `Record<string, string>` | Initial status of each task (all `"todo"` at scaffold) |
+| `taskGraphSnapshot.capturedAt` | `string` | ISO-8601 timestamp when the snapshot was taken |
+| `iterationHistory` | `array` | Per-child-task iteration artifact directories resolved after loop completion |
+| `iterationHistory[].taskId` | `string` | Child task ID |
+| `iterationHistory[].iterationArtifactDirs` | `string[]` | Artifact directories for iterations that targeted this task |
+| `status` | `"running" \| "complete" \| "failed"` | Pipeline status |
+| `prUrl` | `string?` | PR URL extracted from the SCM agent, if available |
+| `completedAt` | `string?` | ISO-8601 timestamp when the pipeline finished |
+
+The bundle is written twice: once at scaffold time (with `iterationHistory: []` and `status: "running"`) to capture the task-graph snapshot, and once after the loop completes with the full iteration history resolved from the workspace state. `Open Latest Pipeline Run` opens the `latest-pipeline-run.json` pointer.
+
 ## What Operators Can Verify
 
 To confirm what actually ran for a CLI iteration, inspect:

@@ -126,6 +126,27 @@ async function openLatestProvenanceBundle(
   return false;
 }
 
+async function openLatestPipelineRun(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<boolean> {
+  const config = readConfig(workspaceFolder);
+  const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+  await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+  const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
+
+  if (latestArtifacts.latestPipelineRunPath) {
+    await openTextFile(latestArtifacts.latestPipelineRunPath);
+    return true;
+  }
+
+  void vscode.window.showInformationMessage(
+    'No pipeline run exists yet. Run Ralph Codex: Run Pipeline, then try again.'
+  );
+  return false;
+}
+
 async function openLatestPromptEvidence(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
@@ -542,6 +563,17 @@ export function registerArtifactAndMaintenanceCommands(
       progress.report({ message: 'Resolving latest Ralph provenance bundle' });
       const workspaceFolder = await withWorkspaceFolder();
       await openLatestProvenanceBundle(workspaceFolder, stateManager, logger);
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openLatestPipelineRun',
+    label: 'Ralph Codex: Open Latest Pipeline Run',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Resolving latest Ralph pipeline run provenance bundle' });
+      const workspaceFolder = await withWorkspaceFolder();
+      await openLatestPipelineRun(workspaceFolder, stateManager, logger);
     }
   });
 

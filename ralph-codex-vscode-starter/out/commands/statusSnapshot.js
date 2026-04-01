@@ -41,6 +41,7 @@ exports.normalizeCliInvocation = normalizeCliInvocation;
 exports.normalizeProvenanceBundle = normalizeProvenanceBundle;
 exports.normalizeLatestRemediation = normalizeLatestRemediation;
 exports.normalizeTaskRemediationArtifact = normalizeTaskRemediationArtifact;
+exports.normalizePipelineProvenanceBundle = normalizePipelineProvenanceBundle;
 exports.normalizeCompletionReportArtifact = normalizeCompletionReportArtifact;
 exports.collectStatusSnapshot = collectStatusSnapshot;
 const fs = __importStar(require("fs/promises"));
@@ -204,6 +205,27 @@ function normalizeTaskRemediationArtifact(candidate) {
         createdAt: typeof record.createdAt === 'string' ? record.createdAt : ''
     };
 }
+function normalizePipelineProvenanceBundle(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (record.kind !== 'pipelineProvenance'
+        || typeof record.runId !== 'string'
+        || typeof record.prdPath !== 'string'
+        || typeof record.prdHash !== 'string'
+        || typeof record.status !== 'string'
+        || typeof record.taskGraphSnapshot !== 'object'
+        || record.taskGraphSnapshot === null
+        || !Array.isArray(record.iterationHistory)) {
+        return null;
+    }
+    const snap = record.taskGraphSnapshot;
+    if (typeof snap.parentId !== 'string' || !Array.isArray(snap.childTaskIds)) {
+        return null;
+    }
+    return candidate;
+}
 function normalizeCompletionReportArtifact(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -312,12 +334,13 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         })
     ]);
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);
-    const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+    const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle, latestPipelineRun] = await Promise.all([
         readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
         readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
         readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
         readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
-        readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
+        readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle),
+        readJsonArtifact(latestArtifacts.latestPipelineRunPath).then(normalizePipelineProvenanceBundle)
     ]);
     const currentProvenanceId = latestExecutionPlan?.provenanceId
         ?? latestProvenanceBundle?.provenanceId
@@ -378,6 +401,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
+        latestPipelineRunPath: latestArtifacts.latestPipelineRunPath,
         artifactDir: inspection.paths.artifactDir,
         stateFilePath: inspection.paths.stateFilePath,
         progressPath: inspection.paths.progressPath,
@@ -388,6 +412,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestCliInvocation,
         latestRemediation,
         latestProvenanceBundle,
+        latestPipelineRun,
         latestArtifactRepair: latestArtifacts.repair,
         generatedArtifactRetention,
         provenanceBundleRetention,

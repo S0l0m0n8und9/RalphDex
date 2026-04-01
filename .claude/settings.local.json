@@ -20,7 +20,11 @@
       "Bash(git merge:*)",
       "Bash(git stash:*)",
       "Bash(git checkout:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(where py:*)",
+      "Read(//c/Users/ben.jones/**)",
+      "Bash(mkdir -p /c/Users/ben.jones/bin)",
+      "Bash(chmod +x /c/Users/ben.jones/bin/python3)"
     ]
   }
 }

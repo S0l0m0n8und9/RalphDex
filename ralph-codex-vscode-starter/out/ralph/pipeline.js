@@ -41,6 +41,10 @@ exports.buildPipelineChildTasks = buildPipelineChildTasks;
 exports.addPipelineRootTask = addPipelineRootTask;
 exports.writePipelineArtifact = writePipelineArtifact;
 exports.scaffoldPipelineRun = scaffoldPipelineRun;
+exports.buildInitialPipelineProvenanceBundle = buildInitialPipelineProvenanceBundle;
+exports.writePipelineProvenanceBundle = writePipelineProvenanceBundle;
+exports.writeLatestPipelineRunPointer = writeLatestPipelineRunPointer;
+exports.resolveLatestPipelineRunPath = resolveLatestPipelineRunPath;
 const crypto = __importStar(require("node:crypto"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -184,5 +188,55 @@ async function scaffoldPipelineRun(input) {
     };
     const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
     return { artifact, artifactPath, rootTaskId, childTaskIds };
+}
+/**
+ * Build the initial pipeline provenance bundle at scaffold time.
+ */
+function buildInitialPipelineProvenanceBundle(artifact, childTaskIds) {
+    const taskStatuses = {};
+    taskStatuses[artifact.rootTaskId] = 'todo';
+    for (const id of childTaskIds) {
+        taskStatuses[id] = 'todo';
+    }
+    return {
+        schemaVersion: 1,
+        kind: 'pipelineProvenance',
+        runId: artifact.runId,
+        prdPath: artifact.prdPath,
+        prdHash: artifact.prdHash,
+        taskGraphSnapshot: {
+            parentId: artifact.rootTaskId,
+            childTaskIds,
+            taskStatuses,
+            capturedAt: artifact.loopStartTime
+        },
+        iterationHistory: [],
+        status: 'running'
+    };
+}
+/**
+ * Write the pipeline provenance bundle to
+ * `.ralph/artifacts/pipelines/<runId>-provenance.json`.
+ */
+async function writePipelineProvenanceBundle(artifactDir, bundle) {
+    const pipelinesDir = path.join(artifactDir, 'pipelines');
+    await fs.mkdir(pipelinesDir, { recursive: true });
+    const bundlePath = path.join(pipelinesDir, `${bundle.runId}-provenance.json`);
+    await fs.writeFile(bundlePath, (0, integrity_1.stableJson)(bundle), 'utf8');
+    return bundlePath;
+}
+/**
+ * Write (or overwrite) the stable latest-pipeline-run.json pointer at the
+ * artifact root so operator commands can open it without knowing the run id.
+ */
+async function writeLatestPipelineRunPointer(artifactDir, bundle) {
+    const pointerPath = path.join(artifactDir, 'latest-pipeline-run.json');
+    await fs.writeFile(pointerPath, (0, integrity_1.stableJson)(bundle), 'utf8');
+}
+/**
+ * Resolve the stable path to the latest pipeline run pointer file.
+ */
+function resolveLatestPipelineRunPath(artifactDir) {
+    return path.join(artifactDir, 'latest-pipeline-run.json');
 }
 //# sourceMappingURL=pipeline.js.map

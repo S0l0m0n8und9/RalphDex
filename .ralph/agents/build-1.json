@@ -1,0 +1,13 @@
+{
+  "agentId": "build-1",
+  "firstSeenAt": "2026-04-01T07:44:53.313Z",
+  "completedTaskIds": [],
+  "touchedFiles": [
+    "ralph-codex-vscode-starter/src/commands/artifactCommands.ts",
+    "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
+    "ralph-codex-vscode-starter/src/commands/statusSnapshot.ts",
+    "ralph-codex-vscode-starter/src/ralph/artifactStore.ts",
+    "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
+    "ralph-codex-vscode-starter/src/ralph/statusReport.ts"
+  ]
+}

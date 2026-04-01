@@ -10,6 +10,7 @@ import {
   repairLatestArtifactSurfaces,
   resolveLatestArtifactPaths
 } from './artifactStore';
+import type { PipelineProvenanceBundle } from './pipeline';
 import { RalphPaths } from './pathResolver';
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import {
@@ -69,6 +70,8 @@ export interface RalphStatusSnapshot {
   latestCliInvocation: RalphCliInvocation | null;
   latestRemediation: RalphLatestRemediationStatus | null;
   latestProvenanceBundle: RalphProvenanceBundle | null;
+  latestPipelineRunPath: string | null;
+  latestPipelineRun: PipelineProvenanceBundle | null;
   latestArtifactRepair: RalphLatestArtifactRepairSummary;
   generatedArtifactRetention: RalphGeneratedArtifactRetentionSummary;
   provenanceBundleRetention: RalphProvenanceRetentionSummary;
@@ -207,6 +210,7 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
+  latestPipelineRunPath: string | null;
   repair: RalphLatestArtifactRepairSummary;
 }> {
   const repair = await repairLatestArtifactSurfaces(paths.artifactDir);
@@ -243,6 +247,9 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
     latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
       ? latestPaths.latestProvenanceFailurePath
       : null,
+    latestPipelineRunPath: await pathExists(latestPaths.latestPipelineRunPath)
+      ? latestPaths.latestPipelineRunPath
+      : null,
     repair
   };
 }
@@ -266,6 +273,30 @@ function formatRecentIteration(entry: RalphWorkspaceState['iterationHistory'][nu
 
 function formatRecentRun(entry: RalphWorkspaceState['runHistory'][number]): string {
   return `- #${entry.iteration}: ${entry.mode} ${entry.promptKind} | ${entry.status} | exit ${entry.exitCode ?? 'none'}`;
+}
+
+function formatLatestPipelineRunSection(snapshot: RalphStatusSnapshot): string[] {
+  const run = snapshot.latestPipelineRun;
+  if (!run) {
+    return ['- No pipeline run recorded yet.'];
+  }
+
+  const childTaskCount = run.taskGraphSnapshot.childTaskIds.length;
+  const iterationCount = run.iterationHistory.reduce((sum, entry) => sum + entry.iterationArtifactDirs.length, 0);
+
+  return [
+    `- Run ID: ${run.runId}`,
+    `- Status: ${run.status}`,
+    `- PRD: ${relativeFromRoot(snapshot.rootPath, run.prdPath)}`,
+    `- PRD hash: ${shortHash(run.prdHash)}`,
+    `- Root task: ${run.taskGraphSnapshot.parentId} (${childTaskCount} child task(s))`,
+    `- Child tasks: ${compactList(run.taskGraphSnapshot.childTaskIds, 5)}`,
+    `- Iteration artifacts linked: ${iterationCount}`,
+    `- PR URL: ${run.prUrl ?? 'none'}`,
+    `- Completed at: ${run.completedAt ?? 'none'}`,
+    `- Bundle path: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
+    '- Direct command: Ralph Codex: Open Latest Pipeline Run'
+  ];
 }
 
 export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
@@ -499,6 +530,9 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
     `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
     `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,
+    '',
+    '## Latest Pipeline Run',
+    ...formatLatestPipelineRunSection(snapshot),
     '',
     '## Git',
     `- Checkpoint mode: ${snapshot.gitCheckpointMode}`,

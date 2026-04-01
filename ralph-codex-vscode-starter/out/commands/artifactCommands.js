@@ -101,6 +101,18 @@ async function openLatestProvenanceBundle(workspaceFolder, stateManager, logger)
         : 'No Ralph provenance bundle exists yet. Prepare a prompt or run a CLI iteration, then try again.');
     return false;
 }
+async function openLatestPipelineRun(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    if (latestArtifacts.latestPipelineRunPath) {
+        await openTextFile(latestArtifacts.latestPipelineRunPath);
+        return true;
+    }
+    void vscode.window.showInformationMessage('No pipeline run exists yet. Run Ralph Codex: Run Pipeline, then try again.');
+    return false;
+}
 async function openLatestPromptEvidence(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
@@ -392,6 +404,16 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             progress.report({ message: 'Resolving latest Ralph provenance bundle' });
             const workspaceFolder = await withWorkspaceFolder();
             await openLatestProvenanceBundle(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openLatestPipelineRun',
+        label: 'Ralph Codex: Open Latest Pipeline Run',
+        requiresTrustedWorkspace: false,
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving latest Ralph pipeline run provenance bundle' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await openLatestPipelineRun(workspaceFolder, stateManager, logger);
         }
     });
     registerCommand(context, logger, {

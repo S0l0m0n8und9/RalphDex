@@ -20,6 +20,7 @@ import type {
   RalphSuggestedChildTask,
   RalphTaskRemediationArtifact
 } from '../ralph/types';
+import type { PipelineProvenanceBundle } from '../ralph/pipeline';
 import { inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention } from '../ralph/artifactStore';
 import {
   captureGitStatus,
@@ -195,6 +196,31 @@ export function normalizeTaskRemediationArtifact(candidate: unknown): RalphTaskR
   };
 }
 
+export function normalizePipelineProvenanceBundle(candidate: unknown): PipelineProvenanceBundle | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'pipelineProvenance'
+    || typeof record.runId !== 'string'
+    || typeof record.prdPath !== 'string'
+    || typeof record.prdHash !== 'string'
+    || typeof record.status !== 'string'
+    || typeof record.taskGraphSnapshot !== 'object'
+    || record.taskGraphSnapshot === null
+    || !Array.isArray(record.iterationHistory)) {
+    return null;
+  }
+
+  const snap = record.taskGraphSnapshot as Record<string, unknown>;
+  if (typeof snap.parentId !== 'string' || !Array.isArray(snap.childTaskIds)) {
+    return null;
+  }
+
+  return candidate as PipelineProvenanceBundle;
+}
+
 export function normalizeCompletionReportArtifact(candidate: unknown): CompletionReportArtifact | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
@@ -313,12 +339,13 @@ export async function collectStatusSnapshot(
     })
   ]);
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
-  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle, latestPipelineRun] = await Promise.all([
     readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
     readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
     readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
     readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
-    readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
+    readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle),
+    readJsonArtifact(latestArtifacts.latestPipelineRunPath).then(normalizePipelineProvenanceBundle)
   ]);
   const currentProvenanceId = latestExecutionPlan?.provenanceId
     ?? latestProvenanceBundle?.provenanceId
@@ -380,6 +407,7 @@ export async function collectStatusSnapshot(
     latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
     latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
     latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
+    latestPipelineRunPath: latestArtifacts.latestPipelineRunPath,
     artifactDir: inspection.paths.artifactDir,
     stateFilePath: inspection.paths.stateFilePath,
     progressPath: inspection.paths.progressPath,
@@ -390,6 +418,7 @@ export async function collectStatusSnapshot(
     latestCliInvocation,
     latestRemediation,
     latestProvenanceBundle,
+    latestPipelineRun,
     latestArtifactRepair: latestArtifacts.repair,
     generatedArtifactRetention,
     provenanceBundleRetention,

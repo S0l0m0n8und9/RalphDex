@@ -1958,7 +1958,7 @@
     {
       "id": "T64",
       "title": "Wire review-agent pass and PR submission into runPipeline for full end-to-end pipeline flow",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T63",
         "T64.1",
@@ -1970,11 +1970,11 @@
     {
       "id": "T65",
       "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T64"
       ],
-      "notes": "At pipeline start, capture a task-graph snapshot (parentId + child task ids + statuses). After pipeline completion, resolve per-agent iteration history artifact paths and write a fully linked pipeline provenance bundle to .ralph/artifacts/pipelines/<runId>-provenance.json. Surface the pipeline run in Show Status (latest pipeline section) and add an Open Latest Pipeline Run command that opens the provenance bundle. Add regression coverage for the provenance bundle structure and the new command; update docs/provenance.md with the pipeline-run provenance section.",
+      "notes": "Fixed duplicate-property compile error and test fixture gaps; all 507 tests pass; docs/provenance.md updated with pipeline-run provenance bundle section",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2034,5 +2034,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 25
+  "mutationCount": 26
 }

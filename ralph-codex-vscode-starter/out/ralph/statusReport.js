@@ -156,6 +156,9 @@ async function resolveLatestStatusArtifacts(paths) {
         latestProvenanceFailurePath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceFailurePath)
             ? latestPaths.latestProvenanceFailurePath
             : null,
+        latestPipelineRunPath: await (0, fs_1.pathExists)(latestPaths.latestPipelineRunPath)
+            ? latestPaths.latestPipelineRunPath
+            : null,
         repair
     };
 }
@@ -175,6 +178,27 @@ function formatRecentIteration(entry) {
 }
 function formatRecentRun(entry) {
     return `- #${entry.iteration}: ${entry.mode} ${entry.promptKind} | ${entry.status} | exit ${entry.exitCode ?? 'none'}`;
+}
+function formatLatestPipelineRunSection(snapshot) {
+    const run = snapshot.latestPipelineRun;
+    if (!run) {
+        return ['- No pipeline run recorded yet.'];
+    }
+    const childTaskCount = run.taskGraphSnapshot.childTaskIds.length;
+    const iterationCount = run.iterationHistory.reduce((sum, entry) => sum + entry.iterationArtifactDirs.length, 0);
+    return [
+        `- Run ID: ${run.runId}`,
+        `- Status: ${run.status}`,
+        `- PRD: ${relativeFromRoot(snapshot.rootPath, run.prdPath)}`,
+        `- PRD hash: ${shortHash(run.prdHash)}`,
+        `- Root task: ${run.taskGraphSnapshot.parentId} (${childTaskCount} child task(s))`,
+        `- Child tasks: ${compactList(run.taskGraphSnapshot.childTaskIds, 5)}`,
+        `- Iteration artifacts linked: ${iterationCount}`,
+        `- PR URL: ${run.prUrl ?? 'none'}`,
+        `- Completed at: ${run.completedAt ?? 'none'}`,
+        `- Bundle path: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
+        '- Direct command: Ralph Codex: Open Latest Pipeline Run'
+    ];
 }
 function buildStatusReport(snapshot) {
     const renderDiagnostic = (diagnostic) => `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
@@ -387,6 +411,9 @@ function buildStatusReport(snapshot) {
         `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
         `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
         `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,
+        '',
+        '## Latest Pipeline Run',
+        ...formatLatestPipelineRunSection(snapshot),
         '',
         '## Git',
         `- Checkpoint mode: ${snapshot.gitCheckpointMode}`,

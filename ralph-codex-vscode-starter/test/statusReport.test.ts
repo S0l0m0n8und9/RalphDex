@@ -437,6 +437,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestProvenanceBundlePath: '/workspace/.ralph/artifacts/latest-provenance-bundle.json',
     latestProvenanceSummaryPath: '/workspace/.ralph/artifacts/latest-provenance-summary.md',
     latestProvenanceFailurePath: '/workspace/.ralph/artifacts/latest-provenance-failure.json',
+    latestPipelineRunPath: null,
     artifactDir: '/workspace/.ralph/artifacts',
     stateFilePath: '/workspace/.ralph/state.json',
     progressPath: '/workspace/.ralph/progress.md',
@@ -518,6 +519,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       createdAt: '2026-03-07T00:06:00.000Z',
       updatedAt: '2026-03-07T00:06:00.000Z'
     },
+    latestPipelineRun: null,
     latestArtifactRepair: {
       repairedLatestArtifactPaths: ['/workspace/.ralph/artifacts/latest-summary.md'],
       staleLatestArtifactPaths: ['/workspace/.ralph/artifacts/latest-provenance-summary.md']
