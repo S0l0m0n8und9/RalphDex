@@ -153,8 +153,8 @@ test('CliExecCodexStrategy supports argv-prompt providers such as Copilot', asyn
     assert.equal(result.exitCode, 0);
     assert.equal(result.lastMessage, 'Copilot response');
     assert.equal(capturedCwd, root);
-    assert.equal(capturedStdinText, undefined);
-    assert.deepEqual(capturedArgs, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', 'Ship it.']);
+    assert.equal(capturedStdinText, 'Ship it.');
+    assert.deepEqual(capturedArgs, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
   } finally {
     setProcessRunnerOverride(null);
   }

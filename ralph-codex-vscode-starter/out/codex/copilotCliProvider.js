@@ -59,21 +59,15 @@ class CopilotCliProvider {
         else if (this.options.approvalMode === 'allow-tools-only') {
             args.push('--allow-tool', 'shell');
         }
-        // Use stdin delivery when the prompt is large to avoid OS argv limits.
-        const promptBytes = Buffer.byteLength(request.prompt, 'utf8');
-        if (promptBytes > exports.MAX_ARGV_PROMPT_BYTES) {
-            args.push('-p', '-');
-            return {
-                args,
-                cwd: request.executionRoot,
-                stdinText: request.prompt,
-                shell: process.platform === 'win32'
-            };
-        }
-        args.push('-p', request.prompt);
+        // Always use stdin delivery for prompt content.  Multi-line markdown
+        // prompts contain characters (# | & > etc.) that break shell expansion
+        // on Windows where the copilot wrapper is a .bat/.cmd file executed via
+        // cmd.exe.  Stdin delivery avoids all quoting/escaping issues.
+        args.push('-p', '-');
         return {
             args,
             cwd: request.executionRoot,
+            stdinText: request.prompt,
             shell: process.platform === 'win32'
         };
     }

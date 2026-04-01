@@ -29,22 +29,22 @@ function provider(approvalMode: 'allow-all' | 'allow-tools-only' | 'interactive'
   return new CopilotCliProvider({ approvalMode });
 }
 
-test('buildLaunchSpec uses argv prompt mode and executionRoot cwd', () => {
+test('buildLaunchSpec uses stdin prompt delivery and executionRoot cwd', () => {
   const launch = provider().buildLaunchSpec(request(), false);
 
-  assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', 'Ship it.']);
+  assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
   assert.equal(launch.cwd, '/workspace/repo');
-  assert.equal(launch.stdinText, undefined);
+  assert.equal(launch.stdinText, 'Ship it.');
 });
 
 test('buildLaunchSpec supports allow-tools-only and interactive modes', () => {
   assert.deepEqual(
     provider('allow-tools-only').buildLaunchSpec(request(), false).args,
-    ['-s', '--model', 'gpt-5.4', '--allow-tool', 'shell', '-p', 'Ship it.']
+    ['-s', '--model', 'gpt-5.4', '--allow-tool', 'shell', '-p', '-']
   );
   assert.deepEqual(
     provider('interactive').buildLaunchSpec(request(), false).args,
-    ['-s', '--model', 'gpt-5.4', '-p', 'Ship it.']
+    ['-s', '--model', 'gpt-5.4', '-p', '-']
   );
 });
 
@@ -94,22 +94,21 @@ test('buildTranscript produces Copilot-specific transcript format', () => {
 // Stdin prompt delivery for large prompts
 // ---------------------------------------------------------------------------
 
-test('buildLaunchSpec switches to stdin when prompt exceeds MAX_ARGV_PROMPT_BYTES', () => {
+test('buildLaunchSpec always uses stdin delivery regardless of prompt size', () => {
   const largePrompt = 'x'.repeat(MAX_ARGV_PROMPT_BYTES + 1);
   const req = { ...request(), prompt: largePrompt, promptHash: hashText(largePrompt), promptByteLength: Buffer.byteLength(largePrompt, 'utf8') };
   const launch = provider().buildLaunchSpec(req, false);
 
   assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
   assert.equal(launch.stdinText, largePrompt);
-});
 
-test('buildLaunchSpec keeps argv prompt when prompt is within limit', () => {
+  // Small prompts also use stdin to avoid shell quoting issues on Windows.
   const smallPrompt = 'Hello';
-  const req = { ...request(), prompt: smallPrompt, promptHash: hashText(smallPrompt), promptByteLength: Buffer.byteLength(smallPrompt, 'utf8') };
-  const launch = provider().buildLaunchSpec(req, false);
+  const smallReq = { ...request(), prompt: smallPrompt, promptHash: hashText(smallPrompt), promptByteLength: Buffer.byteLength(smallPrompt, 'utf8') };
+  const smallLaunch = provider().buildLaunchSpec(smallReq, false);
 
-  assert.ok(launch.args.includes(smallPrompt));
-  assert.equal(launch.stdinText, undefined);
+  assert.ok(!smallLaunch.args.includes(smallPrompt));
+  assert.equal(smallLaunch.stdinText, smallPrompt);
 });
 
 // ---------------------------------------------------------------------------
