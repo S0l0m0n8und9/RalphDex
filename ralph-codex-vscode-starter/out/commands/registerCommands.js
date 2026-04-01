@@ -51,6 +51,7 @@ const statusSnapshot_1 = require("./statusSnapshot");
 const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
 const pathResolver_1 = require("../ralph/pathResolver");
+const projectGenerator_1 = require("../ralph/projectGenerator");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -273,23 +274,43 @@ function registerCommands(context, logger, broadcaster) {
                 progressPath: result.progressPath,
                 gitignorePath: result.gitignorePath
             });
-            // Step 1: Seed the PRD with a brief objective
+            // Read config to know which CLI provider to use for generation
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            // Step 1: Prompt for objective
             const objective = await vscode.window.showInputBox({
                 prompt: 'Enter a short project objective (press Escape to fill in prd.md manually)',
                 placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
                 ignoreFocusOut: true
             });
-            const prdText = objective?.trim()
-                ? `# Product / project brief\n\n${objective.trim()}\n`
-                : RALPH_PRD_PLACEHOLDER;
+            let prdText;
+            let drafts;
             if (objective?.trim()) {
-                await fs.writeFile(result.prdPath, prdText, 'utf8');
-                logger.info('Seeded PRD with user-provided objective.');
+                progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
+                try {
+                    const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
+                    prdText = generated.prdText;
+                    drafts = generated.tasks;
+                    logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
+                }
+                catch (err) {
+                    const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
+                        ? err.message
+                        : String(err);
+                    logger.info(`AI generation failed, falling back to template. Reason: ${reason}`);
+                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with a starter template. Refine before running. (${reason})`);
+                    prdText = `# Product / project brief\n\n${objective.trim()}\n`;
+                    drafts = draftTasksFromPrd(prdText);
+                }
             }
-            // Step 2: Auto-generate starter tasks from PRD headings
-            const drafts = draftTasksFromPrd(prdText);
+            else {
+                prdText = RALPH_PRD_PLACEHOLDER;
+                drafts = draftTasksFromPrd(prdText);
+            }
+            await fs.writeFile(result.prdPath, prdText, 'utf8');
+            logger.info('Wrote prd.md.');
+            // Step 2: Write starter tasks
             await appendTasksToFile(result.tasksPath, drafts);
-            logger.info(`Generated ${drafts.length} starter task(s) from PRD.`);
+            logger.info(`Wrote ${drafts.length} starter task(s) to tasks.json.`);
             // Open both files side-by-side so the user can review and refine
             await openTextFile(result.prdPath);
             await openTextFile(result.tasksPath);
@@ -372,9 +393,31 @@ function registerCommands(context, logger, broadcaster) {
             });
             progress.report({ message: `Creating project "${slug}"` });
             await fs.mkdir(absPaths.dir, { recursive: true });
-            const prdText = objective?.trim()
-                ? `# Product / project brief\n\n${objective.trim()}\n`
-                : RALPH_PRD_PLACEHOLDER;
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            let prdText;
+            let drafts;
+            if (objective?.trim()) {
+                progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
+                try {
+                    const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
+                    prdText = generated.prdText;
+                    drafts = generated.tasks;
+                    logger.info(`Generated PRD and tasks for project "${slug}" via AI.`, { taskCount: drafts.length });
+                }
+                catch (err) {
+                    const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
+                        ? err.message
+                        : String(err);
+                    logger.info(`AI generation failed for "${slug}", falling back to template. Reason: ${reason}`);
+                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with a starter template. Refine before running. (${reason})`);
+                    prdText = `# Product / project brief\n\n${objective.trim()}\n`;
+                    drafts = draftTasksFromPrd(prdText);
+                }
+            }
+            else {
+                prdText = RALPH_PRD_PLACEHOLDER;
+                drafts = draftTasksFromPrd(prdText);
+            }
             await fs.writeFile(absPaths.prdPath, prdText, 'utf8');
             const emptyLocked = await (0, taskFile_1.withTaskFileLock)(absPaths.tasksPath, undefined, async () => {
                 await fs.writeFile(absPaths.tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
@@ -382,7 +425,7 @@ function registerCommands(context, logger, broadcaster) {
             if (emptyLocked.outcome === 'lock_timeout') {
                 throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
             }
-            await appendTasksToFile(absPaths.tasksPath, draftTasksFromPrd(prdText));
+            await appendTasksToFile(absPaths.tasksPath, drafts);
             await fs.writeFile(absPaths.progressPath, '', 'utf8');
             logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });
             const relPaths = projectRelativePaths(slug);
@@ -504,14 +547,17 @@ function registerCommands(context, logger, broadcaster) {
         label: 'Ralph Codex: Run CLI Iteration',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             broadcaster?.emitIterationStart({
                 iteration: 0,
                 iterationCap: 1,
                 selectedTaskId: null,
-                selectedTaskTitle: null
+                selectedTaskTitle: null,
+                agentId: config.agentId
             });
             const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
+                configOverrides: { agentId: config.agentId },
                 broadcaster
             });
             broadcaster?.emitIterationEnd({
@@ -642,10 +688,12 @@ function registerCommands(context, logger, broadcaster) {
                     iteration: index + 1,
                     iterationCap: config.ralphIterationCap,
                     selectedTaskId: null,
-                    selectedTaskTitle: null
+                    selectedTaskTitle: null,
+                    agentId: config.agentId
                 });
                 lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
                     reachedIterationCap: index + 1 >= config.ralphIterationCap,
+                    configOverrides: { agentId: config.agentId },
                     broadcaster
                 });
                 broadcaster?.emitIterationEnd({

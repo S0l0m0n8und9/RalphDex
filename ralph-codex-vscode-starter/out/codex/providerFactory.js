@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexStrategyRegistry = void 0;
+exports.createCliProvider = createCliProvider;
 const claudeCliProvider_1 = require("./claudeCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");

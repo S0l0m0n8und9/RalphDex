@@ -118,8 +118,11 @@ function buildDashboardHtml(state, nonce) {
   <hr class="section-rule">
   <div class="btn-grid">
     <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.runMultiAgentLoop"><span class="btn-label">▸ Run Multi</span><span class="btn-spinner"></span></button>
     <button class="btn" data-command="ralphCodex.runRalphIteration"><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
     <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">⊞ New Project</span><span class="btn-spinner"></span></button>
+    <button class="btn" data-command="ralphCodex.switchProject"><span class="btn-label">⊟ Switch Project</span><span class="btn-spinner"></span></button>
     <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
   </div>
 

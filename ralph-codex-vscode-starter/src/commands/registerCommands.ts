@@ -673,14 +673,17 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
     label: 'Ralph Codex: Run CLI Iteration',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
       broadcaster?.emitIterationStart({
         iteration: 0,
         iterationCap: 1,
         selectedTaskId: null,
-        selectedTaskTitle: null
+        selectedTaskTitle: null,
+        agentId: config.agentId
       });
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false,
+        configOverrides: { agentId: config.agentId },
         broadcaster
       });
       broadcaster?.emitIterationEnd({
@@ -835,11 +838,13 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
           iteration: index + 1,
           iterationCap: config.ralphIterationCap,
           selectedTaskId: null,
-          selectedTaskTitle: null
+          selectedTaskTitle: null,
+          agentId: config.agentId
         });
 
         lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
           reachedIterationCap: index + 1 >= config.ralphIterationCap,
+          configOverrides: { agentId: config.agentId },
           broadcaster
         });
 

@@ -463,9 +463,18 @@ function buildPanelDashboardHtml(state, nonce) {
         <div class="card-title">Actions</div>
         <div class="btn-grid">
           <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">▸ Run Multi</span><span class="btn-spinner"></span></button>
           <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
           <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
           <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Projects</div>
+        <div class="btn-grid">
+          <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">⊞ New Project</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.switchProject"><span class="btn-label">⊟ Switch Project</span><span class="btn-spinner"></span></button>
         </div>
       </div>
 
