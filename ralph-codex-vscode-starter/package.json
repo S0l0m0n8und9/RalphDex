@@ -112,6 +112,7 @@
     "onCommand:ralphCodex.runPipeline",
     "onCommand:ralphCodex.approveHumanReview",
     "onCommand:ralphCodex.openLatestPipelineRun",
+    "onCommand:ralphCodex.resumePipeline",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -232,6 +233,10 @@
       {
         "command": "ralphCodex.openLatestPipelineRun",
         "title": "Ralph Codex: Open Latest Pipeline Run"
+      },
+      {
+        "command": "ralphCodex.resumePipeline",
+        "title": "Ralph Codex: Resume Pipeline"
       }
     ],
     "viewsContainers": {

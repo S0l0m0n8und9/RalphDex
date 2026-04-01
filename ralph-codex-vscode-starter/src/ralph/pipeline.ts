@@ -13,6 +13,12 @@ import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types'
 
 export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
 
+/**
+ * Tracks which sub-phase of the pipeline was last successfully completed.
+ * Used by crash recovery to determine where to re-enter on resume.
+ */
+export type PipelinePhase = 'scaffold' | 'loop' | 'review' | 'scm' | 'done' | 'failed';
+
 export interface PipelineRunArtifact {
   schemaVersion: 1;
   kind: 'pipelineRun';
@@ -23,6 +29,8 @@ export interface PipelineRunArtifact {
   decomposedTaskIds: string[];
   loopStartTime: string;
   status: PipelineRunStatus;
+  /** Last sub-phase completed. Written after each phase so crash recovery can resume at the right point. */
+  phase?: PipelinePhase;
   loopEndTime?: string;
   /** Path to the review-agent transcript produced after the multi-agent loop. */
   reviewTranscriptPath?: string;
@@ -197,7 +205,8 @@ export async function scaffoldPipelineRun(input: {
     rootTaskId,
     decomposedTaskIds: childTaskIds,
     loopStartTime,
-    status: 'running'
+    status: 'running',
+    phase: 'scaffold'
   };
 
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
@@ -239,6 +248,59 @@ export async function writePipelinePendingHandoff(
 export async function readPipelinePendingHandoff(handoffPath: string): Promise<PipelinePendingHandoff> {
   const raw = await fs.readFile(handoffPath, 'utf8');
   return JSON.parse(raw) as PipelinePendingHandoff;
+}
+
+/**
+ * Phases that indicate a pipeline was interrupted mid-run and can be resumed.
+ * An artifact with status 'running' and one of these phases was written before
+ * the next sub-phase started, so the resume entry point is deterministic.
+ */
+const RESUMABLE_PHASES: ReadonlySet<PipelinePhase> = new Set([
+  'scaffold',
+  'loop',
+  'review',
+  'scm'
+]);
+
+/**
+ * Scan <artifactDir>/pipelines/ and return all pipeline run artifacts that
+ * have status 'running' and a phase in the resumable set.
+ * These are candidates for ralphCodex.resumePipeline.
+ */
+export async function findResumablePipelineArtifacts(
+  artifactDir: string
+): Promise<Array<{ artifact: PipelineRunArtifact; artifactPath: string }>> {
+  const pipelinesDir = path.join(artifactDir, 'pipelines');
+  let entries: string[];
+  try {
+    entries = await fs.readdir(pipelinesDir);
+  } catch {
+    return [];
+  }
+
+  const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort();
+  const results: Array<{ artifact: PipelineRunArtifact; artifactPath: string }> = [];
+
+  for (const name of jsonFiles) {
+    const artifactPath = path.join(pipelinesDir, name);
+    try {
+      const raw = await fs.readFile(artifactPath, 'utf8');
+      const artifact = JSON.parse(raw) as PipelineRunArtifact;
+      if (
+        artifact.kind === 'pipelineRun' &&
+        typeof artifact.runId === 'string' &&
+        artifact.status === 'running' &&
+        artifact.phase !== undefined &&
+        RESUMABLE_PHASES.has(artifact.phase)
+      ) {
+        results.push({ artifact, artifactPath });
+      }
+    } catch {
+      // skip malformed files
+    }
+  }
+
+  return results;
 }
 
 /**

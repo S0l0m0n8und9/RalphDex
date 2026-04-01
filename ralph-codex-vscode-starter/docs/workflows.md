@@ -147,6 +147,7 @@ The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
 - `decomposedTaskIds` — the child task ids derived from the PRD sections
 - `loopStartTime` and `loopEndTime` — ISO-8601 timestamps
 - `status` — `running`, `complete`, `failed`, or `awaiting_human_approval`
+- `phase` — last sub-phase completed: `scaffold`, `loop`, `review`, `scm`, `done`, or `failed`; written as a durable checkpoint after each sub-phase so crash recovery can re-enter at the right point
 - `reviewTranscriptPath` — path to the review-agent transcript (when the review pass ran)
 - `prUrl` — GitHub/GitLab PR URL extracted from the SCM agent completion report (when available)
 
@@ -159,6 +160,23 @@ When `ralphCodex.pipelineHumanGates` is `true`, Ralph pauses after the review-ag
 To resume, run `Ralph Codex: Approve Human Review`. Ralph discovers all pending handoff files in `.ralph/handoff/`, prompts for a selection if more than one is found, then runs the SCM agent to submit the PR, updates the pipeline artifact to `status: complete`, and removes the pending handoff file.
 
 `ralphCodex.pipelineHumanGates` defaults to `false`. With the default, the SCM agent runs immediately after the review pass with no human checkpoint.
+
+### Pipeline Crash Recovery
+
+If VS Code crashes or the extension is reloaded while a pipeline is running, the in-progress run is not silently abandoned. Ralph writes a `phase` checkpoint to the pipeline artifact after each sub-phase completes (`scaffold` → `loop` → `review` → `scm` → `done`). An artifact with `status: running` and a `phase` value of `scaffold`, `loop`, `review`, or `scm` is resumable.
+
+On extension activation, Ralph scans `.ralph/artifacts/pipelines/` for resumable artifacts. If any are found, a warning notification appears. Click **Resume Pipeline** to invoke `Ralph Codex: Resume Pipeline`.
+
+`Ralph Codex: Resume Pipeline` can also be invoked directly at any time. It:
+
+1. Scans for pipeline artifacts with `status: running` and a resumable `phase`.
+2. Shows a quick-pick selector if more than one interrupted run exists.
+3. Determines the entry point from the last completed `phase`:
+   - `scaffold` → re-enters at the loop phase
+   - `loop` → re-enters at the review-agent phase
+   - `review` → re-enters at the SCM phase (or the human-review gate if `pipelineHumanGates` is `true`)
+   - `scm` → re-runs the SCM agent
+4. Continues writing phase checkpoints from that point so the run remains resumable if interrupted again.
 
 ## Prompt Budgeting And Quota Control
 

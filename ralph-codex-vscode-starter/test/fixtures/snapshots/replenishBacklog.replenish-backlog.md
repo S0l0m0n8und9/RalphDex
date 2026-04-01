@@ -60,7 +60,7 @@ Keep Ralph moving when the current durable backlog is fully consumed.
 - Backlog counts: todo 0, in_progress 0, blocked 0, done 2
 - Next actionable task: none
 - The actionable backlog is exhausted. Create the next coherent Ralph tasks directly in `.ralph/tasks.json`.
-- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, optional `parentId`, and optional `dependsOn`.
+- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, and optional `acceptance` (string[]), `parentId`, `dependsOn`, `notes`, and `validation`.
 - Do not duplicate already-completed work or mark speculative tasks done.
 - Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.
 - Validation command: none selected for backlog replenishment

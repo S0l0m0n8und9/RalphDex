@@ -1485,10 +1485,17 @@
       "status": "released"
     },
     {
-      "taskId": "T68",
       "agentId": "build-2",
-      "provenanceId": "run-i045-cli-20260401T161226Z",
+      "taskId": "T68",
       "claimedAt": "2026-04-01T16:12:26.360Z",
+      "provenanceId": "run-i045-cli-20260401T161226Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T69",
+      "agentId": "build",
+      "provenanceId": "run-i046-cli-20260401T162242Z",
+      "claimedAt": "2026-04-01T16:22:42.840Z",
       "status": "active"
     }
   ]

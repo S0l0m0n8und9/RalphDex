@@ -8,6 +8,7 @@ import {
   buildPipelineRootTask,
   buildPipelineRunId,
   extractPrUrl,
+  findResumablePipelineArtifacts,
   parsePrdSections,
   readLatestPipelineArtifact,
   scaffoldPipelineRun,
@@ -261,6 +262,168 @@ test('readLatestPipelineArtifact returns the most recent artifact', async () => 
     assert.equal(result.artifact.prUrl, 'https://github.com/acme/repo/pull/10');
     assert.equal(result.artifact.decomposedTaskIds.length, 2);
     assert.ok(result.artifactPath.endsWith(`${newer.runId}.json`));
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Phase checkpoint: scaffoldPipelineRun
+// ---------------------------------------------------------------------------
+
+test('scaffoldPipelineRun sets phase scaffold on the written artifact', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-scaffold-phase-test-'));
+  try {
+    const prdPath = path.join(tmpDir, 'prd.md');
+    const taskFilePath = path.join(tmpDir, 'tasks.json');
+    const artifactDir = path.join(tmpDir, 'artifacts');
+
+    await fs.writeFile(prdPath, '# PRD\n\n## Step 1\n', 'utf8');
+    await fs.writeFile(taskFilePath, JSON.stringify({ version: 2, tasks: [] }, null, 2) + '\n', 'utf8');
+
+    const result = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir });
+
+    assert.equal(result.artifact.phase, 'scaffold');
+
+    const raw = await fs.readFile(result.artifactPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    assert.equal(parsed.phase, 'scaffold');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// findResumablePipelineArtifacts
+// ---------------------------------------------------------------------------
+
+test('findResumablePipelineArtifacts returns empty when no pipelines directory exists', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-resumable-none-test-'));
+  try {
+    const result = await findResumablePipelineArtifacts(tmpDir);
+    assert.deepEqual(result, []);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('findResumablePipelineArtifacts returns empty when all artifacts are terminal', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-resumable-terminal-test-'));
+  try {
+    const pipelinesDir = path.join(tmpDir, 'pipelines');
+    await fs.mkdir(pipelinesDir);
+
+    const terminalArtifacts = [
+      { runId: 'pipeline-complete', status: 'complete', phase: 'done' },
+      { runId: 'pipeline-failed', status: 'failed', phase: 'failed' },
+      { runId: 'pipeline-awaiting', status: 'awaiting_human_approval', phase: 'review' }
+    ];
+
+    for (const a of terminalArtifacts) {
+      const artifact = {
+        schemaVersion: 1 as const,
+        kind: 'pipelineRun' as const,
+        runId: a.runId,
+        prdHash: 'sha256:x',
+        prdPath: '/prd.md',
+        rootTaskId: 'Tpipe-x',
+        decomposedTaskIds: [],
+        loopStartTime: '2026-04-01T00:00:00.000Z',
+        status: a.status,
+        phase: a.phase
+      };
+      await fs.writeFile(path.join(pipelinesDir, `${a.runId}.json`), JSON.stringify(artifact), 'utf8');
+    }
+
+    const result = await findResumablePipelineArtifacts(tmpDir);
+    assert.deepEqual(result, []);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('findResumablePipelineArtifacts returns artifacts with status running and resumable phase', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-resumable-found-test-'));
+  try {
+    const pipelinesDir = path.join(tmpDir, 'pipelines');
+    await fs.mkdir(pipelinesDir);
+
+    const resumable = [
+      { runId: 'pipeline-scaffold', phase: 'scaffold' },
+      { runId: 'pipeline-loop', phase: 'loop' },
+      { runId: 'pipeline-review', phase: 'review' },
+      { runId: 'pipeline-scm', phase: 'scm' }
+    ];
+    const nonResumable = [
+      { runId: 'pipeline-done', status: 'complete', phase: 'done' },
+      { runId: 'pipeline-no-phase', status: 'running', phase: undefined }
+    ];
+
+    for (const a of resumable) {
+      const artifact = {
+        schemaVersion: 1 as const,
+        kind: 'pipelineRun' as const,
+        runId: a.runId,
+        prdHash: 'sha256:r',
+        prdPath: '/prd.md',
+        rootTaskId: 'Tpipe-r',
+        decomposedTaskIds: [],
+        loopStartTime: '2026-04-01T00:00:00.000Z',
+        status: 'running',
+        phase: a.phase
+      };
+      await fs.writeFile(path.join(pipelinesDir, `${a.runId}.json`), JSON.stringify(artifact), 'utf8');
+    }
+
+    for (const a of nonResumable) {
+      const artifact = {
+        schemaVersion: 1 as const,
+        kind: 'pipelineRun' as const,
+        runId: a.runId,
+        prdHash: 'sha256:n',
+        prdPath: '/prd.md',
+        rootTaskId: 'Tpipe-n',
+        decomposedTaskIds: [],
+        loopStartTime: '2026-04-01T00:00:00.000Z',
+        status: a.status,
+        ...(a.phase !== undefined && { phase: a.phase })
+      };
+      await fs.writeFile(path.join(pipelinesDir, `${a.runId}.json`), JSON.stringify(artifact), 'utf8');
+    }
+
+    const results = await findResumablePipelineArtifacts(tmpDir);
+    assert.equal(results.length, 4);
+
+    const runIds = results.map((r) => r.artifact.runId).sort();
+    assert.deepEqual(runIds, ['pipeline-loop', 'pipeline-review', 'pipeline-scaffold', 'pipeline-scm']);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('findResumablePipelineArtifacts skips malformed files without throwing', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-resumable-malformed-test-'));
+  try {
+    const pipelinesDir = path.join(tmpDir, 'pipelines');
+    await fs.mkdir(pipelinesDir);
+
+    await fs.writeFile(path.join(pipelinesDir, 'bad.json'), 'not-json', 'utf8');
+    await fs.writeFile(path.join(pipelinesDir, 'valid.json'), JSON.stringify({
+      schemaVersion: 1,
+      kind: 'pipelineRun',
+      runId: 'pipeline-valid',
+      prdHash: 'sha256:v',
+      prdPath: '/prd.md',
+      rootTaskId: 'Tpipe-v',
+      decomposedTaskIds: [],
+      loopStartTime: '2026-04-01T00:00:00.000Z',
+      status: 'running',
+      phase: 'loop'
+    }), 'utf8');
+
+    const results = await findResumablePipelineArtifacts(tmpDir);
+    assert.equal(results.length, 1);
+    assert.equal(results[0].artifact.runId, 'pipeline-valid');
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }

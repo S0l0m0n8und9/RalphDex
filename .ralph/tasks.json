@@ -2056,13 +2056,13 @@
     {
       "id": "T69",
       "title": "Pipeline crash recovery: persist partial pipeline state so a failed or reloaded pipeline run can resume from the last completed task",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T68"
       ],
-      "notes": "Currently if the VS Code process crashes or the extension is reloaded mid-pipeline, the in-progress pipeline run is silently abandoned — the pipeline artifact will be left with status 'running' and no way to resume. Add a durable pipeline checkpoint: (1) after each sub-phase (scaffold, loop, review, SCM) update the pipeline artifact with a 'phase' field (scaffold|loop|review|scm|done|failed); (2) on extension activation, scan for pipeline artifacts in phase scaffold|loop|review|scm and surface a 'Resume Pipeline' warning with a ralphCodex.resumePipeline command; (3) resumePipeline reads the artifact, determines the last completed phase, and re-enters runPipeline at that checkpoint. Add integration coverage for the resume path and update docs/workflows.md with the crash-recovery section. Run npm run validate.",
+      "notes": "Pipeline crash recovery implemented: PipelinePhase type + phase checkpoint field added to PipelineRunArtifact; scaffoldPipelineRun writes phase:'scaffold'; runPipeline refactored to use shared runPipelineFromPhase helper with loop/review/done checkpoints; ralphCodex.resumePipeline command added with phase-aware re-entry and QuickPick selection; activation-time scan surfaces warning notification fo",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 29
+  "mutationCount": 30
 }

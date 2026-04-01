@@ -72,6 +72,7 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Run Pipeline`
 - `Ralph Codex: Approve Human Review`
 - `Ralph Codex: Open Latest Pipeline Run`
+- `Ralph Codex: Resume Pipeline`
 
 Validation entry points:
 
