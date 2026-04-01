@@ -47,6 +47,7 @@ Ralph Codex Workbench is a VS Code extension that:
 - `src/ralph/executionIntegrity.ts`: pre-execution integrity verification, integrity-failure error types, and stale-task detection
 - `src/ralph/artifactStore.ts`: artifact layout, latest pointers, run bundles, and retention cleanup
 - `src/codex/claudeCliProvider.ts`: claude -p execution strategy and transcript builder
+- `src/ralph/pipeline.ts`: end-to-end pipeline orchestration — PRD-fragment intake, task decomposition, agent loop, review-agent pass, SCM/PR submission, human-review gate coordination, and pipeline-run provenance artifact
 
 ## Command And Validation Entry Points
 
@@ -69,6 +70,8 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralph Codex: Cleanup Runtime Artifacts`
 - `Ralph Codex: Reset Runtime State`
 - `Ralph Codex: Run Pipeline`
+- `Ralph Codex: Approve Human Review`
+- `Ralph Codex: Open Latest Pipeline Run`
 
 Validation entry points:
 

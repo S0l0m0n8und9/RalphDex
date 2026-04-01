@@ -491,7 +491,7 @@ function buildTaskContext(
     return [
       ...baseLines,
       ...driftLines,
-      '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, optional `parentId`, and optional `dependsOn`.',
+      '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, and optional `acceptance` (string[]), `parentId`, `dependsOn`, `notes`, and `validation`.',
       '- Do not duplicate already-completed work or mark speculative tasks done.',
       '- Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.',
       `- Validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none selected for backlog replenishment'}`

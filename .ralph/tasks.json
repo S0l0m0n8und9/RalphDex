@@ -2046,11 +2046,11 @@
     {
       "id": "T68",
       "title": "Advance prd.md and AGENTS.md/architecture.md to reflect the completed three-pillar horizon and define the next direction",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T67"
       ],
-      "notes": "All three PRD 'Next delivery horizon' pillars are now shipped: (1) parallel multi-agent loop (T58-T59), (2) operator health dashboard (T60-T62), (3) end-to-end pipeline automation (T63-T66). Update prd.md to record the milestone as satisfied (date 2026-04-02) and define the next concrete horizon. Candidate next areas: pipeline resume/crash-recovery, real E2E temp-workspace pipeline smoke test, operator CLI (non-VS Code) pipeline runner. Also audit AGENTS.md and docs/architecture.md to add the new pipeline/provenance command surface (runPipeline, approveHumanReview, openLatestPipelineRun, pipeline.ts module). Run npm run check:docs.",
+      "notes": "Marked three-pillar delivery horizon satisfied (2026-04-02) in prd.md; defined next horizon (pipeline resume/crash-recovery, real E2E smoke test, operator CLI); added pipeline.ts + approveHumanReview/openLatestPipelineRun to AGENTS.md code owners and command list; added pipeline.ts to architecture.md module boundaries",
       "validation": "cd ralph-codex-vscode-starter && npm run check:docs"
     },
     {
@@ -2064,5 +2064,5 @@
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     }
   ],
-  "mutationCount": 28
+  "mutationCount": 29
 }

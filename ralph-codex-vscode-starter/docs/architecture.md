@@ -32,6 +32,7 @@ Related docs:
 - `src/ralph/integrity.ts`: prompt and artifact hashing helpers
 - `src/ralph/executionIntegrity.ts`: pre-execution integrity verification — execution-plan hash checking, prompt-artifact hash checking, stdin payload hash reconciliation, and integrity-failure/stale-task error types
 - `src/ralph/artifactStore.ts`: per-iteration artifacts, run-level provenance bundles, latest pointers, and retention cleanup, including newest-first generated-artifact retention that can add older protected references without displacing the retained window
+- `src/ralph/pipeline.ts`: end-to-end pipeline orchestration — PRD-fragment intake, task decomposition, agent loop, review-agent pass, SCM/PR submission, human-review gate coordination, and pipeline-run provenance artifact
 - `src/services/`: logging, process execution, Codex CLI support inspection, and shallow workspace scanning
 
 ## End-To-End Flow

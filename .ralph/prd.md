@@ -49,27 +49,41 @@ The multi-agent deferral was formally lifted when all three acceptance criteria 
 - Write Serialisation: `withTaskFileLock` wraps every `tasks.json` mutation path; concurrent-write contention is deterministic.
 - Remediation Isolation: `agentId` is a field on `RalphIterationResult`; `countTrailingSameTaskClassifications` is scoped per agent.
 
+### Next delivery horizon — satisfied 2026-04-02
+
+All three pillars of the delivery horizon defined after the nested-repo control-plane milestone are now shipped:
+
+**1. Parallel multi-agent loop execution** (T58–T59, completed)
+
+The claim/lock/agentId infrastructure drives concurrent loops. A multi-agent launcher assigns non-overlapping task subsets via the claim mechanism. Preflight and Show Status aggregate health across all active agents.
+
+**2. Operator-facing multi-agent health dashboard** (T60–T62, completed)
+
+`Show Multi-Agent Status` renders per-agent iteration history, claim state, and last-stop reason. Watchdog alerts are surfaced as durable diagnostic artifacts. Stale-claim and repeated-no-progress heatmap lets operators spot stuck agents without reading individual transcripts.
+
+**3. End-to-end delivery pipeline automation** (T63–T66, completed)
+
+`Run Pipeline` (`ralphCodex.runPipeline`) accepts a PRD fragment, decomposes it into tasks, runs the agent loop, opens a review-agent pass, and submits a PR from a single operator invocation. Durable pipeline-run provenance links PRD input → task graph snapshot → iteration history → PR URL. `Show Status` surfaces the latest pipeline run. `Open Latest Pipeline Run` (`ralphCodex.openLatestPipelineRun`) opens the run artifact directly. Configurable human-review gates (`ralphCodex.approveHumanReview`, controlled by `ralphCodex.pipelineHumanGates`) pause the pipeline and resume on operator approval.
+
 ### Next delivery horizon
 
-With the control-plane milestone satisfied, the following capabilities are the concrete next targets. Each is grounded in the surface already shipped.
+With the three-pillar horizon satisfied, the following capabilities are the concrete next targets.
 
-**1. Parallel multi-agent loop execution**
+**1. Pipeline resilience: resume and crash-recovery**
 
-The claim/lock/agentId infrastructure is in place. The next step is running two or more agent loops concurrently against disjoint task sets in the same `.ralph/` workspace. Concrete work:
-- A launcher that starts N agent processes and assigns non-overlapping task subsets via the claim mechanism.
-- Preflight and Show Status rendering that aggregates health across all active agents.
-- Conflict-free SCM orchestration across concurrent branch-per-task agents.
+The pipeline currently runs to completion or fails terminally. The next step is making it restartable from the last known-good phase so transient failures (network, CLI timeout, lock contention) do not require a full re-run. Concrete work:
+- A durable pipeline-run state file (`.ralph/pipeline-run.json`) that records the completed phase, artifact hashes, and resume cursor.
+- A `resumePipeline` command that reads the run state, validates phase integrity, and continues from the interruption point.
+- Preflight diagnostics that detect an in-progress but stale pipeline run and surface it as a warning.
 
-**2. Operator-facing multi-agent health dashboard**
+**2. Real end-to-end pipeline smoke test in a temporary workspace**
 
-The watchdog agent template, `agents/<agentId>.json` history, and active-claim aggregation in preflight are already present. Concrete work:
-- A consolidated Show Multi-Agent Status command that renders per-agent iteration history, claim state, and last-stop reason.
-- Watchdog-triggered alerts surfaced as durable diagnostic artifacts (not only in the output channel).
-- Stale-claim and repeated-no-progress heatmap so operators can spot stuck agents without reading individual run transcripts.
+Current pipeline tests use mocked phases. Concrete work:
+- A `test:e2e-pipeline` script that creates a fresh temp workspace, seeds a minimal `.ralph/` layout, runs `runPipeline` through a real Claude CLI invocation, and asserts that a PR URL artifact exists.
+- Guard the test behind an environment flag so it is opt-in in CI but runnable locally.
 
-**3. End-to-end delivery pipeline automation**
+**3. Operator CLI: non-VS Code pipeline runner**
 
-The SCM agent, branch-per-task orchestration, review agent, and `scmPrOnParentDone` are in place. Concrete work:
-- A top-level pipeline command that accepts a PRD fragment, decomposes it into tasks, runs the agent loop, opens a review-agent pass, and submits a PR — all from a single operator invocation.
-- Durable pipeline-run provenance linking PRD input → task graph snapshot → iteration history → PR URL.
-- Configurable human-review gates that pause the pipeline and resume on operator approval.
+The pipeline depends on VS Code commands for its entry point. Concrete work:
+- A standalone `ralph-cli` Node script (or thin wrapper) that reads `.ralph/` state and drives the same `pipeline.ts` logic without a VS Code host.
+- Enables headless CI and cron-triggered pipeline runs without requiring the extension host.
