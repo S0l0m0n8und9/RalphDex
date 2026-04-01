@@ -9,7 +9,7 @@ import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
 
-function createCliProvider(config: RalphCodexConfig): CliProvider {
+export function createCliProvider(config: RalphCodexConfig): CliProvider {
   if (config.cliProvider === 'claude') {
     return new ClaudeCliProvider({
       maxTurns: config.claudeMaxTurns,
