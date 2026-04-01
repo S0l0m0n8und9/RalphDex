@@ -48,8 +48,8 @@ export function parseGenerationResponse(responseText: string): {
       );
     }
     return {
-      id: String((item as Record<string, unknown>).id),
-      title: String((item as Record<string, unknown>).title),
+      id: (item as Record<string, unknown>).id as string,
+      title: (item as Record<string, unknown>).title as string,
       status: 'todo' as const
     };
   });
