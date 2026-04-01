@@ -3,9 +3,11 @@
   "firstSeenAt": "2026-04-01T06:42:55.514Z",
   "completedTaskIds": [
     "T64.2",
-    "T66"
+    "T66",
+    "T67"
   ],
   "touchedFiles": [
+    ".claude/skills/ralph-add-tasks.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
     "ralph-codex-vscode-starter/out/codex/providerFactory.js",
     "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
@@ -26,13 +28,17 @@
     "ralph-codex-vscode-starter/out/ui/sidebarHtml.js",
     "ralph-codex-vscode-starter/package-lock.json",
     "ralph-codex-vscode-starter/package.json",
+    "ralph-codex-vscode-starter/src/commands/artifactCommands.ts",
     "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
+    "ralph-codex-vscode-starter/src/commands/statusSnapshot.ts",
     "ralph-codex-vscode-starter/src/config/defaults.ts",
     "ralph-codex-vscode-starter/src/config/readConfig.ts",
     "ralph-codex-vscode-starter/src/config/types.ts",
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
+    "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",
-    "ralph-codex-vscode-starter/test/pipeline.test.ts"
+    "ralph-codex-vscode-starter/test/pipeline.test.ts",
+    "ralph-codex-vscode-starter/test/statusReport.test.ts"
   ]
 }

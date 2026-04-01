@@ -9,6 +9,7 @@ import {
   buildPipelineRunId,
   extractPrUrl,
   parsePrdSections,
+  readLatestPipelineArtifact,
   scaffoldPipelineRun,
   writePipelineArtifact,
   writePipelinePendingHandoff,
@@ -195,6 +196,71 @@ test('scaffoldPipelineRun creates root + child tasks and writes artifact', async
     const artifact = JSON.parse(artifactRaw);
     assert.equal(artifact.status, 'running');
     assert.ok(artifact.prdHash.startsWith('sha256:'));
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('readLatestPipelineArtifact returns null when no pipelines directory exists', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-no-pipeline-test-'));
+  try {
+    const result = await readLatestPipelineArtifact(tmpDir);
+    assert.equal(result, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('readLatestPipelineArtifact returns null when pipelines directory is empty', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-empty-pipeline-test-'));
+  try {
+    await fs.mkdir(path.join(tmpDir, 'pipelines'));
+    const result = await readLatestPipelineArtifact(tmpDir);
+    assert.equal(result, null);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('readLatestPipelineArtifact returns the most recent artifact', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-latest-pipeline-test-'));
+  try {
+    const pipelinesDir = path.join(tmpDir, 'pipelines');
+    await fs.mkdir(pipelinesDir);
+
+    const older = {
+      schemaVersion: 1 as const,
+      kind: 'pipelineRun' as const,
+      runId: 'pipeline-20260301T000000Z-aaaa',
+      prdHash: 'sha256:old',
+      prdPath: '/prd.md',
+      rootTaskId: 'Tpipe-old',
+      decomposedTaskIds: ['Tpipe-old.01'],
+      loopStartTime: '2026-03-01T00:00:00.000Z',
+      status: 'complete' as const
+    };
+    const newer = {
+      schemaVersion: 1 as const,
+      kind: 'pipelineRun' as const,
+      runId: 'pipeline-20260401T000000Z-bbbb',
+      prdHash: 'sha256:new',
+      prdPath: '/prd.md',
+      rootTaskId: 'Tpipe-new',
+      decomposedTaskIds: ['Tpipe-new.01', 'Tpipe-new.02'],
+      loopStartTime: '2026-04-01T00:00:00.000Z',
+      status: 'running' as const,
+      prUrl: 'https://github.com/acme/repo/pull/10'
+    };
+
+    await fs.writeFile(path.join(pipelinesDir, `${older.runId}.json`), JSON.stringify(older), 'utf8');
+    await fs.writeFile(path.join(pipelinesDir, `${newer.runId}.json`), JSON.stringify(newer), 'utf8');
+
+    const result = await readLatestPipelineArtifact(tmpDir);
+    assert.ok(result !== null);
+    assert.equal(result.artifact.runId, newer.runId);
+    assert.equal(result.artifact.prUrl, 'https://github.com/acme/repo/pull/10');
+    assert.equal(result.artifact.decomposedTaskIds.length, 2);
+    assert.ok(result.artifactPath.endsWith(`${newer.runId}.json`));
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }

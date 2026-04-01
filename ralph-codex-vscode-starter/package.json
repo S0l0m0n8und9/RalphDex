@@ -111,6 +111,7 @@
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runPipeline",
     "onCommand:ralphCodex.approveHumanReview",
+    "onCommand:ralphCodex.openLatestPipelineRun",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -227,6 +228,10 @@
       {
         "command": "ralphCodex.approveHumanReview",
         "title": "Ralph Codex: Approve Human Review"
+      },
+      {
+        "command": "ralphCodex.openLatestPipelineRun",
+        "title": "Ralph Codex: Open Latest Pipeline Run"
       }
     ],
     "viewsContainers": {

@@ -3,6 +3,7 @@ import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
 import { deriveRootPolicy } from './rootPolicy';
+import { PipelineRunArtifact } from './pipeline';
 import {
   RalphGeneratedArtifactRetentionSummary,
   RalphLatestArtifactRepairSummary,
@@ -83,6 +84,8 @@ export interface RalphStatusSnapshot {
   preflightReport: RalphPreflightReport;
   claimGraph: RalphTaskClaimGraphInspection | null;
   currentProvenanceId: string | null;
+  latestPipelineRunPath: string | null;
+  latestPipelineRun: PipelineRunArtifact | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -432,6 +435,15 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
       snapshot.provenanceBundleRetention.protectedBundleIds,
       4
     )}`,
+    '',
+    '## Latest Pipeline',
+    `- Run ID: ${snapshot.latestPipelineRun?.runId ?? 'none'}`,
+    `- Status: ${snapshot.latestPipelineRun?.status ?? 'none'}`,
+    `- Root task: ${snapshot.latestPipelineRun?.rootTaskId ?? 'none'}`,
+    `- Child tasks: ${snapshot.latestPipelineRun ? snapshot.latestPipelineRun.decomposedTaskIds.length : 'none'}`,
+    `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
+    `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
+    '- Direct command: Ralph Codex: Open Latest Pipeline Run',
     '',
     '## Latest Iteration',
     `- Last task: ${lastTaskLabel}`,

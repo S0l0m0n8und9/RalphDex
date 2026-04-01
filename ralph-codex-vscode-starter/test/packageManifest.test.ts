@@ -126,3 +126,17 @@ test('package manifest exposes the pipelineHumanGates boolean setting', async ()
   assert.ok(properties['ralphCodex.pipelineHumanGates'], 'pipelineHumanGates setting must be present');
   assert.equal((properties['ralphCodex.pipelineHumanGates'] as { type?: string }).type, 'boolean');
 });
+
+test('package manifest contributes and activates the openLatestPipelineRun command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.openLatestPipelineRun'),
+    'package.json must activate on ralphCodex.openLatestPipelineRun'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralph Codex: Open Latest Pipeline Run'),
+    'package.json must contribute the Open Latest Pipeline Run command'
+  );
+});

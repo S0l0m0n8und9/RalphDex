@@ -31,6 +31,7 @@ import {
   normalizeTaskRemediationArtifact,
   readJsonArtifact
 } from './statusSnapshot';
+import { readLatestPipelineArtifact } from '../ralph/pipeline';
 
 // ---------------------------------------------------------------------------
 // Shared types (kept local to avoid circular re-exports)
@@ -219,6 +220,27 @@ async function revealLatestProvenanceBundleDirectory(
   }
 
   return true;
+}
+
+async function openLatestPipelineRun(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<boolean> {
+  const config = readConfig(workspaceFolder);
+  const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+  await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+  const latest = await readLatestPipelineArtifact(inspection.paths.artifactDir);
+
+  if (latest) {
+    await openTextFile(latest.artifactPath);
+    return true;
+  }
+
+  void vscode.window.showInformationMessage(
+    'No pipeline run artifact found. Run "Ralph Codex: Run Pipeline" first, then try again.'
+  );
+  return false;
 }
 
 async function applyLatestTaskDecompositionProposal(
@@ -564,6 +586,17 @@ export function registerArtifactAndMaintenanceCommands(
       progress.report({ message: 'Resolving latest Ralph CLI transcript' });
       const workspaceFolder = await withWorkspaceFolder();
       await openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManager, logger);
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.openLatestPipelineRun',
+    label: 'Ralph Codex: Open Latest Pipeline Run',
+    requiresTrustedWorkspace: false,
+    handler: async (progress) => {
+      progress.report({ message: 'Resolving latest Ralph pipeline run artifact' });
+      const workspaceFolder = await withWorkspaceFolder();
+      await openLatestPipelineRun(workspaceFolder, stateManager, logger);
     }
   });
 

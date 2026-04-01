@@ -240,3 +240,36 @@ export async function readPipelinePendingHandoff(handoffPath: string): Promise<P
   const raw = await fs.readFile(handoffPath, 'utf8');
   return JSON.parse(raw) as PipelinePendingHandoff;
 }
+
+/**
+ * Find and parse the most recent pipeline run artifact from
+ * <artifactDir>/pipelines/<runId>.json.
+ * Returns null when no artifacts exist or the directory is absent.
+ */
+export async function readLatestPipelineArtifact(
+  artifactDir: string
+): Promise<{ artifact: PipelineRunArtifact; artifactPath: string } | null> {
+  const pipelinesDir = path.join(artifactDir, 'pipelines');
+  let entries: string[];
+  try {
+    entries = await fs.readdir(pipelinesDir);
+  } catch {
+    return null;
+  }
+
+  const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort().reverse();
+  for (const name of jsonFiles) {
+    const artifactPath = path.join(pipelinesDir, name);
+    try {
+      const raw = await fs.readFile(artifactPath, 'utf8');
+      const artifact = JSON.parse(raw) as PipelineRunArtifact;
+      if (artifact.kind === 'pipelineRun' && typeof artifact.runId === 'string') {
+        return { artifact, artifactPath };
+      }
+    } catch {
+      // skip malformed files
+    }
+  }
+
+  return null;
+}

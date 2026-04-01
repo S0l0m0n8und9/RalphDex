@@ -27,6 +27,7 @@ import {
   inspectValidationCommandReadiness,
   normalizeValidationCommand
 } from '../ralph/verifier';
+import { readLatestPipelineArtifact } from '../ralph/pipeline';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { pathExists } from '../util/fs';
@@ -343,7 +344,7 @@ export async function collectStatusSnapshot(
     artifactReadinessDiagnostics,
     agentHealthDiagnostics
   });
-  const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
+  const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
     inspectGeneratedArtifactRetention({
       artifactRootDir: inspection.paths.artifactDir,
       promptDir: inspection.paths.promptDir,
@@ -354,7 +355,8 @@ export async function collectStatusSnapshot(
     inspectProvenanceBundleRetention({
       artifactRootDir: inspection.paths.artifactDir,
       retentionCount: config.provenanceBundleRetentionCount
-    })
+    }),
+    readLatestPipelineArtifact(inspection.paths.artifactDir)
   ]);
 
   return {
@@ -403,6 +405,8 @@ export async function collectStatusSnapshot(
     gitStatus,
     preflightReport,
     claimGraph,
-    currentProvenanceId
+    currentProvenanceId,
+    latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
+    latestPipelineRun: latestPipelineEntry?.artifact ?? null
   };
 }

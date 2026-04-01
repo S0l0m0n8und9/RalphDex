@@ -557,6 +557,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     },
     claimGraph,
     currentProvenanceId: 'run-i003-cli-20260307T000600Z',
+    latestPipelineRunPath: null,
+    latestPipelineRun: null,
     ...overrides
   };
 }
@@ -610,6 +612,39 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- Latest artifact repairs this status run: \.ralph\/artifacts\/latest-summary\.md/);
   assert.match(report, /- Latest artifact paths still stale: \.ralph\/artifacts\/latest-provenance-summary\.md/);
   assert.match(report, /Ralph Codex: Reveal Latest Provenance Bundle Directory/);
+  assert.match(report, /## Latest Pipeline/);
+  assert.match(report, /- Run ID: none/);
+  assert.match(report, /- Status: none/);
+  assert.match(report, /- Root task: none/);
+  assert.match(report, /- PR URL: none/);
+  assert.match(report, /Ralph Codex: Open Latest Pipeline Run/);
+});
+
+test('buildStatusReport renders latest pipeline section when a pipeline run is present', () => {
+  const report = buildStatusReport(snapshot({
+    latestPipelineRunPath: '/workspace/.ralph/artifacts/pipelines/pipeline-20260401T000000Z-bbbb.json',
+    latestPipelineRun: {
+      schemaVersion: 1,
+      kind: 'pipelineRun',
+      runId: 'pipeline-20260401T000000Z-bbbb',
+      prdHash: 'sha256:abc',
+      prdPath: '/workspace/.ralph/prd.md',
+      rootTaskId: 'Tpipe-20260401T000000Z-bbbb',
+      decomposedTaskIds: ['Tpipe-20260401T000000Z-bbbb.01', 'Tpipe-20260401T000000Z-bbbb.02'],
+      loopStartTime: '2026-04-01T00:00:00.000Z',
+      status: 'complete',
+      prUrl: 'https://github.com/acme/repo/pull/42'
+    }
+  }));
+
+  assert.match(report, /## Latest Pipeline/);
+  assert.match(report, /- Run ID: pipeline-20260401T000000Z-bbbb/);
+  assert.match(report, /- Status: complete/);
+  assert.match(report, /- Root task: Tpipe-20260401T000000Z-bbbb/);
+  assert.match(report, /- Child tasks: 2/);
+  assert.match(report, /- PR URL: https:\/\/github\.com\/acme\/repo\/pull\/42/);
+  assert.match(report, /\.ralph\/artifacts\/pipelines\/pipeline-20260401T000000Z-bbbb\.json/);
+  assert.match(report, /Ralph Codex: Open Latest Pipeline Run/);
 });
 
 test('buildStatusReport surfaces repeated-task remediation guidance', () => {
