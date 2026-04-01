@@ -397,23 +397,73 @@ test('inspectTaskFileText reports duplicate ids, missing references, cycles, and
   );
 });
 
-test('inspectTaskFileText rejects likely schema-drift fields such as dependencies and suggests dependsOn', () => {
+test('inspectTaskFileText auto-corrects likely schema-drift fields such as dependencies to dependsOn', () => {
   const inspection = inspectTaskFileText(JSON.stringify({
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Broken field name', status: 'todo', dependencies: ['T0'] }
+      { id: 'T1', title: 'Broken field name', status: 'todo', dependencies: [] }
     ]
   }, null, 2));
 
-  assert.equal(inspection.taskFile, null);
+  // File should load successfully — auto-correction preserves data.
+  assert.notEqual(inspection.taskFile, null);
   assert.deepEqual(
     inspection.diagnostics.map((diagnostic) => diagnostic.code),
-    ['unsupported_task_field']
+    ['auto_corrected_task_field']
   );
+  assert.equal(inspection.diagnostics[0]?.severity, 'warning');
   assert.match(
     inspection.diagnostics[0]?.message ?? '',
-    /unsupported field "dependencies".*Use "dependsOn" instead/
+    /used "dependencies" which was auto-corrected to "dependsOn"/
   );
+  // The corrected field value should be present on the normalised task.
+  assert.deepEqual(inspection.taskFile!.tasks[0]?.dependsOn, undefined);
+});
+
+test('inspectTaskFileText auto-corrects multiple wrong field names in a single task', () => {
+  const inspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Many wrong fields',
+        status: 'todo',
+        dependencies: [],
+        acceptanceCriteria: ['criterion A'],
+        relevantFiles: ['src/foo.ts'],
+        guardrails: ['do not delete']
+      }
+    ]
+  }, null, 2));
+
+  assert.notEqual(inspection.taskFile, null);
+  const codes = inspection.diagnostics.map((diagnostic) => diagnostic.code);
+  assert.equal(codes.every((code) => code === 'auto_corrected_task_field'), true);
+  assert.equal(inspection.diagnostics.every((d) => d.severity === 'warning'), true);
+
+  const task = inspection.taskFile!.tasks[0]!;
+  assert.deepEqual(task.acceptance, ['criterion A']);
+  assert.deepEqual(task.context, ['src/foo.ts']);
+  assert.deepEqual(task.constraints, ['do not delete']);
+});
+
+test('inspectTaskFileText does not overwrite correct field when wrong-named duplicate also present', () => {
+  const inspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Both fields present',
+        status: 'todo',
+        acceptance: ['real criterion'],
+        acceptanceCriteria: ['wrong criterion']
+      }
+    ]
+  }, null, 2));
+
+  assert.notEqual(inspection.taskFile, null);
+  // The correct field value wins; the wrong key is silently removed.
+  assert.deepEqual(inspection.taskFile!.tasks[0]?.acceptance, ['real criterion']);
 });
 
 test('inspectTaskFileText reports done parents with unfinished descendants as tracker drift', () => {

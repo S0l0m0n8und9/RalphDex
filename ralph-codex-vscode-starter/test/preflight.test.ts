@@ -26,11 +26,11 @@ async function writeUtf8Files(entries: Array<readonly [string, string]>): Promis
   await Promise.all(entries.map(([targetPath, contents]) => fs.writeFile(targetPath, contents, 'utf8')));
 }
 
-test('buildPreflightReport surfaces likely schema drift as a task-graph error', () => {
+test('buildPreflightReport surfaces likely schema drift as an auto-corrected warning', () => {
   const taskInspection = inspectTaskFileText(JSON.stringify({
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Broken alias', status: 'todo', dependencies: ['T0'] }
+      { id: 'T1', title: 'Broken alias', status: 'todo', dependencies: [] }
     ]
   }, null, 2));
 
@@ -52,9 +52,11 @@ test('buildPreflightReport surfaces likely schema drift as a task-graph error', 
     fileStatus
   });
 
-  assert.equal(report.ready, false);
-  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'unsupported_task_field'));
-  assert.match(report.summary, /Task graph: 1 error/);
+  // Auto-correction means the file loads — the diagnostic is a warning, not an error.
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'auto_corrected_task_field'));
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.severity === 'warning'));
+  // The task file loaded successfully, so taskInspection.taskFile is not null.
+  assert.notEqual(taskInspection.taskFile, null);
 });
 
 test('buildPreflightReport blocks tracker drift when a done parent still has unfinished descendants', () => {

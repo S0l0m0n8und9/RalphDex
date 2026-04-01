@@ -154,6 +154,34 @@ function normalizedFieldKey(key: string): string {
   return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
 
+/**
+ * Remap known wrong field names to their correct equivalents in place.
+ * Returns the list of corrected keys (original → corrected) for diagnostics.
+ */
+function autoCorrectKnownMistakes(record: Record<string, unknown>): Array<{ original: string; corrected: string }> {
+  const corrections: Array<{ original: string; corrected: string }> = [];
+
+  for (const key of Object.keys(record)) {
+    if (SUPPORTED_TASK_FIELDS.has(key)) {
+      continue;
+    }
+
+    const corrected = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
+    if (!corrected) {
+      continue;
+    }
+
+    // Only copy if the correct field is not already set.
+    if (record[corrected] === undefined) {
+      record[corrected] = record[key];
+    }
+    delete record[key];
+    corrections.push({ original: key, corrected });
+  }
+
+  return corrections;
+}
+
 function lineAndColumnAt(text: string, index: number): { line: number; column: number } {
   let line = 1;
   let lineStart = 0;
@@ -398,14 +426,15 @@ function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): Ra
 function createTaskGraphDiagnostic(
   code: string,
   message: string,
-  details: Pick<RalphPreflightDiagnostic, 'taskId' | 'relatedTaskIds' | 'location' | 'relatedLocations'> = {}
+  details: Pick<RalphPreflightDiagnostic, 'taskId' | 'relatedTaskIds' | 'location' | 'relatedLocations'> & { severity?: RalphPreflightDiagnostic['severity'] } = {}
 ): RalphPreflightDiagnostic {
+  const { severity: explicitSeverity, ...rest } = details;
   return {
     category: 'taskGraph',
-    severity: 'error',
+    severity: explicitSeverity ?? 'error',
     code,
     message,
-    ...details
+    ...rest
   };
 }
 
@@ -760,20 +789,15 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     const location = entryLocations[index];
     if (typeof candidate === 'object' && candidate !== null) {
       const taskRecord = candidate as Record<string, unknown>;
-      for (const key of Object.keys(taskRecord)) {
-        if (SUPPORTED_TASK_FIELDS.has(key)) {
-          continue;
-        }
 
-        const suggestedField = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
-        if (!suggestedField) {
-          continue;
-        }
-
+      // Auto-correct known field name mistakes before validation.
+      const corrections = autoCorrectKnownMistakes(taskRecord);
+      for (const { original, corrected } of corrections) {
         diagnostics.push(createTaskGraphDiagnostic(
-          'unsupported_task_field',
-          `${entryLabel(index, location)} uses unsupported field "${key}". Use "${suggestedField}" instead.`,
+          'auto_corrected_task_field',
+          `${entryLabel(index, location)} used "${original}" which was auto-corrected to "${corrected}".`,
           {
+            severity: 'warning',
             location
           }
         ));
@@ -793,7 +817,8 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     }
   }
 
-  if (diagnostics.length > 0) {
+  const hasErrors = diagnostics.some((diagnostic) => diagnostic.severity === 'error');
+  if (hasErrors) {
     return {
       taskFile: null,
       text: null,
@@ -823,6 +848,7 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
   };
   const taskDiagnostics = inspectTaskGraph(taskFile);
+  const allDiagnostics = [...diagnostics, ...taskDiagnostics];
   const normalizedText = stringifyTaskFile(taskFile);
 
   return {
@@ -831,7 +857,7 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     migrated: explicitVersion !== 2
       || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
       || raw.trimEnd() !== normalizedText.trimEnd(),
-    diagnostics: taskDiagnostics
+    diagnostics: allDiagnostics
   };
 }
 

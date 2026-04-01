@@ -770,26 +770,26 @@ test('buildStatusReport shows disabled retention settings explicitly', () => {
   assert.match(report, /- Bundle retention on write: disabled/);
 });
 
-test('buildStatusReport shows preflight task-graph diagnostics from schema drift', () => {
+test('buildStatusReport shows preflight task-graph diagnostics from schema drift auto-correction', () => {
   const report = buildStatusReport(snapshot({
-    taskFileError: 'Task entry 1 uses unsupported field "dependencies". Use "dependsOn" instead.',
+    taskFileError: null,
     selectedTask: null,
     preflightReport: {
-      ready: false,
-      summary: 'Preflight blocked.',
+      ready: true,
+      summary: 'Preflight passed with warnings.',
       diagnostics: [
         {
           category: 'taskGraph',
-          severity: 'error',
-          code: 'unsupported_task_field',
-          message: 'Task entry 1 uses unsupported field "dependencies". Use "dependsOn" instead.'
+          severity: 'warning',
+          code: 'auto_corrected_task_field',
+          message: 'Task entry 1 used "dependencies" which was auto-corrected to "dependsOn".'
         }
       ]
     }
   }));
 
-  assert.match(report, /unsupported_task_field/);
-  assert.match(report, /Use "dependsOn" instead/);
+  assert.match(report, /auto_corrected_task_field/);
+  assert.match(report, /auto-corrected to "dependsOn"/);
 });
 
 test('buildStatusReport shows tracker drift when a done parent still has unfinished descendants', () => {

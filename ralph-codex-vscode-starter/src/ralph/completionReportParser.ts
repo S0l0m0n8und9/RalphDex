@@ -109,20 +109,21 @@ function parseSuggestedChildTask(candidate: unknown): RalphSuggestedChildTask | 
   if (typeof record.rationale !== 'string' || !record.rationale.trim()) {
     return null;
   }
-  if (!Array.isArray(record.dependsOn)) {
+  if (!Array.isArray(record.dependsOn) && !Array.isArray(record.dependencies) && !Array.isArray(record.depends_on)) {
     return null;
   }
 
-  const dependsOn = record.dependsOn
+  const rawDependsOn = record.dependsOn ?? record.dependencies ?? record.depends_on;
+  const dependsOn = (rawDependsOn as unknown[])
     .map(parseSuggestedTaskDependency)
     .filter((dependency): dependency is RalphSuggestedTaskDependency => dependency !== null);
-  if (dependsOn.length !== record.dependsOn.length) {
+  if (dependsOn.length !== (rawDependsOn as unknown[]).length) {
     return null;
   }
 
   const acceptance = parseOptionalStringArray(record.acceptance ?? record.acceptanceCriteria ?? record.acceptance_criteria);
-  const constraints = parseOptionalStringArray(record.constraints);
-  const context = parseOptionalStringArray(record.context);
+  const constraints = parseOptionalStringArray(record.constraints ?? record.guardrails ?? record.guard_rails);
+  const context = parseOptionalStringArray(record.context ?? record.files ?? record.relevantFiles ?? record.relevant_files);
 
   return {
     id: record.id.trim(),
