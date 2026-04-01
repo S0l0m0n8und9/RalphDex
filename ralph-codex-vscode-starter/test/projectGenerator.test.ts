@@ -104,3 +104,84 @@ test('parseGenerationResponse throws ProjectGenerationError when task missing ti
     }
   );
 });
+
+import { generateProjectDraft } from '../src/ralph/projectGenerator';
+import { setProcessRunnerOverride } from '../src/services/processRunner';
+import { DEFAULT_CONFIG } from '../src/config/defaults';
+import * as nodeOs from 'node:os';
+
+// Claude provider: stdout is NDJSON with a "result" field
+const VALID_CLAUDE_STDOUT = JSON.stringify({
+  type: 'result',
+  result: `# Draft Project\n\n## Overview\nOverview text.\n\n## Phase 1\nDo the first thing.\n\n\`\`\`json\n[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]\n\`\`\``,
+  num_turns: 1
+});
+
+test('generateProjectDraft returns prdText and tasks on success (claude provider)', async () => {
+  setProcessRunnerOverride((_cmd, _args, _opts) => ({
+    code: 0,
+    stdout: VALID_CLAUDE_STDOUT,
+    stderr: ''
+  }));
+
+  try {
+    const result = await generateProjectDraft(
+      'Build a task manager',
+      { ...DEFAULT_CONFIG, cliProvider: 'claude' },
+      nodeOs.tmpdir()
+    );
+    assert.ok(result.prdText.startsWith('# Draft Project'));
+    assert.equal(result.tasks.length, 1);
+    assert.equal(result.tasks[0].id, 'T1');
+    assert.equal(result.tasks[0].status, 'todo');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('generateProjectDraft throws ProjectGenerationError when CLI exits non-zero', async () => {
+  setProcessRunnerOverride((_cmd, _args, _opts) => ({
+    code: 1,
+    stdout: '',
+    stderr: 'error: something went wrong'
+  }));
+
+  try {
+    await assert.rejects(
+      () => generateProjectDraft('Build something', { ...DEFAULT_CONFIG, cliProvider: 'claude' }, nodeOs.tmpdir()),
+      (err: unknown) => {
+        assert.ok(err instanceof ProjectGenerationError);
+        assert.match(err.message, /exited with code 1/);
+        return true;
+      }
+    );
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('generateProjectDraft throws ProjectGenerationError when response has no JSON fence', async () => {
+  const stdoutNoFence = JSON.stringify({
+    type: 'result',
+    result: '# P\n\nNo fence.',
+    num_turns: 1
+  });
+
+  setProcessRunnerOverride((_cmd, _args, _opts) => ({
+    code: 0,
+    stdout: stdoutNoFence,
+    stderr: ''
+  }));
+
+  try {
+    await assert.rejects(
+      () => generateProjectDraft('Build something', { ...DEFAULT_CONFIG, cliProvider: 'claude' }, nodeOs.tmpdir()),
+      (err: unknown) => {
+        assert.ok(err instanceof ProjectGenerationError);
+        return true;
+      }
+    );
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});

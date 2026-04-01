@@ -1,5 +1,9 @@
-import { RalphTask } from './types';
+import * as os from 'os';
+import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
+import { RalphTask } from './types';
+import { createCliProvider } from '../codex/providerFactory';
+import { runProcess } from '../services/processRunner';
 
 export class ProjectGenerationError extends Error {
   public constructor(message: string) {
@@ -57,10 +61,72 @@ export function parseGenerationResponse(responseText: string): {
   return { prdText, tasks };
 }
 
+const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
+
+The user's objective is:
+
+<objective>
+{OBJECTIVE}
+</objective>
+
+Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an array of tasks.
+
+Requirements:
+- Start with a # heading for the project title
+- Include: ## Overview, ## Goals, then one ## section per major work area (aim for 3-7 sections)
+- Keep each section to 2-4 sentences
+- Tasks must correspond one-to-one with the ## work area sections
+- End your response with EXACTLY this structure (no text after the closing fence):
+
+\`\`\`json
+[
+  { "id": "T1", "title": "short task title", "status": "todo" },
+  { "id": "T2", "title": "short task title", "status": "todo" }
+]
+\`\`\`
+
+Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
+
+function commandPathForConfig(config: RalphCodexConfig): string {
+  if (config.cliProvider === 'claude') { return config.claudeCommandPath; }
+  if (config.cliProvider === 'copilot') { return config.copilotCommandPath; }
+  return config.codexCommandPath;
+}
+
 export async function generateProjectDraft(
-  _objective: string,
-  _config: RalphCodexConfig,
-  _cwd: string
+  objective: string,
+  config: RalphCodexConfig,
+  cwd: string
 ): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[] }> {
-  throw new Error('not implemented');
+  const provider = createCliProvider(config);
+  const prompt = GENERATION_PROMPT_TEMPLATE.replace('{OBJECTIVE}', objective);
+  const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
+
+  const launchSpec = provider.buildLaunchSpec({
+    commandPath: commandPathForConfig(config),
+    workspaceRoot: cwd,
+    executionRoot: cwd,
+    prompt,
+    promptPath: '',
+    promptHash: '',
+    promptByteLength: Buffer.byteLength(prompt, 'utf8'),
+    transcriptPath: '',
+    lastMessagePath,
+    model: config.model,
+    reasoningEffort: config.reasoningEffort,
+    sandboxMode: config.sandboxMode,
+    approvalMode: config.approvalMode
+  }, true);
+
+  const result = await runProcess(commandPathForConfig(config), launchSpec.args, {
+    cwd: launchSpec.cwd,
+    stdinText: launchSpec.stdinText
+  });
+
+  if (result.code !== 0) {
+    throw new ProjectGenerationError(`CLI exited with code ${result.code}.`);
+  }
+
+  const responseText = await provider.extractResponseText(result.stdout, result.stderr, lastMessagePath);
+  return parseGenerationResponse(responseText);
 }
