@@ -170,9 +170,9 @@ export interface RalphDashboardConfigSnapshot {
   customPromptBudget: Partial<Record<string, number>>;
   modelTiering: {
     enabled: boolean;
-    simpleModel: string;
-    mediumModel: string;
-    complexModel: string;
+    simple: { provider?: string; model: string };
+    medium: { provider?: string; model: string };
+    complex: { provider?: string; model: string };
     simpleThreshold: number;
     complexThreshold: number;
   };

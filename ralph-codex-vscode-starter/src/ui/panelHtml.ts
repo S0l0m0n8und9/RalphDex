@@ -297,6 +297,14 @@ function nestedInput(parentKey: string, subKey: string, type: 'text' | 'number' 
   return `<input type="text" data-setting-nested="${esc(fullKey)}" value="${esc(String(value))}">`;
 }
 
+function nestedSelect(parentKey: string, subKey: string, value: string, options: readonly string[]): string {
+  const fullKey = `${parentKey}.${subKey}`;
+  const opts = options.map((o) =>
+    `<option value="${esc(o)}"${o === value ? ' selected' : ''}>${esc(o)}</option>`
+  ).join('');
+  return `<select data-setting-nested="${esc(fullKey)}">${opts}</select>`;
+}
+
 function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
   function group(title: string, content: string, open = false): string {
     const sectionId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
@@ -406,9 +414,12 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
 
     group('Model Tiering', [
       checkRow(nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')),
-      row('Simple Model', nestedInput('modelTiering', 'simpleModel', 'text', cfg.modelTiering.simpleModel)),
-      row('Medium Model', nestedInput('modelTiering', 'mediumModel', 'text', cfg.modelTiering.mediumModel)),
-      row('Complex Model', nestedInput('modelTiering', 'complexModel', 'text', cfg.modelTiering.complexModel)),
+      row('Simple Provider', nestedSelect('modelTiering', 'simple.provider', cfg.modelTiering.simple.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
+      row('Simple Model', nestedInput('modelTiering', 'simple.model', 'text', cfg.modelTiering.simple.model)),
+      row('Medium Provider', nestedSelect('modelTiering', 'medium.provider', cfg.modelTiering.medium.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
+      row('Medium Model', nestedInput('modelTiering', 'medium.model', 'text', cfg.modelTiering.medium.model)),
+      row('Complex Provider', nestedSelect('modelTiering', 'complex.provider', cfg.modelTiering.complex.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
+      row('Complex Model', nestedInput('modelTiering', 'complex.model', 'text', cfg.modelTiering.complex.model)),
       row('Simple Threshold', nestedInput('modelTiering', 'simpleThreshold', 'number', cfg.modelTiering.simpleThreshold)),
       row('Complex Threshold', nestedInput('modelTiering', 'complexThreshold', 'number', cfg.modelTiering.complexThreshold))
     ].join('\n')),

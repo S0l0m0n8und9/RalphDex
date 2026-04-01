@@ -9,6 +9,13 @@ export interface CopilotCliProviderOptions {
   approvalMode: CopilotApprovalMode;
 }
 
+/**
+ * Maximum safe argv byte length.  Windows CMD has a ~32 KB limit; POSIX
+ * systems typically allow ~128 KB but some shells truncate sooner.  When
+ * the prompt exceeds this size we switch to stdin delivery.
+ */
+export const MAX_ARGV_PROMPT_BYTES = 30_000;
+
 export class CopilotCliProvider implements CliProvider {
   public readonly id = 'copilot' as const;
 
@@ -27,6 +34,17 @@ export class CopilotCliProvider implements CliProvider {
       args.push('--allow-tool', 'shell');
     }
 
+    // Use stdin delivery when the prompt is large to avoid OS argv limits.
+    const promptBytes = Buffer.byteLength(request.prompt, 'utf8');
+    if (promptBytes > MAX_ARGV_PROMPT_BYTES) {
+      args.push('-p', '-');
+      return {
+        args,
+        cwd: request.executionRoot,
+        stdinText: request.prompt
+      };
+    }
+
     args.push('-p', request.prompt);
 
     return {
@@ -36,11 +54,32 @@ export class CopilotCliProvider implements CliProvider {
   }
 
   public async extractResponseText(stdout: string, _stderr: string, lastMessagePath: string): Promise<string> {
-    const text = stdout.trim();
-    if (text) {
-      await fs.writeFile(lastMessagePath, text, 'utf8').catch(() => {});
+    const trimmed = stdout.trim();
+    if (!trimmed) {
+      return '';
     }
-    return text;
+
+    // Attempt structured JSON extraction (NDJSON or single-object).
+    // Some Copilot CLI builds emit result events similar to Claude.
+    const lines = trimmed.split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      try {
+        const parsed = JSON.parse(line) as { type?: string; result?: string };
+        if (parsed.type === 'result' && typeof parsed.result === 'string') {
+          await fs.writeFile(lastMessagePath, parsed.result, 'utf8').catch(() => {});
+          return parsed.result;
+        }
+      } catch {
+        // Not JSON — fall through to raw text.
+        break;
+      }
+    }
+
+    // Fallback: return the stdout text as-is.
+    await fs.writeFile(lastMessagePath, trimmed, 'utf8').catch(() => {});
+    return trimmed;
   }
 
   public isIgnorableStderrLine(line: string): boolean {

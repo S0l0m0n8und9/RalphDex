@@ -14,6 +14,7 @@ import {
   RalphAutonomyMode,
   RalphGitCheckpointMode,
   RalphHooksConfig,
+  RalphModelTierConfig,
   RalphModelTieringConfig,
   RalphScmStrategy,
   RalphVerifierMode
@@ -146,6 +147,29 @@ function readPromptBudgetOverrideMap(
   return normalized;
 }
 
+const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot'];
+
+function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
+  // Accept a plain string (backward-compat: old flat `simpleModel` format).
+  if (typeof raw === 'string' && raw.trim()) {
+    return { model: raw.trim() };
+  }
+
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return fallback;
+  }
+
+  const record = raw as Record<string, unknown>;
+  const model = typeof record.model === 'string' && record.model.trim()
+    ? record.model.trim()
+    : fallback.model;
+  const provider = typeof record.provider === 'string' && CLI_PROVIDER_IDS.includes(record.provider as CliProviderId)
+    ? (record.provider as CliProviderId)
+    : undefined;
+
+  return provider ? { provider, model } : { model };
+}
+
 function readModelTiering(
   config: vscode.WorkspaceConfiguration,
   fallback: RalphModelTieringConfig
@@ -156,17 +180,31 @@ function readModelTiering(
   }
 
   const record = raw as Record<string, unknown>;
+
+  // Backward-compat: accept old flat `simpleModel`/`mediumModel`/`complexModel` strings.
+  const simple = record.simple !== undefined
+    ? readTierConfig(record.simple, fallback.simple)
+    : typeof record.simpleModel === 'string' && record.simpleModel.trim()
+      ? { model: record.simpleModel.trim() }
+      : fallback.simple;
+
+  const medium = record.medium !== undefined
+    ? readTierConfig(record.medium, fallback.medium)
+    : typeof record.mediumModel === 'string' && record.mediumModel.trim()
+      ? { model: record.mediumModel.trim() }
+      : fallback.medium;
+
+  const complex = record.complex !== undefined
+    ? readTierConfig(record.complex, fallback.complex)
+    : typeof record.complexModel === 'string' && record.complexModel.trim()
+      ? { model: record.complexModel.trim() }
+      : fallback.complex;
+
   return {
     enabled: typeof record.enabled === 'boolean' ? record.enabled : fallback.enabled,
-    simpleModel: typeof record.simpleModel === 'string' && record.simpleModel.trim()
-      ? record.simpleModel.trim()
-      : fallback.simpleModel,
-    mediumModel: typeof record.mediumModel === 'string' && record.mediumModel.trim()
-      ? record.mediumModel.trim()
-      : fallback.mediumModel,
-    complexModel: typeof record.complexModel === 'string' && record.complexModel.trim()
-      ? record.complexModel.trim()
-      : fallback.complexModel,
+    simple,
+    medium,
+    complex,
     simpleThreshold: typeof record.simpleThreshold === 'number' && Number.isFinite(record.simpleThreshold)
       ? Math.floor(record.simpleThreshold)
       : fallback.simpleThreshold,

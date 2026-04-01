@@ -3,7 +3,14 @@ import { CliProviderId, RalphCodexConfig } from './types';
 export function getCliCommandPath(
   config: Pick<RalphCodexConfig, 'cliProvider' | 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath'>
 ): string {
-  switch (config.cliProvider) {
+  return getCliCommandPathForProvider(config.cliProvider, config);
+}
+
+export function getCliCommandPathForProvider(
+  provider: CliProviderId,
+  config: Pick<RalphCodexConfig, 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath'>
+): string {
+  switch (provider) {
     case 'claude':
       return config.claudeCommandPath;
     case 'copilot':

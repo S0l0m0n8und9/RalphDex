@@ -182,6 +182,10 @@ class MockStrategyRegistry {
     // No-op for mock — provider selection is not relevant in tests.
   }
 
+  public getCliExecStrategyForProvider(_providerId?: string): { runExec: (request: CodexExecRequest) => Promise<CodexExecResult> } {
+    return this.getCliExecStrategy();
+  }
+
   public getCliExecStrategy(): { runExec: (request: CodexExecRequest) => Promise<CodexExecResult> } {
     return {
       runExec: async (request) => {

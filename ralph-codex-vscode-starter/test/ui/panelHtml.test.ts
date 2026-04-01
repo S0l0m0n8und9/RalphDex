@@ -231,9 +231,9 @@ function fullConfig() {
     customPromptBudget: { system: 2000, context: 1500 },
     modelTiering: {
       enabled: false,
-      simpleModel: 'claude-haiku-4-5-20251001',
-      mediumModel: 'claude-sonnet-4-6',
-      complexModel: 'claude-opus-4-6',
+      simple: { model: 'claude-haiku-4-5-20251001' },
+      medium: { model: 'claude-sonnet-4-6' },
+      complex: { model: 'claude-opus-4-6' },
       simpleThreshold: 2,
       complexThreshold: 6
     },
@@ -287,9 +287,9 @@ test('buildPanelDashboardHtml renders verifierModes as multi-checkbox', () => {
 test('buildPanelDashboardHtml renders modelTiering nested fields', () => {
   const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nTier');
   assert.ok(html.includes('data-setting-nested="modelTiering.enabled"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.simpleModel"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.mediumModel"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.complexModel"'));
+  assert.ok(html.includes('data-setting-nested="modelTiering.simple.model"'));
+  assert.ok(html.includes('data-setting-nested="modelTiering.medium.model"'));
+  assert.ok(html.includes('data-setting-nested="modelTiering.complex.model"'));
   assert.ok(html.includes('data-setting-nested="modelTiering.complexThreshold"'));
 });
 

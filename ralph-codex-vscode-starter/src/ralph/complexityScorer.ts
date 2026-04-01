@@ -14,7 +14,7 @@
  */
 
 import { RalphCompletionClassification, RalphIterationResult, RalphTask, RalphTaskFile } from './types';
-import { RalphModelTieringConfig } from '../config/types';
+import { CliProviderId, RalphModelTieringConfig } from '../config/types';
 
 export interface ComplexityScore {
   /** Total complexity score (sum of all signals). */
@@ -114,9 +114,9 @@ export function scoreTaskComplexity(
 }
 
 /**
- * Selects a Claude model ID based on the task's complexity score and the
- * operator's tiering configuration.  Falls back to `fallbackModel` when
- * tiering is disabled.
+ * Selects a model ID and optional provider override based on the task's
+ * complexity score and the operator's tiering configuration.  Falls back
+ * to `fallbackModel` when tiering is disabled.
  */
 export function selectModelForTask(input: {
   task: RalphTask;
@@ -124,21 +124,21 @@ export function selectModelForTask(input: {
   iterationHistory: RalphIterationResult[];
   tiering: RalphModelTieringConfig;
   fallbackModel: string;
-}): { model: string; score: ComplexityScore | null } {
+}): { model: string; provider?: CliProviderId; score: ComplexityScore | null } {
   if (!input.tiering.enabled) {
     return { model: input.fallbackModel, score: null };
   }
 
   const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
 
-  let model: string;
+  let tier: { model: string; provider?: CliProviderId };
   if (score.score < input.tiering.simpleThreshold) {
-    model = input.tiering.simpleModel;
+    tier = input.tiering.simple;
   } else if (score.score >= input.tiering.complexThreshold) {
-    model = input.tiering.complexModel;
+    tier = input.tiering.complex;
   } else {
-    model = input.tiering.mediumModel;
+    tier = input.tiering.medium;
   }
 
-  return { model, score };
+  return { model: tier.model, provider: tier.provider, score };
 }

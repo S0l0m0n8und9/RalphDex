@@ -49,9 +49,9 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   agentCount: 1,
   modelTiering: {
     enabled: false,
-    simpleModel: 'claude-haiku-4-5-20251001',
-    mediumModel: 'claude-sonnet-4-6',
-    complexModel: 'claude-opus-4-6',
+    simple: { model: 'claude-haiku-4-5-20251001' },
+    medium: { model: 'claude-sonnet-4-6' },
+    complex: { model: 'claude-opus-4-6' },
     simpleThreshold: 2,
     complexThreshold: 6
   } satisfies RalphModelTieringConfig,

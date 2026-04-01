@@ -27,23 +27,37 @@ export type AutoApplyRemediationAction = 'decompose_task' | 'mark_blocked';
 export type RalphAutonomyMode = 'supervised' | 'autonomous';
 
 /**
- * Maps task-complexity tiers to Claude model IDs.
+ * Per-tier model + optional provider override.
+ * When `provider` is omitted the workspace's default `cliProvider` is used.
+ */
+export interface RalphModelTierConfig {
+  /** CLI provider for this tier. Omit to use the workspace default. */
+  provider?: CliProviderId;
+  /** Model identifier passed to the CLI via --model. */
+  model: string;
+}
+
+/**
+ * Maps task-complexity tiers to model + provider pairs.
  * Adopted from Ruflo's smart task-routing pattern: simple tasks use cheaper/faster
  * models while complex or repeatedly-failing tasks escalate to more capable models.
  * Only active when `modelTiering.enabled` is true.
+ *
+ * Each tier can optionally specify a different CLI provider, enabling cross-provider
+ * routing (e.g. copilot for simple tasks, claude for medium/complex).
  */
 export interface RalphModelTieringConfig {
   /** Enable complexity-based model selection. Default: false (always use config.model). */
   enabled: boolean;
-  /** Model used for low-complexity tasks (score < simpleThreshold). */
-  simpleModel: string;
-  /** Model used for medium-complexity tasks (score between thresholds). */
-  mediumModel: string;
-  /** Model used for high-complexity tasks (score >= complexThreshold). */
-  complexModel: string;
-  /** Complexity score below which the simple model is selected. Default: 2. */
+  /** Tier config for low-complexity tasks (score < simpleThreshold). */
+  simple: RalphModelTierConfig;
+  /** Tier config for medium-complexity tasks (score between thresholds). */
+  medium: RalphModelTierConfig;
+  /** Tier config for high-complexity tasks (score >= complexThreshold). */
+  complex: RalphModelTierConfig;
+  /** Complexity score below which the simple tier is selected. Default: 2. */
   simpleThreshold: number;
-  /** Complexity score at or above which the complex model is selected. Default: 6. */
+  /** Complexity score at or above which the complex tier is selected. Default: 6. */
   complexThreshold: number;
 }
 

@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { CopilotCliProvider } from '../src/codex/copilotCliProvider';
+import { CopilotCliProvider, MAX_ARGV_PROMPT_BYTES } from '../src/codex/copilotCliProvider';
 import { CodexExecResult, CodexExecRequest } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 
@@ -88,4 +88,59 @@ test('buildTranscript produces Copilot-specific transcript format', () => {
   assert.match(transcript, /Approval mode: allow-all/);
   assert.match(transcript, /Model: gpt-5.4/);
   assert.match(transcript, /Payload matched prompt artifact: yes/);
+});
+
+// ---------------------------------------------------------------------------
+// Stdin prompt delivery for large prompts
+// ---------------------------------------------------------------------------
+
+test('buildLaunchSpec switches to stdin when prompt exceeds MAX_ARGV_PROMPT_BYTES', () => {
+  const largePrompt = 'x'.repeat(MAX_ARGV_PROMPT_BYTES + 1);
+  const req = { ...request(), prompt: largePrompt, promptHash: hashText(largePrompt), promptByteLength: Buffer.byteLength(largePrompt, 'utf8') };
+  const launch = provider().buildLaunchSpec(req, false);
+
+  assert.deepEqual(launch.args, ['-s', '--model', 'gpt-5.4', '--allow-all', '-p', '-']);
+  assert.equal(launch.stdinText, largePrompt);
+});
+
+test('buildLaunchSpec keeps argv prompt when prompt is within limit', () => {
+  const smallPrompt = 'Hello';
+  const req = { ...request(), prompt: smallPrompt, promptHash: hashText(smallPrompt), promptByteLength: Buffer.byteLength(smallPrompt, 'utf8') };
+  const launch = provider().buildLaunchSpec(req, false);
+
+  assert.ok(launch.args.includes(smallPrompt));
+  assert.equal(launch.stdinText, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// Structured JSON output extraction
+// ---------------------------------------------------------------------------
+
+test('extractResponseText parses NDJSON result event from stdout', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-json-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const stdout = '{"type":"progress","message":"working..."}\n{"type":"result","result":"Task completed successfully."}\n';
+
+  const text = await provider().extractResponseText(stdout, '', lastMessagePath);
+
+  assert.equal(text, 'Task completed successfully.');
+  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), 'Task completed successfully.');
+});
+
+test('extractResponseText falls back to raw text when stdout is not JSON', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-raw-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+
+  const text = await provider().extractResponseText('Plain text output.', '', lastMessagePath);
+
+  assert.equal(text, 'Plain text output.');
+});
+
+test('extractResponseText returns empty string for empty stdout', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-empty-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+
+  const text = await provider().extractResponseText('', '', lastMessagePath);
+
+  assert.equal(text, '');
 });

@@ -62,9 +62,9 @@ function makeIterationResult(overrides: Partial<RalphIterationResult> = {}): Ral
 
 const DEFAULT_TIERING: RalphModelTieringConfig = {
   enabled: true,
-  simpleModel: 'claude-haiku',
-  mediumModel: 'claude-sonnet',
-  complexModel: 'claude-opus',
+  simple: { model: 'claude-haiku' },
+  medium: { model: 'claude-sonnet' },
+  complex: { model: 'claude-opus' },
   simpleThreshold: 2,
   complexThreshold: 6
 };
@@ -149,7 +149,7 @@ test('selectModelForTask selects simple model for low-complexity task', () => {
     tiering: DEFAULT_TIERING,
     fallbackModel: 'claude-sonnet'
   });
-  assert.equal(model, DEFAULT_TIERING.simpleModel);
+  assert.equal(model, DEFAULT_TIERING.simple.model);
 });
 
 test('selectModelForTask selects complex model for high-complexity task', () => {
@@ -168,5 +168,49 @@ test('selectModelForTask selects complex model for high-complexity task', () => 
   assert.ok(score !== null && score.score >= DEFAULT_TIERING.complexThreshold,
     `score ${score?.score} should be >= complexThreshold ${DEFAULT_TIERING.complexThreshold}`
   );
-  assert.equal(model, DEFAULT_TIERING.complexModel);
+  assert.equal(model, DEFAULT_TIERING.complex.model);
+});
+
+test('selectModelForTask returns per-tier provider when specified', () => {
+  const task = makeTask({ title: 'Fix typo' });
+  const taskFile = makeTaskFile([task]);
+  const tiering: RalphModelTieringConfig = {
+    enabled: true,
+    simple: { provider: 'copilot', model: 'gpt-5.4-mini' },
+    medium: { model: 'claude-sonnet' },
+    complex: { provider: 'copilot', model: 'gpt-5.4' },
+    simpleThreshold: 2,
+    complexThreshold: 6
+  };
+  const { model, provider } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: [],
+    tiering,
+    fallbackModel: 'claude-sonnet'
+  });
+  assert.equal(model, 'gpt-5.4-mini');
+  assert.equal(provider, 'copilot');
+});
+
+test('selectModelForTask returns undefined provider when tier has no override', () => {
+  const task = makeTask({ title: 'Medium complexity work here that is fine' });
+  const taskFile = makeTaskFile([task]);
+  // Score for this task will be 0 (no blocked, no fails, no deps, no depth, title <=12 words) → simple tier
+  const tiering: RalphModelTieringConfig = {
+    enabled: true,
+    simple: { model: 'claude-haiku' },
+    medium: { provider: 'copilot', model: 'gpt-5.4' },
+    complex: { model: 'claude-opus' },
+    simpleThreshold: 2,
+    complexThreshold: 6
+  };
+  const { provider } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: [],
+    tiering,
+    fallbackModel: 'claude-sonnet'
+  });
+  assert.equal(provider, undefined);
 });
