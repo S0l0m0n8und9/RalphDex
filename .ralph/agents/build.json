@@ -2,9 +2,25 @@
   "agentId": "build",
   "firstSeenAt": "2026-04-01T06:42:55.514Z",
   "completedTaskIds": [
-    "T64.2"
+    "T64.2",
+    "T65"
   ],
   "touchedFiles": [
-    "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts"
+    ".claude/settings.local.json",
+    "ralph-codex-vscode-starter/docs/provenance.md",
+    "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
+    "ralph-codex-vscode-starter/out/commands/artifactCommands.js.map",
+    "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+    "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js.map",
+    "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
+    "ralph-codex-vscode-starter/out/ralph/artifactStore.js.map",
+    "ralph-codex-vscode-starter/out/ralph/pipeline.js",
+    "ralph-codex-vscode-starter/out/ralph/pipeline.js.map",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
+    "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+    "ralph-codex-vscode-starter/test/statusReport.test.ts"
   ]
 }

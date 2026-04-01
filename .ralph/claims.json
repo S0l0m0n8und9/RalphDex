@@ -1503,13 +1503,22 @@
       "featureBranch": "ralph/T65"
     },
     {
-      "taskId": "T65",
       "agentId": "build",
-      "provenanceId": "run-i039-cli-20260401T080642Z",
+      "taskId": "T65",
       "claimedAt": "2026-04-01T08:06:42.691Z",
-      "status": "active",
+      "provenanceId": "run-i039-cli-20260401T080642Z",
+      "status": "released",
       "baseBranch": "ralph/T65",
       "featureBranch": "ralph/T65"
+    },
+    {
+      "agentId": "scm-build",
+      "taskId": "T66",
+      "claimedAt": "2026-04-01T08:33:43.519Z",
+      "provenanceId": "run-i040-cli-20260401T083343Z",
+      "status": "released",
+      "baseBranch": "ralph/T65",
+      "featureBranch": "ralph/T66"
     }
   ]
 }

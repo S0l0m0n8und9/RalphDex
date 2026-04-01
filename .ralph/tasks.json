@@ -1980,7 +1980,7 @@
     {
       "id": "T66",
       "title": "Configurable human-review gate in runPipeline: pause before PR submission and resume via approveHumanReview command",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T65"
       ],
