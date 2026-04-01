@@ -82,6 +82,7 @@ class CliExecCodexStrategy {
             processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
                 cwd: launchSpec.cwd,
                 stdinText: launchSpec.stdinText,
+                shell: launchSpec.shell,
                 onStdoutChunk: request.onStdoutChunk,
                 onStderrChunk: request.onStderrChunk
             });

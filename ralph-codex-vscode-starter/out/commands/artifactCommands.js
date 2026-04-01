@@ -44,6 +44,7 @@ const taskDecomposition_1 = require("../ralph/taskDecomposition");
 const cliActivity_1 = require("../services/cliActivity");
 const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 const statusSnapshot_1 = require("./statusSnapshot");
+const pipeline_1 = require("../ralph/pipeline");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
 // ---------------------------------------------------------------------------
@@ -163,6 +164,18 @@ async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManag
         await openTextFile(path.join(latestBundle.bundleDir, 'provenance-bundle.json'));
     }
     return true;
+}
+async function openLatestPipelineRun(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latest = await (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir);
+    if (latest) {
+        await openTextFile(latest.artifactPath);
+        return true;
+    }
+    void vscode.window.showInformationMessage('No pipeline run artifact found. Run "Ralph Codex: Run Pipeline" first, then try again.');
+    return false;
 }
 async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -412,6 +425,16 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             progress.report({ message: 'Resolving latest Ralph CLI transcript' });
             const workspaceFolder = await withWorkspaceFolder();
             await openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openLatestPipelineRun',
+        label: 'Ralph Codex: Open Latest Pipeline Run',
+        requiresTrustedWorkspace: false,
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving latest Ralph pipeline run artifact' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await openLatestPipelineRun(workspaceFolder, stateManager, logger);
         }
     });
     registerCommand(context, logger, {

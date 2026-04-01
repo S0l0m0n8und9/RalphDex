@@ -150,6 +150,29 @@ function entryLabel(index, location) {
 function normalizedFieldKey(key) {
     return key.replace(/[^a-z0-9]/gi, '').toLowerCase();
 }
+/**
+ * Remap known wrong field names to their correct equivalents in place.
+ * Returns the list of corrected keys (original → corrected) for diagnostics.
+ */
+function autoCorrectKnownMistakes(record) {
+    const corrections = [];
+    for (const key of Object.keys(record)) {
+        if (SUPPORTED_TASK_FIELDS.has(key)) {
+            continue;
+        }
+        const corrected = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
+        if (!corrected) {
+            continue;
+        }
+        // Only copy if the correct field is not already set.
+        if (record[corrected] === undefined) {
+            record[corrected] = record[key];
+        }
+        delete record[key];
+        corrections.push({ original: key, corrected });
+    }
+    return corrections;
+}
 function lineAndColumnAt(text, index) {
     let line = 1;
     let lineStart = 0;
@@ -355,12 +378,13 @@ function normalizeTask(candidate, source) {
     };
 }
 function createTaskGraphDiagnostic(code, message, details = {}) {
+    const { severity: explicitSeverity, ...rest } = details;
     return {
         category: 'taskGraph',
-        severity: 'error',
+        severity: explicitSeverity ?? 'error',
         code,
         message,
-        ...details
+        ...rest
     };
 }
 function legacyParentCandidates(taskId) {
@@ -629,15 +653,11 @@ function inspectTaskFileText(raw) {
         const location = entryLocations[index];
         if (typeof candidate === 'object' && candidate !== null) {
             const taskRecord = candidate;
-            for (const key of Object.keys(taskRecord)) {
-                if (SUPPORTED_TASK_FIELDS.has(key)) {
-                    continue;
-                }
-                const suggestedField = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
-                if (!suggestedField) {
-                    continue;
-                }
-                diagnostics.push(createTaskGraphDiagnostic('unsupported_task_field', `${entryLabel(index, location)} uses unsupported field "${key}". Use "${suggestedField}" instead.`, {
+            // Auto-correct known field name mistakes before validation.
+            const corrections = autoCorrectKnownMistakes(taskRecord);
+            for (const { original, corrected } of corrections) {
+                diagnostics.push(createTaskGraphDiagnostic('auto_corrected_task_field', `${entryLabel(index, location)} used "${original}" which was auto-corrected to "${corrected}".`, {
+                    severity: 'warning',
                     location
                 }));
             }
@@ -651,7 +671,8 @@ function inspectTaskFileText(raw) {
             }));
         }
     }
-    if (diagnostics.length > 0) {
+    const hasErrors = diagnostics.some((diagnostic) => diagnostic.severity === 'error');
+    if (hasErrors) {
         return {
             taskFile: null,
             text: null,
@@ -679,6 +700,7 @@ function inspectTaskFileText(raw) {
         ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
     };
     const taskDiagnostics = inspectTaskGraph(taskFile);
+    const allDiagnostics = [...diagnostics, ...taskDiagnostics];
     const normalizedText = stringifyTaskFile(taskFile);
     return {
         taskFile: taskDiagnostics.length === 0 ? taskFile : null,
@@ -686,7 +708,7 @@ function inspectTaskFileText(raw) {
         migrated: explicitVersion !== 2
             || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
             || raw.trimEnd() !== normalizedText.trimEnd(),
-        diagnostics: taskDiagnostics
+        diagnostics: allDiagnostics
     };
 }
 function isDependencySatisfied(taskFile, dependencyId) {

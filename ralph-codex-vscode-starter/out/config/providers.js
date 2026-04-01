@@ -1,11 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCliCommandPath = getCliCommandPath;
+exports.getCliCommandPathForProvider = getCliCommandPathForProvider;
 exports.getCliProviderLabel = getCliProviderLabel;
 exports.getDefaultOpenSidebarCommandId = getDefaultOpenSidebarCommandId;
 exports.getDefaultNewChatCommandId = getDefaultNewChatCommandId;
 function getCliCommandPath(config) {
-    switch (config.cliProvider) {
+    return getCliCommandPathForProvider(config.cliProvider, config);
+}
+function getCliCommandPathForProvider(provider, config) {
+    switch (provider) {
         case 'claude':
             return config.claudeCommandPath;
         case 'copilot':

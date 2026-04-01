@@ -202,6 +202,19 @@ async function appendTasksToFile(tasksPath, newTasks) {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
 }
+/**
+ * Map the last completed pipeline phase to the phase that should run on resume.
+ * Returns null for phases that are not resumable (artifact was in a terminal state).
+ */
+function phaseToResumeFrom(phase) {
+    switch (phase) {
+        case 'scaffold': return 'loop';
+        case 'loop': return 'review';
+        case 'review': return 'scm';
+        case 'scm': return 'scm';
+        default: return null;
+    }
+}
 function buildReviewAgentId(agentId) {
     return (0, validate_1.buildPrefixedAgentId)('review', agentId);
 }
@@ -254,6 +267,106 @@ function registerCommands(context, logger, broadcaster) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
+    /**
+     * Execute the post-scaffold pipeline phases starting at `startPhase`.
+     * Writes a phase checkpoint to the artifact after each sub-phase completes
+     * so a crash at any point leaves a resumable artifact on disk.
+     *
+     * Called by both `runPipeline` (after scaffold) and `resumePipeline` (after
+     * determining the last completed phase from the artifact).
+     */
+    async function runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress) {
+        let current = artifact;
+        const checkpoint = async (updates) => {
+            current = { ...current, ...updates };
+            await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, current);
+        };
+        // --- Loop phase ---
+        let loopStatus = 'complete';
+        if (startPhase === 'loop') {
+            progress.report({ message: `Pipeline ${current.runId}: starting multi-agent loop (${current.decomposedTaskIds.length} task(s))` });
+            try {
+                await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
+            }
+            catch (error) {
+                loopStatus = 'failed';
+                logger.error('Pipeline multi-agent loop failed.', error);
+            }
+            if (loopStatus === 'complete') {
+                await checkpoint({ phase: 'loop' });
+            }
+        }
+        // --- Review phase ---
+        let reviewTranscriptPath;
+        let runScm = startPhase === 'scm';
+        if (loopStatus === 'complete' && startPhase !== 'scm') {
+            progress.report({ message: `Pipeline ${current.runId}: running review agent` });
+            try {
+                const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                    reachedIterationCap: false,
+                    configOverrides: {
+                        agentRole: 'review',
+                        agentId: buildReviewAgentId(config.agentId)
+                    }
+                });
+                reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
+                await checkpoint({
+                    phase: 'review',
+                    ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
+                });
+                if (reviewRun.result.executionStatus !== 'failed') {
+                    if (config.pipelineHumanGates) {
+                        const handoffPath = await (0, pipeline_1.writePipelinePendingHandoff)(paths.handoffDir, {
+                            schemaVersion: 1,
+                            kind: 'pipelinePendingHandoff',
+                            runId: current.runId,
+                            artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
+                            ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
+                            createdAt: new Date().toISOString()
+                        });
+                        await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
+                        logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
+                        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralph Codex: Approve Human Review" to submit the PR.`);
+                        return;
+                    }
+                    runScm = true;
+                }
+            }
+            catch (error) {
+                logger.error('Pipeline review/SCM phase failed.', error);
+            }
+        }
+        // --- SCM phase ---
+        let prUrl;
+        if (runScm) {
+            progress.report({ message: `Pipeline ${current.runId}: running SCM agent` });
+            try {
+                const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                    reachedIterationCap: false,
+                    configOverrides: {
+                        agentRole: 'scm',
+                        agentId: buildScmAgentId(config.agentId)
+                    }
+                });
+                const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
+                const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
+                prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
+            }
+            catch (error) {
+                logger.error('Pipeline SCM phase failed.', error);
+            }
+        }
+        // --- Finalize ---
+        await checkpoint({
+            status: loopStatus,
+            loopEndTime: new Date().toISOString(),
+            phase: 'done',
+            ...(prUrl !== undefined && { prUrl })
+        });
+        logger.info('Pipeline run complete.', { runId: current.runId, status: loopStatus });
+        const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
+        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} finished with status: ${loopStatus}. Root task: ${current.rootTaskId} (${current.decomposedTaskIds.length} subtask(s)).${prSuffix}`);
+    }
     registerCommand(context, logger, {
         commandId: 'ralphCodex.initializeWorkspace',
         label: 'Ralph Codex: Initialize Workspace',
@@ -893,71 +1006,159 @@ function registerCommands(context, logger, broadcaster) {
                 taskFilePath: paths.taskFilePath,
                 artifactDir: paths.artifactDir
             });
-            logger.info('Pipeline scaffold created.', {
-                runId: artifact.runId,
-                rootTaskId,
-                childTaskIds,
-                artifactPath
-            });
-            progress.report({ message: `Pipeline ${artifact.runId}: starting multi-agent loop (${childTaskIds.length} task(s))` });
-            let loopStatus = 'complete';
+            logger.info('Pipeline scaffold created.', { runId: artifact.runId, rootTaskId, childTaskIds, artifactPath });
+            await runPipelineFromPhase('loop', artifact, workspaceFolder, config, paths, progress);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.resumePipeline',
+        label: 'Ralph Codex: Resume Pipeline',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            const resumable = await (0, pipeline_1.findResumablePipelineArtifacts)(paths.artifactDir);
+            if (resumable.length === 0) {
+                void vscode.window.showWarningMessage('No resumable pipeline runs found.');
+                return;
+            }
+            let selected;
+            if (resumable.length === 1) {
+                selected = resumable[0];
+            }
+            else {
+                const items = resumable.map(({ artifact }) => ({
+                    label: artifact.runId,
+                    description: `phase: ${artifact.phase ?? 'unknown'}, started: ${artifact.loopStartTime}`
+                }));
+                const picked = await vscode.window.showQuickPick(items, {
+                    placeHolder: 'Select a pipeline run to resume'
+                });
+                if (!picked) {
+                    return;
+                }
+                selected = resumable.find(({ artifact }) => artifact.runId === picked.label);
+            }
+            const { artifact } = selected;
+            const startPhase = phaseToResumeFrom(artifact.phase);
+            if (!startPhase) {
+                void vscode.window.showWarningMessage(`Pipeline ${artifact.runId} has phase '${artifact.phase ?? 'unknown'}' which is not resumable.`);
+                return;
+            }
+            progress.report({ message: `Resuming pipeline ${artifact.runId} from phase '${startPhase}'` });
+            logger.info('Resuming pipeline.', { runId: artifact.runId, resumeFrom: startPhase });
+            await runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.approveHumanReview',
+        label: 'Ralph Codex: Approve Human Review',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            // Discover all pending pipeline handoff files.
+            let pendingFiles;
             try {
-                await vscode.commands.executeCommand('ralphCodex.runMultiAgentLoop');
+                const entries = await fs.readdir(paths.handoffDir);
+                pendingFiles = entries
+                    .filter((e) => /^pipeline-.+-pending\.json$/.test(e))
+                    .map((e) => path.join(paths.handoffDir, e));
+            }
+            catch {
+                pendingFiles = [];
+            }
+            if (pendingFiles.length === 0) {
+                void vscode.window.showWarningMessage('No pending pipeline human-review handoffs found.');
+                return;
+            }
+            let selectedPath;
+            if (pendingFiles.length === 1) {
+                selectedPath = pendingFiles[0];
+            }
+            else {
+                const items = pendingFiles.map((p) => path.basename(p));
+                const picked = await vscode.window.showQuickPick(items, {
+                    placeHolder: 'Select a pending pipeline handoff to approve'
+                });
+                if (!picked) {
+                    return;
+                }
+                selectedPath = path.join(paths.handoffDir, picked);
+            }
+            const handoff = await (0, pipeline_1.readPipelinePendingHandoff)(selectedPath);
+            progress.report({ message: `Approving pipeline ${handoff.runId}: running SCM agent` });
+            let prUrl;
+            try {
+                const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                    reachedIterationCap: false,
+                    configOverrides: {
+                        agentRole: 'scm',
+                        agentId: buildScmAgentId(config.agentId)
+                    }
+                });
+                const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
+                const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
+                prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
             }
             catch (error) {
-                loopStatus = 'failed';
-                logger.error('Pipeline multi-agent loop failed.', error);
+                logger.error('approveHumanReview: SCM agent failed.', error);
+                void vscode.window.showErrorMessage(`Ralph pipeline ${handoff.runId} PR submission failed.`);
+                return;
             }
-            // Review→PR phase: only run when the multi-agent loop succeeded.
-            let reviewTranscriptPath;
-            let prUrl;
-            if (loopStatus === 'complete') {
-                progress.report({ message: `Pipeline ${artifact.runId}: running review agent` });
-                try {
-                    const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                        reachedIterationCap: false,
-                        configOverrides: {
-                            agentRole: 'review',
-                            agentId: buildReviewAgentId(config.agentId)
-                        }
-                    });
-                    reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
-                    if (reviewRun.result.executionStatus !== 'failed') {
-                        progress.report({ message: `Pipeline ${artifact.runId}: running SCM agent` });
-                        const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                            reachedIterationCap: false,
-                            configOverrides: {
-                                agentRole: 'scm',
-                                agentId: buildScmAgentId(config.agentId)
-                            }
-                        });
-                        const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
-                        const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
-                        prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
-                    }
-                }
-                catch (error) {
-                    logger.error('Pipeline review/SCM phase failed.', error);
+            // Update the pipeline artifact to complete.
+            try {
+                const rawArtifact = await (0, statusSnapshot_1.readJsonArtifact)(handoff.artifactPath);
+                if (rawArtifact && typeof rawArtifact === 'object') {
+                    const updatedArtifact = {
+                        ...rawArtifact,
+                        status: 'complete',
+                        loopEndTime: new Date().toISOString(),
+                        ...(prUrl !== undefined && { prUrl })
+                    };
+                    await fs.writeFile(handoff.artifactPath, JSON.stringify(updatedArtifact, null, 2) + '\n', 'utf8');
                 }
             }
-            const finalArtifact = {
-                ...artifact,
-                status: loopStatus,
-                loopEndTime: new Date().toISOString(),
-                ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
-                ...(prUrl !== undefined && { prUrl })
-            };
-            await (0, pipeline_1.writePipelineArtifact)(paths.artifactDir, finalArtifact);
-            logger.info('Pipeline run complete.', {
-                runId: artifact.runId,
-                status: loopStatus,
-                artifactPath
-            });
+            catch (error) {
+                logger.error('approveHumanReview: failed to update pipeline artifact.', error);
+            }
+            // Remove the pending handoff file.
+            try {
+                await fs.unlink(selectedPath);
+            }
+            catch (error) {
+                logger.error('approveHumanReview: failed to remove pending handoff file.', error);
+            }
+            logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
             const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
-            void vscode.window.showInformationMessage(`Ralph pipeline ${artifact.runId} finished with status: ${loopStatus}. Root task: ${rootTaskId} (${childTaskIds.length} subtask(s)).${prSuffix}`);
+            void vscode.window.showInformationMessage(`Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`);
         }
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.
     (0, artifactCommands_1.registerArtifactAndMaintenanceCommands)(context, logger, stateManager, registerCommand);
+    // On activation: scan for interrupted pipeline runs and offer to resume.
+    const activationFolder = vscode.workspace.workspaceFolders?.[0];
+    if (activationFolder) {
+        const activationConfig = (0, readConfig_1.readConfig)(activationFolder);
+        const activationPaths = (0, pathResolver_1.resolveRalphPaths)(activationFolder.uri.fsPath, activationConfig);
+        void (async () => {
+            try {
+                const resumable = await (0, pipeline_1.findResumablePipelineArtifacts)(activationPaths.artifactDir);
+                if (resumable.length === 0) {
+                    return;
+                }
+                const label = resumable.length === 1
+                    ? `Ralph pipeline '${resumable[0].artifact.runId}' was interrupted at phase '${resumable[0].artifact.phase ?? 'unknown'}'.`
+                    : `${resumable.length} Ralph pipeline runs were interrupted.`;
+                const choice = await vscode.window.showWarningMessage(`${label} Resume?`, 'Resume Pipeline');
+                if (choice === 'Resume Pipeline') {
+                    await vscode.commands.executeCommand('ralphCodex.resumePipeline');
+                }
+            }
+            catch (err) {
+                logger.error('Failed to check for resumable pipelines on activation.', err);
+            }
+        })();
+    }
 }
 //# sourceMappingURL=registerCommands.js.map

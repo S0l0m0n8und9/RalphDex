@@ -41,6 +41,11 @@ exports.buildPipelineChildTasks = buildPipelineChildTasks;
 exports.addPipelineRootTask = addPipelineRootTask;
 exports.writePipelineArtifact = writePipelineArtifact;
 exports.scaffoldPipelineRun = scaffoldPipelineRun;
+exports.resolvePendingHandoffPath = resolvePendingHandoffPath;
+exports.writePipelinePendingHandoff = writePipelinePendingHandoff;
+exports.readPipelinePendingHandoff = readPipelinePendingHandoff;
+exports.findResumablePipelineArtifacts = findResumablePipelineArtifacts;
+exports.readLatestPipelineArtifact = readLatestPipelineArtifact;
 const crypto = __importStar(require("node:crypto"));
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -180,9 +185,108 @@ async function scaffoldPipelineRun(input) {
         rootTaskId,
         decomposedTaskIds: childTaskIds,
         loopStartTime,
-        status: 'running'
+        status: 'running',
+        phase: 'scaffold'
     };
     const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
     return { artifact, artifactPath, rootTaskId, childTaskIds };
+}
+/**
+ * Return the canonical path for a pipeline pending-handoff file.
+ */
+function resolvePendingHandoffPath(handoffDir, runId) {
+    return path.join(handoffDir, `pipeline-${runId}-pending.json`);
+}
+/**
+ * Write a pending-handoff file to .ralph/handoff/ and return its path.
+ */
+async function writePipelinePendingHandoff(handoffDir, handoff) {
+    await fs.mkdir(handoffDir, { recursive: true });
+    const handoffPath = resolvePendingHandoffPath(handoffDir, handoff.runId);
+    await fs.writeFile(handoffPath, (0, integrity_1.stableJson)(handoff), 'utf8');
+    return handoffPath;
+}
+/**
+ * Read and parse a pending-handoff file from disk.
+ */
+async function readPipelinePendingHandoff(handoffPath) {
+    const raw = await fs.readFile(handoffPath, 'utf8');
+    return JSON.parse(raw);
+}
+/**
+ * Phases that indicate a pipeline was interrupted mid-run and can be resumed.
+ * An artifact with status 'running' and one of these phases was written before
+ * the next sub-phase started, so the resume entry point is deterministic.
+ */
+const RESUMABLE_PHASES = new Set([
+    'scaffold',
+    'loop',
+    'review',
+    'scm'
+]);
+/**
+ * Scan <artifactDir>/pipelines/ and return all pipeline run artifacts that
+ * have status 'running' and a phase in the resumable set.
+ * These are candidates for ralphCodex.resumePipeline.
+ */
+async function findResumablePipelineArtifacts(artifactDir) {
+    const pipelinesDir = path.join(artifactDir, 'pipelines');
+    let entries;
+    try {
+        entries = await fs.readdir(pipelinesDir);
+    }
+    catch {
+        return [];
+    }
+    const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort();
+    const results = [];
+    for (const name of jsonFiles) {
+        const artifactPath = path.join(pipelinesDir, name);
+        try {
+            const raw = await fs.readFile(artifactPath, 'utf8');
+            const artifact = JSON.parse(raw);
+            if (artifact.kind === 'pipelineRun' &&
+                typeof artifact.runId === 'string' &&
+                artifact.status === 'running' &&
+                artifact.phase !== undefined &&
+                RESUMABLE_PHASES.has(artifact.phase)) {
+                results.push({ artifact, artifactPath });
+            }
+        }
+        catch {
+            // skip malformed files
+        }
+    }
+    return results;
+}
+/**
+ * Find and parse the most recent pipeline run artifact from
+ * <artifactDir>/pipelines/<runId>.json.
+ * Returns null when no artifacts exist or the directory is absent.
+ */
+async function readLatestPipelineArtifact(artifactDir) {
+    const pipelinesDir = path.join(artifactDir, 'pipelines');
+    let entries;
+    try {
+        entries = await fs.readdir(pipelinesDir);
+    }
+    catch {
+        return null;
+    }
+    const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort().reverse();
+    for (const name of jsonFiles) {
+        const artifactPath = path.join(pipelinesDir, name);
+        try {
+            const raw = await fs.readFile(artifactPath, 'utf8');
+            const artifact = JSON.parse(raw);
+            if (artifact.kind === 'pipelineRun' && typeof artifact.runId === 'string') {
+                return { artifact, artifactPath };
+            }
+        }
+        catch {
+            // skip malformed files
+        }
+    }
+    return null;
 }
 //# sourceMappingURL=pipeline.js.map

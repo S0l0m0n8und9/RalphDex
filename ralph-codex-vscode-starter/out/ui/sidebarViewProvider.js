@@ -293,7 +293,14 @@ function snapshotConfig(config) {
         verifierModes: [...config.verifierModes],
         autoApplyRemediation: [...config.autoApplyRemediation],
         customPromptBudget: { ...config.customPromptBudget },
-        modelTiering: { ...config.modelTiering },
+        modelTiering: {
+            enabled: config.modelTiering.enabled,
+            simple: { ...config.modelTiering.simple },
+            medium: { ...config.modelTiering.medium },
+            complex: { ...config.modelTiering.complex },
+            simpleThreshold: config.modelTiering.simpleThreshold,
+            complexThreshold: config.modelTiering.complexThreshold
+        },
         hooks: { ...config.hooks },
         openSidebarCommandId: config.openSidebarCommandId,
         newChatCommandId: config.newChatCommandId

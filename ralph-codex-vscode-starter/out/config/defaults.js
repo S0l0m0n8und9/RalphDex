@@ -50,9 +50,9 @@ exports.DEFAULT_CONFIG = {
     agentCount: 1,
     modelTiering: {
         enabled: false,
-        simpleModel: 'claude-haiku-4-5-20251001',
-        mediumModel: 'claude-sonnet-4-6',
-        complexModel: 'claude-opus-4-6',
+        simple: { model: 'claude-haiku-4-5-20251001' },
+        medium: { model: 'claude-sonnet-4-6' },
+        complex: { model: 'claude-opus-4-6' },
         simpleThreshold: 2,
         complexThreshold: 6
     },
@@ -61,6 +61,7 @@ exports.DEFAULT_CONFIG = {
     autoReviewOnParentDone: false,
     autoReviewOnLoopComplete: false,
     autoScmOnConflict: false,
-    scmConflictRetryLimit: 1
+    scmConflictRetryLimit: 1,
+    pipelineHumanGates: false
 };
 //# sourceMappingURL=defaults.js.map

@@ -158,10 +158,6 @@ class RalphIterationEngine {
             });
             broadcaster?.emitPhase(prepared.iteration, 'execute', prepared.config.agentId);
             this.strategies.configureCliProvider(prepared.config);
-            const execStrategy = this.strategies.getCliExecStrategy();
-            if (!execStrategy.runExec) {
-                throw new Error('The configured CLI strategy does not support exec.');
-            }
             let executionStatus = 'skipped';
             let executionWarnings = [];
             let executionErrors = [];
@@ -174,9 +170,9 @@ class RalphIterationEngine {
             let lastMessage = '';
             let invocation;
             const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
-            // Model tiering: select the appropriate Claude model based on task complexity.
-            // Adopted from Ruflo's smart task-routing pattern.
-            const { model: selectedModel, score: complexityScore } = prepared.selectedTask
+            // Model tiering: select the appropriate model (and optional provider override)
+            // based on task complexity.  Adopted from Ruflo's smart task-routing pattern.
+            const { model: selectedModel, provider: selectedProvider, score: complexityScore } = prepared.selectedTask
                 ? (0, complexityScorer_1.selectModelForTask)({
                     task: prepared.selectedTask,
                     taskFile: prepared.beforeCoreState.taskFile,
@@ -184,14 +180,26 @@ class RalphIterationEngine {
                     tiering: prepared.config.modelTiering,
                     fallbackModel: prepared.config.model
                 })
-                : { model: prepared.config.model, score: null };
+                : { model: prepared.config.model, provider: undefined, score: null };
             if (complexityScore !== null) {
                 this.logger.info('Model tiering selected model for task.', {
                     taskId: prepared.selectedTask?.id ?? null,
                     model: selectedModel,
+                    provider: selectedProvider ?? prepared.config.cliProvider,
                     complexityScore: complexityScore.score,
                     signals: complexityScore.signals
                 });
+            }
+            // Resolve the effective provider for this iteration.  When the tier
+            // specifies a provider override, use it; otherwise fall back to the
+            // workspace default.
+            const effectiveProvider = selectedProvider ?? prepared.config.cliProvider;
+            const effectiveCommandPath = selectedProvider
+                ? (0, providers_1.getCliCommandPathForProvider)(selectedProvider, prepared.config)
+                : (0, providers_1.getCliCommandPath)(prepared.config);
+            const execStrategy = this.strategies.getCliExecStrategyForProvider(selectedProvider);
+            if (!execStrategy.runExec) {
+                throw new Error('The configured CLI strategy does not support exec.');
             }
             if (shouldExecutePrompt) {
                 const artifactBaseName = (0, promptBuilder_1.createArtifactBaseName)(prepared.promptKind, prepared.iteration);
@@ -240,8 +248,8 @@ class RalphIterationEngine {
                     }
                     phaseTimestamps.executionStartedAt = new Date().toISOString();
                     let claudeLineBuffer = '';
-                    const execResult = await execStrategy.runExec({
-                        commandPath: (0, providers_1.getCliCommandPath)(prepared.config),
+                    // Build the base exec request used by both the primary and fallback providers.
+                    const baseExecRequest = {
                         workspaceRoot: prepared.rootPath,
                         executionRoot: prepared.rootPolicy.executionRootPath,
                         prompt: promptArtifactText,
@@ -254,24 +262,61 @@ class RalphIterationEngine {
                         reasoningEffort: prepared.config.reasoningEffort,
                         sandboxMode: prepared.config.sandboxMode,
                         approvalMode: prepared.config.approvalMode,
-                        onStdoutChunk: prepared.config.cliProvider === 'claude'
-                            ? (chunk) => {
-                                claudeLineBuffer += chunk;
-                                const lines = claudeLineBuffer.split('\n');
-                                claudeLineBuffer = lines.pop() ?? '';
-                                for (const line of lines) {
-                                    const label = (0, cliOutputFormatter_1.formatClaudeStreamLine)(line.trim());
-                                    if (label) {
-                                        this.logger.appendText(label);
-                                    }
+                        onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
+                    };
+                    const makeStdoutChunk = (provider) => provider === 'claude'
+                        ? (chunk) => {
+                            claudeLineBuffer += chunk;
+                            const lines = claudeLineBuffer.split('\n');
+                            claudeLineBuffer = lines.pop() ?? '';
+                            for (const line of lines) {
+                                const label = (0, cliOutputFormatter_1.formatClaudeStreamLine)(line.trim());
+                                if (label) {
+                                    this.logger.appendText(label);
                                 }
                             }
-                            : (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk }),
-                        onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
-                    });
+                        }
+                        : (chunk) => this.logger.info('codex stdout', { iteration: prepared.iteration, chunk });
+                    let execResult;
+                    let usedCommandPath = effectiveCommandPath;
+                    let fallbackWarning;
+                    try {
+                        execResult = await execStrategy.runExec({
+                            ...baseExecRequest,
+                            commandPath: effectiveCommandPath,
+                            onStdoutChunk: makeStdoutChunk(effectiveProvider)
+                        });
+                    }
+                    catch (primaryError) {
+                        // Fallback chain: if a per-tier provider failed with ENOENT (binary not found)
+                        // and it differs from the workspace default, retry with the default provider.
+                        const isEnoent = primaryError?.cause?.code === 'ENOENT';
+                        if (isEnoent && selectedProvider && selectedProvider !== prepared.config.cliProvider) {
+                            this.logger.warn('Per-tier provider not found; falling back to workspace default.', {
+                                failedProvider: selectedProvider,
+                                fallbackProvider: prepared.config.cliProvider,
+                                model: selectedModel
+                            });
+                            const fallbackStrategy = this.strategies.getCliExecStrategyForProvider(prepared.config.cliProvider);
+                            if (!fallbackStrategy.runExec) {
+                                throw primaryError;
+                            }
+                            usedCommandPath = (0, providers_1.getCliCommandPath)(prepared.config);
+                            fallbackWarning = `Per-tier provider "${selectedProvider}" not found; fell back to workspace default "${prepared.config.cliProvider}".`;
+                            claudeLineBuffer = '';
+                            execResult = await fallbackStrategy.runExec({
+                                ...baseExecRequest,
+                                commandPath: usedCommandPath,
+                                onStdoutChunk: makeStdoutChunk(prepared.config.cliProvider)
+                            });
+                        }
+                        else {
+                            throw primaryError;
+                        }
+                    }
                     phaseTimestamps.executionFinishedAt = new Date().toISOString();
                     executionStatus = execResult.exitCode === 0 ? 'succeeded' : 'failed';
-                    executionWarnings = execResult.warnings;
+                    executionWarnings = fallbackWarning ? [fallbackWarning, ...execResult.warnings] : execResult.warnings;
                     executionErrors = execResult.exitCode === 0 ? [] : [execResult.message];
                     execStdout = execResult.stdout;
                     execStderr = execResult.stderr;
@@ -286,7 +331,7 @@ class RalphIterationEngine {
                         agentId: prepared.config.agentId,
                         provenanceId: prepared.provenanceId,
                         iteration: prepared.iteration,
-                        commandPath: (0, providers_1.getCliCommandPath)(prepared.config),
+                        commandPath: usedCommandPath,
                         args: execResult.args,
                         reasoningEffort: prepared.config.reasoningEffort,
                         workspaceRoot: prepared.rootPath,

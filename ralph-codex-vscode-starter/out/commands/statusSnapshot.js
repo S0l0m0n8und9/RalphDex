@@ -53,6 +53,7 @@ const statusReport_1 = require("../ralph/statusReport");
 const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
+const pipeline_1 = require("../ralph/pipeline");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
@@ -342,7 +343,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         artifactReadinessDiagnostics,
         agentHealthDiagnostics
     });
-    const [generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
+    const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: inspection.paths.artifactDir,
             promptDir: inspection.paths.promptDir,
@@ -353,7 +354,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         (0, artifactStore_1.inspectProvenanceBundleRetention)({
             artifactRootDir: inspection.paths.artifactDir,
             retentionCount: config.provenanceBundleRetentionCount
-        })
+        }),
+        (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir)
     ]);
     return {
         workspaceName: workspaceFolder.name,
@@ -401,7 +403,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         gitStatus,
         preflightReport,
         claimGraph,
-        currentProvenanceId
+        currentProvenanceId,
+        latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
+        latestPipelineRun: latestPipelineEntry?.artifact ?? null
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

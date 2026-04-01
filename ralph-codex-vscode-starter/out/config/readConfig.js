@@ -115,23 +115,51 @@ function readPromptBudgetOverrideMap(config, key) {
     }
     return normalized;
 }
+const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot'];
+function readTierConfig(raw, fallback) {
+    // Accept a plain string (backward-compat: old flat `simpleModel` format).
+    if (typeof raw === 'string' && raw.trim()) {
+        return { model: raw.trim() };
+    }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return fallback;
+    }
+    const record = raw;
+    const model = typeof record.model === 'string' && record.model.trim()
+        ? record.model.trim()
+        : fallback.model;
+    const provider = typeof record.provider === 'string' && CLI_PROVIDER_IDS.includes(record.provider)
+        ? record.provider
+        : undefined;
+    return provider ? { provider, model } : { model };
+}
 function readModelTiering(config, fallback) {
     const raw = config.get('modelTiering');
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         return fallback;
     }
     const record = raw;
+    // Backward-compat: accept old flat `simpleModel`/`mediumModel`/`complexModel` strings.
+    const simple = record.simple !== undefined
+        ? readTierConfig(record.simple, fallback.simple)
+        : typeof record.simpleModel === 'string' && record.simpleModel.trim()
+            ? { model: record.simpleModel.trim() }
+            : fallback.simple;
+    const medium = record.medium !== undefined
+        ? readTierConfig(record.medium, fallback.medium)
+        : typeof record.mediumModel === 'string' && record.mediumModel.trim()
+            ? { model: record.mediumModel.trim() }
+            : fallback.medium;
+    const complex = record.complex !== undefined
+        ? readTierConfig(record.complex, fallback.complex)
+        : typeof record.complexModel === 'string' && record.complexModel.trim()
+            ? { model: record.complexModel.trim() }
+            : fallback.complex;
     return {
         enabled: typeof record.enabled === 'boolean' ? record.enabled : fallback.enabled,
-        simpleModel: typeof record.simpleModel === 'string' && record.simpleModel.trim()
-            ? record.simpleModel.trim()
-            : fallback.simpleModel,
-        mediumModel: typeof record.mediumModel === 'string' && record.mediumModel.trim()
-            ? record.mediumModel.trim()
-            : fallback.mediumModel,
-        complexModel: typeof record.complexModel === 'string' && record.complexModel.trim()
-            ? record.complexModel.trim()
-            : fallback.complexModel,
+        simple,
+        medium,
+        complex,
         simpleThreshold: typeof record.simpleThreshold === 'number' && Number.isFinite(record.simpleThreshold)
             ? Math.floor(record.simpleThreshold)
             : fallback.simpleThreshold,
@@ -227,7 +255,8 @@ function readConfig(workspaceFolder) {
         autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', defaults_1.DEFAULT_CONFIG.autoReviewOnParentDone),
         autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete),
         autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', defaults_1.DEFAULT_CONFIG.autoScmOnConflict),
-        scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1)
+        scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1),
+        pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', defaults_1.DEFAULT_CONFIG.pipelineHumanGates)
     };
 }
 //# sourceMappingURL=readConfig.js.map
