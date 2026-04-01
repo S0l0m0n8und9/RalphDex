@@ -50,6 +50,17 @@ test('parseGenerationResponse uses the LAST json fence when multiple are present
   assert.equal(tasks[0].id, 'T1');
 });
 
+test('parseGenerationResponse throws ProjectGenerationError when no PRD text before JSON fence', () => {
+  assert.throws(
+    () => parseGenerationResponse('```json\n[{ "id": "T1", "title": "x", "status": "todo" }]\n```'),
+    (err: unknown) => {
+      assert.ok(err instanceof ProjectGenerationError);
+      assert.match(err.message, /no PRD text/);
+      return true;
+    }
+  );
+});
+
 test('parseGenerationResponse throws ProjectGenerationError when no JSON fence', () => {
   assert.throws(
     () => parseGenerationResponse('# P\n\nNo fence here.'),
@@ -209,24 +220,31 @@ test('generateProjectDraft uses copilotCommandPath when cliProvider is copilot',
   }
 });
 
-test('generateProjectDraft uses codexCommandPath when cliProvider is codex', async () => {
+test('generateProjectDraft uses codexCommandPath and parses codex response correctly', async () => {
+  const codexResponse = `# Codex Project\n\n## Overview\nSome overview.\n\n## Phase 1\nDo something.\n\n\`\`\`json\n[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]\n\`\`\``;
+  const fsSync = require('node:fs');
+
   let capturedCommand = '';
-  setProcessRunnerOverride((cmd, _args, _opts) => {
+  setProcessRunnerOverride((cmd, args, _opts) => {
     capturedCommand = cmd;
-    return {
-      code: 0,
-      stdout: '',
-      stderr: ''
-    };
+    // Codex CLI writes to --output-last-message <path>
+    const idx = args.indexOf('--output-last-message');
+    if (idx !== -1 && args[idx + 1]) {
+      fsSync.writeFileSync(args[idx + 1], codexResponse, 'utf8');
+    }
+    return { code: 0, stdout: '', stderr: '' };
   });
 
   try {
-    await generateProjectDraft(
+    const result = await generateProjectDraft(
       'Build something',
       { ...DEFAULT_CONFIG, cliProvider: 'codex', codexCommandPath: 'my-codex' },
       nodeOs.tmpdir()
-    ).catch(() => {});
+    );
     assert.equal(capturedCommand, 'my-codex');
+    assert.ok(result.prdText.startsWith('# Codex Project'));
+    assert.equal(result.tasks.length, 1);
+    assert.equal(result.tasks[0].id, 'T1');
   } finally {
     setProcessRunnerOverride(null);
   }

@@ -28,6 +28,9 @@ export function parseGenerationResponse(responseText: string): {
   }
 
   const prdText = responseText.slice(0, lastMatch.index).trim();
+  if (!prdText) {
+    throw new ProjectGenerationError('AI response contained no PRD text before the JSON block.');
+  }
   const jsonText = lastMatch[1].trim();
 
   let parsed: unknown;
@@ -100,7 +103,8 @@ export async function generateProjectDraft(
 ): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[] }> {
   const commandPath = commandPathForConfig(config);
   const provider = createCliProvider(config);
-  const prompt = GENERATION_PROMPT_TEMPLATE.replace('{OBJECTIVE}', objective);
+  const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
+  const prompt = GENERATION_PROMPT_TEMPLATE.replace('{OBJECTIVE}', safeObjective);
   const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
 
   const launchSpec = provider.buildLaunchSpec({
