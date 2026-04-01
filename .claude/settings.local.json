@@ -21,6 +21,8 @@
       "Bash(git stash:*)",
       "Bash(git checkout:*)",
       "Bash(git add:*)",
+      "Bash(git rebase:*)",
+      "Bash(git push:*)",
       "Skill(commit-commands:commit-push-pr)"
     ]
   }
