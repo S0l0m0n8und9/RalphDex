@@ -185,3 +185,49 @@ test('generateProjectDraft throws ProjectGenerationError when response has no JS
     setProcessRunnerOverride(null);
   }
 });
+
+test('generateProjectDraft uses copilotCommandPath when cliProvider is copilot', async () => {
+  let capturedCommand = '';
+  setProcessRunnerOverride((cmd, _args, _opts) => {
+    capturedCommand = cmd;
+    return {
+      code: 0,
+      stdout: `GitHub Copilot response\n# P\n\`\`\`json\n[{ "id": "T1", "title": "x", "status": "todo" }]\n\`\`\``,
+      stderr: ''
+    };
+  });
+
+  try {
+    await generateProjectDraft(
+      'Build something',
+      { ...DEFAULT_CONFIG, cliProvider: 'copilot', copilotCommandPath: 'my-copilot' },
+      nodeOs.tmpdir()
+    ).catch(() => {});
+    assert.equal(capturedCommand, 'my-copilot');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('generateProjectDraft uses codexCommandPath when cliProvider is codex', async () => {
+  let capturedCommand = '';
+  setProcessRunnerOverride((cmd, _args, _opts) => {
+    capturedCommand = cmd;
+    return {
+      code: 0,
+      stdout: '',
+      stderr: ''
+    };
+  });
+
+  try {
+    await generateProjectDraft(
+      'Build something',
+      { ...DEFAULT_CONFIG, cliProvider: 'codex', codexCommandPath: 'my-codex' },
+      nodeOs.tmpdir()
+    ).catch(() => {});
+    assert.equal(capturedCommand, 'my-codex');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});

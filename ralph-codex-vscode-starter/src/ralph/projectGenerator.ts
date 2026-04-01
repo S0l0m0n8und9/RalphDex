@@ -98,12 +98,13 @@ export async function generateProjectDraft(
   config: RalphCodexConfig,
   cwd: string
 ): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[] }> {
+  const commandPath = commandPathForConfig(config);
   const provider = createCliProvider(config);
   const prompt = GENERATION_PROMPT_TEMPLATE.replace('{OBJECTIVE}', objective);
   const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
 
   const launchSpec = provider.buildLaunchSpec({
-    commandPath: commandPathForConfig(config),
+    commandPath,
     workspaceRoot: cwd,
     executionRoot: cwd,
     prompt,
@@ -118,7 +119,7 @@ export async function generateProjectDraft(
     approvalMode: config.approvalMode
   }, true);
 
-  const result = await runProcess(commandPathForConfig(config), launchSpec.args, {
+  const result = await runProcess(commandPath, launchSpec.args, {
     cwd: launchSpec.cwd,
     stdinText: launchSpec.stdinText
   });
