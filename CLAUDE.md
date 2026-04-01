@@ -49,6 +49,11 @@ cd ralph-codex-vscode-starter && npm run validate
 
 This runs: compile → check:docs → lint → tests. All must pass before a task is done.
 
+## Git conventions
+
+- Delete branches after they are merged — keep the remote clean.
+- Use rebase (not merge) to keep main at the top of the graph. Rebase onto `origin/main` before pushing.
+
 ## What not to do
 
 - Do not run `codex exec` — Ralph shells out to the CLI; it is not called from within a session.
