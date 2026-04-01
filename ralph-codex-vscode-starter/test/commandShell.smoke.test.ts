@@ -1823,6 +1823,84 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   );
 });
 
+test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artifact', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+
+  const reviewArtifactDir = path.join(rootPath, '.ralph', 'artifacts', 'review-001');
+  const scmArtifactDir = path.join(rootPath, '.ralph', 'artifacts', 'scm-001');
+  const fakeTranscriptPath = path.join(reviewArtifactDir, 'transcript.jsonl');
+  const fakePrUrl = 'https://github.com/acme/repo/pull/99';
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode, _progress, options) => {
+      const runOptions = options as { configOverrides?: { agentRole?: unknown } } | undefined;
+      const agentRole = runOptions?.configOverrides?.agentRole;
+
+      if (agentRole === 'review') {
+        await fs.mkdir(reviewArtifactDir, { recursive: true });
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+          artifactDir: reviewArtifactDir,
+          execution: { exitCode: 0, transcriptPath: fakeTranscriptPath }
+        });
+      }
+
+      if (agentRole === 'scm') {
+        await fs.mkdir(scmArtifactDir, { recursive: true });
+        await fs.writeFile(
+          path.join(scmArtifactDir, 'completion-report.json'),
+          JSON.stringify({
+            schemaVersion: 1,
+            kind: 'completionReport',
+            status: 'parsed',
+            selectedTaskId: 'T-scm',
+            warnings: [],
+            report: { progressNote: `PR submitted at ${fakePrUrl} and merged.` }
+          }),
+          'utf8'
+        );
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+          artifactDir: scmArtifactDir,
+          followUpAction: 'continue_next_task'
+        });
+      }
+
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as {
+    status: string;
+    reviewTranscriptPath?: string;
+    prUrl?: string;
+  };
+
+  assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
+  assert.equal(artifact.reviewTranscriptPath, fakeTranscriptPath, 'reviewTranscriptPath must be captured from review run');
+  assert.equal(artifact.prUrl, fakePrUrl, 'prUrl must be extracted from SCM completion report');
+
+  const lastMessage = harness.state.infoMessages.at(-1)?.message ?? '';
+  assert.match(lastMessage, /Ralph pipeline .+ finished with status: complete/);
+  assert.ok(lastMessage.includes(fakePrUrl), 'Info message must include the PR URL');
+});
+
 test('New Project scaffolds a project directory and switches workspace settings', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

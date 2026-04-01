@@ -164,3 +164,4 @@
 - Added no-progress heatmap bullet to Show Multi-Agent Status section in docs/workflows.md; all implementation and tests already complete from T62.1 and T62.2
 - Added ralphCodex.runPipeline command skeleton: scaffolds pipeline-root + child tasks from PRD headings, writes .ralph/artifacts/pipelines/<runId>.json, invokes multi-agent loop. 482/482 tests pass.
 - Added Run Pipeline smoke test verifying review-agent → SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent
+- Added smoke test verifying pipeline artifact captures reviewTranscriptPath and prUrl from review→SCM phase; 507/507 tests pass
