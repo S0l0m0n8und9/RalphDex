@@ -67,23 +67,62 @@ The claim/lock/agentId infrastructure drives concurrent loops. A multi-agent lau
 
 ### Next delivery horizon
 
-With the three-pillar horizon satisfied, the following capabilities are the concrete next targets.
+With the three-pillar horizon satisfied, the following capabilities are the concrete next targets, listed in priority order.
 
-**1. Pipeline resilience: resume and crash-recovery**
+**0. VS Code Marketplace readiness** *(highest priority — unlocks all downstream value)*
+
+Ralph cannot deliver value to users who cannot install it. Before expanding features, the extension must be publishable to the VS Code Marketplace. Concrete work:
+- Verify and complete required Marketplace metadata: publisher ID, `displayName`, `description`, `categories`, `keywords`, `icon`.
+- Ensure `README.md` meets Marketplace standards: installation steps, configuration reference, screenshot or demo.
+- Add `CHANGELOG.md` with an initial release entry.
+- Confirm `LICENSE` is present and correctly identified in `package.json`.
+- Validate end-to-end with `vsce publish --dry-run` and resolve all blocking warnings.
+- Document the release workflow (version bump → `vsce publish` → tag) in `docs/`.
+
+**1. Developer-loop shim: run the Ralph iteration engine without a VS Code host**
+
+This is explicitly **not** a full operator CLI (see deferral below). It is a narrow Node.js entry point that boots the core iteration engine (`iterationEngine.ts` and its dependencies) against a workspace on disk, bypassing the VS Code extension host entirely. Purpose: enable Ralph to be run from a Claude Code session or any Node.js-capable environment, primarily to support self-hosting — using Ralph to develop Ralph — without requiring VS Code to be open. Scope constraints:
+- Reads config from a `.ralph-config.json` file or environment variables — no `vscode.WorkspaceConfiguration`.
+- Replaces `vscode.OutputChannel` logger with stdout.
+- Replaces `vscode.Progress` with no-op or stdout progress lines.
+- No dashboard, sidebar, or status bar — text output only.
+- No new UX surface, no new configuration schema beyond what the extension already supports.
+- The shim is a development/self-hosting tool, not a supported operator-facing product. It is not published to npm and is not advertised to end users.
+
+**2. Pipeline resilience: resume and crash-recovery**
 
 The pipeline currently runs to completion or fails terminally. The next step is making it restartable from the last known-good phase so transient failures (network, CLI timeout, lock contention) do not require a full re-run. Concrete work:
 - A durable pipeline-run state file (`.ralph/pipeline-run.json`) that records the completed phase, artifact hashes, and resume cursor.
 - A `resumePipeline` command that reads the run state, validates phase integrity, and continues from the interruption point.
 - Preflight diagnostics that detect an in-progress but stale pipeline run and surface it as a warning.
 
-**2. Real end-to-end pipeline smoke test in a temporary workspace**
+**3. Real end-to-end pipeline smoke test in a temporary workspace**
 
 Current pipeline tests use mocked phases. Concrete work:
 - A `test:e2e-pipeline` script that creates a fresh temp workspace, seeds a minimal `.ralph/` layout, runs `runPipeline` through a real Claude CLI invocation, and asserts that a PR URL artifact exists.
 - Guard the test behind an environment flag so it is opt-in in CI but runnable locally.
 
-**3. Operator CLI: non-VS Code pipeline runner**
+**4. Model tiering: improve scoring signals and enable by default**
 
-The pipeline depends on VS Code commands for its entry point. Concrete work:
-- A standalone `ralph-cli` Node script (or thin wrapper) that reads `.ralph/` state and drives the same `pipeline.ts` logic without a VS Code host.
-- Enables headless CI and cron-triggered pipeline runs without requiring the extension host.
+The complexity scorer (`complexityScorer.ts`) and per-tier model routing are implemented but disabled by default and unvalidated. The current scoring signals are crude (title word count as a complexity proxy is unreliable). Concrete work:
+- Replace or supplement weak signals (title word count) with more reliable ones: presence of a `validation` field, number of child tasks, whether the task has a known blocker note.
+- Calibrate thresholds against real workload data — run the scorer against the completed task history and verify that tier assignments match intuition.
+- Enable tiering by default with conservative thresholds: simple tasks (score 0–1) route to Haiku, everything else routes to Sonnet, Opus reserved for score ≥6.
+- Add operator-facing documentation covering what signals drive each tier, how to override, and what cost savings to expect.
+- Note: per-provider routing (e.g. Copilot for simple, Claude for complex) is already wired and should be documented but not enabled by default until validated.
+
+**5. AI-driven project and PRD generation**
+
+A full implementation plan exists in `docs/superpowers/plans/2026-04-01-ai-project-generation.md`. When a user enters a project objective during `initializeWorkspace` or `newProject`, invoke the configured CLI provider to generate a full draft PRD and reasoned task list before opening the files. Fallback to the existing static template on any CLI failure.
+
+**6. Operator CLI — deferred, out of scope (future fork)**
+
+A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
+
+### Design principles and scope boundaries
+
+**Engineering quality over UI polish.** Dashboard, sidebar, and status bar improvements are secondary to loop correctness, test coverage, and cost efficiency. New UI surface should only be added when it directly supports operator debugging or safety — not for aesthetics.
+
+**Cost efficiency is a first-class concern.** The model tiering system exists specifically to avoid paying Opus prices for simple tasks. Any new feature that adds iteration overhead (extra prompt sections, additional agent passes, richer context assembly) must justify its cost impact. The prompt budget policy exists for this reason and must be respected.
+
+**Self-hosting is the development model.** Once the developer-loop shim exists, Ralph should be used to develop Ralph. Tasks generated by Ralph's own backlog replenishment prompt, executed by Ralph's own iteration engine, reconciled by Ralph's own completion-report parser. This creates a continuous validation loop and surfaces quality issues in the tool itself.
