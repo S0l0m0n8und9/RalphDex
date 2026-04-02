@@ -62,6 +62,7 @@ exports.DEFAULT_CONFIG = {
     autoReviewOnLoopComplete: false,
     autoScmOnConflict: false,
     scmConflictRetryLimit: 1,
-    pipelineHumanGates: false
+    pipelineHumanGates: false,
+    cliExecutionTimeoutMs: 0
 };
 //# sourceMappingURL=defaults.js.map

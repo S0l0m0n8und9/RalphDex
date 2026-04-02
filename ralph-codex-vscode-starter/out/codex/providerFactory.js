@@ -25,7 +25,8 @@ function createCliProviderForId(providerId, config) {
     }
     if (providerId === 'copilot') {
         return new copilotCliProvider_1.CopilotCliProvider({
-            approvalMode: config.copilotApprovalMode
+            approvalMode: config.copilotApprovalMode,
+            maxAutopilotContinues: config.claudeMaxTurns
         });
     }
     return new codexCliProvider_1.CodexCliProvider({

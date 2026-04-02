@@ -84,7 +84,8 @@ class CliExecCodexStrategy {
                 stdinText: launchSpec.stdinText,
                 shell: launchSpec.shell,
                 onStdoutChunk: request.onStdoutChunk,
-                onStderrChunk: request.onStderrChunk
+                onStderrChunk: request.onStderrChunk,
+                timeoutMs: request.timeoutMs
             });
         }
         catch (error) {

@@ -256,7 +256,8 @@ function readConfig(workspaceFolder) {
         autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete),
         autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', defaults_1.DEFAULT_CONFIG.autoScmOnConflict),
         scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1),
-        pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', defaults_1.DEFAULT_CONFIG.pipelineHumanGates)
+        pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', defaults_1.DEFAULT_CONFIG.pipelineHumanGates),
+        cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', defaults_1.DEFAULT_CONFIG.cliExecutionTimeoutMs, 0)
     };
 }
 //# sourceMappingURL=readConfig.js.map
