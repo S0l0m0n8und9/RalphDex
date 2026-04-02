@@ -82,8 +82,6 @@ Current pipeline tests use mocked phases. Concrete work:
 - A `test:e2e-pipeline` script that creates a fresh temp workspace, seeds a minimal `.ralph/` layout, runs `runPipeline` through a real Claude CLI invocation, and asserts that a PR URL artifact exists.
 - Guard the test behind an environment flag so it is opt-in in CI but runnable locally.
 
-**3. Operator CLI: non-VS Code pipeline runner**
+**3. Operator CLI — deferred, out of scope (future fork)**
 
-The pipeline depends on VS Code commands for its entry point. Concrete work:
-- A standalone `ralph-cli` Node script (or thin wrapper) that reads `.ralph/` state and drives the same `pipeline.ts` logic without a VS Code host.
-- Enables headless CI and cron-triggered pipeline runs without requiring the extension host.
+A standalone CLI for headless/CI use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. If this becomes warranted in future it will be a separate project fork, not an extension feature.
