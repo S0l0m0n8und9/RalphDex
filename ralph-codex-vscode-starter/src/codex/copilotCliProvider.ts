@@ -7,6 +7,7 @@ export type CopilotApprovalMode = 'allow-all' | 'allow-tools-only' | 'interactiv
 
 export interface CopilotCliProviderOptions {
   approvalMode: CopilotApprovalMode;
+  maxAutopilotContinues: number;
 }
 
 export class CopilotCliProvider implements CliProvider {
@@ -15,11 +16,17 @@ export class CopilotCliProvider implements CliProvider {
   public constructor(private readonly options: CopilotCliProviderOptions) {}
 
   public buildLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): CliLaunchSpec {
-    const args = ['-s', '--no-ask-user'];
+    const args = ['-s', '--no-ask-user', '--autopilot'];
+
+    args.push('--max-autopilot-continues', String(this.options.maxAutopilotContinues));
 
     if (request.model.trim()) {
       args.push('--model', request.model);
     }
+
+    args.push('--reasoning-effort', request.reasoningEffort);
+
+    args.push('--output-format=json');
 
     if (this.options.approvalMode === 'allow-all') {
       args.push('--allow-all');
@@ -50,8 +57,9 @@ export class CopilotCliProvider implements CliProvider {
       return '';
     }
 
-    // Attempt structured JSON extraction (NDJSON or single-object).
-    // Some Copilot CLI builds emit result events similar to Claude.
+    // Scan JSONL output (--output-format=json) for a result event, scanning
+    // from the end so the final result is found first. This mirrors the
+    // pattern used by claudeCliProvider for --output-format stream-json.
     const lines = trimmed.split('\n');
     for (let i = lines.length - 1; i >= 0; i--) {
       const line = lines[i].trim();
@@ -68,7 +76,8 @@ export class CopilotCliProvider implements CliProvider {
       }
     }
 
-    // Fallback: return the stdout text as-is.
+    // Fallback: return the stdout text as-is (e.g. older CLI builds without
+    // --output-format=json support, or unexpected non-JSONL output).
     await fs.writeFile(lastMessagePath, trimmed, 'utf8').catch(() => {});
     return trimmed;
   }

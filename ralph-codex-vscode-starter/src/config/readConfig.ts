@@ -447,6 +447,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', DEFAULT_CONFIG.autoReviewOnLoopComplete),
     autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', DEFAULT_CONFIG.autoScmOnConflict),
     scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1),
-    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', DEFAULT_CONFIG.pipelineHumanGates)
+    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', DEFAULT_CONFIG.pipelineHumanGates),
+    cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', DEFAULT_CONFIG.cliExecutionTimeoutMs, 0)
   };
 }

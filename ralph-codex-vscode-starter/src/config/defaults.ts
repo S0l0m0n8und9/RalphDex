@@ -61,5 +61,6 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   autoReviewOnLoopComplete: false,
   autoScmOnConflict: false,
   scmConflictRetryLimit: 1,
-  pipelineHumanGates: false
+  pipelineHumanGates: false,
+  cliExecutionTimeoutMs: 0
 };

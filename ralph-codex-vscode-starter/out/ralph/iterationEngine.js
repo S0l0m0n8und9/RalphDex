@@ -262,6 +262,7 @@ class RalphIterationEngine {
                         reasoningEffort: prepared.config.reasoningEffort,
                         sandboxMode: prepared.config.sandboxMode,
                         approvalMode: prepared.config.approvalMode,
+                        timeoutMs: prepared.config.cliExecutionTimeoutMs > 0 ? prepared.config.cliExecutionTimeoutMs : undefined,
                         onStderrChunk: (chunk) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
                     };
                     const makeStdoutChunk = (provider) => provider === 'claude'
