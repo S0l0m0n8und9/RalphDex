@@ -27,7 +27,8 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
 
   if (providerId === 'copilot') {
     return new CopilotCliProvider({
-      approvalMode: config.copilotApprovalMode
+      approvalMode: config.copilotApprovalMode,
+      maxAutopilotContinues: config.claudeMaxTurns
     });
   }
 

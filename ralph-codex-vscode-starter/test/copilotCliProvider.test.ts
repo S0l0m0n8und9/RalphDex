@@ -26,7 +26,7 @@ function request(): CodexExecRequest {
 }
 
 function provider(approvalMode: 'allow-all' | 'allow-tools-only' | 'interactive' = 'allow-all'): CopilotCliProvider {
-  return new CopilotCliProvider({ approvalMode });
+  return new CopilotCliProvider({ approvalMode, maxAutopilotContinues: 50 });
 }
 
 test('buildLaunchSpec pipes prompt via stdin without -p flag', () => {
@@ -42,6 +42,12 @@ test('buildLaunchSpec pipes prompt via stdin without -p flag', () => {
 
   assert.ok(launch.args.includes('-s'), 'should include -s for silent mode');
   assert.ok(launch.args.includes('--no-ask-user'), 'should include --no-ask-user');
+  assert.ok(launch.args.includes('--autopilot'), 'should include --autopilot for multi-step execution');
+  assert.ok(launch.args.includes('--max-autopilot-continues'), 'should include --max-autopilot-continues');
+  assert.equal(launch.args[launch.args.indexOf('--max-autopilot-continues') + 1], '50', 'max-autopilot-continues should match maxAutopilotContinues');
+  assert.ok(launch.args.includes('--reasoning-effort'), 'should include --reasoning-effort');
+  assert.equal(launch.args[launch.args.indexOf('--reasoning-effort') + 1], 'medium', 'reasoning-effort should match request.reasoningEffort');
+  assert.ok(launch.args.includes('--output-format=json'), 'should include --output-format=json for structured output');
   assert.equal(launch.cwd, '/workspace/repo');
 });
 

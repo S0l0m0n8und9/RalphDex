@@ -596,6 +596,12 @@
           "type": "boolean",
           "default": false,
           "description": "When true, the Run Pipeline command pauses after the review-agent pass and writes an awaiting_human_approval handoff note to .ralph/handoff/ instead of immediately submitting the PR. Use Approve Human Review to resume from the PR submission step."
+        },
+        "ralphCodex.cliExecutionTimeoutMs": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Maximum time in milliseconds to wait for a CLI iteration (codex, claude, or copilot) to complete before killing the process with a timeout error. Set to 0 (default) to disable the timeout and wait indefinitely."
         }
       }
     }

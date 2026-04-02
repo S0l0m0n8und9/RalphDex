@@ -36,6 +36,7 @@ export interface CodexExecRequest {
   approvalMode: CodexApprovalMode;
   onStdoutChunk?: (chunk: string) => void;
   onStderrChunk?: (chunk: string) => void;
+  timeoutMs?: number;
 }
 
 export interface CodexExecResult extends CodexActionResult {

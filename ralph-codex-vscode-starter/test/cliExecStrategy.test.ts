@@ -139,7 +139,7 @@ test('CliExecCodexStrategy supports stdin-pipe providers such as Copilot', async
   try {
     const strategy = new CliExecCodexStrategy(
       createLogger(),
-      new CopilotCliProvider({ approvalMode: 'allow-all' })
+      new CopilotCliProvider({ approvalMode: 'allow-all', maxAutopilotContinues: 10 })
     );
     const result = await strategy.runExec({
       ...request(),

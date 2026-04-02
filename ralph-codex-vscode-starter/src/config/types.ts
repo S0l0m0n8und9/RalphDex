@@ -135,4 +135,5 @@ export interface RalphCodexConfig {
   autoScmOnConflict: boolean;
   scmConflictRetryLimit: number;
   pipelineHumanGates: boolean;
+  cliExecutionTimeoutMs: number;
 }
