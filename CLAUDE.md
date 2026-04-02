@@ -9,7 +9,23 @@ Ralph Codex Workbench is a VS Code extension that runs durable, file-backed agen
 1. Read `ralph-codex-vscode-starter/AGENTS.md` — it is the authoritative routing document.
 2. Read `ralph-codex-vscode-starter/docs/architecture.md` for module boundaries.
 3. Check `.ralph/tasks.json` for the current backlog before inventing new work.
-4. Run `cd ralph-codex-vscode-starter && npm run validate` to confirm the baseline is clean.
+4. Check `.ralph/prd.md` for scope — it is the authority on what is in and out of scope.
+5. Run `cd ralph-codex-vscode-starter && npm run validate` to confirm the baseline is clean.
+
+## Where to look for common changes
+
+| Concern | Primary file(s) |
+|---|---|
+| Loop stop / continue decisions | `src/ralph/loopLogic.ts` |
+| Prompt content and sections | `src/prompt/promptBuilder.ts`, `prompt-templates/` |
+| Task selection, claims, locking | `src/ralph/taskFile.ts` |
+| Add a new config setting | `src/config/types.ts`, `defaults.ts`, `readConfig.ts`, `package.json` |
+| VS Code command wiring | `src/commands/registerCommands.ts` |
+| Model / provider routing | `src/ralph/complexityScorer.ts`, `src/codex/providerFactory.ts` |
+| Pipeline phases | `src/ralph/pipeline.ts` |
+| Prompt snapshot tests | `test/fixtures/snapshots/`, `test/promptBuilder.test.ts` |
+| Preflight diagnostics | `src/ralph/preflight.ts` |
+| Artifact retention | `src/ralph/artifactStore.ts` |
 
 ## Key module map
 
@@ -51,6 +67,9 @@ This runs: compile → check:docs → lint → tests. All must pass before a tas
 
 ## Git conventions
 
+- Working branch: check with `git branch --show-current` at the start of a session.
+- Commit and push after every meaningful change. A stop hook enforces this — don't batch up work.
+- Stage specific files (`git add <file>`) not `git add .`
 - Delete branches after they are merged — keep the remote clean.
 - Use rebase (not merge) to keep main at the top of the graph. Rebase onto `origin/main` before pushing.
 
@@ -60,3 +79,5 @@ This runs: compile → check:docs → lint → tests. All must pass before a tas
 - Do not rewrite `.ralph/tasks.json` unless the prompt explicitly targets backlog replenishment.
 - Do not add broad multi-agent orchestration — see `docs/boundaries.md` and `docs/multi-agent-readiness.md`.
 - Do not invent IDE APIs or hidden handoff channels.
+- Do not introduce a full operator CLI or GitHub Actions integration — these are explicitly out of scope. See `.ralph/prd.md`.
+- Do not add UI improvements (dashboard, sidebar, status bar) unless they directly support operator debugging — engineering quality and cost efficiency come first.
