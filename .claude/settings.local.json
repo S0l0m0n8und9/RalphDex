@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"=== Branch: $(git branch --show-current) ===\"; echo \"\"; node -e \"const t=require('./.ralph/tasks.json').tasks.filter(x=>x.status!=='done');if(!t.length){console.log('BACKLOG EXHAUSTED — run backlog replenishment before starting work.');}else{console.log('Active tasks:');t.forEach(x=>console.log(' ['+x.status+'] '+x.id+': '+x.title));}\" 2>/dev/null || echo \"(could not read tasks.json)\"; echo \"\"; echo \"NOTE: No VS Code host in this environment — extension cannot be activated. Developer-loop shim does not exist yet.\"",
+            "command": "echo \"=== Branch: $(git branch --show-current) ===\"; echo \"\"; node -e \"const t=require('./.ralph/tasks.json').tasks.filter(x=>x.status!=='done');if(!t.length){console.log('BACKLOG EXHAUSTED — run backlog replenishment before starting work.');}else{console.log('Active tasks:');t.forEach(x=>console.log(' ['+x.status+'] '+x.id+': '+x.title));}\" 2>/dev/null || echo \"(could not read tasks.json)\"",
             "statusMessage": "Loading project state..."
           }
         ]
