@@ -5,7 +5,8 @@
     "T64.2",
     "T66",
     "T67",
-    "T69"
+    "T69",
+    "T70.1"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -38,6 +39,7 @@
     "ralph-codex-vscode-starter/src/config/types.ts",
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
+    "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/replenishBacklog.replenish-backlog.md",
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",

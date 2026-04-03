@@ -2062,7 +2062,190 @@
       ],
       "notes": "Pipeline crash recovery implemented: PipelinePhase type + phase checkpoint field added to PipelineRunArtifact; scaffoldPipelineRun writes phase:'scaffold'; runPipeline refactored to use shared runPipelineFromPhase helper with loop/review/done checkpoints; ralphCodex.resumePipeline command added with phase-aware re-entry and QuickPick selection; activation-time scan surfaces warning notification fo",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
+    },
+    {
+      "id": "T70",
+      "title": "VS Code Marketplace readiness: make the extension publishable",
+      "status": "in_progress",
+      "dependsOn": [
+        "T70.1",
+        "T70.2",
+        "T70.3"
+      ],
+      "notes": "All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128×128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump→publish→tag. validate passes (527 tests).",
+      "acceptance": [
+        "publisher field in package.json is set to a real Marketplace publisher ID (not 'starter')",
+        "keywords array is present in package.json with at least 3 relevant terms",
+        "icon is a 128×128 PNG (Marketplace rejects SVG for the icon field)",
+        "CHANGELOG.md exists with an initial release entry",
+        "vsce package --no-dependencies succeeds with 0 blocking warnings",
+        "docs/release-workflow.md documents version-bump → vsce publish → git tag steps"
+      ]
+    },
+    {
+      "id": "T70.1",
+      "title": "Fix package.json Marketplace metadata: publisher ID, keywords, icon format",
+      "status": "done",
+      "parentId": "T70",
+      "notes": "All Marketplace metadata acceptance criteria satisfied: publisher=s0l0m0n8und9, 7 keywords, icon=media/ralph-icon.png (128x128 PNG). vsce package --no-dependencies clean.",
+      "validation": "cd ralph-codex-vscode-starter && npm run package",
+      "acceptance": [
+        "publisher field is updated to the operator's real Marketplace publisher ID",
+        "keywords array has at least 3 relevant terms (e.g. 'ralph', 'codex', 'agent', 'agentic', 'automation')",
+        "icon field points to media/ralph-icon.png (PNG, ≥128×128)",
+        "media/ralph-icon.png exists (convert or replace from SVG)",
+        "vsce package --no-dependencies produces no icon-related or publisher-related warnings"
+      ]
+    },
+    {
+      "id": "T70.2",
+      "title": "Add CHANGELOG.md with initial v0.1.0 release entry",
+      "status": "todo",
+      "parentId": "T70",
+      "dependsOn": [
+        "T70.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run package",
+      "acceptance": [
+        "CHANGELOG.md exists at ralph-codex-vscode-starter/CHANGELOG.md",
+        "File follows Keep a Changelog format with a ## [0.1.0] section",
+        "Entry summarises the initial feature set: Ralph loop, multi-agent, pipeline, human-review gate",
+        "package.json files allowlist includes CHANGELOG.md",
+        "vsce package --no-dependencies succeeds without changelog warnings"
+      ]
+    },
+    {
+      "id": "T70.3",
+      "title": "Update README.md and document release workflow in docs/",
+      "status": "todo",
+      "parentId": "T70",
+      "dependsOn": [
+        "T70.1",
+        "T70.2"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "README.md contains Installation section with VS Code Marketplace install instruction",
+        "README.md contains Configuration reference pointing to all ralphCodex.* settings",
+        "docs/release-workflow.md documents: version bump in package.json, npm run package, vsce publish, git tag",
+        "docs/release-workflow.md is listed in docs validator required-docs list",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T71",
+      "title": "Developer-loop shim: run Ralph iteration engine without a VS Code host",
+      "status": "todo",
+      "notes": "PRD item 1. Scope constraint: this is a dev/self-hosting tool only, not published to npm or advertised to end users. The shim must not introduce new config schema beyond what the extension already supports.",
+      "acceptance": [
+        "A Node.js entry point (e.g. ralph-codex-vscode-starter/src/shim/main.ts or scripts/ralph-shim.ts) boots iterationEngine.ts against a workspace path passed as a CLI argument",
+        "Config is read from .ralph-config.json or environment variables — no vscode.WorkspaceConfiguration dependency",
+        "vscode.OutputChannel logger is replaced with a stdout logger implementing the same interface",
+        "vscode.Progress is replaced with a no-op or stdout implementation",
+        "No new UX surface, no dashboard, no sidebar; text output only",
+        "npm run validate passes with the shim included in the compiled output"
+      ]
+    },
+    {
+      "id": "T71.1",
+      "title": "Define VS Code host abstraction layer (IVSCodeHost interface)",
+      "status": "todo",
+      "parentId": "T71",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "An interface (or set of interfaces) IVSCodeHost is defined in src/shim/types.ts covering: OutputChannel (appendLine), Progress (report), WorkspaceConfiguration (get), and executeCommand",
+        "Existing callers in iterationEngine / iterationPreparation / registerCommands continue to compile",
+        "No runtime behaviour change — this is a pure structural refactor",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T71.2",
+      "title": "Implement stdout-backed host and .ralph-config.json config reader for the shim",
+      "status": "todo",
+      "parentId": "T71",
+      "dependsOn": [
+        "T71.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "src/shim/stdoutHost.ts implements IVSCodeHost with appendLine→console.log, Progress→no-op, executeCommand→no-op stub",
+        "src/shim/shimConfig.ts reads .ralph-config.json (JSON) falling back to env vars for each ralphCodex.* setting that has a default in defaults.ts",
+        "Unit tests for shimConfig covering file-present, file-absent (env fallback), and missing-value (default) cases",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T71.3",
+      "title": "Wire shim entry point and verify end-to-end boot against a minimal workspace",
+      "status": "todo",
+      "parentId": "T71",
+      "dependsOn": [
+        "T71.2"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "src/shim/main.ts (or scripts/ralph-shim.ts) accepts a workspace path argument and runs one Ralph iteration using stdoutHost and shimConfig",
+        "Running `node out/shim/main.js <path>` against a temp workspace with a seeded .ralph/ prints at least the preflight summary to stdout and exits 0",
+        "The shim entry point is excluded from the VSIX package files list",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T72",
+      "title": "Real end-to-end pipeline smoke test in a temporary workspace",
+      "status": "todo",
+      "notes": "PRD item 3. Depends on T71 shim or an in-process harness that bypasses the VS Code host. Can proceed with a stub runPipeline invocation if T71 is not yet complete, so long as at least one real Claude CLI call is made.",
+      "acceptance": [
+        "A test:e2e-pipeline npm script exists that creates a fresh temp workspace, seeds a minimal .ralph/ layout, runs runPipeline via the shim or a test harness, and asserts a PR URL artifact exists",
+        "The test is guarded behind RALPH_E2E=1 so it is opt-in in CI and does not run with npm test by default",
+        "docs/testing.md documents how to run the E2E test locally",
+        "npm run validate passes (default test suite unaffected)"
+      ]
+    },
+    {
+      "id": "T73",
+      "title": "Model tiering: improve scoring signals and enable by default",
+      "status": "todo",
+      "notes": "PRD item 4. Per-provider routing (Copilot/Claude) is already wired and should be documented but not enabled by default.",
+      "acceptance": [
+        "complexityScorer.ts scoring no longer relies solely on title word count as the primary signal",
+        "Signals include at least: presence of validation field, number of child tasks, known blocker note",
+        "Default thresholds are set: score 0–1 → haiku, score 2–5 → sonnet, score ≥6 → opus",
+        "ralphCodex.enableModelTiering defaults to true in defaults.ts and package.json",
+        "docs/ contains operator-facing documentation covering what signals drive each tier and how to override",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T73.1",
+      "title": "Replace title-word-count signal with structural task signals in complexityScorer.ts",
+      "status": "todo",
+      "parentId": "T73",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "complexityScorer.ts scores on: hasValidationField (+2), childTaskCount (×1 per child, capped at 3), hasBlockerNote (+1), titleWordCount is retained but capped at ±1 contribution",
+        "Unit tests cover zero-child/no-validation baseline, validation-only, multi-child, blocker-note cases",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T73.2",
+      "title": "Enable model tiering by default and add operator documentation",
+      "status": "todo",
+      "parentId": "T73",
+      "dependsOn": [
+        "T73.1"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "ralphCodex.enableModelTiering defaults to true in defaults.ts and package.json contributes.configuration",
+        "Default tier thresholds documented in package.json description and in a new docs/model-tiering.md",
+        "docs/model-tiering.md explains signals, thresholds, override via ralphCodex.complexityTierThresholds, and expected cost savings",
+        "docs validator requires docs/model-tiering.md with required fragment",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 30
+  "mutationCount": 34
 }
