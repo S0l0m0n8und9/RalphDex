@@ -2194,7 +2194,7 @@ test('runCliIteration stops loop continuation when control-plane runtime files c
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Trigger the reload barrier', status: 'todo' },
+      { id: 'T1', title: 'Trigger the reload barrier', status: 'todo', dependsOn: ['T1.1'] },
       { id: 'T1.1', title: 'Keep iterating after progress', status: 'todo', parentId: 'T1' }
     ]
   });
@@ -2241,7 +2241,7 @@ test('runCliIteration keeps looping after test-only changes because they do not 
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Allow safe non-runtime edits', status: 'todo' },
+      { id: 'T1', title: 'Allow safe non-runtime edits', status: 'todo', dependsOn: ['T1.1'] },
       { id: 'T1.1', title: 'Keep iterating after tests', status: 'todo', parentId: 'T1' }
     ]
   });
@@ -3031,7 +3031,7 @@ test('runCliIteration records a warning when auto-applying decompose_task remedi
     tasks: [
       { id: 'T0', title: 'Foundation', status: 'done' },
       { id: 'T1', title: 'Broad task that needs decomposition', status: 'todo', dependsOn: ['T0'] },
-      { id: 'T1.1', title: 'Existing child id collides with the proposal', status: 'todo', parentId: 'T1', dependsOn: ['T0'] }
+      { id: 'T1.1', title: 'Existing child id collides with the proposal', status: 'todo', dependsOn: ['T0'] }
     ]
   });
 

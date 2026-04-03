@@ -44,7 +44,8 @@ const REQUIRED_DOCS = [
   'docs/verifier.md',
   'docs/boundaries.md',
   'docs/multi-agent-readiness.md',
-  'docs/prompt-calibration.md'
+  'docs/prompt-calibration.md',
+  'docs/release-workflow.md'
 ] as const;
 
 const REQUIRED_AGENTS_HEADINGS = [
@@ -79,7 +80,8 @@ const REQUIRED_README_DOC_MAP_TARGETS = [
   'docs/verifier.md',
   'docs/boundaries.md',
   'docs/multi-agent-readiness.md',
-  'docs/prompt-calibration.md'
+  'docs/prompt-calibration.md',
+  'docs/release-workflow.md'
 ];
 
 const REQUIRED_CODE_OWNER_FILES = [

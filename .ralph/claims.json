@@ -1520,11 +1520,45 @@
       "status": "released"
     },
     {
-      "taskId": "T70.2",
       "agentId": "build",
-      "provenanceId": "run-i007-cli-20260403T085535Z",
+      "taskId": "T70.2",
       "claimedAt": "2026-04-03T08:55:35.249Z",
+      "provenanceId": "run-i007-cli-20260403T085535Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T70.3",
+      "claimedAt": "2026-04-03T08:57:02.214Z",
+      "provenanceId": "run-i008-cli-20260403T085702Z",
       "status": "active"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T71.1",
+      "claimedAt": "2026-04-03T08:57:27.359Z",
+      "provenanceId": "run-i009-cli-20260403T085727Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T71.1",
+      "claimedAt": "2026-04-03T09:13:28.282Z",
+      "provenanceId": "run-i010-cli-20260403T091327Z",
+      "status": "released",
+      "baseBranch": "ralph/T70.3",
+      "integrationBranch": "ralph/integration/T71",
+      "featureBranch": "ralph/T71.1"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T71.1",
+      "claimedAt": "2026-04-03T09:15:04.877Z",
+      "provenanceId": "run-i011-cli-20260403T091504Z",
+      "status": "released",
+      "baseBranch": "ralph/T70.3",
+      "integrationBranch": "ralph/integration/T71",
+      "featureBranch": "ralph/T71.1"
     }
   ]
 }

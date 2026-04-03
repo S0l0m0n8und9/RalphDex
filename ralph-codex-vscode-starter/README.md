@@ -9,6 +9,22 @@ The extension has two execution paths:
 - prepare a prompt for AI-IDE handoff through clipboard plus configurable VS Code command IDs
 - run deterministic CLI iterations through the configured provider (`codex`, `claude`, or `copilot`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
 
+## Installation
+
+Install from the VS Code Marketplace:
+
+1. Open the Extensions panel (`Ctrl+Shift+X` / `Cmd+Shift+X` on macOS).
+2. Search for **Ralph Codex Workbench**.
+3. Click **Install**.
+
+Or install from the CLI:
+
+```bash
+code --install-extension s0l0m0n8und9.ralph-codex-workbench
+```
+
+For a local distributable build, run `npm run package` from the extension root and install the generated `.vsix` through **Extensions: Install from VSIX...** or `code --install-extension`. See [docs/release-workflow.md](docs/release-workflow.md) for the full publish procedure.
+
 ## Package Root Versus Repo Root
 
 - `ralph-codex-vscode-starter/` is the actual extension package root. `package.json`, `src/`, `test/`, `scripts/`, and bundled docs live here.
@@ -125,6 +141,119 @@ For manual prompt-budget recalibration, run `npm run prompt:calibrate -- <worksp
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
 - [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
 - [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
+- [docs/release-workflow.md](docs/release-workflow.md): version bump, packaging, and VS Code Marketplace publish procedure
+
+## Configuration
+
+All settings are under the `ralphCodex.*` namespace in VS Code settings (`Ctrl+,` / `Cmd+,`).
+
+**Provider**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, or `copilot` |
+| `ralphCodex.codexCommandPath` | `"codex"` | Codex CLI executable path or name |
+| `ralphCodex.claudeCommandPath` | `"claude"` | Claude CLI executable path or name |
+| `ralphCodex.copilotCommandPath` | `"copilot"` | Copilot CLI executable path or name |
+
+**Agent identity**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.agentId` | `"default"` | Identity written into claims and artifacts; set uniquely per concurrent loop |
+| `ralphCodex.agentRole` | `"build"` | Role contract: `build`, `review`, `watchdog`, or `scm` |
+| `ralphCodex.agentCount` | `1` | Number of concurrent agent instances (surfaced in preflight and Show Status) |
+
+**Workspace routing**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.preferredHandoffMode` | `"ideCommand"` | Prompt handoff mode: `ideCommand`, `clipboard`, or `cliExec` |
+| `ralphCodex.inspectionRootOverride` | `""` | Workspace-relative path to inspect, execute, and verify from instead of auto-selection |
+
+**Loop behavior**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.ralphIterationCap` | `5` | Maximum CLI iterations for the loop command |
+| `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` (enables auto-reload, auto-remediation, auto-replenish) |
+| `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
+| `ralphCodex.autoReplenishBacklog` | `true` | Continue into backlog replenishment when no actionable task remains |
+| `ralphCodex.autoReloadOnControlPlaneChange` | `false` | Reload window automatically after `control_plane_reload_required` |
+| `ralphCodex.autoApplyRemediation` | `["decompose_task"]` | Remediation actions to auto-apply: `decompose_task`, `mark_blocked` |
+| `ralphCodex.noProgressThreshold` | `2` | Consecutive no-progress iterations before stopping |
+| `ralphCodex.repeatedFailureThreshold` | `2` | Consecutive identical failure classifications before stopping |
+| `ralphCodex.watchdogStaleTtlMs` | `86400000` | Claim age in ms before the watchdog treats it stale (default 24 h) |
+| `ralphCodex.claimTtlHours` | `24` | Hours before a task claim expires |
+| `ralphCodex.staleLockThresholdMinutes` | `5` | Minutes before an orphaned lock file is treated as stale |
+
+**Verification**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.verifierModes` | `["validationCommand","gitDiff","taskState"]` | Verifier layers to run after each iteration |
+| `ralphCodex.validationCommandOverride` | `""` | Shell command to use as the validator instead of inferred workspace commands |
+
+**Execution**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.model` | `"claude-sonnet-4-6"` | Default model for CLI runs |
+| `ralphCodex.claudeMaxTurns` | `50` | Maximum agentic turns per Claude CLI invocation |
+| `ralphCodex.claudePermissionMode` | `"dangerously-skip-permissions"` | Claude CLI permission mode for unattended runs |
+| `ralphCodex.copilotApprovalMode` | `"allow-all"` | Approval posture for Copilot CLI runs |
+| `ralphCodex.reasoningEffort` | `"medium"` | Reasoning effort for Codex CLI runs (`medium` or `high`); Codex-specific |
+| `ralphCodex.approvalMode` | `"never"` | Approval mode for Codex CLI runs; Codex-specific |
+| `ralphCodex.sandboxMode` | `"workspace-write"` | Sandbox mode for Codex CLI runs; Codex-specific |
+| `ralphCodex.cliExecutionTimeoutMs` | `0` | CLI iteration timeout in ms; `0` disables the timeout |
+
+**SCM**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.gitCheckpointMode` | `"snapshotAndDiff"` | Git safety artifacts: `off`, `snapshot`, or `snapshotAndDiff` |
+| `ralphCodex.scmStrategy` | `"commit-on-done"` | SCM automation: `none`, `commit-on-done`, or `branch-per-task` |
+| `ralphCodex.scmPrOnParentDone` | `false` | Open a GitHub PR when `branch-per-task` completes a parent task |
+
+**Prompt**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.promptIncludeVerifierFeedback` | `true` | Include prior iteration and verifier feedback in the next prompt |
+| `ralphCodex.promptPriorContextBudget` | `8` | Maximum prior-iteration bullet lines carried into the next prompt |
+| `ralphCodex.promptBudgetProfile` | `"claude"` | Prompt-budget policy: `codex`, `claude`, or `custom` |
+| `ralphCodex.customPromptBudget` | `{}` | Per-policy `targetTokens` overrides when `promptBudgetProfile` is `custom` |
+| `ralphCodex.promptTemplateDirectory` | `""` | Path to custom prompt templates; empty uses bundled templates |
+| `ralphCodex.clipboardAutoCopy` | `true` | Copy generated prompts to clipboard automatically |
+
+**Artifacts**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.artifactRetentionPath` | `".ralph/artifacts"` | Directory for per-iteration artifacts |
+| `ralphCodex.generatedArtifactRetentionCount` | `25` | Number of newest generated artifact directories to keep |
+| `ralphCodex.provenanceBundleRetentionCount` | `25` | Number of newest provenance bundle directories to keep |
+
+**File paths**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.ralphTaskFilePath` | `".ralph/tasks.json"` | Path to the durable Ralph task file |
+| `ralphCodex.prdPath` | `".ralph/prd.md"` | Path to the durable PRD or objective file |
+| `ralphCodex.progressPath` | `".ralph/progress.md"` | Path to the durable progress log |
+
+**IDE handoff**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.openSidebarCommandId` | `"claude.openSidebar"` | VS Code command to open the active AI chat surface |
+| `ralphCodex.newChatCommandId` | `"claude.newChat"` | VS Code command to start a new AI chat session |
+
+**Pipeline**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.pipelineHumanGates` | `false` | Pause the pipeline after the review-agent pass for human approval |
 
 ## Product Notes
 

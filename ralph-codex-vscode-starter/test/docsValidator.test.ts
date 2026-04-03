@@ -135,6 +135,40 @@ Validation entry points:
 - [docs/boundaries.md](${absolute('docs/boundaries.md')}): boundaries
 - [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
 - [docs/prompt-calibration.md](${absolute('docs/prompt-calibration.md')}): prompt calibration
+- [docs/release-workflow.md](${absolute('docs/release-workflow.md')}): release workflow
+`);
+
+  await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
+
+This document covers the steps to publish a new version to the VS Code Marketplace.
+
+## Steps
+
+### 1. Bump the version
+
+Edit \`package.json\` and increment the version field following semver.
+
+### 2. Update CHANGELOG.md
+
+Add a new section at the top of \`CHANGELOG.md\`.
+
+### 3. Smoke-test the package locally
+
+Run \`npm run package\` to build and inspect the \`.vsix\`.
+
+### 4. Commit and tag
+
+\`\`\`bash
+git commit -m "chore(release): bump version to x.y.z"
+git tag vx.y.z
+git push origin main --tags
+\`\`\`
+
+### 5. Publish
+
+\`\`\`bash
+npx vsce publish --no-dependencies
+\`\`\`
 `);
 
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
