@@ -588,6 +588,28 @@ function inspectTaskGraph(taskFile) {
             }
         }
     }
+    const childrenByParent = new Map();
+    for (const task of taskFile.tasks) {
+        if (task.parentId) {
+            const existing = childrenByParent.get(task.parentId) ?? [];
+            existing.push(task.id);
+            childrenByParent.set(task.parentId, existing);
+        }
+    }
+    for (const [parentId, childIds] of childrenByParent.entries()) {
+        const parentTask = taskIndex.get(parentId)?.[0];
+        if (!parentTask) {
+            continue;
+        }
+        const dependsOn = new Set(parentTask.dependsOn ?? []);
+        const missingChildren = childIds.filter((childId) => !dependsOn.has(childId));
+        if (missingChildren.length > 0) {
+            diagnostics.push(createTaskGraphDiagnostic('parent_missing_child_dependency', `${taskLabel(parentTask)} has children but does not depend on them: ${missingChildren.join(', ')}. A parent task must always depend on all its children.`, {
+                taskId: parentId,
+                relatedTaskIds: missingChildren
+            }));
+        }
+    }
     diagnostics.push(...detectGraphCycles({
         tasks: taskFile.tasks,
         code: 'dependency_cycle',

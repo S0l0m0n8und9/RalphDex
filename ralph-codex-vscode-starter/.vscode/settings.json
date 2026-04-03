@@ -1,0 +1,5 @@
+{
+    "ralphCodex.claudeMaxTurns": 125,
+    "ralphCodex.scmStrategy": "commit-on-done",
+    "ralphCodex.ralphIterationCap": 10
+}

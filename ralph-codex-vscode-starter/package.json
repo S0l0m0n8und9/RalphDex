@@ -3,7 +3,17 @@
   "displayName": "Ralph Codex Workbench",
   "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
   "version": "0.1.0",
-  "publisher": "starter",
+  "publisher": "s0l0m0n8und9",
+  "icon": "media/ralph-icon.png",
+  "keywords": [
+    "ai",
+    "agent",
+    "codex",
+    "automation",
+    "claude",
+    "task-runner",
+    "agentic"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
