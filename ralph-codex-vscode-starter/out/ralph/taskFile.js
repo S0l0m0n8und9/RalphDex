@@ -704,21 +704,33 @@ function inspectTaskFileText(raw) {
     }
     const knownIds = new Set(normalizedTasks.map((task) => task.id));
     const explicitVersion = record.version;
+    const inferredChildrenByParent = new Map();
     const migratedTasks = normalizedTasks.map((task) => {
         if (task.parentId) {
             return task;
         }
         const inferredParentId = inferLegacyParentId(task.id, knownIds);
-        return inferredParentId
-            ? { ...task, parentId: inferredParentId }
-            : task;
+        if (inferredParentId) {
+            const existing = inferredChildrenByParent.get(inferredParentId) ?? [];
+            existing.push(task.id);
+            inferredChildrenByParent.set(inferredParentId, existing);
+            return { ...task, parentId: inferredParentId };
+        }
+        return task;
+    });
+    const fullyMigratedTasks = migratedTasks.map((task) => {
+        const inferredChildren = inferredChildrenByParent.get(task.id);
+        if (!inferredChildren || inferredChildren.length === 0) {
+            return task;
+        }
+        return { ...task, dependsOn: Array.from(new Set([...(task.dependsOn ?? []), ...inferredChildren])) };
     });
     const parsedMutationCount = typeof record.mutationCount === 'number' && Number.isInteger(record.mutationCount) && record.mutationCount >= 0
         ? record.mutationCount
         : undefined;
     const taskFile = {
         version: 2,
-        tasks: migratedTasks,
+        tasks: fullyMigratedTasks,
         ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
     };
     const taskDiagnostics = inspectTaskGraph(taskFile);
@@ -728,7 +740,7 @@ function inspectTaskFileText(raw) {
         taskFile: taskDiagnostics.length === 0 ? taskFile : null,
         text: taskDiagnostics.length === 0 ? normalizedText : null,
         migrated: explicitVersion !== 2
-            || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
+            || fullyMigratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
             || raw.trimEnd() !== normalizedText.trimEnd(),
         diagnostics: allDiagnostics
     };

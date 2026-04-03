@@ -2083,7 +2083,7 @@
     {
       "id": "T70",
       "title": "VS Code Marketplace readiness: make the extension publishable",
-      "status": "in_progress",
+      "status": "todo",
       "dependsOn": [
         "T70.1",
         "T70.2",
@@ -2135,7 +2135,7 @@
     {
       "id": "T70.3",
       "title": "Update README.md and document release workflow in docs/",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T70",
       "dependsOn": [
         "T70.1",
@@ -2172,7 +2172,7 @@
     {
       "id": "T71.1",
       "title": "Define VS Code host abstraction layer (IVSCodeHost interface)",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T71",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
