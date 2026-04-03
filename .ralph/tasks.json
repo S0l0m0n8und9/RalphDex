@@ -62,7 +62,13 @@
       "dependsOn": [
         "T3",
         "T4",
-        "T7"
+        "T7",
+        "T8.1",
+        "T8.2",
+        "T8.3",
+        "T8.4",
+        "T8.5",
+        "T8.6"
       ],
       "notes": "Ralph now persists explicit workspace/inspection/execution/verification root policy in prompt evidence, execution plans, CLI invocation artifacts, iteration results, and provenance bundles. `codex exec` plus validation/git verifiers run from the selected inspection root while `.ralph` stays anchored at the workspace root, and `ralphCodex.inspectionRootOverride` now provides a deterministic manual override for ambiguous umbrella workspaces with evidence, status, docs, and regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -141,7 +147,8 @@
       "title": "Defer broad multi-agent orchestration until nested root semantics are deterministic and evidence-backed",
       "status": "done",
       "dependsOn": [
-        "T8"
+        "T8",
+        "T10"
       ],
       "notes": "Locked the current product boundary to a sequential single-agent loop, documented that broader multi-agent orchestration remains deferred until nested workspace/inspection/execution/verification root policy is deterministic, test-backed, and evidence-backed, and added docs-validation coverage so that guardrail stays explicit."
     },
@@ -168,7 +175,11 @@
       "title": "Protect latest-linked artifacts and state-referenced run files when non-provenance retention cleanup executes",
       "status": "done",
       "dependsOn": [
-        "T11"
+        "T11",
+        "T12.1",
+        "T12.2",
+        "T12.3",
+        "T12.4"
       ],
       "notes": "Added explicit regression and doc coverage proving latest-preflight-report.json protects only the referenced iteration directory during generated-artifact cleanup; npm test passed.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
@@ -307,7 +318,13 @@
       "status": "done",
       "dependsOn": [
         "T18",
-        "T19"
+        "T19",
+        "T21.1",
+        "T21.2",
+        "T21.3",
+        "T21.4",
+        "T21.5",
+        "T21.6"
       ],
       "notes": "Added a bounded, deterministic task-remediation recommendation for repeated no-progress and repeated identical failure outcomes, surfaced it in iteration/state artifacts and status/prompt context, and covered it with tests and docs.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
@@ -2100,11 +2117,12 @@
     {
       "id": "T70.2",
       "title": "Add CHANGELOG.md with initial v0.1.0 release entry",
-      "status": "todo",
+      "status": "done",
       "parentId": "T70",
       "dependsOn": [
         "T70.1"
       ],
+      "notes": "CHANGELOG.md added to package.json files allowlist; vsce package clean with changelog.md in VSIX",
       "validation": "cd ralph-codex-vscode-starter && npm run package",
       "acceptance": [
         "CHANGELOG.md exists at ralph-codex-vscode-starter/CHANGELOG.md",
@@ -2136,6 +2154,11 @@
       "id": "T71",
       "title": "Developer-loop shim: run Ralph iteration engine without a VS Code host",
       "status": "todo",
+      "dependsOn": [
+        "T71.1",
+        "T71.2",
+        "T71.3"
+      ],
       "notes": "PRD item 1. Scope constraint: this is a dev/self-hosting tool only, not published to npm or advertised to end users. The shim must not introduce new config schema beyond what the extension already supports.",
       "acceptance": [
         "A Node.js entry point (e.g. ralph-codex-vscode-starter/src/shim/main.ts or scripts/ralph-shim.ts) boots iterationEngine.ts against a workspace path passed as a CLI argument",
@@ -2207,6 +2230,10 @@
       "id": "T73",
       "title": "Model tiering: improve scoring signals and enable by default",
       "status": "todo",
+      "dependsOn": [
+        "T73.1",
+        "T73.2"
+      ],
       "notes": "PRD item 4. Per-provider routing (Copilot/Claude) is already wired and should be documented but not enabled by default.",
       "acceptance": [
         "complexityScorer.ts scoring no longer relies solely on title word count as the primary signal",
@@ -2247,5 +2274,5 @@
       ]
     }
   ],
-  "mutationCount": 34
+  "mutationCount": 35
 }
