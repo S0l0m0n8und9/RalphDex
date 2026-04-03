@@ -174,3 +174,4 @@
 - Set publisher to s0l0m0n8und9, added icon (128×128 PNG), added keywords array, created CHANGELOG.md with v0.1.0 entry, created docs/release-workflow.md. vsce package --no-dependencies passes with 0 blocking warnings; full validate passes (527 tests).
 - All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128×128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump→publish→tag. validate passes (527 tests).
 - All Marketplace metadata acceptance criteria satisfied: publisher=s0l0m0n8und9, 7 keywords, icon=media/ralph-icon.png (128x128 PNG). vsce package --no-dependencies clean.
+- CHANGELOG.md added to package.json files allowlist; vsce package clean with changelog.md in VSIX

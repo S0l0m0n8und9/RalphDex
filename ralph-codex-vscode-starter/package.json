@@ -26,6 +26,7 @@
     "prompt-templates/**",
     "docs/**",
     "AGENTS.md",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE",
     "package.json"
