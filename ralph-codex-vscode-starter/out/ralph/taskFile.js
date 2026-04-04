@@ -876,9 +876,10 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
     if (!parentTask) {
         throw new Error(`Cannot apply decomposition proposal because parent task ${parentTaskId} does not exist.`);
     }
-    if (parentTask.status === 'done') {
-        throw new Error(`Cannot apply decomposition proposal because parent task ${parentTaskId} is already done.`);
-    }
+    // If the parent was auto-completed before all decomposition children could be applied,
+    // reset it to in_progress so the new children can gate it via dependsOn. This avoids
+    // a stuck state where the parent is done but children have never run.
+    const parentStatusOverride = parentTask.status === 'done' ? 'in_progress' : parentTask.status;
     if (suggestedChildTasks.length === 0) {
         throw new Error(`Cannot apply decomposition proposal for ${parentTaskId} because no suggested child tasks were provided.`);
     }
@@ -928,6 +929,7 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
             ...taskFile.tasks.map((task) => (task.id === parentTaskId
                 ? {
                     ...task,
+                    status: parentStatusOverride,
                     dependsOn: parentDependencies
                 }
                 : task)),

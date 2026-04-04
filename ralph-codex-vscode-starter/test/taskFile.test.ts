@@ -305,7 +305,7 @@ test('applySuggestedChildTasks rejects malformed approved proposals before mutat
   );
 });
 
-test('applySuggestedChildTasks rejects approved proposals for parents that are already done', () => {
+test('applySuggestedChildTasks resets a done parent to in_progress and gates it behind the new children', () => {
   const taskFile = parseTaskFile(JSON.stringify({
     version: 2,
     tasks: [
@@ -313,19 +313,26 @@ test('applySuggestedChildTasks rejects approved proposals for parents that are a
     ]
   }));
 
-  assert.throws(
-    () => applySuggestedChildTasks(taskFile, 'T1', [
-      {
-        id: 'T1.1',
-        title: 'Should not be added',
-        parentId: 'T1',
-        dependsOn: [],
-        validation: null,
-        rationale: 'This proposal should be rejected.'
-      }
-    ]),
-    /parent task T1 is already done/
-  );
+  const nextTaskFile = applySuggestedChildTasks(taskFile, 'T1', [
+    {
+      id: 'T1.1',
+      title: 'First child',
+      parentId: 'T1',
+      dependsOn: [],
+      validation: null,
+      rationale: 'First bounded step after parent was prematurely completed.'
+    }
+  ]);
+
+  const parent = nextTaskFile.tasks.find((t) => t.id === 'T1');
+  const child = nextTaskFile.tasks.find((t) => t.id === 'T1.1');
+
+  // Parent must be reset to in_progress so it is not selectable until the child completes.
+  assert.equal(parent?.status, 'in_progress');
+  // Parent must now depend on the new child so it cannot be selected before the child is done.
+  assert.deepEqual(parent?.dependsOn, ['T1.1']);
+  // Child must be created as todo.
+  assert.equal(child?.status, 'todo');
 });
 
 test('applySuggestedChildTasksToFile writes approved child tasks atomically through the task-file lock', async () => {
