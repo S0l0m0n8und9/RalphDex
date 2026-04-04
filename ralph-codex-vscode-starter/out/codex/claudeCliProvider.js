@@ -55,6 +55,9 @@ class ClaudeCliProvider {
         if (this.options.permissionMode === 'dangerously-skip-permissions') {
             args.push('--dangerously-skip-permissions');
         }
+        else if (this.options.permissionMode === 'bypassPermissions') {
+            args.push('--permission-mode', 'bypassPermissions');
+        }
         return {
             args,
             cwd: request.executionRoot,
