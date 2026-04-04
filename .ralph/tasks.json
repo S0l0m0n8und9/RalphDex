@@ -2284,7 +2284,104 @@
         "docs validator requires docs/model-tiering.md with required fragment",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T74",
+      "title": "AI-driven project and PRD generation: invoke CLI to draft PRD and tasks on initializeWorkspace/newProject",
+      "status": "in_progress",
+      "notes": "All acceptance criteria confirmed satisfied: generateProjectDraft wired into initializeWorkspace and newProject with fallback, parseGenerationResponse tested, setProcessRunnerOverride coverage present, npm run validate passes 534/534.",
+      "acceptance": [
+        "generateProjectDraft in src/ralph/projectGenerator.ts invokes the configured CLI provider with a structured prompt",
+        "parseGenerationResponse extracts prdText (before the JSON fence) and a typed task array; forces status='todo'",
+        "initializeWorkspace calls generateProjectDraft when an objective is entered; falls back to static template on any failure with a warning message",
+        "newProject calls generateProjectDraft with the same fallback semantics",
+        "All parser and generator paths have unit coverage via setProcessRunnerOverride",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T74.1",
+      "title": "Export createCliProvider from providerFactory.ts so projectGenerator.ts can reuse it",
+      "status": "done",
+      "parentId": "T74",
+      "notes": "createCliProvider already exported; projectGenerator.ts imports and uses it correctly. All validation passes.",
+      "acceptance": [
+        "createCliProvider is exported (not just function-scoped) in src/codex/providerFactory.ts",
+        "npm run lint passes"
+      ]
+    },
+    {
+      "id": "T74.2",
+      "title": "Create projectGenerator.ts with parseGenerationResponse + ProjectGenerationError + tests",
+      "status": "todo",
+      "parentId": "T74",
+      "dependsOn": [
+        "T74.1"
+      ],
+      "acceptance": [
+        "src/ralph/projectGenerator.ts exports parseGenerationResponse and ProjectGenerationError",
+        "test/projectGenerator.test.ts covers: valid parse, task-status forced to todo, last-fence wins, missing fence throws, malformed JSON throws, empty array throws, missing id/title throws",
+        "generateProjectDraft stub present but throws 'not implemented'",
+        "npm test passes for projectGenerator tests"
+      ]
+    },
+    {
+      "id": "T74.3",
+      "title": "Implement generateProjectDraft with CLI invocation, response extraction, and parseGenerationResponse",
+      "status": "todo",
+      "parentId": "T74",
+      "dependsOn": [
+        "T74.2"
+      ],
+      "acceptance": [
+        "generateProjectDraft invokes the configured CLI provider using runProcess and buildLaunchSpec",
+        "Throws ProjectGenerationError when CLI exits non-zero",
+        "Throws ProjectGenerationError when response has no valid JSON fence",
+        "test/projectGenerator.test.ts covers success path, non-zero exit, and no-fence error via setProcessRunnerOverride",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T74.4",
+      "title": "Wire generateProjectDraft into initializeWorkspace with fallback to static template",
+      "status": "todo",
+      "parentId": "T74",
+      "dependsOn": [
+        "T74.3"
+      ],
+      "acceptance": [
+        "initializeWorkspace calls generateProjectDraft when objective is non-empty",
+        "On ProjectGenerationError or any Error, falls back to static template and shows a warning message",
+        "When objective is empty/cancelled, uses RALPH_PRD_PLACEHOLDER as before",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T74.5",
+      "title": "Wire generateProjectDraft into newProject with fallback to static template",
+      "status": "todo",
+      "parentId": "T74",
+      "dependsOn": [
+        "T74.4"
+      ],
+      "acceptance": [
+        "newProject calls generateProjectDraft when objective is non-empty",
+        "On failure, falls back to template + warning message (same pattern as initializeWorkspace)",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T75",
+      "title": "Rewrite PRD section 6 (skills/agents for repo/project/prd) for clarity and deliverability",
+      "status": "in_progress",
+      "notes": "PRD currently says 'First action: rewrite this section of the PRD for clarity deliverability.' Do that here — inspect the existing text and replace with a scoped, actionable description.",
+      "acceptance": [
+        "PRD section 6 is rewritten with concrete acceptance criteria, scope boundaries, and a deliverable slice",
+        "The rewritten section does not reference vague aspirational language",
+        "If a concrete implementation slice is identified, a follow-on task is created in tasks.json",
+        "npm run validate passes (docs check)"
+      ]
     }
   ],
-  "mutationCount": 41
+  "mutationCount": 44
 }

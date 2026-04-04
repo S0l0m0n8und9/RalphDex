@@ -1603,9 +1603,8 @@
       "status": "released"
     },
     {
-      "taskId": "T73.2",
       "agentId": "build",
-      "provenanceId": "run-i028-cli-20260404T092411Z",
+      "taskId": "T73.2",
       "claimedAt": "2026-04-04T09:24:11.753Z",
       "status": "released",
       "resolvedBy": "claude-cleanup",

@@ -123,8 +123,7 @@ export async function generateProjectDraft(
     approvalMode: config.approvalMode
   }, true);
 
-  let result;
-  result = await runProcess(commandPath, launchSpec.args, {
+  const result = await runProcess(commandPath, launchSpec.args, {
     cwd: launchSpec.cwd,
     stdinText: launchSpec.stdinText
   });

@@ -115,9 +115,25 @@ The complexity scorer (`complexityScorer.ts`) and per-tier model routing are imp
 
 A full implementation plan exists in `docs/superpowers/plans/2026-04-01-ai-project-generation.md`. When a user enters a project objective during `initializeWorkspace` or `newProject`, invoke the configured CLI provider to generate a full draft PRD and reasoned task list before opening the files. Fallback to the existing static template on any CLI failure.
 
-**6. Construct skills and agents specific to repo/project/prd**
-First action: rewrite this section of the PRD for clarity deliverability.
-Description: Ralph lifecycle when running should determine what skills/agents are available in the project, what would be useful for the delivery of that project (be it by ralph improving that project or the project it.self running and operating if it is agentic in nature)
+**6. Recommend and construct project-specific skills/agents from generated PRDs**
+
+Ralph should analyze generated PRDs and task lists to recommend skills and agents that would accelerate delivery of that specific project, then offer operators a single action to construct and wire those skills/agents. Concrete work:
+
+- **Phase 1 (current):** Extend the PRD generation prompt (T74) to include a structured `recommendedSkills` section in the JSON response that lists skill names, brief descriptions, and rationale based on project type and task list.
+- **Phase 2 (future):** Persist recommended skills to a `.ralph/recommended-skills.json` artifact and surface them in the status output.
+- **Phase 3 (future):** Add a command `Ralph Codex: Construct Recommended Skills` that invokes the skill-creator skill for each recommended skill, validates the result, and wires it into the project configuration.
+
+Scope boundaries:
+- Recommendations are driven by explicit project type signals in the PRD (web app, library, CLI tool, service, data pipeline, etc.) — not inferred heuristically.
+- Only recommend skills that have clear, documented templates in the skill-creator skill. Do not invent new skill types.
+- Operators retain full control: recommendations are advisory, not automatic. No skills are constructed or enabled without explicit operator approval.
+- Ralph's own recommended skills (for Ralph development) will be the first real-world test of this capability.
+
+Acceptance criteria for Phase 1:
+- PRD generation prompt (in T74 or a successor task) produces a `recommendedSkills` array in the JSON fence with at least `{name, description, rationale}` fields.
+- parseGenerationResponse (in projectGenerator.ts) extracts and validates `recommendedSkills` without breaking on missing/empty array.
+- Unit tests cover at least the happy path (valid recommendations) and the error case (missing field).
+- npm run validate passes.
 
 **99. Operator CLI — deferred, out of scope (future fork)**
 
