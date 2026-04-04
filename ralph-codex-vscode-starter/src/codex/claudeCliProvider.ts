@@ -3,7 +3,7 @@ import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
-export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
+export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'bypassPermissions' | 'default';
 
 export interface ClaudeCliProviderOptions {
   maxTurns: number;
@@ -39,6 +39,8 @@ export class ClaudeCliProvider implements CliProvider {
 
     if (this.options.permissionMode === 'dangerously-skip-permissions') {
       args.push('--dangerously-skip-permissions');
+    } else if (this.options.permissionMode === 'bypassPermissions') {
+      args.push('--permission-mode', 'bypassPermissions');
     }
 
     return {

@@ -1,0 +1,5 @@
+{
+  "claudePermissionMode": "bypassPermissions",
+  "preferredHandoffMode": "cliExec",
+  "validationCommandOverride": "cd ralph-codex-vscode-starter && npm run validate"
+}

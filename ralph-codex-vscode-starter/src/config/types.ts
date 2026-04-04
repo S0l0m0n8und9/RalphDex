@@ -10,7 +10,7 @@ export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-ac
 
 export type CodexReasoningEffort = 'medium' | 'high';
 
-export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
+export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'bypassPermissions' | 'default';
 export type CopilotApprovalMode = 'allow-all' | 'allow-tools-only' | 'interactive';
 
 export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
