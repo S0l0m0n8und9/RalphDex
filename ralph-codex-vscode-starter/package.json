@@ -614,6 +614,23 @@
           "default": 0,
           "minimum": 0,
           "description": "Maximum time in milliseconds to wait for a CLI iteration (codex, claude, or copilot) to complete before killing the process with a timeout error. Set to 0 (default) to disable the timeout and wait indefinitely."
+        },
+        "ralphCodex.enableModelTiering": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable complexity-based model tier selection. When true, Ralph scores each task using structural signals (validation field, child count, blocker note, trailing failures) and routes it to the simple, medium, or complex tier model. Thresholds default to simpleThreshold=2, complexThreshold=6 and can be overridden via ralphCodex.modelTiering. See docs/model-tiering.md for signal definitions and expected cost savings."
+        },
+        "ralphCodex.modelTiering": {
+          "type": "object",
+          "default": {
+            "enabled": true,
+            "simple": { "model": "claude-haiku-4-5-20251001" },
+            "medium": { "model": "claude-sonnet-4-6" },
+            "complex": { "model": "claude-opus-4-6" },
+            "simpleThreshold": 2,
+            "complexThreshold": 6
+          },
+          "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (objects with model string and optional provider), simpleThreshold (int, default 2 — tasks below this use the simple model), complexThreshold (int, default 6 — tasks at or above this use the complex model). ralphCodex.enableModelTiering is a convenience toggle for the enabled field. Override ralphCodex.complexityTierThresholds via simpleThreshold and complexThreshold here."
         }
       }
     }

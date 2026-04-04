@@ -115,7 +115,11 @@ The complexity scorer (`complexityScorer.ts`) and per-tier model routing are imp
 
 A full implementation plan exists in `docs/superpowers/plans/2026-04-01-ai-project-generation.md`. When a user enters a project objective during `initializeWorkspace` or `newProject`, invoke the configured CLI provider to generate a full draft PRD and reasoned task list before opening the files. Fallback to the existing static template on any CLI failure.
 
-**6. Operator CLI — deferred, out of scope (future fork)**
+**6. Construct skills and agents specific to repo/project/prd**
+First action: rewrite this section of the PRD for clarity deliverability.
+Description: Ralph lifecycle when running should determine what skills/agents are available in the project, what would be useful for the delivery of that project (be it by ralph improving that project or the project it.self running and operating if it is agentic in nature)
+
+**99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
 

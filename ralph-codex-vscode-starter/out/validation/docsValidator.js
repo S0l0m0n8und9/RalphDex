@@ -50,7 +50,8 @@ const REQUIRED_DOCS = [
     'docs/boundaries.md',
     'docs/multi-agent-readiness.md',
     'docs/prompt-calibration.md',
-    'docs/release-workflow.md'
+    'docs/release-workflow.md',
+    'docs/model-tiering.md'
 ];
 const REQUIRED_AGENTS_HEADINGS = [
     'Purpose',
@@ -249,6 +250,21 @@ const DOC_RULES = {
             'medium',
             'high',
             'context window'
+        ]
+    },
+    'docs/model-tiering.md': {
+        requiredHeadings: [
+            'Enabling Model Tiering',
+            'Scoring Signals',
+            'Tier Thresholds',
+            'Model And Provider Configuration',
+            'Expected Cost Savings'
+        ],
+        requiredFragments: [
+            'ralphCodex.enableModelTiering',
+            'ralphCodex.complexityTierThresholds',
+            'simpleThreshold',
+            'complexThreshold'
         ]
     }
 };

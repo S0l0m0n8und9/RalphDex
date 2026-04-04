@@ -2237,7 +2237,7 @@
     {
       "id": "T73",
       "title": "Model tiering: improve scoring signals and enable by default",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T73.1",
         "T73.2"
@@ -2270,11 +2270,12 @@
     {
       "id": "T73.2",
       "title": "Enable model tiering by default and add operator documentation",
-      "status": "todo",
+      "status": "done",
       "parentId": "T73",
       "dependsOn": [
         "T73.1"
       ],
+      "notes": "Enabled model tiering by default, added ralphCodex.enableModelTiering flat toggle to package.json, wired it in readConfig, created docs/model-tiering.md with signal/threshold/override/cost-savings documentation, added docs validator rule requiring the new doc with required fragments including ralphCodex.complexityTierThresholds",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "ralphCodex.enableModelTiering defaults to true in defaults.ts and package.json contributes.configuration",
@@ -2285,5 +2286,5 @@
       ]
     }
   ],
-  "mutationCount": 40
+  "mutationCount": 41
 }

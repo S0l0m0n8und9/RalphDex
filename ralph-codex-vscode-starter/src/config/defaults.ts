@@ -48,7 +48,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   staleLockThresholdMinutes: 5,
   agentCount: 1,
   modelTiering: {
-    enabled: false,
+    enabled: true,
     simple: { model: 'claude-haiku-4-5-20251001' },
     medium: { model: 'claude-sonnet-4-6' },
     complex: { model: 'claude-opus-4-6' },

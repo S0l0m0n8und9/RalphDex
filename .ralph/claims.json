@@ -1596,10 +1596,17 @@
       "status": "released"
     },
     {
-      "taskId": "T73.1",
       "agentId": "build",
-      "provenanceId": "run-i027-cli-20260404T064152Z",
+      "taskId": "T73.1",
       "claimedAt": "2026-04-04T06:41:53.026Z",
+      "provenanceId": "run-i027-cli-20260404T064152Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T73.2",
+      "agentId": "build",
+      "provenanceId": "run-i028-cli-20260404T092411Z",
+      "claimedAt": "2026-04-04T09:24:11.753Z",
       "status": "released",
       "resolvedBy": "claude-cleanup",
       "resolutionReason": "Task T73.1 is done; releasing stale active claim before next loop run."

@@ -249,7 +249,15 @@ function readConfig(workspaceFolder) {
         claimTtlHours: readNumber(config, 'claimTtlHours', defaults_1.DEFAULT_CONFIG.claimTtlHours, 1),
         staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', defaults_1.DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
         agentCount: readNumber(config, 'agentCount', defaults_1.DEFAULT_CONFIG.agentCount, 1),
-        modelTiering: readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering),
+        modelTiering: (() => {
+            const tiering = readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering);
+            // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled.
+            const enableOverride = config.get('enableModelTiering');
+            if (typeof enableOverride === 'boolean') {
+                tiering.enabled = enableOverride;
+            }
+            return tiering;
+        })(),
         hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks),
         autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', defaults_1.DEFAULT_CONFIG.autoWatchdogOnStall),
         autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', defaults_1.DEFAULT_CONFIG.autoReviewOnParentDone),

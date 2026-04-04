@@ -453,6 +453,34 @@ Steps to publish a new version of the extension to the VS Code Marketplace.
 2. Run \`npm run package\`.
 3. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
 `);
+
+  await writeFile(rootPath, 'docs/model-tiering.md', `# Model Tiering
+
+Ralph routes each task to a model tier based on a deterministic complexity score.
+
+## Enabling Model Tiering
+
+Set \`ralphCodex.enableModelTiering\` to true or false.
+
+## Scoring Signals
+
+Signals drive the score.
+
+## Tier Thresholds
+
+Scores map to tiers using two thresholds (the \`ralphCodex.complexityTierThresholds\` within \`ralphCodex.modelTiering\`):
+
+- \`simpleThreshold\` (default 2): tasks below this use the simple model.
+- \`complexThreshold\` (default 6): tasks at or above this use the complex model.
+
+## Model And Provider Configuration
+
+Each tier specifies a model and optional provider.
+
+## Expected Cost Savings
+
+Simple tasks land in Haiku; complex tasks escalate to Opus.
+`);
 }
 
 test('validateRepositoryDocs accepts a repo that satisfies the required doc structure', async () => {
