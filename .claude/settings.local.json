@@ -27,7 +27,12 @@
       "Bash(npm install:*)",
       "Bash(python3 -c \"import json; json.load\\(open\\('/home/ben/Documents/repos/RalphDex/.ralph/claims.json'\\)\\); print\\('Valid JSON'\\)\")",
       "Bash(python3 -c:*)",
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(git remote:*)",
+      "Bash(gh auth:*)",
+      "Bash(git branch:*)",
+      "Bash(git reset:*)",
+      "Bash(python3)"
     ]
   },
   "hooks": {
