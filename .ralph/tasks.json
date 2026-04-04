@@ -2190,11 +2190,12 @@
     {
       "id": "T71.2",
       "title": "Implement stdout-backed host and .ralph-config.json config reader for the shim",
-      "status": "todo",
+      "status": "done",
       "parentId": "T71",
       "dependsOn": [
         "T71.1"
       ],
+      "notes": "Implemented the stdout-backed shim host and .ralph-config.json/env/default config reader, with unit coverage for file, env, and default resolution. Full validation now passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "src/shim/stdoutHost.ts implements IVSCodeHost with appendLine→console.log, Progress→no-op, executeCommand→no-op stub",
@@ -2282,5 +2283,5 @@
       ]
     }
   ],
-  "mutationCount": 36
+  "mutationCount": 37
 }

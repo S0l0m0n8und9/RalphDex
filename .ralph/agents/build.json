@@ -8,7 +8,8 @@
     "T69",
     "T70.1",
     "T70.2",
-    "T71.1"
+    "T71.1",
+    "T71.2"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -49,6 +50,8 @@
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+    "ralph-codex-vscode-starter/src/shim/shimConfig.ts",
+    "ralph-codex-vscode-starter/src/shim/stdoutHost.ts",
     "ralph-codex-vscode-starter/src/shim/types.ts",
     "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
@@ -58,6 +61,7 @@
     "ralph-codex-vscode-starter/test/pipeline.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/processRunner.test.ts",
+    "ralph-codex-vscode-starter/test/shimConfig.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts",
     "ralph.code-workspace"
