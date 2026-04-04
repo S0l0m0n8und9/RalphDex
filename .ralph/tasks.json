@@ -2256,8 +2256,9 @@
     {
       "id": "T73.1",
       "title": "Replace title-word-count signal with structural task signals in complexityScorer.ts",
-      "status": "todo",
+      "status": "done",
       "parentId": "T73",
+      "notes": "Replaced dependency/depth/blocked-status scoring with validation, child-task, and blocker-note signals in complexityScorer.ts, retained title word count as a capped ±1 signal, added focused unit coverage, and verified with npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "complexityScorer.ts scores on: hasValidationField (+2), childTaskCount (×1 per child, capped at 3), hasBlockerNote (+1), titleWordCount is retained but capped at ±1 contribution",
@@ -2284,5 +2285,5 @@
       ]
     }
   ],
-  "mutationCount": 39
+  "mutationCount": 40
 }

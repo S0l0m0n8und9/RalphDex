@@ -9,7 +9,7 @@ function makeTaskFile(tasks: RalphTaskFile['tasks']): RalphTaskFile {
 }
 
 function makeTask(overrides: Partial<RalphTask> = {}): RalphTask {
-  return { id: 'T1', title: 'Do something', status: 'todo', ...overrides };
+  return { id: 'T1', title: 'Do something useful', status: 'todo', ...overrides };
 }
 
 function makeIterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
@@ -76,16 +76,38 @@ const DEFAULT_TIERING: RalphModelTieringConfig = {
 test('scoreTaskComplexity returns score 0 for simple, unblocked task with no history', () => {
   const task = makeTask({ id: 'T1', title: 'Fix typo in README', status: 'todo' });
   const taskFile = makeTaskFile([task]);
-  const { score } = scoreTaskComplexity(task, taskFile, []);
+  const { score, signals } = scoreTaskComplexity(task, taskFile, []);
   assert.equal(score, 0);
+  assert.deepEqual(signals, []);
 });
 
-test('scoreTaskComplexity adds contribution for blocked task', () => {
-  const task = makeTask({ status: 'blocked', blocker: 'Waiting for review' });
+test('scoreTaskComplexity adds +2 for validation field', () => {
+  const task = makeTask({ validation: 'npm test' });
   const taskFile = makeTaskFile([task]);
   const { score, signals } = scoreTaskComplexity(task, taskFile, []);
-  assert.ok(score > 0, 'blocked task should have non-zero score');
-  assert.ok(signals.some((s) => s.name === 'task_blocked'));
+  assert.equal(score, 2);
+  assert.deepEqual(signals, [{ name: 'has_validation_field', contribution: 2 }]);
+});
+
+test('scoreTaskComplexity adds +1 per child task capped at 3', () => {
+  const parent = makeTask({ id: 'T1' });
+  const child1 = makeTask({ id: 'T1.1', parentId: 'T1' });
+  const child2 = makeTask({ id: 'T1.2', parentId: 'T1' });
+  const child3 = makeTask({ id: 'T1.3', parentId: 'T1' });
+  const child4 = makeTask({ id: 'T1.4', parentId: 'T1' });
+  const taskFile = makeTaskFile([parent, child1, child2, child3, child4]);
+
+  const { score, signals } = scoreTaskComplexity(parent, taskFile, []);
+  assert.equal(score, 3);
+  assert.deepEqual(signals, [{ name: 'child_task_count', contribution: 3 }]);
+});
+
+test('scoreTaskComplexity adds +1 for blocker note', () => {
+  const task = makeTask({ blocker: 'Waiting for review' });
+  const taskFile = makeTaskFile([task]);
+  const { score, signals } = scoreTaskComplexity(task, taskFile, []);
+  assert.equal(score, 1);
+  assert.deepEqual(signals, [{ name: 'has_blocker_note', contribution: 1 }]);
 });
 
 test('scoreTaskComplexity increases score for trailing failed iterations', () => {
@@ -99,14 +121,19 @@ test('scoreTaskComplexity increases score for trailing failed iterations', () =>
   assert.ok(score >= 2, 'two trailing failures should contribute at least 2 to score');
 });
 
-test('scoreTaskComplexity scores increase with dependency count', () => {
-  const task1 = makeTask({ id: 'T1' });
-  const task2 = makeTask({ id: 'T2', dependsOn: ['A', 'B', 'C'] });
-  const taskFile = makeTaskFile([task1, task2]);
+test('scoreTaskComplexity caps title word count contribution to ±1', () => {
+  const shortTask = makeTask({ id: 'T1', title: 'Rename button' });
+  const longTask = makeTask({
+    id: 'T2',
+    title: 'Split workflow execution into stable phases with durable task evidence and verification handoff'
+  });
+  const taskFile = makeTaskFile([shortTask, longTask]);
 
-  const { score: score1 } = scoreTaskComplexity(task1, taskFile, []);
-  const { score: score2 } = scoreTaskComplexity(task2, taskFile, []);
-  assert.ok(score2 > score1, 'task with more dependencies should score higher');
+  const { signals: shortSignals } = scoreTaskComplexity(shortTask, taskFile, []);
+  const { signals: longSignals } = scoreTaskComplexity(longTask, taskFile, []);
+
+  assert.deepEqual(shortSignals, [{ name: 'title_word_count', contribution: -1 }]);
+  assert.deepEqual(longSignals, [{ name: 'title_word_count', contribution: 1 }]);
 });
 
 test('scoreTaskComplexity caps trailing failures at 4', () => {
@@ -153,8 +180,17 @@ test('selectModelForTask selects simple model for low-complexity task', () => {
 });
 
 test('selectModelForTask selects complex model for high-complexity task', () => {
-  const task = makeTask({ status: 'blocked', blocker: 'Needs architecture decision', dependsOn: ['T2', 'T3', 'T4'] });
-  const taskFile = makeTaskFile([task]);
+  const task = makeTask({
+    id: 'T1',
+    blocker: 'Needs architecture decision',
+    validation: 'npm run validate'
+  });
+  const taskFile = makeTaskFile([
+    task,
+    makeTask({ id: 'T1.1', parentId: 'T1' }),
+    makeTask({ id: 'T1.2', parentId: 'T1' }),
+    makeTask({ id: 'T1.3', parentId: 'T1' })
+  ]);
   const history = Array.from({ length: 4 }, (_, i) =>
     makeIterationResult({ completionClassification: 'failed', iteration: i + 1 })
   );
@@ -196,7 +232,7 @@ test('selectModelForTask returns per-tier provider when specified', () => {
 test('selectModelForTask returns undefined provider when tier has no override', () => {
   const task = makeTask({ title: 'Medium complexity work here that is fine' });
   const taskFile = makeTaskFile([task]);
-  // Score for this task will be 0 (no blocked, no fails, no deps, no depth, title <=12 words) → simple tier
+  // Score for this task will be 0 (no validation, children, blocker note, failures, or title adjustment) → simple tier
   const tiering: RalphModelTieringConfig = {
     enabled: true,
     simple: { model: 'claude-haiku' },

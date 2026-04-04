@@ -11,7 +11,8 @@
     "T71.1",
     "T71.2",
     "T71.3",
-    "T72"
+    "T72",
+    "T73.1"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -28,6 +29,8 @@
     "ralph-codex-vscode-starter/out/prompt/promptBuilder.js",
     "ralph-codex-vscode-starter/out/ralph/artifactStore.js",
     "ralph-codex-vscode-starter/out/ralph/completionReportParser.js",
+    "ralph-codex-vscode-starter/out/ralph/complexityScorer.js",
+    "ralph-codex-vscode-starter/out/ralph/complexityScorer.js.map",
     "ralph-codex-vscode-starter/out/ralph/iterationEngine.js",
     "ralph-codex-vscode-starter/out/ralph/iterationPreparation.js",
     "ralph-codex-vscode-starter/out/ralph/iterationScm.js",
@@ -58,6 +61,7 @@
     "ralph-codex-vscode-starter/src/config/defaults.ts",
     "ralph-codex-vscode-starter/src/config/readConfig.ts",
     "ralph-codex-vscode-starter/src/config/types.ts",
+    "ralph-codex-vscode-starter/src/ralph/complexityScorer.ts",
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
@@ -68,6 +72,7 @@
     "ralph-codex-vscode-starter/src/shim/types.ts",
     "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
+    "ralph-codex-vscode-starter/test/complexityScorer.test.ts",
     "ralph-codex-vscode-starter/test/fixtures/snapshots/replenishBacklog.replenish-backlog.md",
     "ralph-codex-vscode-starter/test/iterationEngine.integration.test.ts",
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",

@@ -23,24 +23,19 @@ export interface ComplexityScore {
   signals: Array<{ name: string; contribution: number }>;
 }
 
-function taskDepthInGraph(taskFile: RalphTaskFile, task: RalphTask): number {
-  let depth = 0;
-  let current = task;
-  const seen = new Set<string>();
-
-  while (current.parentId && !seen.has(current.parentId)) {
-    const parent = taskFile.tasks.find((t) => t.id === current.parentId);
-    if (!parent) break;
-    seen.add(current.parentId);
-    depth += 1;
-    current = parent;
-  }
-
-  return depth;
+function childTaskCount(taskFile: RalphTaskFile, taskId: string): number {
+  return taskFile.tasks.filter((candidate) => candidate.parentId === taskId).length;
 }
 
-function dependencyCount(task: RalphTask): number {
-  return (task.dependsOn ?? []).length;
+function titleWordCountContribution(title: string): number {
+  const wordCount = title.trim() ? title.trim().split(/\s+/).length : 0;
+  if (wordCount >= 13) {
+    return 1;
+  }
+  if (wordCount > 0 && wordCount <= 2) {
+    return -1;
+  }
+  return 0;
 }
 
 const COMPLEX_CLASSIFICATIONS: Set<RalphCompletionClassification> = new Set([
@@ -80,9 +75,20 @@ export function scoreTaskComplexity(
 ): ComplexityScore {
   const signals: Array<{ name: string; contribution: number }> = [];
 
-  // +1 if the task is currently blocked
-  if (task.status === 'blocked' || task.blocker) {
-    signals.push({ name: 'task_blocked', contribution: 2 });
+  // +2 if the task declares a validation command
+  if (task.validation?.trim()) {
+    signals.push({ name: 'has_validation_field', contribution: 2 });
+  }
+
+  // +1 per child task (capped at 3)
+  const childCount = Math.min(childTaskCount(taskFile, task.id), 3);
+  if (childCount > 0) {
+    signals.push({ name: 'child_task_count', contribution: childCount });
+  }
+
+  // +1 if the task includes a blocker note
+  if (task.blocker?.trim()) {
+    signals.push({ name: 'has_blocker_note', contribution: 1 });
   }
 
   // +1 per trailing iteration that ended in a complex classification for this task
@@ -92,21 +98,10 @@ export function scoreTaskComplexity(
     signals.push({ name: 'trailing_complex_classifications', contribution });
   }
 
-  // +1 per dependency (capped at 3)
-  const depCount = Math.min(dependencyCount(task), 3);
-  if (depCount > 0) {
-    signals.push({ name: 'dependency_count', contribution: depCount });
-  }
-
-  // +1 per level of nesting in the task graph (capped at 2)
-  const depth = Math.min(taskDepthInGraph(taskFile, task), 2);
-  if (depth > 0) {
-    signals.push({ name: 'graph_depth', contribution: depth });
-  }
-
-  // +1 if the task has a non-trivially long title (proxy for broad scope)
-  if (task.title.trim().split(/\s+/).length > 12) {
-    signals.push({ name: 'broad_title', contribution: 1 });
+  // Retain title breadth as a weak signal, capped to ±1 contribution.
+  const titleContribution = titleWordCountContribution(task.title);
+  if (titleContribution !== 0) {
+    signals.push({ name: 'title_word_count', contribution: titleContribution });
   }
 
   const score = signals.reduce((acc, s) => acc + s.contribution, 0);
