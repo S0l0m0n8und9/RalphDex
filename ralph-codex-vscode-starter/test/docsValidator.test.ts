@@ -442,6 +442,17 @@ Recalibrate when the prompt budget drifts outside the acceptable range. Use medi
 
 Stable reasoning effort overhead rules live here.
 `);
+
+  await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
+
+Steps to publish a new version of the extension to the VS Code Marketplace.
+
+## Steps
+
+1. Bump the version in package.json.
+2. Run \`npm run package\`.
+3. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
+`);
 }
 
 test('validateRepositoryDocs accepts a repo that satisfies the required doc structure', async () => {

@@ -961,7 +961,7 @@
         "T26.2",
         "T26.3"
       ],
-      "notes": "EXECUTE BEFORE T24. The docs validator currently enforces that docs/boundaries.md contains the fragment 'single-agent iteration/loop runner', which means the validator is a mechanism for locking in indecision rather than tracking a milestone. There is no acceptance criterion anywhere that would cause someone to say the deferral is lifted. T24 is the work that satisfies those criteria, so the criteria must be written before T24 runs â€” otherwise T24 has no done definition. Fixing this first also means T26.3 can validate that T24's tasks.json entries map to the documented criteria."
+      "notes": "EXECUTE BEFORE T24. The docs validator currently enforces that docs/boundaries.md contains the fragment 'single-agent iteration/loop runner', which means the validator is a mechanism for locking in indecision rather than tracking a milestone. There is no acceptance criterion anywhere that would cause someone to say the deferral is lifted. T24 is the work that satisfies those criteria, so the criteria must be written before T24 runs \u00e2\u20ac\u201d otherwise T24 has no done definition. Fixing this first also means T26.3 can validate that T24's tasks.json entries map to the documented criteria."
     },
     {
       "id": "T26.1",
@@ -1006,7 +1006,7 @@
         "T27.3",
         "T27.4"
       ],
-      "notes": "EXECUTE BEFORE T24. iterationEngine.ts is 2050 lines and owns completion-report parsing, JSON extraction, reconciliation write logic, task decomposition proposal building, provenance bundle persistence, artifact cleanup, preflight coordination, loop orchestration, and the two public entry points. T24.2 (write serialisation) and T24.3 (remediation isolation) both require modifying this file. Extracting the highest-change-frequency concerns before T24 runs reduces the blast radius of those changes and makes the remaining iterationEngine.ts easier to reason about. The extraction must be purely structural â€” no behaviour changes â€” so existing tests prove correctness throughout."
+      "notes": "EXECUTE BEFORE T24. iterationEngine.ts is 2050 lines and owns completion-report parsing, JSON extraction, reconciliation write logic, task decomposition proposal building, provenance bundle persistence, artifact cleanup, preflight coordination, loop orchestration, and the two public entry points. T24.2 (write serialisation) and T24.3 (remediation isolation) both require modifying this file. Extracting the highest-change-frequency concerns before T24 runs reduces the blast radius of those changes and makes the remaining iterationEngine.ts easier to reason about. The extraction must be purely structural \u00e2\u20ac\u201d no behaviour changes \u00e2\u20ac\u201d so existing tests prove correctness throughout."
     },
     {
       "id": "T27.1",
@@ -1061,7 +1061,7 @@
         "T28.3",
         "T24"
       ],
-      "notes": "Ledger-integrity gate fully operational: check-ledger.js validates tasks.json + claims.json drift, wired into npm run validate, regression tests cover all drift classes â€” exits 0 on current workspace"
+      "notes": "Ledger-integrity gate fully operational: check-ledger.js validates tasks.json + claims.json drift, wired into npm run validate, regression tests cover all drift classes \u00e2\u20ac\u201d exits 0 on current workspace"
     },
     {
       "id": "T28.1",
@@ -1258,7 +1258,7 @@
         "T29",
         "T30"
       ],
-      "notes": "EXECUTE AFTER T27 (iterationEngine decomposition), BEFORE T33. control_plane_reload_required is not an error â€” the iteration completed cleanly before the stop. The only reason a human is involved is that Ralph has no mechanism to trigger an extension host restart itself. VS Code exposes vscode.commands.executeCommand('workbench.action.reloadWindow') which restarts the extension host without closing the window. In loop mode this stop reason should auto-trigger that command after persisting the iteration result, rather than surfacing it as an operator decision point. This is the lowest-risk human-removal change in the codebase because the state is already clean when the reload fires."
+      "notes": "EXECUTE AFTER T27 (iterationEngine decomposition), BEFORE T33. control_plane_reload_required is not an error \u00e2\u20ac\u201d the iteration completed cleanly before the stop. The only reason a human is involved is that Ralph has no mechanism to trigger an extension host restart itself. VS Code exposes vscode.commands.executeCommand('workbench.action.reloadWindow') which restarts the extension host without closing the window. In loop mode this stop reason should auto-trigger that command after persisting the iteration result, rather than surfacing it as an operator decision point. This is the lowest-risk human-removal change in the codebase because the state is already clean when the reload fires."
     },
     {
       "id": "T32.1",
@@ -1317,7 +1317,7 @@
         "T29",
         "T30"
       ],
-      "notes": "EXECUTE AFTER T28 (ledger gate) and T24.1 (task claiming). The manual Apply Latest Task Decomposition Proposal command exists because writing to tasks.json felt consequential at the time. But buildRemediationArtifact already validates proposals at construction: child tasks are one level deep, capped at three, inherit only the parent validation command, and are rejected at write time if they create duplicates or graph invalidity. The human in this loop is not adding judgment â€” they are running a command that Ralph could run itself. decompose_task auto-application is safe under those hard constraints. mark_blocked is safer still â€” it is additive, setting a status and blocker field without restructuring the graph. reframe_task is explicitly excluded from auto-application because it changes the semantic meaning of a task title and scope, which requires human intent. request_human_review is a hard stop by definition and must never be auto-applied."
+      "notes": "EXECUTE AFTER T28 (ledger gate) and T24.1 (task claiming). The manual Apply Latest Task Decomposition Proposal command exists because writing to tasks.json felt consequential at the time. But buildRemediationArtifact already validates proposals at construction: child tasks are one level deep, capped at three, inherit only the parent validation command, and are rejected at write time if they create duplicates or graph invalidity. The human in this loop is not adding judgment \u00e2\u20ac\u201d they are running a command that Ralph could run itself. decompose_task auto-application is safe under those hard constraints. mark_blocked is safer still \u00e2\u20ac\u201d it is additive, setting a status and blocker field without restructuring the graph. reframe_task is explicitly excluded from auto-application because it changes the semantic meaning of a task title and scope, which requires human intent. request_human_review is a hard stop by definition and must never be auto-applied."
     },
     {
       "id": "T33.1",
@@ -1355,7 +1355,7 @@
         "T33.3.1",
         "T33.3.2"
       ],
-      "notes": "Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed. Previously blocked compile errors (RalphPaths.handoffDir) are resolved. Marked done manually â€” blocker-remediation child tasks T33.3.1/T33.3.2 are moot.",
+      "notes": "Implemented decompose_task auto-application through the shared proposal write path under withTaskFileLock in both the iteration engine and the apply-proposal command. Focused integration coverage for the remediation path passed. Previously blocked compile errors (RalphPaths.handoffDir) are resolved. Marked done manually \u00e2\u20ac\u201d blocker-remediation child tasks T33.3.1/T33.3.2 are moot.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
@@ -1448,7 +1448,7 @@
     },
     {
       "id": "T26.2.2",
-      "title": "The fragment 'single-agent iteration/loop runner' must still appear in the file to keep the existing docsValidator rule passing â€” keep it in the sentence describing the current shipped state",
+      "title": "The fragment 'single-agent iteration/loop runner' must still appear in the file to keep the existing docsValidator rule passing \u00e2\u20ac\u201d keep it in the sentence describing the current shipped state",
       "status": "done",
       "parentId": "T26.2",
       "dependsOn": [
@@ -1460,7 +1460,7 @@
     },
     {
       "id": "T36",
-      "title": "Fix concurrent-agent state.json collision â€” iteration numbers and artifact paths collide under concurrent starts",
+      "title": "Fix concurrent-agent state.json collision \u00e2\u20ac\u201d iteration numbers and artifact paths collide under concurrent starts",
       "status": "done",
       "dependsOn": [
         "T36.1",
@@ -1472,21 +1472,21 @@
     },
     {
       "id": "T36.1",
-      "title": "Add withStateLock to stateManager.ts â€” a state.lock file mechanism wrapping every saveState call",
+      "title": "Add withStateLock to stateManager.ts \u00e2\u20ac\u201d a state.lock file mechanism wrapping every saveState call",
       "status": "done",
       "parentId": "T36",
-      "notes": "In src/ralph/stateManager.ts, add a withStateLock function modelled on withTaskFileLock in src/ralph/taskFile.ts: acquire an exclusive wx-open on state.lock in the same directory as state.json; retry up to lockRetryCount times with lockRetryDelayMs delay; return a lock_timeout result if the lock cannot be acquired; always release in a finally block. Wrap every saveState call site in stateManager.ts inside withStateLock so no state.json mutation can proceed without holding the lock. The lock is not held across the entire iteration â€” only for the duration of each read-modify-write cycle. Update docs/invariants.md to document the state.lock contract alongside the existing tasks.lock section.",
+      "notes": "In src/ralph/stateManager.ts, add a withStateLock function modelled on withTaskFileLock in src/ralph/taskFile.ts: acquire an exclusive wx-open on state.lock in the same directory as state.json; retry up to lockRetryCount times with lockRetryDelayMs delay; return a lock_timeout result if the lock cannot be acquired; always release in a finally block. Wrap every saveState call site in stateManager.ts inside withStateLock so no state.json mutation can proceed without holding the lock. The lock is not held across the entire iteration \u00e2\u20ac\u201d only for the duration of each read-modify-write cycle. Update docs/invariants.md to document the state.lock contract alongside the existing tasks.lock section.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
       "id": "T36.2",
-      "title": "Atomic nextIteration allocation â€” acquire the state lock and increment nextIteration before any artifact paths are generated",
+      "title": "Atomic nextIteration allocation \u00e2\u20ac\u201d acquire the state lock and increment nextIteration before any artifact paths are generated",
       "status": "done",
       "parentId": "T36",
       "dependsOn": [
         "T36.1"
       ],
-      "notes": "In src/ralph/iterationPreparation.ts the iteration number is currently read from snapshot.state.nextIteration â€” a snapshot captured before any lock is held, so two concurrent agents can read the same value. Change the flow so the very first step of prepareIterationContext (or a new allocateIteration helper it calls) acquires the state lock, reads the live state.json, increments nextIteration, writes it back, and releases the lock â€” returning the freshly allocated number. All artifact path construction must use this allocated number, not the pre-lock snapshot value. The allocation write is intentionally minimal (only nextIteration changes) so the lock is held for the shortest possible time.",
+      "notes": "In src/ralph/iterationPreparation.ts the iteration number is currently read from snapshot.state.nextIteration \u00e2\u20ac\u201d a snapshot captured before any lock is held, so two concurrent agents can read the same value. Change the flow so the very first step of prepareIterationContext (or a new allocateIteration helper it calls) acquires the state lock, reads the live state.json, increments nextIteration, writes it back, and releases the lock \u00e2\u20ac\u201d returning the freshly allocated number. All artifact path construction must use this allocated number, not the pre-lock snapshot value. The allocation write is intentionally minimal (only nextIteration changes) so the lock is held for the shortest possible time.",
       "validation": "cd ralph-codex-vscode-starter && npm run compile"
     },
     {
@@ -1504,7 +1504,7 @@
     },
     {
       "id": "T37",
-      "title": "Named agent identities â€” ralphCodex.agentId setting so each loop instance carries a distinct identity through claims and artifacts",
+      "title": "Named agent identities \u00e2\u20ac\u201d ralphCodex.agentId setting so each loop instance carries a distinct identity through claims and artifacts",
       "status": "done",
       "dependsOn": [
         "T36",
@@ -1537,7 +1537,7 @@
     },
     {
       "id": "T38",
-      "title": "Review agent role â€” a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes",
+      "title": "Review agent role \u00e2\u20ac\u201d a dedicated loop mode that audits code quality and proposes backlog tasks rather than making changes",
       "status": "done",
       "dependsOn": [
         "T37",
@@ -1582,7 +1582,7 @@
     },
     {
       "id": "T39",
-      "title": "Watchdog agent role â€” detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
+      "title": "Watchdog agent role \u00e2\u20ac\u201d detects stuck or stale agents and drives claim recovery without per-claim operator intervention",
       "status": "done",
       "dependsOn": [
         "T37",
@@ -1590,7 +1590,7 @@
         "T39.2",
         "T39.3"
       ],
-      "notes": "Fixed ledger inconsistency (T39 todoâ†’in_progress), added runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, registered runScmAgent command stub, created missing test/packageManifest.test.ts source file. All 342 tests pass."
+      "notes": "Fixed ledger inconsistency (T39 todo\u00e2\u2020\u2019in_progress), added runWatchdogAgent and runScmAgent to package.json activationEvents and contributes.commands, registered runScmAgent command stub, created missing test/packageManifest.test.ts source file. All 342 tests pass."
     },
     {
       "id": "T39.1",
@@ -1606,7 +1606,7 @@
     },
     {
       "id": "T39.2",
-      "title": "Wire watchdog recovery actions into reconciliation â€” permit cross-task resolve and decompose for watchdog role only",
+      "title": "Wire watchdog recovery actions into reconciliation \u00e2\u20ac\u201d permit cross-task resolve and decompose for watchdog role only",
       "status": "done",
       "parentId": "T39",
       "dependsOn": [
@@ -1629,7 +1629,7 @@
     },
     {
       "id": "T40",
-      "title": "Source control agent role â€” structured commits, branch-per-task strategy, and PR creation on parent completion",
+      "title": "Source control agent role \u00e2\u20ac\u201d structured commits, branch-per-task strategy, and PR creation on parent completion",
       "status": "done",
       "dependsOn": [
         "T37",
@@ -1642,7 +1642,7 @@
     },
     {
       "id": "T40.1",
-      "title": "Add ralphCodex.scmStrategy setting and implement commit-on-done â€” auto-commit after each task is reconciled done",
+      "title": "Add ralphCodex.scmStrategy setting and implement commit-on-done \u00e2\u20ac\u201d auto-commit after each task is reconciled done",
       "status": "done",
       "parentId": "T40",
       "dependsOn": [
@@ -1653,7 +1653,7 @@
     },
     {
       "id": "T40.2",
-      "title": "Implement branch-per-task SCM strategy â€” integration branch per parent, feature branch per child, atomic merge on parent done",
+      "title": "Implement branch-per-task SCM strategy \u00e2\u20ac\u201d integration branch per parent, feature branch per child, atomic merge on parent done",
       "status": "done",
       "parentId": "T40",
       "dependsOn": [
@@ -1675,7 +1675,7 @@
     },
     {
       "id": "T36.4",
-      "title": "Add mechanical checkStaleState preflight check â€” in-process detection of stale locks, stale claims, and stuck iterations without LLM involvement",
+      "title": "Add mechanical checkStaleState preflight check \u00e2\u20ac\u201d in-process detection of stale locks, stale claims, and stuck iterations without LLM involvement",
       "status": "done",
       "parentId": "T36",
       "dependsOn": [
@@ -1687,14 +1687,14 @@
     },
     {
       "id": "T41",
-      "title": "Session handoff protocol â€” serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
+      "title": "Session handoff protocol \u00e2\u20ac\u201d serialize mid-task context on loop termination so the next session resumes without re-reading full iteration history",
       "status": "done",
       "dependsOn": [
         "T37",
         "T41.1",
         "T41.2"
       ],
-      "notes": "Ralph loops terminate cleanly for many reasons that are not failures: context window exhaustion, control_plane_reload_required, manual stop, iteration cap. Currently the next session re-reads the full iteration history to reconstruct context. Gastown's gt handoff model solves this: on clean termination, serialize a structured handoff note capturing what was done and what remains, so the next session picks up precisely where the previous one stopped â€” without re-deriving context from raw artifacts. This is the complement to T32 (auto-reload): T32 handles the trigger, T41 handles the context carry-over."
+      "notes": "Ralph loops terminate cleanly for many reasons that are not failures: context window exhaustion, control_plane_reload_required, manual stop, iteration cap. Currently the next session re-reads the full iteration history to reconstruct context. Gastown's gt handoff model solves this: on clean termination, serialize a structured handoff note capturing what was done and what remains, so the next session picks up precisely where the previous one stopped \u00e2\u20ac\u201d without re-deriving context from raw artifacts. This is the complement to T32 (auto-reload): T32 handles the trigger, T41 handles the context carry-over."
     },
     {
       "id": "T41.1",
@@ -1717,7 +1717,7 @@
         "T41.2.1",
         "T41.2.2"
       ],
-      "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading â€” placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
+      "notes": "In src/ralph/iterationPreparation.ts, before building the prompt context, check for a handoff file matching the current agentId in .ralph/handoff/. If one exists for the immediately preceding iteration (iteration - 1), include its humanSummary, pendingBlocker, and validationFailureSignature in the prompt's Prior Context section under a 'Session Handoff' heading \u00e2\u20ac\u201d placed above the general prior-iteration verifier context so it is the first context the model reads. In src/ralph/preflight.ts, surface the existence of an active handoff note as an informational diagnostic so operators can see that the session is resuming from a handoff. Add regression coverage in test/iterationEngine.integration.test.ts proving: a handoff file is written on clean termination; the next iteration includes handoff context in the rendered prompt; handoff files are pruned by generated-artifact retention. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1728,7 +1728,7 @@
       "dependsOn": [
         "T36.2"
       ],
-      "notes": "markTaskInProgress atomically promotes todoâ†’in_progress at claim time; beforeCoreState re-captured after selectClaimedTask so the bookkeeping change is not counted as agent progress; 285 tests pass, validate exits 0.",
+      "notes": "markTaskInProgress atomically promotes todo\u00e2\u2020\u2019in_progress at claim time; beforeCoreState re-captured after selectClaimedTask so the bookkeeping change is not counted as agent progress; 285 tests pass, validate exits 0.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1774,7 +1774,7 @@
       "dependsOn": [
         "T33.2"
       ],
-      "notes": "Moot â€” the compile-error blocker this task was created to reproduce has been resolved in prior iterations.",
+      "notes": "Moot \u00e2\u20ac\u201d the compile-error blocker this task was created to reproduce has been resolved in prior iterations.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
@@ -1786,7 +1786,7 @@
         "T33.2",
         "T33.3.1"
       ],
-      "notes": "Moot â€” the compile-error blocker this task was created to fix has been resolved in prior iterations.",
+      "notes": "Moot \u00e2\u20ac\u201d the compile-error blocker this task was created to fix has been resolved in prior iterations.",
       "validation": "cd ralph-codex-vscode-starter && npm test"
     },
     {
@@ -1842,7 +1842,7 @@
       "id": "T49",
       "title": "Further decompose iterationEngine.ts (provenance-bundle and SCM paths)",
       "status": "done",
-      "notes": "iterationEngine.ts is 1,970 lines â€” significantly above the target set by T27 (1,073) due to post-T27 feature additions (watchdog, autonomy, SCM, handoff). docs/architecture.md line 55 identifies the next decomposition candidate: provenance-bundle and prepared-context assembly, which mixes bundle persistence, execution-plan wiring, and prompt-preparation orchestration. The SCM branch-per-task and PR-on-parent-done paths are also self-contained. Extract at least one of these into a new sibling module (e.g. src/ralph/scmOrchestration.ts or src/ralph/provenanceAssembly.ts). Aim for iterationEngine.ts under 1,400 lines. Run npm run validate.",
+      "notes": "iterationEngine.ts is 1,970 lines \u00e2\u20ac\u201d significantly above the target set by T27 (1,073) due to post-T27 feature additions (watchdog, autonomy, SCM, handoff). docs/architecture.md line 55 identifies the next decomposition candidate: provenance-bundle and prepared-context assembly, which mixes bundle persistence, execution-plan wiring, and prompt-preparation orchestration. The SCM branch-per-task and PR-on-parent-done paths are also self-contained. Extract at least one of these into a new sibling module (e.g. src/ralph/scmOrchestration.ts or src/ralph/provenanceAssembly.ts). Aim for iterationEngine.ts under 1,400 lines. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1863,14 +1863,14 @@
       "id": "T52",
       "title": "Automate prompt budget calibration in the validation gate",
       "status": "done",
-      "notes": "npm run prompt:calibrate is a manual operator step that requires a live Claude token measurement. Token targets in the budget policy matrix are currently estimated, not empirically measured. Investigate whether the calibration script can be made deterministic without a live model call â€” for example by measuring rendered byte counts and applying a fixed chars-per-token ratio, or by recording a committed baseline and failing when rendered size deviates by more than a configurable threshold (e.g. Â±20%). If a fully automated gate is feasible, wire it into npm run validate. If not, document the manual recalibration trigger conditions more precisely in docs/prompt-calibration.md. Run npm run validate (or npm run check:docs if the change is docs-only).",
+      "notes": "npm run prompt:calibrate is a manual operator step that requires a live Claude token measurement. Token targets in the budget policy matrix are currently estimated, not empirically measured. Investigate whether the calibration script can be made deterministic without a live model call \u00e2\u20ac\u201d for example by measuring rendered byte counts and applying a fixed chars-per-token ratio, or by recording a committed baseline and failing when rendered size deviates by more than a configurable threshold (e.g. \u00c2\u00b120%). If a fully automated gate is feasible, wire it into npm run validate. If not, document the manual recalibration trigger conditions more precisely in docs/prompt-calibration.md. Run npm run validate (or npm run check:docs if the change is docs-only).",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T53",
       "title": "Decompose registerCommands.ts into logical command groups",
       "status": "done",
-      "notes": "src/commands/registerCommands.ts is 1,451 lines and registers 18 commands with their full handler implementations inline. The file mixes VS Code API orchestration (progress UI, workspace trust, error translation) with domain logic (artifact caching, status formatting, cleanup coordination). Split handlers into logical groups â€” for example: iterationCommands.ts (Run CLI Iteration, Run CLI Loop, Prepare Prompt, Open Codex IDE), artifactCommands.ts (Open Latest * commands, Cleanup, Reveal, Apply Decomposition), agentCommands.ts (Review, Watchdog, SCM agents) â€” while keeping registerCommands.ts as a thin registration layer that imports and wires them. Run npm run validate.",
+      "notes": "src/commands/registerCommands.ts is 1,451 lines and registers 18 commands with their full handler implementations inline. The file mixes VS Code API orchestration (progress UI, workspace trust, error translation) with domain logic (artifact caching, status formatting, cleanup coordination). Split handlers into logical groups \u00e2\u20ac\u201d for example: iterationCommands.ts (Run CLI Iteration, Run CLI Loop, Prepare Prompt, Open Codex IDE), artifactCommands.ts (Open Latest * commands, Cleanup, Reveal, Apply Decomposition), agentCommands.ts (Review, Watchdog, SCM agents) \u00e2\u20ac\u201d while keeping registerCommands.ts as a thin registration layer that imports and wires them. Run npm run validate.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1887,17 +1887,17 @@
       "dependsOn": [
         "T49"
       ],
-      "notes": "11 executionIntegrity unit tests in place; fixed broken lint script (eslint not installed/configured â€” removed dead call); 411/411 tests pass, validate exits 0",
+      "notes": "11 executionIntegrity unit tests in place; fixed broken lint script (eslint not installed/configured \u00e2\u20ac\u201d removed dead call); 411/411 tests pass, validate exits 0",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T56",
-      "title": "Extract formatClaudeStreamLine and auto-remediation helpers from iterationEngine.ts (target â‰¤1100 lines)",
+      "title": "Extract formatClaudeStreamLine and auto-remediation helpers from iterationEngine.ts (target \u00e2\u2030\u00a41100 lines)",
       "status": "done",
       "dependsOn": [
         "T55"
       ],
-      "notes": "Extracted formatClaudeStreamLine+ClaudeStreamEvent to cliOutputFormatter.ts, autoApplyMarkBlockedRemediation+autoApplyDecomposeTaskRemediation to taskDecomposition.ts, and applyReviewAgentFileChangePolicy to reviewPolicy.ts; iterationEngine.ts now 1035 lines (target â‰¤1100); updated AGENTS.md and architecture.md",
+      "notes": "Extracted formatClaudeStreamLine+ClaudeStreamEvent to cliOutputFormatter.ts, autoApplyMarkBlockedRemediation+autoApplyDecomposeTaskRemediation to taskDecomposition.ts, and applyReviewAgentFileChangePolicy to reviewPolicy.ts; iterationEngine.ts now 1035 lines (target \u00e2\u2030\u00a41100); updated AGENTS.md and architecture.md",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -1981,12 +1981,12 @@
         "T64.1",
         "T64.2"
       ],
-      "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review→PR path and update the pipeline-run artifact schema in docs/provenance.md.",
+      "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review\u2192PR path and update the pipeline-run artifact schema in docs/provenance.md.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T65",
-      "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
+      "title": "Durable pipeline provenance bundle: link PRD input \u2192 task graph snapshot \u2192 iteration history \u2192 PR URL",
       "status": "done",
       "dependsOn": [
         "T64"
@@ -2035,7 +2035,7 @@
       "dependsOn": [
         "T63"
       ],
-      "notes": "Added Run Pipeline smoke test verifying review-agent → SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent",
+      "notes": "Added Run Pipeline smoke test verifying review-agent \u2192 SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2047,7 +2047,7 @@
         "T63",
         "T64.1"
       ],
-      "notes": "Added smoke test verifying pipeline artifact captures reviewTranscriptPath and prUrl from review→SCM phase; 507/507 tests pass",
+      "notes": "Added smoke test verifying pipeline artifact captures reviewTranscriptPath and prUrl from review\u2192SCM phase; 507/507 tests pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2089,14 +2089,14 @@
         "T70.2",
         "T70.3"
       ],
-      "notes": "All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128×128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump→publish→tag. validate passes (527 tests).",
+      "notes": "All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128\u00d7128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump\u2192publish\u2192tag. validate passes (527 tests).",
       "acceptance": [
         "publisher field in package.json is set to a real Marketplace publisher ID (not 'starter')",
         "keywords array is present in package.json with at least 3 relevant terms",
-        "icon is a 128×128 PNG (Marketplace rejects SVG for the icon field)",
+        "icon is a 128\u00d7128 PNG (Marketplace rejects SVG for the icon field)",
         "CHANGELOG.md exists with an initial release entry",
         "vsce package --no-dependencies succeeds with 0 blocking warnings",
-        "docs/release-workflow.md documents version-bump → vsce publish → git tag steps"
+        "docs/release-workflow.md documents version-bump \u2192 vsce publish \u2192 git tag steps"
       ]
     },
     {
@@ -2109,7 +2109,7 @@
       "acceptance": [
         "publisher field is updated to the operator's real Marketplace publisher ID",
         "keywords array has at least 3 relevant terms (e.g. 'ralph', 'codex', 'agent', 'agentic', 'automation')",
-        "icon field points to media/ralph-icon.png (PNG, ≥128×128)",
+        "icon field points to media/ralph-icon.png (PNG, \u2265128\u00d7128)",
         "media/ralph-icon.png exists (convert or replace from SVG)",
         "vsce package --no-dependencies produces no icon-related or publisher-related warnings"
       ]
@@ -2162,7 +2162,7 @@
       "notes": "PRD item 1. Scope constraint: this is a dev/self-hosting tool only, not published to npm or advertised to end users. The shim must not introduce new config schema beyond what the extension already supports.",
       "acceptance": [
         "A Node.js entry point (e.g. ralph-codex-vscode-starter/src/shim/main.ts or scripts/ralph-shim.ts) boots iterationEngine.ts against a workspace path passed as a CLI argument",
-        "Config is read from .ralph-config.json or environment variables — no vscode.WorkspaceConfiguration dependency",
+        "Config is read from .ralph-config.json or environment variables \u2014 no vscode.WorkspaceConfiguration dependency",
         "vscode.OutputChannel logger is replaced with a stdout logger implementing the same interface",
         "vscode.Progress is replaced with a no-op or stdout implementation",
         "No new UX surface, no dashboard, no sidebar; text output only",
@@ -2178,7 +2178,7 @@
       "acceptance": [
         "An interface (or set of interfaces) IVSCodeHost is defined in src/shim/types.ts covering: OutputChannel (appendLine), Progress (report), WorkspaceConfiguration (get), and executeCommand",
         "Existing callers in iterationEngine / iterationPreparation / registerCommands continue to compile",
-        "No runtime behaviour change — this is a pure structural refactor",
+        "No runtime behaviour change \u2014 this is a pure structural refactor",
         "npm run validate passes"
       ]
     },
@@ -2192,7 +2192,7 @@
       ],
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
-        "src/shim/stdoutHost.ts implements IVSCodeHost with appendLine→console.log, Progress→no-op, executeCommand→no-op stub",
+        "src/shim/stdoutHost.ts implements IVSCodeHost with appendLine\u2192console.log, Progress\u2192no-op, executeCommand\u2192no-op stub",
         "src/shim/shimConfig.ts reads .ralph-config.json (JSON) falling back to env vars for each ralphCodex.* setting that has a default in defaults.ts",
         "Unit tests for shimConfig covering file-present, file-absent (env fallback), and missing-value (default) cases",
         "npm run validate passes"
@@ -2238,7 +2238,7 @@
       "acceptance": [
         "complexityScorer.ts scoring no longer relies solely on title word count as the primary signal",
         "Signals include at least: presence of validation field, number of child tasks, known blocker note",
-        "Default thresholds are set: score 0–1 → haiku, score 2–5 → sonnet, score ≥6 → opus",
+        "Default thresholds are set: score 0\u20131 \u2192 haiku, score 2\u20135 \u2192 sonnet, score \u22656 \u2192 opus",
         "ralphCodex.enableModelTiering defaults to true in defaults.ts and package.json",
         "docs/ contains operator-facing documentation covering what signals drive each tier and how to override",
         "npm run validate passes"
@@ -2251,7 +2251,7 @@
       "parentId": "T73",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
-        "complexityScorer.ts scores on: hasValidationField (+2), childTaskCount (×1 per child, capped at 3), hasBlockerNote (+1), titleWordCount is retained but capped at ±1 contribution",
+        "complexityScorer.ts scores on: hasValidationField (+2), childTaskCount (\u00d71 per child, capped at 3), hasBlockerNote (+1), titleWordCount is retained but capped at \u00b11 contribution",
         "Unit tests cover zero-child/no-validation baseline, validation-only, multi-child, blocker-note cases",
         "npm run validate passes"
       ]
