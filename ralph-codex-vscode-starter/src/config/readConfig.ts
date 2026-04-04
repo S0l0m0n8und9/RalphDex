@@ -289,7 +289,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     claudePermissionMode: readEnum<ClaudePermissionMode>(
       config,
       'claudePermissionMode',
-      ['dangerously-skip-permissions', 'default'],
+      ['dangerously-skip-permissions', 'bypassPermissions', 'default'],
       DEFAULT_CONFIG.claudePermissionMode
     ),
     copilotApprovalMode: readEnum<CopilotApprovalMode>(
