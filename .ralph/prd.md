@@ -141,6 +141,8 @@ A standalone full-featured CLI for headless/CI operator use has been explicitly 
 
 ### Design principles and scope boundaries
 
+**Brand name: Ralphdex.** All user-visible strings — command palette labels, display names, notifications, status messages, README, CHANGELOG, and Marketplace metadata — must use "Ralphdex" as the product name. References to "Ralph Codex", "ralph-codex", "Ralph codex", or similar variants must not appear in any surface the end user can see. Internal identifiers (command IDs such as `ralphCodex.*`, config keys, file/directory names like `.ralph/`) are exempt and may retain their current form to avoid breaking changes.
+
 **Engineering quality over UI polish.** Dashboard, sidebar, and status bar improvements are secondary to loop correctness, test coverage, and cost efficiency. New UI surface should only be added when it directly supports operator debugging or safety — not for aesthetics.
 
 **Cost efficiency is a first-class concern.** The model tiering system exists specifically to avoid paying Opus prices for simple tasks. Any new feature that adds iteration overhead (extra prompt sections, additional agent passes, richer context assembly) must justify its cost impact. The prompt budget policy exists for this reason and must be respected.
