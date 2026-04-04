@@ -9,10 +9,12 @@
     "T70.1",
     "T70.2",
     "T71.1",
-    "T71.2"
+    "T71.2",
+    "T71.3"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
+    "ralph-codex-vscode-starter/.vscodeignore",
     "ralph-codex-vscode-starter/AGENTS.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
     "ralph-codex-vscode-starter/out/codex/providerFactory.js",
@@ -32,6 +34,12 @@
     "ralph-codex-vscode-starter/out/ralph/statusReport.js",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
+    "ralph-codex-vscode-starter/out/shim/installVscodeShim.js",
+    "ralph-codex-vscode-starter/out/shim/installVscodeShim.js.map",
+    "ralph-codex-vscode-starter/out/shim/main.js",
+    "ralph-codex-vscode-starter/out/shim/main.js.map",
+    "ralph-codex-vscode-starter/out/shim/stdoutHost.js",
+    "ralph-codex-vscode-starter/out/shim/stdoutHost.js.map",
     "ralph-codex-vscode-starter/out/shim/types.js",
     "ralph-codex-vscode-starter/out/shim/types.js.map",
     "ralph-codex-vscode-starter/out/ui/panelHtml.js",
@@ -50,6 +58,8 @@
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
+    "ralph-codex-vscode-starter/src/shim/installVscodeShim.ts",
+    "ralph-codex-vscode-starter/src/shim/main.ts",
     "ralph-codex-vscode-starter/src/shim/shimConfig.ts",
     "ralph-codex-vscode-starter/src/shim/stdoutHost.ts",
     "ralph-codex-vscode-starter/src/shim/types.ts",
@@ -62,6 +72,7 @@
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/processRunner.test.ts",
     "ralph-codex-vscode-starter/test/shimConfig.test.ts",
+    "ralph-codex-vscode-starter/test/shimMain.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts",
     "ralph.code-workspace"

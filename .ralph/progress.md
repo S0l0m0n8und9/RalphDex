@@ -179,3 +179,4 @@
 - Defined IVSCodeHost (+ IOutputChannel, IProgress, IWorkspaceConfiguration, ICommandExecutor) in src/shim/types.ts; validate passes 527/527
 - Resumed after the prior control-plane reload stop, released a stale T70.3 CLI claim that was breaking check:ledger, and stabilized processRunner stdout assertions for this sandbox. Full `npm run validate` now passes.
 - Implemented the stdout-backed shim host and .ralph-config.json/env/default config reader, with unit coverage for file, env, and default resolution. Full validation now passes.
+- Wired a standalone shim entry point that boots Ralph against a workspace path through stdoutHost plus .ralph-config.json/env config, excludes shim outputs from the VSIX payload, and added end-to-end/package regression coverage.

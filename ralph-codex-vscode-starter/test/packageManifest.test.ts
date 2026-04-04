@@ -5,6 +5,7 @@ import test from 'node:test';
 
 type PackageManifest = {
   activationEvents?: string[];
+  files?: string[];
   contributes?: {
     configuration?: {
       properties?: Record<string, {
@@ -20,6 +21,7 @@ type PackageManifest = {
 };
 
 const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
+const vscodeIgnorePath = path.join(__dirname, '..', '..', '.vscodeignore');
 
 async function readPackageManifest(): Promise<PackageManifest> {
   const raw = await fs.readFile(packageJsonPath, 'utf8');
@@ -139,4 +141,12 @@ test('package manifest contributes and activates the openLatestPipelineRun comma
     commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralph Codex: Open Latest Pipeline Run'),
     'package.json must contribute the Open Latest Pipeline Run command'
   );
+});
+
+test('package manifest excludes the shim entry point from the VSIX payload', async () => {
+  const manifest = await readPackageManifest();
+  const vscodeIgnore = await fs.readFile(vscodeIgnorePath, 'utf8');
+
+  assert.ok(manifest.files?.includes('!out/shim/**'), 'package.json must exclude out/shim/** from packaged files');
+  assert.match(vscodeIgnore, /^out\/shim\/\*\*$/m, '.vscodeignore must exclude out/shim/**');
 });

@@ -2155,7 +2155,7 @@
     {
       "id": "T71",
       "title": "Developer-loop shim: run Ralph iteration engine without a VS Code host",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T71.1",
         "T71.2",
@@ -2208,11 +2208,12 @@
     {
       "id": "T71.3",
       "title": "Wire shim entry point and verify end-to-end boot against a minimal workspace",
-      "status": "todo",
+      "status": "done",
       "parentId": "T71",
       "dependsOn": [
         "T71.2"
       ],
+      "notes": "Wired a standalone shim entry point that boots Ralph against a workspace path through stdoutHost plus .ralph-config.json/env config, excludes shim outputs from the VSIX payload, and added end-to-end/package regression coverage.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "src/shim/main.ts (or scripts/ralph-shim.ts) accepts a workspace path argument and runs one Ralph iteration using stdoutHost and shimConfig",
@@ -2283,5 +2284,5 @@
       ]
     }
   ],
-  "mutationCount": 37
+  "mutationCount": 38
 }

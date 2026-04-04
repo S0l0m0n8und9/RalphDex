@@ -26,6 +26,10 @@ code --install-extension s0l0m0n8und9.ralph-codex-workbench
 
 Or install a local `.vsix` build via `Extensions: Install from VSIX...` in the VS Code command palette. See [docs/release-workflow.md](docs/release-workflow.md) for how to build and publish a new `.vsix`.
 
+## CLI Shim
+
+Use `node out/shim/main.js <workspace-path>` to run one Ralph CLI iteration outside the VS Code extension host. The shim reads `.ralph-config.json` plus `RALPH_CODEX_*` environment overrides from the target workspace, streams Ralph output to stdout, and stays out of the packaged VSIX payload.
+
 ## Package Root Versus Repo Root
 
 - `ralph-codex-vscode-starter/` is the actual extension package root. `package.json`, `src/`, `test/`, `scripts/`, and bundled docs live here.

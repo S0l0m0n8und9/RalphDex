@@ -2,9 +2,27 @@ import { createShimWorkspaceConfiguration } from './shimConfig';
 import { ICommandExecutor, IOutputChannel, IProgress, IWorkspaceConfiguration, IVSCodeHost } from './types';
 
 class StdoutOutputChannel implements IOutputChannel {
+  readonly name = 'Ralph Shim';
+
+  append(value: string): void {
+    process.stdout.write(value);
+  }
+
   appendLine(value: string): void {
     console.log(value);
   }
+
+  replace(value: string): void {
+    console.log(value);
+  }
+
+  clear(): void {}
+
+  hide(): void {}
+
+  show(): void {}
+
+  dispose(): void {}
 }
 
 class NoOpProgress implements IProgress {

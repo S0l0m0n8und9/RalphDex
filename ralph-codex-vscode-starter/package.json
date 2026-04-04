@@ -22,6 +22,7 @@
   "license": "MIT",
   "files": [
     "out/**",
+    "!out/shim/**",
     "media/**",
     "prompt-templates/**",
     "docs/**",

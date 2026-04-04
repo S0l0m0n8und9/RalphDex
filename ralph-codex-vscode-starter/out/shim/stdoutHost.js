@@ -4,9 +4,20 @@ exports.StdoutHost = void 0;
 exports.createStdoutHost = createStdoutHost;
 const shimConfig_1 = require("./shimConfig");
 class StdoutOutputChannel {
+    name = 'Ralph Shim';
+    append(value) {
+        process.stdout.write(value);
+    }
     appendLine(value) {
         console.log(value);
     }
+    replace(value) {
+        console.log(value);
+    }
+    clear() { }
+    hide() { }
+    show() { }
+    dispose() { }
 }
 class NoOpProgress {
     report() { }
