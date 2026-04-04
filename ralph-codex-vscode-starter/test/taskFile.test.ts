@@ -478,15 +478,13 @@ test('inspectTaskFileText reports done parents with unfinished descendants as tr
   }));
 
   assert.equal(inspection.taskFile, null);
-  assert.ok(inspection.diagnostics.some((d) => d.code === 'completed_parent_with_incomplete_descendants'));
+  assert.ok(inspection.diagnostics.some((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants'));
+  const parentDriftError = inspection.diagnostics.find((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants');
   assert.match(
-    inspection.diagnostics[0]?.message ?? '',
+    parentDriftError?.message ?? '',
     /Task T1 .*descendant tasks are still unfinished: T1\.1 \(in_progress\), T1\.1\.1 \(blocked\), T1\.2 \(todo\)/
   );
-  assert.deepEqual(
-    inspection.diagnostics[0]?.relatedTaskIds,
-    ['T1.1', 'T1.1.1', 'T1.2']
-  );
+  assert.deepEqual(parentDriftError?.relatedTaskIds, ['T1.1', 'T1.1.1', 'T1.2']);
 });
 
 test('inspectTaskFileText reports done parents with unfinished inferred descendants after legacy normalization', () => {
