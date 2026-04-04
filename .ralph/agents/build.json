@@ -7,7 +7,8 @@
     "T67",
     "T69",
     "T70.1",
-    "T70.2"
+    "T70.2",
+    "T71.1"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -56,6 +57,7 @@
     "ralph-codex-vscode-starter/test/packageManifest.test.ts",
     "ralph-codex-vscode-starter/test/pipeline.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
+    "ralph-codex-vscode-starter/test/processRunner.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts",
     "ralph.code-workspace"

@@ -3,11 +3,26 @@ import test from 'node:test';
 import { setProcessRunnerOverride, runProcess, ProcessTimeoutError } from '../src/services/processRunner';
 import os from 'node:os';
 
+function successfulEchoCommand(text: string): { command: string; args: string[] } {
+  if (process.platform === 'win32') {
+    return {
+      command: 'cmd',
+      args: ['/d', '/s', '/c', `echo ${text}`]
+    };
+  }
+
+  return {
+    command: 'sh',
+    args: ['-lc', `printf '${text}\n'`]
+  };
+}
+
 // These tests exercise the real spawn path, so temporarily clear the test harness override.
 test('runProcess resolves normally when no timeout is set', async () => {
   setProcessRunnerOverride(null);
   try {
-    const result = await runProcess('node', ['-e', 'console.log("ok")'], {
+    const { command, args } = successfulEchoCommand('ok');
+    const result = await runProcess(command, args, {
       cwd: os.tmpdir()
     });
     assert.equal(result.code, 0);
@@ -40,7 +55,8 @@ test('runProcess rejects with ProcessTimeoutError when the process exceeds timeo
 test('runProcess completes without timeout when process finishes before deadline', async () => {
   setProcessRunnerOverride(null);
   try {
-    const result = await runProcess('node', ['-e', 'console.log("fast")'], {
+    const { command, args } = successfulEchoCommand('fast');
+    const result = await runProcess(command, args, {
       cwd: os.tmpdir(),
       timeoutMs: 10000
     });

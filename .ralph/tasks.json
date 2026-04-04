@@ -1982,12 +1982,10 @@
         "T64.2"
       ],
       "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review→PR path and update the pipeline-run artifact schema in docs/provenance.md.",
-      "notes": "After the multi-agent loop completes all subtasks under the pipeline-root parent, runPipeline should: (1) invoke Run Review Agent on the completed parent, (2) trigger scmPrOnParentDone to submit the PR, (3) update the pipeline-run artifact with review transcript path and PR URL. Add integration coverage for the review→PR path and update the pipeline-run artifact schema in docs/provenance.md.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
       "id": "T65",
-      "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
       "title": "Durable pipeline provenance bundle: link PRD input → task graph snapshot → iteration history → PR URL",
       "status": "done",
       "dependsOn": [
@@ -2038,7 +2036,6 @@
         "T63"
       ],
       "notes": "Added Run Pipeline smoke test verifying review-agent → SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent",
-      "notes": "Added Run Pipeline smoke test verifying review-agent → SCM-agent sequencing; fixed createMockRun to include execution field so pipeline command no longer throws before reaching SCM agent",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
     {
@@ -2050,7 +2047,6 @@
         "T63",
         "T64.1"
       ],
-      "notes": "Added smoke test verifying pipeline artifact captures reviewTranscriptPath and prUrl from review→SCM phase; 507/507 tests pass",
       "notes": "Added smoke test verifying pipeline artifact captures reviewTranscriptPath and prUrl from review→SCM phase; 507/507 tests pass",
       "validation": "cd ralph-codex-vscode-starter && npm run validate"
     },
@@ -2094,15 +2090,12 @@
         "T70.3"
       ],
       "notes": "All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128×128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump→publish→tag. validate passes (527 tests).",
-      "notes": "All acceptance criteria verified: publisher=s0l0m0n8und9, 7 keywords, 128×128 PNG icon, CHANGELOG.md with v0.1.0 entry, release-workflow.md covering version-bump→publish→tag. validate passes (527 tests).",
       "acceptance": [
         "publisher field in package.json is set to a real Marketplace publisher ID (not 'starter')",
         "keywords array is present in package.json with at least 3 relevant terms",
         "icon is a 128×128 PNG (Marketplace rejects SVG for the icon field)",
-        "icon is a 128×128 PNG (Marketplace rejects SVG for the icon field)",
         "CHANGELOG.md exists with an initial release entry",
         "vsce package --no-dependencies succeeds with 0 blocking warnings",
-        "docs/release-workflow.md documents version-bump → vsce publish → git tag steps"
         "docs/release-workflow.md documents version-bump → vsce publish → git tag steps"
       ]
     },
@@ -2149,6 +2142,7 @@
         "T70.1",
         "T70.2"
       ],
+      "notes": "Added Installation and Configuration sections to README.md; added docs/release-workflow.md to docs validator REQUIRED_DOCS and test fixture; validate passes 527/527",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "README.md contains Installation section with VS Code Marketplace install instruction",
@@ -2156,8 +2150,7 @@
         "docs/release-workflow.md documents: version bump in package.json, npm run package, vsce publish, git tag",
         "docs/release-workflow.md is listed in docs validator required-docs list",
         "npm run validate passes"
-      ],
-      "notes": "Added Installation and Configuration sections to README.md; added docs/release-workflow.md to docs validator REQUIRED_DOCS and test fixture; validate passes 527/527"
+      ]
     },
     {
       "id": "T71",
@@ -2182,8 +2175,9 @@
     {
       "id": "T71.1",
       "title": "Define VS Code host abstraction layer (IVSCodeHost interface)",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T71",
+      "notes": "Resumed after the prior control-plane reload stop, released a stale T70.3 CLI claim that was breaking check:ledger, and stabilized processRunner stdout assertions for this sandbox. Full `npm run validate` now passes.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "An interface (or set of interfaces) IVSCodeHost is defined in src/shim/types.ts covering: OutputChannel (appendLine), Progress (report), WorkspaceConfiguration (get), and executeCommand",
@@ -2191,8 +2185,7 @@
         "No runtime behaviour change — this is a pure structural refactor",
         "No runtime behaviour change — this is a pure structural refactor",
         "npm run validate passes"
-      ],
-      "notes": "Defined IVSCodeHost (+ IOutputChannel, IProgress, IWorkspaceConfiguration, ICommandExecutor) in src/shim/types.ts; validate passes 527/527"
+      ]
     },
     {
       "id": "T71.2",
@@ -2289,6 +2282,5 @@
       ]
     }
   ],
-  "mutationCount": 35
+  "mutationCount": 36
 }
-

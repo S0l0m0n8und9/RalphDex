@@ -177,3 +177,4 @@
 - CHANGELOG.md added to package.json files allowlist; vsce package clean with changelog.md in VSIX
 - Added Installation and Configuration sections to README.md; added docs/release-workflow.md to docs validator REQUIRED_DOCS and test fixture; fixed ledger drift (released stale T70.2 claim, marked T70.3 in_progress). 526/527 tests pass; 1 pre-existing failure in legacy task normalization.
 - Defined IVSCodeHost (+ IOutputChannel, IProgress, IWorkspaceConfiguration, ICommandExecutor) in src/shim/types.ts; validate passes 527/527
+- Resumed after the prior control-plane reload stop, released a stale T70.3 CLI claim that was breaking check:ledger, and stabilized processRunner stdout assertions for this sandbox. Full `npm run validate` now passes.

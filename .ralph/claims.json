@@ -1531,7 +1531,7 @@
       "taskId": "T70.3",
       "claimedAt": "2026-04-03T08:57:02.214Z",
       "provenanceId": "run-i008-cli-20260403T085702Z",
-      "status": "active"
+      "status": "released"
     },
     {
       "agentId": "build",
@@ -1559,6 +1559,20 @@
       "baseBranch": "ralph/T70.3",
       "integrationBranch": "ralph/integration/T71",
       "featureBranch": "ralph/T71.1"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T71.1",
+      "claimedAt": "2026-04-04T01:41:54.094Z",
+      "provenanceId": "run-i022-cli-20260404T014154Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T71.1",
+      "agentId": "build",
+      "provenanceId": "run-i023-cli-20260404T014334Z",
+      "claimedAt": "2026-04-04T01:43:34.371Z",
+      "status": "active"
     }
   ]
 }
