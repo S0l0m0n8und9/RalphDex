@@ -187,3 +187,4 @@
 - All T74 subtasks already implemented by prior iterations. Cleaned up a split let/assign to const in projectGenerator.ts. npm run validate passes 534/534.
 - All acceptance criteria confirmed satisfied: generateProjectDraft wired into initializeWorkspace and newProject with fallback, parseGenerationResponse tested, setProcessRunnerOverride coverage present, npm run validate passes 534/534.
 - createCliProvider already exported; projectGenerator.ts imports and uses it correctly. All validation passes.
+- PRD section 6 rewritten with concrete Phase 1 scope and deliverable slice (T76: extend PRD generation to include recommendedSkills array). Removed vague language, added scope boundaries, and created follow-on task.

@@ -1606,9 +1606,57 @@
       "agentId": "build",
       "taskId": "T73.2",
       "claimedAt": "2026-04-04T09:24:11.753Z",
-      "status": "released",
-      "resolvedBy": "claude-cleanup",
-      "resolutionReason": "Task T73.1 is done; releasing stale active claim before next loop run."
+      "provenanceId": "run-i028-cli-20260404T092411Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T74",
+      "claimedAt": "2026-04-04T09:33:27.125Z",
+      "provenanceId": "run-i030-cli-20260404T093327Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T74",
+      "claimedAt": "2026-04-04T09:38:32.149Z",
+      "provenanceId": "run-i031-cli-20260404T093832Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T74",
+      "claimedAt": "2026-04-04T09:40:01.093Z",
+      "provenanceId": "run-i032-cli-20260404T094001Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T74",
+      "claimedAt": "2026-04-04T09:42:46.984Z",
+      "provenanceId": "run-i033-cli-20260404T094246Z",
+      "status": "active"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T74.1",
+      "claimedAt": "2026-04-04T09:42:48.518Z",
+      "provenanceId": "run-i034-cli-20260404T094248Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T75",
+      "claimedAt": "2026-04-04T09:43:10.847Z",
+      "provenanceId": "run-i035-cli-20260404T094310Z",
+      "status": "active"
+    },
+    {
+      "taskId": "T74.2",
+      "agentId": "build",
+      "provenanceId": "run-i035-cli-20260404T094455Z",
+      "claimedAt": "2026-04-04T09:44:55.252Z",
+      "status": "active"
     }
   ]
 }

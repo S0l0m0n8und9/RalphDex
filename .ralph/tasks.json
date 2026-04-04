@@ -2313,7 +2313,7 @@
     {
       "id": "T74.2",
       "title": "Create projectGenerator.ts with parseGenerationResponse + ProjectGenerationError + tests",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T74",
       "dependsOn": [
         "T74.1"
@@ -2373,15 +2373,33 @@
     {
       "id": "T75",
       "title": "Rewrite PRD section 6 (skills/agents for repo/project/prd) for clarity and deliverability",
-      "status": "in_progress",
-      "notes": "PRD currently says 'First action: rewrite this section of the PRD for clarity deliverability.' Do that here — inspect the existing text and replace with a scoped, actionable description.",
+      "status": "done",
+      "notes": "PRD section 6 rewritten with concrete Phase 1 scope and deliverable slice (T76: extend PRD generation to include recommendedSkills array). Removed vague language, added scope boundaries, and created follow-on task.",
       "acceptance": [
         "PRD section 6 is rewritten with concrete acceptance criteria, scope boundaries, and a deliverable slice",
         "The rewritten section does not reference vague aspirational language",
         "If a concrete implementation slice is identified, a follow-on task is created in tasks.json",
         "npm run validate passes (docs check)"
       ]
+    },
+    {
+      "id": "T76",
+      "title": "Extend PRD generation prompt to produce recommendedSkills array in JSON response",
+      "status": "todo",
+      "parentId": "T74",
+      "dependsOn": [
+        "T74"
+      ],
+      "notes": "Phase 1 of project-specific skills/agents recommendation feature. Extends the PRD generation prompt (invoked in T74) to recommend skills based on project type and task list. Skills are returned as a structured `recommendedSkills` array in the JSON fence.",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "PRD generation prompt (in T74's promptBuilder template or a dedicated generation-prompt template) produces a `recommendedSkills` array in the JSON fence with {name, description, rationale} fields for each recommended skill",
+        "parseGenerationResponse in projectGenerator.ts extracts `recommendedSkills` array and validates it does not break on missing or empty array",
+        "Unit tests in projectGenerator.test.ts cover happy path (valid recommendations) and error cases (missing/invalid recommendedSkills field)",
+        "Recommended skills persisted alongside generated PRD and tasks (e.g., as a field in the generation result or separate artifact)",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 44
+  "mutationCount": 46
 }

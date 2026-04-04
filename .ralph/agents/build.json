@@ -14,11 +14,13 @@
     "T72",
     "T73.1",
     "T73.2",
-    "T74.1"
+    "T74.1",
+    "T75"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
     ".ralph/prd.md",
+    ".ralph/progress.md",
     ".ralph/tasks.json",
     "ralph-codex-vscode-starter/.vscodeignore",
     "ralph-codex-vscode-starter/AGENTS.md",
@@ -43,6 +45,7 @@
     "ralph-codex-vscode-starter/out/ralph/iterationScm.js",
     "ralph-codex-vscode-starter/out/ralph/pipeline.js",
     "ralph-codex-vscode-starter/out/ralph/projectGenerator.js",
+    "ralph-codex-vscode-starter/out/ralph/projectGenerator.js.map",
     "ralph-codex-vscode-starter/out/ralph/statusReport.js",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
@@ -70,6 +73,7 @@
     "ralph-codex-vscode-starter/src/config/types.ts",
     "ralph-codex-vscode-starter/src/ralph/complexityScorer.ts",
     "ralph-codex-vscode-starter/src/ralph/pipeline.ts",
+    "ralph-codex-vscode-starter/src/ralph/projectGenerator.ts",
     "ralph-codex-vscode-starter/src/ralph/statusReport.ts",
     "ralph-codex-vscode-starter/src/ralph/taskFile.ts",
     "ralph-codex-vscode-starter/src/shim/installVscodeShim.ts",
