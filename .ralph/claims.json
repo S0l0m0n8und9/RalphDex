@@ -1600,7 +1600,9 @@
       "agentId": "build",
       "provenanceId": "run-i027-cli-20260404T064152Z",
       "claimedAt": "2026-04-04T06:41:53.026Z",
-      "status": "active"
+      "status": "released",
+      "resolvedBy": "claude-cleanup",
+      "resolutionReason": "Task T73.1 is done; releasing stale active claim before next loop run."
     }
   ]
 }

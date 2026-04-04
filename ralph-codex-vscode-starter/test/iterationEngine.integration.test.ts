@@ -3024,6 +3024,91 @@ test('runCliIteration auto-applies decompose_task remediation through the shared
   assert.deepEqual(parentTask?.dependsOn, ['T0', 'T1.1', 'T1.2']);
 });
 
+test('runCliIteration watchdog decompose_task resets a done parent to in_progress and adds children', async () => {
+  // Regression: when a watchdog issues decompose_task for a parent that has been
+  // auto-completed (status: 'done'), the decomposition must reset the parent to
+  // in_progress rather than failing silently with an uncaught throw.
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'W1', title: 'Watchdog coordination task', status: 'todo' },
+      { id: 'T1', title: 'Broad task that was auto-completed', status: 'done' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      run: async () => ({
+        lastMessage: completionReport({
+          selectedTaskId: 'W1',
+          requestedStatus: 'in_progress',
+          progressNote: 'Decomposing auto-completed parent.',
+          watchdog_actions: [
+            {
+              taskId: 'T1',
+              agentId: 'builder-1',
+              action: 'decompose_task',
+              severity: 'HIGH',
+              reason: 'Parent was auto-completed before children could run.',
+              evidence: 'T1 is done but children were never executed.',
+              trailingNoProgressCount: 3,
+              trailingRepeatedFailureCount: 0,
+              suggestedChildTasks: [
+                {
+                  id: 'T1.1',
+                  title: 'First decomposed step',
+                  parentId: 'T1',
+                  dependsOn: [],
+                  validation: null,
+                  rationale: 'First bounded step.'
+                },
+                {
+                  id: 'T1.2',
+                  title: 'Second decomposed step',
+                  parentId: 'T1',
+                  dependsOn: [{ taskId: 'T1.1', reason: 'blocks_sequence' as const }],
+                  validation: null,
+                  rationale: 'Second bounded step after T1.1.'
+                }
+              ]
+            }
+          ]
+        }, 'Watchdog decomposing done parent.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false,
+    configOverrides: {
+      agentRole: 'watchdog',
+      agentId: 'watchdog-1'
+    }
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const parentTask = taskFile.tasks.find((t) => t.id === 'T1');
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  // Parent must have been reset to in_progress so children can gate it.
+  assert.equal(parentTask?.status, 'in_progress', 'Parent was not reset to in_progress');
+  // Parent must now depend on the new children.
+  assert.ok(parentTask?.dependsOn?.includes('T1.1'), 'Parent dependsOn does not include T1.1');
+  assert.ok(parentTask?.dependsOn?.includes('T1.2'), 'Parent dependsOn does not include T1.2');
+  // Children must have been created.
+  assert.ok(taskFile.tasks.some((t) => t.id === 'T1.1'), 'T1.1 child was not created');
+  assert.ok(taskFile.tasks.some((t) => t.id === 'T1.2'), 'T1.2 child was not created');
+});
+
 test('runCliIteration records a warning when auto-applying decompose_task remediation fails validation', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
