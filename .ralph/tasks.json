@@ -2225,8 +2225,8 @@
     {
       "id": "T72",
       "title": "Real end-to-end pipeline smoke test in a temporary workspace",
-      "status": "todo",
-      "notes": "PRD item 3. Depends on T71 shim or an in-process harness that bypasses the VS Code host. Can proceed with a stub runPipeline invocation if T71 is not yet complete, so long as at least one real Claude CLI call is made.",
+      "status": "done",
+      "notes": "Added an opt-in `test:e2e-pipeline` smoke script that seeds a temp workspace, runs `ralphCodex.runPipeline` through the harness with one real `codex` loop invocation, mocks review/SCM deterministically, asserts the pipeline artifact records a PR URL, documented local usage, and verified both the guarded skip path and the real opt-in path. `npm run validate` also passes.",
       "acceptance": [
         "A test:e2e-pipeline npm script exists that creates a fresh temp workspace, seeds a minimal .ralph/ layout, runs runPipeline via the shim or a test harness, and asserts a PR URL artifact exists",
         "The test is guarded behind RALPH_E2E=1 so it is opt-in in CI and does not run with npm test by default",
@@ -2284,5 +2284,5 @@
       ]
     }
   ],
-  "mutationCount": 38
+  "mutationCount": 39
 }

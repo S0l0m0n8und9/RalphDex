@@ -10,12 +10,14 @@
     "T70.2",
     "T71.1",
     "T71.2",
-    "T71.3"
+    "T71.3",
+    "T72"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
     "ralph-codex-vscode-starter/.vscodeignore",
     "ralph-codex-vscode-starter/AGENTS.md",
+    "ralph-codex-vscode-starter/docs/testing.md",
     "ralph-codex-vscode-starter/docs/workflows.md",
     "ralph-codex-vscode-starter/out/codex/providerFactory.js",
     "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
@@ -49,6 +51,7 @@
     "ralph-codex-vscode-starter/package-lock.json",
     "ralph-codex-vscode-starter/package.json",
     "ralph-codex-vscode-starter/README.md",
+    "ralph-codex-vscode-starter/scripts/run-e2e-pipeline-smoke.js",
     "ralph-codex-vscode-starter/src/commands/artifactCommands.ts",
     "ralph-codex-vscode-starter/src/commands/registerCommands.ts",
     "ralph-codex-vscode-starter/src/commands/statusSnapshot.ts",
