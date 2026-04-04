@@ -24,7 +24,10 @@
       "Bash(git rebase:*)",
       "Bash(git push:*)",
       "Skill(commit-commands:commit-push-pr)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('/home/ben/Documents/repos/RalphDex/.ralph/claims.json'\\)\\); print\\('Valid JSON'\\)\")",
+      "Bash(python3 -c:*)",
+      "Bash(git commit -m ':*)"
     ]
   },
   "hooks": {

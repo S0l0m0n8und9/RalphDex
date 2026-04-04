@@ -63,8 +63,8 @@ test('buildPreflightReport blocks tracker drift when a done parent still has unf
   const taskInspection = inspectTaskFileText(JSON.stringify({
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Completed parent', status: 'done', dependsOn: ['T1.1'] },
-      { id: 'T1.1', title: 'Active child', status: 'in_progress', parentId: 'T1', dependsOn: ['T1.1.1'] },
+      { id: 'T1', title: 'Completed parent', status: 'done' },
+      { id: 'T1.1', title: 'Active child', status: 'in_progress', parentId: 'T1' },
       { id: 'T1.1.1', title: 'Blocked grandchild', status: 'blocked', parentId: 'T1.1' }
     ]
   }, null, 2));
@@ -91,7 +91,7 @@ test('buildPreflightReport blocks tracker drift when a done parent still has unf
   assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants'));
   assert.match(report.summary, /No task selected because task-ledger drift blocks safe selection/);
   assert.match(report.summary, /Task T1 .*is marked done but descendant tasks are still unfinished/);
-  assert.match(report.summary, /Task graph: 2 errors/);
+  assert.match(report.summary, /Task graph: 1 error/);
 });
 
 test('buildPreflightReport distinguishes selected validation commands from confirmed executables', () => {

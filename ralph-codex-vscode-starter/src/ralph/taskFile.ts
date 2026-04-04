@@ -713,34 +713,6 @@ export function inspectTaskGraph(taskFile: RalphTaskFile): RalphPreflightDiagnos
     }
   }
 
-  const childrenByParent = new Map<string, string[]>();
-  for (const task of taskFile.tasks) {
-    if (task.parentId) {
-      const existing = childrenByParent.get(task.parentId) ?? [];
-      existing.push(task.id);
-      childrenByParent.set(task.parentId, existing);
-    }
-  }
-
-  for (const [parentId, childIds] of childrenByParent.entries()) {
-    const parentTask = taskIndex.get(parentId)?.[0];
-    if (!parentTask) {
-      continue;
-    }
-    const dependsOn = new Set(parentTask.dependsOn ?? []);
-    const missingChildren = childIds.filter((childId) => !dependsOn.has(childId));
-    if (missingChildren.length > 0) {
-      diagnostics.push(createTaskGraphDiagnostic(
-        'parent_missing_child_dependency',
-        `${taskLabel(parentTask)} has children but does not depend on them: ${missingChildren.join(', ')}. A parent task must always depend on all its children.`,
-        {
-          taskId: parentId,
-          relatedTaskIds: missingChildren
-        }
-      ));
-    }
-  }
-
   diagnostics.push(...detectGraphCycles({
     tasks: taskFile.tasks,
     code: 'dependency_cycle',
@@ -857,34 +829,22 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
 
   const knownIds = new Set(normalizedTasks.map((task) => task.id));
   const explicitVersion = record.version;
-  const inferredChildrenByParent = new Map<string, string[]>();
   const migratedTasks = normalizedTasks.map((task) => {
     if (task.parentId) {
       return task;
     }
 
     const inferredParentId = inferLegacyParentId(task.id, knownIds);
-    if (inferredParentId) {
-      const existing = inferredChildrenByParent.get(inferredParentId) ?? [];
-      existing.push(task.id);
-      inferredChildrenByParent.set(inferredParentId, existing);
-      return { ...task, parentId: inferredParentId };
-    }
-    return task;
-  });
-  const fullyMigratedTasks = migratedTasks.map((task) => {
-    const inferredChildren = inferredChildrenByParent.get(task.id);
-    if (!inferredChildren || inferredChildren.length === 0) {
-      return task;
-    }
-    return { ...task, dependsOn: Array.from(new Set([...(task.dependsOn ?? []), ...inferredChildren])) };
+    return inferredParentId
+      ? { ...task, parentId: inferredParentId }
+      : task;
   });
   const parsedMutationCount = typeof record.mutationCount === 'number' && Number.isInteger(record.mutationCount) && record.mutationCount >= 0
     ? record.mutationCount
     : undefined;
   const taskFile: RalphTaskFile = {
     version: 2,
-    tasks: fullyMigratedTasks,
+    tasks: migratedTasks,
     ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
   };
   const taskDiagnostics = inspectTaskGraph(taskFile);
@@ -895,7 +855,7 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     taskFile: taskDiagnostics.length === 0 ? taskFile : null,
     text: taskDiagnostics.length === 0 ? normalizedText : null,
     migrated: explicitVersion !== 2
-      || fullyMigratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
+      || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
       || raw.trimEnd() !== normalizedText.trimEnd(),
     diagnostics: allDiagnostics
   };

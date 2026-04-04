@@ -50,7 +50,7 @@ test('selectNextTask prefers in-progress work and remainingSubtasks detect unfin
   const taskFile = parseTaskFile(JSON.stringify({
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Parent', status: 'todo', dependsOn: ['T1.1', 'T1.2'] },
+      { id: 'T1', title: 'Parent', status: 'todo' },
       { id: 'T1.1', title: 'Child done', status: 'done', parentId: 'T1' },
       { id: 'T1.2', title: 'Child todo', status: 'todo', parentId: 'T1' },
       { id: 'T2', title: 'Active', status: 'in_progress' }
@@ -470,21 +470,26 @@ test('inspectTaskFileText reports done parents with unfinished descendants as tr
   const inspection = inspectTaskFileText(JSON.stringify({
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Completed parent', status: 'done', dependsOn: ['T1.1', 'T1.2'] },
-      { id: 'T1.1', title: 'Active child', status: 'in_progress', parentId: 'T1', dependsOn: ['T1.1.1'] },
+      { id: 'T1', title: 'Completed parent', status: 'done' },
+      { id: 'T1.1', title: 'Active child', status: 'in_progress', parentId: 'T1' },
       { id: 'T1.1.1', title: 'Blocked grandchild', status: 'blocked', parentId: 'T1.1' },
       { id: 'T1.2', title: 'Todo child', status: 'todo', parentId: 'T1' }
     ]
   }));
 
   assert.equal(inspection.taskFile, null);
-  assert.ok(inspection.diagnostics.some((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants'));
-  const parentDriftError = inspection.diagnostics.find((diagnostic) => diagnostic.code === 'completed_parent_with_incomplete_descendants');
+  assert.deepEqual(
+    inspection.diagnostics.map((diagnostic) => diagnostic.code),
+    ['completed_parent_with_incomplete_descendants']
+  );
   assert.match(
-    parentDriftError?.message ?? '',
+    inspection.diagnostics[0]?.message ?? '',
     /Task T1 .*descendant tasks are still unfinished: T1\.1 \(in_progress\), T1\.1\.1 \(blocked\), T1\.2 \(todo\)/
   );
-  assert.deepEqual(parentDriftError?.relatedTaskIds, ['T1.1', 'T1.1.1', 'T1.2']);
+  assert.deepEqual(
+    inspection.diagnostics[0]?.relatedTaskIds,
+    ['T1.1', 'T1.1.1', 'T1.2']
+  );
 });
 
 test('inspectTaskFileText reports done parents with unfinished inferred descendants after legacy normalization', () => {
@@ -502,8 +507,7 @@ test('inspectTaskFileText reports done parents with unfinished inferred descenda
     inspection.diagnostics.map((diagnostic) => diagnostic.code),
     [
       'completed_parent_with_incomplete_descendants',
-      'completed_parent_with_incomplete_descendants',
-      'completed_task_with_incomplete_dependencies'
+      'completed_parent_with_incomplete_descendants'
     ]
   );
   assert.match(
@@ -516,11 +520,11 @@ test('inspectTaskFileText reports done parents with unfinished inferred descenda
   );
   assert.deepEqual(
     inspection.diagnostics.map((diagnostic) => diagnostic.relatedTaskIds),
-    [['T1.1.1'], ['T1.1.1'], ['T1.1.1']]
+    [['T1.1.1'], ['T1.1.1']]
   );
   assert.deepEqual(
     inspection.diagnostics.map((diagnostic) => diagnostic.taskId),
-    ['T1', 'T1.1', 'T1.1']
+    ['T1', 'T1.1']
   );
 });
 
