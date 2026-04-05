@@ -49,10 +49,10 @@ exports.DEFAULT_CONFIG = {
     staleLockThresholdMinutes: 5,
     agentCount: 1,
     modelTiering: {
-        enabled: true,
-        simple: { model: 'claude-haiku-4-5-20251001' },
-        medium: { model: 'claude-sonnet-4-6' },
-        complex: { model: 'claude-opus-4-6' },
+        enabled: false,
+        simple: { provider: 'copilot', model: 'claude-opus-4-6' },
+        medium: { provider: 'claude', model: 'claude-sonnet-4-6' },
+        complex: { provider: 'claude', model: 'claude-opus-4-6' },
         simpleThreshold: 2,
         complexThreshold: 6
     },

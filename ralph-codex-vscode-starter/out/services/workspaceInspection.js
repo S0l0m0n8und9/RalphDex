@@ -204,7 +204,7 @@ function inferValidationCommands(input) {
         }
     }
     if (input.manifests.includes('pyproject.toml') || input.manifests.includes('requirements.txt')) {
-        commands.add('pytest');
+        commands.add('python -m pytest');
     }
     if (input.manifests.includes('Cargo.toml')) {
         commands.add('cargo test');
