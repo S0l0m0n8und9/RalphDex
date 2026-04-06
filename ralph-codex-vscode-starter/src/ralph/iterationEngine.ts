@@ -588,6 +588,7 @@ export class RalphIterationEngine {
       prepared,
       selectedTask: prepared.selectedTask,
       verificationStatus: preliminaryVerificationStatus,
+      validationCommandStatus: validationVerification.result.status,
       preliminaryClassification: preliminaryOutcome.classification,
       lastMessage,
       taskFilePath: prepared.paths.taskFilePath,

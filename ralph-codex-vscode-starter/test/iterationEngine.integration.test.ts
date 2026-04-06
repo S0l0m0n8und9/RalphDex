@@ -1662,6 +1662,56 @@ for (const scenario of [
   });
 }
 
+test('runCliIteration reconciles done when validation passes but gitDiff shows no file changes', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Already-complete task with no new changes needed',
+        status: 'in_progress'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      // Agent makes NO file changes — the task was already complete.
+      run: async () => ({
+        stdout: 'all tests pass, nothing to change',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'Task already complete from prior iterations.',
+          validationRan: 'npm test'
+        }, 'All acceptance criteria met. No code changes needed.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+
+  // Validation command passed, reconciliation should apply the done status
+  // even though gitDiff found no changes — the taskState verifier confirms
+  // the status update that reconciliation made.
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+  assert.equal(summary.result.completionClassification, 'complete');
+});
+
 test('runCliIteration does not mark a task done when the completion report requests done but verification fails', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
