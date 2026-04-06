@@ -260,6 +260,7 @@ function snapshotConfig(config) {
         claudeMaxTurns: config.claudeMaxTurns,
         claudePermissionMode: config.claudePermissionMode,
         copilotApprovalMode: config.copilotApprovalMode,
+        copilotMaxAutopilotContinues: config.copilotMaxAutopilotContinues,
         reasoningEffort: config.reasoningEffort,
         approvalMode: config.approvalMode,
         sandboxMode: config.sandboxMode,

@@ -353,7 +353,8 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
     ].join('\n')),
 
     group('Copilot CLI', [
-      row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive']))
+      row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive'])),
+      row('Max Autopilot Continues', numberInput('copilotMaxAutopilotContinues', cfg.copilotMaxAutopilotContinues, 1, 500))
     ].join('\n')),
 
     group('Codex CLI', [

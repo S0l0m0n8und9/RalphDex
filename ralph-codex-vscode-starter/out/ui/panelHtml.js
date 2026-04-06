@@ -317,7 +317,8 @@ function buildSettingsSection(cfg) {
             row('Permission Mode', select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default']))
         ].join('\n')),
         group('Copilot CLI', [
-            row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive']))
+            row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive'])),
+            row('Max Autopilot Continues', numberInput('copilotMaxAutopilotContinues', cfg.copilotMaxAutopilotContinues, 1, 500))
         ].join('\n')),
         group('Codex CLI', [
             row('Approval Mode', select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])),

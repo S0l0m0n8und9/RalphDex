@@ -8,6 +8,21 @@ import { buildDashboardTasks, countTasks, defaultDashboardState, snapshotConfig 
 import type { RalphDashboardState, RalphDashboardIteration } from './uiTypes';
 import { readConfig } from '../config/readConfig';
 
+/** Deep-set a dotted path like "simple.model" inside an object. */
+function deepSet(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
+  const parts = path.split('.');
+  let cur: Record<string, unknown> = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const key = parts[i];
+    if (cur[key] === undefined || cur[key] === null || typeof cur[key] !== 'object' || Array.isArray(cur[key])) {
+      cur[key] = {};
+    }
+    cur = cur[key] as Record<string, unknown>;
+  }
+  cur[parts[parts.length - 1]] = value;
+  return obj;
+}
+
 /**
  * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
  * in the editor area (centre stage).
@@ -55,9 +70,9 @@ export class RalphDashboardPanel implements vscode.Disposable {
         if (msg.key.includes('.')) {
           const dotIdx = msg.key.indexOf('.');
           const parentKey = msg.key.slice(0, dotIdx);
-          const subKey = msg.key.slice(dotIdx + 1);
+          const subPath = msg.key.slice(dotIdx + 1);
           const current = wsConfig.get<Record<string, unknown>>(parentKey) ?? {};
-          const updated = { ...current, [subKey]: msg.value };
+          const updated = deepSet(structuredClone(current), subPath, msg.value);
           await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
         } else {
           await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);

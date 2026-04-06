@@ -123,6 +123,7 @@ export interface RalphDashboardConfigSnapshot {
   claudeMaxTurns: number;
   claudePermissionMode: string;
   copilotApprovalMode: string;
+  copilotMaxAutopilotContinues: number;
   reasoningEffort: string;
   approvalMode: string;
   sandboxMode: string;

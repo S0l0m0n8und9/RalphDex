@@ -39,6 +39,20 @@ const crypto = __importStar(require("crypto"));
 const panelHtml_1 = require("./panelHtml");
 const sidebarViewProvider_1 = require("./sidebarViewProvider");
 const readConfig_1 = require("../config/readConfig");
+/** Deep-set a dotted path like "simple.model" inside an object. */
+function deepSet(obj, path, value) {
+    const parts = path.split('.');
+    let cur = obj;
+    for (let i = 0; i < parts.length - 1; i++) {
+        const key = parts[i];
+        if (cur[key] === undefined || cur[key] === null || typeof cur[key] !== 'object' || Array.isArray(cur[key])) {
+            cur[key] = {};
+        }
+        cur = cur[key];
+    }
+    cur[parts[parts.length - 1]] = value;
+    return obj;
+}
 /**
  * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
  * in the editor area (centre stage).
@@ -82,9 +96,9 @@ class RalphDashboardPanel {
                 if (msg.key.includes('.')) {
                     const dotIdx = msg.key.indexOf('.');
                     const parentKey = msg.key.slice(0, dotIdx);
-                    const subKey = msg.key.slice(dotIdx + 1);
+                    const subPath = msg.key.slice(dotIdx + 1);
                     const current = wsConfig.get(parentKey) ?? {};
-                    const updated = { ...current, [subKey]: msg.value };
+                    const updated = deepSet(structuredClone(current), subPath, msg.value);
                     await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
                 }
                 else {

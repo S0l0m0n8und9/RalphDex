@@ -196,6 +196,7 @@ function fullConfig() {
     claudeMaxTurns: 50,
     claudePermissionMode: 'dangerously-skip-permissions',
     copilotApprovalMode: 'allow-all',
+    copilotMaxAutopilotContinues: 200,
     reasoningEffort: 'medium',
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
