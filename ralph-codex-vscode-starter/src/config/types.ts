@@ -86,6 +86,7 @@ export interface RalphCodexConfig {
   claudeCommandPath: string;
   copilotCommandPath: string;
   claudeMaxTurns: number;
+  copilotMaxAutopilotContinues: number;
   claudePermissionMode: ClaudePermissionMode;
   copilotApprovalMode: CopilotApprovalMode;
   agentId: string;

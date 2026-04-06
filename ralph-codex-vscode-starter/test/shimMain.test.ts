@@ -44,32 +44,41 @@ async function seedShimWorkspace(workspaceRoot: string, codexCommandPath: string
   }, null, 2)}\n`, 'utf8');
 }
 
+/**
+ * Creates a fake codex CLI as a Node.js script named `exec` (no extension).
+ * The codex provider spawns `<commandPath> exec --model ... -`, so `exec` is
+ * the first positional argument passed to node, which treats it as a script path.
+ * Using node + a JS file avoids any platform-specific shell dependency.
+ */
 async function createFakeCodexExecScript(workspaceRoot: string): Promise<void> {
   const fakeExecPath = path.join(workspaceRoot, 'exec');
-  await fs.writeFile(fakeExecPath, `#!/usr/bin/env bash
-set -euo pipefail
+  await fs.writeFile(fakeExecPath, `const fs = require('fs');
+const path = require('path');
 
-last_message_path=""
-while (($# > 0)); do
-  if [[ "$1" == "--output-last-message" ]]; then
-    shift
-    last_message_path="\${1:-}"
-  fi
-  shift || true
-done
+let lastMessagePath = '';
+const args = process.argv.slice(2);
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--output-last-message' && i + 1 < args.length) {
+    lastMessagePath = args[++i];
+  }
+}
 
-prompt="$(cat)"
-if [[ "$prompt" != *"# Ralph Prompt:"* ]]; then
-  echo "Expected Ralph prompt on stdin." >&2
-  exit 1
-fi
+let prompt = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', (chunk) => { prompt += chunk; });
+process.stdin.on('end', () => {
+  if (!prompt.includes('# Ralph Prompt:')) {
+    process.stderr.write('Expected Ralph prompt on stdin.\\n');
+    process.exit(1);
+  }
 
-printf '\n- Fake codex advanced the shim workspace.\n' >> .ralph/progress.md
-if [[ -n "$last_message_path" ]]; then
-  printf 'Fake codex completed the shim iteration.\n' > "$last_message_path"
-fi
-
-printf 'Fake codex completed the shim iteration.\n'
+  const progressPath = path.join(process.cwd(), '.ralph', 'progress.md');
+  fs.appendFileSync(progressPath, '\\n- Fake codex advanced the shim workspace.\\n');
+  if (lastMessagePath) {
+    fs.writeFileSync(lastMessagePath, 'Fake codex completed the shim iteration.\\n');
+  }
+  process.stdout.write('Fake codex completed the shim iteration.\\n');
+});
 `, 'utf8');
 }
 
@@ -80,23 +89,18 @@ test('shim main boots a seeded workspace, prints preflight output, and exits zer
   });
 
   await createFakeCodexExecScript(workspaceRoot);
-  await seedShimWorkspace(workspaceRoot, process.env.SHELL || '/bin/bash');
+  // Use the node binary as codexCommandPath. The codex provider spawns
+  // `<commandPath> exec --model ...`, so node will run the `exec` JS file
+  // we created in workspaceRoot (set as cwd by the provider).
+  await seedShimWorkspace(workspaceRoot, process.execPath);
 
   const packageRoot = path.resolve(__dirname, '..', '..');
   const shimEntry = path.join(packageRoot, 'out', 'shim', 'main.js');
-  await execFileAsync('bash', ['-lc', 'node "$SHIM_ENTRY" "$WORKSPACE_ROOT" > "$WORKSPACE_ROOT/stdout.txt" 2> "$WORKSPACE_ROOT/stderr.txt"'], {
+  const { stdout, stderr } = await execFileAsync(process.execPath, [shimEntry, workspaceRoot], {
     cwd: packageRoot,
-    env: {
-      ...process.env,
-      SHIM_ENTRY: shimEntry,
-      WORKSPACE_ROOT: workspaceRoot
-    },
     timeout: 60_000,
     maxBuffer: 10 * 1024 * 1024
   });
-
-  const stdout = await fs.readFile(path.join(workspaceRoot, 'stdout.txt'), 'utf8');
-  const stderr = await fs.readFile(path.join(workspaceRoot, 'stderr.txt'), 'utf8');
 
   assert.equal(stderr, '');
   assert.match(stdout, /# Ralph Preflight/);

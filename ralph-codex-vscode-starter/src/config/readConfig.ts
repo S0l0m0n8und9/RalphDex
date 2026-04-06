@@ -286,6 +286,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
     copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
+    copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
     claudePermissionMode: readEnum<ClaudePermissionMode>(
       config,
       'claudePermissionMode',

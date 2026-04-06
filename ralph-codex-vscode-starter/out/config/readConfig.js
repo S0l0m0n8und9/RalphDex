@@ -208,6 +208,7 @@ function readConfig(workspaceFolder) {
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         copilotCommandPath: readString(config, 'copilotCommandPath', defaults_1.DEFAULT_CONFIG.copilotCommandPath),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
+        copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', defaults_1.DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),
         copilotApprovalMode: readEnum(config, 'copilotApprovalMode', ['allow-all', 'allow-tools-only', 'interactive'], defaults_1.DEFAULT_CONFIG.copilotApprovalMode),
         agentId: readString(config, 'agentId', defaults_1.DEFAULT_CONFIG.agentId),

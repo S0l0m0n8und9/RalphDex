@@ -48,5 +48,5 @@ test('detectPackageManagers, inferTestSignals, and inferValidationCommands combi
   assert.ok(signals.includes('package.json defines a test script.'));
   assert.ok(signals.includes('README.md may define the canonical build/test commands.'));
   assert.ok(signals.includes('Detected test roots: test.'));
-  assert.deepEqual(commands, ['npm run test', 'make lint', 'make test', 'pytest']);
+  assert.deepEqual(commands, ['npm run test', 'make lint', 'make test', 'python -m pytest']);
 });

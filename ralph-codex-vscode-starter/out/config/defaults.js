@@ -7,6 +7,7 @@ exports.DEFAULT_CONFIG = {
     claudeCommandPath: 'claude',
     copilotCommandPath: 'copilot',
     claudeMaxTurns: 50,
+    copilotMaxAutopilotContinues: 200,
     claudePermissionMode: 'dangerously-skip-permissions',
     copilotApprovalMode: 'allow-all',
     agentId: 'default',

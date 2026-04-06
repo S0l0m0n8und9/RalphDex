@@ -217,6 +217,10 @@ function inferValidationCommands(input) {
         commands.add('dotnet test');
     }
     for (const command of input.ciCommands ?? []) {
+        // Skip bare `pytest` when the more reliable `python -m pytest` is already present.
+        if (command === 'pytest' && commands.has('python -m pytest')) {
+            continue;
+        }
         commands.add(command);
     }
     return uniqueOrdered(commands);

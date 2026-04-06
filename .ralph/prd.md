@@ -135,6 +135,66 @@ Acceptance criteria for Phase 1:
 - Unit tests cover at least the happy path (valid recommendations) and the error case (missing field).
 - npm run validate passes.
 
+**7. Prompt caching: structure prompts for maximum cache reuse**
+
+Ralph's iterative loop sends a large prompt on every iteration, and a significant portion of that prompt — system instructions, project conventions, completion report contract, and persona framing — is identical between iterations. Structuring the prompt so this static prefix is byte-for-byte stable unlocks automatic prompt caching on both Anthropic and OpenAI backends, yielding faster time-to-first-token and (on API billing) up to 90% cost reduction on cached input tokens. Concrete work:
+
+- **Phase 1 — Prompt prefix stabilisation.** Audit `promptBuilder.ts` to ensure all static content (system prompt, persona, project conventions, completion report instructions) is assembled first as a contiguous prefix, before any per-iteration dynamic content (task focus, file context, iteration history). Add a snapshot test that asserts the static prefix is identical across two consecutive prompt builds with different task inputs.
+- **Phase 2 — Explicit cache-control markers (API strategy only).** For providers that call the Anthropic Messages API directly (or OpenAI's equivalent), insert `cache_control` breakpoints at the boundary between the static prefix and dynamic content in the provider implementation. This is only applicable when Ralph calls an API directly — CLI-based strategies (`claude -p`, `codex exec`) rely on implicit caching and require no change.
+- **Phase 3 — Observability.** Surface cache-hit metrics in the iteration result or provenance bundle so operators can verify caching is effective. At minimum, log the static-prefix token count and whether the provider reported a cache hit. Add a `promptCacheStats` field to the provenance artifact.
+- **Phase 4 — Configuration.** Add a `ralphCodex.promptCaching` config setting (default: `auto`) with values `auto` (use caching when the provider supports it), `force` (error if caching is unavailable), and `off`. Document the setting and its cost implications.
+
+Scope boundaries:
+- Prompt caching is a pure backend optimisation. It must not change the semantic content of any prompt.
+- CLI-based strategies benefit from implicit caching with no code changes beyond prefix stabilisation (Phase 1). Explicit cache-control (Phase 2) only applies to direct API strategies.
+- Subscription-based billing (Claude Pro/Max, Codex subscription) does not benefit from cost reduction — only latency. Documentation must make this distinction clear so operators can decide whether to pursue API billing.
+
+Acceptance criteria for Phase 1:
+- `promptBuilder.ts` assembles all static sections before all dynamic sections, with a clear code boundary.
+- A snapshot test proves the static prefix is byte-identical across builds with different task inputs.
+- `npm run validate` passes.
+
+**8. Azure Foundry provider: direct API execution strategy**
+
+Ralph currently supports three CLI-based providers (Claude, Copilot, Codex) that all shell out to an external CLI binary. An Azure Foundry provider would add a fourth provider that calls an Azure AI Foundry API endpoint directly over HTTPS, enabling operators to use Azure-hosted models (including Claude, GPT, Llama, Mistral, and other models deployed through Azure AI Foundry) with enterprise governance, private networking, and Azure RBAC. Concrete work:
+
+- **Phase 1 — Provider implementation.** Add `src/codex/azureFoundryProvider.ts` implementing the `CliProvider` interface. Despite the interface name, this provider calls the Azure Foundry inference endpoint directly via `https` (Node.js built-in) or a lightweight HTTP client rather than shelling out to a CLI. It must:
+  - Call the Azure AI Foundry `/chat/completions` or `/models/chat/completions` endpoint using the configured deployment URL and API key (or Azure AD token).
+  - Stream the response and extract the assistant message text for `extractResponseText`.
+  - Map Azure API error codes to Ralph-understandable error descriptions in `describeLaunchError` and `summarizeResult`.
+  - Register as provider ID `'azure-foundry'` in the `CliProviderId` union type.
+
+- **Phase 2 — Configuration.** Add the following config settings:
+  - `ralphCodex.azureFoundryEndpoint` (string) — the full deployment endpoint URL (e.g. `https://<resource>.services.ai.azure.com/models/chat/completions`).
+  - `ralphCodex.azureFoundryApiKey` (string, optional) — API key for authentication. If omitted, the provider attempts Azure AD / Managed Identity token acquisition via `@azure/identity`.
+  - `ralphCodex.azureFoundryModelDeployment` (string, optional) — the specific model deployment name, if the endpoint requires it.
+  - `ralphCodex.azureFoundryApiVersion` (string, default: `'2024-12-01-preview'`) — Azure API version to use.
+  - Add `'azure-foundry'` as a valid value for `ralphCodex.cliProvider` and as a routable provider in `modelTiering` tier configs.
+
+- **Phase 3 — Factory and strategy integration.** Wire the new provider into `providerFactory.ts` and `CodexStrategyRegistry` so that:
+  - `createCliProviderForId('azure-foundry', config)` returns the Azure Foundry provider.
+  - The `cliExec` strategy works with the new provider (the provider builds and manages its own HTTP call rather than a child process, but conforms to the same `CliLaunchSpec` / `CodexExecResult` contract).
+  - Model tiering can route specific complexity tiers to Azure Foundry (e.g. simple tasks to an Azure-hosted Haiku deployment, complex tasks to Claude direct).
+
+- **Phase 4 — Authentication and security.** Implement two auth paths:
+  - **API key**: read from config, passed as `api-key` header. The key must not be logged, included in provenance artifacts, or echoed to output channels.
+  - **Azure AD / Managed Identity**: use `@azure/identity` `DefaultAzureCredential` to acquire a bearer token. This enables keyless operation in Azure-hosted environments and aligns with enterprise security requirements.
+  - Preflight diagnostics must validate that the endpoint is reachable and the credential is valid before the first iteration.
+
+- **Phase 5 — Prompt caching synergy.** Azure Foundry endpoints that support prompt caching (Azure OpenAI deployments) will benefit from the prompt prefix stabilisation work in feature 7. Document which Azure-hosted models support prompt caching and how operators can verify cache hits via Azure Monitor metrics.
+
+Scope boundaries:
+- This is a provider, not a new execution strategy. It reuses the `cliExec` strategy machinery but replaces the child-process spawn with an HTTP call.
+- The provider targets the Azure AI Foundry inference API only. It does not manage Azure resources, deploy models, or interact with Azure Foundry project management APIs.
+- No new VS Code UI surfaces. Provider selection is via the existing `ralphCodex.cliProvider` setting.
+- The `@azure/identity` dependency is optional — if the operator provides an API key, no Azure SDK is required at runtime.
+
+Acceptance criteria for Phase 1:
+- `azureFoundryProvider.ts` implements `CliProvider` interface and is importable without errors.
+- `'azure-foundry'` is a valid `CliProviderId` value.
+- Unit tests mock the HTTP endpoint and verify `buildLaunchSpec`, `extractResponseText`, and `describeLaunchError`.
+- `npm run validate` passes.
+
 **99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
