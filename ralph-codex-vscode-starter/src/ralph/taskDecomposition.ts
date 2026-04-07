@@ -60,6 +60,33 @@ export function deriveCompoundSegments(task: RalphTask): string[] {
   return [];
 }
 
+/**
+ * Derive acceptance criteria for a child task from its title and
+ * the parent task's acceptance list. Words from the child title are
+ * matched against each parent criterion (case-insensitive). Matching
+ * criteria are carried forward; a fallback criterion is appended so
+ * the child always has at least one.
+ */
+export function deriveChildAcceptance(
+  childTitle: string,
+  parentAcceptance: string[]
+): string[] {
+  const words = childTitle
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 3);
+
+  const matched = parentAcceptance.filter((criterion) => {
+    const lower = criterion.toLowerCase();
+    return words.some((w) => lower.includes(w));
+  });
+
+  const fallback = `${childTitle} is complete and passes validation`;
+  return matched.length > 0
+    ? [...matched, fallback]
+    : [fallback];
+}
+
 export function buildDecompositionProposal(
   task: RalphTask,
   result: RalphIterationResult
@@ -82,20 +109,26 @@ export function buildDecompositionProposal(
       'implement the smallest bounded fix for that reproduced blocker'
     ];
   const limitedSegments = seedSegments.slice(0, MAX_REMEDIATION_CHILD_TASKS);
+  const parentAcceptance = task.acceptance ?? [];
 
-  return limitedSegments.map((segment, index) => ({
-    id: `${taskPrefix}.${index + 1}`,
-    title: segment.charAt(0).toUpperCase() + segment.slice(1),
-    parentId: task.id,
-    dependsOn: [
-      ...inheritedDependencies,
-      ...(index === 0 ? [] : [{ taskId: `${taskPrefix}.${index}`, reason: 'blocks_sequence' as const }])
-    ],
-    validation,
-    rationale: index === 0
-      ? `Narrow ${task.id} to a deterministic first step before retrying the parent task.`
-      : `Keep the proposal one level deep by sequencing the next bounded step after ${taskPrefix}.${index}.`
-  }));
+  return limitedSegments.map((segment, index) => {
+    const childTitle = segment.charAt(0).toUpperCase() + segment.slice(1);
+    const childAcceptance = deriveChildAcceptance(childTitle, parentAcceptance);
+    return {
+      id: `${taskPrefix}.${index + 1}`,
+      title: childTitle,
+      parentId: task.id,
+      dependsOn: [
+        ...inheritedDependencies,
+        ...(index === 0 ? [] : [{ taskId: `${taskPrefix}.${index}`, reason: 'blocks_sequence' as const }])
+      ],
+      validation,
+      rationale: index === 0
+        ? `Narrow ${task.id} to a deterministic first step before retrying the parent task.`
+        : `Keep the proposal one level deep by sequencing the next bounded step after ${taskPrefix}.${index}.`,
+      acceptance: childAcceptance.length > 0 ? childAcceptance : undefined
+    };
+  });
 }
 
 export function remediationSuggestedChildTasks(

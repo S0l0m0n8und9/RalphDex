@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import {
   applyTaskDecompositionProposalArtifact,
+  deriveChildAcceptance,
   resolveApplicableTaskDecompositionProposal
 } from '../src/ralph/taskDecomposition';
 import { RalphTaskRemediationArtifact } from '../src/ralph/types';
@@ -93,4 +94,29 @@ test('applyTaskDecompositionProposalArtifact writes tasks.json through the share
   assert.deepEqual(result.childTaskIds, ['T1.1', 'T1.2']);
   assert.deepEqual(result.taskFile.tasks.map((task) => task.id), ['T0', 'T1', 'T1.1', 'T1.2']);
   assert.deepEqual(result.taskFile.tasks[1]?.dependsOn, ['T0', 'T1.1', 'T1.2']);
+});
+
+test('deriveChildAcceptance returns fallback when parent has no acceptance', () => {
+  const acceptance = deriveChildAcceptance('Review output agent', []);
+  assert.deepEqual(acceptance, ['Review output agent is complete and passes validation']);
+});
+
+test('deriveChildAcceptance carries matching parent criteria forward', () => {
+  const parentAcceptance = [
+    'review.py implements generate_report(results, out_dir)',
+    'results.json and results.csv written with per-item breakdown',
+    'explain_item returns a prompt string suitable for pasting',
+    'Unit test verifies file output structure'
+  ];
+  const acceptance = deriveChildAcceptance('Review output agent', parentAcceptance);
+  assert.ok(acceptance.includes('review.py implements generate_report(results, out_dir)'));
+  assert.ok(acceptance.includes('Review output agent is complete and passes validation'));
+  // 'results.json' line should not match — no shared words > 3 chars with 'Review output agent'
+  assert.ok(!acceptance.includes('results.json and results.csv written with per-item breakdown'));
+});
+
+test('deriveChildAcceptance ignores short words when matching', () => {
+  const acceptance = deriveChildAcceptance('Add new test', ['Add new column to DB']);
+  // 'add' and 'new' are <= 3 chars and ignored; 'test' doesn't appear in the criterion
+  assert.deepEqual(acceptance, ['Add new test is complete and passes validation']);
 });
