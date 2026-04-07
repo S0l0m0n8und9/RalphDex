@@ -443,8 +443,11 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     agentCount: readNumber(config, 'agentCount', DEFAULT_CONFIG.agentCount, 1),
     modelTiering: (() => {
       const tiering = readModelTiering(config, DEFAULT_CONFIG.modelTiering);
-      // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled.
-      const enableOverride = config.get<boolean>('enableModelTiering');
+      // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
+      // but only if explicitly set by the user (workspace or global scope).
+      // Using inspect() avoids treating the package.json default (false) as a user choice.
+      const inspected = config.inspect<boolean>('enableModelTiering');
+      const enableOverride = inspected?.workspaceValue ?? inspected?.globalValue;
       if (typeof enableOverride === 'boolean') {
         tiering.enabled = enableOverride;
       }

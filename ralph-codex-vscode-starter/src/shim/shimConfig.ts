@@ -189,6 +189,16 @@ export function createShimWorkspaceConfiguration(
   env: NodeJS.ProcessEnv = process.env
 ): IWorkspaceConfiguration {
   const config = readShimConfig(workspaceRoot, env);
+  const fileConfig = readConfigFile(workspaceRoot);
+
+  function isExplicitlySet(section: string): boolean {
+    const key = normalizeSectionKey(section);
+    if (!key) {
+      return false;
+    }
+
+    return readFileOverride(fileConfig, key) !== undefined || readEnvOverride(env, key) !== undefined;
+  }
 
   return {
     get<T>(section: string, defaultValue?: T): T | undefined {
@@ -198,6 +208,15 @@ export function createShimWorkspaceConfiguration(
       }
 
       return config[key] as T;
+    },
+    inspect<T>(section: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined {
+      const key = normalizeSectionKey(section);
+      if (!key) {
+        return { key: section };
+      }
+
+      const workspaceValue = isExplicitlySet(section) ? (config[key] as T) : undefined;
+      return { key: section, workspaceValue };
     }
   };
 }

@@ -137,6 +137,10 @@ const vscodeStub = {
         get(key) {
           return state.configuration[key];
         },
+        inspect(key) {
+          const value = state.configuration[key];
+          return { key, workspaceValue: value };
+        },
         update(key, value) {
           state.configuration[key] = value;
           state.updatedSettings[key] = value;

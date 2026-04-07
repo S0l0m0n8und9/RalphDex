@@ -42,12 +42,18 @@ function installVscodeShim(workspaceRoot, host) {
                     return {
                         get(_key, defaultValue) {
                             return defaultValue;
+                        },
+                        inspect(key) {
+                            return { key };
                         }
                     };
                 }
                 return {
                     get(key, defaultValue) {
                         return host.configuration.get(key, defaultValue);
+                    },
+                    inspect(key) {
+                        return host.configuration.inspect(key);
                     }
                 };
             }

@@ -181,6 +181,14 @@ function readShimConfig(workspaceRoot, env = process.env) {
 }
 function createShimWorkspaceConfiguration(workspaceRoot, env = process.env) {
     const config = readShimConfig(workspaceRoot, env);
+    const fileConfig = readConfigFile(workspaceRoot);
+    function isExplicitlySet(section) {
+        const key = normalizeSectionKey(section);
+        if (!key) {
+            return false;
+        }
+        return readFileOverride(fileConfig, key) !== undefined || readEnvOverride(env, key) !== undefined;
+    }
     return {
         get(section, defaultValue) {
             const key = normalizeSectionKey(section);
@@ -188,6 +196,14 @@ function createShimWorkspaceConfiguration(workspaceRoot, env = process.env) {
                 return defaultValue;
             }
             return config[key];
+        },
+        inspect(section) {
+            const key = normalizeSectionKey(section);
+            if (!key) {
+                return { key: section };
+            }
+            const workspaceValue = isExplicitlySet(section) ? config[key] : undefined;
+            return { key: section, workspaceValue };
         }
     };
 }

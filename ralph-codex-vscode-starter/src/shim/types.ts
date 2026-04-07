@@ -25,11 +25,12 @@ export interface IProgress {
 
 /**
  * Read-only slice of workspace configuration.
- * Mirrors the `get` overloads on `vscode.WorkspaceConfiguration`.
+ * Mirrors the `get` and `inspect` overloads on `vscode.WorkspaceConfiguration`.
  */
 export interface IWorkspaceConfiguration {
   get<T>(section: string): T | undefined;
   get<T>(section: string, defaultValue: T): T;
+  inspect<T>(section: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined;
 }
 
 /**

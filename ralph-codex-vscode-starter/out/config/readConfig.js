@@ -252,8 +252,11 @@ function readConfig(workspaceFolder) {
         agentCount: readNumber(config, 'agentCount', defaults_1.DEFAULT_CONFIG.agentCount, 1),
         modelTiering: (() => {
             const tiering = readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering);
-            // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled.
-            const enableOverride = config.get('enableModelTiering');
+            // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
+            // but only if explicitly set by the user (workspace or global scope).
+            // Using inspect() avoids treating the package.json default (false) as a user choice.
+            const inspected = config.inspect('enableModelTiering');
+            const enableOverride = inspected?.workspaceValue ?? inspected?.globalValue;
             if (typeof enableOverride === 'boolean') {
                 tiering.enabled = enableOverride;
             }

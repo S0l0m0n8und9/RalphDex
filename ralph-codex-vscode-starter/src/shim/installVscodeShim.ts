@@ -24,7 +24,10 @@ type VscodeShimModule = {
   workspace: {
     isTrusted: boolean;
     workspaceFolders: ShimWorkspaceFolder[];
-    getConfiguration(section?: string, scope?: unknown): { get<T>(key: string, defaultValue?: T): T | undefined };
+    getConfiguration(section?: string, scope?: unknown): {
+      get<T>(key: string, defaultValue?: T): T | undefined;
+      inspect<T>(key: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined;
+    };
   };
   window: {
     activeTextEditor: undefined;
@@ -66,11 +69,17 @@ export function installVscodeShim(workspaceRoot: string, host: IVSCodeHost): voi
     workspace: {
       isTrusted: true,
       workspaceFolders: [workspaceFolder],
-      getConfiguration(section?: string, _scope?: unknown): { get<T>(key: string, defaultValue?: T): T | undefined } {
+      getConfiguration(section?: string, _scope?: unknown): {
+        get<T>(key: string, defaultValue?: T): T | undefined;
+        inspect<T>(key: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined;
+      } {
         if (section && section !== 'ralphCodex') {
           return {
             get<T>(_key: string, defaultValue?: T): T | undefined {
               return defaultValue;
+            },
+            inspect<T>(key: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined {
+              return { key };
             }
           };
         }
@@ -78,6 +87,9 @@ export function installVscodeShim(workspaceRoot: string, host: IVSCodeHost): voi
         return {
           get<T>(key: string, defaultValue?: T): T | undefined {
             return host.configuration.get<T>(key, defaultValue as T);
+          },
+          inspect<T>(key: string): { key: string; workspaceValue?: T; globalValue?: T } | undefined {
+            return host.configuration.inspect<T>(key);
           }
         };
       }
