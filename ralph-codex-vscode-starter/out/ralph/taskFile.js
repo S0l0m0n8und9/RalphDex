@@ -879,7 +879,10 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
     // If the parent was auto-completed before all decomposition children could be applied,
     // reset it to in_progress so the new children can gate it via dependsOn. This avoids
     // a stuck state where the parent is done but children have never run.
-    const parentStatusOverride = parentTask.status === 'done' ? 'in_progress' : parentTask.status;
+    // Also promote todo → in_progress so pipeline scaffolding and watchdog decomposition
+    // paths (which bypass the normal claim/mark-in-progress sequence) don't leave the
+    // parent stuck as todo while its children gate it via dependsOn.
+    const parentStatusOverride = parentTask.status === 'done' || parentTask.status === 'todo' ? 'in_progress' : parentTask.status;
     if (suggestedChildTasks.length === 0) {
         throw new Error(`Cannot apply decomposition proposal for ${parentTaskId} because no suggested child tasks were provided.`);
     }
