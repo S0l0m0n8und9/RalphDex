@@ -2,14 +2,37 @@
 
 The durable Ralph backlog is exhausted. Re-inspect the repository, PRD, and recent progress, then generate the next coherent tasks directly in the durable task file.
 
-## Why This Prompt Exists
-The current durable Ralph backlog is exhausted, so the next prompt should replenish `.ralph/tasks.json` before normal task execution resumes.
-
 ## Prompt Strategy
 - Target: Codex CLI execution via `codex exec`.
 - The current durable Ralph backlog is exhausted; this run should replenish `.ralph/tasks.json`, not start broad feature work.
 - Generate only the next coherent task slice grounded in the PRD, repo state, and recent durable progress.
 - Leave the task file explicit, flat, version 2, and immediately actionable.
+
+## Operating Rules
+- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.
+- Do not invent unsupported IDE APIs or hidden handoff channels.
+- Keep architecture thin, deterministic, and file-backed.
+- Make the smallest coherent change that materially advances the selected Ralph task.
+- Prefer the repository’s real validation commands when they exist.
+- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
+- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
+
+## Execution Contract
+1. Inspect the PRD, durable progress log, and current repo state before editing the task file.
+2. Replenish `.ralph/tasks.json` with the next coherent tasks only; do not broaden into unrelated planning.
+3. Keep tasks explicit, flat, and dependency-aware so the next Ralph iteration can select deterministically.
+4. Update `.ralph/progress.md` with a short note explaining why backlog replenishment was needed and what was added.
+5. Do not run broad validation just for backlog generation unless you also changed runnable code.
+6. End with the generated task ids and the next actionable task.
+
+## Final Response Contract
+- Generated or updated task ids.
+- Why those tasks are the next coherent slice.
+- Whether a new actionable task now exists.
+- Any blocker that prevented safe backlog replenishment.
+
+## Why This Prompt Exists
+The current durable Ralph backlog is exhausted, so the next prompt should replenish `.ralph/tasks.json` before normal task execution resumes.
 
 ## Preflight Snapshot
 - Ready: yes
@@ -75,26 +98,3 @@ Keep Ralph moving when the current durable backlog is fully consumed.
 - Prior outcome classification: complete
 - Prior execution / verification: succeeded / passed
 - Additional prior-context signals omitted: 7.
-
-## Operating Rules
-- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.
-- Do not invent unsupported IDE APIs or hidden handoff channels.
-- Keep architecture thin, deterministic, and file-backed.
-- Make the smallest coherent change that materially advances the selected Ralph task.
-- Prefer the repository’s real validation commands when they exist.
-- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
-- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
-
-## Execution Contract
-1. Inspect the PRD, durable progress log, and current repo state before editing the task file.
-2. Replenish `.ralph/tasks.json` with the next coherent tasks only; do not broaden into unrelated planning.
-3. Keep tasks explicit, flat, and dependency-aware so the next Ralph iteration can select deterministically.
-4. Update `.ralph/progress.md` with a short note explaining why backlog replenishment was needed and what was added.
-5. Do not run broad validation just for backlog generation unless you also changed runnable code.
-6. End with the generated task ids and the next actionable task.
-
-## Final Response Contract
-- Generated or updated task ids.
-- Why those tasks are the next coherent slice.
-- Whether a new actionable task now exists.
-- Any blocker that prevented safe backlog replenishment.

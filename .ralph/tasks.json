@@ -2402,7 +2402,49 @@
         "Recommended skills persisted alongside generated PRD and tasks (e.g., as a field in the generation result or separate artifact)",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T77",
+      "title": "Prompt caching Phase 1: stabilise static prefix in promptBuilder.ts and add snapshot test",
+      "status": "done",
+      "notes": "Reordered all prompt templates to place static sections (Prompt Strategy, Operating Rules, Execution Contract, Final Response Contract) before dynamic sections. Added static/dynamic boundary comments in buildPrompt, exported STATIC_PREFIX_BOUNDARY and extractStaticPrefix. Added snapshot test asserting byte-identical static prefix across two task-differing builds. Regenerated all 7 existing snapsho",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "promptBuilder.ts assembles all static sections (system prompt, persona, project conventions, completion report instructions) before all per-iteration dynamic sections (task focus, file context, iteration history), with a clear code boundary comment marking the split",
+        "A snapshot test in test/promptBuilder.test.ts asserts that the static prefix portion is byte-identical across two consecutive prompt builds that differ only in their task input (different task id, title, and status)",
+        "The static prefix snapshot is stored in test/fixtures/snapshots/ alongside existing snapshots",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T78",
+      "title": "Surface recommended skills in Show Status output",
+      "status": "todo",
+      "dependsOn": [
+        "T76"
+      ],
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "buildStatusReport (or collectStatusSnapshot) reads .ralph/recommended-skills.json from the workspace if it exists",
+        "Show Status output includes a 'Recommended Skills' section listing skill name and rationale when the file is present and non-empty",
+        "Section is omitted entirely when recommended-skills.json is absent or empty",
+        "At least one unit test covers the present-and-non-empty path and one covers the absent path",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T79",
+      "title": "Azure Foundry provider Phase 1: implement CliProvider interface in azureFoundryProvider.ts",
+      "status": "todo",
+      "validation": "cd ralph-codex-vscode-starter && npm run validate",
+      "acceptance": [
+        "src/codex/azureFoundryProvider.ts exports a class implementing the CliProvider interface with buildLaunchSpec, extractResponseText, describeLaunchError, and summarizeResult methods",
+        "'azure-foundry' is added to the CliProviderId union type in src/codex/providerFactory.ts (or wherever CliProviderId is defined)",
+        "createCliProviderForId('azure-foundry', config) returns the Azure Foundry provider instance without throwing",
+        "Unit tests in test/azureFoundryProvider.test.ts mock the HTTP endpoint and verify extractResponseText (success), describeLaunchError (non-200 status), and that buildLaunchSpec returns a spec with the configured endpoint URL",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 49
+  "mutationCount": 51
 }

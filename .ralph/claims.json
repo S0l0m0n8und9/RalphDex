@@ -1678,6 +1678,13 @@
       "claimedAt": "2026-04-07T20:16:01.402Z",
       "provenanceId": "run-i065-cli-20260407T201601Z",
       "status": "released"
+    },
+    {
+      "taskId": "T77",
+      "agentId": "build",
+      "provenanceId": "run-i067-cli-20260407T212506Z",
+      "claimedAt": "2026-04-07T21:25:06.286Z",
+      "status": "active"
     }
   ]
 }

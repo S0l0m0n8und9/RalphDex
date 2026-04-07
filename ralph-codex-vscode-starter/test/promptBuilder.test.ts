@@ -3,7 +3,11 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import { buildPrompt, choosePromptKind, decidePromptKind } from '../src/prompt/promptBuilder';
+import { buildPrompt, choosePromptKind, decidePromptKind, extractStaticPrefix, STATIC_PREFIX_BOUNDARY } from '../src/prompt/promptBuilder';
+
+const snapshotDirectory = path.resolve(__dirname, '../../test/fixtures/snapshots');
+const updateSnapshots = process.argv.includes('--updateSnapshot')
+  || process.env.npm_config_updatesnapshot !== undefined;
 import { RalphPaths } from '../src/ralph/pathResolver';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { RalphIterationResult, RalphWorkspaceState } from '../src/ralph/types';
@@ -1767,5 +1771,91 @@ test('buildPreflightContext surfaces session_handoff_available diagnostic in the
   assert.ok(
     !render.evidence.inputs.preflightContext.some((line) => /workspaceRuntime info:/.test(line)),
     'info diagnostics should not appear via salient-warning block'
+  );
+});
+
+test('static prefix is byte-identical across two prompt builds that differ only in task input', async () => {
+  const sharedInput = {
+    kind: 'iteration' as const,
+    target: 'cliExec' as const,
+    iteration: 2,
+    selectionReason: 'A prior Ralph prompt exists and there is no stronger prior-iteration signal.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: { todo: 2, in_progress: 1, blocked: 0, done: 3 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2 as const,
+      tasks: [
+        { id: 'T10', title: 'Add cache-friendly static prefix', status: 'todo' as const },
+        { id: 'T11', title: 'Surface recommended skills in Show Status', status: 'todo' as const }
+      ]
+    },
+    taskValidationHint: validationProvenance.taskValidationHint,
+    effectiveValidationCommand: validationProvenance.effectiveValidationCommand,
+    normalizedValidationCommandFrom: validationProvenance.normalizedValidationCommandFrom,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Preflight completed.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  };
+
+  const renderA = await buildPrompt({
+    ...sharedInput,
+    selectedTask: { id: 'T10', title: 'Add cache-friendly static prefix', status: 'todo' }
+  });
+
+  const renderB = await buildPrompt({
+    ...sharedInput,
+    selectedTask: { id: 'T11', title: 'Surface recommended skills in Show Status', status: 'todo' }
+  });
+
+  const prefixA = extractStaticPrefix(renderA.prompt);
+  const prefixB = extractStaticPrefix(renderB.prompt);
+
+  assert.ok(
+    renderA.prompt.includes(STATIC_PREFIX_BOUNDARY),
+    'Rendered prompt must contain the static prefix boundary marker'
+  );
+  assert.ok(
+    prefixA.length > 0,
+    'Extracted static prefix must be non-empty'
+  );
+  assert.equal(
+    prefixA,
+    prefixB,
+    'Static prefix must be byte-identical across two builds that differ only in task input'
+  );
+
+  const snapshotFile = path.join(snapshotDirectory, 'static-prefix.iteration.cliExec.md');
+  const normalizedPrefix = prefixA.replace(/\r\n/g, '\n');
+
+  if (updateSnapshots) {
+    await fs.mkdir(snapshotDirectory, { recursive: true });
+    await fs.writeFile(snapshotFile, normalizedPrefix, 'utf8');
+    return;
+  }
+
+  let stored: string;
+  try {
+    stored = await fs.readFile(snapshotFile, 'utf8');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      assert.fail(
+        `Missing snapshot ${path.relative(process.cwd(), snapshotFile)}. Run npm test -- --updateSnapshot to create it.`
+      );
+    }
+    throw error;
+  }
+
+  assert.equal(
+    normalizedPrefix,
+    stored.replace(/\r\n/g, '\n'),
+    `Static prefix snapshot mismatch. Inspect ${path.relative(process.cwd(), snapshotFile)} and update intentionally with npm test -- --updateSnapshot.`
   );
 });

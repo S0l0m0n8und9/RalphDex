@@ -36,11 +36,13 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.STATIC_PREFIX_BOUNDARY = void 0;
 exports.resolvePromptTemplateDirectory = resolvePromptTemplateDirectory;
 exports.decidePromptKind = decidePromptKind;
 exports.choosePromptKind = choosePromptKind;
 exports.createPromptFileName = createPromptFileName;
 exports.createArtifactBaseName = createArtifactBaseName;
+exports.extractStaticPrefix = extractStaticPrefix;
 exports.buildPrompt = buildPrompt;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -756,13 +758,39 @@ function createPromptFileName(kind, iteration) {
 function createArtifactBaseName(kind, iteration) {
     return `${kind}-${String(iteration).padStart(3, '0')}`;
 }
+/**
+ * Marker that appears in the rendered prompt immediately before the first dynamic section.
+ * Everything before this marker is the static prefix — stable for a given kind/target/agentRole
+ * and therefore eligible for prompt caching.
+ */
+exports.STATIC_PREFIX_BOUNDARY = '\n\n## Template Selection\n';
+/**
+ * Extracts the static prefix from a fully-rendered prompt.
+ * The static prefix contains sections that do not vary by task input:
+ * system prompt, persona (Prompt Strategy), project conventions (Operating Rules),
+ * and completion report instructions (Execution Contract, Final Response Contract).
+ */
+function extractStaticPrefix(prompt) {
+    const idx = prompt.indexOf(exports.STATIC_PREFIX_BOUNDARY);
+    return idx === -1 ? prompt : prompt.slice(0, idx + 1);
+}
 async function buildPrompt(input) {
     const agentRole = effectiveAgentRole(input.config);
     const { templatePath, templateText } = await loadTemplate(input.kind, input.paths.rootPath, input.config.promptTemplateDirectory, agentRole);
     const taskLedgerDriftMessages = taskLedgerDriftMessagesFromDiagnostics(input.preflightReport.diagnostics);
     const budgetPolicy = (0, promptBudget_1.buildPromptBudgetPolicy)(input.kind, input.target, input.config.promptBudgetProfile ?? 'codex', input.config.customPromptBudget ?? {});
-    const sectionBodies = {
+    // === Static sections: stable for a given kind/target/agentRole ===
+    // These sections do not vary by task input and form the cacheable static prefix of the prompt.
+    // They must be assembled before all per-iteration dynamic sections (see template order).
+    const staticSectionBodies = {
         strategyContext: buildStrategyContext(input.target, input.kind, agentRole, taskLedgerDriftMessages),
+        operatingRules: buildOperatingRules(agentRole),
+        executionContract: buildExecutionContract(input.target, input.kind, agentRole),
+        finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
+    };
+    // === Dynamic sections: vary by task, state, or iteration ===
+    // These sections follow the static prefix and carry per-iteration context.
+    const dynamicSectionBodies = {
         preflightContext: buildPreflightContext(input.preflightReport),
         objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
         repoContext: buildRepoContext(input.summary, input.kind, input.target, input.selectedTask, budgetPolicy.repoDetail),
@@ -772,11 +800,9 @@ async function buildPrompt(input) {
             .split('\n')
             .map((line) => line.trimEnd())
             .filter((line) => line.length > 0),
-        priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask, input.sessionHandoff ?? null),
-        operatingRules: buildOperatingRules(agentRole),
-        executionContract: buildExecutionContract(input.target, input.kind, agentRole),
-        finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
+        priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask, input.sessionHandoff ?? null)
     };
+    const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };
     const omittedSections = new Set();
     const placeholderFor = (name) => {
         if (!omittedSections.has(name)) {

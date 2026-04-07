@@ -4,11 +4,20 @@
 
 Treat the prior blocker as real until the repository proves otherwise. Keep the next safe action, review point, or missing decision explicit.
 
-## Template Selection
-{{template_selection_reason}}
-
 ## Prompt Strategy
 {{strategy_context}}
+
+## Operating Rules
+{{operating_rules}}
+
+## Execution Contract
+{{execution_contract}}
+
+## Final Response Contract
+{{final_response_contract}}
+
+## Template Selection
+{{template_selection_reason}}
 
 ## Preflight Snapshot
 {{preflight_context}}
@@ -30,12 +39,3 @@ Treat the prior blocker as real until the repository proves otherwise. Keep the 
 
 ## Prior Iteration Evidence
 {{prior_iteration_context}}
-
-## Operating Rules
-{{operating_rules}}
-
-## Execution Contract
-{{execution_contract}}
-
-## Final Response Contract
-{{final_response_contract}}

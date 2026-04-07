@@ -945,6 +945,24 @@ export function createArtifactBaseName(kind: RalphPromptKind, iteration: number)
   return `${kind}-${String(iteration).padStart(3, '0')}`;
 }
 
+/**
+ * Marker that appears in the rendered prompt immediately before the first dynamic section.
+ * Everything before this marker is the static prefix — stable for a given kind/target/agentRole
+ * and therefore eligible for prompt caching.
+ */
+export const STATIC_PREFIX_BOUNDARY = '\n\n## Template Selection\n';
+
+/**
+ * Extracts the static prefix from a fully-rendered prompt.
+ * The static prefix contains sections that do not vary by task input:
+ * system prompt, persona (Prompt Strategy), project conventions (Operating Rules),
+ * and completion report instructions (Execution Contract, Final Response Contract).
+ */
+export function extractStaticPrefix(prompt: string): string {
+  const idx = prompt.indexOf(STATIC_PREFIX_BOUNDARY);
+  return idx === -1 ? prompt : prompt.slice(0, idx + 1);
+}
+
 export async function buildPrompt(input: PromptGenerationInput): Promise<PromptRenderResult> {
   const agentRole = effectiveAgentRole(input.config);
   const { templatePath, templateText } = await loadTemplate(
@@ -961,8 +979,19 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     input.config.promptBudgetProfile ?? 'codex',
     input.config.customPromptBudget ?? {}
   );
-  const sectionBodies = {
+  // === Static sections: stable for a given kind/target/agentRole ===
+  // These sections do not vary by task input and form the cacheable static prefix of the prompt.
+  // They must be assembled before all per-iteration dynamic sections (see template order).
+  const staticSectionBodies = {
     strategyContext: buildStrategyContext(input.target, input.kind, agentRole, taskLedgerDriftMessages),
+    operatingRules: buildOperatingRules(agentRole),
+    executionContract: buildExecutionContract(input.target, input.kind, agentRole),
+    finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
+  };
+
+  // === Dynamic sections: vary by task, state, or iteration ===
+  // These sections follow the static prefix and carry per-iteration context.
+  const dynamicSectionBodies = {
     preflightContext: buildPreflightContext(input.preflightReport),
     objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
     repoContext: buildRepoContext(
@@ -1001,11 +1030,10 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       input.paths.rootPath,
       input.selectedTask,
       input.sessionHandoff ?? null
-    ),
-    operatingRules: buildOperatingRules(agentRole),
-    executionContract: buildExecutionContract(input.target, input.kind, agentRole),
-    finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
+    )
   };
+
+  const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };
 
   const omittedSections = new Set<PromptSectionName>();
   const placeholderFor = (name: PromptSectionName): string => {

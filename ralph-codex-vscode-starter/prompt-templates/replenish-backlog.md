@@ -2,11 +2,20 @@
 
 {{prompt_intro}}
 
-## Why This Prompt Exists
-{{template_selection_reason}}
-
 ## Prompt Strategy
 {{strategy_context}}
+
+## Operating Rules
+{{operating_rules}}
+
+## Execution Contract
+{{execution_contract}}
+
+## Final Response Contract
+{{final_response_contract}}
+
+## Why This Prompt Exists
+{{template_selection_reason}}
 
 ## Preflight Snapshot
 {{preflight_context}}
@@ -28,12 +37,3 @@
 
 ## Prior Iteration Evidence
 {{prior_iteration_context}}
-
-## Operating Rules
-{{operating_rules}}
-
-## Execution Contract
-{{execution_contract}}
-
-## Final Response Contract
-{{final_response_contract}}
