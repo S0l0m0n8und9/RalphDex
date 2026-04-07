@@ -99,7 +99,13 @@ async function reconcileCompletionReport(input) {
     }
     const requestedStatus = parsed.report.requestedStatus;
     if (requestedStatus === 'done') {
-        if (input.verificationStatus !== 'passed') {
+        // Allow reconciliation when the validation command passed, even if gitDiff
+        // failed (no code changes needed — the task was already complete).  The
+        // taskState verifier runs *after* reconciliation and will confirm the
+        // status change in tasks.json, so the final verification still has a
+        // meaningful gate.
+        const validationGatePassed = input.validationCommandStatus === 'passed';
+        if (!validationGatePassed && input.verificationStatus !== 'passed') {
             warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
         }
         if (parsed.report.needsHumanReview) {
@@ -109,9 +115,9 @@ async function reconcileCompletionReport(input) {
             return {
                 artifact: {
                     ...artifactBase,
-                    rejectionReason: input.verificationStatus !== 'passed'
-                        ? 'verification_failed'
-                        : 'needs_human_review_with_done',
+                    rejectionReason: parsed.report.needsHumanReview
+                        ? 'needs_human_review_with_done'
+                        : 'verification_failed',
                     warnings
                 },
                 selectedTask: input.selectedTask,

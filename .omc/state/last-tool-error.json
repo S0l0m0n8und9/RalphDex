@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd \\\"c:\\\\Users\\\\ben.jones\\\\Repos\\\\RalphDex\\\\ralph-codex-vscode-starter\\\" && npm run validate 2>&1\",\"timeout\":60000,\"description\":\"Run validate after docs fix\"}",
-  "error": "Exit code 1\n\n> ralph-codex-workbench@0.1.0 validate\n> npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test\n\n\n> ralph-codex-workbench@0.1.0 compile\n> tsc -p ./\n\n\n> ralph-codex-workbench@0.1.0 check:docs\n> node ./scripts/check-docs.js\n\nDocumentation validation passed.\n\n> ralph-codex-workbench@0.1.0 check:ledger\n> node ./scripts/check-ledger.js\n\n\n> ralph-codex-workbench@0.1.0 check:prompt-budget\n> node ./scripts/validate-prompt...",
-  "timestamp": "2026-03-31T19:30:02.667Z",
-  "retry_count": 1
-}
