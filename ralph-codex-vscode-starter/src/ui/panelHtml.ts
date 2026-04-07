@@ -414,7 +414,7 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
     ].join('\n')),
 
     group('Model Tiering', [
-      checkRow(nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')),
+      checkRow(checkbox('enableModelTiering', cfg.modelTiering.enabled, 'Enable model tiering')),
       row('Simple Provider', nestedSelect('modelTiering', 'simple.provider', cfg.modelTiering.simple.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
       row('Simple Model', nestedInput('modelTiering', 'simple.model', 'text', cfg.modelTiering.simple.model)),
       row('Medium Provider', nestedSelect('modelTiering', 'medium.provider', cfg.modelTiering.medium.provider ?? '', ['', 'codex', 'claude', 'copilot'])),

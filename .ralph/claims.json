@@ -1680,11 +1680,11 @@
       "status": "released"
     },
     {
-      "taskId": "T77",
       "agentId": "build",
-      "provenanceId": "run-i067-cli-20260407T212506Z",
+      "taskId": "T77",
       "claimedAt": "2026-04-07T21:25:06.286Z",
-      "status": "active"
+      "provenanceId": "run-i067-cli-20260407T212506Z",
+      "status": "released"
     }
   ]
 }
