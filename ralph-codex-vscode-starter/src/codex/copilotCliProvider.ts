@@ -57,15 +57,41 @@ export class CopilotCliProvider implements CliProvider {
       return '';
     }
 
-    // Scan JSONL output (--output-format=json) for a result event, scanning
-    // from the end so the final result is found first. This mirrors the
-    // pattern used by claudeCliProvider for --output-format stream-json.
+    // Scan JSONL output (--output-format=json) for the last assistant message,
+    // scanning from the end so the final message is found first.
+    //
+    // The Copilot CLI emits JSONL with several event types:
+    //   - assistant.message       → { data: { content: "..." } }
+    //   - session.task_complete   → { data: { summary: "..." } }
+    //   - result                  → { exitCode, usage, ... } (no response text)
+    //
+    // The completion report JSON block lives inside the last assistant.message
+    // content. The result event only carries metadata (exitCode, usage) and
+    // does NOT contain the agent's response text.
     const lines = trimmed.split('\n');
     for (let i = lines.length - 1; i >= 0; i--) {
       const line = lines[i].trim();
       if (!line) continue;
       try {
-        const parsed = JSON.parse(line) as { type?: string; result?: string };
+        const parsed = JSON.parse(line) as {
+          type?: string;
+          result?: string;
+          data?: { content?: string; summary?: string };
+        };
+
+        // Primary: extract the last assistant.message with content — this is
+        // where the agent's final response (including the completion report
+        // JSON block) lives.
+        if (parsed.type === 'assistant.message'
+          && typeof parsed.data?.content === 'string'
+          && parsed.data.content.trim()) {
+          const content = parsed.data.content;
+          await fs.writeFile(lastMessagePath, content, 'utf8').catch(() => {});
+          return content;
+        }
+
+        // Legacy fallback: some older Copilot CLI builds may emit a result
+        // event with an inline result string.
         if (parsed.type === 'result' && typeof parsed.result === 'string') {
           await fs.writeFile(lastMessagePath, parsed.result, 'utf8').catch(() => {});
           return parsed.result;

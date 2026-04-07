@@ -159,3 +159,43 @@ test('extractResponseText returns empty string for empty stdout', async () => {
 
   assert.equal(text, '');
 });
+
+test('extractResponseText extracts last assistant.message from real Copilot CLI JSONL', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-jsonl-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+
+  // Simulates real Copilot CLI --output-format=json output: the completion
+  // report lives inside the last assistant.message, NOT in the result event.
+  const assistantContent = 'All tests pass.\n\n```json\n{\n  "selectedTaskId": "T007.2",\n  "requestedStatus": "done",\n  "progressNote": "All done.",\n  "validationRan": "python -m pytest",\n  "needsHumanReview": false\n}\n```';
+  const stdout = [
+    '{"type":"assistant.message","data":{"content":"Let me check the code..."}}',
+    '{"type":"tool.execution_start","data":{"toolCallId":"t1","toolName":"powershell"}}',
+    '{"type":"tool.execution_complete","data":{"toolCallId":"t1","success":true}}',
+    JSON.stringify({ type: 'assistant.message', data: { content: assistantContent } }),
+    '{"type":"session.task_complete","data":{"summary":"Task done."}}',
+    '{"type":"result","timestamp":"2026-04-07T02:01:14.983Z","sessionId":"abc","exitCode":0,"usage":{"premiumRequests":3}}'
+  ].join('\n');
+
+  const text = await provider().extractResponseText(stdout, '', lastMessagePath);
+
+  assert.equal(text, assistantContent);
+  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), assistantContent);
+  assert.match(text, /selectedTaskId/);
+  assert.match(text, /requestedStatus.*done/);
+});
+
+test('extractResponseText skips assistant.message with empty content', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-empty-msg-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+
+  const realContent = 'Here is the answer.\n\n```json\n{"selectedTaskId":"T001","requestedStatus":"done"}\n```';
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: realContent } }),
+    '{"type":"assistant.message","data":{"content":"","toolRequests":[]}}',
+    '{"type":"result","timestamp":"2026-04-07T00:00:00Z","sessionId":"x","exitCode":0,"usage":{}}'
+  ].join('\n');
+
+  const text = await provider().extractResponseText(stdout, '', lastMessagePath);
+
+  assert.equal(text, realContent);
+});
