@@ -397,12 +397,18 @@ function registerCommands(context, logger, broadcaster) {
             });
             let prdText;
             let drafts;
+            let skillsPath;
             if (objective?.trim()) {
                 progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
                 try {
                     const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
                     prdText = generated.prdText;
                     drafts = generated.tasks;
+                    if (generated.recommendedSkills.length > 0) {
+                        skillsPath = path.join(result.ralphDir, 'recommended-skills.json');
+                        await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
+                        logger.info('Wrote recommended-skills.json.', { skillCount: generated.recommendedSkills.length });
+                    }
                     logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
                 }
                 catch (err) {
@@ -515,6 +521,11 @@ function registerCommands(context, logger, broadcaster) {
                     const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
                     prdText = generated.prdText;
                     drafts = generated.tasks;
+                    if (generated.recommendedSkills.length > 0) {
+                        const skillsPath = path.join(absPaths.dir, 'recommended-skills.json');
+                        await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
+                        logger.info(`Wrote recommended-skills.json for project "${slug}".`, { skillCount: generated.recommendedSkills.length });
+                    }
                     logger.info(`Generated PRD and tasks for project "${slug}" via AI.`, { taskCount: drafts.length });
                 }
                 catch (err) {

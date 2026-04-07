@@ -2389,11 +2389,11 @@
     {
       "id": "T76",
       "title": "Extend PRD generation prompt to produce recommendedSkills array in JSON response",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T74"
       ],
-      "notes": "Phase 1 of project-specific skills/agents recommendation feature. Extends the PRD generation prompt (invoked in T74) to recommend skills based on project type and task list. Skills are returned as a structured `recommendedSkills` array in the JSON fence.",
+      "notes": "Prompt template updated to output {tasks, recommendedSkills} object; parseGenerationResponse extracts and validates recommendedSkills (tolerates missing/empty); generateProjectDraft return type extended; registerCommands persists recommended-skills.json in both initializeWorkspace and newProject; 13 new/updated tests added; 547/547 pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "PRD generation prompt (in T74's promptBuilder template or a dedicated generation-prompt template) produces a `recommendedSkills` array in the JSON fence with {name, description, rationale} fields for each recommended skill",
@@ -2404,5 +2404,5 @@
       ]
     }
   ],
-  "mutationCount": 48
+  "mutationCount": 49
 }

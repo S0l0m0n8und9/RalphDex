@@ -18,10 +18,15 @@ Build the core data model.
 Expose a REST interface.
 
 \`\`\`json
-[
-  { "id": "T1", "title": "Build core data model", "status": "todo" },
-  { "id": "T2", "title": "Expose REST interface", "status": "todo" }
-]
+{
+  "tasks": [
+    { "id": "T1", "title": "Build core data model", "status": "todo" },
+    { "id": "T2", "title": "Expose REST interface", "status": "todo" }
+  ],
+  "recommendedSkills": [
+    { "name": "jest", "description": "JavaScript testing framework", "rationale": "Essential for testing the data model and API layers" }
+  ]
+}
 \`\`\``;
 
 test('parseGenerationResponse extracts prdText before the JSON fence', () => {
@@ -39,20 +44,20 @@ test('parseGenerationResponse returns correct task array', () => {
 });
 
 test('parseGenerationResponse forces status to "todo" regardless of what AI returns', () => {
-  const response = '# P\n```json\n[{ "id": "T1", "title": "x", "status": "in_progress" }]\n```';
+  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "in_progress" }]}\n```';
   const { tasks } = parseGenerationResponse(response);
   assert.equal(tasks[0].status, 'todo');
 });
 
 test('parseGenerationResponse uses the LAST json fence when multiple are present', () => {
-  const response = '# P\n```json\n[{ "id": "TX", "title": "wrong", "status": "todo" }]\n```\nMore text.\n```json\n[{ "id": "T1", "title": "right", "status": "todo" }]\n```';
+  const response = '# P\n```json\n{"tasks":[{ "id": "TX", "title": "wrong", "status": "todo" }]}\n```\nMore text.\n```json\n{"tasks":[{ "id": "T1", "title": "right", "status": "todo" }]}\n```';
   const { tasks } = parseGenerationResponse(response);
   assert.equal(tasks[0].id, 'T1');
 });
 
 test('parseGenerationResponse throws ProjectGenerationError when no PRD text before JSON fence', () => {
   assert.throws(
-    () => parseGenerationResponse('```json\n[{ "id": "T1", "title": "x", "status": "todo" }]\n```'),
+    () => parseGenerationResponse('```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n```'),
     (err: unknown) => {
       assert.ok(err instanceof ProjectGenerationError);
       assert.match(err.message, /no PRD text/);
@@ -83,12 +88,34 @@ test('parseGenerationResponse throws ProjectGenerationError when JSON is malform
   );
 });
 
-test('parseGenerationResponse throws ProjectGenerationError when JSON is an empty array', () => {
+test('parseGenerationResponse throws ProjectGenerationError when JSON is a bare array instead of object', () => {
   assert.throws(
     () => parseGenerationResponse('# P\n```json\n[]\n```'),
     (err: unknown) => {
       assert.ok(err instanceof ProjectGenerationError);
-      assert.match(err.message, /non-empty array/);
+      assert.match(err.message, /object/);
+      return true;
+    }
+  );
+});
+
+test('parseGenerationResponse throws ProjectGenerationError when tasks array is empty', () => {
+  assert.throws(
+    () => parseGenerationResponse('# P\n```json\n{"tasks":[]}\n```'),
+    (err: unknown) => {
+      assert.ok(err instanceof ProjectGenerationError);
+      assert.match(err.message, /non-empty/);
+      return true;
+    }
+  );
+});
+
+test('parseGenerationResponse throws ProjectGenerationError when tasks field is missing', () => {
+  assert.throws(
+    () => parseGenerationResponse('# P\n```json\n{"recommendedSkills":[]}\n```'),
+    (err: unknown) => {
+      assert.ok(err instanceof ProjectGenerationError);
+      assert.match(err.message, /"tasks"/);
       return true;
     }
   );
@@ -96,7 +123,7 @@ test('parseGenerationResponse throws ProjectGenerationError when JSON is an empt
 
 test('parseGenerationResponse throws ProjectGenerationError when task missing id', () => {
   assert.throws(
-    () => parseGenerationResponse('# P\n```json\n[{ "title": "x", "status": "todo" }]\n```'),
+    () => parseGenerationResponse('# P\n```json\n{"tasks":[{ "title": "x", "status": "todo" }]}\n```'),
     (err: unknown) => {
       assert.ok(err instanceof ProjectGenerationError);
       assert.match(err.message, /"id"/);
@@ -107,13 +134,40 @@ test('parseGenerationResponse throws ProjectGenerationError when task missing id
 
 test('parseGenerationResponse throws ProjectGenerationError when task missing title', () => {
   assert.throws(
-    () => parseGenerationResponse('# P\n```json\n[{ "id": "T1", "status": "todo" }]\n```'),
+    () => parseGenerationResponse('# P\n```json\n{"tasks":[{ "id": "T1", "status": "todo" }]}\n```'),
     (err: unknown) => {
       assert.ok(err instanceof ProjectGenerationError);
       assert.match(err.message, /"title"/);
       return true;
     }
   );
+});
+
+test('parseGenerationResponse extracts recommendedSkills from valid response', () => {
+  const { recommendedSkills } = parseGenerationResponse(VALID_RESPONSE);
+  assert.equal(recommendedSkills.length, 1);
+  assert.equal(recommendedSkills[0].name, 'jest');
+  assert.ok(recommendedSkills[0].description.length > 0);
+  assert.ok(recommendedSkills[0].rationale.length > 0);
+});
+
+test('parseGenerationResponse returns empty recommendedSkills when field is absent', () => {
+  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n```';
+  const { recommendedSkills } = parseGenerationResponse(response);
+  assert.deepEqual(recommendedSkills, []);
+});
+
+test('parseGenerationResponse returns empty recommendedSkills when field is empty array', () => {
+  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }],"recommendedSkills":[]}\n```';
+  const { recommendedSkills } = parseGenerationResponse(response);
+  assert.deepEqual(recommendedSkills, []);
+});
+
+test('parseGenerationResponse silently skips malformed skill entries', () => {
+  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }],"recommendedSkills":[{"name":"ok","description":"d","rationale":"r"},{"name":42}]}\n```';
+  const { recommendedSkills } = parseGenerationResponse(response);
+  assert.equal(recommendedSkills.length, 1);
+  assert.equal(recommendedSkills[0].name, 'ok');
 });
 
 import { generateProjectDraft } from '../src/ralph/projectGenerator';
@@ -124,11 +178,11 @@ import * as nodeOs from 'node:os';
 // Claude provider: stdout is NDJSON with a "result" field
 const VALID_CLAUDE_STDOUT = JSON.stringify({
   type: 'result',
-  result: `# Draft Project\n\n## Overview\nOverview text.\n\n## Phase 1\nDo the first thing.\n\n\`\`\`json\n[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]\n\`\`\``,
+  result: `# Draft Project\n\n## Overview\nOverview text.\n\n## Phase 1\nDo the first thing.\n\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }],"recommendedSkills":[{"name":"vitest","description":"Fast unit test runner","rationale":"Suits the project stack"}]}\n\`\`\``,
   num_turns: 1
 });
 
-test('generateProjectDraft returns prdText and tasks on success (claude provider)', async () => {
+test('generateProjectDraft returns prdText, tasks, and recommendedSkills on success (claude provider)', async () => {
   setProcessRunnerOverride((_cmd, _args, _opts) => ({
     code: 0,
     stdout: VALID_CLAUDE_STDOUT,
@@ -145,6 +199,8 @@ test('generateProjectDraft returns prdText and tasks on success (claude provider
     assert.equal(result.tasks.length, 1);
     assert.equal(result.tasks[0].id, 'T1');
     assert.equal(result.tasks[0].status, 'todo');
+    assert.equal(result.recommendedSkills.length, 1);
+    assert.equal(result.recommendedSkills[0].name, 'vitest');
   } finally {
     setProcessRunnerOverride(null);
   }
@@ -203,7 +259,7 @@ test('generateProjectDraft uses copilotCommandPath when cliProvider is copilot',
     capturedCommand = cmd;
     return {
       code: 0,
-      stdout: `GitHub Copilot response\n# P\n\`\`\`json\n[{ "id": "T1", "title": "x", "status": "todo" }]\n\`\`\``,
+      stdout: `GitHub Copilot response\n# P\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n\`\`\``,
       stderr: ''
     };
   });
@@ -221,7 +277,7 @@ test('generateProjectDraft uses copilotCommandPath when cliProvider is copilot',
 });
 
 test('generateProjectDraft uses codexCommandPath and parses codex response correctly', async () => {
-  const codexResponse = `# Codex Project\n\n## Overview\nSome overview.\n\n## Phase 1\nDo something.\n\n\`\`\`json\n[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]\n\`\`\``;
+  const codexResponse = `# Codex Project\n\n## Overview\nSome overview.\n\n## Phase 1\nDo something.\n\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]}\n\`\`\``;
   const fsSync = require('node:fs');
 
   let capturedCommand = '';

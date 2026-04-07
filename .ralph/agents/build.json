@@ -15,7 +15,8 @@
     "T73.1",
     "T73.2",
     "T74.1",
-    "T75"
+    "T75",
+    "T76"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -30,6 +31,7 @@
     "ralph-codex-vscode-starter/out/codex/providerFactory.js",
     "ralph-codex-vscode-starter/out/commands/artifactCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
+    "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
     "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
     "ralph-codex-vscode-starter/out/config/defaults.js",
     "ralph-codex-vscode-starter/out/config/defaults.js.map",
@@ -91,6 +93,7 @@
     "ralph-codex-vscode-starter/test/pipeline.test.ts",
     "ralph-codex-vscode-starter/test/preflight.test.ts",
     "ralph-codex-vscode-starter/test/processRunner.test.ts",
+    "ralph-codex-vscode-starter/test/projectGenerator.test.ts",
     "ralph-codex-vscode-starter/test/shimConfig.test.ts",
     "ralph-codex-vscode-starter/test/shimMain.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",

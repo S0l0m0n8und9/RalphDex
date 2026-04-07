@@ -69,10 +69,14 @@ function parseGenerationResponse(responseText) {
     catch {
         throw new ProjectGenerationError(`AI response contained a malformed JSON block: ${jsonText.slice(0, 100)}`);
     }
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-        throw new ProjectGenerationError('AI response JSON block must be a non-empty array of tasks.');
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        throw new ProjectGenerationError('AI response JSON block must be an object with "tasks" and optional "recommendedSkills" fields.');
     }
-    const tasks = parsed.map((item, i) => {
+    const parsedObj = parsed;
+    if (!Array.isArray(parsedObj.tasks) || parsedObj.tasks.length === 0) {
+        throw new ProjectGenerationError('AI response JSON block must contain a non-empty "tasks" array.');
+    }
+    const tasks = parsedObj.tasks.map((item, i) => {
         if (typeof item !== 'object' || item === null ||
             typeof item.id !== 'string' ||
             typeof item.title !== 'string') {
@@ -84,7 +88,22 @@ function parseGenerationResponse(responseText) {
             status: 'todo'
         };
     });
-    return { prdText, tasks };
+    const recommendedSkills = [];
+    if (Array.isArray(parsedObj.recommendedSkills)) {
+        for (const skill of parsedObj.recommendedSkills) {
+            if (typeof skill === 'object' && skill !== null &&
+                typeof skill.name === 'string' &&
+                typeof skill.description === 'string' &&
+                typeof skill.rationale === 'string') {
+                recommendedSkills.push({
+                    name: skill.name,
+                    description: skill.description,
+                    rationale: skill.rationale
+                });
+            }
+        }
+    }
+    return { prdText, tasks, recommendedSkills };
 }
 const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
 
@@ -94,20 +113,26 @@ The user's objective is:
 {OBJECTIVE}
 </objective>
 
-Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an array of tasks.
+Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks and recommended skills.
 
 Requirements:
 - Start with a # heading for the project title
 - Include: ## Overview, ## Goals, then one ## section per major work area (aim for 3-7 sections)
 - Keep each section to 2-4 sentences
 - Tasks must correspond one-to-one with the ## work area sections
+- Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
 - End your response with EXACTLY this structure (no text after the closing fence):
 
 \`\`\`json
-[
-  { "id": "T1", "title": "short task title", "status": "todo" },
-  { "id": "T2", "title": "short task title", "status": "todo" }
-]
+{
+  "tasks": [
+    { "id": "T1", "title": "short task title", "status": "todo" },
+    { "id": "T2", "title": "short task title", "status": "todo" }
+  ],
+  "recommendedSkills": [
+    { "name": "skill-name", "description": "one-line description of the skill", "rationale": "why this skill suits the project type and tasks" }
+  ]
+}
 \`\`\`
 
 Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;

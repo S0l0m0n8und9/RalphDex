@@ -12,9 +12,16 @@ export class ProjectGenerationError extends Error {
   }
 }
 
+export interface RecommendedSkill {
+  name: string;
+  description: string;
+  rationale: string;
+}
+
 export function parseGenerationResponse(responseText: string): {
   prdText: string;
   tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[];
+  recommendedSkills: RecommendedSkill[];
 } {
   const fencePattern = /```json\s*([\s\S]*?)```/g;
   let lastMatch: RegExpExecArray | null = null;
@@ -40,11 +47,17 @@ export function parseGenerationResponse(responseText: string): {
     throw new ProjectGenerationError(`AI response contained a malformed JSON block: ${jsonText.slice(0, 100)}`);
   }
 
-  if (!Array.isArray(parsed) || parsed.length === 0) {
-    throw new ProjectGenerationError('AI response JSON block must be a non-empty array of tasks.');
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new ProjectGenerationError('AI response JSON block must be an object with "tasks" and optional "recommendedSkills" fields.');
   }
 
-  const tasks = (parsed as unknown[]).map((item, i) => {
+  const parsedObj = parsed as Record<string, unknown>;
+
+  if (!Array.isArray(parsedObj.tasks) || (parsedObj.tasks as unknown[]).length === 0) {
+    throw new ProjectGenerationError('AI response JSON block must contain a non-empty "tasks" array.');
+  }
+
+  const tasks = (parsedObj.tasks as unknown[]).map((item, i) => {
     if (
       typeof item !== 'object' || item === null ||
       typeof (item as Record<string, unknown>).id !== 'string' ||
@@ -61,7 +74,25 @@ export function parseGenerationResponse(responseText: string): {
     };
   });
 
-  return { prdText, tasks };
+  const recommendedSkills: RecommendedSkill[] = [];
+  if (Array.isArray(parsedObj.recommendedSkills)) {
+    for (const skill of parsedObj.recommendedSkills as unknown[]) {
+      if (
+        typeof skill === 'object' && skill !== null &&
+        typeof (skill as Record<string, unknown>).name === 'string' &&
+        typeof (skill as Record<string, unknown>).description === 'string' &&
+        typeof (skill as Record<string, unknown>).rationale === 'string'
+      ) {
+        recommendedSkills.push({
+          name: (skill as Record<string, unknown>).name as string,
+          description: (skill as Record<string, unknown>).description as string,
+          rationale: (skill as Record<string, unknown>).rationale as string
+        });
+      }
+    }
+  }
+
+  return { prdText, tasks, recommendedSkills };
 }
 
 const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
@@ -72,20 +103,26 @@ The user's objective is:
 {OBJECTIVE}
 </objective>
 
-Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an array of tasks.
+Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks and recommended skills.
 
 Requirements:
 - Start with a # heading for the project title
 - Include: ## Overview, ## Goals, then one ## section per major work area (aim for 3-7 sections)
 - Keep each section to 2-4 sentences
 - Tasks must correspond one-to-one with the ## work area sections
+- Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
 - End your response with EXACTLY this structure (no text after the closing fence):
 
 \`\`\`json
-[
-  { "id": "T1", "title": "short task title", "status": "todo" },
-  { "id": "T2", "title": "short task title", "status": "todo" }
-]
+{
+  "tasks": [
+    { "id": "T1", "title": "short task title", "status": "todo" },
+    { "id": "T2", "title": "short task title", "status": "todo" }
+  ],
+  "recommendedSkills": [
+    { "name": "skill-name", "description": "one-line description of the skill", "rationale": "why this skill suits the project type and tasks" }
+  ]
+}
 \`\`\`
 
 Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
@@ -100,7 +137,7 @@ export async function generateProjectDraft(
   objective: string,
   config: RalphCodexConfig,
   cwd: string
-): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[] }> {
+): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[]; recommendedSkills: RecommendedSkill[] }> {
   const commandPath = commandPathForConfig(config);
   const provider = createCliProvider(config);
   const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
