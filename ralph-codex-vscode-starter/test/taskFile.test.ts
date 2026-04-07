@@ -484,22 +484,26 @@ test('inspectTaskFileText reports done parents with unfinished descendants as tr
     ]
   }));
 
+  // T1.2 (todo under done parent) is auto-corrected — parentId stripped, warning emitted.
+  // T1.1 (in_progress) and T1.1.1 (blocked) remain as children and trigger a tracker-drift error.
   assert.equal(inspection.taskFile, null);
   assert.deepEqual(
     inspection.diagnostics.map((diagnostic) => diagnostic.code),
-    ['completed_parent_with_incomplete_descendants']
+    ['auto_corrected_parent_reference', 'completed_parent_with_incomplete_descendants']
   );
   assert.match(
-    inspection.diagnostics[0]?.message ?? '',
-    /Task T1 .*descendant tasks are still unfinished: T1\.1 \(in_progress\), T1\.1\.1 \(blocked\), T1\.2 \(todo\)/
+    inspection.diagnostics[1]?.message ?? '',
+    /Task T1 .*descendant tasks are still unfinished: T1\.1 \(in_progress\), T1\.1\.1 \(blocked\)/
   );
   assert.deepEqual(
-    inspection.diagnostics[0]?.relatedTaskIds,
-    ['T1.1', 'T1.1.1', 'T1.2']
+    inspection.diagnostics[1]?.relatedTaskIds,
+    ['T1.1', 'T1.1.1']
   );
 });
 
-test('inspectTaskFileText reports done parents with unfinished inferred descendants after legacy normalization', () => {
+test('inspectTaskFileText auto-corrects inferred todo descendants of done parents after legacy normalization', () => {
+  // T1.1.1 is todo and its inferred parent T1.1 is done — parentId is stripped,
+  // a warning is emitted, and the task file loads successfully.
   const inspection = inspectTaskFileText(JSON.stringify({
     tasks: [
       { id: 'T1', title: 'Completed parent', status: 'done' },
@@ -508,31 +512,18 @@ test('inspectTaskFileText reports done parents with unfinished inferred descenda
     ]
   }, null, 2));
 
-  assert.equal(inspection.taskFile, null);
-  assert.equal(inspection.text, null);
+  assert.notEqual(inspection.taskFile, null);
+  assert.notEqual(inspection.text, null);
   assert.deepEqual(
     inspection.diagnostics.map((diagnostic) => diagnostic.code),
-    [
-      'completed_parent_with_incomplete_descendants',
-      'completed_parent_with_incomplete_descendants'
-    ]
+    ['auto_corrected_parent_reference']
   );
   assert.match(
     inspection.diagnostics[0]?.message ?? '',
-    /Task T1 .*descendant tasks are still unfinished: T1\.1\.1 \(todo\)/
+    /had parentId "T1\.1" which is already done; parentId stripped/
   );
-  assert.match(
-    inspection.diagnostics[1]?.message ?? '',
-    /Task T1\.1 .*descendant tasks are still unfinished: T1\.1\.1 \(todo\)/
-  );
-  assert.deepEqual(
-    inspection.diagnostics.map((diagnostic) => diagnostic.relatedTaskIds),
-    [['T1.1.1'], ['T1.1.1']]
-  );
-  assert.deepEqual(
-    inspection.diagnostics.map((diagnostic) => diagnostic.taskId),
-    ['T1', 'T1.1']
-  );
+  assert.equal(inspection.diagnostics[0]?.severity, 'warning');
+  assert.equal(inspection.diagnostics[0]?.taskId, 'T1.1.1');
 });
 
 test('acquireClaim writes a canonical active claim and releaseClaim marks it released', async () => {

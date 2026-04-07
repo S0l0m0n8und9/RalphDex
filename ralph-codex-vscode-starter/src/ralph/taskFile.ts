@@ -839,12 +839,38 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
       ? { ...task, parentId: inferredParentId }
       : task;
   });
+  // Strip parentId from non-done tasks whose declared parent is already done.
+  // When an agent proposes follow-on tasks under a done parent (either directly or
+  // via a completion-report suggestedChildTasks block), the resulting
+  // "completed_parent_with_incomplete_descendants" error would crash the loop.
+  // Auto-correcting here keeps the task as a top-level task so work can continue.
+  const statusById = new Map(migratedTasks.map((task) => [task.id, task.status]));
+  const correctedTasks = migratedTasks.map((task) => {
+    // Only strip todo tasks — in_progress/blocked under a done parent is a
+    // genuine stuck state that should remain an error and block the loop.
+    if (task.parentId && task.status === 'todo' && statusById.get(task.parentId) === 'done') {
+      diagnostics.push(createTaskGraphDiagnostic(
+        'auto_corrected_parent_reference',
+        `${taskLabel(task)} had parentId "${task.parentId}" which is already done; parentId stripped to prevent a stuck state.`,
+        {
+          severity: 'warning',
+          taskId: task.id,
+          relatedTaskIds: [task.parentId],
+          location: task.source
+        }
+      ));
+      const { parentId: _stripped, ...rest } = task;
+      return rest as RalphTask;
+    }
+    return task;
+  });
+
   const parsedMutationCount = typeof record.mutationCount === 'number' && Number.isInteger(record.mutationCount) && record.mutationCount >= 0
     ? record.mutationCount
     : undefined;
   const taskFile: RalphTaskFile = {
     version: 2,
-    tasks: migratedTasks,
+    tasks: correctedTasks,
     ...(parsedMutationCount !== undefined ? { mutationCount: parsedMutationCount } : {})
   };
   const taskDiagnostics = inspectTaskGraph(taskFile);
@@ -856,6 +882,7 @@ export function inspectTaskFileText(raw: string): RalphTaskFileInspection {
     text: taskDiagnostics.length === 0 ? normalizedText : null,
     migrated: explicitVersion !== 2
       || migratedTasks.some((task, index) => task.parentId !== normalizedTasks[index].parentId)
+      || correctedTasks.some((task, index) => task.parentId !== migratedTasks[index].parentId)
       || raw.trimEnd() !== normalizedText.trimEnd(),
     diagnostics: allDiagnostics
   };
