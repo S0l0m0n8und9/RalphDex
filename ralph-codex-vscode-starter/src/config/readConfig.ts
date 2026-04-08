@@ -448,8 +448,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
       // but only if explicitly set by the user (workspace or global scope).
       // Using inspect() avoids treating the package.json default (false) as a user choice.
-      // Use a no-scope getConfiguration to avoid window-scoped-setting-via-resource warnings.
-      const enableInspect = vscode.workspace.getConfiguration('ralphCodex').inspect<boolean>('enableModelTiering');
+      const enableInspect = config.inspect<boolean>('enableModelTiering');
       const enableOverride = enableInspect?.workspaceValue ?? enableInspect?.globalValue;
       if (typeof enableOverride === 'boolean') {
         tiering.enabled = enableOverride;

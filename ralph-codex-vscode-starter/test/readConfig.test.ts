@@ -109,3 +109,31 @@ test('readConfig supports Copilot provider defaults and overrides', () => {
   assert.equal(config.openSidebarCommandId, 'none');
   assert.equal(config.newChatCommandId, 'github.copilot.cli.newSession');
 });
+
+test('readConfig applies enableModelTiering workspace override to modelTiering.enabled', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    enableModelTiering: true,
+    modelTiering: {
+      simple: { model: 'claude-haiku-4-5' },
+      medium: { model: 'claude-sonnet-4-6' },
+      complex: { model: 'claude-opus-4-6' }
+    }
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.modelTiering.enabled, true);
+
+  harness.setConfiguration({
+    enableModelTiering: false,
+    modelTiering: {
+      simple: { model: 'claude-haiku-4-5' },
+      medium: { model: 'claude-sonnet-4-6' },
+      complex: { model: 'claude-opus-4-6' }
+    }
+  });
+
+  const disabled = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(disabled.modelTiering.enabled, false);
+});
