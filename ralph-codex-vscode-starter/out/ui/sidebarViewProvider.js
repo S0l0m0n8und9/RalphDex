@@ -42,6 +42,7 @@ const vscode = __importStar(require("vscode"));
 const crypto = __importStar(require("crypto"));
 const readConfig_1 = require("../config/readConfig");
 const sidebarHtml_1 = require("./sidebarHtml");
+const webviewConfigSync_1 = require("./webviewConfigSync");
 /**
  * Provides the sidebar webview launcher for Ralph Codex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
@@ -55,6 +56,7 @@ class RalphSidebarViewProvider {
     agentLanesMap = new Map();
     broadcastDisposable;
     lastRenderTime = 0;
+    configSync = new webviewConfigSync_1.WebviewConfigSync();
     constructor(extensionUri, broadcaster) {
         this.extensionUri = extensionUri;
         this.broadcaster = broadcaster;
@@ -68,11 +70,22 @@ class RalphSidebarViewProvider {
             if (msg.type === 'command' && msg.command) {
                 this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
                 try {
+                    await this.configSync.whenIdle();
                     await vscode.commands.executeCommand(msg.command);
                     this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
                 }
                 catch {
                     this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+                }
+            }
+            if (msg.type === 'update-setting') {
+                await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
+                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                if (workspaceFolder) {
+                    const freshConfig = (0, readConfig_1.readConfig)(workspaceFolder);
+                    this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
+                    this.lastRenderTime = 0; // force render
+                    this.fullRender();
                 }
             }
         });

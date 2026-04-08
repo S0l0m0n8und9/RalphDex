@@ -39,20 +39,7 @@ const crypto = __importStar(require("crypto"));
 const panelHtml_1 = require("./panelHtml");
 const sidebarViewProvider_1 = require("./sidebarViewProvider");
 const readConfig_1 = require("../config/readConfig");
-/** Deep-set a dotted path like "simple.model" inside an object. */
-function deepSet(obj, path, value) {
-    const parts = path.split('.');
-    let cur = obj;
-    for (let i = 0; i < parts.length - 1; i++) {
-        const key = parts[i];
-        if (cur[key] === undefined || cur[key] === null || typeof cur[key] !== 'object' || Array.isArray(cur[key])) {
-            cur[key] = {};
-        }
-        cur = cur[key];
-    }
-    cur[parts[parts.length - 1]] = value;
-    return obj;
-}
+const webviewConfigSync_1 = require("./webviewConfigSync");
 /**
  * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
  * in the editor area (centre stage).
@@ -67,6 +54,7 @@ class RalphDashboardPanel {
     latestState;
     agentLanesMap = new Map();
     lastRenderTime = 0;
+    configSync = new webviewConfigSync_1.WebviewConfigSync();
     constructor(panel, extensionUri, broadcaster) {
         this.panel = panel;
         this.extensionUri = extensionUri;
@@ -84,6 +72,7 @@ class RalphDashboardPanel {
             if (msg.type === 'command' && msg.command) {
                 this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
                 try {
+                    await this.configSync.whenIdle();
                     await vscode.commands.executeCommand(msg.command);
                     this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
                 }
@@ -92,19 +81,7 @@ class RalphDashboardPanel {
                 }
             }
             if (msg.type === 'update-setting') {
-                const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
-                if (msg.key.includes('.')) {
-                    const dotIdx = msg.key.indexOf('.');
-                    const parentKey = msg.key.slice(0, dotIdx);
-                    const subPath = msg.key.slice(dotIdx + 1);
-                    const current = wsConfig.get(parentKey) ?? {};
-                    const updated = deepSet(structuredClone(current), subPath, msg.value);
-                    await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
-                }
-                else {
-                    await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
-                }
-                // Re-read config and re-render to reflect the change
+                await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
                 if (workspaceFolder) {
                     const freshConfig = (0, readConfig_1.readConfig)(workspaceFolder);

@@ -9,7 +9,7 @@
 		"kiro-codex-ide.codex.steeringPath": "ralph-codex-vscode-starter",
 		"kiro-codex-ide.codex.specsPath": ".ralph",
 		"ralphCodex.agentCount": 1,
-		"ralphCodex.cliProvider": "claude",
+		"ralphCodex.cliProvider": "codex",
 		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.ralphIterationCap": 15,
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
@@ -17,6 +17,7 @@
 		"ralphCodex.agentId": "build",
 		"ralphCodex.claudeMaxTurns": 125,
 		"ralphCodex.scmStrategy": "commit-on-done",
-		"ralphCodex.scmPrOnParentDone": false
+		"ralphCodex.scmPrOnParentDone": false,
+		"ralphCodex.enableModelTiering": true
 	}
 }

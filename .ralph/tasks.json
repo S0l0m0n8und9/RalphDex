@@ -2419,7 +2419,7 @@
     {
       "id": "T78",
       "title": "Surface recommended skills in Show Status output",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T76"
       ],

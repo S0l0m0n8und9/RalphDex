@@ -16,6 +16,7 @@ import type {
   RalphWebviewCommand,
   RalphWebviewMessage
 } from './uiTypes';
+import { WebviewConfigSync } from './webviewConfigSync';
 
 /**
  * Provides the sidebar webview launcher for Ralph Codex.
@@ -29,6 +30,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
   private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
   private broadcastDisposable: vscode.Disposable | undefined;
   private lastRenderTime = 0;
+  private readonly configSync = new WebviewConfigSync();
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
@@ -50,10 +52,21 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
       if (msg.type === 'command' && msg.command) {
         this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
         try {
+          await this.configSync.whenIdle();
           await vscode.commands.executeCommand(msg.command);
           this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
         } catch {
           this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
+        }
+      }
+      if (msg.type === 'update-setting') {
+        await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (workspaceFolder) {
+          const freshConfig = readConfig(workspaceFolder);
+          this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
+          this.lastRenderTime = 0; // force render
+          this.fullRender();
         }
       }
     });

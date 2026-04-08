@@ -7,21 +7,7 @@ import { buildPanelDashboardHtml } from './panelHtml';
 import { buildDashboardTasks, countTasks, defaultDashboardState, snapshotConfig } from './sidebarViewProvider';
 import type { RalphDashboardState, RalphDashboardIteration } from './uiTypes';
 import { readConfig } from '../config/readConfig';
-
-/** Deep-set a dotted path like "simple.model" inside an object. */
-function deepSet(obj: Record<string, unknown>, path: string, value: unknown): Record<string, unknown> {
-  const parts = path.split('.');
-  let cur: Record<string, unknown> = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const key = parts[i];
-    if (cur[key] === undefined || cur[key] === null || typeof cur[key] !== 'object' || Array.isArray(cur[key])) {
-      cur[key] = {};
-    }
-    cur = cur[key] as Record<string, unknown>;
-  }
-  cur[parts[parts.length - 1]] = value;
-  return obj;
-}
+import { WebviewConfigSync } from './webviewConfigSync';
 
 /**
  * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
@@ -38,6 +24,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
   private latestState: RalphDashboardState;
   private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
   private lastRenderTime = 0;
+  private readonly configSync = new WebviewConfigSync();
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, broadcaster: IterationBroadcaster) {
     this.panel = panel;
@@ -59,6 +46,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       if (msg.type === 'command' && msg.command) {
         this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
         try {
+          await this.configSync.whenIdle();
           await vscode.commands.executeCommand(msg.command);
           this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
         } catch {
@@ -66,18 +54,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
         }
       }
       if (msg.type === 'update-setting') {
-        const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
-        if (msg.key.includes('.')) {
-          const dotIdx = msg.key.indexOf('.');
-          const parentKey = msg.key.slice(0, dotIdx);
-          const subPath = msg.key.slice(dotIdx + 1);
-          const current = wsConfig.get<Record<string, unknown>>(parentKey) ?? {};
-          const updated = deepSet(structuredClone(current), subPath, msg.value);
-          await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
-        } else {
-          await wsConfig.update(msg.key, msg.value, vscode.ConfigurationTarget.Workspace);
-        }
-        // Re-read config and re-render to reflect the change
+        await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (workspaceFolder) {
           const freshConfig = readConfig(workspaceFolder);
