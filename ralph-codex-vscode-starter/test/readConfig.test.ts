@@ -137,3 +137,24 @@ test('readConfig applies enableModelTiering workspace override to modelTiering.e
   const disabled = readConfig(workspaceFolder('C:\\repo'));
   assert.equal(disabled.modelTiering.enabled, false);
 });
+
+test('readConfig does not override modelTiering.enabled when enableModelTiering is absent', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    // enableModelTiering intentionally absent — should not override modelTiering.enabled
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku-4-5' },
+      medium: { model: 'claude-sonnet-4-6' },
+      complex: { model: 'claude-opus-4-6' }
+    }
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(
+    config.modelTiering.enabled,
+    true,
+    'modelTiering.enabled should not be overridden when enableModelTiering is absent'
+  );
+});
