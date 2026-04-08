@@ -8,4 +8,5 @@ out-test/
 .ralph/state.json
 .ralph/claims.json
 .ralph/logs/
+.vscode/settings.json
 
