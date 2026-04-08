@@ -12,6 +12,7 @@ import {
   resolveLatestArtifactPaths
 } from './artifactStore';
 import { RalphPaths } from './pathResolver';
+import type { RecommendedSkill } from './projectGenerator';
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import {
   RalphCliInvocation,
@@ -86,6 +87,7 @@ export interface RalphStatusSnapshot {
   currentProvenanceId: string | null;
   latestPipelineRunPath: string | null;
   latestPipelineRun: PipelineRunArtifact | null;
+  recommendedSkills: RecommendedSkill[];
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -444,6 +446,13 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
     `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
     '- Direct command: Ralph Codex: Open Latest Pipeline Run',
+    ...(snapshot.recommendedSkills.length > 0
+      ? [
+        '',
+        '## Recommended Skills',
+        ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
+      ]
+      : []),
     '',
     '## Latest Iteration',
     `- Last task: ${lastTaskLabel}`,

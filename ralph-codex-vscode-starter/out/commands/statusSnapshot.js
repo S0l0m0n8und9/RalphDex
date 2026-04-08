@@ -44,6 +44,7 @@ exports.normalizeTaskRemediationArtifact = normalizeTaskRemediationArtifact;
 exports.normalizeCompletionReportArtifact = normalizeCompletionReportArtifact;
 exports.collectStatusSnapshot = collectStatusSnapshot;
 const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const providers_1 = require("../config/providers");
 const readConfig_1 = require("../config/readConfig");
@@ -232,6 +233,21 @@ function normalizeCompletionReportArtifact(candidate) {
         warnings: record.warnings.filter((warning) => typeof warning === 'string')
     };
 }
+async function readRecommendedSkills(filePath) {
+    try {
+        const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
+        if (!Array.isArray(raw)) {
+            return [];
+        }
+        return raw.filter((entry) => typeof entry === 'object'
+            && entry !== null
+            && typeof entry.name === 'string'
+            && typeof entry.rationale === 'string');
+    }
+    catch {
+        return [];
+    }
+}
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
@@ -343,6 +359,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         artifactReadinessDiagnostics,
         agentHealthDiagnostics
     });
+    const recommendedSkills = await readRecommendedSkills(path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json'));
     const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: inspection.paths.artifactDir,
@@ -405,7 +422,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         claimGraph,
         currentProvenanceId,
         latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
-        latestPipelineRun: latestPipelineEntry?.artifact ?? null
+        latestPipelineRun: latestPipelineEntry?.artifact ?? null,
+        recommendedSkills
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

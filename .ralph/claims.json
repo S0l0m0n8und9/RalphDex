@@ -1713,6 +1713,27 @@
       "claimedAt": "2026-04-08T00:29:03.680Z",
       "provenanceId": "run-i071-cli-20260408T002903Z",
       "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T78",
+      "claimedAt": "2026-04-08T00:44:01.843Z",
+      "provenanceId": "run-i072-cli-20260408T004401Z",
+      "status": "released"
+    },
+    {
+      "agentId": "build",
+      "taskId": "T78",
+      "claimedAt": "2026-04-08T00:45:14.140Z",
+      "provenanceId": "run-i073-cli-20260408T004514Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T78",
+      "agentId": "build",
+      "provenanceId": "run-i074-cli-20260408T010557Z",
+      "claimedAt": "2026-04-08T01:05:57.416Z",
+      "status": "active"
     }
   ]
 }

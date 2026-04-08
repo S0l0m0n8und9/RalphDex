@@ -151,6 +151,13 @@ test('buildPanelDashboardHtml includes button spinner and command-ack handler', 
   assert.ok(html.includes('resetButton'));
 });
 
+test('buildPanelDashboardHtml eagerly persists plain setting inputs before commands run', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'persist');
+  assert.ok(html.includes('document.activeElement.blur'));
+  assert.ok(html.includes("input[data-setting], input[data-setting-nested]"));
+  assert.ok(html.includes('function sendSettingUpdate(el)'));
+});
+
 test('buildPanelDashboardHtml shows empty state when no tasks', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'n10');
   assert.ok(html.includes('No tasks yet'));

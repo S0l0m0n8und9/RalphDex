@@ -539,6 +539,9 @@ function buildPanelDashboardHtml(state, nonce) {
       function runCommand(el) {
         var cmd = el.getAttribute('data-command');
         if (!cmd || el.disabled) return;
+        if (document.activeElement && typeof document.activeElement.blur === 'function') {
+          document.activeElement.blur();
+        }
         el.classList.add('loading');
         el.disabled = true;
         vscode.postMessage({ type: 'command', command: cmd });
@@ -553,43 +556,50 @@ function buildPanelDashboardHtml(state, nonce) {
         if (t) { clearTimeout(t); ackTimeouts.delete(el); }
       }
 
-      // Settings change handler
-      document.addEventListener('change', function(e) {
-        var el = e.target;
+      function sendSettingUpdate(el) {
+        if (!el || typeof el.getAttribute !== 'function') return false;
 
-        // Multi-select checkbox group
         var multiKey = el.getAttribute('data-setting-multi');
         if (multiKey) {
           var checkboxes = document.querySelectorAll('[data-setting-multi="' + multiKey + '"]');
           var selected = [];
           checkboxes.forEach(function(cb) { if (cb.checked) selected.push(cb.value); });
           vscode.postMessage({ type: 'update-setting', key: multiKey, value: selected });
-          return;
+          return true;
         }
 
-        // Nested object field
         var nestedKey = el.getAttribute('data-setting-nested');
         if (nestedKey) {
-          var value;
-          if (el.type === 'checkbox') { value = el.checked; }
-          else if (el.type === 'number') { value = parseInt(el.value, 10); if (isNaN(value)) return; }
-          else { value = el.value; }
-          vscode.postMessage({ type: 'update-setting', key: nestedKey, value: value });
-          return;
+          var nestedValue;
+          if (el.type === 'checkbox') { nestedValue = el.checked; }
+          else if (el.type === 'number') {
+            nestedValue = parseInt(el.value, 10);
+            if (isNaN(nestedValue)) return true;
+          }
+          else { nestedValue = el.value; }
+          vscode.postMessage({ type: 'update-setting', key: nestedKey, value: nestedValue });
+          return true;
         }
 
         var key = el.getAttribute('data-setting');
-        if (!key) return;
+        if (!key) return false;
         var value;
         if (el.type === 'checkbox') {
           value = el.checked;
         } else if (el.type === 'number') {
           value = parseInt(el.value, 10);
-          if (isNaN(value)) return;
+          if (isNaN(value)) return true;
         } else {
           value = el.value;
         }
         vscode.postMessage({ type: 'update-setting', key: key, value: value });
+        return true;
+      }
+
+      // Settings change handler
+      document.addEventListener('change', function(e) {
+        var el = e.target;
+        sendSettingUpdate(el);
       });
 
       // Event delegation — no inline handlers needed (CSP blocks onclick)
@@ -655,6 +665,11 @@ function buildPanelDashboardHtml(state, nonce) {
       }
 
       document.addEventListener('input', function(e) {
+        var el = e.target;
+        if (el.matches('input[data-setting], input[data-setting-nested]')) {
+          sendSettingUpdate(el);
+          return;
+        }
         var kvRow = e.target.closest('.kv-row[data-setting-kv]');
         if (kvRow) {
           collectAndSendKv(kvRow.getAttribute('data-setting-kv'));

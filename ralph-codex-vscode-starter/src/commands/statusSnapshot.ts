@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath } from '../config/providers';
 import { readConfig } from '../config/readConfig';
@@ -28,6 +29,7 @@ import {
   normalizeValidationCommand
 } from '../ralph/verifier';
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
+import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { pathExists } from '../util/fs';
@@ -227,6 +229,24 @@ export function normalizeCompletionReportArtifact(candidate: unknown): Completio
   };
 }
 
+async function readRecommendedSkills(filePath: string): Promise<RecommendedSkill[]> {
+  try {
+    const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw.filter(
+      (entry): entry is RecommendedSkill =>
+        typeof entry === 'object'
+        && entry !== null
+        && typeof entry.name === 'string'
+        && typeof entry.rationale === 'string'
+    );
+  } catch {
+    return [];
+  }
+}
+
 export async function collectStatusSnapshot(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
@@ -344,6 +364,9 @@ export async function collectStatusSnapshot(
     artifactReadinessDiagnostics,
     agentHealthDiagnostics
   });
+  const recommendedSkills = await readRecommendedSkills(
+    path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json')
+  );
   const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
     inspectGeneratedArtifactRetention({
       artifactRootDir: inspection.paths.artifactDir,
@@ -407,6 +430,7 @@ export async function collectStatusSnapshot(
     claimGraph,
     currentProvenanceId,
     latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
-    latestPipelineRun: latestPipelineEntry?.artifact ?? null
+    latestPipelineRun: latestPipelineEntry?.artifact ?? null,
+    recommendedSkills
   };
 }

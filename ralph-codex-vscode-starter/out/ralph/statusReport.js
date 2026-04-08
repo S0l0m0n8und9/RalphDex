@@ -331,6 +331,13 @@ function buildStatusReport(snapshot) {
         `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
         `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
         '- Direct command: Ralph Codex: Open Latest Pipeline Run',
+        ...(snapshot.recommendedSkills.length > 0
+            ? [
+                '',
+                '## Recommended Skills',
+                ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
+            ]
+            : []),
         '',
         '## Latest Iteration',
         `- Last task: ${lastTaskLabel}`,

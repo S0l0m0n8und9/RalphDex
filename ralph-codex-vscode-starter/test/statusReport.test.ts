@@ -559,7 +559,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     currentProvenanceId: 'run-i003-cli-20260307T000600Z',
     latestPipelineRunPath: null,
     latestPipelineRun: null,
-    ...overrides
+    ...overrides,
+    recommendedSkills: overrides.recommendedSkills ?? []
   };
 }
 
@@ -1159,4 +1160,23 @@ test('buildStatusReport surfaces inspection-root override state', () => {
 
   assert.match(report, /- Inspection override: sibling-repo \(applied: sibling-repo\)/);
   assert.match(report, /- Root selection: Using manual inspection-root override sibling-repo instead of shallow root scoring\./);
+});
+
+test('buildStatusReport includes Recommended Skills section when skills are present', () => {
+  const report = buildStatusReport(snapshot({
+    recommendedSkills: [
+      { name: 'tdd', description: 'Test-driven development', rationale: 'Project has strong test coverage expectations.' },
+      { name: 'debugging', description: 'Systematic debugging', rationale: 'Complex integration points need careful diagnosis.' }
+    ]
+  }));
+
+  assert.match(report, /## Recommended Skills/);
+  assert.match(report, /- tdd: Project has strong test coverage expectations\./);
+  assert.match(report, /- debugging: Complex integration points need careful diagnosis\./);
+});
+
+test('buildStatusReport omits Recommended Skills section when skills array is empty', () => {
+  const report = buildStatusReport(snapshot({ recommendedSkills: [] }));
+
+  assert.doesNotMatch(report, /## Recommended Skills/);
 });
