@@ -68,22 +68,23 @@ class SerialAsyncQueue {
 exports.SerialAsyncQueue = SerialAsyncQueue;
 class WebviewConfigSync {
     writes = new SerialAsyncQueue();
-    enqueueSettingUpdate(key, value, resourceUri) {
+    enqueueSettingUpdate(key, value) {
         return this.writes.enqueue(async () => {
-            const wsConfig = vscode.workspace.getConfiguration('ralphCodex', resourceUri);
-            const target = resourceUri
-                ? vscode.ConfigurationTarget.WorkspaceFolder
-                : vscode.ConfigurationTarget.Workspace;
+            const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
             if (key.includes('.')) {
                 const dotIdx = key.indexOf('.');
                 const parentKey = key.slice(0, dotIdx);
                 const subPath = key.slice(dotIdx + 1);
-                const current = wsConfig.get(parentKey) ?? {};
-                const updated = deepSet(structuredClone(current), subPath, value);
-                await wsConfig.update(parentKey, updated, target);
+                // getConfiguration().get() returns a VS Code Proxy that cannot be cloned
+                // (structuredClone throws DataCloneError; JSON.stringify hits circular refs).
+                // inspect() returns the raw stored value at each scope — a plain JS object.
+                const inspected = wsConfig.inspect(parentKey);
+                const current = (inspected?.workspaceValue ?? {});
+                const updated = deepSet(JSON.parse(JSON.stringify(current)), subPath, value);
+                await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
             }
             else {
-                await wsConfig.update(key, value, target);
+                await wsConfig.update(key, value, vscode.ConfigurationTarget.Workspace);
             }
         });
     }

@@ -80,7 +80,7 @@ class RalphSidebarViewProvider {
             }
             if (msg.type === 'update-setting') {
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-                await this.configSync.enqueueSettingUpdate(msg.key, msg.value, workspaceFolder?.uri);
+                await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
                 if (workspaceFolder) {
                     const freshConfig = (0, readConfig_1.readConfig)(workspaceFolder);
                     this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };

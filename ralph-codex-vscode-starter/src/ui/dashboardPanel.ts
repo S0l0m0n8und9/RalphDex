@@ -55,7 +55,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       }
       if (msg.type === 'update-setting') {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        await this.configSync.enqueueSettingUpdate(msg.key, msg.value, workspaceFolder?.uri);
+        await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
         if (workspaceFolder) {
           const freshConfig = readConfig(workspaceFolder);
           this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
