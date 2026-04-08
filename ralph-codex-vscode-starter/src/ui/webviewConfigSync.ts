@@ -36,18 +36,21 @@ export class SerialAsyncQueue {
 export class WebviewConfigSync {
   private readonly writes = new SerialAsyncQueue();
 
-  public enqueueSettingUpdate(key: string, value: unknown): Promise<void> {
+  public enqueueSettingUpdate(key: string, value: unknown, resourceUri?: vscode.Uri): Promise<void> {
     return this.writes.enqueue(async () => {
-      const wsConfig = vscode.workspace.getConfiguration('ralphCodex');
+      const wsConfig = vscode.workspace.getConfiguration('ralphCodex', resourceUri);
+      const target = resourceUri
+        ? vscode.ConfigurationTarget.WorkspaceFolder
+        : vscode.ConfigurationTarget.Workspace;
       if (key.includes('.')) {
         const dotIdx = key.indexOf('.');
         const parentKey = key.slice(0, dotIdx);
         const subPath = key.slice(dotIdx + 1);
         const current = wsConfig.get<Record<string, unknown>>(parentKey) ?? {};
         const updated = deepSet(structuredClone(current), subPath, value);
-        await wsConfig.update(parentKey, updated, vscode.ConfigurationTarget.Workspace);
+        await wsConfig.update(parentKey, updated, target);
       } else {
-        await wsConfig.update(key, value, vscode.ConfigurationTarget.Workspace);
+        await wsConfig.update(key, value, target);
       }
     });
   }

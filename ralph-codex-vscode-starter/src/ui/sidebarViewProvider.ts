@@ -60,8 +60,8 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
         }
       }
       if (msg.type === 'update-setting') {
-        await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        await this.configSync.enqueueSettingUpdate(msg.key, msg.value, workspaceFolder?.uri);
         if (workspaceFolder) {
           const freshConfig = readConfig(workspaceFolder);
           this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };

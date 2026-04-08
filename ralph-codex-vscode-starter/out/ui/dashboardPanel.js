@@ -81,8 +81,8 @@ class RalphDashboardPanel {
                 }
             }
             if (msg.type === 'update-setting') {
-                await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
                 const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                await this.configSync.enqueueSettingUpdate(msg.key, msg.value, workspaceFolder?.uri);
                 if (workspaceFolder) {
                     const freshConfig = (0, readConfig_1.readConfig)(workspaceFolder);
                     this.latestState = { ...this.latestState, config: (0, sidebarViewProvider_1.snapshotConfig)(freshConfig) };
