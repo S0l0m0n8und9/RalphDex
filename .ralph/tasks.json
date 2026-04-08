@@ -2419,10 +2419,11 @@
     {
       "id": "T78",
       "title": "Surface recommended skills in Show Status output",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T76"
       ],
+      "notes": "Added recommendedSkills to RalphStatusSnapshot, buildStatusReport renders conditional Recommended Skills section, collectStatusSnapshot reads .ralph/recommended-skills.json, two unit tests added.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "buildStatusReport (or collectStatusSnapshot) reads .ralph/recommended-skills.json from the workspace if it exists",
@@ -2446,5 +2447,5 @@
       ]
     }
   ],
-  "mutationCount": 51
+  "mutationCount": 52
 }

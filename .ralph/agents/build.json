@@ -17,7 +17,8 @@
     "T74.1",
     "T75",
     "T76",
-    "T77"
+    "T77",
+    "T78"
   ],
   "touchedFiles": [
     ".claude/skills/ralph-add-tasks.md",
@@ -34,6 +35,7 @@
     "ralph-codex-vscode-starter/out/commands/registerCommands.js",
     "ralph-codex-vscode-starter/out/commands/registerCommands.js.map",
     "ralph-codex-vscode-starter/out/commands/statusSnapshot.js",
+    "ralph-codex-vscode-starter/out/commands/statusSnapshot.js.map",
     "ralph-codex-vscode-starter/out/config/defaults.js",
     "ralph-codex-vscode-starter/out/config/defaults.js.map",
     "ralph-codex-vscode-starter/out/config/readConfig.js",
@@ -51,6 +53,7 @@
     "ralph-codex-vscode-starter/out/ralph/projectGenerator.js",
     "ralph-codex-vscode-starter/out/ralph/projectGenerator.js.map",
     "ralph-codex-vscode-starter/out/ralph/statusReport.js",
+    "ralph-codex-vscode-starter/out/ralph/statusReport.js.map",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js",
     "ralph-codex-vscode-starter/out/ralph/taskFile.js.map",
     "ralph-codex-vscode-starter/out/shim/installVscodeShim.js",
@@ -62,6 +65,7 @@
     "ralph-codex-vscode-starter/out/shim/types.js",
     "ralph-codex-vscode-starter/out/shim/types.js.map",
     "ralph-codex-vscode-starter/out/ui/panelHtml.js",
+    "ralph-codex-vscode-starter/out/ui/panelHtml.js.map",
     "ralph-codex-vscode-starter/out/ui/sidebarHtml.js",
     "ralph-codex-vscode-starter/out/validation/docsValidator.js",
     "ralph-codex-vscode-starter/out/validation/docsValidator.js.map",
@@ -92,6 +96,7 @@
     "ralph-codex-vscode-starter/src/shim/shimConfig.ts",
     "ralph-codex-vscode-starter/src/shim/stdoutHost.ts",
     "ralph-codex-vscode-starter/src/shim/types.ts",
+    "ralph-codex-vscode-starter/src/ui/panelHtml.ts",
     "ralph-codex-vscode-starter/src/validation/docsValidator.ts",
     "ralph-codex-vscode-starter/test/commandShell.smoke.test.ts",
     "ralph-codex-vscode-starter/test/complexityScorer.test.ts",
@@ -115,6 +120,7 @@
     "ralph-codex-vscode-starter/test/shimMain.test.ts",
     "ralph-codex-vscode-starter/test/statusReport.test.ts",
     "ralph-codex-vscode-starter/test/taskFile.test.ts",
+    "ralph-codex-vscode-starter/test/ui/panelHtml.test.ts",
     "ralph.code-workspace"
   ]
 }
