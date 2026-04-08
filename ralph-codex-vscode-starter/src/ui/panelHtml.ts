@@ -414,7 +414,7 @@ function buildSettingsSection(cfg: RalphDashboardConfigSnapshot): string {
     ].join('\n')),
 
     group('Model Tiering', [
-      checkRow(checkbox('enableModelTiering', cfg.modelTiering.enabled, 'Enable model tiering')),
+      checkRow(nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')),
       row('Simple Provider', nestedSelect('modelTiering', 'simple.provider', cfg.modelTiering.simple.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
       row('Simple Model', nestedInput('modelTiering', 'simple.model', 'text', cfg.modelTiering.simple.model)),
       row('Medium Provider', nestedSelect('modelTiering', 'medium.provider', cfg.modelTiering.medium.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
@@ -717,15 +717,24 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         vscode.postMessage({ type: 'update-setting', key: groupKey, value: map });
       }
 
+      var inputDebounceTimers = new Map();
       document.addEventListener('input', function(e) {
         var el = e.target;
         if (el.matches('input[data-setting], input[data-setting-nested]')) {
-          sendSettingUpdate(el);
+          clearTimeout(inputDebounceTimers.get(el));
+          inputDebounceTimers.set(el, setTimeout(function() {
+            inputDebounceTimers.delete(el);
+            sendSettingUpdate(el);
+          }, 600));
           return;
         }
         var kvRow = e.target.closest('.kv-row[data-setting-kv]');
         if (kvRow) {
-          collectAndSendKv(kvRow.getAttribute('data-setting-kv'));
+          clearTimeout(inputDebounceTimers.get(kvRow));
+          inputDebounceTimers.set(kvRow, setTimeout(function() {
+            inputDebounceTimers.delete(kvRow);
+            collectAndSendKv(kvRow.getAttribute('data-setting-kv'));
+          }, 600));
         }
       });
 

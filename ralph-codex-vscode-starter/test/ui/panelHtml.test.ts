@@ -294,7 +294,7 @@ test('buildPanelDashboardHtml renders verifierModes as multi-checkbox', () => {
 
 test('buildPanelDashboardHtml renders modelTiering nested fields', () => {
   const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nTier');
-  assert.ok(html.includes('data-setting="enableModelTiering"'));
+  assert.ok(html.includes('data-setting-nested="modelTiering.enabled"'));
   assert.ok(html.includes('data-setting-nested="modelTiering.simple.model"'));
   assert.ok(html.includes('data-setting-nested="modelTiering.medium.model"'));
   assert.ok(html.includes('data-setting-nested="modelTiering.complex.model"'));
