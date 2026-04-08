@@ -2436,7 +2436,8 @@
     {
       "id": "T79",
       "title": "Azure Foundry provider Phase 1: implement CliProvider interface in azureFoundryProvider.ts",
-      "status": "todo",
+      "status": "done",
+      "notes": "Azure Foundry provider Phase 1 complete: AzureFoundryProvider implements CliProvider, 'azure-foundry' added to CliProviderId union in both cliProvider.ts and config/types.ts, createCliProviderForId wired in providerFactory, config fields added with defaults and readConfig support, 12 unit tests added, 565/565 pass.",
       "validation": "cd ralph-codex-vscode-starter && npm run validate",
       "acceptance": [
         "src/codex/azureFoundryProvider.ts exports a class implementing the CliProvider interface with buildLaunchSpec, extractResponseText, describeLaunchError, and summarizeResult methods",
@@ -2447,5 +2448,5 @@
       ]
     }
   ],
-  "mutationCount": 52
+  "mutationCount": 53
 }

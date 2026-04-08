@@ -1,20 +1,22 @@
 import { CliProviderId, RalphCodexConfig } from './types';
 
 export function getCliCommandPath(
-  config: Pick<RalphCodexConfig, 'cliProvider' | 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath'>
+  config: Pick<RalphCodexConfig, 'cliProvider' | 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'azureFoundryCommandPath'>
 ): string {
   return getCliCommandPathForProvider(config.cliProvider, config);
 }
 
 export function getCliCommandPathForProvider(
   provider: CliProviderId,
-  config: Pick<RalphCodexConfig, 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath'>
+  config: Pick<RalphCodexConfig, 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'azureFoundryCommandPath'>
 ): string {
   switch (provider) {
     case 'claude':
       return config.claudeCommandPath;
     case 'copilot':
       return config.copilotCommandPath;
+    case 'azure-foundry':
+      return config.azureFoundryCommandPath;
     default:
       return config.codexCommandPath;
   }
@@ -26,6 +28,8 @@ export function getCliProviderLabel(provider: CliProviderId): string {
       return 'Claude';
     case 'copilot':
       return 'GitHub Copilot';
+    case 'azure-foundry':
+      return 'Azure AI Foundry';
     default:
       return 'Codex';
   }

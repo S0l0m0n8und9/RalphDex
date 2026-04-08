@@ -1,5 +1,6 @@
 import { CliProviderId, CodexHandoffMode, RalphCodexConfig } from '../config/types';
 import { Logger } from '../services/logger';
+import { AzureFoundryProvider } from './azureFoundryProvider';
 import { ClaudeCliProvider } from './claudeCliProvider';
 import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
@@ -29,6 +30,12 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
     return new CopilotCliProvider({
       approvalMode: config.copilotApprovalMode,
       maxAutopilotContinues: config.copilotMaxAutopilotContinues
+    });
+  }
+
+  if (providerId === 'azure-foundry') {
+    return new AzureFoundryProvider({
+      endpointUrl: config.azureFoundryEndpointUrl
     });
   }
 

@@ -115,7 +115,7 @@ function readPromptBudgetOverrideMap(config, key) {
     }
     return normalized;
 }
-const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot'];
+const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'azure-foundry'];
 function readTierConfig(raw, fallback) {
     // Accept a plain string (backward-compat: old flat `simpleModel` format).
     if (typeof raw === 'string' && raw.trim()) {
@@ -184,7 +184,7 @@ function readHooks(config, fallback) {
 }
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'azure-foundry'], defaults_1.DEFAULT_CONFIG.cliProvider);
     const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
@@ -207,6 +207,8 @@ function readConfig(workspaceFolder) {
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         copilotCommandPath: readString(config, 'copilotCommandPath', defaults_1.DEFAULT_CONFIG.copilotCommandPath),
+        azureFoundryCommandPath: readString(config, 'azureFoundryCommandPath', defaults_1.DEFAULT_CONFIG.azureFoundryCommandPath),
+        azureFoundryEndpointUrl: readString(config, 'azureFoundryEndpointUrl', defaults_1.DEFAULT_CONFIG.azureFoundryEndpointUrl),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
         copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', defaults_1.DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),

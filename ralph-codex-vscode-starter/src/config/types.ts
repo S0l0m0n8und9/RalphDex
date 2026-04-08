@@ -1,6 +1,6 @@
 import { RalphAgentRole } from '../ralph/types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'azure-foundry';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
 
@@ -85,6 +85,8 @@ export interface RalphCodexConfig {
   codexCommandPath: string;
   claudeCommandPath: string;
   copilotCommandPath: string;
+  azureFoundryCommandPath: string;
+  azureFoundryEndpointUrl: string;
   claudeMaxTurns: number;
   copilotMaxAutopilotContinues: number;
   claudePermissionMode: ClaudePermissionMode;

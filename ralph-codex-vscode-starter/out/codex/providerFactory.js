@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexStrategyRegistry = void 0;
 exports.createCliProvider = createCliProvider;
 exports.createCliProviderForId = createCliProviderForId;
+const azureFoundryProvider_1 = require("./azureFoundryProvider");
 const claudeCliProvider_1 = require("./claudeCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
@@ -27,6 +28,11 @@ function createCliProviderForId(providerId, config) {
         return new copilotCliProvider_1.CopilotCliProvider({
             approvalMode: config.copilotApprovalMode,
             maxAutopilotContinues: config.copilotMaxAutopilotContinues
+        });
+    }
+    if (providerId === 'azure-foundry') {
+        return new azureFoundryProvider_1.AzureFoundryProvider({
+            endpointUrl: config.azureFoundryEndpointUrl
         });
     }
     return new codexCliProvider_1.CodexCliProvider({

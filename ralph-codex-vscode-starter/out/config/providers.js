@@ -14,6 +14,8 @@ function getCliCommandPathForProvider(provider, config) {
             return config.claudeCommandPath;
         case 'copilot':
             return config.copilotCommandPath;
+        case 'azure-foundry':
+            return config.azureFoundryCommandPath;
         default:
             return config.codexCommandPath;
     }
@@ -24,6 +26,8 @@ function getCliProviderLabel(provider) {
             return 'Claude';
         case 'copilot':
             return 'GitHub Copilot';
+        case 'azure-foundry':
+            return 'Azure AI Foundry';
         default:
             return 'Codex';
     }

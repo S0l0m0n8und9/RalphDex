@@ -1729,10 +1729,17 @@
       "status": "released"
     },
     {
-      "taskId": "T78",
       "agentId": "build",
-      "provenanceId": "run-i074-cli-20260408T010557Z",
+      "taskId": "T78",
       "claimedAt": "2026-04-08T01:05:57.416Z",
+      "provenanceId": "run-i074-cli-20260408T010557Z",
+      "status": "released"
+    },
+    {
+      "taskId": "T79",
+      "agentId": "build",
+      "provenanceId": "run-i075-cli-20260408T080040Z",
+      "claimedAt": "2026-04-08T08:00:40.503Z",
       "status": "active"
     }
   ]

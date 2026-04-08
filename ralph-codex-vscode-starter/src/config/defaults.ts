@@ -5,6 +5,8 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   codexCommandPath: 'codex',
   claudeCommandPath: 'claude',
   copilotCommandPath: 'copilot',
+  azureFoundryCommandPath: 'azure-foundry',
+  azureFoundryEndpointUrl: '',
   claudeMaxTurns: 50,
   copilotMaxAutopilotContinues: 200,
   claudePermissionMode: 'dangerously-skip-permissions',

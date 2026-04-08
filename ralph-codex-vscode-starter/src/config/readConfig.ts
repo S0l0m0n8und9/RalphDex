@@ -147,7 +147,7 @@ function readPromptBudgetOverrideMap(
   return normalized;
 }
 
-const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot'];
+const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'azure-foundry'];
 
 function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
   // Accept a plain string (backward-compat: old flat `simpleModel` format).
@@ -241,7 +241,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
-    ['codex', 'claude', 'copilot'],
+    ['codex', 'claude', 'copilot', 'azure-foundry'],
     DEFAULT_CONFIG.cliProvider
   );
   const autonomyMode = readEnum<RalphAutonomyMode>(
@@ -285,6 +285,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
     copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
+    azureFoundryCommandPath: readString(config, 'azureFoundryCommandPath', DEFAULT_CONFIG.azureFoundryCommandPath),
+    azureFoundryEndpointUrl: readString(config, 'azureFoundryEndpointUrl', DEFAULT_CONFIG.azureFoundryEndpointUrl),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
     copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
     claudePermissionMode: readEnum<ClaudePermissionMode>(
