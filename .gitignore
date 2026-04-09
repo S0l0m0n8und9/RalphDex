@@ -1,4 +1,15 @@
 node_modules/
-/package.json
-/package-lock.json
 .worktrees/
+out-test/
+*.vsix
+.vscode-test/
+.ralph/handoff/
+.ralph/state.json
+.ralph/claims.json
+.ralph/logs/
+.vscode/settings.json
+
+# OS / editor artifacts
+.DS_Store
+Thumbs.db
+*.tmp
