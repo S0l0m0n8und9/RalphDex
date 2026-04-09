@@ -65,7 +65,7 @@ test('package manifest contributes and activates the multi-agent loop command', 
     'package.json must activate on ralphCodex.runMultiAgentLoop'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.runMultiAgentLoop' && entry.title === 'Ralph Codex: Run Multi-Agent Loop'),
+    commands.some((entry) => entry.command === 'ralphCodex.runMultiAgentLoop' && entry.title === 'Ralphdex: Run Multi-Agent Loop'),
     'package.json must contribute the Run Multi-Agent Loop command'
   );
 });
@@ -79,7 +79,7 @@ test('package manifest contributes and activates the show multi-agent status com
     'package.json must activate on ralphCodex.showMultiAgentStatus'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.showMultiAgentStatus' && entry.title === 'Ralph Codex: Show Multi-Agent Status'),
+    commands.some((entry) => entry.command === 'ralphCodex.showMultiAgentStatus' && entry.title === 'Ralphdex: Show Multi-Agent Status'),
     'package.json must contribute the Show Multi-Agent Status command'
   );
 });
@@ -102,7 +102,7 @@ test('package manifest contributes and activates the runPipeline command', async
     'package.json must activate on ralphCodex.runPipeline'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralph Codex: Run Pipeline'),
+    commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralphdex: Run Pipeline'),
     'package.json must contribute the Run Pipeline command'
   );
 });
@@ -116,7 +116,7 @@ test('package manifest contributes and activates the approveHumanReview command'
     'package.json must activate on ralphCodex.approveHumanReview'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.approveHumanReview' && entry.title === 'Ralph Codex: Approve Human Review'),
+    commands.some((entry) => entry.command === 'ralphCodex.approveHumanReview' && entry.title === 'Ralphdex: Approve Human Review'),
     'package.json must contribute the Approve Human Review command'
   );
 });
@@ -138,7 +138,7 @@ test('package manifest contributes and activates the openLatestPipelineRun comma
     'package.json must activate on ralphCodex.openLatestPipelineRun'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralph Codex: Open Latest Pipeline Run'),
+    commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralphdex: Open Latest Pipeline Run'),
     'package.json must contribute the Open Latest Pipeline Run command'
   );
 });

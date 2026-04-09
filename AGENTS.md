@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Ralph Codex Workbench is a VS Code extension that:
+Ralphdex is a VS Code extension that:
 
 - builds Ralph prompts from durable workspace files
 - hands prepared prompts to Codex through clipboard plus configurable VS Code command IDs
@@ -53,26 +53,26 @@ Ralph Codex Workbench is a VS Code extension that:
 
 User-facing commands come from `package.json` and `src/commands/registerCommands.ts`:
 
-- `Ralph Codex: Prepare Prompt`
-- `Ralph Codex: Open Codex IDE`
-- `Ralph Codex: Run CLI Iteration`
-- `Ralph Codex: Run CLI Loop`
-- `Ralph Codex: Run Multi-Agent Loop`
-- `Ralph Codex: Show Status`
-- `Ralph Codex: Show Multi-Agent Status`
-- `Ralph Codex: Open Latest Ralph Summary`
-- `Ralph Codex: Open Latest Provenance Bundle`
-- `Ralph Codex: Open Latest Prompt Evidence`
-- `Ralph Codex: Open Latest CLI Transcript`
-- `Ralph Codex: Apply Latest Task Decomposition Proposal`
-- `Ralph Codex: Resolve Stale Task Claim`
-- `Ralph Codex: Reveal Latest Provenance Bundle Directory`
-- `Ralph Codex: Cleanup Runtime Artifacts`
-- `Ralph Codex: Reset Runtime State`
-- `Ralph Codex: Run Pipeline`
-- `Ralph Codex: Approve Human Review`
-- `Ralph Codex: Open Latest Pipeline Run`
-- `Ralph Codex: Resume Pipeline`
+- `Ralphdex: Prepare Prompt`
+- `Ralphdex: Open Codex IDE`
+- `Ralphdex: Run CLI Iteration`
+- `Ralphdex: Run CLI Loop`
+- `Ralphdex: Run Multi-Agent Loop`
+- `Ralphdex: Show Status`
+- `Ralphdex: Show Multi-Agent Status`
+- `Ralphdex: Open Latest Ralph Summary`
+- `Ralphdex: Open Latest Provenance Bundle`
+- `Ralphdex: Open Latest Prompt Evidence`
+- `Ralphdex: Open Latest CLI Transcript`
+- `Ralphdex: Apply Latest Task Decomposition Proposal`
+- `Ralphdex: Resolve Stale Task Claim`
+- `Ralphdex: Reveal Latest Provenance Bundle Directory`
+- `Ralphdex: Cleanup Runtime Artifacts`
+- `Ralphdex: Reset Runtime State`
+- `Ralphdex: Run Pipeline`
+- `Ralphdex: Approve Human Review`
+- `Ralphdex: Open Latest Pipeline Run`
+- `Ralphdex: Resume Pipeline`
 
 Validation entry points:
 

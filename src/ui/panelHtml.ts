@@ -476,7 +476,7 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
 </head>
 <body>
   <div class="header">
-    <div class="header-title">Ralph Codex</div>
+    <div class="header-title">Ralphdex</div>
     <div class="header-state">${esc(state.workspaceName)} · ${stateLabel} · ${esc(state.agentRole)}</div>
   </div>
 

@@ -1,6 +1,6 @@
 # Release Workflow
 
-This document covers the steps to publish a new version of Ralph Codex Workbench to the VS Code Marketplace.
+This document covers the steps to publish a new version of Ralphdex to the VS Code Marketplace.
 
 ## Prerequisites
 

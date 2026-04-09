@@ -44,7 +44,7 @@ const readConfig_1 = require("../config/readConfig");
 const sidebarHtml_1 = require("./sidebarHtml");
 const webviewConfigSync_1 = require("./webviewConfigSync");
 /**
- * Provides the sidebar webview launcher for Ralph Codex.
+ * Provides the sidebar webview launcher for Ralphdex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
  */
 class RalphSidebarViewProvider {

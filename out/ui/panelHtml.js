@@ -423,7 +423,7 @@ function buildPanelDashboardHtml(state, nonce) {
 </head>
 <body>
   <div class="header">
-    <div class="header-title">Ralph Codex</div>
+    <div class="header-title">Ralphdex</div>
     <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
   </div>
 

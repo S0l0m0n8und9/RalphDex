@@ -19,7 +19,7 @@ import type {
 import { WebviewConfigSync } from './webviewConfigSync';
 
 /**
- * Provides the sidebar webview launcher for Ralph Codex.
+ * Provides the sidebar webview launcher for Ralphdex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
  */
 export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {

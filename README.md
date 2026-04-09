@@ -1,6 +1,6 @@
-# Ralph Codex Workbench
+# Ralphdex
 
-[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/s0l0m0n8und9.ralph-codex-workbench?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralph-codex-workbench) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/s0l0m0n8und9.ralphdex?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps your objective, task graph, prompts, run artifacts, and provenance evidence on disk under `.ralph/` so any new Codex session can resume from inspectable state instead of chat history.
 
@@ -23,17 +23,17 @@ This project is for operators who want Codex work to survive across sessions as 
 
 ## Installation
 
-Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralph-codex-workbench):
+Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex):
 
 1. Open VS Code.
 2. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`).
-3. Search for **Ralph Codex Workbench**.
+3. Search for **Ralphdex**.
 4. Click **Install**.
 
 Alternatively, install from the command line:
 
 ```bash
-code --install-extension s0l0m0n8und9.ralph-codex-workbench
+code --install-extension s0l0m0n8und9.ralphdex
 ```
 
 Or install a local `.vsix` build via `Extensions: Install from VSIX...` in the VS Code command palette. See [docs/release-workflow.md](docs/release-workflow.md) for how to build and publish a new `.vsix`.
@@ -61,10 +61,10 @@ For a fresh clone, start by installing dependencies and running the validation g
    ```
 
 4. Press `F5` to launch the Extension Development Host.
-5. Use `Ralph Codex: Show Status` to inspect the current workspace state.
-6. Use `Ralph Codex: Prepare Prompt`, `Ralph Codex: Open Codex IDE`, `Ralph Codex: Run CLI Iteration`, or `Ralph Codex: Run CLI Loop` depending on the workflow you want.
+5. Use `Ralphdex: Show Status` to inspect the current workspace state.
+6. Use `Ralphdex: Prepare Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run CLI Iteration`, or `Ralphdex: Run CLI Loop` depending on the workflow you want.
 
-For a fresh workspace that does not have a `.ralph/` directory, start with `Ralph Codex: Initialize Workspace`. The command creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and `.ralph/.gitignore`. After initialization, replace the placeholder in `.ralph/prd.md` with the real objective before preparing prompts.
+For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace`. The command creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and `.ralph/.gitignore`. After initialization, replace the placeholder in `.ralph/prd.md` with the real objective before preparing prompts.
 
 To build a distributable local package: `npm run package` then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension`.
 
@@ -92,38 +92,38 @@ Ralph separates durable source-of-truth files from generated runtime evidence:
 - generated execution evidence: prompts, transcripts, iteration artifacts, and provenance bundles under `.ralph/`
 - stable latest entry points: `latest-summary.md`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, and related latest-pointer artifacts under `.ralph/artifacts/`
 
-`Ralph Codex: Cleanup Runtime Artifacts` is the safe maintenance path — it preserves durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralph Codex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
+`Ralphdex: Cleanup Runtime Artifacts` is the safe maintenance path — it preserves durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralphdex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
 
 For day-to-day loop inspection:
 
-1. `Ralph Codex: Show Status` for the selected task, recent history, and stale surfaces.
-2. `Ralph Codex: Open Latest Ralph Summary` for the newest outcome summary.
-3. `Ralph Codex: Open Latest Prompt Evidence` and `Ralph Codex: Open Latest CLI Transcript` to inspect what Ralph prepared and what Codex returned.
-4. `Ralph Codex: Open Latest Provenance Bundle` or `Ralph Codex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
+1. `Ralphdex: Show Status` for the selected task, recent history, and stale surfaces.
+2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary.
+3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what Codex returned.
+4. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 
 See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/provenance.md](docs/provenance.md) for the trust model.
 
 ## Commands
 
-- `Ralph Codex: Initialize Workspace`
-- `Ralph Codex: Prepare Prompt`
-- `Ralph Codex: Open Codex IDE`
-- `Ralph Codex: Run CLI Iteration`
-- `Ralph Codex: Run CLI Loop`
-- `Ralph Codex: Show Status`
-- `Ralph Codex: Open Latest Ralph Summary`
-- `Ralph Codex: Open Latest Provenance Bundle`
-- `Ralph Codex: Open Latest Prompt Evidence`
-- `Ralph Codex: Open Latest CLI Transcript`
-- `Ralph Codex: Apply Latest Task Decomposition Proposal`
-- `Ralph Codex: Resolve Stale Task Claim`
-- `Ralph Codex: Reveal Latest Provenance Bundle Directory`
-- `Ralph Codex: Cleanup Runtime Artifacts`
-- `Ralph Codex: Reset Runtime State`
-- `Ralph Codex: Run Pipeline`
-- `Ralph Codex: Approve Human Review`
-- `Ralph Codex: Open Latest Pipeline Run`
-- `Ralph Codex: Resume Pipeline`
+- `Ralphdex: Initialize Workspace`
+- `Ralphdex: Prepare Prompt`
+- `Ralphdex: Open Codex IDE`
+- `Ralphdex: Run CLI Iteration`
+- `Ralphdex: Run CLI Loop`
+- `Ralphdex: Show Status`
+- `Ralphdex: Open Latest Ralph Summary`
+- `Ralphdex: Open Latest Provenance Bundle`
+- `Ralphdex: Open Latest Prompt Evidence`
+- `Ralphdex: Open Latest CLI Transcript`
+- `Ralphdex: Apply Latest Task Decomposition Proposal`
+- `Ralphdex: Resolve Stale Task Claim`
+- `Ralphdex: Reveal Latest Provenance Bundle Directory`
+- `Ralphdex: Cleanup Runtime Artifacts`
+- `Ralphdex: Reset Runtime State`
+- `Ralphdex: Run Pipeline`
+- `Ralphdex: Approve Human Review`
+- `Ralphdex: Open Latest Pipeline Run`
+- `Ralphdex: Resume Pipeline`
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 

@@ -3,7 +3,7 @@ name: ralph-iterate
 description: Run one Ralph iteration — read the current task, implement it, validate, and emit the completion report. Use this when Ralph has prepared a prompt and you need to execute it.
 ---
 
-You are executing a Ralph Codex Workbench iteration. Ralph is a durable, file-backed agentic coding loop. Your job is to complete the selected task, validate your work, and return a structured completion report.
+You are executing a Ralphdex iteration. Ralph is a durable, file-backed agentic coding loop. Your job is to complete the selected task, validate your work, and return a structured completion report.
 
 ## Step 1 — Orient
 

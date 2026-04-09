@@ -1,4 +1,4 @@
-# Contributing to Ralph Codex Workbench
+# Contributing to Ralphdex
 
 ## Getting started
 

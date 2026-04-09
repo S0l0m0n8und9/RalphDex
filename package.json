@@ -1,14 +1,14 @@
 {
-  "name": "ralph-codex-workbench",
-  "displayName": "Ralph Codex Workbench",
-  "description": "VS Code extension for file-backed Ralph prompts, Codex IDE handoff, and codex exec loops.",
+  "name": "ralphdex",
+  "displayName": "Ralphdex",
+  "description": "VS Code extension for file-backed Ralphdex prompts, IDE handoff, and CLI exec loops.",
   "version": "0.1.0",
   "publisher": "s0l0m0n8und9",
   "icon": "media/ralph-icon.png",
   "keywords": [
     "ai",
     "agent",
-    "codex",
+    "ralphdex",
     "automation",
     "claude",
     "task-runner",
@@ -42,7 +42,7 @@
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": "limited",
-      "description": "Ralph Codex Workbench supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and Codex CLI execution require workspace trust.",
+      "description": "Ralphdex supports status inspection in untrusted workspaces. Prompt generation, runtime state reset, IDE handoff, and CLI execution require workspace trust.",
       "restrictedConfigurations": [
         "ralphCodex.codexCommandPath",
         "ralphCodex.claudeCommandPath",
@@ -91,7 +91,7 @@
     },
     "virtualWorkspaces": {
       "supported": false,
-      "description": "Ralph Codex Workbench requires a real local workspace because it reads and writes Ralph files and can run Codex CLI."
+      "description": "Ralphdex requires a real local workspace because it reads and writes Ralph files and can run CLI backends."
     }
   },
   "activationEvents": [
@@ -131,31 +131,31 @@
     "commands": [
       {
         "command": "ralphCodex.initializeWorkspace",
-        "title": "Ralph Codex: Initialize Workspace"
+        "title": "Ralphdex: Initialize Workspace"
       },
       {
         "command": "ralphCodex.addTask",
-        "title": "Ralph Codex: Add Task"
+        "title": "Ralphdex: Add Task"
       },
       {
         "command": "ralphCodex.newProject",
-        "title": "Ralph Codex: New Project"
+        "title": "Ralphdex: New Project"
       },
       {
         "command": "ralphCodex.switchProject",
-        "title": "Ralph Codex: Switch Project"
+        "title": "Ralphdex: Switch Project"
       },
       {
         "command": "ralphCodex.generatePrompt",
-        "title": "Ralph Codex: Prepare Prompt"
+        "title": "Ralphdex: Prepare Prompt"
       },
       {
         "command": "ralphCodex.openCodexAndCopyPrompt",
-        "title": "Ralph Codex: Open Codex IDE"
+        "title": "Ralphdex: Open Codex IDE"
       },
       {
         "command": "ralphCodex.runRalphIteration",
-        "title": "Ralph Codex: Run CLI Iteration"
+        "title": "Ralphdex: Run CLI Iteration"
       },
       {
         "command": "ralphCodex.runReviewAgent",
@@ -171,55 +171,55 @@
       },
       {
         "command": "ralphCodex.runRalphLoop",
-        "title": "Ralph Codex: Run CLI Loop"
+        "title": "Ralphdex: Run CLI Loop"
       },
       {
         "command": "ralphCodex.runMultiAgentLoop",
-        "title": "Ralph Codex: Run Multi-Agent Loop"
+        "title": "Ralphdex: Run Multi-Agent Loop"
       },
       {
         "command": "ralphCodex.showRalphStatus",
-        "title": "Ralph Codex: Show Status"
+        "title": "Ralphdex: Show Status"
       },
       {
         "command": "ralphCodex.showMultiAgentStatus",
-        "title": "Ralph Codex: Show Multi-Agent Status"
+        "title": "Ralphdex: Show Multi-Agent Status"
       },
       {
         "command": "ralphCodex.openLatestRalphSummary",
-        "title": "Ralph Codex: Open Latest Ralph Summary"
+        "title": "Ralphdex: Open Latest Ralph Summary"
       },
       {
         "command": "ralphCodex.openLatestProvenanceBundle",
-        "title": "Ralph Codex: Open Latest Provenance Bundle"
+        "title": "Ralphdex: Open Latest Provenance Bundle"
       },
       {
         "command": "ralphCodex.openLatestPromptEvidence",
-        "title": "Ralph Codex: Open Latest Prompt Evidence"
+        "title": "Ralphdex: Open Latest Prompt Evidence"
       },
       {
         "command": "ralphCodex.openLatestCliTranscript",
-        "title": "Ralph Codex: Open Latest CLI Transcript"
+        "title": "Ralphdex: Open Latest CLI Transcript"
       },
       {
         "command": "ralphCodex.applyLatestTaskDecompositionProposal",
-        "title": "Ralph Codex: Apply Latest Task Decomposition Proposal"
+        "title": "Ralphdex: Apply Latest Task Decomposition Proposal"
       },
       {
         "command": "ralphCodex.resolveStaleTaskClaim",
-        "title": "Ralph Codex: Resolve Stale Task Claim"
+        "title": "Ralphdex: Resolve Stale Task Claim"
       },
       {
         "command": "ralphCodex.revealLatestProvenanceBundleDirectory",
-        "title": "Ralph Codex: Reveal Latest Provenance Bundle Directory"
+        "title": "Ralphdex: Reveal Latest Provenance Bundle Directory"
       },
       {
         "command": "ralphCodex.cleanupRalphRuntimeArtifacts",
-        "title": "Ralph Codex: Cleanup Runtime Artifacts"
+        "title": "Ralphdex: Cleanup Runtime Artifacts"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
-        "title": "Ralph Codex: Reset Runtime State"
+        "title": "Ralphdex: Reset Runtime State"
       },
       {
         "command": "ralphCodex.runWatchdogAgent",
@@ -231,30 +231,30 @@
       },
       {
         "command": "ralphCodex.openDashboard",
-        "title": "Ralph Codex: Open Dashboard"
+        "title": "Ralphdex: Open Dashboard"
       },
       {
         "command": "ralphCodex.runPipeline",
-        "title": "Ralph Codex: Run Pipeline"
+        "title": "Ralphdex: Run Pipeline"
       },
       {
         "command": "ralphCodex.approveHumanReview",
-        "title": "Ralph Codex: Approve Human Review"
+        "title": "Ralphdex: Approve Human Review"
       },
       {
         "command": "ralphCodex.openLatestPipelineRun",
-        "title": "Ralph Codex: Open Latest Pipeline Run"
+        "title": "Ralphdex: Open Latest Pipeline Run"
       },
       {
         "command": "ralphCodex.resumePipeline",
-        "title": "Ralph Codex: Resume Pipeline"
+        "title": "Ralphdex: Resume Pipeline"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
           "id": "ralphCodex",
-          "title": "Ralph Codex",
+          "title": "Ralphdex",
           "icon": "media/ralph-icon.svg"
         }
       ]
@@ -269,7 +269,7 @@
       ]
     },
     "configuration": {
-      "title": "Ralph Codex Workbench",
+      "title": "Ralphdex",
       "properties": {
         "ralphCodex.cliProvider": {
           "type": "string",
@@ -365,7 +365,7 @@
           "default": 5,
           "minimum": 1,
           "maximum": 100,
-          "description": "Maximum number of Codex CLI iterations to run for the Ralph loop command."
+          "description": "Maximum number of CLI iterations to run for the Ralphdex loop command."
         },
         "ralphCodex.verifierModes": {
           "type": "array",

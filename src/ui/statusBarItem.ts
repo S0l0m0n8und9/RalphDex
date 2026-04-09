@@ -115,7 +115,7 @@ export class RalphStatusBar implements vscode.Disposable {
         this.item.text = `${icon} Ralph ${glyph} idle`;
     }
 
-    const tooltipLines = ['Ralph Codex Workbench'];
+    const tooltipLines = ['Ralphdex'];
     if (this.state.selectedTaskTitle) {
       tooltipLines.push(`Task: ${this.state.selectedTaskTitle}`);
     }
@@ -142,7 +142,7 @@ export async function showStatusBarQuickPick(): Promise<void> {
   ];
 
   const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: 'Ralph Codex — pick an action'
+    placeHolder: 'Ralphdex — pick an action'
   });
 
   if (picked) {

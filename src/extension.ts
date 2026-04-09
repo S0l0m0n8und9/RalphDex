@@ -9,7 +9,7 @@ import { RalphStateWatcher } from './ui/stateWatcher';
 import { RalphStatusBar, showStatusBarQuickPick } from './ui/statusBarItem';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const logger = new Logger(vscode.window.createOutputChannel('Ralph Codex'));
+  const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
   context.subscriptions.push(logger);
 
   // UI infrastructure
@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   registerCommands(context, logger, broadcaster);
 
-  logger.info('Activated Ralph Codex Workbench extension.', {
+  logger.info('Activated Ralphdex extension.', {
     workspaceTrusted: vscode.workspace.isTrusted,
     activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
   });

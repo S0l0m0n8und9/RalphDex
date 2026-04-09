@@ -117,7 +117,7 @@ Validation entry points:
 - Use documented command handoff and CLI execution only.
 `);
 
-  await writeFile(rootPath, 'README.md', `# Ralph Codex Workbench
+  await writeFile(rootPath, 'README.md', `# Ralphdex
 
 ## Quick Start
 
@@ -368,7 +368,7 @@ Stable prompt feedback rules live here.
 
   await writeFile(rootPath, 'docs/boundaries.md', `# Boundaries
 
-This document owns what Ralph Codex Workbench explicitly does not try to do and where its trust guarantees stop.
+This document owns what Ralphdex explicitly does not try to do and where its trust guarantees stop.
 
 ## Codex Product Boundary
 
@@ -508,7 +508,7 @@ test('validateRepositoryDocs reports missing AGENTS file references and broken l
   const rootPath = await makeTempRoot();
   await seedValidRepository(rootPath);
   await fs.rm(path.join(rootPath, 'src/ralph/verifier.ts'));
-  await writeFile(rootPath, 'README.md', `# Ralph Codex Workbench
+  await writeFile(rootPath, 'README.md', `# Ralphdex
 
 ## Quick Start
 

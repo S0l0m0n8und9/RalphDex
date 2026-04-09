@@ -69,7 +69,7 @@
 - Created ralph-codex-vscode-starter/docs/multi-agent-readiness.md with the required Task Ownership, Write Serialisation, Remediation Isolation, and Lifting The Deferral sections. The selected validation command still fails due to pre-existing absolute /home/admin/... links in the repository's existing docs, which the docs validator treats as outside-repo targets on this workspace.
 - Extracted completion-report parsing from iterationEngine.ts into src/ralph/completionReportParser.ts and updated iterationEngine imports. TypeScript test compilation passed.
 - Removed the remaining tracked Ralph runtime artifacts from the Git index now that .git was writable in this run. Validation confirms only prd.md, tasks.json, progress.md, and .gitignore remain tracked under .ralph.
-- Added Ralph Codex: Initialize Workspace to scaffold a fresh .ralph directory, documented the flow, and added smoke coverage for create and abort behavior.
+- Added Ralphdex: Initialize Workspace to scaffold a fresh .ralph directory, documented the flow, and added smoke coverage for create and abort behavior.
 - Documented the committed project-artifact vs operator-local runtime-state boundary in docs/boundaries.md and the root README, and updated docsValidator to require the new wording.
 - Promoted docs/multi-agent-readiness.md into the durable documentation map, linked it from the single-agent boundary, and confirmed the docs validator passes.
 - Added focused unit coverage for the extracted completion-report parser and cleaned the iteration engine import to depend only on the parser entrypoint.
