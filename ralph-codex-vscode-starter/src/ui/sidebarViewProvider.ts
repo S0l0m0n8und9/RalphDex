@@ -65,8 +65,9 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
         if (workspaceFolder) {
           const freshConfig = readConfig(workspaceFolder);
           this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
-          this.lastRenderTime = 0; // force render
-          this.fullRender();
+          // Do NOT fullRender() here — the user's input already shows the new
+          // value; a full HTML replace would destroy focus and cursor position.
+          // The updated latestState will be picked up by the next natural render.
         }
       }
     });
