@@ -22,20 +22,20 @@ Use [docs/testing.md](testing.md) for the validation gate and test coverage.
 
 1. Run `npm install` if dependencies are not present yet.
 2. Run `npm run package` from the extension root.
-3. Wait for `vsce package` to emit `ralph-codex-workbench-<version>.vsix` in the extension root directory.
+3. Wait for `vsce package` to emit `ralphdex-<version>.vsix` in the extension root directory.
 4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
-5. Reload VS Code if prompted, then confirm the extension appears as `Ralph Codex Workbench`.
+5. Reload VS Code if prompted, then confirm the extension appears as `Ralphdex`.
 
 The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive. The published archive is intentionally limited to the compiled extension, prompt templates, bundled license, and operator-facing docs instead of the full development tree.
 
-If you prefer a shell-driven local install, run `code --install-extension ./ralph-codex-workbench-<version>.vsix` from the extension root instead of using the command palette.
+If you prefer a shell-driven local install, run `code --install-extension ./ralphdex-<version>.vsix` from the extension root instead of using the command palette.
 
 This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
 
 ## Initialize A Fresh Workspace
 
 1. Open a fresh clone in VS Code.
-2. Run `Ralph Codex: Initialize Workspace`.
+2. Run `Ralphdex: Initialize Workspace`.
 3. Replace the placeholder comment in `.ralph/prd.md` with the real repository objective before using any prompt or CLI workflow.
 
 This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
@@ -44,8 +44,8 @@ The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ral
 
 ## Prepare A Prompt For IDE Use
 
-1. Run `Ralph Codex: Prepare Prompt` if you only want the next prompt file.
-2. Run `Ralph Codex: Open Codex IDE` if you also want clipboard handoff and best-effort sidebar/new-chat commands.
+1. Run `Ralphdex: Prepare Prompt` if you only want the next prompt file.
+2. Run `Ralphdex: Open Codex IDE` if you also want clipboard handoff and best-effort sidebar/new-chat commands.
 3. Continue manually in the Codex IDE.
 
 This path persists prepared-prompt evidence, not a full executed iteration result.
@@ -75,7 +75,7 @@ When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph als
 
 ## Run One CLI Iteration
 
-1. Run `Ralph Codex: Run CLI Iteration`.
+1. Run `Ralphdex: Run CLI Iteration`.
 2. Ralph emits a short preflight summary covering task graph, workspace/runtime, Codex adapter, and verifier readiness, including warnings when latest artifact surfaces are stale, retention cleanup roots overlap unsafely, or retention settings disable expected cleanup before a loop starts.
 3. If preflight is blocked, Ralph persists blocked-start evidence and stops before `codex exec`.
 4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs `codex exec`, verifies the outcome, reconciles the structured completion report, and persists the iteration result.
@@ -106,7 +106,7 @@ Per-iteration artifacts now also include `completion-report.json`, which records
 
 When the same selected task stops with repeated no-progress, repeated blocked starts, or repeated identical failure evidence, the persisted iteration result, latest-result pointer, latest summary, and status report now also carry a bounded remediation recommendation. That recommendation stays deterministic and human-review-first; it does not trigger an automatic extra model pass.
 
-If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralph Codex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried.
+If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralphdex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried.
 
 Ralph may also auto-apply `decompose_task` during `Run CLI Iteration` or `Run CLI Loop`, but only when `ralphCodex.autoApplyRemediation` includes `decompose_task` or `ralphCodex.autonomyMode = autonomous` makes that setting effective at runtime. In that mode Ralph still persists the remediation artifact first, then applies the suggested child tasks through the same task-file validation and `withTaskFileLock` write path used by the explicit apply command. If validation fails, Ralph leaves `.ralph/tasks.json` unchanged and records a warning on the iteration result instead of forcing the edit.
 
@@ -125,7 +125,7 @@ Use this path when you need repeatable execution plus deterministic result recor
 
 When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch placement for the selected task. Top-level tasks claim a dedicated `ralph/<taskId>` branch from the branch that was active when the claim was acquired. Child tasks claim both `ralph/integration/<parentId>` and `ralph/<taskId>`, record those branch names plus the original base branch in `.ralph/claims.json`, and run the task on the child feature branch. When the child task reconciles `done`, Ralph commits the remaining work on `ralph/<taskId>`, merges that feature branch into `ralph/integration/<parentId>`, and, if that completion also auto-completes the parent aggregate task, performs one atomic merge from `ralph/integration/<parentId>` back into the recorded base branch. If `ralphCodex.scmPrOnParentDone = true`, Ralph also pushes `ralph/integration/<parentId>` to `origin` and runs `gh pr create` with the parent title plus the completed child summaries, targeting the base branch recorded on the first child claim. Push or PR failures are surfaced in iteration warnings only; they do not roll back the completed task state. Ralph never auto-deletes either branch. If any of those merges conflict, Ralph leaves the conflicting branch checked out, reopens the affected task as `in_progress` with a merge-conflict blocker, releases the active claim, and records the conflict path in the iteration warnings instead of silently forcing the merge.
 
-If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralph Codex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no `codex exec` process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
+If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralphdex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no `codex exec` process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
 
 After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run CLI Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
 
@@ -134,7 +134,7 @@ When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph pru
 ## Run A Pipeline
 
 1. Ensure `.ralph/prd.md` contains the real objective with `##` section headings for each phase.
-2. Run `Ralph Codex: Run Pipeline`.
+2. Run `Ralphdex: Run Pipeline`.
 3. Ralph hashes `.ralph/prd.md`, parses up to three `##`-level section headings as phase titles, creates a pipeline-root parent task plus sequential child tasks in `.ralph/tasks.json`, and writes an initial pipeline artifact to `.ralph/artifacts/pipelines/<runId>.json`.
 4. Ralph then invokes the multi-agent loop against the full task graph. The newly created child tasks are the next actionable items and will be claimed and executed by the loop agents.
 5. When the loop finishes, Ralph writes a final pipeline artifact with `status: complete` (or `status: failed`) and the `loopEndTime`.
@@ -157,7 +157,7 @@ This command is the supported end-to-end pipeline path. It does not bypass the n
 
 When `ralphCodex.pipelineHumanGates` is `true`, Ralph pauses after the review-agent pass instead of immediately submitting the PR. It writes a pending-handoff file to `.ralph/handoff/pipeline-<runId>-pending.json` and sets the pipeline artifact status to `awaiting_human_approval`. No SCM agent is invoked at this point.
 
-To resume, run `Ralph Codex: Approve Human Review`. Ralph discovers all pending handoff files in `.ralph/handoff/`, prompts for a selection if more than one is found, then runs the SCM agent to submit the PR, updates the pipeline artifact to `status: complete`, and removes the pending handoff file.
+To resume, run `Ralphdex: Approve Human Review`. Ralph discovers all pending handoff files in `.ralph/handoff/`, prompts for a selection if more than one is found, then runs the SCM agent to submit the PR, updates the pipeline artifact to `status: complete`, and removes the pending handoff file.
 
 `ralphCodex.pipelineHumanGates` defaults to `false`. With the default, the SCM agent runs immediately after the review pass with no human checkpoint.
 
@@ -165,9 +165,9 @@ To resume, run `Ralph Codex: Approve Human Review`. Ralph discovers all pending 
 
 If VS Code crashes or the extension is reloaded while a pipeline is running, the in-progress run is not silently abandoned. Ralph writes a `phase` checkpoint to the pipeline artifact after each sub-phase completes (`scaffold` → `loop` → `review` → `scm` → `done`). An artifact with `status: running` and a `phase` value of `scaffold`, `loop`, `review`, or `scm` is resumable.
 
-On extension activation, Ralph scans `.ralph/artifacts/pipelines/` for resumable artifacts. If any are found, a warning notification appears. Click **Resume Pipeline** to invoke `Ralph Codex: Resume Pipeline`.
+On extension activation, Ralph scans `.ralph/artifacts/pipelines/` for resumable artifacts. If any are found, a warning notification appears. Click **Resume Pipeline** to invoke `Ralphdex: Resume Pipeline`.
 
-`Ralph Codex: Resume Pipeline` can also be invoked directly at any time. It:
+`Ralphdex: Resume Pipeline` can also be invoked directly at any time. It:
 
 1. Scans for pipeline artifacts with `status: running` and a resumable `phase`.
 2. Shows a quick-pick selector if more than one interrupted run exists.
@@ -241,7 +241,7 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 
 ## Run The Ralph Loop
 
-1. Run `Ralph Codex: Run CLI Loop`.
+1. Run `Ralphdex: Run CLI Loop`.
 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
 4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
@@ -249,7 +249,7 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 ### Run The Multi-Agent Loop
 
 1. Set `ralphCodex.agentCount` to the number of concurrent agents you want (minimum 2 for parallel mode).
-2. Run `Ralph Codex: Run Multi-Agent Loop`.
+2. Run `Ralphdex: Run Multi-Agent Loop`.
 3. Ralph spawns `ralphCodex.agentCount` concurrent iteration loops, each using a distinct `agentId` derived from `ralphCodex.agentId` (e.g., `default-1`, `default-2`).
 4. Each agent loop acquires task claims independently using the existing claim mechanism in `.ralph/claims.json`, so agents pick up different tasks without coordination overhead.
 5. All agent loops run concurrently and Ralph waits for all of them to finish before reporting the combined summary.
@@ -260,7 +260,7 @@ Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique ba
 
 ### Show Multi-Agent Status
 
-Run `Ralph Codex: Show Multi-Agent Status` to display a per-agent summary in the Ralph Codex output channel. For each agent identity record found under `.ralph/agents/`, the report shows:
+Run `Ralphdex: Show Multi-Agent Status` to display a per-agent summary in the Ralphdex output channel. For each agent identity record found under `.ralph/agents/`, the report shows:
 
 - `agentId` and `firstSeenAt` timestamp
 - number of tasks completed by that agent
@@ -324,7 +324,7 @@ Backlog replenishment is a different path. Use it only when the durable task led
 
 `ralphCodex.autoReplenishBacklog` lets the loop continue into the replenish-backlog prompt kind after a `no_actionable_task` stop, but that is only safe when preflight says the durable ledger is still internally consistent.
 
-On activation, Ralph writes the effective autonomy mode and those three resolved settings to the `Ralph Codex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
+On activation, Ralph writes the effective autonomy mode and those three resolved settings to the `Ralphdex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
 
 The safety gate is the preflight drift check. Ralph only auto-replenishes when the selector found no actionable task, the current result recorded `no_actionable_task`, and preflight found no error-severity ledger-drift diagnostics such as `ledger_drift` or `done_parent_unfinished_descendants`.
 
@@ -366,8 +366,8 @@ The practical effect is that Ralph may delete older generated artifacts once the
 
 Manual maintenance has two different scopes:
 
-- `Ralph Codex: Cleanup Runtime Artifacts` preserves the durable PRD, progress log, task file, `.ralph/state.json`, and stable latest evidence surfaces while pruning older generated prompts, transcript and last-message files, iteration directories, older provenance bundles, and extension logs.
-- `Ralph Codex: Reset Runtime State` is broader and removes generated runtime state, prompts, runs, iteration artifacts, and logs. It still preserves the durable PRD, progress log, and task file, but it is not the right command when you want to keep loop continuity.
+- `Ralphdex: Cleanup Runtime Artifacts` preserves the durable PRD, progress log, task file, `.ralph/state.json`, and stable latest evidence surfaces while pruning older generated prompts, transcript and last-message files, iteration directories, older provenance bundles, and extension logs.
+- `Ralphdex: Reset Runtime State` is broader and removes generated runtime state, prompts, runs, iteration artifacts, and logs. It still preserves the durable PRD, progress log, and task file, but it is not the right command when you want to keep loop continuity.
 
 Recovery is intentionally narrow and deterministic:
 
@@ -393,22 +393,22 @@ Use the inspection commands by question, not just by file name:
 
 ## Inspect State
 
-- `Ralph Codex: Show Status` writes a readable summary to the `Ralph Codex` output channel.
+- `Ralphdex: Show Status` writes a readable summary to the `Ralphdex` output channel.
 - The status summary includes the current loop/preflight snapshot, the latest iteration, the latest prompt-budget policy, required versus optional prompt sections plus omission order and kept versus omitted sections, current planned prompt byte count, current CLI reasoning effort when available, recent iteration and run history from `.ralph/state.json`, the latest remediation summary plus action, attempt count, human-review flag, proposed child-task count and dependency sketch when available, and proposal path when repeated-stop guidance exists, the current generated-artifact and provenance-bundle retention windows including protected retained entries, and whether any missing latest-summary/latest-provenance surfaces were repaired or remain stale during the status refresh.
-- The same status summary also keeps the task-claim lifecycle explicit: it shows the current claim holder for the selected task, groups all active claims by `agentId` with task id, task title, claim timestamp, and stale/fresh state, reminds the operator that only CLI execution owns blocking claim acquire/release, and points stale-claim recovery through `Ralph Codex: Resolve Stale Task Claim` when a stale canonical holder is blocking reselection.
+- The same status summary also keeps the task-claim lifecycle explicit: it shows the current claim holder for the selected task, groups all active claims by `agentId` with task id, task title, claim timestamp, and stale/fresh state, reminds the operator that only CLI execution owns blocking claim acquire/release, and points stale-claim recovery through `Ralphdex: Resolve Stale Task Claim` when a stale canonical holder is blocking reselection.
 - If preflight blocks on task-ledger drift such as a parent marked `done` while any descendant remains `todo`, `in_progress`, or `blocked`, repair `.ralph/tasks.json` first instead of retrying Codex on the same stale graph.
 - A clean repair usually means one of two changes:
 - reopen the parent to `todo` or `in_progress` so the unfinished descendants remain visible under an active parent
 - or, if the parent is truly complete, finish or deliberately block each remaining descendant so the tree no longer contradicts itself
 - Do not replenish the backlog while that contradiction exists. The replenish-backlog prompt kind can appear because the selector found no actionable task, but when the summary says `No task selected because task-ledger drift blocks safe selection: ...`, treat it as a repair instruction, not permission to invent more work.
 - After the repair, rerun `Show Status` or preflight. Replenish the backlog only if task counts still show no actionable `todo` or `in_progress` work on a now-consistent graph.
-- `Ralph Codex: Open Latest Ralph Summary` opens the newest human-readable summary surface.
-- `Ralph Codex: Open Latest Provenance Bundle` opens the newest provenance summary surface.
-- `Ralph Codex: Open Latest Prompt Evidence` opens `latest-prompt-evidence.json` for direct prompt-context inspection.
-- `Ralph Codex: Open Latest CLI Transcript` opens the newest CLI transcript and falls back to the newest last-message artifact when a transcript path is unavailable.
-- `Ralph Codex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`.
-- `Ralph Codex: Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory for folder-level inspection.
-- `Ralph Codex: Cleanup Runtime Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
+- `Ralphdex: Open Latest Ralph Summary` opens the newest human-readable summary surface.
+- `Ralphdex: Open Latest Provenance Bundle` opens the newest provenance summary surface.
+- `Ralphdex: Open Latest Prompt Evidence` opens `latest-prompt-evidence.json` for direct prompt-context inspection.
+- `Ralphdex: Open Latest CLI Transcript` opens the newest CLI transcript and falls back to the newest last-message artifact when a transcript path is unavailable.
+- `Ralphdex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`.
+- `Ralphdex: Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory for folder-level inspection.
+- `Ralphdex: Cleanup Runtime Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
 
 For routine long-loop inspection, use these commands in order:
 
@@ -483,9 +483,9 @@ That PR creation step is intentionally failure-tolerant:
 
 ## Reset State
 
-`Ralph Codex: Cleanup Runtime Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.
+`Ralphdex: Cleanup Runtime Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.
 
-`Ralph Codex: Reset Runtime State` removes generated runtime state, prompts, run artifacts, iteration artifacts, and logs while preserving the durable PRD, progress log, and task file.
+`Ralphdex: Reset Runtime State` removes generated runtime state, prompts, run artifacts, iteration artifacts, and logs while preserving the durable PRD, progress log, and task file.
 
 ## Diagnostics
 

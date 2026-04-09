@@ -348,7 +348,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
     `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
     '- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims.',
-    '- Claim recovery: Use Ralph Codex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active.',
+    '- Claim recovery: Use Ralphdex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active.',
     `- Latest claim resolution: ${latestClaimResolutionSummary(snapshot)}`,
     `- Task counts: ${snapshot.taskCounts
       ? `todo ${snapshot.taskCounts.todo}, in_progress ${snapshot.taskCounts.in_progress}, blocked ${snapshot.taskCounts.blocked}, done ${snapshot.taskCounts.done}`
@@ -445,7 +445,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Child tasks: ${snapshot.latestPipelineRun ? snapshot.latestPipelineRun.decomposedTaskIds.length : 'none'}`,
     `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
     `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
-    '- Direct command: Ralph Codex: Open Latest Pipeline Run',
+    '- Direct command: Ralphdex: Open Latest Pipeline Run',
     ...(snapshot.recommendedSkills.length > 0
       ? [
         '',
@@ -514,9 +514,9 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
     `- Latest artifact repairs this status run: ${compactList(snapshot.latestArtifactRepair.repairedLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
     `- Latest artifact paths still stale: ${compactList(snapshot.latestArtifactRepair.staleLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
-    '- Direct command: Ralph Codex: Open Latest Ralph Summary',
-    '- Direct command: Ralph Codex: Open Latest Provenance Bundle',
-    '- Direct command: Ralph Codex: Reveal Latest Provenance Bundle Directory',
+    '- Direct command: Ralphdex: Open Latest Ralph Summary',
+    '- Direct command: Ralphdex: Open Latest Provenance Bundle',
+    '- Direct command: Ralphdex: Reveal Latest Provenance Bundle Directory',
     `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
     `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
     `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,

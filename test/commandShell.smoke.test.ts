@@ -246,7 +246,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
 
-  const output = harness.getOutputLines('Ralph Codex').join('\n');
+  const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /"message":"Effective Ralph autonomy configuration\."/);
   assert.match(output, /"autonomyMode":"autonomous"/);
   assert.match(output, /"autoReloadOnControlPlaneChange":true/);
@@ -439,7 +439,7 @@ test('Show Ralph Status reports preflight details and can open the latest summar
 
   assert.deepEqual(harness.state.shownDocuments, [latestSummaryPath]);
   assert.equal(harness.state.infoMessages.at(-1)?.items.includes('Open Latest Summary'), true);
-  const output = harness.getOutputLines('Ralph Codex').join('\n');
+  const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /# Ralph Status:/);
   assert.match(output, /## Preflight/);
   assert.match(output, /## Artifacts/);
@@ -878,7 +878,7 @@ test('Resolve Stale Task Claim marks the canonical stale claim and surfaces the 
 
   await vscode.commands.executeCommand('ralphCodex.showRalphStatus');
 
-  const output = harness.getOutputLines('Ralph Codex').join('\n');
+  const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /Latest claim resolution: T1 default\/run-i001-cli-20260307T000000Z -> stale/);
   assert.match(output, /stale_claim_resolved/);
 });

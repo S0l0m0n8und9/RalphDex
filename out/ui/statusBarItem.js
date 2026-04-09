@@ -141,7 +141,7 @@ class RalphStatusBar {
             default:
                 this.item.text = `${icon} Ralph ${glyph} idle`;
         }
-        const tooltipLines = ['Ralph Codex Workbench'];
+        const tooltipLines = ['Ralphdex'];
         if (this.state.selectedTaskTitle) {
             tooltipLines.push(`Task: ${this.state.selectedTaskTitle}`);
         }
@@ -166,7 +166,7 @@ async function showStatusBarQuickPick() {
         { label: '$(layout-sidebar-left) Dashboard', description: 'Open the Ralph dashboard', commandId: 'ralphCodex.openDashboard' }
     ];
     const picked = await vscode.window.showQuickPick(items, {
-        placeHolder: 'Ralph Codex — pick an action'
+        placeHolder: 'Ralphdex — pick an action'
     });
     if (picked) {
         await vscode.commands.executeCommand(picked.commandId);

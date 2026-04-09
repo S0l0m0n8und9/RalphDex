@@ -73,7 +73,7 @@ const RALPH_PRD_PLACEHOLDER = '<!-- TODO: Replace with your Ralph objective befo
 async function withWorkspaceFolder() {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) {
-        throw new Error('Open a workspace folder before using Ralph Codex Workbench.');
+        throw new Error('Open a workspace folder before using Ralphdex.');
     }
     return folder;
 }
@@ -267,11 +267,11 @@ function renderSuggestedChildTasksForOutput(tasks) {
         lines.push(`  validation: ${task.validation ?? 'none'}`);
         lines.push(`  dependsOn: ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => `${dependency.taskId} (${dependency.reason})`).join(', ') : 'none'}`);
     }
-    lines.push('Run "Ralph Codex: Apply Latest Task Decomposition Proposal" to commit these proposed child tasks.');
+    lines.push('Run "Ralphdex: Apply Latest Task Decomposition Proposal" to commit these proposed child tasks.');
     return lines.join('\n');
 }
 function iterationFailureMessage(result) {
-    return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralph Codex output channel.`;
+    return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralphdex output channel.`;
 }
 function registerCommand(context, logger, spec) {
     context.subscriptions.push(vscode.commands.registerCommand(spec.commandId, async () => {
@@ -363,7 +363,7 @@ function registerCommands(context, logger, broadcaster) {
                         });
                         await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
                         logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
-                        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralph Codex: Approve Human Review" to submit the PR.`);
+                        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`);
                         return;
                     }
                     runScm = true;
@@ -406,7 +406,7 @@ function registerCommands(context, logger, broadcaster) {
     }
     registerCommand(context, logger, {
         commandId: 'ralphCodex.initializeWorkspace',
-        label: 'Ralph Codex: Initialize Workspace',
+        label: 'Ralphdex: Initialize Workspace',
         handler: async (progress) => {
             progress.report({ message: 'Creating a fresh .ralph workspace scaffold' });
             const workspaceFolder = await withWorkspaceFolder();
@@ -475,13 +475,13 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.addTask',
-        label: 'Ralph Codex: Add Task',
+        label: 'Ralphdex: Add Task',
         handler: async () => {
             const workspaceFolder = await withWorkspaceFolder();
             const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
             const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
             if (!(await (0, fs_1.pathExists)(tasksPath))) {
-                void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralph Codex: Initialize Workspace" first.');
+                void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.');
                 return;
             }
             const raw = await fs.readFile(tasksPath, 'utf8');
@@ -511,12 +511,12 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.newProject',
-        label: 'Ralph Codex: New Project',
+        label: 'Ralphdex: New Project',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
             if (!(await (0, fs_1.pathExists)(ralphDir))) {
-                void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralph Codex: Initialize Workspace" first.');
+                void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.');
                 return;
             }
             const name = await vscode.window.showInputBox({
@@ -539,7 +539,7 @@ function registerCommands(context, logger, broadcaster) {
             const slug = slugify(name.trim());
             const absPaths = projectAbsolutePaths(ralphDir, slug);
             if (await (0, fs_1.pathExists)(absPaths.prdPath)) {
-                void vscode.window.showWarningMessage(`Project "${slug}" already exists. Use "Ralph Codex: Switch Project" to select it.`);
+                void vscode.window.showWarningMessage(`Project "${slug}" already exists. Use "Ralphdex: Switch Project" to select it.`);
                 return;
             }
             const objective = await vscode.window.showInputBox({
@@ -598,7 +598,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.switchProject',
-        label: 'Ralph Codex: Switch Project',
+        label: 'Ralphdex: Switch Project',
         handler: async () => {
             const workspaceFolder = await withWorkspaceFolder();
             const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
@@ -612,7 +612,7 @@ function registerCommands(context, logger, broadcaster) {
                 }))
             ];
             if (slugs.length === 0) {
-                void vscode.window.showInformationMessage('No named projects yet. Use "Ralph Codex: New Project" to create one.');
+                void vscode.window.showInformationMessage('No named projects yet. Use "Ralphdex: New Project" to create one.');
                 return;
             }
             const picked = await vscode.window.showQuickPick(items, {
@@ -635,7 +635,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.generatePrompt',
-        label: 'Ralph Codex: Prepare Prompt',
+        label: 'Ralphdex: Prepare Prompt',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const prepared = await engine.preparePrompt(workspaceFolder, progress);
@@ -674,7 +674,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openCodexAndCopyPrompt',
-        label: 'Ralph Codex: Open Codex IDE',
+        label: 'Ralphdex: Open Codex IDE',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const prepared = await engine.preparePrompt(workspaceFolder, progress);
@@ -705,7 +705,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphIteration',
-        label: 'Ralph Codex: Run CLI Iteration',
+        label: 'Ralphdex: Run CLI Iteration',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -820,7 +820,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphLoop',
-        label: 'Ralph Codex: Run CLI Loop',
+        label: 'Ralphdex: Run CLI Loop',
         cancellable: true,
         handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
@@ -929,7 +929,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runMultiAgentLoop',
-        label: 'Ralph Codex: Run Multi-Agent Loop',
+        label: 'Ralphdex: Run Multi-Agent Loop',
         cancellable: true,
         handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
@@ -1043,7 +1043,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runPipeline',
-        label: 'Ralph Codex: Run Pipeline',
+        label: 'Ralphdex: Run Pipeline',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -1060,7 +1060,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.resumePipeline',
-        label: 'Ralph Codex: Resume Pipeline',
+        label: 'Ralphdex: Resume Pipeline',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -1100,7 +1100,7 @@ function registerCommands(context, logger, broadcaster) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.approveHumanReview',
-        label: 'Ralph Codex: Approve Human Review',
+        label: 'Ralphdex: Approve Human Review',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);

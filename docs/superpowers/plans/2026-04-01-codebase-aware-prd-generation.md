@@ -493,7 +493,7 @@ cd ralph-codex-vscode-starter && git add src/commands/registerCommands.ts && git
 End-to-end smoke test (manual):
 
 1. Open a workspace with existing TypeScript files (e.g., this repo)
-2. Run `Ralph Codex: Initialize Workspace` or `Ralph Codex: New Project`
+2. Run `Ralphdex: Initialize Workspace` or `Ralphdex: New Project`
 3. Enter an objective like "refactor into a function app"
 4. Observe: the generated `prd.md` should acknowledge that no Azure Function structure exists yet and scope the PRD toward introducing it — not toward refactoring an existing function app
 5. Check: `prd.md` and `tasks.json` are written and opened in the editor

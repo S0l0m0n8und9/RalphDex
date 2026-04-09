@@ -10,7 +10,7 @@ import { readConfig } from '../config/readConfig';
 import { WebviewConfigSync } from './webviewConfigSync';
 
 /**
- * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
+ * Manages a singleton WebviewPanel that shows the full Ralphdex dashboard
  * in the editor area (centre stage).
  */
 export class RalphDashboardPanel implements vscode.Disposable {
@@ -87,7 +87,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
     const panel = vscode.window.createWebviewPanel(
       RalphDashboardPanel.viewType,
-      'Ralph Codex',
+      'Ralphdex',
       vscode.ViewColumn.One,
       { enableScripts: true, retainContextWhenHidden: true }
     );

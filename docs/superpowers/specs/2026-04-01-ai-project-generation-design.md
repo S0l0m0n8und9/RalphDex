@@ -5,7 +5,7 @@
 
 ## Problem
 
-When a user runs `Ralph Codex: Initialize Workspace` or `Ralph Codex: New Project` and enters an objective, Ralph today writes that objective verbatim into `prd.md` as a two-line placeholder, then derives tasks by extracting markdown headings from that trivial text. The user is told to "refine with your AI assistant" — meaning the useful work happens outside Ralph's init flow, and the files opened are essentially stubs.
+When a user runs `Ralphdex: Initialize Workspace` or `Ralphdex: New Project` and enters an objective, Ralph today writes that objective verbatim into `prd.md` as a two-line placeholder, then derives tasks by extracting markdown headings from that trivial text. The user is told to "refine with your AI assistant" — meaning the useful work happens outside Ralph's init flow, and the files opened are essentially stubs.
 
 ## Goal
 

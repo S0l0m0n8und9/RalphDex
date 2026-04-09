@@ -1,8 +1,8 @@
-# Ralph Codex Workbench — Claude Code Project Memory
+# Ralphdex — Claude Code Project Memory
 
 ## What this repo is
 
-Ralph Codex Workbench is a VS Code extension that runs durable, file-backed agentic coding loops. All state lives in `.ralph/` on disk so sessions can resume without chat history. The extension source is at the repo root (`src/`, `test/`, `package.json`). The `.ralph/` directory is Ralph's live workspace state for this project.
+Ralphdex is a VS Code extension that runs durable, file-backed agentic coding loops. All state lives in `.ralph/` on disk so sessions can resume without chat history. The extension source is at the repo root (`src/`, `test/`, `package.json`). The `.ralph/` directory is Ralph's live workspace state for this project.
 
 ## Before making any change
 

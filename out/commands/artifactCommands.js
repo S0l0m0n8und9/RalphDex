@@ -51,7 +51,7 @@ const pipeline_1 = require("../ralph/pipeline");
 async function withWorkspaceFolder() {
     const folder = vscode.workspace.workspaceFolders?.[0];
     if (!folder) {
-        throw new Error('Open a workspace folder before using Ralph Codex Workbench.');
+        throw new Error('Open a workspace folder before using Ralphdex.');
     }
     return folder;
 }
@@ -81,7 +81,7 @@ async function openLatestRalphSummary(workspaceFolder, stateManager, logger) {
     const reason = inspection.state.lastIteration
         ? 'The latest Ralph summary artifact is missing or stale and could not be repaired from persisted Ralph metadata.'
         : 'No Ralph summary exists yet because no CLI iteration has completed and no preflight has been persisted.';
-    void vscode.window.showInformationMessage(`${reason} Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.`);
+    void vscode.window.showInformationMessage(`${reason} Run Ralphdex: Run CLI Iteration or Ralphdex: Run CLI Loop, then try again.`);
     return false;
 }
 async function openLatestProvenanceBundle(workspaceFolder, stateManager, logger) {
@@ -142,7 +142,7 @@ async function openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManage
     }
     void vscode.window.showInformationMessage(latestArtifacts.latestCliInvocationPath || inspection.state.lastRun || inspection.state.lastIteration
         ? 'The latest Ralph CLI transcript and last-message artifacts are missing. Run a CLI iteration to generate fresh execution output, then try again.'
-        : 'No Ralph CLI transcript exists yet because no CLI iteration has completed. Run Ralph Codex: Run CLI Iteration or Ralph Codex: Run CLI Loop, then try again.');
+        : 'No Ralph CLI transcript exists yet because no CLI iteration has completed. Run Ralphdex: Run CLI Iteration or Ralphdex: Run CLI Loop, then try again.');
     return false;
 }
 async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger) {
@@ -174,7 +174,7 @@ async function openLatestPipelineRun(workspaceFolder, stateManager, logger) {
         await openTextFile(latest.artifactPath);
         return true;
     }
-    void vscode.window.showInformationMessage('No pipeline run artifact found. Run "Ralph Codex: Run Pipeline" first, then try again.');
+    void vscode.window.showInformationMessage('No pipeline run artifact found. Run "Ralphdex: Run Pipeline" first, then try again.');
     return false;
 }
 async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger) {
@@ -218,7 +218,7 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
     const status = await (0, statusSnapshot_1.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
     const staleClaims = status.claimGraph?.tasks.filter((entry) => entry.canonicalClaim?.stale) ?? [];
     if (staleClaims.length === 0) {
-        void vscode.window.showInformationMessage('No stale active task claim exists to resolve. Use Ralph Codex: Show Status to inspect the current claim graph.');
+        void vscode.window.showInformationMessage('No stale active task claim exists to resolve. Use Ralphdex: Show Status to inspect the current claim graph.');
         return false;
     }
     let targetClaim = staleClaims.find((entry) => entry.taskId === status.selectedTask?.id) ?? null;
@@ -234,7 +234,7 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
         }
         targetClaim = staleClaims.find((entry) => entry.taskId === requestedTaskId) ?? null;
         if (!targetClaim) {
-            void vscode.window.showWarningMessage(`Task ${requestedTaskId} does not currently have a stale canonical claim. Use Ralph Codex: Show Status to inspect the current claim graph.`);
+            void vscode.window.showWarningMessage(`Task ${requestedTaskId} does not currently have a stale canonical claim. Use Ralphdex: Show Status to inspect the current claim graph.`);
             return false;
         }
     }
@@ -358,7 +358,7 @@ async function readMultiAgentStatusSummaries(ralphDir, claimFilePath) {
 function registerArtifactAndMaintenanceCommands(context, logger, stateManager, registerCommand) {
     registerCommand(context, logger, {
         commandId: 'ralphCodex.showRalphStatus',
-        label: 'Ralph Codex: Show Status',
+        label: 'Ralphdex: Show Status',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Collecting workspace and Ralph status' });
@@ -377,8 +377,8 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             });
             const primaryAction = status.latestSummaryPath ? 'Open Latest Summary' : 'Show Output';
             const choice = await vscode.window.showInformationMessage(vscode.workspace.isTrusted
-                ? 'Ralph status summary is available in the Ralph Codex output channel.'
-                : 'Ralph status summary is available in the Ralph Codex output channel in limited mode.', primaryAction, 'Show Output');
+                ? 'Ralph status summary is available in the Ralphdex output channel.'
+                : 'Ralph status summary is available in the Ralphdex output channel in limited mode.', primaryAction, 'Show Output');
             if (choice === 'Open Latest Summary' && status.latestSummaryPath) {
                 await openLatestRalphSummary(workspaceFolder, stateManager, logger);
             }
@@ -389,7 +389,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestRalphSummary',
-        label: 'Ralph Codex: Open Latest Ralph Summary',
+        label: 'Ralphdex: Open Latest Ralph Summary',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph summary artifact' });
@@ -399,7 +399,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestProvenanceBundle',
-        label: 'Ralph Codex: Open Latest Provenance Bundle',
+        label: 'Ralphdex: Open Latest Provenance Bundle',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph provenance bundle' });
@@ -409,7 +409,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestPromptEvidence',
-        label: 'Ralph Codex: Open Latest Prompt Evidence',
+        label: 'Ralphdex: Open Latest Prompt Evidence',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph prompt evidence' });
@@ -419,7 +419,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestCliTranscript',
-        label: 'Ralph Codex: Open Latest CLI Transcript',
+        label: 'Ralphdex: Open Latest CLI Transcript',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph CLI transcript' });
@@ -429,7 +429,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestPipelineRun',
-        label: 'Ralph Codex: Open Latest Pipeline Run',
+        label: 'Ralphdex: Open Latest Pipeline Run',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph pipeline run artifact' });
@@ -439,7 +439,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.applyLatestTaskDecompositionProposal',
-        label: 'Ralph Codex: Apply Latest Task Decomposition Proposal',
+        label: 'Ralphdex: Apply Latest Task Decomposition Proposal',
         handler: async (progress) => {
             progress.report({ message: 'Applying the latest Ralph task decomposition proposal' });
             const workspaceFolder = await withWorkspaceFolder();
@@ -448,7 +448,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.resolveStaleTaskClaim',
-        label: 'Ralph Codex: Resolve Stale Task Claim',
+        label: 'Ralphdex: Resolve Stale Task Claim',
         handler: async (progress) => {
             progress.report({ message: 'Resolving a stale Ralph task claim' });
             const workspaceFolder = await withWorkspaceFolder();
@@ -457,7 +457,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.revealLatestProvenanceBundleDirectory',
-        label: 'Ralph Codex: Reveal Latest Provenance Bundle Directory',
+        label: 'Ralphdex: Reveal Latest Provenance Bundle Directory',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Revealing latest Ralph provenance bundle directory' });
@@ -467,7 +467,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.showMultiAgentStatus',
-        label: 'Ralph Codex: Show Multi-Agent Status',
+        label: 'Ralphdex: Show Multi-Agent Status',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Collecting per-agent status' });
@@ -484,7 +484,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 agentCount: summaries.length
             });
             void vscode.window.showInformationMessage(summaries.length > 0
-                ? `Multi-agent status for ${summaries.length} agent(s) is available in the Ralph Codex output channel.`
+                ? `Multi-agent status for ${summaries.length} agent(s) is available in the Ralphdex output channel.`
                 : 'No agent identity records found. Run at least one CLI iteration to populate agent state.', 'Show Output').then((choice) => {
                 if (choice === 'Show Output') {
                     logger.show(false);
@@ -494,7 +494,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.cleanupRalphRuntimeArtifacts',
-        label: 'Ralph Codex: Cleanup Runtime Artifacts',
+        label: 'Ralphdex: Cleanup Runtime Artifacts',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const confirmed = await vscode.window.showWarningMessage('Cleanup Ralph runtime artifacts? This preserves .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence while pruning older generated prompts, runs, iteration artifacts, provenance bundles, and extension logs.', { modal: true }, 'Cleanup');
@@ -525,7 +525,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.resetRalphWorkspaceState',
-        label: 'Ralph Codex: Reset Runtime State',
+        label: 'Ralphdex: Reset Runtime State',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const confirmed = await vscode.window.showWarningMessage('Reset Ralph runtime state? This preserves the PRD, progress log, and task file, but deletes .ralph/state.json, generated prompts, run artifacts, iteration artifacts, and extension logs.', { modal: true }, 'Reset');

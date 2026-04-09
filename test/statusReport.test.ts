@@ -612,13 +612,13 @@ test('buildStatusReport distinguishes task completion from remaining backlog', (
   assert.match(report, /- #2: loop iteration \| succeeded \| exit 0/);
   assert.match(report, /- Latest artifact repairs this status run: \.ralph\/artifacts\/latest-summary\.md/);
   assert.match(report, /- Latest artifact paths still stale: \.ralph\/artifacts\/latest-provenance-summary\.md/);
-  assert.match(report, /Ralph Codex: Reveal Latest Provenance Bundle Directory/);
+  assert.match(report, /Ralphdex: Reveal Latest Provenance Bundle Directory/);
   assert.match(report, /## Latest Pipeline/);
   assert.match(report, /- Run ID: none/);
   assert.match(report, /- Status: none/);
   assert.match(report, /- Root task: none/);
   assert.match(report, /- PR URL: none/);
-  assert.match(report, /Ralph Codex: Open Latest Pipeline Run/);
+  assert.match(report, /Ralphdex: Open Latest Pipeline Run/);
 });
 
 test('buildStatusReport renders latest pipeline section when a pipeline run is present', () => {
@@ -645,7 +645,7 @@ test('buildStatusReport renders latest pipeline section when a pipeline run is p
   assert.match(report, /- Child tasks: 2/);
   assert.match(report, /- PR URL: https:\/\/github\.com\/acme\/repo\/pull\/42/);
   assert.match(report, /\.ralph\/artifacts\/pipelines\/pipeline-20260401T000000Z-bbbb\.json/);
-  assert.match(report, /Ralph Codex: Open Latest Pipeline Run/);
+  assert.match(report, /Ralphdex: Open Latest Pipeline Run/);
 });
 
 test('buildStatusReport surfaces repeated-task remediation guidance', () => {
@@ -895,7 +895,7 @@ test('buildStatusReport surfaces claim-state diagnostics and current holder summ
 
   assert.match(report, /- Claim holder for current task: agent-b\/run-i999-cli-20260307T000700Z \(contested, different provenance\)/);
   assert.match(report, /- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims\./);
-  assert.match(report, /- Claim recovery: Use Ralph Codex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active\./);
+  assert.match(report, /- Claim recovery: Use Ralphdex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active\./);
   assert.match(report, /- Claim state: agent-b: T2 - Next task @ 2026-03-07T00:07:00.000Z \(fresh\); default: T2 - Next task @ 2026-03-07T00:06:00.000Z \(fresh\)/);
   assert.match(report, /- Active claim state: agent-b: T2 - Next task @ 2026-03-07T00:07:00.000Z \(fresh\); default: T2 - Next task @ 2026-03-07T00:06:00.000Z \(fresh\)/);
   assert.match(report, /### Claim Graph/);

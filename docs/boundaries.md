@@ -1,6 +1,6 @@
 # Boundaries
 
-This document owns what Ralph Codex Workbench explicitly does not try to do and where its trust guarantees stop.
+This document owns what Ralphdex explicitly does not try to do and where its trust guarantees stop.
 
 Related docs:
 

@@ -45,7 +45,7 @@ const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
 const stateWatcher_1 = require("./ui/stateWatcher");
 const statusBarItem_1 = require("./ui/statusBarItem");
 function activate(context) {
-    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralph Codex'));
+    const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
     // UI infrastructure
     const broadcaster = new iterationBroadcaster_1.IterationBroadcaster();
@@ -79,7 +79,7 @@ function activate(context) {
         void watcher.refresh();
     }
     (0, registerCommands_1.registerCommands)(context, logger, broadcaster);
-    logger.info('Activated Ralph Codex Workbench extension.', {
+    logger.info('Activated Ralphdex extension.', {
         workspaceTrusted: vscode.workspace.isTrusted,
         activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'
     });

@@ -41,7 +41,7 @@ const sidebarViewProvider_1 = require("./sidebarViewProvider");
 const readConfig_1 = require("../config/readConfig");
 const webviewConfigSync_1 = require("./webviewConfigSync");
 /**
- * Manages a singleton WebviewPanel that shows the full Ralph Codex dashboard
+ * Manages a singleton WebviewPanel that shows the full Ralphdex dashboard
  * in the editor area (centre stage).
  */
 class RalphDashboardPanel {
@@ -107,7 +107,7 @@ class RalphDashboardPanel {
             RalphDashboardPanel.currentPanel.panel.reveal(vscode.ViewColumn.One);
             return;
         }
-        const panel = vscode.window.createWebviewPanel(RalphDashboardPanel.viewType, 'Ralph Codex', vscode.ViewColumn.One, { enableScripts: true, retainContextWhenHidden: true });
+        const panel = vscode.window.createWebviewPanel(RalphDashboardPanel.viewType, 'Ralphdex', vscode.ViewColumn.One, { enableScripts: true, retainContextWhenHidden: true });
         RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, extensionUri, broadcaster);
     }
     updateFromWatchedState(watched) {

@@ -78,7 +78,7 @@ test('buildDashboardHtml includes Open Dashboard button', () => {
 test('buildDashboardHtml renders header with workspace name and state', () => {
   const html = buildDashboardHtml(defaultState({ workspaceName: 'my-project' }), 'n8');
   assert.ok(html.includes('my-project'));
-  assert.ok(html.includes('Ralph Codex'));
+  assert.ok(html.includes('Ralphdex'));
   assert.ok(html.includes('idle'));
 });
 

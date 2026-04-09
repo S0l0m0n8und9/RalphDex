@@ -121,7 +121,7 @@ Ralph should analyze generated PRDs and task lists to recommend skills and agent
 
 - **Phase 1 (current):** Extend the PRD generation prompt (T74) to include a structured `recommendedSkills` section in the JSON response that lists skill names, brief descriptions, and rationale based on project type and task list.
 - **Phase 2 (future):** Persist recommended skills to a `.ralph/recommended-skills.json` artifact and surface them in the status output.
-- **Phase 3 (future):** Add a command `Ralph Codex: Construct Recommended Skills` that invokes the skill-creator skill for each recommended skill, validates the result, and wires it into the project configuration.
+- **Phase 3 (future):** Add a command `Ralphdex: Construct Recommended Skills` that invokes the skill-creator skill for each recommended skill, validates the result, and wires it into the project configuration.
 
 Scope boundaries:
 - Recommendations are driven by explicit project type signals in the PRD (web app, library, CLI tool, service, data pipeline, etc.) — not inferred heuristically.
@@ -289,7 +289,7 @@ Concrete work:
 
 - **Phase 4 — `suggestedValidationCommand` in generation output.** Extend the structured JSON response from `projectGenerator.ts` to include an optional `suggestedValidationCommand` string per task. The parser in `parseGenerationResponse` should extract this and use it to pre-populate the task's `validation` field when the task is written to `tasks.json`. This directly feeds the complexity scorer's `has_validation_field` signal (+2 points) and improves tier assignment accuracy from the first iteration.
 
-- **Phase 5 — `Ralph Codex: Regenerate PRD` command.** Add a new VS Code command `ralphCodex.regeneratePrd` that re-runs PRD generation against the current `.ralph/prd.md` content, producing a refined version. The command should diff the proposed changes and open a VS Code diff editor for operator review before writing. This enables iterative PRD authorship rather than forcing operators to start from scratch when requirements evolve. Wire the command in `registerCommands.ts`.
+- **Phase 5 — `Ralphdex: Regenerate PRD` command.** Add a new VS Code command `ralphCodex.regeneratePrd` that re-runs PRD generation against the current `.ralph/prd.md` content, producing a refined version. The command should diff the proposed changes and open a VS Code diff editor for operator review before writing. This enables iterative PRD authorship rather than forcing operators to start from scratch when requirements evolve. Wire the command in `registerCommands.ts`.
 
 Scope boundaries:
 - The tasks.json structured format remains authoritative. The simpler markdown checkbox format used by aymenfurter/ralph (plain `- [ ]` lines) is not adopted — our typed task graph is more capable and the goal is better tooling to generate into it, not format regression.
