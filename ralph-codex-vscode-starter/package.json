@@ -624,13 +624,13 @@
         },
         "ralphCodex.enableModelTiering": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Enable complexity-based model tier selection. When true, Ralph scores each task using structural signals (validation field, child count, blocker note, trailing failures) and routes it to the simple, medium, or complex tier model. Thresholds default to simpleThreshold=2, complexThreshold=6 and can be overridden via ralphCodex.modelTiering. See docs/model-tiering.md for signal definitions and expected cost savings."
         },
         "ralphCodex.modelTiering": {
           "type": "object",
           "default": {
-            "enabled": false,
+            "enabled": true,
             "simple": { "provider": "copilot", "model": "claude-opus-4-6" },
             "medium": { "provider": "claude", "model": "claude-sonnet-4-6" },
             "complex": { "provider": "claude", "model": "claude-opus-4-6" },

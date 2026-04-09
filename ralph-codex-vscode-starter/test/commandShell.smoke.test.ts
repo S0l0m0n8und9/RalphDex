@@ -393,9 +393,13 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8'), '');
   const tasksJson = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'));
   assert.equal(tasksJson.version, 2);
-  assert.equal(tasksJson.tasks.length, 1);
+  assert.equal(tasksJson.tasks.length, 2);
   assert.equal(tasksJson.tasks[0].id, 'T1');
   assert.equal(tasksJson.tasks[0].status, 'todo');
+  assert.ok(Array.isArray(tasksJson.tasks[0].acceptance), 'T1 should have acceptance criteria');
+  assert.equal(tasksJson.tasks[1].id, 'T2');
+  assert.equal(tasksJson.tasks[1].status, 'todo');
+  assert.deepEqual(tasksJson.tasks[1].dependsOn, ['T1']);
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
   assert.deepEqual(harness.state.shownDocuments, [
     path.join(rootPath, '.ralph', 'prd.md'),

@@ -129,6 +129,43 @@ function draftTasksFromPrd(prdText, idOffset = 0) {
         status: 'todo'
     }));
 }
+/**
+ * Return two self-bootstrapping seed tasks that guide Ralph through expanding
+ * a stub PRD into a full document and then generating a real backlog from it.
+ * Used as the fallback when AI generation is unavailable or the user skips
+ * the objective prompt.
+ */
+function buildBootstrapSeedTasks() {
+    return [
+        {
+            id: 'T1',
+            title: 'Expand PRD into a full product requirements document',
+            status: 'todo',
+            notes: 'Read the current content of .ralph/prd.md and expand it into a complete PRD. ' +
+                'Include structured sections: # Title, ## Overview, ## Goals, ## Scope, ## Non-Goals, ' +
+                'and 3–7 ## Work Area sections. Preserve the original user objective. ' +
+                'Write the expanded PRD back to .ralph/prd.md.',
+            acceptance: [
+                'PRD contains a # title heading',
+                'PRD contains ## Overview, ## Goals, and at least 3 ## work-area sections'
+            ]
+        },
+        {
+            id: 'T2',
+            title: 'Create 10 new tasks in tasks.json based on the expanded PRD',
+            status: 'todo',
+            dependsOn: ['T1'],
+            notes: 'Read the expanded PRD in .ralph/prd.md and create 10 actionable tasks in ' +
+                '.ralph/tasks.json. Ensure at least 2 tasks have no dependencies (entry points) ' +
+                'so Ralph can begin claiming work immediately. Use the v2 task schema: each task ' +
+                'needs id, title, status, and optionally acceptance, dependsOn, context, and validation fields.',
+            acceptance: [
+                'tasks.json contains at least 10 new tasks beyond T1 and T2',
+                'At least 2 of the new tasks have no dependsOn (entry points for Ralph)'
+            ]
+        }
+    ];
+}
 const RALPH_PROJECTS_DIR = 'projects';
 /**
  * Produce a filesystem-safe slug from a human-readable project name.
@@ -415,15 +452,15 @@ function registerCommands(context, logger, broadcaster) {
                     const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
                         ? err.message
                         : String(err);
-                    logger.info(`AI generation failed, falling back to template. Reason: ${reason}`);
-                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with a starter template. Refine before running. (${reason})`);
+                    logger.info(`AI generation failed, falling back to bootstrap seed tasks. Reason: ${reason}`);
+                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with bootstrap tasks. Refine before running. (${reason})`);
                     prdText = `# Product / project brief\n\n${objective.trim()}\n`;
-                    drafts = draftTasksFromPrd(prdText);
+                    drafts = buildBootstrapSeedTasks();
                 }
             }
             else {
                 prdText = RALPH_PRD_PLACEHOLDER;
-                drafts = draftTasksFromPrd(prdText);
+                drafts = buildBootstrapSeedTasks();
             }
             await fs.writeFile(result.prdPath, prdText, 'utf8');
             logger.info('Wrote prd.md.');
@@ -532,15 +569,15 @@ function registerCommands(context, logger, broadcaster) {
                     const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
                         ? err.message
                         : String(err);
-                    logger.info(`AI generation failed for "${slug}", falling back to template. Reason: ${reason}`);
-                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with a starter template. Refine before running. (${reason})`);
+                    logger.info(`AI generation failed for "${slug}", falling back to bootstrap seed tasks. Reason: ${reason}`);
+                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with bootstrap tasks. Refine before running. (${reason})`);
                     prdText = `# Product / project brief\n\n${objective.trim()}\n`;
-                    drafts = draftTasksFromPrd(prdText);
+                    drafts = buildBootstrapSeedTasks();
                 }
             }
             else {
                 prdText = RALPH_PRD_PLACEHOLDER;
-                drafts = draftTasksFromPrd(prdText);
+                drafts = buildBootstrapSeedTasks();
             }
             await fs.writeFile(absPaths.prdPath, prdText, 'utf8');
             const emptyLocked = await (0, taskFile_1.withTaskFileLock)(absPaths.tasksPath, undefined, async () => {
