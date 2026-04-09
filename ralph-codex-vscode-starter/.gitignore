@@ -1,7 +1,6 @@
 node_modules/
 out-test/
 *.vsix
-out-test/
 .vscode-test/
 .ralph/handoff/
 .ralph/state.json

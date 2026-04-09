@@ -1,8 +1,16 @@
 # Ralph Codex Workbench
 
-Ralph Codex Workbench is a VS Code extension for durable, repo-backed Codex loops. It keeps the Ralph objective, progress log, task graph, prompts, run artifacts, verifier output, and provenance evidence on disk under `.ralph/` so a new Codex session can resume from inspectable state instead of chat history.
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/s0l0m0n8und9.ralph-codex-workbench?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralph-codex-workbench) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This repository intentionally has one Git root and one nested extension package root. The repo root is the umbrella workspace shell you open in VS Code. The actual extension package, scripts, tests, and packaging metadata live under [`ralph-codex-vscode-starter/`](./ralph-codex-vscode-starter/). Ralph's durable workspace state stays at the repo root under [`.ralph/`](./.ralph/).
+A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps your objective, task graph, prompts, run artifacts, and provenance evidence on disk under `.ralph/` so any new Codex session can resume from inspectable state instead of chat history.
+
+**Key capabilities:**
+
+- **File-backed state** — PRD, progress log, and task graph survive across sessions without relying on chat history
+- **Multiple CLI backends** — `codex exec`, Claude CLI (`claude -p`), and GitHub Copilot CLI
+- **Deterministic loop control** — preflight checks, multi-verifier passes, explicit stop reasons, and bounded remediation
+- **Full provenance** — every iteration writes prompt evidence, git snapshots, and a verifiable trust chain to disk
+- **IDE handoff** — clipboard plus configurable VS Code command delivery for chat-first workflows
 
 ## Who This Is For
 
