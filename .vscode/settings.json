@@ -1,6 +1,6 @@
 {
     "kiro-codex-ide.codex.promptsPath": ".ralph/prompts",
-    "kiro-codex-ide.codex.steeringPath": "ralph-codex-vscode-starter",
+    "kiro-codex-ide.codex.steeringPath": ".",
     "kiro-codex-ide.codex.specsPath": ".ralph",
     "ralphCodex.agentCount": 1,
     "ralphCodex.cliProvider": "codex",

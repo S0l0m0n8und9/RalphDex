@@ -16,8 +16,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/S0l0m0n8und9/RalphDex.git",
-    "directory": "ralph-codex-vscode-starter"
+    "url": "https://github.com/S0l0m0n8und9/RalphDex.git"
   },
   "license": "MIT",
   "files": [

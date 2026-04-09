@@ -2,15 +2,15 @@
 
 ## What this repo is
 
-Ralph Codex Workbench is a VS Code extension that runs durable, file-backed agentic coding loops. All state lives in `.ralph/` on disk so sessions can resume without chat history. The extension source is in `ralph-codex-vscode-starter/`. The `.ralph/` directory at the repo root is Ralph's live workspace state for this project.
+Ralph Codex Workbench is a VS Code extension that runs durable, file-backed agentic coding loops. All state lives in `.ralph/` on disk so sessions can resume without chat history. The extension source is at the repo root (`src/`, `test/`, `package.json`). The `.ralph/` directory is Ralph's live workspace state for this project.
 
 ## Before making any change
 
-1. Read `ralph-codex-vscode-starter/AGENTS.md` — it is the authoritative routing document.
-2. Read `ralph-codex-vscode-starter/docs/architecture.md` for module boundaries.
+1. Read `AGENTS.md` — it is the authoritative routing document.
+2. Read `docs/architecture.md` for module boundaries.
 3. Check `.ralph/tasks.json` for the current backlog before inventing new work.
 4. Check `.ralph/prd.md` for scope — it is the authority on what is in and out of scope.
-5. Run `cd ralph-codex-vscode-starter && npm run validate` to confirm the baseline is clean.
+5. Run `npm run validate` to confirm the baseline is clean.
 
 ## Where to look for common changes
 
@@ -60,7 +60,7 @@ Every CLI iteration prompt ends with this instruction: return a fenced `json` bl
 ## Validation gate
 
 ```bash
-cd ralph-codex-vscode-starter && npm run validate
+npm run validate
 ```
 
 This runs: compile → check:docs → lint → tests. All must pass before a task is done.

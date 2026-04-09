@@ -3,33 +3,32 @@
 ## Getting started
 
 1. Fork the repo and create a branch from `main`.
-2. Install dependencies from the extension package root:
+2. Install dependencies:
 
    ```bash
-   cd ralph-codex-vscode-starter
    npm install
    ```
 
 3. Run the validation gate before and after your change:
 
    ```bash
-   cd ralph-codex-vscode-starter && npm run validate
+   npm run validate
    ```
 
    This runs compile → type-check → docs → tests. All must pass.
 
-4. Launch the Extension Development Host with `F5` from the repo root to smoke-test interactively.
+4. Press `F5` to launch the Extension Development Host and smoke-test interactively.
 
 ## Where things live
 
-See [`CLAUDE.md`](CLAUDE.md) for the full module map and [`ralph-codex-vscode-starter/AGENTS.md`](ralph-codex-vscode-starter/AGENTS.md) for the authoritative routing document.
+See [`CLAUDE.md`](CLAUDE.md) for the full module map and [`AGENTS.md`](AGENTS.md) for the authoritative routing document.
 
 | Concern | File(s) |
 |---|---|
-| Extension source | `ralph-codex-vscode-starter/src/` |
-| Tests | `ralph-codex-vscode-starter/test/` |
-| Prompt templates | `ralph-codex-vscode-starter/prompt-templates/` |
-| Architecture docs | `ralph-codex-vscode-starter/docs/` |
+| Extension source | `src/` |
+| Tests | `test/` |
+| Prompt templates | `prompt-templates/` |
+| Architecture docs | `docs/` |
 
 ## Conventions
 
