@@ -149,7 +149,8 @@ function buildDecompositionProposal(task, result) {
             rationale: index === 0
                 ? `Narrow ${task.id} to a deterministic first step before retrying the parent task.`
                 : `Keep the proposal one level deep by sequencing the next bounded step after ${taskPrefix}.${index}.`,
-            acceptance: childAcceptance.length > 0 ? childAcceptance : undefined
+            acceptance: childAcceptance.length > 0 ? childAcceptance : undefined,
+            ...(task.tier !== undefined ? { tier: task.tier } : {})
         };
     });
 }

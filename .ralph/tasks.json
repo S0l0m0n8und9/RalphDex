@@ -2571,7 +2571,8 @@
     {
       "id": "T87",
       "title": "Static task-complexity tier Phases 1+2: add tier field to RalphTask and short-circuit selectModelForTask",
-      "status": "todo",
+      "status": "done",
+      "notes": "Added RalphTaskTier type and tier field to RalphTask/RalphSuggestedChildTask; selectModelForTask short-circuits on explicit tier with explicit signal; taskDecomposition propagates tier to children; 3 unit tests added; all 607 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "RalphTask in src/ralph/types.ts has optional tier field with values simple|medium|complex",
@@ -2632,5 +2633,5 @@
       ]
     }
   ],
-  "mutationCount": 60
+  "mutationCount": 61
 }

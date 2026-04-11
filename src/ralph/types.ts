@@ -12,6 +12,8 @@ export type RalphTaskPriority = 'low' | 'normal' | 'high';
 
 export type RalphTaskMode = 'default' | 'documentation';
 
+export type RalphTaskTier = 'simple' | 'medium' | 'complex';
+
 export interface RalphTask {
   id: string;
   title: string;
@@ -25,6 +27,8 @@ export interface RalphTask {
   priority?: RalphTaskPriority;
   /** Task execution mode. 'documentation' relaxes code-centric verification gates. Defaults to 'default'. */
   mode?: RalphTaskMode;
+  /** Static complexity tier override. When set, selectModelForTask uses this directly instead of heuristic scoring. */
+  tier?: RalphTaskTier;
   /** Concrete done-criteria: the task is complete when every item in this list is satisfied. */
   acceptance?: string[];
   /** Per-task guardrails: things the agent must not do while working on this task. */
@@ -226,6 +230,7 @@ export interface RalphSuggestedChildTask {
   acceptance?: string[];
   constraints?: string[];
   context?: string[];
+  tier?: RalphTaskTier;
 }
 
 export interface RalphTaskRemediationArtifact {

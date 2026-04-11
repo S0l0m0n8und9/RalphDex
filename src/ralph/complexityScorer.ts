@@ -124,6 +124,14 @@ export function selectModelForTask(input: {
     return { model: input.fallbackModel, score: null };
   }
 
+  if (input.task.tier) {
+    const tierConfig = input.task.tier === 'simple' ? input.tiering.simple
+      : input.task.tier === 'complex' ? input.tiering.complex
+      : input.tiering.medium;
+    const score: ComplexityScore = { score: 0, signals: [{ name: 'explicit', contribution: 0 }] };
+    return { model: tierConfig.model, provider: tierConfig.provider, score };
+  }
+
   const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
 
   let tier: { model: string; provider?: CliProviderId };

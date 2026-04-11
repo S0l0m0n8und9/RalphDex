@@ -1176,7 +1176,8 @@ export function applySuggestedChildTasks(
     mode: parentTask.mode,
     acceptance: child.acceptance,
     constraints: child.constraints,
-    context: child.context
+    context: child.context,
+    tier: child.tier
   }));
 
   const parentDependencies = Array.from(new Set([

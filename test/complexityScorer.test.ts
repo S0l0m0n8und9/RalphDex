@@ -229,6 +229,55 @@ test('selectModelForTask returns per-tier provider when specified', () => {
   assert.equal(provider, 'copilot');
 });
 
+test('selectModelForTask uses explicit tier without calling scoreTaskComplexity', () => {
+  // Task has attributes that would score high (validation + blocker) but tier is forced to simple
+  const task = makeTask({ tier: 'simple', validation: 'npm test', blocker: 'waiting' });
+  const taskFile = makeTaskFile([task]);
+  const history = Array.from({ length: 4 }, (_, i) =>
+    makeIterationResult({ completionClassification: 'failed', iteration: i + 1 })
+  );
+  const { model, score } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: history,
+    tiering: DEFAULT_TIERING,
+    fallbackModel: 'claude-sonnet'
+  });
+  assert.equal(model, DEFAULT_TIERING.simple.model);
+  assert.ok(score !== null);
+  assert.deepEqual(score.signals, [{ name: 'explicit', contribution: 0 }]);
+  assert.equal(score.score, 0);
+});
+
+test('selectModelForTask falls through to heuristic scoring when tier is not set', () => {
+  const task = makeTask({ validation: 'npm test', blocker: 'waiting' });
+  const taskFile = makeTaskFile([task]);
+  const { score } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: [],
+    tiering: DEFAULT_TIERING,
+    fallbackModel: 'claude-sonnet'
+  });
+  assert.ok(score !== null);
+  assert.ok(!score.signals.some((s) => s.name === 'explicit'), 'should not have explicit signal when tier is not set');
+  assert.ok(score.score > 0, 'heuristic score should be non-zero for a task with validation and blocker');
+});
+
+test('selectModelForTask ignores tier field when modelTiering.enabled is false', () => {
+  const task = makeTask({ tier: 'complex' });
+  const taskFile = makeTaskFile([task]);
+  const { model, score } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: [],
+    tiering: { ...DEFAULT_TIERING, enabled: false },
+    fallbackModel: 'claude-sonnet-default'
+  });
+  assert.equal(model, 'claude-sonnet-default');
+  assert.equal(score, null);
+});
+
 test('selectModelForTask returns undefined provider when tier has no override', () => {
   const task = makeTask({ title: 'Medium complexity work here that is fine' });
   const taskFile = makeTaskFile([task]);
