@@ -112,16 +112,20 @@ class AzureFoundryProvider {
         }
         // Split the prompt at STATIC_PREFIX_BOUNDARY so the stable prefix can be
         // sent with a cache_control marker, enabling prompt caching on Anthropic-
-        // compatible Azure deployments.
+        // compatible Azure deployments. When promptCaching is 'off', the marker is
+        // omitted and the full prompt is sent as a single text block.
         const staticPrefix = (0, promptBuilder_1.extractStaticPrefix)(request.prompt);
         const staticPrefixBytes = Buffer.byteLength(staticPrefix, 'utf8');
         const dynamicRemainder = request.prompt.slice(staticPrefix.length);
-        const messageContent = dynamicRemainder
-            ? [
-                { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
-                { type: 'text', text: dynamicRemainder }
-            ]
-            : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
+        const cachingDisabled = this.options.promptCaching === 'off';
+        const messageContent = cachingDisabled
+            ? [{ type: 'text', text: request.prompt }]
+            : dynamicRemainder
+                ? [
+                    { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
+                    { type: 'text', text: dynamicRemainder }
+                ]
+                : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
         const requestBody = JSON.stringify({
             messages: [{ role: 'user', content: messageContent }],
             model: this.options.modelDeployment || request.model

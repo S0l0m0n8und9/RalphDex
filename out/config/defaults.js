@@ -69,6 +69,7 @@ exports.DEFAULT_CONFIG = {
     autoScmOnConflict: false,
     scmConflictRetryLimit: 1,
     pipelineHumanGates: false,
-    cliExecutionTimeoutMs: 0
+    cliExecutionTimeoutMs: 0,
+    promptCaching: 'auto'
 };
 //# sourceMappingURL=defaults.js.map

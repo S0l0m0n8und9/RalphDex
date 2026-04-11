@@ -26,6 +26,8 @@ export type AutoApplyRemediationAction = 'decompose_task' | 'mark_blocked';
 
 export type RalphAutonomyMode = 'supervised' | 'autonomous';
 
+export type PromptCachingMode = 'auto' | 'force' | 'off';
+
 /**
  * Per-tier model + optional provider override.
  * When `provider` is omitted the workspace's default `cliProvider` is used.
@@ -142,4 +144,5 @@ export interface RalphCodexConfig {
   scmConflictRetryLimit: number;
   pipelineHumanGates: boolean;
   cliExecutionTimeoutMs: number;
+  promptCaching: PromptCachingMode;
 }

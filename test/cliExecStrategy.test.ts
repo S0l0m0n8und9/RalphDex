@@ -252,6 +252,64 @@ test('CliExecCodexStrategy records a summarized stderr failure reason', async ()
   }
 });
 
+test('CliExecCodexStrategy emits a warning when promptCaching is force on a CLI-based provider', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-force-caching-'));
+  setProcessRunnerOverride(async () => ({ code: 0, stdout: 'ok', stderr: '' }));
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new CopilotCliProvider({ approvalMode: 'allow-all', maxAutopilotContinues: 10 })
+    );
+    const result = await strategy.runExec({
+      ...request(),
+      commandPath: 'copilot',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md'),
+      promptCaching: 'force'
+    });
+
+    assert.ok(result.warnings.length > 0, 'should have at least one warning');
+    assert.ok(
+      result.warnings.some((w) => /cache_control/i.test(w) || /caching/i.test(w)),
+      'warning should mention caching or cache_control'
+    );
+    assert.ok(
+      result.warnings.some((w) => /copilot/i.test(w)),
+      'warning should mention the active provider'
+    );
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('CliExecCodexStrategy does not emit caching warning when promptCaching is auto on a CLI-based provider', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-auto-caching-'));
+  setProcessRunnerOverride(async () => ({ code: 0, stdout: 'ok', stderr: '' }));
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new CopilotCliProvider({ approvalMode: 'allow-all', maxAutopilotContinues: 10 })
+    );
+    const result = await strategy.runExec({
+      ...request(),
+      commandPath: 'copilot',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md'),
+      promptCaching: 'auto'
+    });
+
+    assert.equal(result.warnings.length, 0, 'auto mode should produce no caching warning for CLI providers');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
 test('CliExecCodexStrategy uses executeDirectly instead of spawning a child process when available', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-strategy-'));
   let processRunnerCalled = false;

@@ -353,6 +353,7 @@ export class RalphIterationEngine {
           sandboxMode: prepared.config.sandboxMode,
           approvalMode: prepared.config.approvalMode,
           timeoutMs: prepared.config.cliExecutionTimeoutMs > 0 ? prepared.config.cliExecutionTimeoutMs : undefined,
+          promptCaching: prepared.config.promptCaching,
           onStderrChunk: (chunk: string) => this.logger.warn('codex stderr', { iteration: prepared.iteration, chunk })
         } as const;
 

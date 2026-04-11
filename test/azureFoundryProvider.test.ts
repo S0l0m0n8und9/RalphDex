@@ -520,3 +520,73 @@ test('executeDirectly sets cacheHit=null when response has no cache usage data',
     setHttpsClientOverride(null);
   }
 });
+
+// ---------------------------------------------------------------------------
+// promptCaching: off — cache_control omitted
+// ---------------------------------------------------------------------------
+
+test('executeDirectly omits cache_control when promptCaching is off', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-caching-off-'));
+  const req = {
+    ...request(),
+    prompt: PROMPT_WITH_BOUNDARY,
+    promptHash: hashText(PROMPT_WITH_BOUNDARY),
+    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  let capturedBody: unknown;
+  setHttpsClientOverride(async (opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, promptCaching: 'off' });
+    await p.executeDirectly(req);
+
+    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
+    const content = body.messages[0].content;
+    assert.ok(Array.isArray(content), 'content should be an array');
+
+    const blocks = content as Array<{ type: string; text: string; cache_control?: unknown }>;
+    assert.equal(blocks.length, 1, 'off mode should send a single text block');
+    assert.ok(!blocks[0].cache_control, 'single block must not have cache_control when promptCaching is off');
+    assert.equal(blocks[0].text, PROMPT_WITH_BOUNDARY, 'full prompt should be sent as a single block');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly applies cache_control normally when promptCaching is force', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-caching-force-'));
+  const req = {
+    ...request(),
+    prompt: PROMPT_WITH_BOUNDARY,
+    promptHash: hashText(PROMPT_WITH_BOUNDARY),
+    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  let capturedBody: unknown;
+  setHttpsClientOverride(async (opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, promptCaching: 'force' });
+    await p.executeDirectly(req);
+
+    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
+    const content = body.messages[0].content;
+    const blocks = content as Array<{ type: string; text: string; cache_control?: { type: string } }>;
+    assert.equal(blocks[0].cache_control?.type, 'ephemeral', 'force mode should still apply cache_control on Azure direct-HTTPS');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});

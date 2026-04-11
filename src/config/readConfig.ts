@@ -10,6 +10,7 @@ import {
   CodexHandoffMode,
   CodexReasoningEffort,
   CodexSandboxMode,
+  PromptCachingMode,
   RalphCodexConfig,
   RalphAutonomyMode,
   RalphGitCheckpointMode,
@@ -465,6 +466,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', DEFAULT_CONFIG.autoScmOnConflict),
     scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1),
     pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', DEFAULT_CONFIG.pipelineHumanGates),
-    cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', DEFAULT_CONFIG.cliExecutionTimeoutMs, 0)
+    cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
+    promptCaching: readEnum<PromptCachingMode>(
+      config,
+      'promptCaching',
+      ['auto', 'force', 'off'],
+      DEFAULT_CONFIG.promptCaching
+    )
   };
 }

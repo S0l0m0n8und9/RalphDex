@@ -69,6 +69,31 @@ Manual calibration renders are available through `npm run prompt:calibrate -- <w
 
 9. **Update this file** with the active profile baseline, the model name and context window used for calibration, the empirical chars-per-token ratio measured in step 4, and whether the recalibration was estimate-only or also informed by observed truncation behavior.
 
+## Prompt Caching
+
+`ralphCodex.promptCaching` controls whether prompt caching is requested from the active provider.
+The setting has three values:
+
+| Value | Behaviour |
+|-------|-----------|
+| `auto` (default) | Caching is applied when the active provider supports explicit `cache_control` markers (currently only Azure AI Foundry direct-HTTPS). CLI-based providers (codex, claude, copilot) are silently unaffected — no warning is emitted. |
+| `force` | Caching is applied when supported. A warning is emitted in the iteration result when the active provider does not support explicit `cache_control` markers, so operators can identify misconfigured workspaces. |
+| `off` | The `cache_control` marker is omitted from all Azure AI Foundry direct-HTTPS requests, disabling prompt caching entirely. Use this to measure the cost baseline without caching or to work around deployments that reject caching headers. |
+
+### Cost implications
+
+Prompt caching on Azure AI Foundry (Anthropic-compatible deployments) works by sending the stable prefix of the prompt — everything before the `STATIC_PREFIX_BOUNDARY` marker inserted by Ralph — with a `cache_control: ephemeral` tag. On a cache hit, the provider charges a reduced rate for the cached tokens and a normal rate only for the dynamic suffix.
+
+For a typical `iteration:cliExec` prompt the static prefix (system context, PRD summary, operating rules) is roughly 70–80 % of the total prompt. Assuming a 90 % cache-hit rate over a long loop, total input-token cost can be reduced by approximately 50–60 % compared to sending the full prompt uncached.
+
+`promptCacheStats` in the iteration provenance bundle records `staticPrefixBytes` (the size of the cacheable prefix) and `cacheHit` (`true` / `false` / `null`). These fields can be forwarded to Azure Monitor via a custom log sink for per-iteration cache efficiency analysis — see docs on Azure AI Foundry prompt caching for how to query `cache_read_input_tokens` and `cache_creation_input_tokens` from the response usage fields.
+
+### When to use `off`
+
+- Measuring raw input-token cost without caching to establish a baseline.
+- Debugging prompt changes where cached responses from a prior run could mask regressions.
+- Deployments that do not support `cache_control` and return errors when the field is present.
+
 ## Reasoning Effort Overhead
 
 `ralphCodex.reasoningEffort` controls the reasoning setting passed to the scripted CLI backend. For the current default baseline, that means the configured model can spend extra internal reasoning tokens before producing its visible response. The setting does not change rendered prompt size; it changes total iteration token burn and latency.

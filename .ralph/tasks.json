@@ -2531,7 +2531,105 @@
         "docs/workflows.md documents the Construct Recommended Skills workflow",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T85",
+      "title": "Prompt caching Phase 4: add ralphCodex.promptCaching config setting (auto/force/off)",
+      "status": "done",
+      "dependsOn": [
+        "T83"
+      ],
+      "notes": "Added ralphCodex.promptCaching (auto/force/off, default auto); off suppresses cache_control in AzureFoundryProvider.executeDirectly; force emits warning on CLI-based providers lacking direct-HTTPS caching; 4 new unit tests; docs/prompt-calibration.md updated",
+      "validation": "npm run validate",
+      "acceptance": [
+        "ralphCodex.promptCaching setting with enum auto|force|off (default auto) exists in package.json contributes.configuration",
+        "Setting is added to RalphCodexConfig in src/config/types.ts, defaults.ts, and readConfig.ts",
+        "When promptCaching is off, AzureFoundryProvider.executeDirectly omits the cache_control marker",
+        "When promptCaching is force, a warning is emitted on CLI-based providers that do not support explicit caching",
+        "auto (default) uses caching when the provider supports it and is silent for CLI-based providers",
+        "Unit tests verify the off path and the force warning for unsupported providers",
+        "docs/prompt-calibration.md documents the promptCaching setting and its cost implications",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T86",
+      "title": "Azure Foundry Phase 5: document prompt caching synergy and Azure Monitor cache-hit verification",
+      "status": "todo",
+      "dependsOn": [
+        "T85"
+      ],
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "docs/model-tiering.md or docs/ documents which Azure-hosted models support prompt caching",
+        "Documentation explains that CLI-based strategies rely on implicit caching; cache_control only applies to direct-API strategies",
+        "Documentation includes how operators verify cache hits via Azure Monitor metrics",
+        "npm run check:docs passes"
+      ]
+    },
+    {
+      "id": "T87",
+      "title": "Static task-complexity tier Phases 1+2: add tier field to RalphTask and short-circuit selectModelForTask",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "RalphTask in src/ralph/types.ts has optional tier field with values simple|medium|complex",
+        "selectModelForTask in complexityScorer.ts resolves task.tier directly without calling scoreTaskComplexity when set",
+        "Signals array records tier source as explicit when tier is set",
+        "task.tier is silently ignored when modelTiering.enabled is false",
+        "taskDecomposition.ts propagates tier to child tasks only when the parent had an explicit value",
+        "Unit test: task with explicit tier selects the correct model config without invoking scoreTaskComplexity",
+        "Unit test: task without tier falls through to heuristic scoring",
+        "Unit test: tier field is ignored when modelTiering.enabled is false",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T88",
+      "title": "Static task-complexity tier Phase 3: document tier field in AGENTS.md",
+      "status": "todo",
+      "dependsOn": [
+        "T87"
+      ],
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "AGENTS.md task-schema section documents the optional tier field (simple|medium|complex) with a note that it overrides runtime scoring",
+        "AGENTS.md includes an example tasks.json fragment showing a task with an explicit tier value",
+        "npm run check:docs passes"
+      ]
+    },
+    {
+      "id": "T89",
+      "title": "Static task-complexity tier Phase 4: surface effective tier in Show Status and Show Multi-Agent Status",
+      "status": "todo",
+      "dependsOn": [
+        "T87"
+      ],
+      "validation": "npm run validate",
+      "acceptance": [
+        "Show Status output includes the effective tier next to each active/recent task label",
+        "Tier source is visually distinguished between explicit (operator-set) and scored (heuristic)",
+        "Show Multi-Agent Status also includes effective tier information per active task",
+        "Regression tests cover explicit and scored tier rendering in status output",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T90",
+      "title": "Agent memory management Phases 1+2: add memoryStrategy config and implement sliding-window in promptBuilder",
+      "status": "todo",
+      "notes": "Combines PRD feature 10 Phases 1 and 2. Phase 1 is config plumbing; Phase 2 is a focused promptBuilder.ts change.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "memoryStrategy verbatim|sliding-window|summary added to RalphCodexConfig (types, defaults, readConfig, package.json) with default verbatim",
+        "memoryWindowSize: number (default 10) and memorySummaryThreshold: number (default 20) added to config",
+        "When memoryStrategy is sliding-window, promptBuilder.ts slices iteration history to the last memoryWindowSize entries before rendering prior-context",
+        "All other prompt sections are unaffected by the sliding-window mode",
+        "Unit test: sliding-window with memoryWindowSize 3 produces a prior-context section with exactly the last 3 entries",
+        "Snapshot test: static prompt prefix is byte-identical across two sliding-window builds with different task inputs",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 58
+  "mutationCount": 59
 }

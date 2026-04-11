@@ -86,7 +86,8 @@
         "ralphCodex.openSidebarCommandId",
         "ralphCodex.newChatCommandId",
         "ralphCodex.agentCount",
-        "ralphCodex.pipelineHumanGates"
+        "ralphCodex.pipelineHumanGates",
+        "ralphCodex.promptCaching"
       ]
     },
     "virtualWorkspaces": {
@@ -651,6 +652,12 @@
           "default": 0,
           "minimum": 0,
           "description": "Maximum time in milliseconds to wait for a CLI iteration (codex, claude, or copilot) to complete before killing the process with a timeout error. Set to 0 (default) to disable the timeout and wait indefinitely."
+        },
+        "ralphCodex.promptCaching": {
+          "type": "string",
+          "enum": ["auto", "force", "off"],
+          "default": "auto",
+          "description": "Controls prompt caching behaviour for providers that support it (currently Azure AI Foundry direct-HTTPS). auto (default): caching is applied when the provider supports it and is silent for CLI-based providers. force: caching is applied when supported; a warning is emitted when the active provider does not support explicit cache_control markers (e.g. codex, claude, copilot CLI). off: the cache_control marker is omitted from all requests, disabling prompt caching on direct-API providers. See docs/prompt-calibration.md for cost implications."
         },
         "ralphCodex.enableModelTiering": {
           "type": "boolean",

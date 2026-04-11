@@ -4,6 +4,7 @@ import { PromptCacheStats } from '../ralph/types';
 import { httpsPost } from '../services/httpsClient';
 import { extractStaticPrefix } from '../prompt/promptBuilder';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
+import { PromptCachingMode } from '../config/types';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
@@ -12,6 +13,7 @@ export interface AzureFoundryProviderOptions {
   apiKey?: string;
   modelDeployment?: string;
   apiVersion?: string;
+  promptCaching?: PromptCachingMode;
 }
 
 /**
@@ -116,18 +118,22 @@ export class AzureFoundryProvider implements CliProvider {
 
     // Split the prompt at STATIC_PREFIX_BOUNDARY so the stable prefix can be
     // sent with a cache_control marker, enabling prompt caching on Anthropic-
-    // compatible Azure deployments.
+    // compatible Azure deployments. When promptCaching is 'off', the marker is
+    // omitted and the full prompt is sent as a single text block.
     const staticPrefix = extractStaticPrefix(request.prompt);
     const staticPrefixBytes = Buffer.byteLength(staticPrefix, 'utf8');
     const dynamicRemainder = request.prompt.slice(staticPrefix.length);
+    const cachingDisabled = this.options.promptCaching === 'off';
 
     const messageContent: Array<{ type: string; text: string; cache_control?: { type: string } }> =
-      dynamicRemainder
-        ? [
-            { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: dynamicRemainder }
-          ]
-        : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
+      cachingDisabled
+        ? [{ type: 'text', text: request.prompt }]
+        : dynamicRemainder
+          ? [
+              { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: dynamicRemainder }
+            ]
+          : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
 
     const requestBody = JSON.stringify({
       messages: [{ role: 'user', content: messageContent }],

@@ -35,7 +35,8 @@ function createCliProviderForId(providerId, config) {
             endpointUrl: config.azureFoundryEndpointUrl,
             apiKey: config.azureFoundryApiKey,
             modelDeployment: config.azureFoundryModelDeployment,
-            apiVersion: config.azureFoundryApiVersion
+            apiVersion: config.azureFoundryApiVersion,
+            promptCaching: config.promptCaching
         });
     }
     return new codexCliProvider_1.CodexCliProvider({

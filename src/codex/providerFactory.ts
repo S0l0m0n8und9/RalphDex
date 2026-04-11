@@ -38,7 +38,8 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
       endpointUrl: config.azureFoundryEndpointUrl,
       apiKey: config.azureFoundryApiKey,
       modelDeployment: config.azureFoundryModelDeployment,
-      apiVersion: config.azureFoundryApiVersion
+      apiVersion: config.azureFoundryApiVersion,
+      promptCaching: config.promptCaching
     });
   }
 

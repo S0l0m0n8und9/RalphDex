@@ -105,6 +105,11 @@ class CliExecCodexStrategy {
                 throw error;
             }
             const lastMessage = await this.provider.extractResponseText(processResult.stdout, processResult.stderr, request.lastMessagePath);
+            const cliWarnings = [];
+            if (request.promptCaching === 'force') {
+                cliWarnings.push(`Prompt caching is set to "force" but the active provider "${this.provider.id}" does not support explicit cache_control markers. ` +
+                    'Caching will not be applied. Use provider "azure-foundry" (direct-HTTPS) to enable prompt caching.');
+            }
             result = {
                 strategy: this.id,
                 success: processResult.code === 0,
@@ -113,7 +118,7 @@ class CliExecCodexStrategy {
                     stderr: processResult.stderr,
                     lastMessage
                 }),
-                warnings: [],
+                warnings: cliWarnings,
                 exitCode: processResult.code,
                 stdout: processResult.stdout,
                 stderr: processResult.stderr,

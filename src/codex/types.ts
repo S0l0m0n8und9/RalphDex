@@ -1,4 +1,4 @@
-import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
+import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode, PromptCachingMode } from '../config/types';
 import { PromptCacheStats, RalphPromptKind } from '../ralph/types';
 
 export type CodexStrategyId = 'ideCommand' | 'clipboard' | 'cliExec' | 'claudeCode';
@@ -37,6 +37,7 @@ export interface CodexExecRequest {
   onStdoutChunk?: (chunk: string) => void;
   onStderrChunk?: (chunk: string) => void;
   timeoutMs?: number;
+  promptCaching?: PromptCachingMode;
 }
 
 export interface CodexExecResult extends CodexActionResult {
