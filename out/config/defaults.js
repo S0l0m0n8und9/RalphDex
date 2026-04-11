@@ -74,6 +74,10 @@ exports.DEFAULT_CONFIG = {
     memoryStrategy: 'verbatim',
     memoryWindowSize: 10,
     memorySummaryThreshold: 20,
-    prdGenerationTemplate: ''
+    prdGenerationTemplate: '',
+    planningPass: {
+        enabled: false,
+        mode: 'inline'
+    }
 };
 //# sourceMappingURL=defaults.js.map

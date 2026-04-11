@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
 import { writeWatchdogDiagnosticArtifact } from './artifactStore';
+import { readTaskPlan } from './planningPass';
 import {
   applySuggestedChildTasksToFile,
   autoCompleteSatisfiedAncestors,
@@ -176,6 +177,11 @@ export async function reconcileCompletionReport(
   let taskFileChanged = false;
   let progressChanged = false;
 
+  // If task-plan.json has a suggestedValidationCommand and the task's validation
+  // field is currently empty, populate it so future iterations use it.
+  const taskPlan = await readTaskPlan(input.prepared.paths.artifactDir, input.selectedTask.id);
+  const suggestedValidationFromPlan = taskPlan?.suggestedValidationCommand ?? null;
+
   // Claim ownership re-check, task-file write, and progress.md append all happen inside a
   // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
   // read-modify-write that existed when these operations ran sequentially outside any lock.
@@ -208,9 +214,16 @@ export async function reconcileCompletionReport(
             nextTask.blocker = parsed.report!.blocker;
           }
 
+          // Populate validation from task-plan.json suggestedValidationCommand
+          // only when the task's validation field was empty.
+          if (!nextTask.validation && suggestedValidationFromPlan) {
+            nextTask.validation = suggestedValidationFromPlan;
+          }
+
           taskFileChanged = nextTask.status !== task.status
             || nextTask.notes !== task.notes
-            || nextTask.blocker !== task.blocker;
+            || nextTask.blocker !== task.blocker
+            || nextTask.validation !== task.validation;
 
           return nextTask;
         })

@@ -226,6 +226,19 @@ function readHooks(config, fallback) {
     }
     return hooks;
 }
+function readPlanningPass(config, fallback) {
+    const raw = config.get('planningPass');
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+        return fallback;
+    }
+    const record = raw;
+    const enabled = typeof record.enabled === 'boolean' ? record.enabled : fallback.enabled;
+    const PLANNING_PASS_MODES = ['dedicated', 'inline'];
+    const mode = typeof record.mode === 'string' && PLANNING_PASS_MODES.includes(record.mode)
+        ? record.mode
+        : fallback.mode;
+    return { enabled, mode };
+}
 /**
  * Returns per-setting provenance for all preset-affected keys when an operator mode is active.
  * Returns null when no operator mode is set.
@@ -380,7 +393,8 @@ function readConfig(workspaceFolder) {
         memoryWindowSize: readNumber(config, 'memoryWindowSize', defaults_1.DEFAULT_CONFIG.memoryWindowSize, 1),
         memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1),
         operatorMode,
-        prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate)
+        prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate),
+        planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass)
     };
 }
 //# sourceMappingURL=readConfig.js.map

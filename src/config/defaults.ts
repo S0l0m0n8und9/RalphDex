@@ -1,4 +1,4 @@
-import { MemoryStrategy, PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig } from './types';
+import { MemoryStrategy, PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig, RalphPlanningPassConfig } from './types';
 
 export const DEFAULT_CONFIG: RalphCodexConfig = {
   cliProvider: 'claude',
@@ -73,5 +73,9 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   memoryStrategy: 'verbatim' satisfies MemoryStrategy,
   memoryWindowSize: 10,
   memorySummaryThreshold: 20,
-  prdGenerationTemplate: ''
+  prdGenerationTemplate: '',
+  planningPass: {
+    enabled: false,
+    mode: 'inline'
+  } satisfies RalphPlanningPassConfig
 };

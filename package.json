@@ -732,6 +732,14 @@
           "type": "string",
           "default": "",
           "description": "Optional custom system prompt for PRD and task generation. When set, replaces the built-in generation prompt. Use {OBJECTIVE} as a placeholder for the user-supplied project objective. Leave empty to use the built-in prompt."
+        },
+        "ralphCodex.planningPass": {
+          "type": "object",
+          "default": {
+            "enabled": false,
+            "mode": "inline"
+          },
+          "description": "Pre-execution planning pass configuration. enabled (bool, default false): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
         }
       }
     }

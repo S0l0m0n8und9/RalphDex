@@ -35,13 +35,17 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RalphIterationEngine = void 0;
 const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const providers_1 = require("../config/providers");
+const readConfig_1 = require("../config/readConfig");
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const error_1 = require("../util/error");
 const iterationScm_1 = require("./iterationScm");
 const iterationPreparation_1 = require("./iterationPreparation");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
+const planningPass_1 = require("./planningPass");
+const integrity_1 = require("./integrity");
 const loopLogic_1 = require("./loopLogic");
 const complexityScorer_1 = require("./complexityScorer");
 const hookRunner_1 = require("./hookRunner");
@@ -125,10 +129,126 @@ class RalphIterationEngine {
             ...prepared
         };
     }
+    /**
+     * Checks whether the inline planning pass should run and, if so, delegates
+     * to runInlinePlanningPass.  Best-effort: all failures are swallowed so the
+     * main iteration always proceeds.
+     */
+    async maybeRunInlinePlanningPass(workspaceFolder, configOverrides) {
+        try {
+            const config = { ...(0, readConfig_1.readConfig)(workspaceFolder), ...(configOverrides ?? {}) };
+            if (!config.planningPass.enabled || config.planningPass.mode !== 'inline') {
+                return;
+            }
+            const rootPath = workspaceFolder.uri.fsPath;
+            const paths = this.stateManager.resolvePaths(rootPath, config);
+            let taskFileText;
+            try {
+                taskFileText = await fs.readFile(paths.taskFilePath, 'utf8');
+            }
+            catch {
+                return; // No task file yet; let prepareIterationContext handle initialization
+            }
+            const taskFile = (0, taskFile_1.parseTaskFile)(taskFileText);
+            const selectedTask = await (0, taskFile_1.selectNextTaskForRole)(taskFile, config.agentRole, paths.artifactDir);
+            if (!selectedTask) {
+                return;
+            }
+            const existingPlan = await (0, planningPass_1.readTaskPlan)(paths.artifactDir, selectedTask.id);
+            if (existingPlan) {
+                return; // Plan already exists; skip the planning pass
+            }
+            this.logger.info('Starting inline planning pass.', { taskId: selectedTask.id });
+            this.strategies.configureCliProvider(config);
+            const execStrategy = this.strategies.getCliExecStrategyForProvider();
+            if (!execStrategy.runExec) {
+                this.logger.warn('Inline planning pass skipped: CLI strategy does not support exec.');
+                return;
+            }
+            await this.runInlinePlanningPass(rootPath, paths.artifactDir, selectedTask.id, selectedTask.title, selectedTask.acceptance ?? [], execStrategy, (0, providers_1.getCliCommandPath)(config), config);
+        }
+        catch (err) {
+            this.logger.warn('maybeRunInlinePlanningPass encountered an unexpected error; continuing.', {
+                error: String(err)
+            });
+        }
+    }
+    /**
+     * Runs a lightweight planning CLI turn for the given task and writes task-plan.json.
+     * Failures are logged but do not abort the main iteration — the planning pass is best-effort.
+     */
+    async runInlinePlanningPass(workspaceRoot, artifactsDir, taskId, taskTitle, taskAcceptance, execStrategy, commandPath, config) {
+        const planningPrompt = [
+            'You are a planning agent. Analyse the task below and produce a JSON planning artifact.',
+            '',
+            `Task ID: ${taskId}`,
+            `Task Title: ${taskTitle}`,
+            taskAcceptance.length > 0 ? `Acceptance criteria:\n${taskAcceptance.map((a) => `- ${a}`).join('\n')}` : '',
+            '',
+            'Respond with ONLY a valid JSON object (no markdown fences) in this exact schema:',
+            '{',
+            '  "reasoning": "<why this task matters and what the key challenge is>",',
+            '  "approach": "<one-sentence implementation strategy>",',
+            '  "steps": ["<step 1>", "<step 2>", ...],',
+            '  "risks": ["<risk 1>", ...],',
+            '  "suggestedValidationCommand": "<optional shell command to validate the work>"',
+            '}'
+        ].filter(Boolean).join('\n');
+        const taskArtifactDir = path.join(artifactsDir, taskId);
+        await fs.mkdir(taskArtifactDir, { recursive: true });
+        const promptPath = path.join(taskArtifactDir, 'task-plan-prompt.md');
+        const transcriptPath = path.join(taskArtifactDir, 'task-plan-transcript.json');
+        const lastMessagePath = path.join(taskArtifactDir, 'task-plan-last-message.txt');
+        await fs.writeFile(promptPath, planningPrompt, 'utf8');
+        try {
+            const execResult = await execStrategy.runExec({
+                commandPath,
+                workspaceRoot,
+                executionRoot: workspaceRoot,
+                prompt: planningPrompt,
+                promptPath,
+                promptHash: (0, integrity_1.hashText)(planningPrompt),
+                promptByteLength: (0, integrity_1.utf8ByteLength)(planningPrompt),
+                transcriptPath,
+                lastMessagePath,
+                model: config.model,
+                reasoningEffort: config.reasoningEffort,
+                sandboxMode: config.sandboxMode,
+                approvalMode: config.approvalMode,
+                timeoutMs: config.cliExecutionTimeoutMs > 0 ? config.cliExecutionTimeoutMs : undefined,
+                promptCaching: config.promptCaching
+            });
+            if (execResult.exitCode !== 0) {
+                this.logger.warn('Inline planning pass exited non-zero; skipping task-plan.json.', {
+                    taskId,
+                    exitCode: execResult.exitCode
+                });
+                return;
+            }
+            const plan = (0, planningPass_1.parsePlanningResponse)(execResult.lastMessage);
+            if (!plan) {
+                this.logger.warn('Inline planning pass produced no parseable plan; skipping task-plan.json.', { taskId });
+                return;
+            }
+            await (0, planningPass_1.writeTaskPlan)(artifactsDir, taskId, plan);
+            this.logger.info('Inline planning pass wrote task-plan.json.', { taskId });
+        }
+        catch (err) {
+            this.logger.warn('Inline planning pass failed; continuing without plan.', {
+                taskId,
+                error: String(err)
+            });
+        }
+    }
     async runCliIteration(workspaceFolder, mode, progress, options) {
         const broadcaster = options.broadcaster;
         const earlyAgentId = options.configOverrides?.agentId;
         broadcaster?.emitPhase(0, 'inspect', earlyAgentId);
+        // Inline planning pass: runs a quick planning CLI turn before the main
+        // iteration so the implementer prompt can include task-plan.json context.
+        // Only runs when planningPass.enabled=true, mode='inline', and the selected
+        // task does not yet have a task-plan.json artifact.
+        await this.maybeRunInlinePlanningPass(workspaceFolder, options.configOverrides);
         const prepared = await (0, iterationPreparation_1.prepareIterationContext)({
             workspaceFolder,
             progress,

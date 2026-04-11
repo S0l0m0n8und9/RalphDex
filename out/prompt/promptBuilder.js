@@ -49,6 +49,7 @@ const path = __importStar(require("path"));
 const rootPolicy_1 = require("../ralph/rootPolicy");
 const fs_1 = require("../util/fs");
 const taskFile_1 = require("../ralph/taskFile");
+const planningPass_1 = require("../ralph/planningPass");
 const promptBudget_1 = require("./promptBudget");
 __exportStar(require("./promptBudget"), exports);
 const DEFAULT_TEMPLATE_DIR_CANDIDATES = [
@@ -1007,11 +1008,18 @@ async function buildPrompt(input) {
             : Math.min(effectiveWindowSize, historyDepth),
         summaryGenerationCost: effectiveMemoryStrategy === 'summary' && historyDepth > effectiveSummaryThreshold
     };
+    // When a task-plan.json exists the "Task Plan" section (including its heading)
+    // is injected before the task-focus section.  An empty array collapses to an
+    // empty string in the template so no orphan heading appears when disabled.
+    const taskPlanContextLines = input.taskPlanArtifact
+        ? ['## Task Plan', ...(0, planningPass_1.formatTaskPlanContext)(input.taskPlanArtifact).split('\n').filter((l) => l.length > 0)]
+        : [];
     const dynamicSectionBodies = {
         preflightContext: buildPreflightContext(input.preflightReport),
         objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
         repoContext: buildRepoContext(input.summary, input.kind, input.target, input.selectedTask, budgetPolicy.repoDetail),
         runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target, budgetPolicy.runtimeDetail),
+        taskPlanContext: taskPlanContextLines,
         taskContext: buildTaskContext(input.kind, input.taskFile, input.taskCounts, input.selectedTask, input.preflightReport, input.taskValidationHint, input.effectiveValidationCommand, input.normalizedValidationCommandFrom, input.validationCommand),
         progressContext: clipText(input.progressText, budgetPolicy.progressLines, budgetPolicy.progressChars, true)
             .split('\n')
@@ -1047,6 +1055,7 @@ async function buildPrompt(input) {
         objective_context: placeholderFor('objectiveContext'),
         repo_context: placeholderFor('repoContext'),
         runtime_context: placeholderFor('runtimeContext'),
+        task_plan_context: placeholderFor('taskPlanContext'),
         task_context: placeholderFor('taskContext'),
         progress_context: placeholderFor('progressContext'),
         prior_iteration_context: placeholderFor('priorIterationContext'),
@@ -1105,6 +1114,7 @@ async function buildPrompt(input) {
             repoContext: sectionBodies.repoContext,
             repoContextSnapshot: input.summary,
             runtimeContext: sectionBodies.runtimeContext,
+            ...(taskPlanContextLines.length > 0 ? { taskPlanContext: taskPlanContextLines } : {}),
             taskContext: sectionBodies.taskContext,
             progressContext: sectionBodies.progressContext,
             priorIterationContext: sectionBodies.priorIterationContext,

@@ -7,6 +7,7 @@ export type PromptSectionName =
   | 'objectiveContext'
   | 'repoContext'
   | 'runtimeContext'
+  | 'taskPlanContext'
   | 'taskContext'
   | 'progressContext'
   | 'priorIterationContext'

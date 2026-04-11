@@ -37,6 +37,7 @@ exports.reconcileCompletionReport = reconcileCompletionReport;
 const fs = __importStar(require("fs/promises"));
 const completionReportParser_1 = require("./completionReportParser");
 const artifactStore_1 = require("./artifactStore");
+const planningPass_1 = require("./planningPass");
 const taskFile_1 = require("./taskFile");
 async function reconcileCompletionReport(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
@@ -156,6 +157,10 @@ async function reconcileCompletionReport(input) {
     }
     let taskFileChanged = false;
     let progressChanged = false;
+    // If task-plan.json has a suggestedValidationCommand and the task's validation
+    // field is currently empty, populate it so future iterations use it.
+    const taskPlan = await (0, planningPass_1.readTaskPlan)(input.prepared.paths.artifactDir, input.selectedTask.id);
+    const suggestedValidationFromPlan = taskPlan?.suggestedValidationCommand ?? null;
     // Claim ownership re-check, task-file write, and progress.md append all happen inside a
     // single task-file lock to eliminate the TOCTOU window and the unprotected progress.md
     // read-modify-write that existed when these operations ran sequentially outside any lock.
@@ -177,9 +182,15 @@ async function reconcileCompletionReport(input) {
                 if (requestedStatus !== 'blocked' && parsed.report.blocker) {
                     nextTask.blocker = parsed.report.blocker;
                 }
+                // Populate validation from task-plan.json suggestedValidationCommand
+                // only when the task's validation field was empty.
+                if (!nextTask.validation && suggestedValidationFromPlan) {
+                    nextTask.validation = suggestedValidationFromPlan;
+                }
                 taskFileChanged = nextTask.status !== task.status
                     || nextTask.notes !== task.notes
-                    || nextTask.blocker !== task.blocker;
+                    || nextTask.blocker !== task.blocker
+                    || nextTask.validation !== task.validation;
                 return nextTask;
             })
         };

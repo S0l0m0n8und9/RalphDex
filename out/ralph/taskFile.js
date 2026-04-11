@@ -855,13 +855,14 @@ async function taskArtifactExists(artifactsDir, taskId, fileName) {
  *
  * - planner: picks the first selectable todo task that has no task-plan.json artifact.
  * - implementer: prefers todo tasks that already have a task-plan.json; falls back to
- *   any selectable task when none are planned yet.
+ *   any selectable task when none are planned yet (unless requirePlan=true, in which case
+ *   only tasks with a task-plan.json are eligible — used for dedicated planning-pass mode).
  * - reviewer: picks the first done task that has no review.json artifact.
  * - All other roles: delegates to selectNextTask (no role filtering).
  *
  * Returns null when the role has no claimable task (agent should idle).
  */
-async function selectNextTaskForRole(taskFile, agentRole, artifactsDir) {
+async function selectNextTaskForRole(taskFile, agentRole, artifactsDir, options) {
     if (agentRole === 'planner') {
         const sortByPriority = (tasks) => [...tasks].sort((l, r) => taskPriorityOrder(l) - taskPriorityOrder(r));
         const todoTasks = sortByPriority(taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task)));
@@ -881,6 +882,11 @@ async function selectNextTaskForRole(taskFile, agentRole, artifactsDir) {
             if (hasPlan) {
                 return task;
             }
+        }
+        // In dedicated planning mode (requirePlan=true), implementers wait rather
+        // than claiming unplanned tasks — the planner agent must write task-plan.json first.
+        if (options?.requirePlan) {
+            return null;
         }
         // Fall back to any selectable task when no planned tasks are available.
         return selectable[0] ?? null;

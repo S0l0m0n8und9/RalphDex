@@ -32,6 +32,15 @@ export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
 
 export type OperatorMode = 'simple' | 'multi-agent' | 'hardcore';
 
+export type PlanningPassMode = 'dedicated' | 'inline';
+
+export interface RalphPlanningPassConfig {
+  /** Enable the pre-execution planning pass. Default: false. */
+  enabled: boolean;
+  /** Planning pass mode. 'inline': implementer runs planning turn itself; 'dedicated': separate planner agent writes task-plan.json. Default: 'inline'. */
+  mode: PlanningPassMode;
+}
+
 /**
  * Per-tier model + optional provider override.
  * When `provider` is omitted the workspace's default `cliProvider` is used.
@@ -154,4 +163,5 @@ export interface RalphCodexConfig {
   memorySummaryThreshold: number;
   operatorMode?: OperatorMode;
   prdGenerationTemplate: string;
+  planningPass: RalphPlanningPassConfig;
 }

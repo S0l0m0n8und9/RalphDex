@@ -339,6 +339,7 @@ export interface RalphPromptEvidence {
     repoContext: string[];
     repoContextSnapshot: WorkspaceScan;
     runtimeContext: string[];
+    taskPlanContext?: string[];
     taskContext: string[];
     progressContext: string[];
     priorIterationContext: string[];

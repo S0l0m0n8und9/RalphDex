@@ -2808,10 +2808,11 @@
     {
       "id": "T100",
       "title": "Dynamic planning layer Phase 4: pre-execution planning pass (inline and dedicated modes)",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T99"
       ],
+      "notes": "Fixed duplicate import in iterationPreparation.ts; added 14 unit+integration tests covering all T100 acceptance criteria (parsePlanningResponse, writeTaskPlan, Task Plan prompt section, suggestedValidationCommand reconciliation). 671 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.planningPass config added: { enabled: boolean (default false), mode: 'dedicated' | 'inline' (default 'inline') } in types.ts, defaults.ts, readConfig.ts, package.json",
@@ -2866,5 +2867,5 @@
       ]
     }
   ],
-  "mutationCount": 75
+  "mutationCount": 76
 }

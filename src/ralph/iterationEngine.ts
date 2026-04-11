@@ -1,7 +1,9 @@
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath, getCliCommandPathForProvider } from '../config/providers';
 import { CliProviderId } from '../config/types';
+import { readConfig } from '../config/readConfig';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { createArtifactBaseName } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
@@ -33,7 +35,10 @@ import {
   releaseClaim,
   remainingSubtasks,
   selectNextTask,
+  selectNextTaskForRole,
 } from './taskFile';
+import { parsePlanningResponse, readTaskPlan, writeTaskPlan } from './planningPass';
+import { hashText, utf8ByteLength } from './integrity';
 import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
 import { selectModelForTask } from './complexityScorer';
 import { runHook, HookRunContext } from './hookRunner';
@@ -182,6 +187,150 @@ export class RalphIterationEngine {
     };
   }
 
+  /**
+   * Checks whether the inline planning pass should run and, if so, delegates
+   * to runInlinePlanningPass.  Best-effort: all failures are swallowed so the
+   * main iteration always proceeds.
+   */
+  private async maybeRunInlinePlanningPass(
+    workspaceFolder: vscode.WorkspaceFolder,
+    configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>
+  ): Promise<void> {
+    try {
+      const config = { ...readConfig(workspaceFolder), ...(configOverrides ?? {}) };
+      if (!config.planningPass.enabled || config.planningPass.mode !== 'inline') {
+        return;
+      }
+
+      const rootPath = workspaceFolder.uri.fsPath;
+      const paths = this.stateManager.resolvePaths(rootPath, config);
+
+      let taskFileText: string;
+      try {
+        taskFileText = await fs.readFile(paths.taskFilePath, 'utf8');
+      } catch {
+        return; // No task file yet; let prepareIterationContext handle initialization
+      }
+
+      const taskFile = parseTaskFile(taskFileText);
+      const selectedTask = await selectNextTaskForRole(taskFile, config.agentRole, paths.artifactDir);
+      if (!selectedTask) {
+        return;
+      }
+
+      const existingPlan = await readTaskPlan(paths.artifactDir, selectedTask.id);
+      if (existingPlan) {
+        return; // Plan already exists; skip the planning pass
+      }
+
+      this.logger.info('Starting inline planning pass.', { taskId: selectedTask.id });
+
+      this.strategies.configureCliProvider(config);
+      const execStrategy = this.strategies.getCliExecStrategyForProvider();
+      if (!execStrategy.runExec) {
+        this.logger.warn('Inline planning pass skipped: CLI strategy does not support exec.');
+        return;
+      }
+
+      await this.runInlinePlanningPass(
+        rootPath,
+        paths.artifactDir,
+        selectedTask.id,
+        selectedTask.title,
+        selectedTask.acceptance ?? [],
+        execStrategy as { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> },
+        getCliCommandPath(config),
+        config
+      );
+    } catch (err) {
+      this.logger.warn('maybeRunInlinePlanningPass encountered an unexpected error; continuing.', {
+        error: String(err)
+      });
+    }
+  }
+
+  /**
+   * Runs a lightweight planning CLI turn for the given task and writes task-plan.json.
+   * Failures are logged but do not abort the main iteration — the planning pass is best-effort.
+   */
+  private async runInlinePlanningPass(
+    workspaceRoot: string,
+    artifactsDir: string,
+    taskId: string,
+    taskTitle: string,
+    taskAcceptance: string[],
+    execStrategy: { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> },
+    commandPath: string,
+    config: import('../config/types').RalphCodexConfig
+  ): Promise<void> {
+    const planningPrompt = [
+      'You are a planning agent. Analyse the task below and produce a JSON planning artifact.',
+      '',
+      `Task ID: ${taskId}`,
+      `Task Title: ${taskTitle}`,
+      taskAcceptance.length > 0 ? `Acceptance criteria:\n${taskAcceptance.map((a) => `- ${a}`).join('\n')}` : '',
+      '',
+      'Respond with ONLY a valid JSON object (no markdown fences) in this exact schema:',
+      '{',
+      '  "reasoning": "<why this task matters and what the key challenge is>",',
+      '  "approach": "<one-sentence implementation strategy>",',
+      '  "steps": ["<step 1>", "<step 2>", ...],',
+      '  "risks": ["<risk 1>", ...],',
+      '  "suggestedValidationCommand": "<optional shell command to validate the work>"',
+      '}'
+    ].filter(Boolean).join('\n');
+
+    const taskArtifactDir = path.join(artifactsDir, taskId);
+    await fs.mkdir(taskArtifactDir, { recursive: true });
+    const promptPath = path.join(taskArtifactDir, 'task-plan-prompt.md');
+    const transcriptPath = path.join(taskArtifactDir, 'task-plan-transcript.json');
+    const lastMessagePath = path.join(taskArtifactDir, 'task-plan-last-message.txt');
+
+    await fs.writeFile(promptPath, planningPrompt, 'utf8');
+
+    try {
+      const execResult = await execStrategy.runExec({
+        commandPath,
+        workspaceRoot,
+        executionRoot: workspaceRoot,
+        prompt: planningPrompt,
+        promptPath,
+        promptHash: hashText(planningPrompt),
+        promptByteLength: utf8ByteLength(planningPrompt),
+        transcriptPath,
+        lastMessagePath,
+        model: config.model,
+        reasoningEffort: config.reasoningEffort,
+        sandboxMode: config.sandboxMode,
+        approvalMode: config.approvalMode,
+        timeoutMs: config.cliExecutionTimeoutMs > 0 ? config.cliExecutionTimeoutMs : undefined,
+        promptCaching: config.promptCaching
+      });
+
+      if (execResult.exitCode !== 0) {
+        this.logger.warn('Inline planning pass exited non-zero; skipping task-plan.json.', {
+          taskId,
+          exitCode: execResult.exitCode
+        });
+        return;
+      }
+
+      const plan = parsePlanningResponse(execResult.lastMessage);
+      if (!plan) {
+        this.logger.warn('Inline planning pass produced no parseable plan; skipping task-plan.json.', { taskId });
+        return;
+      }
+
+      await writeTaskPlan(artifactsDir, taskId, plan);
+      this.logger.info('Inline planning pass wrote task-plan.json.', { taskId });
+    } catch (err) {
+      this.logger.warn('Inline planning pass failed; continuing without plan.', {
+        taskId,
+        error: String(err)
+      });
+    }
+  }
+
   public async runCliIteration(
     workspaceFolder: vscode.WorkspaceFolder,
     mode: RalphRunMode,
@@ -197,6 +346,13 @@ export class RalphIterationEngine {
     const broadcaster = options.broadcaster;
     const earlyAgentId = options.configOverrides?.agentId;
     broadcaster?.emitPhase(0, 'inspect', earlyAgentId);
+
+    // Inline planning pass: runs a quick planning CLI turn before the main
+    // iteration so the implementer prompt can include task-plan.json context.
+    // Only runs when planningPass.enabled=true, mode='inline', and the selected
+    // task does not yet have a task-plan.json artifact.
+    await this.maybeRunInlinePlanningPass(workspaceFolder, options.configOverrides);
+
     const prepared = await prepareIterationContext({
       workspaceFolder,
       progress,

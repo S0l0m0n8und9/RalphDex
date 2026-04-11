@@ -5,6 +5,7 @@ import { deriveRootPolicy } from '../ralph/rootPolicy';
 import { RalphPaths } from '../ralph/pathResolver';
 import { pathExists } from '../util/fs';
 import { findTaskById, remainingSubtasks, selectNextTask } from '../ralph/taskFile';
+import { formatTaskPlanContext, type TaskPlanArtifact } from '../ralph/planningPass';
 import {
   RalphAgentRole,
   RalphMemoryObservability,
@@ -85,6 +86,8 @@ export interface PromptGenerationInput {
   validationCommand: string | null;
   preflightReport: RalphPreflightReport;
   sessionHandoff?: RalphPromptSessionHandoff | null;
+  /** Task plan artifact loaded from task-plan.json, when available. Injected before the task-focus section. */
+  taskPlanArtifact?: TaskPlanArtifact | null;
   config: PromptConfig;
 }
 
@@ -1284,6 +1287,13 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     summaryGenerationCost: effectiveMemoryStrategy === 'summary' && historyDepth > effectiveSummaryThreshold
   };
 
+  // When a task-plan.json exists the "Task Plan" section (including its heading)
+  // is injected before the task-focus section.  An empty array collapses to an
+  // empty string in the template so no orphan heading appears when disabled.
+  const taskPlanContextLines: string[] = input.taskPlanArtifact
+    ? ['## Task Plan', ...formatTaskPlanContext(input.taskPlanArtifact).split('\n').filter((l) => l.length > 0)]
+    : [];
+
   const dynamicSectionBodies = {
     preflightContext: buildPreflightContext(input.preflightReport),
     objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
@@ -1301,6 +1311,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       input.target,
       budgetPolicy.runtimeDetail
     ),
+    taskPlanContext: taskPlanContextLines,
     taskContext: buildTaskContext(
       input.kind,
       input.taskFile,
@@ -1350,6 +1361,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     objective_context: placeholderFor('objectiveContext'),
     repo_context: placeholderFor('repoContext'),
     runtime_context: placeholderFor('runtimeContext'),
+    task_plan_context: placeholderFor('taskPlanContext'),
     task_context: placeholderFor('taskContext'),
     progress_context: placeholderFor('progressContext'),
     prior_iteration_context: placeholderFor('priorIterationContext'),
@@ -1412,6 +1424,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       repoContext: sectionBodies.repoContext,
       repoContextSnapshot: input.summary,
       runtimeContext: sectionBodies.runtimeContext,
+      ...(taskPlanContextLines.length > 0 ? { taskPlanContext: taskPlanContextLines } : {}),
       taskContext: sectionBodies.taskContext,
       progressContext: sectionBodies.progressContext,
       priorIterationContext: sectionBodies.priorIterationContext,
