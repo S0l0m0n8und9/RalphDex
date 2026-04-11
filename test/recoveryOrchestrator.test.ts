@@ -7,7 +7,9 @@ import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
 import {
   dispatchRecovery,
   getRecoveryStatePath,
-  type RecoveryContext
+  getSystemicAlertPath,
+  type RecoveryContext,
+  type SystemicFailureAlert
 } from '../src/ralph/recoveryOrchestrator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../src/ralph/deadLetter';
 
@@ -313,6 +315,110 @@ test('getRecoveryStatePath returns expected path', () => {
   const dir = '/tmp/artifacts';
   const result = getRecoveryStatePath(dir, 'T42');
   assert.ok(result.endsWith(path.join('T42', 'recovery-state.json')));
+});
+
+// ---------------------------------------------------------------------------
+// AC 5: task written to dead-letter.json after exhausting recovery attempts
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// T105 AC5–AC7: failure chain detection and systemic alert
+//
+// Each test uses its own tmpDir so the in-memory window is isolated per run.
+// ---------------------------------------------------------------------------
+
+test('3 failures with same category and high confidence triggers systemic alert', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-systemic-'));
+  try {
+    // Dispatch three high-confidence transient failures for different tasks.
+    // The systemic alert fires on the third dispatch (window hits threshold=3).
+    for (const taskId of ['TA', 'TB']) {
+      await dispatchRecovery(makeContext(tmpDir, {
+        taskId,
+        analysis: makeAnalysis({ rootCauseCategory: 'transient', confidence: 'high' })
+      }));
+    }
+    const third = await dispatchRecovery(makeContext(tmpDir, {
+      taskId: 'TC',
+      analysis: makeAnalysis({ rootCauseCategory: 'transient', confidence: 'high' })
+    }));
+
+    assert.equal(third.action, 'escalate_to_operator');
+    assert.equal(third.pauseAgent, true);
+    assert.ok(third.escalated, 'escalated should be true for systemic alert');
+    assert.ok(third.summary.includes('Systemic'), 'summary should mention systemic detection');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('mixed categories or low-confidence failures below threshold do not trigger systemic alert', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-systemic-'));
+  try {
+    // Two high-confidence transient + one low-confidence transient: total high-conf < 3
+    await dispatchRecovery(makeContext(tmpDir, {
+      taskId: 'TA',
+      analysis: makeAnalysis({ rootCauseCategory: 'transient', confidence: 'high' })
+    }));
+    await dispatchRecovery(makeContext(tmpDir, {
+      taskId: 'TB',
+      analysis: makeAnalysis({ rootCauseCategory: 'transient', confidence: 'high' })
+    }));
+    const third = await dispatchRecovery(makeContext(tmpDir, {
+      taskId: 'TC',
+      analysis: makeAnalysis({ rootCauseCategory: 'transient', confidence: 'low' })
+    }));
+
+    // Low-confidence entry does not count: only 2 of 3 transient events are >= 0.7.
+    assert.notEqual(third.action, 'escalate_to_operator',
+      'should not escalate when high-confidence count < threshold');
+    assert.equal(third.action, 'retry_with_backoff');
+
+    // Also verify: three different categories with high confidence do not trigger alert.
+    const tmpDir2 = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-systemic-mixed-'));
+    try {
+      for (const [taskId, category] of [['TA', 'transient'], ['TB', 'implementation_error'], ['TC', 'environment_issue']] as const) {
+        const d = await dispatchRecovery(makeContext(tmpDir2, {
+          taskId,
+          analysis: makeAnalysis({ rootCauseCategory: category, confidence: 'high' })
+        }));
+        assert.notEqual(d.action, 'escalate_to_operator',
+          `category ${category} should not trigger systemic alert alone`);
+      }
+    } finally {
+      await fs.rm(tmpDir2, { recursive: true, force: true });
+    }
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('systemic alert artifact is written to correct path with expected schema', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-systemic-'));
+  try {
+    for (const taskId of ['TA', 'TB', 'TC']) {
+      await dispatchRecovery(makeContext(tmpDir, {
+        taskId,
+        analysis: makeAnalysis({ rootCauseCategory: 'implementation_error', confidence: 'high' })
+      }));
+    }
+
+    const alertPath = getSystemicAlertPath(tmpDir);
+    const raw = await fs.readFile(alertPath, 'utf8');
+    const alert = JSON.parse(raw) as SystemicFailureAlert;
+
+    assert.equal(alert.schemaVersion, 1);
+    assert.equal(alert.kind, 'systemicFailureAlert');
+    assert.equal(alert.sharedCategory, 'implementation_error');
+    assert.ok(Array.isArray(alert.affectedTaskIds) && alert.affectedTaskIds.length >= 3,
+      'affectedTaskIds should include at least the 3 triggering tasks');
+    assert.ok(typeof alert.recommendedOperatorAction === 'string' && alert.recommendedOperatorAction.length > 0,
+      'recommendedOperatorAction should be a non-empty string');
+    assert.ok(typeof alert.detectedAt === 'string' && alert.detectedAt.length > 0,
+      'detectedAt should be a non-empty ISO timestamp');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
 });
 
 // ---------------------------------------------------------------------------

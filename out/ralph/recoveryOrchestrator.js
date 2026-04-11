@@ -33,11 +33,91 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.recordFailureEvent = recordFailureEvent;
+exports.detectSystemicCategory = detectSystemicCategory;
+exports.getSystemicAlertPath = getSystemicAlertPath;
 exports.getRecoveryStatePath = getRecoveryStatePath;
 exports.dispatchRecovery = dispatchRecovery;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const failureDiagnostics_1 = require("./failureDiagnostics");
+// ---------------------------------------------------------------------------
+// In-memory failure-chain rolling window (not persisted between runs)
+//
+// Keyed by artifactRootDir so each Ralph run (and each test's tmpDir) has an
+// isolated window, preventing cross-run interference.
+// ---------------------------------------------------------------------------
+const WINDOW_SIZE = 10;
+const SYSTEMIC_CATEGORY_THRESHOLD = 3;
+const CONFIDENCE_NUMERIC_THRESHOLD = 0.7;
+const failureWindowsByRun = new Map();
+function getRunWindow(artifactRootDir) {
+    let window = failureWindowsByRun.get(artifactRootDir);
+    if (!window) {
+        window = [];
+        failureWindowsByRun.set(artifactRootDir, window);
+    }
+    return window;
+}
+function confidenceToNumeric(confidence) {
+    switch (confidence) {
+        case 'high': return 1.0;
+        case 'medium': return 0.7;
+        case 'low': return 0.3;
+    }
+}
+/** Appends a failure event to the rolling window for the given run, evicting the oldest when full. */
+function recordFailureEvent(artifactRootDir, taskId, category, confidence) {
+    const window = getRunWindow(artifactRootDir);
+    window.push({ taskId, category, confidenceNumeric: confidenceToNumeric(confidence) });
+    if (window.length > WINDOW_SIZE) {
+        window.shift();
+    }
+}
+/**
+ * Returns the first category (if any) in the window for the given run where
+ * 3+ *distinct* task IDs share the same category and have confidence >= 0.7.
+ *
+ * Distinct-task counting prevents repeated retries of one task from being
+ * mistaken for a cross-task systemic pattern.
+ */
+function detectSystemicCategory(artifactRootDir) {
+    const window = getRunWindow(artifactRootDir);
+    const categoryMap = new Map();
+    for (const entry of window) {
+        if (entry.confidenceNumeric >= CONFIDENCE_NUMERIC_THRESHOLD) {
+            const taskIdSet = categoryMap.get(entry.category) ?? new Set();
+            taskIdSet.add(entry.taskId);
+            categoryMap.set(entry.category, taskIdSet);
+        }
+    }
+    for (const [category, taskIdSet] of categoryMap) {
+        if (taskIdSet.size >= SYSTEMIC_CATEGORY_THRESHOLD) {
+            return { category, affectedTaskIds: [...taskIdSet] };
+        }
+    }
+    return null;
+}
+/** Returns the path where systemic-failure-alert.json is written. */
+function getSystemicAlertPath(artifactRootDir) {
+    return path.join(artifactRootDir, 'systemic-failure-alert.json');
+}
+async function writeSystemicAlert(artifactRootDir, category, affectedTaskIds) {
+    const alert = {
+        schemaVersion: 1,
+        kind: 'systemicFailureAlert',
+        detectedAt: new Date().toISOString(),
+        sharedCategory: category,
+        affectedTaskIds,
+        recommendedOperatorAction: `Systemic "${category}" failures detected across ${affectedTaskIds.length} tasks. ` +
+            `Investigate shared infrastructure, dependencies, or prompt configuration before resuming.`
+    };
+    await fs.mkdir(artifactRootDir, { recursive: true });
+    await fs.writeFile(getSystemicAlertPath(artifactRootDir), JSON.stringify(alert, null, 2), 'utf8');
+}
+// ---------------------------------------------------------------------------
+// Backoff helpers
+// ---------------------------------------------------------------------------
 const BASE_BACKOFF_MS = 1_000;
 const MAX_BACKOFF_MS = 30_000;
 /** Computes exponential backoff: 1s, 2s, 4s, … capped at 30s. */
@@ -111,6 +191,23 @@ async function maybeWriteDeadLetter(ctx, attemptCount) {
 async function dispatchRecovery(ctx) {
     const { analysis, artifactRootDir, taskId, taskTitle, maxRecoveryAttempts, autoApplyRemediation } = ctx;
     const canAutoApply = autoApplyRemediation.length > 0;
+    // Record this failure in the in-memory rolling window before any playbook logic.
+    recordFailureEvent(artifactRootDir, taskId, analysis.rootCauseCategory, analysis.confidence);
+    // Check for systemic failure pattern before dispatching the per-task playbook.
+    const systemic = detectSystemicCategory(artifactRootDir);
+    if (systemic) {
+        await writeSystemicAlert(artifactRootDir, systemic.category, systemic.affectedTaskIds);
+        return {
+            action: 'escalate_to_operator',
+            pauseAgent: true,
+            summary: `Systemic "${systemic.category}" failures detected across tasks ` +
+                `[${systemic.affectedTaskIds.join(', ')}]. Alert written to systemic-failure-alert.json. ` +
+                `All agents paused — investigate before resuming.`,
+            attemptCount: 0,
+            escalated: true,
+            autoApplied: canAutoApply
+        };
+    }
     const state = await loadRecoveryState(artifactRootDir, taskId, analysis.rootCauseCategory);
     const newAttemptCount = state.attemptCount + 1;
     // Max recovery attempts exceeded → escalate regardless of category.

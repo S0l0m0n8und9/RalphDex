@@ -2917,10 +2917,11 @@
     {
       "id": "T105",
       "title": "Intelligent failure recovery Phase 4: failure chain detection and systemic alert",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T103"
       ],
+      "notes": "Added failure-chain rolling window (per-run, keyed by artifactRootDir), systemic alert detection (3+ distinct tasks, confidence>=0.7), SystemicFailureAlert artifact emission, pause-all-agents signal, and 3 unit tests covering all AC criteria. 723 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "recoveryOrchestrator.ts maintains a rolling window of last 10 failure events per run (in-memory, not persisted between runs)",
@@ -2970,5 +2971,5 @@
       ]
     }
   ],
-  "mutationCount": 79
+  "mutationCount": 80
 }
