@@ -10,6 +10,7 @@ import {
   applySuggestedChildTasks,
   countTaskStatuses,
   inspectTaskFileText,
+  isDocumentationMode,
   markTaskInProgress,
   normalizeTaskFileText,
   parseTaskFile,
@@ -1301,3 +1302,94 @@ async function pathExists(target: string): Promise<boolean> {
 function sleep(delayMs: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
+
+// -- Documentation mode tests --
+
+test('parseTaskFile preserves mode: documentation on a task', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Document the API', status: 'todo', mode: 'documentation' }
+    ]
+  }));
+
+  assert.equal(taskFile.tasks[0]?.mode, 'documentation');
+});
+
+test('parseTaskFile preserves mode: default on a task', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Fix bug', status: 'todo', mode: 'default' }
+    ]
+  }));
+
+  assert.equal(taskFile.tasks[0]?.mode, 'default');
+});
+
+test('parseTaskFile leaves mode undefined when not specified', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Fix bug', status: 'todo' }
+    ]
+  }));
+
+  assert.equal(taskFile.tasks[0]?.mode, undefined);
+});
+
+test('parseTaskFile drops invalid mode values', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Fix bug', status: 'todo', mode: 'invalid' }
+    ]
+  }));
+
+  assert.equal(taskFile.tasks[0]?.mode, undefined);
+});
+
+test('inspectTaskFileText auto-corrects type field to mode', () => {
+  const inspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Document API', status: 'todo', type: 'documentation' }
+    ]
+  }, null, 2));
+
+  assert.notEqual(inspection.taskFile, null);
+  assert.deepEqual(
+    inspection.diagnostics.map((diagnostic) => diagnostic.code),
+    ['auto_corrected_task_field']
+  );
+  assert.match(
+    inspection.diagnostics[0]?.message ?? '',
+    /used "type" which was auto-corrected to "mode"/
+  );
+  assert.equal(inspection.taskFile!.tasks[0]?.mode, 'documentation');
+});
+
+test('isDocumentationMode returns true for documentation tasks and false otherwise', () => {
+  assert.equal(isDocumentationMode({ id: 'T1', title: 'Doc', status: 'todo', mode: 'documentation' }), true);
+  assert.equal(isDocumentationMode({ id: 'T1', title: 'Code', status: 'todo', mode: 'default' }), false);
+  assert.equal(isDocumentationMode({ id: 'T1', title: 'Code', status: 'todo' }), false);
+  assert.equal(isDocumentationMode(null), false);
+});
+
+test('applySuggestedChildTasks inherits mode from parent task', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Document module', status: 'in_progress', mode: 'documentation' }
+    ]
+  }));
+
+  const result = applySuggestedChildTasks(taskFile, 'T1', [
+    {
+      id: 'T1.1',
+      title: 'Document submodule A',
+      parentId: 'T1',
+      dependsOn: [],
+      validation: null,
+      rationale: 'Break into smaller doc tasks'
+    }
+  ]);
+
+  const child = result.tasks.find((task) => task.id === 'T1.1');
+  assert.equal(child?.mode, 'documentation');
+});

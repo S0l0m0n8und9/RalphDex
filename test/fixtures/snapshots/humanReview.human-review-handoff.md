@@ -15,7 +15,7 @@ Treat the prior blocker as real until the repository proves otherwise. Keep the 
 - Do not invent unsupported IDE APIs or hidden handoff channels.
 - Keep architecture thin, deterministic, and file-backed.
 - Make the smallest coherent change that materially advances the selected Ralph task.
-- Prefer the repository’s real validation commands when they exist.
+- Prefer the repository's real validation commands when they exist.
 - For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
 - Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
 

@@ -7,6 +7,7 @@ import {
   RalphTask,
   RalphTaskCounts,
   RalphTaskFile,
+  RalphTaskMode,
   RalphTaskPriority,
   RalphTaskSourceLocation,
   RalphTaskStatus
@@ -33,6 +34,7 @@ const SUPPORTED_TASK_FIELDS = new Set([
   'validation',
   'blocker',
   'priority',
+  'mode',
   'acceptance',
   'constraints',
   'context'
@@ -51,7 +53,12 @@ const LIKELY_TASK_FIELD_MISTAKES = new Map<string, string>([
   ['guard_rails', 'constraints'],
   ['files', 'context'],
   ['relevantfiles', 'context'],
-  ['relevant_files', 'context']
+  ['relevant_files', 'context'],
+  ['type', 'mode'],
+  ['taskmode', 'mode'],
+  ['task_mode', 'mode'],
+  ['tasktype', 'mode'],
+  ['task_type', 'mode']
 ]);
 
 export interface RalphTaskFileInspection {
@@ -103,6 +110,13 @@ function normalizeOptionalString(record: Record<string, unknown>, key: string): 
 
 function normalizeTaskPriority(value: unknown): RalphTaskPriority | undefined {
   if (value === 'low' || value === 'normal' || value === 'high') {
+    return value;
+  }
+  return undefined;
+}
+
+function normalizeTaskMode(value: unknown): RalphTaskMode | undefined {
+  if (value === 'default' || value === 'documentation') {
     return value;
   }
   return undefined;
@@ -416,6 +430,7 @@ function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): Ra
     validation: normalizeOptionalString(record, 'validation'),
     blocker: normalizeOptionalString(record, 'blocker'),
     priority: normalizeTaskPriority(record.priority),
+    mode: normalizeTaskMode(record.mode),
     acceptance: normalizeOptionalStringArray(record, 'acceptance'),
     constraints: normalizeOptionalStringArray(record, 'constraints'),
     context: normalizeOptionalStringArray(record, 'context'),
@@ -1080,6 +1095,10 @@ export function autoCompleteSatisfiedAncestors(
   };
 }
 
+export function isDocumentationMode(task: RalphTask | null): boolean {
+  return task?.mode === 'documentation';
+}
+
 export function findTaskById(taskFile: RalphTaskFile, taskId: string | null): RalphTask | null {
   if (!taskId) {
     return null;
@@ -1154,6 +1173,7 @@ export function applySuggestedChildTasks(
     dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
     validation: child.validation ?? undefined,
     notes: child.rationale,
+    mode: parentTask.mode,
     acceptance: child.acceptance,
     constraints: child.constraints,
     context: child.context

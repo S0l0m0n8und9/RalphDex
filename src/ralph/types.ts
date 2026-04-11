@@ -10,6 +10,8 @@ export interface RalphTaskSourceLocation {
 
 export type RalphTaskPriority = 'low' | 'normal' | 'high';
 
+export type RalphTaskMode = 'default' | 'documentation';
+
 export interface RalphTask {
   id: string;
   title: string;
@@ -21,6 +23,8 @@ export interface RalphTask {
   blocker?: string;
   /** Optional priority hint. Higher-priority tasks are selected first when multiple tasks are actionable. Defaults to 'normal'. */
   priority?: RalphTaskPriority;
+  /** Task execution mode. 'documentation' relaxes code-centric verification gates. Defaults to 'default'. */
+  mode?: RalphTaskMode;
   /** Concrete done-criteria: the task is complete when every item in this list is satisfied. */
   acceptance?: string[];
   /** Per-task guardrails: things the agent must not do while working on this task. */
