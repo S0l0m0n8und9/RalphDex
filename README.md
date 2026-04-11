@@ -136,7 +136,7 @@ All settings are under the `ralphCodex.*` namespace in VS Code settings (`Ctrl+,
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, or `copilot` |
-| `ralphCodex.codexCommandPath` | `"codex"` | Codex CLI executable path or name |
+| `ralphCodex.codexCommandPath` | `"codex"` | Codex CLI executable path or name; on Windows, bare command names also resolve `codex.cmd`/`codex.bat` wrappers |
 | `ralphCodex.claudeCommandPath` | `"claude"` | Claude CLI executable path or name |
 | `ralphCodex.copilotCommandPath` | `"copilot"` | Copilot CLI executable path or name |
 

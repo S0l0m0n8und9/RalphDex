@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
@@ -34,7 +35,8 @@ export class CodexCliProvider implements CliProvider {
     return {
       args,
       cwd: request.executionRoot,
-      stdinText: request.prompt
+      stdinText: request.prompt,
+      shell: shouldUseWindowsShell(request.commandPath)
     };
   }
 
@@ -134,4 +136,23 @@ export class CodexCliProvider implements CliProvider {
 
     return null;
   }
+}
+
+function shouldUseWindowsShell(commandPath: string): boolean {
+  if (process.platform !== 'win32') {
+    return false;
+  }
+
+  const normalized = commandPath.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+
+  if (normalized.endsWith('.cmd') || normalized.endsWith('.bat')) {
+    return true;
+  }
+
+  return !path.isAbsolute(commandPath)
+    && !commandPath.includes('\\')
+    && !commandPath.includes('/');
 }

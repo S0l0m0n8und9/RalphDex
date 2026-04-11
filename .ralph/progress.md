@@ -199,3 +199,4 @@
 - CliProvider.executeDirectly optional method added; AzureFoundryProvider implements it via httpsPost (node:https wrapper with test override); CliExecCodexStrategy prefers executeDirectly over child-process spawn; 4 unit tests for direct HTTPS path; strategy preference test added.
 - API key sent as api-key header in HTTPS requests; Azure AD stub warning emitted when key absent; key value never written to transcripts/provenance (test verified); preflight emits error for missing endpoint, info for missing key (Azure AD stub), info for configured key; 6 new unit tests; npm run validate: 591 pass 0 fail
 - Added cache_control breakpoints to AzureFoundryProvider.executeDirectly; added PromptCacheStats to RalphPromptEvidence and RalphProvenanceBundle; wired through iterationEngine and provenancePersistence; surfaced in Show Status; 5 new unit tests added.
+- constructRecommendedSkills command fully implemented, registered, tested, and documented. All 600 tests pass.

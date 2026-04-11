@@ -121,6 +121,19 @@ test('buildArgs allows deliberate high reasoning escalation', () => {
   ]);
 });
 
+test('buildLaunchSpec enables shell only for Windows command-wrapper lookups', () => {
+  const launchSpec = codexProvider.buildLaunchSpec(request(), false);
+  assert.equal(launchSpec.shell, process.platform === 'win32' ? true : false);
+
+  const explicitExecutableSpec = codexProvider.buildLaunchSpec({
+    ...request(),
+    commandPath: process.platform === 'win32'
+      ? 'C:\\tools\\codex.exe'
+      : '/usr/local/bin/codex'
+  }, false);
+  assert.equal(explicitExecutableSpec.shell, false);
+});
+
 test('CliExecCodexStrategy supports stdin-pipe providers such as Copilot', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-cli-'));
   let capturedArgs: string[] = [];

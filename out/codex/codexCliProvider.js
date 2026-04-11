@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const text_1 = require("../util/text");
 class CodexCliProvider {
     options;
@@ -59,7 +60,8 @@ class CodexCliProvider {
         return {
             args,
             cwd: request.executionRoot,
-            stdinText: request.prompt
+            stdinText: request.prompt,
+            shell: shouldUseWindowsShell(request.commandPath)
         };
     }
     async extractResponseText(_stdout, _stderr, lastMessagePath) {
@@ -148,4 +150,19 @@ class CodexCliProvider {
     }
 }
 exports.CodexCliProvider = CodexCliProvider;
+function shouldUseWindowsShell(commandPath) {
+    if (process.platform !== 'win32') {
+        return false;
+    }
+    const normalized = commandPath.trim().toLowerCase();
+    if (!normalized) {
+        return false;
+    }
+    if (normalized.endsWith('.cmd') || normalized.endsWith('.bat')) {
+        return true;
+    }
+    return !path.isAbsolute(commandPath)
+        && !commandPath.includes('\\')
+        && !commandPath.includes('/');
+}
 //# sourceMappingURL=codexCliProvider.js.map

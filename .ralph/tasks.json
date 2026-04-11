@@ -2519,8 +2519,8 @@
     {
       "id": "T84",
       "title": "Recommended Skills Phase 3: Construct Recommended Skills command",
-      "status": "todo",
-      "notes": "Add a Ralph Codex: Construct Recommended Skills command that reads .ralph/recommended-skills.json, presents the list to the operator via QuickPick for approval, and invokes the configured CLI provider to construct each approved skill. The command must not auto-construct any skills without explicit operator selection. Register the command in package.json and registerCommands.ts, add smoke coverage, and update docs/workflows.md.",
+      "status": "done",
+      "notes": "constructRecommendedSkills command fully implemented, registered, tested, and documented. All 600 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.constructRecommendedSkills command is registered in package.json activationEvents and contributes.commands",
@@ -2533,5 +2533,5 @@
       ]
     }
   ],
-  "mutationCount": 57
+  "mutationCount": 58
 }
