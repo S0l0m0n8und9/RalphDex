@@ -84,6 +84,7 @@ function createProvenanceBundle(input) {
         executionPayloadMatched,
         mismatchReason,
         promptCacheStats,
+        memoryObservability: prepared.promptEvidence.memoryObservability ?? null,
         createdAt: prepared.executionPlan.createdAt,
         updatedAt: new Date().toISOString()
     };

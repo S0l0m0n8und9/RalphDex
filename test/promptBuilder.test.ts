@@ -2120,3 +2120,185 @@ test('summary memoryStrategy above threshold reads from memory-summary.md and ap
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// memoryObservability provenance fields
+// ---------------------------------------------------------------------------
+
+test('memoryObservability: verbatim strategy populates fields correctly', async () => {
+  const templateDir = await createTemplateDir();
+  const history = [1, 2, 3].map((n) =>
+    baseIterationResult({ iteration: n, summary: `Step ${n}.`, completionClassification: 'complete', executionStatus: 'succeeded' })
+  );
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 4,
+    selectionReason: 'Memory observability verbatim test.',
+    objectiveText: '# Objective\n\nTest.',
+    progressText: '# Progress\n\n- Steps done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 3 },
+    summary,
+    state: workspaceState({ lastIteration: history[2], iterationHistory: history }),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Task', status: 'todo' }] },
+    selectedTask: { id: 'T1', title: 'Task', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'ok', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  const obs = render.evidence.memoryObservability;
+  assert.ok(obs, 'memoryObservability must be present on evidence');
+  assert.equal(obs.memoryStrategy, 'verbatim', 'strategy must be verbatim');
+  assert.equal(obs.historyDepth, 3, 'historyDepth must equal iterationHistory length');
+  assert.equal(obs.windowedEntryCount, 1, 'verbatim includes only the last iteration');
+  assert.equal(obs.summaryGenerationCost, false, 'verbatim never triggers summary cost');
+});
+
+test('memoryObservability: sliding-window strategy populates fields correctly', async () => {
+  const templateDir = await createTemplateDir();
+  const history = [1, 2, 3, 4, 5].map((n) =>
+    baseIterationResult({ iteration: n, summary: `Step ${n}.`, completionClassification: 'complete', executionStatus: 'succeeded' })
+  );
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 6,
+    selectionReason: 'Memory observability sliding-window test.',
+    objectiveText: '# Objective\n\nTest.',
+    progressText: '# Progress\n\n- Steps done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 5 },
+    summary,
+    state: workspaceState({ lastIteration: history[4], iterationHistory: history }),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Task', status: 'todo' }] },
+    selectedTask: { id: 'T1', title: 'Task', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'ok', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      memoryStrategy: 'sliding-window',
+      memoryWindowSize: 3
+    }
+  });
+
+  const obs = render.evidence.memoryObservability;
+  assert.ok(obs, 'memoryObservability must be present on evidence');
+  assert.equal(obs.memoryStrategy, 'sliding-window', 'strategy must be sliding-window');
+  assert.equal(obs.historyDepth, 5, 'historyDepth must equal iterationHistory length');
+  assert.equal(obs.windowedEntryCount, 3, 'windowedEntryCount must be min(windowSize, historyDepth)');
+  assert.equal(obs.summaryGenerationCost, false, 'sliding-window never triggers summary cost');
+});
+
+test('memoryObservability: summary strategy below threshold reports no summaryGenerationCost', async () => {
+  const templateDir = await createTemplateDir();
+  const history = [1, 2, 3].map((n) =>
+    baseIterationResult({ iteration: n, summary: `Step ${n}.`, completionClassification: 'complete', executionStatus: 'succeeded' })
+  );
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 4,
+    selectionReason: 'Memory observability summary-below-threshold test.',
+    objectiveText: '# Objective\n\nTest.',
+    progressText: '# Progress\n\n- Steps done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 3 },
+    summary,
+    state: workspaceState({ lastIteration: history[2], iterationHistory: history }),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Task', status: 'todo' }] },
+    selectedTask: { id: 'T1', title: 'Task', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'ok', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      memoryStrategy: 'summary',
+      memoryWindowSize: 3,
+      memorySummaryThreshold: 10
+    }
+  });
+
+  const obs = render.evidence.memoryObservability;
+  assert.ok(obs, 'memoryObservability must be present on evidence');
+  assert.equal(obs.memoryStrategy, 'summary', 'strategy must be summary');
+  assert.equal(obs.historyDepth, 3, 'historyDepth must equal iterationHistory length');
+  assert.equal(obs.windowedEntryCount, 3, 'windowedEntryCount is min(windowSize, historyDepth) for summary');
+  assert.equal(obs.summaryGenerationCost, false, 'summary below threshold must not trigger summaryGenerationCost');
+});
+
+test('memoryObservability: summary strategy above threshold reports summaryGenerationCost true', async () => {
+  const templateDir = await createTemplateDir();
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-obs-test-'));
+  try {
+    const ralphDir = path.join(tmpDir, '.ralph');
+    await fs.mkdir(ralphDir, { recursive: true });
+    const memorySummaryPath = path.join(ralphDir, 'memory-summary.md');
+    await fs.writeFile(memorySummaryPath, 'Older work captured here.\n', 'utf8');
+
+    const history = [1, 2, 3, 4, 5, 6].map((n) =>
+      baseIterationResult({ iteration: n, summary: `Step ${n}.`, completionClassification: 'complete', executionStatus: 'succeeded' })
+    );
+
+    const testPaths: RalphPaths = {
+      ...paths,
+      rootPath: tmpDir,
+      ralphDir,
+      memorySummaryPath
+    };
+
+    const render = await buildPrompt({
+      kind: 'iteration',
+      target: 'cliExec',
+      iteration: 7,
+      selectionReason: 'Memory observability summary-above-threshold test.',
+      objectiveText: '# Objective\n\nTest.',
+      progressText: '# Progress\n\n- Steps done.\n',
+      taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 6 },
+      summary,
+      state: workspaceState({ lastIteration: history[5], iterationHistory: history }),
+      paths: testPaths,
+      taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Task', status: 'todo' }] },
+      selectedTask: { id: 'T1', title: 'Task', status: 'todo' },
+      taskValidationHint: null,
+      effectiveValidationCommand: null,
+      normalizedValidationCommandFrom: null,
+      validationCommand: null,
+      preflightReport: { ready: true, summary: 'ok', diagnostics: [] },
+      config: {
+        promptTemplateDirectory: templateDir,
+        promptIncludeVerifierFeedback: true,
+        promptPriorContextBudget: 20,
+        memoryStrategy: 'summary',
+        memoryWindowSize: 3,
+        memorySummaryThreshold: 5
+      }
+    });
+
+    const obs = render.evidence.memoryObservability;
+    assert.ok(obs, 'memoryObservability must be present on evidence');
+    assert.equal(obs.memoryStrategy, 'summary', 'strategy must be summary');
+    assert.equal(obs.historyDepth, 6, 'historyDepth must equal iterationHistory length');
+    assert.equal(obs.windowedEntryCount, 3, 'windowedEntryCount is min(windowSize, historyDepth) for summary above threshold');
+    assert.equal(obs.summaryGenerationCost, true, 'summary above threshold must report summaryGenerationCost true');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});

@@ -290,6 +290,13 @@ export interface PromptCacheStats {
   cacheHit: boolean | null;
 }
 
+export interface RalphMemoryObservability {
+  memoryStrategy: string;
+  historyDepth: number;
+  windowedEntryCount: number;
+  summaryGenerationCost: boolean;
+}
+
 export interface RalphPromptEvidence {
   schemaVersion: 1;
   provenanceId?: string;
@@ -305,6 +312,7 @@ export interface RalphPromptEvidence {
   validationCommand: string | null;
   promptByteLength?: number;
   promptCacheStats?: PromptCacheStats;
+  memoryObservability?: RalphMemoryObservability;
   promptBudget?: {
     policyName: string;
     budgetMode: 'within_budget' | 'trimmed';
@@ -618,6 +626,7 @@ export interface RalphProvenanceBundle {
   executionPayloadMatched: boolean | null;
   mismatchReason: string | null;
   promptCacheStats?: PromptCacheStats | null;
+  memoryObservability?: RalphMemoryObservability | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -7,6 +7,7 @@ import { pathExists } from '../util/fs';
 import { findTaskById, remainingSubtasks, selectNextTask } from '../ralph/taskFile';
 import {
   RalphAgentRole,
+  RalphMemoryObservability,
   RalphPreflightDiagnostic,
   RalphPreflightReport,
   RalphPromptEvidence,
@@ -1127,19 +1128,24 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
   // === Dynamic sections: vary by task, state, or iteration ===
   // These sections follow the static prefix and carry per-iteration context.
   const priorContextBudget = Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget);
-  const priorIterationContext = input.config.memoryStrategy === 'sliding-window'
+  const effectiveMemoryStrategy = input.config.memoryStrategy ?? 'verbatim';
+  const effectiveWindowSize = input.config.memoryWindowSize ?? 10;
+  const effectiveSummaryThreshold = input.config.memorySummaryThreshold ?? 20;
+  const historyDepth = input.state.iterationHistory.length;
+
+  const priorIterationContext = effectiveMemoryStrategy === 'sliding-window'
     ? buildSlidingWindowContext(
       input.state,
-      input.config.memoryWindowSize ?? 10,
+      effectiveWindowSize,
       priorContextBudget,
       input.sessionHandoff ?? null
     )
-    : input.config.memoryStrategy === 'summary'
+    : effectiveMemoryStrategy === 'summary'
       ? await buildSummaryStrategyContext(
         input.state,
         input.config.promptIncludeVerifierFeedback,
-        input.config.memoryWindowSize ?? 10,
-        input.config.memorySummaryThreshold ?? 20,
+        effectiveWindowSize,
+        effectiveSummaryThreshold,
         priorContextBudget,
         input.paths.memorySummaryPath,
         input.paths.rootPath,
@@ -1154,6 +1160,15 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
         input.selectedTask,
         input.sessionHandoff ?? null
       );
+
+  const memoryObservability: RalphMemoryObservability = {
+    memoryStrategy: effectiveMemoryStrategy,
+    historyDepth,
+    windowedEntryCount: effectiveMemoryStrategy === 'verbatim'
+      ? (historyDepth > 0 ? 1 : 0)
+      : Math.min(effectiveWindowSize, historyDepth),
+    summaryGenerationCost: effectiveMemoryStrategy === 'summary' && historyDepth > effectiveSummaryThreshold
+  };
 
   const dynamicSectionBodies = {
     preflightContext: buildPreflightContext(input.preflightReport),
@@ -1258,6 +1273,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     normalizedValidationCommandFrom: input.normalizedValidationCommandFrom,
     validationCommand: input.validationCommand,
     promptByteLength: Buffer.byteLength(prompt, 'utf8'),
+    memoryObservability,
     promptBudget: {
       policyName: budgetPolicy.name,
       budgetMode: omittedSections.size > 0 ? 'trimmed' : 'within_budget',
