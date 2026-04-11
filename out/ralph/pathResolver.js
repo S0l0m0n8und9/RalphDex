@@ -54,7 +54,8 @@ function resolveRalphPaths(rootPath, config) {
         runDir: path.join(ralphDir, 'runs'),
         logDir,
         logFilePath: path.join(logDir, 'extension.log'),
-        artifactDir: resolveWorkspacePath(rootPath, config.artifactRetentionPath)
+        artifactDir: resolveWorkspacePath(rootPath, config.artifactRetentionPath),
+        memorySummaryPath: path.join(ralphDir, 'memory-summary.md')
     };
 }
 //# sourceMappingURL=pathResolver.js.map

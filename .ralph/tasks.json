@@ -2633,7 +2633,127 @@
         "Snapshot test: static prompt prefix is byte-identical across two sliding-window builds with different task inputs",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T91",
+      "title": "Agent memory management Phase 3: implement summary strategy in promptBuilder",
+      "status": "done",
+      "dependsOn": [
+        "T90"
+      ],
+      "notes": "Summary memory strategy implemented in promptBuilder: buildSummaryStrategyContext reads memory-summary.md when above threshold, maybeSummariseHistory in iterationPreparation invokes CLI and persists summary; 2 new tests added; 621 tests pass",
+      "validation": "npm run validate",
+      "acceptance": [
+        "When memoryStrategy is summary and history depth exceeds memorySummaryThreshold, invoke the configured CLI provider synchronously to produce a one-paragraph summary of entries older than memoryWindowSize",
+        "Summary is persisted to .ralph/memory-summary.md",
+        "In subsequent iterations with summary mode, the persisted summary block plus the most recent memoryWindowSize verbatim entries are included; re-summarisation only occurs when new entries push depth above threshold again",
+        "When memoryStrategy is summary but history depth is at or below memorySummaryThreshold, behaviour is identical to verbatim",
+        "Unit test: summary strategy below threshold behaves identically to verbatim",
+        "Unit test: summary above threshold reads from .ralph/memory-summary.md and appends recent verbatim entries",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T92",
+      "title": "Agent memory management Phase 4: add memoryStrategy observability to provenance bundle",
+      "status": "todo",
+      "dependsOn": [
+        "T91"
+      ],
+      "validation": "npm run validate",
+      "acceptance": [
+        "memoryStrategy, historyDepth, windowedEntryCount, and summaryGenerationCost fields added to RalphProvenanceBundle (or RalphPromptEvidence)",
+        "These fields are populated from promptBuilder output and persisted via provenancePersistence.ts",
+        "Show Status surfaces the active memory strategy and windowed entry count",
+        "Unit test covers provenance fields for verbatim, sliding-window, and summary strategies",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T93",
+      "title": "Operator mode presets Phases 1+2: schema, package.json, and preset resolution in readConfig",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "operatorMode?: 'simple' | 'multi-agent' | 'hardcore' added to RalphCodexConfig in src/config/types.ts with default undefined",
+        "Enum contributed in package.json settings with descriptions for each value",
+        "readConfig.ts merges preset baseline values first then overwrites with explicit operator settings (explicit always wins)",
+        "simple preset values: autonomyMode supervised, agentCount 1, preferredHandoffMode ideCommand, modelTiering.enabled false, ralphIterationCap 20, stopOnHumanReviewNeeded true, scmStrategy none, memoryStrategy verbatim, autoReplenishBacklog false, pipelineHumanGates true",
+        "multi-agent preset values: autonomyMode autonomous, agentCount 3, preferredHandoffMode cliExec, modelTiering.enabled true, scmStrategy branch-per-task, autoReplenishBacklog true, autoReviewOnParentDone true, memoryStrategy sliding-window, autoWatchdogOnStall true, pipelineHumanGates true",
+        "hardcore preset: all multi-agent values plus autoApplyRemediation [decompose_task, mark_blocked], pipelineHumanGates false, modelTiering.complex.model claude-opus-4-6, ralphIterationCap 100, memoryStrategy summary",
+        "Unit test: operatorMode simple with no individual overrides produces expected preset values",
+        "Unit test: operatorMode multi-agent with agentCount 1 explicitly set — agentCount is 1, all other preset values apply",
+        "Unit test: operatorMode absent — no preset values injected, existing defaults apply",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T94",
+      "title": "Operator mode presets Phases 3+4: surface active mode in Show Status and document in AGENTS.md",
+      "status": "todo",
+      "dependsOn": [
+        "T93"
+      ],
+      "validation": "npm run validate",
+      "acceptance": [
+        "Show Status includes the active operatorMode label and whether each setting came from preset or explicit operator config",
+        "Regression test covers Show Status rendering for simple, multi-agent, hardcore, and absent operatorMode",
+        "AGENTS.md includes a preset reference table listing every setting each preset applies and its value",
+        "docs/workflows.md documents the hardcore preset warning about disabled human-review gates and enabled auto-remediation",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T95",
+      "title": "PRD creation improvements Phases 1+2: task count cap and operator-overridable generation template",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Generation prompt in projectGenerator.ts includes explicit instruction capping output at 5-8 tasks with rationale",
+        "parseGenerationResponse emits a warning artifact (or rejects) when the response contains more than 8 tasks",
+        "Unit test asserts the parser warns or rejects on responses with more than 8 tasks",
+        "ralphCodex.prdGenerationTemplate (string, default empty) added to RalphCodexConfig, package.json, defaults, and readConfig",
+        "When prdGenerationTemplate is set, it replaces the built-in system prompt for generation",
+        "Unit test confirms prdGenerationTemplate is passed through to the generation invocation",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T96",
+      "title": "PRD creation improvements Phases 3+4: worked examples in prompt and suggestedValidationCommand in generation output",
+      "status": "todo",
+      "dependsOn": [
+        "T95"
+      ],
+      "validation": "npm run validate",
+      "acceptance": [
+        "Built-in generation prompt includes a Good vs bad task formulation section with Ralphdex-specific examples",
+        "Good examples are atomic, testable, outcome-focused; bad examples are vague, overlapping, or infrastructure-only",
+        "Structured JSON response schema in projectGenerator.ts includes an optional suggestedValidationCommand string per task",
+        "parseGenerationResponse extracts suggestedValidationCommand and maps it to the task validation field when present",
+        "parseGenerationResponse handles a missing suggestedValidationCommand without error",
+        "Unit test covers the happy path (valid suggestedValidationCommand) and the missing-field case",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T97",
+      "title": "PRD creation improvements Phase 5: Regenerate PRD command",
+      "status": "todo",
+      "dependsOn": [
+        "T96"
+      ],
+      "validation": "npm run validate",
+      "acceptance": [
+        "ralphCodex.regeneratePrd VS Code command registered in registerCommands.ts and contributed in package.json",
+        "Command re-runs PRD generation against current .ralph/prd.md content to produce a refined version",
+        "Command diffs proposed changes and opens a VS Code diff editor for operator review before writing",
+        "Command never triggers autonomously during normal loop execution",
+        "Package manifest test covers the new command registration",
+        "AGENTS.md command list updated to include regeneratePrd",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 64
+  "mutationCount": 66
 }

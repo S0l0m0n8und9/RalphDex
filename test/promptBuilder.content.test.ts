@@ -26,7 +26,8 @@ function createPaths(rootPath: string): RalphPaths {
     runDir: `${rootPath}/.ralph/runs`,
     logDir: `${rootPath}/.ralph/logs`,
     logFilePath: `${rootPath}/.ralph/logs/extension.log`,
-    artifactDir: `${rootPath}/.ralph/artifacts`
+    artifactDir: `${rootPath}/.ralph/artifacts`,
+    memorySummaryPath: `${rootPath}/.ralph/memory-summary.md`
   };
 }
 

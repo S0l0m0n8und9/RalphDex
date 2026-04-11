@@ -460,6 +460,7 @@ export async function prepareIterationContext(
   }
 
   progress.report({ message: 'Generating Ralph prompt' });
+  await maybeSummariseHistory(snapshot.state, config, snapshot.paths.memorySummaryPath, rootPath);
   const artifactPaths = resolveIterationArtifactPaths(snapshot.paths.artifactDir, iteration);
   const provenanceBundlePaths = resolveProvenanceBundlePaths(snapshot.paths.artifactDir, provenanceId);
   const promptRender = await buildPrompt({
@@ -716,4 +717,78 @@ async function checkoutGitBranch(rootPath: string, branchName: string): Promise<
     const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
     throw new Error(`git checkout ${branchName} failed: ${failure}`);
   }
+}
+
+/**
+ * When memoryStrategy is 'summary' and the history depth exceeds memorySummaryThreshold,
+ * invoke the configured CLI to produce a one-paragraph summary of the older entries
+ * (those outside the memoryWindowSize window) and persist the result to memory-summary.md.
+ *
+ * Re-summarisation only occurs when the count of old entries (history beyond the window)
+ * has grown since the last summarisation run.
+ */
+export async function maybeSummariseHistory(
+  state: RalphWorkspaceState,
+  config: RalphCodexConfig,
+  memorySummaryPath: string,
+  rootPath: string
+): Promise<void> {
+  if (config.memoryStrategy !== 'summary') {
+    return;
+  }
+
+  const windowSize = config.memoryWindowSize ?? 10;
+  const threshold = config.memorySummaryThreshold ?? 20;
+  const totalDepth = state.iterationHistory.length;
+
+  if (totalDepth <= threshold) {
+    return;
+  }
+
+  const oldEntries = state.iterationHistory.slice(0, -windowSize);
+  const oldCount = oldEntries.length;
+
+  // Read existing summary to check if re-summarisation is needed
+  let lastSummarizedOldCount = 0;
+  try {
+    const existing = await fs.readFile(memorySummaryPath, 'utf8');
+    const match = existing.match(/^<!-- ralph-memory: summarized-old-count=(\d+) -->/m);
+    if (match) {
+      lastSummarizedOldCount = parseInt(match[1], 10);
+    }
+  } catch {
+    // No existing summary — will create one
+  }
+
+  if (oldCount <= lastSummarizedOldCount) {
+    return;
+  }
+
+  const entriesText = oldEntries.map((entry) =>
+    `Iteration ${entry.iteration}: ${entry.completionClassification} / ${entry.executionStatus} — ${entry.summary}`
+  ).join('\n');
+
+  const prompt = [
+    'Summarise the following Ralph iteration history in one concise paragraph.',
+    'Focus on what was accomplished and any important patterns or outcomes.',
+    'Reply with only the paragraph text — no headers, JSON, or code blocks.',
+    '',
+    entriesText
+  ].join('\n');
+
+  const commandPath = getCliCommandPath(config);
+  let summaryText: string;
+  try {
+    const result = await runProcess(commandPath, ['-p', '-'], {
+      cwd: rootPath,
+      stdinText: prompt
+    });
+    summaryText = result.stdout.trim() || `${oldCount} prior iterations completed.`;
+  } catch {
+    summaryText = `${oldCount} prior iterations completed.`;
+  }
+
+  const fileContent = `<!-- ralph-memory: summarized-old-count=${oldCount} -->\n${summaryText}\n`;
+  await fs.mkdir(path.dirname(memorySummaryPath), { recursive: true });
+  await fs.writeFile(memorySummaryPath, fileContent, 'utf8');
 }

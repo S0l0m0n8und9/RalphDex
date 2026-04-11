@@ -61,7 +61,7 @@ const PROMPT_INTRO_BY_KIND: Record<RalphPromptKind, string> = {
 type PromptConfig = Pick<
 RalphCodexConfig,
 'promptTemplateDirectory' | 'promptIncludeVerifierFeedback' | 'promptPriorContextBudget'
-> & Partial<Pick<RalphCodexConfig, 'promptBudgetProfile' | 'customPromptBudget' | 'agentRole' | 'memoryStrategy' | 'memoryWindowSize'>>;
+> & Partial<Pick<RalphCodexConfig, 'promptBudgetProfile' | 'customPromptBudget' | 'agentRole' | 'memoryStrategy' | 'memoryWindowSize' | 'memorySummaryThreshold'>>;
 
 export interface PromptGenerationInput {
   kind: RalphPromptKind;
@@ -569,6 +569,62 @@ function buildSlidingWindowContext(
   return trimContextLines([...handoffLines, ...entryLines], budget);
 }
 
+async function buildSummaryStrategyContext(
+  state: RalphWorkspaceState,
+  includeVerifierFeedback: boolean,
+  windowSize: number,
+  threshold: number,
+  budget: number,
+  memorySummaryPath: string,
+  rootPath: string,
+  selectedTask: RalphTask | null,
+  sessionHandoff: RalphPromptSessionHandoff | null
+): Promise<string[]> {
+  const totalDepth = state.iterationHistory.length;
+
+  // Below or at threshold: behave identically to verbatim
+  if (totalDepth <= threshold) {
+    return buildPriorIterationContext(
+      state,
+      includeVerifierFeedback,
+      budget,
+      rootPath,
+      selectedTask,
+      sessionHandoff
+    );
+  }
+
+  // Above threshold: use persisted summary block + recent verbatim window
+  const handoffLines: string[] = sessionHandoff
+    ? [
+      '### Session Handoff',
+      `- Handoff summary: ${sessionHandoff.humanSummary}`,
+      `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
+      `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`,
+      `- Remaining task count at handoff: ${sessionHandoff.remainingTaskCount !== null ? String(sessionHandoff.remainingTaskCount) : 'unknown'}`
+    ]
+    : [];
+
+  let summaryLines: string[] = [];
+  try {
+    const raw = await fs.readFile(memorySummaryPath, 'utf8');
+    // Strip the metadata comment header if present (e.g. "<!-- ralph-memory: ... -->")
+    const body = raw.replace(/^<!--[^>]*-->\s*/m, '').trim();
+    if (body) {
+      summaryLines = ['### Prior Iteration Summary', body];
+    }
+  } catch {
+    // No summary file yet — window entries alone will be used
+  }
+
+  const window = state.iterationHistory.slice(-windowSize);
+  const entryLines = window.map((entry) =>
+    `- Iteration ${entry.iteration}: ${entry.completionClassification} / ${entry.executionStatus} — ${entry.summary}`
+  );
+
+  return trimContextLines([...handoffLines, ...summaryLines, ...entryLines], budget);
+}
+
 function buildPriorIterationContext(
   state: RalphWorkspaceState,
   includeVerifierFeedback: boolean,
@@ -1070,6 +1126,35 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
 
   // === Dynamic sections: vary by task, state, or iteration ===
   // These sections follow the static prefix and carry per-iteration context.
+  const priorContextBudget = Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget);
+  const priorIterationContext = input.config.memoryStrategy === 'sliding-window'
+    ? buildSlidingWindowContext(
+      input.state,
+      input.config.memoryWindowSize ?? 10,
+      priorContextBudget,
+      input.sessionHandoff ?? null
+    )
+    : input.config.memoryStrategy === 'summary'
+      ? await buildSummaryStrategyContext(
+        input.state,
+        input.config.promptIncludeVerifierFeedback,
+        input.config.memoryWindowSize ?? 10,
+        input.config.memorySummaryThreshold ?? 20,
+        priorContextBudget,
+        input.paths.memorySummaryPath,
+        input.paths.rootPath,
+        input.selectedTask,
+        input.sessionHandoff ?? null
+      )
+      : buildPriorIterationContext(
+        input.state,
+        input.config.promptIncludeVerifierFeedback,
+        priorContextBudget,
+        input.paths.rootPath,
+        input.selectedTask,
+        input.sessionHandoff ?? null
+      );
+
   const dynamicSectionBodies = {
     preflightContext: buildPreflightContext(input.preflightReport),
     objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
@@ -1102,21 +1187,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       .split('\n')
       .map((line) => line.trimEnd())
       .filter((line) => line.length > 0),
-    priorIterationContext: input.config.memoryStrategy === 'sliding-window'
-      ? buildSlidingWindowContext(
-        input.state,
-        input.config.memoryWindowSize ?? 10,
-        Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
-        input.sessionHandoff ?? null
-      )
-      : buildPriorIterationContext(
-        input.state,
-        input.config.promptIncludeVerifierFeedback,
-        Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
-        input.paths.rootPath,
-        input.selectedTask,
-        input.sessionHandoff ?? null
-      )
+    priorIterationContext
   };
 
   const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };

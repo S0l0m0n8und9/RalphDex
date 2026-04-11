@@ -15,6 +15,7 @@ export interface RalphPaths {
   logDir: string;
   logFilePath: string;
   artifactDir: string;
+  memorySummaryPath: string;
 }
 
 function resolveWorkspacePath(rootPath: string, configuredPath: string): string {
@@ -38,6 +39,7 @@ export function resolveRalphPaths(rootPath: string, config: RalphCodexConfig): R
     runDir: path.join(ralphDir, 'runs'),
     logDir,
     logFilePath: path.join(logDir, 'extension.log'),
-    artifactDir: resolveWorkspacePath(rootPath, config.artifactRetentionPath)
+    artifactDir: resolveWorkspacePath(rootPath, config.artifactRetentionPath),
+    memorySummaryPath: path.join(ralphDir, 'memory-summary.md')
   };
 }

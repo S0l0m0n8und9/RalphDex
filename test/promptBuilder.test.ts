@@ -27,7 +27,8 @@ const paths: RalphPaths = {
   runDir: '/workspace/.ralph/runs',
   logDir: '/workspace/.ralph/logs',
   logFilePath: '/workspace/.ralph/logs/extension.log',
-  artifactDir: '/workspace/.ralph/artifacts'
+  artifactDir: '/workspace/.ralph/artifacts',
+  memorySummaryPath: '/workspace/.ralph/memory-summary.md'
 };
 
 const validationProvenance = {
@@ -1970,4 +1971,152 @@ test('static prefix is byte-identical across two sliding-window builds with diff
 
   assert.ok(prefixA.length > 0, 'Static prefix must be non-empty');
   assert.equal(prefixA, prefixB, 'Static prefix must be byte-identical across two sliding-window builds that differ only in task input');
+});
+
+test('summary memoryStrategy below threshold behaves identically to verbatim', async () => {
+  const templateDir = await createTemplateDir();
+
+  const history = [1, 2, 3].map((n) =>
+    baseIterationResult({
+      iteration: n,
+      summary: `Completed step ${n}.`,
+      completionClassification: 'complete',
+      executionStatus: 'succeeded'
+    })
+  );
+
+  const sharedState = workspaceState({
+    lastIteration: history[history.length - 1],
+    iterationHistory: history
+  });
+
+  const sharedConfig = {
+    promptTemplateDirectory: templateDir,
+    promptIncludeVerifierFeedback: true,
+    promptPriorContextBudget: 8
+  };
+
+  const verbatimRender = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 4,
+    selectionReason: 'Summary strategy test.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Steps 1-3 done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 3 },
+    summary,
+    state: sharedState,
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T4', title: 'Step 4', status: 'todo' }] },
+    selectedTask: { id: 'T4', title: 'Step 4', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+    config: { ...sharedConfig, memoryStrategy: 'verbatim' }
+  });
+
+  // Threshold of 10 is above history depth of 3, so summary strategy should be identical to verbatim
+  const summaryRender = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 4,
+    selectionReason: 'Summary strategy test.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Steps 1-3 done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 3 },
+    summary,
+    state: sharedState,
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T4', title: 'Step 4', status: 'todo' }] },
+    selectedTask: { id: 'T4', title: 'Step 4', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+    config: { ...sharedConfig, memoryStrategy: 'summary', memorySummaryThreshold: 10 }
+  });
+
+  assert.equal(verbatimRender.prompt, summaryRender.prompt,
+    'summary strategy below threshold must produce the same prompt as verbatim');
+});
+
+test('summary memoryStrategy above threshold reads from memory-summary.md and appends recent verbatim entries', async () => {
+  const templateDir = await createTemplateDir();
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-summary-test-'));
+
+  try {
+    const ralphDir = path.join(tmpDir, '.ralph');
+    await fs.mkdir(ralphDir, { recursive: true });
+    const memorySummaryPath = path.join(ralphDir, 'memory-summary.md');
+
+    // Write a pre-existing summary file representing the summarised old entries
+    const persistedSummary = 'Earlier iterations established the project foundation and core scaffolding.';
+    await fs.writeFile(memorySummaryPath, `<!-- ralph-memory: summarized-old-count=5 -->\n${persistedSummary}\n`, 'utf8');
+
+    // History depth of 8 with window of 3 and threshold of 5: depth > threshold
+    const history = [1, 2, 3, 4, 5, 6, 7, 8].map((n) =>
+      baseIterationResult({
+        iteration: n,
+        summary: `Completed step ${n}.`,
+        completionClassification: 'complete',
+        executionStatus: 'succeeded'
+      })
+    );
+
+    const testPaths: RalphPaths = {
+      ...paths,
+      rootPath: tmpDir,
+      ralphDir,
+      memorySummaryPath
+    };
+
+    const render = await buildPrompt({
+      kind: 'iteration',
+      target: 'cliExec',
+      iteration: 9,
+      selectionReason: 'Summary strategy above-threshold test.',
+      objectiveText: '# Product / project brief\n\nShip better prompts.',
+      progressText: '# Progress\n\n- Steps 1-8 done.\n',
+      taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 8 },
+      summary,
+      state: workspaceState({
+        lastIteration: history[history.length - 1],
+        iterationHistory: history
+      }),
+      paths: testPaths,
+      taskFile: { version: 2, tasks: [{ id: 'T9', title: 'Step 9', status: 'todo' }] },
+      selectedTask: { id: 'T9', title: 'Step 9', status: 'todo' },
+      taskValidationHint: null,
+      effectiveValidationCommand: null,
+      normalizedValidationCommandFrom: null,
+      validationCommand: null,
+      preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+      config: {
+        promptTemplateDirectory: templateDir,
+        promptIncludeVerifierFeedback: true,
+        promptPriorContextBudget: 20,
+        memoryStrategy: 'summary',
+        memoryWindowSize: 3,
+        memorySummaryThreshold: 5
+      }
+    });
+
+    // The persisted summary text should appear in the prompt
+    assert.match(render.prompt, /Earlier iterations established the project foundation and core scaffolding\./,
+      'Persisted summary text must be included in prior-context section');
+
+    // The most recent 3 iterations (window) should appear verbatim
+    assert.match(render.prompt, /Iteration 6: complete \/ succeeded — Completed step 6\./);
+    assert.match(render.prompt, /Iteration 7: complete \/ succeeded — Completed step 7\./);
+    assert.match(render.prompt, /Iteration 8: complete \/ succeeded — Completed step 8\./);
+
+    // Older iterations should NOT appear as verbatim entries (they are in the summary)
+    assert.doesNotMatch(render.prompt, /Iteration 1: complete \/ succeeded — Completed step 1\./);
+    assert.doesNotMatch(render.prompt, /Iteration 5: complete \/ succeeded — Completed step 5\./);
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
 });
