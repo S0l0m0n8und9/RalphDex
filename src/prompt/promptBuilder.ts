@@ -896,7 +896,7 @@ async function loadTemplate(
         ? SCM_AGENT_TEMPLATE_FILE
         : TEMPLATE_FILE_BY_KIND[kind];
   const templatePath = path.join(directory, templateFile);
-  const templateText = await fs.readFile(templatePath, 'utf8').catch((error: unknown) => {
+  const templateText = await fs.readFile(templatePath, 'utf8').then((text) => text.replace(/\r\n/g, '\n')).catch((error: unknown) => {
     throw new Error(`Failed to read Ralph prompt template ${templatePath}: ${error instanceof Error ? error.message : String(error)}`);
   });
 

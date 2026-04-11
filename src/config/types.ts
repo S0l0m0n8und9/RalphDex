@@ -87,6 +87,9 @@ export interface RalphCodexConfig {
   copilotCommandPath: string;
   azureFoundryCommandPath: string;
   azureFoundryEndpointUrl: string;
+  azureFoundryApiKey: string;
+  azureFoundryModelDeployment: string;
+  azureFoundryApiVersion: string;
   claudeMaxTurns: number;
   copilotMaxAutopilotContinues: number;
   claudePermissionMode: ClaudePermissionMode;

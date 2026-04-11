@@ -8,7 +8,7 @@ function resolveWorkspaceRoot() {
     return path.resolve(process.argv[2]);
   }
 
-  return path.resolve(__dirname, '..', '..');
+  return path.resolve(__dirname, '..');
 }
 
 function readJsonFile(filePath) {

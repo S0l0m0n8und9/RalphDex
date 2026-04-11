@@ -2450,8 +2450,8 @@
     {
       "id": "T80",
       "title": "Azure Foundry Phase 2: add missing config settings and package.json contributions",
-      "status": "todo",
-      "notes": "Phase 1 (T79) added azureFoundryCommandPath and azureFoundryEndpointUrl to types/defaults/readConfig but omitted the PRD-specified apiKey, modelDeployment, and apiVersion settings. Also, no Azure Foundry settings appear in package.json configuration contributions. This task closes those gaps so the provider is fully configurable from VS Code settings.",
+      "status": "done",
+      "notes": "Fixed two pre-existing validation blockers: (1) check-ledger.js path resolution bug (going up 2 levels instead of 1); (2) promptBuilder template CRLF normalization causing static prefix boundary test failure on Windows. All 5 Azure Foundry settings and azure-foundry enum were already present in types/defaults/readConfig/package.json from the prior iteration.",
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.azureFoundryApiKey (string, optional) exists in package.json contributes.configuration, src/config/types.ts, defaults.ts, and readConfig.ts",
@@ -2533,5 +2533,5 @@
       ]
     }
   ],
-  "mutationCount": 53
+  "mutationCount": 54
 }

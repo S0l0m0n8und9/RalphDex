@@ -276,10 +276,11 @@
           "enum": [
             "codex",
             "claude",
-            "copilot"
+            "copilot",
+            "azure-foundry"
           ],
           "default": "claude",
-          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, and 'copilot' uses the GitHub Copilot CLI."
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, and 'azure-foundry' uses Azure AI Foundry."
         },
         "ralphCodex.codexCommandPath": {
           "type": "string",
@@ -295,6 +296,31 @@
           "type": "string",
           "default": "copilot",
           "description": "Path or command name for the GitHub Copilot CLI executable."
+        },
+        "ralphCodex.azureFoundryCommandPath": {
+          "type": "string",
+          "default": "azure-foundry",
+          "description": "Path or command name for the Azure AI Foundry CLI executable."
+        },
+        "ralphCodex.azureFoundryEndpointUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Azure AI Foundry endpoint URL (e.g. https://<resource>.openai.azure.com/)."
+        },
+        "ralphCodex.azureFoundryApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Azure AI Foundry. Leave empty to use Azure AD authentication instead."
+        },
+        "ralphCodex.azureFoundryModelDeployment": {
+          "type": "string",
+          "default": "",
+          "description": "Azure AI Foundry model deployment name (e.g. gpt-4o)."
+        },
+        "ralphCodex.azureFoundryApiVersion": {
+          "type": "string",
+          "default": "2024-12-01-preview",
+          "description": "Azure OpenAI API version to use with Azure AI Foundry."
         },
         "ralphCodex.claudeMaxTurns": {
           "type": "number",

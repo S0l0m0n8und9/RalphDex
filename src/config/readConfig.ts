@@ -287,6 +287,9 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
     azureFoundryCommandPath: readString(config, 'azureFoundryCommandPath', DEFAULT_CONFIG.azureFoundryCommandPath),
     azureFoundryEndpointUrl: readString(config, 'azureFoundryEndpointUrl', DEFAULT_CONFIG.azureFoundryEndpointUrl),
+    azureFoundryApiKey: readString(config, 'azureFoundryApiKey', DEFAULT_CONFIG.azureFoundryApiKey),
+    azureFoundryModelDeployment: readString(config, 'azureFoundryModelDeployment', DEFAULT_CONFIG.azureFoundryModelDeployment),
+    azureFoundryApiVersion: readString(config, 'azureFoundryApiVersion', DEFAULT_CONFIG.azureFoundryApiVersion),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
     copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
     claudePermissionMode: readEnum<ClaudePermissionMode>(
