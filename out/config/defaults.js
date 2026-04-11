@@ -73,6 +73,7 @@ exports.DEFAULT_CONFIG = {
     promptCaching: 'auto',
     memoryStrategy: 'verbatim',
     memoryWindowSize: 10,
-    memorySummaryThreshold: 20
+    memorySummaryThreshold: 20,
+    prdGenerationTemplate: ''
 };
 //# sourceMappingURL=defaults.js.map

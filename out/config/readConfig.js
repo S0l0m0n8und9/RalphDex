@@ -379,7 +379,8 @@ function readConfig(workspaceFolder) {
         memoryStrategy: readEnum(config, 'memoryStrategy', ['verbatim', 'sliding-window', 'summary'], preset?.memoryStrategy ?? defaults_1.DEFAULT_CONFIG.memoryStrategy),
         memoryWindowSize: readNumber(config, 'memoryWindowSize', defaults_1.DEFAULT_CONFIG.memoryWindowSize, 1),
         memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1),
-        operatorMode
+        operatorMode,
+        prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate)
     };
 }
 //# sourceMappingURL=readConfig.js.map

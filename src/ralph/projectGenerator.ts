@@ -22,6 +22,7 @@ export function parseGenerationResponse(responseText: string): {
   prdText: string;
   tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[];
   recommendedSkills: RecommendedSkill[];
+  taskCountWarning?: string;
 } {
   const fencePattern = /```json\s*([\s\S]*?)```/g;
   let lastMatch: RegExpExecArray | null = null;
@@ -92,7 +93,11 @@ export function parseGenerationResponse(responseText: string): {
     }
   }
 
-  return { prdText, tasks, recommendedSkills };
+  const taskCountWarning = tasks.length > 8
+    ? `Response contained ${tasks.length} tasks; expected 5–8. Excess tasks may reduce autonomous execution quality.`
+    : undefined;
+
+  return { prdText, tasks, recommendedSkills, taskCountWarning };
 }
 
 const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
@@ -110,6 +115,7 @@ Requirements:
 - Include: ## Overview, ## Goals, then one ## section per major work area (aim for 3-7 sections)
 - Keep each section to 2-4 sentences
 - Tasks must correspond one-to-one with the ## work area sections
+- Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
 - Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
 - End your response with EXACTLY this structure (no text after the closing fence):
 
@@ -137,11 +143,12 @@ export async function generateProjectDraft(
   objective: string,
   config: RalphCodexConfig,
   cwd: string
-): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[]; recommendedSkills: RecommendedSkill[] }> {
+): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[]; recommendedSkills: RecommendedSkill[]; taskCountWarning?: string }> {
   const commandPath = commandPathForConfig(config);
   const provider = createCliProvider(config);
   const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
-  const prompt = GENERATION_PROMPT_TEMPLATE.replace('{OBJECTIVE}', safeObjective);
+  const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
+  const prompt = template.replace('{OBJECTIVE}', safeObjective);
   const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
 
   const launchSpec = provider.buildLaunchSpec({

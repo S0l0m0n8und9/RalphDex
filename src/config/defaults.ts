@@ -72,5 +72,6 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   promptCaching: 'auto' satisfies PromptCachingMode,
   memoryStrategy: 'verbatim' satisfies MemoryStrategy,
   memoryWindowSize: 10,
-  memorySummaryThreshold: 20
+  memorySummaryThreshold: 20,
+  prdGenerationTemplate: ''
 };

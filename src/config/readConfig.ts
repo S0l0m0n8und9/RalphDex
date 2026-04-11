@@ -615,6 +615,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ),
     memoryWindowSize: readNumber(config, 'memoryWindowSize', DEFAULT_CONFIG.memoryWindowSize, 1),
     memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1),
-    operatorMode
+    operatorMode,
+    prdGenerationTemplate: readString(config, 'prdGenerationTemplate', DEFAULT_CONFIG.prdGenerationTemplate)
   };
 }

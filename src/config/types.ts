@@ -153,4 +153,5 @@ export interface RalphCodexConfig {
   memoryWindowSize: number;
   memorySummaryThreshold: number;
   operatorMode?: OperatorMode;
+  prdGenerationTemplate: string;
 }

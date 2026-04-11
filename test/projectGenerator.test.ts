@@ -170,6 +170,22 @@ test('parseGenerationResponse silently skips malformed skill entries', () => {
   assert.equal(recommendedSkills[0].name, 'ok');
 });
 
+test('parseGenerationResponse sets taskCountWarning when response has more than 8 tasks', () => {
+  const tasks = Array.from({ length: 9 }, (_, i) => `{ "id": "T${i + 1}", "title": "task ${i + 1}", "status": "todo" }`).join(', ');
+  const response = `# P\n\`\`\`json\n{"tasks":[${tasks}]}\n\`\`\``;
+  const result = parseGenerationResponse(response);
+  assert.equal(result.tasks.length, 9);
+  assert.ok(result.taskCountWarning, 'expected taskCountWarning to be set');
+  assert.match(result.taskCountWarning!, /9 tasks/);
+});
+
+test('parseGenerationResponse does not set taskCountWarning for 8 tasks or fewer', () => {
+  const tasks = Array.from({ length: 8 }, (_, i) => `{ "id": "T${i + 1}", "title": "task ${i + 1}", "status": "todo" }`).join(', ');
+  const response = `# P\n\`\`\`json\n{"tasks":[${tasks}]}\n\`\`\``;
+  const { taskCountWarning } = parseGenerationResponse(response);
+  assert.equal(taskCountWarning, undefined);
+});
+
 import { generateProjectDraft } from '../src/ralph/projectGenerator';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
@@ -271,6 +287,36 @@ test('generateProjectDraft uses copilotCommandPath when cliProvider is copilot',
       nodeOs.tmpdir()
     ).catch(() => {});
     assert.equal(capturedCommand, 'my-copilot');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('generateProjectDraft uses prdGenerationTemplate when set instead of built-in prompt', async () => {
+  let capturedStdin = '';
+  const customTemplate = 'CUSTOM TEMPLATE for {OBJECTIVE}';
+  const stdoutCustom = JSON.stringify({
+    type: 'result',
+    result: `# Custom\n\n## Overview\nCustom overview.\n\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "custom task", "status": "todo" }]}\n\`\`\``,
+    num_turns: 1
+  });
+
+  setProcessRunnerOverride((_cmd, _args, opts) => {
+    if (opts?.stdinText) {
+      capturedStdin = opts.stdinText as string;
+    }
+    return { code: 0, stdout: stdoutCustom, stderr: '' };
+  });
+
+  try {
+    await generateProjectDraft(
+      'my objective',
+      { ...DEFAULT_CONFIG, cliProvider: 'claude', prdGenerationTemplate: customTemplate },
+      nodeOs.tmpdir()
+    );
+    assert.ok(capturedStdin.includes('CUSTOM TEMPLATE'), 'expected custom template to be used in prompt');
+    assert.ok(capturedStdin.includes('my objective'), 'expected objective to be substituted');
+    assert.ok(!capturedStdin.includes('agentic coding loop'), 'expected built-in template NOT to be used');
   } finally {
     setProcessRunnerOverride(null);
   }

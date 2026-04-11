@@ -91,7 +91,8 @@
         "ralphCodex.memoryStrategy",
         "ralphCodex.memoryWindowSize",
         "ralphCodex.memorySummaryThreshold",
-        "ralphCodex.operatorMode"
+        "ralphCodex.operatorMode",
+        "ralphCodex.prdGenerationTemplate"
       ]
     },
     "virtualWorkspaces": {
@@ -709,6 +710,11 @@
             "complexThreshold": 6
           },
           "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (objects with model string and optional provider), simpleThreshold (int, default 2 — tasks below this use the simple model), complexThreshold (int, default 6 — tasks at or above this use the complex model). ralphCodex.enableModelTiering is a convenience toggle for the enabled field. Override ralphCodex.complexityTierThresholds via simpleThreshold and complexThreshold here."
+        },
+        "ralphCodex.prdGenerationTemplate": {
+          "type": "string",
+          "default": "",
+          "description": "Optional custom system prompt for PRD and task generation. When set, replaces the built-in generation prompt. Use {OBJECTIVE} as a placeholder for the user-supplied project objective. Leave empty to use the built-in prompt."
         }
       }
     }

@@ -25,7 +25,10 @@
 			}
 		},
 		"ralphCodex.ralphIterationCap": 15,
-		"ralphCodex.agentCount": 1,
-		"ralphCodex.scmStrategy": "commit-on-done"
+		"ralphCodex.agentCount": 2,
+		"ralphCodex.scmStrategy": "branch-per-task",
+		"ralphCodex.scmPrOnParentDone": true,
+		"ralphCodex.autoReloadOnControlPlaneChange": false,
+		"ralphCodex.autoReplenishBacklog": true
 	}
 }

@@ -2709,7 +2709,8 @@
     {
       "id": "T95",
       "title": "PRD creation improvements Phases 1+2: task count cap and operator-overridable generation template",
-      "status": "todo",
+      "status": "done",
+      "notes": "Phases 1+2 complete: task count cap (5-8) added to generation prompt with rationale; parseGenerationResponse sets taskCountWarning when >8 tasks returned; prdGenerationTemplate config key added across types/defaults/readConfig/package.json; generateProjectDraft uses template when set; 3 new tests; 635 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "Generation prompt in projectGenerator.ts includes explicit instruction capping output at 5-8 tasks with rationale",
@@ -2758,5 +2759,5 @@
       ]
     }
   ],
-  "mutationCount": 69
+  "mutationCount": 70
 }
