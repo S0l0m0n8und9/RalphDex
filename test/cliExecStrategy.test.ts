@@ -8,10 +8,12 @@ import {
 } from '../src/codex/cliExecStrategy';
 import { CopilotCliProvider } from '../src/codex/copilotCliProvider';
 import { CodexCliProvider } from '../src/codex/codexCliProvider';
+import { AzureFoundryProvider } from '../src/codex/azureFoundryProvider';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { Logger } from '../src/services/logger';
 import { ProcessLaunchError, setProcessRunnerOverride } from '../src/services/processRunner';
+import { setHttpsClientOverride } from '../src/services/httpsClient';
 
 const codexProvider = new CodexCliProvider({
   reasoningEffort: 'medium',
@@ -234,5 +236,43 @@ test('CliExecCodexStrategy records a summarized stderr failure reason', async ()
     assert.match(result.stderr, /network offline/);
   } finally {
     setProcessRunnerOverride(null);
+  }
+});
+
+test('CliExecCodexStrategy uses executeDirectly instead of spawning a child process when available', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-strategy-'));
+  let processRunnerCalled = false;
+
+  setProcessRunnerOverride(async () => {
+    processRunnerCalled = true;
+    return { code: 0, stdout: '', stderr: '' };
+  });
+
+  const responseJson = JSON.stringify({
+    choices: [{ message: { content: 'Strategy direct result.' } }]
+  });
+  setHttpsClientOverride(async () => ({ responseBody: responseJson, statusCode: 200 }));
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new AzureFoundryProvider({ endpointUrl: 'https://my-project.inference.ai.azure.com/models/my-deployment' })
+    );
+    const result = await strategy.runExec({
+      ...request(),
+      commandPath: 'azure-foundry',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+    });
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.lastMessage, 'Strategy direct result.');
+    assert.equal(processRunnerCalled, false, 'child process should not have been spawned');
+    assert.deepEqual(result.args, []);
+  } finally {
+    setProcessRunnerOverride(null);
+    setHttpsClientOverride(null);
   }
 });

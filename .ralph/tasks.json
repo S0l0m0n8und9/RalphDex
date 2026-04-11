@@ -2465,11 +2465,11 @@
     {
       "id": "T81",
       "title": "Azure Foundry Phase 3: direct HTTPS execution bypassing child-process spawn",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T80"
       ],
-      "notes": "The PRD specifies that AzureFoundryProvider should call the Azure AI Foundry inference endpoint directly via HTTPS rather than shelling out to a CLI binary. Extend the CliProvider interface with an optional executeDirectly(request): Promise<CodexExecResult> method. Implement it in AzureFoundryProvider using Node.js built-in https module to POST to the chat/completions endpoint. Update CliExecCodexStrategy to prefer executeDirectly when available, falling back to child-process spawn for CLI-based providers.",
+      "notes": "CliProvider.executeDirectly optional method added; AzureFoundryProvider implements it via httpsPost (node:https wrapper with test override); CliExecCodexStrategy prefers executeDirectly over child-process spawn; 4 unit tests for direct HTTPS path; strategy preference test added.",
       "validation": "npm run validate",
       "acceptance": [
         "CliProvider interface includes an optional executeDirectly?(request: CodexExecRequest): Promise<CodexExecResult> method",
@@ -2533,5 +2533,5 @@
       ]
     }
   ],
-  "mutationCount": 54
+  "mutationCount": 55
 }

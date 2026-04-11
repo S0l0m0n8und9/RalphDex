@@ -8,6 +8,7 @@ import { createCliProviderForId } from '../src/codex/providerFactory';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
+import { setHttpsClientOverride } from '../src/services/httpsClient';
 
 const ENDPOINT_URL = 'https://my-project.inference.ai.azure.com/models/my-deployment';
 
@@ -179,4 +180,110 @@ test('buildTranscript produces Azure-specific transcript format', () => {
   assert.match(transcript, new RegExp(ENDPOINT_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(transcript, /Model: gpt-4o/);
   assert.match(transcript, /Payload matched prompt artifact: yes/);
+});
+
+test('buildTranscript shows "Direct HTTPS POST" label when args is empty', () => {
+  const p = provider();
+  const req = request();
+  const res: CodexExecResult = {
+    strategy: 'cliExec',
+    success: true,
+    message: 'ok',
+    warnings: [],
+    exitCode: 0,
+    stdout: 'done',
+    stderr: '',
+    args: [],
+    stdinHash: hashText('Ship it.'),
+    transcriptPath: req.transcriptPath,
+    lastMessagePath: req.lastMessagePath,
+    lastMessage: 'done'
+  };
+
+  const transcript = p.buildTranscript(res, req);
+
+  assert.match(transcript, /Direct HTTPS POST to/);
+  assert.match(transcript, new RegExp(ENDPOINT_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+// ---------------------------------------------------------------------------
+// executeDirectly — HTTPS path
+// ---------------------------------------------------------------------------
+
+test('executeDirectly extracts content from a successful Azure Foundry response', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-ok-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  const responseJson = JSON.stringify({
+    choices: [{ message: { content: 'Direct response text.' } }]
+  });
+
+  setHttpsClientOverride(async () => ({ responseBody: responseJson, statusCode: 200 }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.success, true);
+    assert.equal(result.lastMessage, 'Direct response text.');
+    assert.equal(result.stdout, responseJson);
+    assert.deepEqual(result.args, []);
+    assert.equal(await fs.readFile(req.lastMessagePath, 'utf8'), 'Direct response text.');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly returns failure result on HTTP error status', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-err-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  const errorBody = JSON.stringify({ error: { message: 'Invalid API key', code: 'unauthorized' } });
+
+  setHttpsClientOverride(async () => ({ responseBody: errorBody, statusCode: 401 }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.success, false);
+    assert.match(result.message, /HTTP 401/);
+    assert.match(result.message, /Invalid API key/);
+    assert.equal(result.lastMessage, '');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly returns failure result on network error or timeout', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-timeout-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => { throw new Error('HTTPS request timed out after 5000ms'); });
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.exitCode, 1);
+    assert.equal(result.success, false);
+    assert.match(result.message, /Azure AI Foundry HTTPS request failed/);
+    assert.match(result.message, /timed out/);
+  } finally {
+    setHttpsClientOverride(null);
+  }
 });

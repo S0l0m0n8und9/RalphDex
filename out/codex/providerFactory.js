@@ -32,7 +32,10 @@ function createCliProviderForId(providerId, config) {
     }
     if (providerId === 'azure-foundry') {
         return new azureFoundryProvider_1.AzureFoundryProvider({
-            endpointUrl: config.azureFoundryEndpointUrl
+            endpointUrl: config.azureFoundryEndpointUrl,
+            apiKey: config.azureFoundryApiKey,
+            modelDeployment: config.azureFoundryModelDeployment,
+            apiVersion: config.azureFoundryApiVersion
         });
     }
     return new codexCliProvider_1.CodexCliProvider({

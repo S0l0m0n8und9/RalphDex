@@ -35,7 +35,10 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
 
   if (providerId === 'azure-foundry') {
     return new AzureFoundryProvider({
-      endpointUrl: config.azureFoundryEndpointUrl
+      endpointUrl: config.azureFoundryEndpointUrl,
+      apiKey: config.azureFoundryApiKey,
+      modelDeployment: config.azureFoundryModelDeployment,
+      apiVersion: config.azureFoundryApiVersion
     });
   }
 

@@ -35,6 +35,8 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AzureFoundryProvider = void 0;
 const fs = __importStar(require("fs/promises"));
+const integrity_1 = require("../ralph/integrity");
+const httpsClient_1 = require("../services/httpsClient");
 const text_1 = require("../util/text");
 class AzureFoundryProvider {
     options;
@@ -98,12 +100,92 @@ class AzureFoundryProvider {
         }
         return `Failed to start Azure AI Foundry CLI with "${commandPath}": ${error.message}`;
     }
+    async executeDirectly(request) {
+        const stdinHash = (0, integrity_1.hashText)(request.prompt);
+        const requestBody = JSON.stringify({
+            messages: [{ role: 'user', content: request.prompt }],
+            model: this.options.modelDeployment || request.model
+        });
+        let endpointUrl = this.options.endpointUrl;
+        if (this.options.apiVersion) {
+            const separator = endpointUrl.includes('?') ? '&' : '?';
+            endpointUrl += `${separator}api-version=${encodeURIComponent(this.options.apiVersion)}`;
+        }
+        const headers = {};
+        if (this.options.apiKey) {
+            headers['api-key'] = this.options.apiKey;
+        }
+        let responseBody;
+        let statusCode;
+        try {
+            ({ responseBody, statusCode } = await (0, httpsClient_1.httpsPost)({
+                url: endpointUrl,
+                body: requestBody,
+                headers,
+                timeoutMs: request.timeoutMs
+            }));
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            return {
+                strategy: 'cliExec',
+                success: false,
+                message: `Azure AI Foundry HTTPS request failed: ${message}`,
+                warnings: [],
+                exitCode: 1,
+                stdout: '',
+                stderr: message,
+                args: [],
+                stdinHash,
+                transcriptPath: request.transcriptPath,
+                lastMessagePath: request.lastMessagePath,
+                lastMessage: ''
+            };
+        }
+        const success = statusCode >= 200 && statusCode < 300;
+        if (!success) {
+            const errorDetail = this.extractHttpErrorDetail(responseBody, statusCode);
+            await fs.writeFile(request.lastMessagePath, '', 'utf8').catch(() => { });
+            return {
+                strategy: 'cliExec',
+                success: false,
+                message: errorDetail,
+                warnings: [],
+                exitCode: 1,
+                stdout: responseBody,
+                stderr: errorDetail,
+                args: [],
+                stdinHash,
+                transcriptPath: request.transcriptPath,
+                lastMessagePath: request.lastMessagePath,
+                lastMessage: ''
+            };
+        }
+        const lastMessage = await this.extractResponseText(responseBody, '', request.lastMessagePath);
+        return {
+            strategy: 'cliExec',
+            success: true,
+            message: this.summarizeResult({ exitCode: 0, stderr: '', lastMessage }),
+            warnings: [],
+            exitCode: 0,
+            stdout: responseBody,
+            stderr: '',
+            args: [],
+            stdinHash,
+            transcriptPath: request.transcriptPath,
+            lastMessagePath: request.lastMessagePath,
+            lastMessage
+        };
+    }
     buildTranscript(result, request) {
         const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
+        const commandLine = result.args.length === 0
+            ? `Direct HTTPS POST to ${this.options.endpointUrl}`
+            : `${request.commandPath} ${result.args.join(' ')}`;
         return [
             '# Azure AI Foundry Transcript',
             '',
-            `- Command: ${request.commandPath} ${result.args.join(' ')}`,
+            `- Command: ${commandLine}`,
             `- Workspace root: ${request.workspaceRoot}`,
             `- Execution root: ${request.executionRoot}`,
             `- Prompt path: ${request.promptPath}`,
@@ -127,6 +209,18 @@ class AzureFoundryProvider {
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
+    }
+    extractHttpErrorDetail(responseBody, statusCode) {
+        try {
+            const parsed = JSON.parse(responseBody);
+            if (parsed.error?.message) {
+                return `Azure AI Foundry request failed with HTTP ${statusCode}: ${parsed.error.message}`;
+            }
+        }
+        catch {
+            // fall through
+        }
+        return `Azure AI Foundry request failed with HTTP ${statusCode}`;
     }
     extractFailureDetail(stderr, lastMessage) {
         const stderrLines = stderr

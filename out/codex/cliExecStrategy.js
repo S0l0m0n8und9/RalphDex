@@ -63,56 +63,67 @@ class CliExecCodexStrategy {
     async runExec(request) {
         await fs.mkdir(path.dirname(request.lastMessagePath), { recursive: true });
         await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
-        const launchSpec = this.provider.buildLaunchSpec(request, !(await hasGitMetadata(request.executionRoot)));
-        const args = launchSpec.args;
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
         if (stdinHash !== request.promptHash) {
             throw new Error(`Execution integrity check failed before launch: stdin payload hash ${stdinHash} did not match planned prompt hash ${request.promptHash}.`);
         }
-        this.logger.info(`Starting ${this.provider.id} CLI exec.`, {
-            commandPath: request.commandPath,
-            workspaceRoot: request.workspaceRoot,
-            executionRoot: request.executionRoot,
-            promptPath: request.promptPath,
-            launchCwd: launchSpec.cwd,
-            args
-        });
-        let processResult;
-        try {
-            processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
-                cwd: launchSpec.cwd,
-                stdinText: launchSpec.stdinText,
-                shell: launchSpec.shell,
-                onStdoutChunk: request.onStdoutChunk,
-                onStderrChunk: request.onStderrChunk,
-                timeoutMs: request.timeoutMs
+        let result;
+        if (this.provider.executeDirectly) {
+            this.logger.info(`Starting ${this.provider.id} direct HTTPS exec.`, {
+                workspaceRoot: request.workspaceRoot,
+                executionRoot: request.executionRoot,
+                promptPath: request.promptPath
             });
+            result = await this.provider.executeDirectly(request);
         }
-        catch (error) {
-            if (error instanceof processRunner_1.ProcessLaunchError) {
-                throw new Error(this.provider.describeLaunchError(request.commandPath, error), { cause: error });
+        else {
+            const launchSpec = this.provider.buildLaunchSpec(request, !(await hasGitMetadata(request.executionRoot)));
+            const args = launchSpec.args;
+            this.logger.info(`Starting ${this.provider.id} CLI exec.`, {
+                commandPath: request.commandPath,
+                workspaceRoot: request.workspaceRoot,
+                executionRoot: request.executionRoot,
+                promptPath: request.promptPath,
+                launchCwd: launchSpec.cwd,
+                args
+            });
+            let processResult;
+            try {
+                processResult = await (0, processRunner_1.runProcess)(request.commandPath, args, {
+                    cwd: launchSpec.cwd,
+                    stdinText: launchSpec.stdinText,
+                    shell: launchSpec.shell,
+                    onStdoutChunk: request.onStdoutChunk,
+                    onStderrChunk: request.onStderrChunk,
+                    timeoutMs: request.timeoutMs
+                });
             }
-            throw error;
-        }
-        const lastMessage = await this.provider.extractResponseText(processResult.stdout, processResult.stderr, request.lastMessagePath);
-        const result = {
-            strategy: this.id,
-            success: processResult.code === 0,
-            message: this.provider.summarizeResult({
+            catch (error) {
+                if (error instanceof processRunner_1.ProcessLaunchError) {
+                    throw new Error(this.provider.describeLaunchError(request.commandPath, error), { cause: error });
+                }
+                throw error;
+            }
+            const lastMessage = await this.provider.extractResponseText(processResult.stdout, processResult.stderr, request.lastMessagePath);
+            result = {
+                strategy: this.id,
+                success: processResult.code === 0,
+                message: this.provider.summarizeResult({
+                    exitCode: processResult.code,
+                    stderr: processResult.stderr,
+                    lastMessage
+                }),
+                warnings: [],
                 exitCode: processResult.code,
+                stdout: processResult.stdout,
                 stderr: processResult.stderr,
+                args,
+                stdinHash,
+                transcriptPath: request.transcriptPath,
+                lastMessagePath: request.lastMessagePath,
                 lastMessage
-            }),
-            warnings: [],
-            exitCode: processResult.code,
-            stdout: processResult.stdout,
-            stderr: processResult.stderr,
-            args,
-            stdinHash,
-            transcriptPath: request.transcriptPath,
-            lastMessagePath: request.lastMessagePath,
-            lastMessage
-        };
+            };
+        }
         await fs.writeFile(request.transcriptPath, `${this.provider.buildTranscript(result, request).trimEnd()}\n`, 'utf8');
         return result;
     }

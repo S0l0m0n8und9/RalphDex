@@ -18,4 +18,6 @@ export interface CliProvider {
   summarizeResult(input: { exitCode: number; stderr: string; lastMessage: string }): string;
   describeLaunchError(commandPath: string, error: { code?: string; message: string }): string;
   buildTranscript(result: CodexExecResult, request: CodexExecRequest): string;
+  /** When present, the strategy calls this instead of spawning a child process. */
+  executeDirectly?(request: CodexExecRequest): Promise<CodexExecResult>;
 }
