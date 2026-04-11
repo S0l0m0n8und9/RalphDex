@@ -494,6 +494,28 @@ That PR creation step is intentionally failure-tolerant:
 - a failed `git push` or missing `gh` executable is reported in iteration warnings
 - those warnings do not reopen the completed parent or undo the child completion
 
+## Planning Pass
+
+The planning pass is an optional pre-execution step that produces a `task-plan.json` artifact before the implementer prompt runs. It is disabled by default — `ralphCodex.planningPass.enabled` defaults to `false`, so no additional LLM cost is incurred unless you explicitly enable it.
+
+### Inline Mode
+
+`ralphCodex.planningPass.mode = 'inline'` (the default when enabled): the implementer agent runs a short planning turn before the main implementation turn. This results in **two LLM calls per task**. Ralph parses the planning response and injects a "Task Plan" context section into the implementation prompt. No extra CLI iteration is required.
+
+### Dedicated Mode
+
+`ralphCodex.planningPass.mode = 'dedicated'`: a separate planner agent runs as its own CLI iteration first, writes `task-plan.json` under `.ralph/artifacts/<taskId>/task-plan.json`, and then the implementer agent reads that artifact via a "Task Plan" context section injected into its prompt.
+
+If no `task-plan.json` exists when dedicated mode is active, the implementer prompt notes that the planning artifact is missing and proceeds without it.
+
+### Verify A Task Plan Was Written
+
+```
+cat .ralph/artifacts/<taskId>/task-plan.json
+```
+
+The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array), and an optional `suggestedValidationCommand`. If the file is absent after a dedicated-mode planning iteration, inspect `.ralph/artifacts/latest-summary.md` to confirm the planner agent's iteration ran and completed.
+
 ## Reset State
 
 `Ralphdex: Cleanup Runtime Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.

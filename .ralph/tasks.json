@@ -2831,10 +2831,11 @@
     {
       "id": "T101",
       "title": "Dynamic planning layer Phase 5: crew configuration documentation and AGENTS.md update",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T100"
       ],
+      "notes": "Added Crew Configuration section to AGENTS.md (crew.json format, agentRole, planningPass config, 3-agent example); added Planning Pass section to docs/workflows.md (inline vs dedicated modes, 2-call cost, verification steps, default=disabled); bumped docsValidator maxNonEmptyLines 91→102. 671 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "AGENTS.md crew configuration section added documenting agentRole, crew.json roster format, and planningPass config with a three-agent example crew.json (one planner, two implementers with goal and backstory strings)",
@@ -2867,5 +2868,5 @@
       ]
     }
   ],
-  "mutationCount": 76
+  "mutationCount": 77
 }

@@ -106,6 +106,22 @@ Validation entry points:
 
 Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md#task-graph-invariants).
 
+## Crew Configuration
+
+`.ralph/crew.json` is an optional JSON array that defines a named crew for multi-agent loops. Each entry requires `id` (string) and `role` (`planner` | `implementer` | `reviewer`), and accepts optional `goal` and `backstory` strings. When absent, Ralph synthesizes a uniform crew from `ralphCodex.agentCount`. `ralphCodex.agentRole` sets the active role for one running agent; the default is `implementer`.
+
+`ralphCodex.planningPass.enabled` and `ralphCodex.planningPass.mode` control the pre-execution planning pass. Default: `enabled=false`, `mode='inline'`. Full workflow: [docs/workflows.md](docs/workflows.md#planning-pass).
+
+Example `.ralph/crew.json` with one planner and two implementers:
+
+```json
+[
+  { "id": "planner-1", "role": "planner",      "goal": "Decompose each task into a clear, executable plan.", "backstory": "An experienced software architect." },
+  { "id": "impl-1",   "role": "implementer",  "goal": "Implement assigned tasks with complete, tested code.", "backstory": "A senior full-stack developer." },
+  { "id": "impl-2",   "role": "implementer",  "goal": "Implement assigned tasks and write unit tests.",      "backstory": "A backend engineer focused on correctness." }
+]
+```
+
 ## Brief Codex Boundaries
 
 - IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`; do not invent direct composer injection or unsupported Codex IDE APIs.
