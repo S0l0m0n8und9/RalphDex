@@ -36,6 +36,7 @@ import {
   RalphTaskClaimDetails,
   selectNextTask
 } from './taskFile';
+import { readTaskPlan } from './planningPass';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -463,6 +464,14 @@ export async function prepareIterationContext(
   await maybeSummariseHistory(snapshot.state, config, snapshot.paths.memorySummaryPath, rootPath);
   const artifactPaths = resolveIterationArtifactPaths(snapshot.paths.artifactDir, iteration);
   const provenanceBundlePaths = resolveProvenanceBundlePaths(snapshot.paths.artifactDir, provenanceId);
+
+  // Read task-plan.json when available — the Task Plan section is injected into
+  // the implementer prompt regardless of whether planningPass.enabled is true so
+  // that plans produced by dedicated planner agents are always surfaced.
+  const taskPlanArtifact = selectedTask
+    ? await readTaskPlan(snapshot.paths.artifactDir, selectedTask.id)
+    : null;
+
   const promptRender = await buildPrompt({
     kind: promptKind,
     target: promptTarget,
@@ -482,6 +491,7 @@ export async function prepareIterationContext(
     validationCommand: effectiveValidationCommand,
     preflightReport,
     sessionHandoff,
+    taskPlanArtifact,
     config
   });
   const prompt = promptRender.prompt;
@@ -621,7 +631,23 @@ async function selectClaimedTask(
   const candidates = focusTaskId
     ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
     : selectable;
+
+  // In dedicated planning mode, implementer agents only claim tasks that already
+  // have a task-plan.json written by a dedicated planner agent.
+  const requirePlan = config.planningPass?.enabled
+    && config.planningPass.mode === 'dedicated'
+    && (config.agentRole === 'implementer' || config.agentRole === 'build');
+
+  const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
+
   for (const candidate of candidates) {
+    if (requirePlan) {
+      const plan = await readTaskPlan(artifactsDir, candidate.id);
+      if (!plan) {
+        continue; // Wait for a planner agent to produce the task-plan.json
+      }
+    }
+
     const claimBranches = config.scmStrategy === 'branch-per-task'
       ? await prepareTaskBranchWorkspace(rootPath, candidate)
       : null;

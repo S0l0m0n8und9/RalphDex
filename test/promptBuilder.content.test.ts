@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildPrompt, PromptRenderResult } from '../src/prompt/promptBuilder';
 import { RalphPaths } from '../src/ralph/pathResolver';
+import { TaskPlanArtifact } from '../src/ralph/planningPass';
 import { RalphAgentRole, RalphTaskMode } from '../src/ralph/types';
 import { RalphPromptKind, RalphTask } from '../src/ralph/types';
 import {
@@ -145,4 +146,58 @@ test('default-mode iteration prompt does not include documentation-specific inst
 
   assert.doesNotMatch(render.prompt, /Documentation files \(\.md, \.txt, etc\.\) are the primary deliverable\./);
   assert.match(render.prompt, /Implement the smallest coherent improvement that advances the task\./);
+});
+
+// -- Task Plan context section (planning pass) --
+
+test('iteration prompt includes Task Plan section when taskPlanArtifact is provided', async () => {
+  const scenario = promptScenarios.partialProgress;
+  const state = buildWorkspaceStateForScenario(scenario);
+  const selectedTask = findSelectedTaskForScenario(scenario);
+  const validationCommand = selectedTask?.validation ?? null;
+
+  const taskPlanArtifact: TaskPlanArtifact = {
+    reasoning: 'Splitting the module reduces coupling',
+    approach: 'Extract helper then update callers',
+    steps: ['Read module', 'Write helper', 'Update imports'],
+    risks: ['Merge conflict risk'],
+    suggestedValidationCommand: 'npm run validate'
+  };
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: state.nextIteration,
+    selectionReason: 'task-plan context test',
+    objectiveText: scenario.prd,
+    progressText: scenario.progress,
+    taskCounts: taskCountsForScenario(scenario),
+    summary: scenario.workspaceScan,
+    state,
+    paths: createPaths(scenario.workspaceScan.rootPath),
+    taskFile: scenario.taskFile,
+    selectedTask,
+    taskValidationHint: validationCommand,
+    effectiveValidationCommand: validationCommand,
+    normalizedValidationCommandFrom: validationCommand,
+    validationCommand,
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    taskPlanArtifact,
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'implementer'
+    }
+  });
+
+  assert.match(render.prompt, /## Task Plan/);
+  assert.match(render.prompt, /Reasoning: Splitting the module reduces coupling/);
+  assert.match(render.prompt, /Approach: Extract helper then update callers/);
+});
+
+test('iteration prompt does not include Task Plan section when taskPlanArtifact is null (planningPass disabled)', async () => {
+  const render = await renderScenario(promptScenarios.partialProgress, 'iteration');
+
+  assert.doesNotMatch(render.prompt, /## Task Plan/);
 });

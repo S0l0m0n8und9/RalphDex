@@ -47,6 +47,7 @@ const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
 const taskFile_1 = require("./taskFile");
+const planningPass_1 = require("./planningPass");
 const preflight_1 = require("./preflight");
 const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
@@ -337,6 +338,12 @@ async function prepareIterationContext(input) {
     await maybeSummariseHistory(snapshot.state, config, snapshot.paths.memorySummaryPath, rootPath);
     const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(snapshot.paths.artifactDir, iteration);
     const provenanceBundlePaths = (0, artifactStore_1.resolveProvenanceBundlePaths)(snapshot.paths.artifactDir, provenanceId);
+    // Read task-plan.json when available — the Task Plan section is injected into
+    // the implementer prompt regardless of whether planningPass.enabled is true so
+    // that plans produced by dedicated planner agents are always surfaced.
+    const taskPlanArtifact = selectedTask
+        ? await (0, planningPass_1.readTaskPlan)(snapshot.paths.artifactDir, selectedTask.id)
+        : null;
     const promptRender = await (0, promptBuilder_1.buildPrompt)({
         kind: promptKind,
         target: promptTarget,
@@ -356,6 +363,7 @@ async function prepareIterationContext(input) {
         validationCommand: effectiveValidationCommand,
         preflightReport,
         sessionHandoff,
+        taskPlanArtifact,
         config
     });
     const prompt = promptRender.prompt;
@@ -477,7 +485,19 @@ async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claim
     const candidates = focusTaskId
         ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
         : selectable;
+    // In dedicated planning mode, implementer agents only claim tasks that already
+    // have a task-plan.json written by a dedicated planner agent.
+    const requirePlan = config.planningPass?.enabled
+        && config.planningPass.mode === 'dedicated'
+        && (config.agentRole === 'implementer' || config.agentRole === 'build');
+    const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
     for (const candidate of candidates) {
+        if (requirePlan) {
+            const plan = await (0, planningPass_1.readTaskPlan)(artifactsDir, candidate.id);
+            if (!plan) {
+                continue; // Wait for a planner agent to produce the task-plan.json
+            }
+        }
         const claimBranches = config.scmStrategy === 'branch-per-task'
             ? await prepareTaskBranchWorkspace(rootPath, candidate)
             : null;

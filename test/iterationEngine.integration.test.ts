@@ -3976,3 +3976,99 @@ test('runCliIteration carries the latest handoff into the next prompt and prunes
 
   assert.deepEqual(await fs.readdir(path.join(rootPath, '.ralph', 'handoff')), ['default-002.json']);
 });
+
+test('reconciliation populates task validation field from task-plan.json suggestedValidationCommand when field is empty', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T200', title: 'Planning pass validation population', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  // Write a task-plan.json with a suggestedValidationCommand before the iteration runs.
+  const artifactTaskDir = path.join(rootPath, '.ralph', 'artifacts', 'T200');
+  await fs.mkdir(artifactTaskDir, { recursive: true });
+  await fs.writeFile(path.join(artifactTaskDir, 'task-plan.json'), JSON.stringify({
+    reasoning: 'Pre-execution planning pass result',
+    approach: 'Smallest change',
+    steps: ['implement', 'test'],
+    risks: [],
+    suggestedValidationCommand: 'npm run validate'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({ verifierModes: ['taskState'] });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const { engine } = createEngine([
+    {
+      run: async () => ({
+        stdout: 'wrote a file',
+        lastMessage: completionReport({
+          selectedTaskId: 'T200',
+          requestedStatus: 'in_progress',
+          progressNote: 'Made partial progress.'
+        })
+      })
+    }
+  ]);
+
+  await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as { tasks: Array<{ id: string; validation?: string }> };
+  const task = taskFile.tasks.find((t) => t.id === 'T200');
+  assert.ok(task, 'task T200 should exist');
+  assert.equal(task.validation, 'npm run validate', 'validation field should be populated from suggestedValidationCommand');
+});
+
+test('reconciliation does not overwrite existing task validation field with suggestedValidationCommand', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T201', title: 'Existing validation should not be overwritten', status: 'todo', validation: 'npm test' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  // Write a task-plan.json with a different suggestedValidationCommand.
+  const artifactTaskDir = path.join(rootPath, '.ralph', 'artifacts', 'T201');
+  await fs.mkdir(artifactTaskDir, { recursive: true });
+  await fs.writeFile(path.join(artifactTaskDir, 'task-plan.json'), JSON.stringify({
+    reasoning: 'Pre-execution planning pass result',
+    approach: 'Smallest change',
+    steps: ['implement'],
+    risks: [],
+    suggestedValidationCommand: 'npm run validate'
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({ verifierModes: ['taskState'] });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const { engine } = createEngine([
+    {
+      run: async () => ({
+        stdout: 'wrote a file',
+        lastMessage: completionReport({
+          selectedTaskId: 'T201',
+          requestedStatus: 'in_progress',
+          progressNote: 'Made partial progress.'
+        })
+      })
+    }
+  ]);
+
+  await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as { tasks: Array<{ id: string; validation?: string }> };
+  const task = taskFile.tasks.find((t) => t.id === 'T201');
+  assert.ok(task, 'task T201 should exist');
+  assert.equal(task.validation, 'npm test', 'existing validation field should not be overwritten by suggestedValidationCommand');
+});
