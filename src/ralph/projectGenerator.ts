@@ -20,7 +20,7 @@ export interface RecommendedSkill {
 
 export function parseGenerationResponse(responseText: string): {
   prdText: string;
-  tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[];
+  tasks: Pick<RalphTask, 'id' | 'title' | 'status' | 'validation'>[];
   recommendedSkills: RecommendedSkill[];
   taskCountWarning?: string;
 } {
@@ -68,10 +68,15 @@ export function parseGenerationResponse(responseText: string): {
         `Task at index ${i} is missing required "id" or "title" field.`
       );
     }
+    const rawValidation = (item as Record<string, unknown>).suggestedValidationCommand;
+    const validation = typeof rawValidation === 'string' && rawValidation.trim()
+      ? rawValidation.trim()
+      : undefined;
     return {
       id: (item as Record<string, unknown>).id as string,
       title: (item as Record<string, unknown>).title as string,
-      status: 'todo' as const
+      status: 'todo' as const,
+      ...(validation !== undefined ? { validation } : {})
     };
   });
 
@@ -117,12 +122,29 @@ Requirements:
 - Tasks must correspond one-to-one with the ## work area sections
 - Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
 - Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
+
+## Good vs bad task formulation
+
+Write tasks that are atomic (one coherent deliverable), testable (there is a concrete command or check that confirms completion), and outcome-focused (what the repo gains, not what the developer does).
+
+Good examples:
+- "Implement JWT authentication middleware with token validation and expiry checks" — atomic, the validation command \`npm test -- auth\` can confirm it
+- "Add CLI flag --output-format json|text and plumb it through the render pipeline" — a single change path, testable with \`npm run validate\`
+- "Write unit tests for the task-file read/write cycle covering happy path and concurrent-write collision" — concrete deliverable, runnable with \`npm test\`
+
+Bad examples:
+- "Set up project infrastructure" — too vague; covers files, tooling, CI, docs — cannot be confirmed with a single command
+- "Implement everything in Phase 2" — spans multiple deliverables; one task failure blocks unrelated work
+- "Add logging" — no scope or acceptance bar; an agent could add one log line and declare done
+
+For each task, supply a \`suggestedValidationCommand\`: the shell command an agent should run to confirm the task is complete (e.g. \`npm run validate\`, \`npm test -- <suite>\`, \`npm run build\`). Omit if no single command applies.
+
 - End your response with EXACTLY this structure (no text after the closing fence):
 
 \`\`\`json
 {
   "tasks": [
-    { "id": "T1", "title": "short task title", "status": "todo" },
+    { "id": "T1", "title": "short task title", "status": "todo", "suggestedValidationCommand": "npm run validate" },
     { "id": "T2", "title": "short task title", "status": "todo" }
   ],
   "recommendedSkills": [
@@ -143,7 +165,7 @@ export async function generateProjectDraft(
   objective: string,
   config: RalphCodexConfig,
   cwd: string
-): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status'>[]; recommendedSkills: RecommendedSkill[]; taskCountWarning?: string }> {
+): Promise<{ prdText: string; tasks: Pick<RalphTask, 'id' | 'title' | 'status' | 'validation'>[]; recommendedSkills: RecommendedSkill[]; taskCountWarning?: string }> {
   const commandPath = commandPathForConfig(config);
   const provider = createCliProvider(config);
   const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');

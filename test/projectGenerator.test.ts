@@ -322,6 +322,20 @@ test('generateProjectDraft uses prdGenerationTemplate when set instead of built-
   }
 });
 
+test('parseGenerationResponse maps suggestedValidationCommand to task validation field', () => {
+  const response = `# P\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo", "suggestedValidationCommand": "npm run validate" }]}\n\`\`\``;
+  const { tasks } = parseGenerationResponse(response);
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].validation, 'npm run validate');
+});
+
+test('parseGenerationResponse handles missing suggestedValidationCommand without error', () => {
+  const response = `# P\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n\`\`\``;
+  const { tasks } = parseGenerationResponse(response);
+  assert.equal(tasks.length, 1);
+  assert.equal(tasks[0].validation, undefined);
+});
+
 test('generateProjectDraft uses codexCommandPath and parses codex response correctly', async () => {
   const codexResponse = `# Codex Project\n\n## Overview\nSome overview.\n\n## Phase 1\nDo something.\n\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "Phase 1 work", "status": "todo" }]}\n\`\`\``;
   const fsSync = require('node:fs');

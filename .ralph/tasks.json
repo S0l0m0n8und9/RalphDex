@@ -2725,10 +2725,11 @@
     {
       "id": "T96",
       "title": "PRD creation improvements Phases 3+4: worked examples in prompt and suggestedValidationCommand in generation output",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T95"
       ],
+      "notes": "Phases 3+4 complete: GENERATION_PROMPT_TEMPLATE now includes Good vs Bad task formulation section with Ralphdex-specific examples; suggestedValidationCommand added to JSON schema; parseGenerationResponse extracts it into task.validation; 2 new tests; 637 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "Built-in generation prompt includes a Good vs bad task formulation section with Ralphdex-specific examples",
@@ -2759,5 +2760,5 @@
       ]
     }
   ],
-  "mutationCount": 70
+  "mutationCount": 71
 }
