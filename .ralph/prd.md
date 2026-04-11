@@ -305,6 +305,150 @@ Acceptance criteria:
 - `ralphCodex.regeneratePrd` command is registered and triggers the generation flow; manual verification confirms the diff editor opens.
 - `npm run validate` passes.
 
+**13. Dynamic planning layer — agent roles, crew configuration, and pre-execution planning pass**
+
+Ralph runs multiple parallel builder agents today, but every agent shares the same identity: all are implementers, all use the same prompt template, all compete for the same tasks. Borrowing the role-based crew model from CrewAI and the planning-pass discipline from AutoGen, the dynamic planning layer adds first-class agent roles that shape prompt persona, task eligibility, and completion-report interpretation — without requiring a manager agent or breaking the file-backed coordination model.
+
+Concrete work:
+
+- **Phase 1 — Agent role schema and crew definition.** Add `agentRole?: 'planner' | 'implementer' | 'reviewer'` to agent configuration in `src/config/types.ts`, defaulting to `'implementer'` (no regression). Add support for an optional `.ralph/crew.json` roster file that lists named agents with `{ id, role, goal, backstory }`. When `.ralph/crew.json` is present the multi-agent launcher reads it instead of synthesising anonymous agents from `agentCount`. `goal` and `backstory` are short strings injected into the agent's persona section in the prompt, providing the role differentiation CrewAI uses to specialise agent behaviour. When absent, all existing multi-agent behaviour is preserved exactly.
+
+- **Phase 2 — Role-aware task claiming.** Update claim acquisition logic in `taskFile.ts`:
+  - `planner` agents claim `todo` tasks that have no `task-plan.json` artifact yet under `.ralph/artifacts/<taskId>/`.
+  - `implementer` agents claim `todo` tasks that either have a `task-plan.json` (preferred, when a dedicated planner is in the crew) or any `todo` task if no planner agent is active.
+  - `reviewer` agents claim `done` tasks that have no review artifact. This formalises what the existing review-agent pass does, giving it a configurable identity rather than an implicit post-loop phase.
+  - If a role has no claimable tasks the agent idles rather than claiming out-of-role tasks. Idle agents are surfaced in `Show Multi-Agent Status` and the dashboard (item 15).
+
+- **Phase 3 — Role-specific prompt templates.** Add `prompt-templates/planning.md` and `prompt-templates/review.md` alongside the existing implementation template. `promptBuilder.ts` selects the template based on `agentRole`. Each template carries role-appropriate persona framing and a completion-report variant: planners return `{ selectedTaskId, proposedPlan, proposedSubTasks?, suggestedValidationCommand? }`, reviewers return `{ selectedTaskId, reviewOutcome: 'approved' | 'changes_required', reviewNotes }`.
+
+- **Phase 4 — Pre-execution planning pass.** Add `ralphCodex.planningPass: { enabled: boolean, mode: 'dedicated' | 'inline' }` to config (default `enabled: false`).
+  - In `dedicated` mode a `planner`-role agent in the crew runs first. Its completion report is parsed for `proposedPlan` and written to `.ralph/artifacts/<taskId>/task-plan.json`. The implementer's prompt receives this artifact as a "Task Plan" context section injected before the task focus section.
+  - In `inline` mode the implementer agent runs a planning step as its first prompt turn before the implementation prompt. The plan is written to the same artifact path. No dedicated planner agent is needed.
+  - `task-plan.json` schema: `{ reasoning, approach, steps[], risks[], suggestedValidationCommand? }`. The `suggestedValidationCommand` is applied to the task's `validation` field when the field is currently empty, feeding the complexity scorer's `has_validation_field` signal.
+
+- **Phase 5 — Dynamic task enrichment and documentation.** When a planner's completion report includes `proposedSubTasks`, `reconciliation.ts` processes these as bounded child-task proposals through the existing `taskDecomposition.ts` machinery — same cap and depth limits apply. Add crew configuration and planning-pass documentation to `AGENTS.md` with an example `.ralph/crew.json` showing a three-agent crew (one planner, two implementers) with role descriptions and backstories.
+
+Scope boundaries:
+- The hierarchical manager agent (a meta-agent that dynamically reassigns tasks mid-execution based on agent output) is explicitly deferred — same status as the operator CLI.
+- `.ralph/crew.json` is optional. Absence is not an error and all existing multi-agent behaviour is preserved exactly.
+- `reviewer` role in Phase 2 reuses the existing review-agent pass machinery. No new review logic is introduced; the change is that the role is now configurable and named rather than implicit.
+- `planningPass` in `inline` mode counts as two LLM calls per task. Documentation must make this cost explicit.
+- Semantic retrieval and vector-search-based role assignment are out of scope. Roles are statically declared in `crew.json` or config, not inferred at runtime.
+
+Acceptance criteria for Phase 1:
+- `agentRole` field accepted in config; absent field defaults to `'implementer'` without error.
+- `.ralph/crew.json` parsed correctly when present; invalid schema produces a preflight warning, not a crash.
+- `agentCount` still works when `crew.json` is absent — no regression.
+- `npm run validate` passes.
+
+**14. Intelligent failure recovery — diagnostic pass, recovery playbooks, and dead-letter queue**
+
+Ralph detects and flags failures with precision — blocked status, validation failures, watchdog alerts, repeated no-progress — but recovery requires manual operator intervention: reading transcripts, editing `tasks.json`, and invoking separate tools. This item closes that gap with a two-layer system: a diagnostic pass that produces a structured root-cause artifact, and a recovery orchestrator that maps the artifact to an automated playbook without requiring operator input for the common cases.
+
+Concrete work:
+
+- **Phase 1 — Failure taxonomy and diagnostic pass.** Define a `FailureCategoryId` union type: `'transient' | 'implementation_error' | 'task_ambiguity' | 'validation_mismatch' | 'dependency_missing' | 'environment_issue'`. When a task transitions to `blocked` or exhausts its verifier, before writing the stop artifact, `loopLogic.ts` triggers a diagnostic invocation via the configured CLI provider. The diagnostic prompt receives: task definition, the last iteration's prompt and response (truncated to a token budget), failure output (validation stderr, verifier result, stop reason), and recent iteration history. The provider returns a structured response parsed to `.ralph/artifacts/<taskId>/failure-analysis.json`:
+  ```json
+  {
+    "rootCauseCategory": "<FailureCategoryId>",
+    "confidence": "<float 0.0–1.0>",
+    "summary": "<one paragraph plain-English diagnosis>",
+    "suggestedAction": "retry_with_context | decompose | reorder_dependencies | fix_environment | auto_retry | escalate_to_operator",
+    "retryPromptAddendum": "<optional — context to inject into the retry prompt>"
+  }
+  ```
+  The diagnostic invocation always uses the `simple` tier model (Haiku by default) with a tight token budget cap to limit cost. `transient` failures detected by existing preflight logic (network errors, lock contention, process timeout) bypass the diagnostic LLM call entirely — their category is assigned directly from the known failure signal.
+
+- **Phase 2 — Recovery orchestrator.** Add `src/ralph/recoveryOrchestrator.ts`. On receiving a `failure-analysis.json` the orchestrator selects and executes the matching playbook:
+  - **`transient`**: auto-retry up to `ralphCodex.maxRecoveryAttempts` with exponential backoff. Retry counter resets on success. No LLM diagnostic call.
+  - **`implementation_error` / `validation_mismatch`**: retry the task with `retryPromptAddendum` injected as a "Previous attempt context" section in the next iteration's prompt. The agent sees what went wrong without reading the full prior transcript.
+  - **`task_ambiguity`**: trigger a planning pass (even if `planningPass.enabled` is false globally) to re-reason the task before retry. If ambiguity persists after one planning pass, escalate to operator.
+  - **`dependency_missing`**: release the claim, re-evaluate claim eligibility order in `taskFile.ts`, surface a preflight warning. The agent pauses rather than retrying.
+  - **`environment_issue`**: attempt preflight auto-remediation; if unresolved, escalate to operator.
+  - **`escalate_to_operator`**: emit a VS Code notification, surface the `failure-analysis.json` in the dashboard failure feed, and pause the agent.
+  Recovery attempts are tracked in the provenance bundle. The orchestrator respects `ralphCodex.autoApplyRemediation` — playbook execution is gated behind the same setting that gates existing auto-remediation actions.
+
+- **Phase 3 — Dead-letter queue.** When a task exhausts `maxRecoveryAttempts` across all playbook steps, write it to `.ralph/dead-letter.json` with its full diagnostic history (all `failure-analysis.json` entries for that task). `Show Status`, `Show Multi-Agent Status`, and the dashboard (item 15) surface dead-letter tasks in a distinct section separate from `blocked`. Add `ralphCodex.requeueDeadLetterTask` command: prompts the operator to select a dead-letter task, removes it from `dead-letter.json`, resets its status to `todo`, clears its failure history, and makes it claimable again.
+
+- **Phase 4 — Failure chain detection.** In `recoveryOrchestrator.ts`, maintain a rolling window of the last 10 failure events per run (in-memory, not persisted between runs). If 3 or more events share the same `rootCauseCategory` with `confidence ≥ 0.7`, emit a `systemic-failure-alert.json` artifact and pause all agents. The alert includes the shared category, affected task IDs, and a recommended operator action. This prevents burning token budget on a doomed run when the environment or task graph has a systemic problem.
+
+- **Phase 5 — Observability and configuration.** Add `ralphCodex.failureDiagnostics: 'auto' | 'off'` (default `'auto'`). When `off`, the diagnostic LLM call is skipped entirely and existing manual-inspection behaviour is preserved. Add `ralphCodex.maxRecoveryAttempts` (number, default 3). Add `diagnosticCost` field to the provenance bundle (token count for the diagnostic invocation) so operators can audit the overhead. Document the failure taxonomy and recovery playbooks in `AGENTS.md` including the cost implications of diagnostic passes at scale.
+
+Scope boundaries:
+- The diagnostic pass is a read-only analysis step. It does not modify `tasks.json`, claim files, or any other durable state — the orchestrator does that, separately and explicitly.
+- `failureDiagnostics: 'off'` is a complete opt-out of LLM-based diagnosis. When off, `recoveryOrchestrator.ts` still handles `transient` failures (backoff retry requires no diagnosis) but skips all LLM calls.
+- Dead-letter tasks are never modified by the loop autonomously once written. Only an explicit operator action (`requeueDeadLetterTask`) can return a task to the active graph.
+- Failure chain detection pauses agents but does not terminate the run. Operators can resume after investigating.
+- The recovery orchestrator does not invent new task mutations beyond what the existing `autoApplyRemediation` actions already support. New remediation verbs require a separate PRD item.
+
+Acceptance criteria for Phase 1:
+- `failure-analysis.json` written to the correct artifact path on a blocked task.
+- Diagnostic LLM call is skipped for `transient` failures; `rootCauseCategory: 'transient'` is assigned without an LLM call.
+- `failureDiagnostics: 'off'` suppresses the diagnostic invocation entirely.
+- Unit tests cover: correct category assignment for each failure type, token budget enforcement, missing or malformed diagnostic response handled gracefully without crashing the loop.
+- `npm run validate` passes.
+
+**15. Full webview UI surfaces — dashboard, PRD wizard, settings panel, task view, and failure detail**
+
+Ralph's configuration and status surfaces were designed for a narrow, technically fluent operator audience. With 40+ settings, multiple provider options including Azure Foundry with enterprise authentication, operator mode presets, multi-agent health monitoring, and intelligent failure recovery, text-only output and raw `settings.json` editing have become a barrier to correct use. This item introduces a full webview UI layer targeting the full operator spectrum from technical to non-technical, within VS Code.
+
+**Principle update:** The design principle "engineering quality over UI polish" is revised to "engineering quality is paramount and usability is a first-class concern." New UI surfaces are now justified when they reduce operator error, improve discoverability, or make the system accessible to less technical users — not only when they directly support operator debugging or safety. Engineering quality and test coverage requirements are unchanged.
+
+Concrete work:
+
+- **Phase 1 — Webview foundation.** Add `src/webview/` housing a `WebviewPanelManager` (creates, shows, and disposes named panels without memory leaks), a `MessageBridge` (typed VS Code ↔ webview message passing), and a minimal shared component stylesheet. Each surface in Phases 2–6 is a separate panel registered through this manager. Panels communicate with the extension host exclusively through the message bridge — no direct filesystem access from webview JavaScript. Add an activity bar contribution point (`ralphCodex.showSidebar`) that lists the five surfaces as navigation items, giving operators a single entry point rather than command-palette hunting. Register all new commands in `registerCommands.ts`.
+
+- **Phase 2 — Ralphdex Dashboard.** Replace text output from `Show Status` and `Show Multi-Agent Status` with a persistent webview panel (`ralphCodex.showDashboard`). Sections:
+  - **Pipeline strip**: current phase name, phase progress indicator, elapsed time, last stop reason
+  - **Agent grid**: one card per active agent — role badge (from item 13), current task ID and title, iteration count, last outcome indicator, sparkline of the last 10 outcomes (pass / blocked / failed)
+  - **Task board**: counts by status (todo / in-progress / done / blocked / dead-letter) with a mini progress bar and percentage complete
+  - **Failure feed**: the 5 most recent failure events with root-cause category, confidence, task title, and inline "View" / "Recover" action buttons (wired to item 14 commands)
+  - **Cost ticker**: running token count and estimated cost for the current run, broken down by agent role and model tier
+  - **Quick actions bar**: Pause All, Resume, Stop Loop, Open Latest Artifacts, Open Settings
+  Updates arrive via the message bridge on each iteration completion event. The panel is read-only for loop state — all write actions route through the existing `registerCommands.ts` command layer with no new trust surfaces.
+
+- **Phase 3 — PRD Creation Wizard.** Add `ralphCodex.newProjectWizard` command opening a multi-step webview. Steps:
+  1. **Project type**: card picker — Web App, CLI Tool, Library, Service, Data Pipeline, Mobile App, Other — each with a one-line description of how Ralph will orient task generation
+  2. **Objective**: text area with dynamic example prompts keyed to the selected project type, a character counter, and a "what makes a good objective" hint panel
+  3. **Constraints**: tech stack chip input, out-of-scope free-text field, existing conventions field
+  4. **Generate**: invokes `projectGenerator.ts` AI generation; renders the draft PRD inline in the wizard with line-level editing before touching disk
+  5. **Review tasks**: generated tasks rendered as editable cards — operators can reorder, edit titles, change tier, delete tasks before committing
+  6. **Configuration**: recommended operator mode card (with rationale from the `recommendedSkills` output from item 6), recommended provider, suggested skills — each individually selectable or skippable
+  7. **Confirm**: writes `prd.md`, `tasks.json`, and applies selected config; shows a summary of every file written
+  The wizard is also the entry point for the `regeneratePrd` flow from item 12 — step 4 opens with the existing PRD pre-loaded for comparison.
+
+- **Phase 4 — Settings Panel.** Add `ralphCodex.openSettings` command opening a webview that replaces raw `settings.json` editing for the majority of operators:
+  - **Left nav**: grouped sections — Execution, Agents & Roles, Memory, Providers, Pipeline, Recovery, Advanced — plus a search bar that filters across all settings
+  - **Centre**: settings for the selected group. Each setting shows label, description, current value (editable inline), and an "effective value" chip: `preset` (greyed, sourced from operator mode preset) or `explicit` (blue, operator-set). This makes the preset/override resolution logic from item 11 human-readable.
+  - **Operator Mode card**: three preset cards (Simple / Multi-Agent / Hardcore) at the top of Execution with key settings listed on each. Clicking applies the preset; a "Customised" badge appears if any explicit setting overrides the active preset.
+  - **Providers section**: one accordion per provider (Claude CLI, Copilot, Azure Foundry). Each has a "Test Connection" button that runs the provider's preflight validation inline and shows pass/fail. The Azure Foundry accordion expands to a guided configuration form (endpoint URL, auth method selector between API Key and Azure AD, deployment name, API version), replacing manual JSON editing.
+  - **NEW badges**: settings introduced in the last release are badged. A collapsible "What's new" section at the top lists them with one-line descriptions.
+  - Changes apply on blur. No Save button required.
+
+- **Phase 5 — Task View.** Add `ralphCodex.showTasks` command rendering `.ralph/tasks.json` as a structured interactive list:
+  - Each task is a card: ID, title, status badge (colour-coded), tier badge with source (`explicit` / `scored`), blocker relationship chips
+  - Expanding a card shows: description, validation command, planning pass output summary (from `task-plan.json` if present, from item 13), diagnostic history (condensed from `failure-analysis.json` entries, from item 14)
+  - Context menu per card: Edit Tier, Mark Blocked, Add Blocker, Requeue from Dead-Letter
+  - Dead-letter tasks appear in a distinct collapsible section at the bottom with full failure history inline
+  - View refreshes on filesystem changes to `tasks.json` so it remains live during an active run
+
+- **Phase 6 — Failure Detail View and notification model.** When item 14's diagnostic pass completes, emit a VS Code notification toast: `"[Task title] failed — [category] ([confidence]%)"` with three inline actions: **View Diagnosis**, **Auto-Recover**, **Skip Task**. Dismissing the toast does not lose the event — it persists in the dashboard failure feed. **View Diagnosis** opens a focused webview rendering `failure-analysis.json` as: root-cause category with plain-English explanation, confidence bar, summary paragraph, suggested action, and the `retryPromptAddendum` text so operators can review the context the agent will receive on retry before approving. **Auto-Recover** triggers the recovery orchestrator playbook. **Skip Task** marks the task blocked and moves on.
+
+**New settings discovery model** (cross-cutting, applies from Phase 4 onward): on extension activation after an update that introduced new settings, fire a single notification — `"Ralphdex: [N] new settings available"` — with a deep link that opens the Settings Panel scrolled to the first NEW-badged item. This replaces the current model where new settings are invisible unless the operator reads release notes.
+
+Scope boundaries:
+- All webview panels are read-only consumers of durable `.ralph/` state. Write operations route through the existing `registerCommands.ts` command layer — no new trust surfaces are introduced.
+- The Task View is a display layer over `tasks.json`, not a full graph editor. Actions that already exist as commands (mark blocked, change tier, requeue) are surfaced; net-new task-graph editing capabilities (adding tasks, rewriting descriptions) remain file-direct and are not in scope here.
+- The PRD Creation Wizard does not replace direct `.ralph/prd.md` editing. Operators who prefer to write PRDs directly are unaffected.
+- Webview JavaScript is bundled as part of the extension and subject to the same `npm run validate` gate. No external CDN dependencies.
+- A full interactive kanban board (drag-and-drop task graph editing) is a future iteration beyond this item.
+
+Acceptance criteria for Phase 1:
+- `WebviewPanelManager` creates, shows, and disposes panels without memory leaks (verified by unit test with mock VS Code API).
+- `MessageBridge` typed message round-trip test passes.
+- Activity bar entry registered and clickable without throwing.
+- `npm run validate` passes.
+
 **99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
@@ -313,7 +457,7 @@ A standalone full-featured CLI for headless/CI operator use has been explicitly 
 
 **Brand name: Ralphdex.** All user-visible strings — command palette labels, display names, notifications, status messages, README, CHANGELOG, and Marketplace metadata — must use "Ralphdex" as the product name. References to "Ralph Codex", "ralph-codex", "Ralph codex", or similar variants must not appear in any surface the end user can see. Internal identifiers (command IDs such as `ralphCodex.*`, config keys, file/directory names like `.ralph/`) are exempt and may retain their current form to avoid breaking changes.
 
-**Engineering quality over UI polish.** Dashboard, sidebar, and status bar improvements are secondary to loop correctness, test coverage, and cost efficiency. New UI surface should only be added when it directly supports operator debugging or safety — not for aesthetics.
+**Engineering quality is paramount and usability is a first-class concern.** Loop correctness, test coverage, and cost efficiency remain the highest-priority engineering concerns. New UI surfaces are now also justified when they reduce operator error, improve discoverability, or make the system accessible to less technical users. See item 15 for the full principle revision rationale.
 
 **Cost efficiency is a first-class concern.** The model tiering system exists specifically to avoid paying Opus prices for simple tasks. Any new feature that adds iteration overhead (extra prompt sections, additional agent passes, richer context assembly) must justify its cost impact. The prompt budget policy exists for this reason and must be respected.
 
