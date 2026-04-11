@@ -2555,10 +2555,11 @@
     {
       "id": "T86",
       "title": "Azure Foundry Phase 5: document prompt caching synergy and Azure Monitor cache-hit verification",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T85"
       ],
+      "notes": "Added 'Prompt Caching And Azure AI Foundry' section to docs/model-tiering.md covering supported model families, CLI-implicit vs direct-API-explicit caching distinction, and step-by-step Azure Monitor cache-hit verification.",
       "validation": "npm run check:docs",
       "acceptance": [
         "docs/model-tiering.md or docs/ documents which Azure-hosted models support prompt caching",
@@ -2631,5 +2632,5 @@
       ]
     }
   ],
-  "mutationCount": 59
+  "mutationCount": 60
 }

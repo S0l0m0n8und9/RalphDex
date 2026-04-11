@@ -61,3 +61,36 @@ Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `
 Most tasks in a healthy backlog are simple or medium: a single, bounded objective with no prior failure history and no child tasks. At default thresholds, those tasks score below 2 and land in the simple tier (Haiku), which is significantly cheaper per token than Sonnet or Opus. Complex tasks that genuinely need Opus will have accumulated multiple signals (validation + children + trailing failures), keeping escalations rare and justified.
 
 Operators can inspect the selected tier and score for each iteration in the artifact provenance bundle (`verifier-summary.json`).
+
+## Prompt Caching And Azure AI Foundry
+
+Prompt caching is available on Azure AI Foundry deployments that use Anthropic-compatible model endpoints (Claude Haiku, Sonnet, and Opus model families). Other Azure-hosted models (OpenAI-compatible or Azure OpenAI Service) do not support the `cache_control` field; those deployments must rely on Azure OpenAI Service's own native caching mechanisms.
+
+### CLI vs direct-API caching
+
+| Strategy | Caching mechanism |
+|---|---|
+| CLI-based (`codex`, `claude`, `copilot`) | Implicit — the CLI provider manages caching internally; Ralph sends no `cache_control` field |
+| Azure AI Foundry direct-HTTPS (`azureFoundry`) | Explicit — Ralph inserts a `cache_control: ephemeral` breakpoint at the static-prefix boundary |
+
+Setting `ralphCodex.promptCaching` to `auto` (the default) means Ralph applies `cache_control` only when the active provider supports explicit caching markers. CLI-based providers are silently unaffected and continue to use whatever implicit caching their underlying CLI tool provides. See [docs/prompt-calibration.md](prompt-calibration.md#prompt-caching) for the full `promptCaching` setting reference and per-iteration cost implications.
+
+### Verifying cache hits via Azure Monitor
+
+Each Azure AI Foundry response includes usage fields that indicate whether the prompt prefix was served from cache:
+
+| Response field | Meaning |
+|---|---|
+| `cache_creation_input_tokens` | Tokens written to cache on this request (miss — charged at the creation rate) |
+| `cache_read_input_tokens` | Tokens read from cache on this request (hit — charged at the reduced cached rate) |
+
+Ralph records these values as `promptCacheStats.cacheHit` (`true` / `false` / `null`) and `promptCacheStats.staticPrefixBytes` in the iteration provenance bundle.
+
+To monitor cache efficiency in Azure Monitor:
+
+1. Enable diagnostic settings on your Azure AI Foundry resource and route logs to a Log Analytics workspace.
+2. Query the `AzureDiagnostics` or `ApiManagementGatewayLogs` table scoped to your deployment.
+3. Filter on `cache_read_input_tokens > 0` to identify cache-hit iterations.
+4. Compare `cache_read_input_tokens` vs `cache_creation_input_tokens` across iterations to calculate the cache-hit rate and token savings.
+
+A healthy long-running loop shows `cache_read_input_tokens` growing relative to `cache_creation_input_tokens` as the stable prompt prefix stabilises across iterations. If `cache_read_input_tokens` is consistently zero, check that: (a) `ralphCodex.promptCaching` is not `off`, (b) the active provider is an Anthropic-compatible Azure AI Foundry deployment, and (c) the static prefix exceeds the provider's minimum cacheable size threshold.
