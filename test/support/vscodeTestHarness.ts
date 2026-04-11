@@ -17,6 +17,7 @@ export interface VscodeStubState {
   executedCommands: Array<{ command: string; args: unknown[] }>;
   inputBoxValue?: string;
   messageChoice?: string;
+  quickPickSelections: unknown[];
 }
 
 export interface VscodeTestHarness {
@@ -27,6 +28,7 @@ export interface VscodeTestHarness {
   setAvailableCommands(commands: string[]): void;
   setInputBoxValue(value: string | undefined): void;
   setMessageChoice(value: string | undefined): void;
+  setQuickPickSelections(selections: unknown[]): void;
   getOutputLines(name: string): string[];
 }
 

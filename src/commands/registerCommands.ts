@@ -42,6 +42,7 @@ import type { RalphPaths } from '../ralph/pathResolver';
 import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
+import type { RecommendedSkill } from '../ralph/projectGenerator';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -1424,6 +1425,96 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
       void vscode.window.showInformationMessage(
         `Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`
+      );
+    }
+  });
+
+  // ---------- Construct Recommended Skills ----------
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.constructRecommendedSkills',
+    label: 'Ralphdex: Construct Recommended Skills',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+      const skillsFilePath = path.join(paths.ralphDir, 'recommended-skills.json');
+
+      let skills: RecommendedSkill[];
+      try {
+        const raw = JSON.parse(await fs.readFile(skillsFilePath, 'utf8'));
+        if (!Array.isArray(raw)) {
+          void vscode.window.showInformationMessage('recommended-skills.json does not contain an array.');
+          return;
+        }
+        skills = raw.filter(
+          (entry: unknown): entry is RecommendedSkill =>
+            typeof entry === 'object'
+            && entry !== null
+            && typeof (entry as Record<string, unknown>).name === 'string'
+            && typeof (entry as Record<string, unknown>).description === 'string'
+        );
+      } catch {
+        void vscode.window.showInformationMessage(
+          'No recommended-skills.json found. Run "New Project" with an AI-generated PRD to create one.'
+        );
+        return;
+      }
+
+      if (skills.length === 0) {
+        void vscode.window.showInformationMessage('recommended-skills.json is empty — no skills to construct.');
+        return;
+      }
+
+      const quickPickItems = skills.map((s) => ({
+        label: s.name,
+        description: s.description,
+        detail: s.rationale ?? undefined,
+        picked: false,
+        skill: s
+      }));
+
+      const selected = await vscode.window.showQuickPick(quickPickItems, {
+        canPickMany: true,
+        placeHolder: 'Select skills to construct (only selected skills will be built)',
+        title: 'Recommended Skills'
+      });
+
+      if (!selected || selected.length === 0) {
+        logger.info('constructRecommendedSkills: operator cancelled or selected nothing.');
+        return;
+      }
+
+      const selectedSkills = selected.map((item) => item.skill);
+      logger.info('constructRecommendedSkills: operator approved skills.', {
+        count: selectedSkills.length,
+        names: selectedSkills.map((s) => s.name)
+      });
+
+      progress.report({ message: `Constructing ${selectedSkills.length} skill(s)…` });
+
+      for (const skill of selectedSkills) {
+        progress.report({ message: `Constructing skill: ${skill.name}` });
+
+        const skillDir = path.join(paths.ralphDir, 'skills', skill.name);
+        await fs.mkdir(skillDir, { recursive: true });
+
+        const manifest = {
+          name: skill.name,
+          description: skill.description,
+          rationale: skill.rationale ?? null,
+          constructedAt: new Date().toISOString()
+        };
+        await fs.writeFile(
+          path.join(skillDir, 'skill.json'),
+          JSON.stringify(manifest, null, 2) + '\n',
+          'utf8'
+        );
+
+        logger.info(`Constructed skill: ${skill.name}`, { skillDir });
+      }
+
+      void vscode.window.showInformationMessage(
+        `Constructed ${selectedSkills.length} skill(s): ${selectedSkills.map((s) => s.name).join(', ')}`
       );
     }
   });

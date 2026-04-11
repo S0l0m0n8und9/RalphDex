@@ -245,6 +245,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.resolveStaleTaskClaim'));
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
+  assert.ok(commands.includes('ralphCodex.constructRecommendedSkills'));
 
   const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /"message":"Effective Ralph autonomy configuration\."/);
@@ -1979,5 +1980,82 @@ test('Switch Project shows info message when no named projects exist yet', async
   assert.ok(
     harness.state.infoMessages.some((m) => /No named projects yet/.test(m.message)),
     'Expected info message when no projects exist'
+  );
+});
+
+test('Construct Recommended Skills shows info when recommended-skills.json is missing', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.constructRecommendedSkills');
+
+  assert.ok(
+    harness.state.infoMessages.some((m) => /No recommended-skills\.json found/.test(m.message)),
+    'Expected info message when recommended-skills.json is missing'
+  );
+});
+
+test('Construct Recommended Skills shows info when recommended-skills.json is empty', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'recommended-skills.json'), '[]', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.constructRecommendedSkills');
+
+  assert.ok(
+    harness.state.infoMessages.some((m) => /empty/.test(m.message)),
+    'Expected info message when skills file is empty'
+  );
+});
+
+test('Construct Recommended Skills constructs only operator-selected skills', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const skills = [
+    { name: 'test-skill', description: 'A test skill', rationale: 'For testing' },
+    { name: 'other-skill', description: 'Another skill', rationale: 'Also for testing' }
+  ];
+  await fs.writeFile(
+    path.join(rootPath, '.ralph', 'recommended-skills.json'),
+    JSON.stringify(skills, null, 2),
+    'utf8'
+  );
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  // QuickPick returns only the first skill — must match the shape created by the handler
+  harness.setQuickPickSelections([
+    [{ label: 'test-skill', description: 'A test skill', detail: 'For testing', picked: false, skill: skills[0] }]
+  ]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.constructRecommendedSkills');
+
+  // Only the selected skill directory should exist
+  const testSkillManifest = path.join(rootPath, '.ralph', 'skills', 'test-skill', 'skill.json');
+  const otherSkillDir = path.join(rootPath, '.ralph', 'skills', 'other-skill');
+
+  const testSkillExists = await fs.access(testSkillManifest).then(() => true, () => false);
+  const otherSkillExists = await fs.access(otherSkillDir).then(() => true, () => false);
+
+  assert.ok(testSkillExists, 'Expected the selected skill to be constructed');
+  assert.ok(!otherSkillExists, 'Expected the non-selected skill to NOT be constructed');
+
+  const manifest = JSON.parse(await fs.readFile(testSkillManifest, 'utf8'));
+  assert.equal(manifest.name, 'test-skill');
+  assert.equal(manifest.description, 'A test skill');
+  assert.ok(manifest.constructedAt, 'Expected constructedAt timestamp');
+
+  assert.ok(
+    harness.state.infoMessages.some((m) => /Constructed 1 skill/.test(m.message)),
+    'Expected info message confirming construction'
   );
 });

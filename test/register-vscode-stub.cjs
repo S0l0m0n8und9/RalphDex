@@ -14,7 +14,8 @@ const state = {
   shownDocuments: [],
   executedCommands: [],
   inputBoxValue: undefined,
-  messageChoice: undefined
+  messageChoice: undefined,
+  quickPickSelections: []
 };
 
 function reset() {
@@ -31,6 +32,7 @@ function reset() {
   state.inputBoxValue = undefined;
   state.messageChoice = undefined;
   state.updatedSettings = {};
+  state.quickPickSelections = [];
   outputChannels.clear();
   registeredCommands.clear();
 }
@@ -209,6 +211,9 @@ const vscodeStub = {
       return document;
     },
     async showQuickPick() {
+      if (state.quickPickSelections.length > 0) {
+        return state.quickPickSelections.shift();
+      }
       return undefined;
     },
     createStatusBarItem() {
@@ -245,6 +250,9 @@ global.__RALPH_VSCODE_STUB__ = {
   },
   setMessageChoice(value) {
     state.messageChoice = value;
+  },
+  setQuickPickSelections(selections) {
+    state.quickPickSelections = Array.isArray(selections) ? [...selections] : [];
   },
   getOutputLines(name) {
     return outputChannels.get(name)?.lines ?? [];

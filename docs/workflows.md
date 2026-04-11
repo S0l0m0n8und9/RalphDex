@@ -487,6 +487,16 @@ That PR creation step is intentionally failure-tolerant:
 
 `Ralphdex: Reset Runtime State` removes generated runtime state, prompts, run artifacts, iteration artifacts, and logs while preserving the durable PRD, progress log, and task file.
 
+## Construct Recommended Skills
+
+1. Ensure `.ralph/recommended-skills.json` exists. This file is created automatically when `Ralphdex: New Project` uses AI generation.
+2. Run `Ralphdex: Construct Recommended Skills`.
+3. Ralph reads `.ralph/recommended-skills.json` and presents a multi-select QuickPick listing each skill's name, description, and rationale.
+4. Select the skills you want to construct. Only operator-selected skills proceed — nothing is auto-constructed.
+5. For each selected skill, Ralph creates a `.ralph/skills/<name>/skill.json` manifest containing the skill metadata and a `constructedAt` timestamp.
+
+If `.ralph/recommended-skills.json` is missing or empty, the command shows an informational message and exits without changes.
+
 ## Diagnostics
 
 Preflight and status reporting surface:

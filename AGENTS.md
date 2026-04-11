@@ -73,6 +73,7 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralphdex: Approve Human Review`
 - `Ralphdex: Open Latest Pipeline Run`
 - `Ralphdex: Resume Pipeline`
+- `Ralphdex: Construct Recommended Skills`
 
 Validation entry points:
 
