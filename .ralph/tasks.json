@@ -2483,11 +2483,11 @@
     {
       "id": "T82",
       "title": "Azure Foundry Phase 4: API key and Azure AD authentication with preflight validation",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T81"
       ],
-      "notes": "Implement two auth paths for the direct HTTPS provider: (1) API key read from config, passed as api-key header, never logged or included in provenance artifacts; (2) Stub the Azure AD / DefaultAzureCredential path with a clear code seam for future @azure/identity integration. Add a preflight diagnostic that validates endpoint reachability and credential presence before the first iteration.",
+      "notes": "API key sent as api-key header in HTTPS requests; Azure AD stub warning emitted when key absent; key value never written to transcripts/provenance (test verified); preflight emits error for missing endpoint, info for missing key (Azure AD stub), info for configured key; 6 new unit tests; npm run validate: 591 pass 0 fail",
       "validation": "npm run validate",
       "acceptance": [
         "When azureFoundryApiKey is configured, it is sent as the api-key header in HTTPS requests",
@@ -2533,5 +2533,5 @@
       ]
     }
   ],
-  "mutationCount": 55
+  "mutationCount": 56
 }

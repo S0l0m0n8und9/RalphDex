@@ -812,3 +812,73 @@ test('checkStaleState ignores released and non-stale active claims', async () =>
   assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_no_result'));
   assert.ok(!diagnostics.some((d) => d.code === 'stale_active_claim_agent_offline'));
 });
+
+// ---------------------------------------------------------------------------
+// Azure Foundry preflight diagnostics
+// ---------------------------------------------------------------------------
+
+function azureFoundryTaskInspection() {
+  return inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Deploy model', status: 'todo' }]
+  }));
+}
+
+function azureFoundryBaseInput(configOverrides: Partial<(typeof DEFAULT_CONFIG)> = {}): Parameters<typeof buildPreflightReport>[0] {
+  return {
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: { ...DEFAULT_CONFIG, cliProvider: 'azure-foundry' as const, ...configOverrides },
+    taskInspection: azureFoundryTaskInspection(),
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  };
+}
+
+test('buildPreflightReport emits error when azure-foundry endpoint is not configured', () => {
+  const report = buildPreflightReport(azureFoundryBaseInput({
+    azureFoundryEndpointUrl: '',
+    azureFoundryApiKey: ''
+  }));
+
+  assert.equal(report.ready, false, 'should not be ready when endpoint is missing');
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_endpoint_missing' && d.severity === 'error'),
+    'should have azure_foundry_endpoint_missing error'
+  );
+});
+
+test('buildPreflightReport emits info when azure-foundry has endpoint but no API key', () => {
+  const report = buildPreflightReport(azureFoundryBaseInput({
+    azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+    azureFoundryApiKey: ''
+  }));
+
+  assert.equal(report.ready, true, 'should be ready — Azure AD stub path is acceptable');
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_api_key_absent' && d.severity === 'info'),
+    'should have azure_foundry_auth_api_key_absent info diagnostic'
+  );
+  assert.ok(
+    report.diagnostics.some((d) => /Azure AD/i.test(d.message)),
+    'diagnostic message should mention Azure AD'
+  );
+});
+
+test('buildPreflightReport emits info when azure-foundry has endpoint and API key', () => {
+  const report = buildPreflightReport(azureFoundryBaseInput({
+    azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+    azureFoundryApiKey: 'secret-key'
+  }));
+
+  assert.equal(report.ready, true);
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_configured' && d.severity === 'info'),
+    'should have azure_foundry_auth_configured info diagnostic'
+  );
+});

@@ -861,6 +861,31 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     ));
   }
 
+  if (input.config.cliProvider === 'azure-foundry') {
+    if (!input.config.azureFoundryEndpointUrl) {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'error',
+        'azure_foundry_endpoint_missing',
+        'cliProvider is set to azure-foundry but ralphCodex.azureFoundryEndpointUrl is not configured.'
+      ));
+    } else if (!input.config.azureFoundryApiKey) {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'info',
+        'azure_foundry_auth_api_key_absent',
+        'No API key configured for azure-foundry (ralphCodex.azureFoundryApiKey is empty). Azure AD authentication would be attempted when executed (not yet implemented).'
+      ));
+    } else {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'info',
+        'azure_foundry_auth_configured',
+        'Azure AI Foundry API key is configured.'
+      ));
+    }
+  }
+
   if (input.config.verifierModes.includes('validationCommand')) {
     if (!input.validationCommand) {
       diagnostics.push(createDiagnostic(

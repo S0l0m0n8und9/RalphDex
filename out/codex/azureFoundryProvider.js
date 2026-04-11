@@ -102,6 +102,13 @@ class AzureFoundryProvider {
     }
     async executeDirectly(request) {
         const stdinHash = (0, integrity_1.hashText)(request.prompt);
+        // Collect warnings before making the request so they appear on all return paths.
+        const warnings = [];
+        if (!this.options.apiKey) {
+            warnings.push('No API key configured for Azure AI Foundry (ralphCodex.azureFoundryApiKey is empty). ' +
+                'Azure AD authentication would be attempted (not yet implemented). ' +
+                'Requests will proceed without an api-key header.');
+        }
         const requestBody = JSON.stringify({
             messages: [{ role: 'user', content: request.prompt }],
             model: this.options.modelDeployment || request.model
@@ -111,6 +118,7 @@ class AzureFoundryProvider {
             const separator = endpointUrl.includes('?') ? '&' : '?';
             endpointUrl += `${separator}api-version=${encodeURIComponent(this.options.apiVersion)}`;
         }
+        // Auth headers are intentionally excluded from transcripts and provenance artifacts.
         const headers = {};
         if (this.options.apiKey) {
             headers['api-key'] = this.options.apiKey;
@@ -131,7 +139,7 @@ class AzureFoundryProvider {
                 strategy: 'cliExec',
                 success: false,
                 message: `Azure AI Foundry HTTPS request failed: ${message}`,
-                warnings: [],
+                warnings,
                 exitCode: 1,
                 stdout: '',
                 stderr: message,
@@ -150,7 +158,7 @@ class AzureFoundryProvider {
                 strategy: 'cliExec',
                 success: false,
                 message: errorDetail,
-                warnings: [],
+                warnings,
                 exitCode: 1,
                 stdout: responseBody,
                 stderr: errorDetail,
@@ -166,7 +174,7 @@ class AzureFoundryProvider {
             strategy: 'cliExec',
             success: true,
             message: this.summarizeResult({ exitCode: 0, stderr: '', lastMessage }),
-            warnings: [],
+            warnings,
             exitCode: 0,
             stdout: responseBody,
             stderr: '',

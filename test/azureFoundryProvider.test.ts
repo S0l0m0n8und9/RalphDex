@@ -287,3 +287,88 @@ test('executeDirectly returns failure result on network error or timeout', async
     setHttpsClientOverride(null);
   }
 });
+
+// ---------------------------------------------------------------------------
+// API key redaction — key must never appear in transcripts
+// ---------------------------------------------------------------------------
+
+test('buildTranscript does not include API key value when key is configured', () => {
+  const secretKey = 'super-secret-api-key-12345';
+  const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: secretKey });
+  const req = request();
+  const res: CodexExecResult = {
+    strategy: 'cliExec',
+    success: true,
+    message: 'ok',
+    warnings: [],
+    exitCode: 0,
+    stdout: 'response body',
+    stderr: '',
+    args: [],
+    stdinHash: hashText('Ship it.'),
+    transcriptPath: req.transcriptPath,
+    lastMessagePath: req.lastMessagePath,
+    lastMessage: 'Task done.'
+  };
+
+  const transcript = p.buildTranscript(res, req);
+
+  assert.ok(!transcript.includes(secretKey), 'API key must not appear in transcript');
+});
+
+test('executeDirectly sends api-key header when API key is configured', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-key-header-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  const secretKey = 'my-secret-key-abc';
+  const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: secretKey });
+
+  let capturedHeaders: Record<string, string> | undefined;
+  setHttpsClientOverride(async (opts) => {
+    capturedHeaders = opts.headers;
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    await p.executeDirectly(req);
+
+    assert.equal(capturedHeaders?.['api-key'], secretKey, 'api-key header must equal the configured key');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly omits api-key header and warns when no API key is configured', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-no-key-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  let capturedHeaders: Record<string, string> | undefined;
+  setHttpsClientOverride(async (opts) => {
+    capturedHeaders = opts.headers;
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    // provider() creates AzureFoundryProvider without apiKey
+    const result = await provider().executeDirectly(req);
+
+    assert.ok(!('api-key' in (capturedHeaders ?? {})), 'api-key header must not be sent when key is not configured');
+    assert.ok(result.warnings.length > 0, 'should have at least one warning');
+    assert.ok(
+      result.warnings.some((w) => /Azure AD/i.test(w)),
+      'warning should mention Azure AD'
+    );
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
