@@ -301,7 +301,7 @@ function buildSettingsSection(cfg) {
             row('Prompt Budget', select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom']))
         ].join('\n'), true),
         group('Agent', [
-            row('Role', select('agentRole', cfg.agentRole, ['build', 'review', 'watchdog', 'scm'])),
+            row('Role', select('agentRole', cfg.agentRole, ['implementer', 'planner', 'reviewer', 'build', 'review', 'watchdog', 'scm'])),
             row('Agent ID', textInput('agentId', cfg.agentId)),
             row('Agent Count', numberInput('agentCount', cfg.agentCount, 1, 20)),
             row('Autonomy', select('autonomyMode', cfg.autonomyMode, ['supervised', 'autonomous']))

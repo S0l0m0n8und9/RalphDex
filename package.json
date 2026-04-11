@@ -379,13 +379,25 @@
         "ralphCodex.agentRole": {
           "type": "string",
           "enum": [
+            "implementer",
+            "planner",
+            "reviewer",
             "build",
             "review",
             "watchdog",
             "scm"
           ],
-          "default": "build",
-          "description": "Role contract for the active Ralph agent. 'build' performs implementation work, 'review' performs review-only validation and gap analysis, 'watchdog' performs bounded claim/task recovery, and 'scm' performs source-control follow-through for branch-per-task flows."
+          "enumDescriptions": [
+            "Performs implementation work on assigned tasks (default crew role).",
+            "Decomposes requirements into subtasks and sequences the crew's work plan.",
+            "Validates completed work against acceptance criteria and flags gaps.",
+            "Performs implementation work (legacy alias for implementer).",
+            "Performs review-only validation and gap analysis (internal system role).",
+            "Performs bounded claim/task recovery when agents stall (internal system role).",
+            "Performs source-control follow-through for branch-per-task flows (internal system role)."
+          ],
+          "default": "implementer",
+          "description": "Role contract for the active Ralph agent. User-facing crew roles: 'implementer', 'planner', 'reviewer'. Internal system roles assigned automatically: 'build', 'review', 'watchdog', 'scm'."
         },
         "ralphCodex.preferredHandoffMode": {
           "type": "string",

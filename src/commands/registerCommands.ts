@@ -44,6 +44,8 @@ import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
+import { parseCrewRoster } from '../ralph/crewRoster';
+import type { CrewMember } from '../ralph/crewRoster';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -1147,18 +1149,39 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
         );
       }
 
-      progress.report({ message: `Starting ${agentCount} concurrent agent loop(s)` });
-      broadcaster?.emitLoopStart(config.ralphIterationCap);
+      // Resolve crew roster from .ralph/crew.json when present; fall back to agentCount synthesis.
+      const crewJsonPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'crew.json');
+      const crewResult = await parseCrewRoster(crewJsonPath);
+      for (const warning of crewResult.warnings) {
+        logger.warn(`crew.json: ${warning}`);
+      }
 
-      // Build distinct agentId per slot. Use suffix only when multiple agents share the same base id.
-      const agentSlots = Array.from({ length: agentCount }, (_, i) => ({
-        slotIndex: i,
-        agentId: agentCount > 1 ? `${config.agentId}-${i + 1}` : config.agentId
-      }));
+      type AgentSlot = { slotIndex: number; agentId: string; crewMember?: CrewMember };
+      let agentSlots: AgentSlot[];
+      if (crewResult.members !== null && crewResult.members.length > 0) {
+        agentSlots = crewResult.members.map((member, i) => ({
+          slotIndex: i,
+          agentId: member.id,
+          crewMember: member
+        }));
+        logger.info('Multi-agent loop: using crew.json roster.', {
+          memberCount: agentSlots.length,
+          ids: agentSlots.map((slot) => slot.agentId).join(', ')
+        });
+      } else {
+        // Fall back to anonymous agentId-N synthesis from agentCount.
+        agentSlots = Array.from({ length: agentCount }, (_, i) => ({
+          slotIndex: i,
+          agentId: agentCount > 1 ? `${config.agentId}-${i + 1}` : config.agentId
+        }));
+      }
+
+      progress.report({ message: `Starting ${agentSlots.length} concurrent agent loop(s)` });
+      broadcaster?.emitLoopStart(config.ralphIterationCap);
 
       type SlotResult = { agentId: string; lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null; reloadRequired: boolean };
 
-      const agentLoops = agentSlots.map(async ({ agentId }): Promise<SlotResult> => {
+      const agentLoops = agentSlots.map(async ({ agentId, crewMember }): Promise<SlotResult> => {
         let lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null = null;
 
         for (let index = 0; index < config.ralphIterationCap; index += 1) {
@@ -1177,7 +1200,7 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
 
           lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
             reachedIterationCap: index + 1 >= config.ralphIterationCap,
-            configOverrides: { agentId },
+            configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
             broadcaster
           });
 
@@ -1253,7 +1276,7 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
 
       if (failures.length > 0) {
         const messages = failures.map((r) => toErrorMessage(r.reason)).join('; ');
-        throw new Error(`${failures.length} of ${agentCount} agent(s) failed: ${messages}`);
+        throw new Error(`${failures.length} of ${agentSlots.length} agent(s) failed: ${messages}`);
       }
 
       const summary = fulfilled
@@ -1265,7 +1288,7 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       broadcaster?.emitLoopEnd(config.ralphIterationCap, null);
 
       void vscode.window.showInformationMessage(
-        `Ralph multi-agent loop finished (${agentCount} agent(s)). ${summary}`
+        `Ralph multi-agent loop finished (${agentSlots.length} agent(s)). ${summary}`
       );
     }
   });

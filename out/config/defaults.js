@@ -16,7 +16,7 @@ exports.DEFAULT_CONFIG = {
     claudePermissionMode: 'dangerously-skip-permissions',
     copilotApprovalMode: 'allow-all',
     agentId: 'default',
-    agentRole: 'build',
+    agentRole: 'implementer',
     preferredHandoffMode: 'ideCommand',
     inspectionRootOverride: '',
     ralphIterationCap: 20,

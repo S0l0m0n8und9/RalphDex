@@ -151,7 +151,7 @@ export type RalphPromptKind =
   | 'fix-failure'
   | 'continue-progress'
   | 'human-review-handoff';
-export type RalphAgentRole = 'build' | 'review' | 'watchdog' | 'scm';
+export type RalphAgentRole = 'build' | 'review' | 'watchdog' | 'scm' | 'planner' | 'implementer' | 'reviewer';
 export type RalphPromptTarget = 'cliExec' | 'ideHandoff';
 export type RalphRunMode = 'handoff' | 'singleExec' | 'loop';
 export type RalphRunStatus = 'succeeded' | 'failed';

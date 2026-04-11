@@ -53,6 +53,7 @@ const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
+const crewRoster_1 = require("../ralph/crewRoster");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -945,14 +946,34 @@ function registerCommands(context, logger, broadcaster) {
             if (agentCount < 2) {
                 void vscode.window.showWarningMessage('ralphCodex.agentCount is 1. Running a single-agent loop. Set agentCount ≥ 2 for concurrent multi-agent mode.');
             }
-            progress.report({ message: `Starting ${agentCount} concurrent agent loop(s)` });
+            // Resolve crew roster from .ralph/crew.json when present; fall back to agentCount synthesis.
+            const crewJsonPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'crew.json');
+            const crewResult = await (0, crewRoster_1.parseCrewRoster)(crewJsonPath);
+            for (const warning of crewResult.warnings) {
+                logger.warn(`crew.json: ${warning}`);
+            }
+            let agentSlots;
+            if (crewResult.members !== null && crewResult.members.length > 0) {
+                agentSlots = crewResult.members.map((member, i) => ({
+                    slotIndex: i,
+                    agentId: member.id,
+                    crewMember: member
+                }));
+                logger.info('Multi-agent loop: using crew.json roster.', {
+                    memberCount: agentSlots.length,
+                    ids: agentSlots.map((slot) => slot.agentId).join(', ')
+                });
+            }
+            else {
+                // Fall back to anonymous agentId-N synthesis from agentCount.
+                agentSlots = Array.from({ length: agentCount }, (_, i) => ({
+                    slotIndex: i,
+                    agentId: agentCount > 1 ? `${config.agentId}-${i + 1}` : config.agentId
+                }));
+            }
+            progress.report({ message: `Starting ${agentSlots.length} concurrent agent loop(s)` });
             broadcaster?.emitLoopStart(config.ralphIterationCap);
-            // Build distinct agentId per slot. Use suffix only when multiple agents share the same base id.
-            const agentSlots = Array.from({ length: agentCount }, (_, i) => ({
-                slotIndex: i,
-                agentId: agentCount > 1 ? `${config.agentId}-${i + 1}` : config.agentId
-            }));
-            const agentLoops = agentSlots.map(async ({ agentId }) => {
+            const agentLoops = agentSlots.map(async ({ agentId, crewMember }) => {
                 let lastRun = null;
                 for (let index = 0; index < config.ralphIterationCap; index += 1) {
                     if (token.isCancellationRequested) {
@@ -968,7 +989,7 @@ function registerCommands(context, logger, broadcaster) {
                     });
                     lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
                         reachedIterationCap: index + 1 >= config.ralphIterationCap,
-                        configOverrides: { agentId },
+                        configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
                         broadcaster
                     });
                     broadcaster?.emitIterationEnd({
@@ -1033,13 +1054,13 @@ function registerCommands(context, logger, broadcaster) {
             }
             if (failures.length > 0) {
                 const messages = failures.map((r) => (0, error_1.toErrorMessage)(r.reason)).join('; ');
-                throw new Error(`${failures.length} of ${agentCount} agent(s) failed: ${messages}`);
+                throw new Error(`${failures.length} of ${agentSlots.length} agent(s) failed: ${messages}`);
             }
             const summary = fulfilled
                 .map(({ value: { agentId, lastRun } }) => lastRun ? `${agentId}: ${lastRun.result.completionClassification}` : `${agentId}: no iterations`)
                 .join('; ');
             broadcaster?.emitLoopEnd(config.ralphIterationCap, null);
-            void vscode.window.showInformationMessage(`Ralph multi-agent loop finished (${agentCount} agent(s)). ${summary}`);
+            void vscode.window.showInformationMessage(`Ralph multi-agent loop finished (${agentSlots.length} agent(s)). ${summary}`);
         }
     });
     registerCommand(context, logger, {

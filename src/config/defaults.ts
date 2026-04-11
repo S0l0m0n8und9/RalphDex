@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   claudePermissionMode: 'dangerously-skip-permissions',
   copilotApprovalMode: 'allow-all',
   agentId: 'default',
-  agentRole: 'build',
+  agentRole: 'implementer',
   preferredHandoffMode: 'ideCommand',
   inspectionRootOverride: '',
   ralphIterationCap: 20,

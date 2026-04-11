@@ -2763,7 +2763,8 @@
     {
       "id": "T98",
       "title": "Dynamic planning layer Phase 1: agent role schema and crew.json definition",
-      "status": "todo",
+      "status": "done",
+      "notes": "Dynamic planning layer Phase 1 complete: RalphAgentRole expanded to include planner/implementer/reviewer; default changed to implementer; crew.json roster schema defined with parseCrewRoster(); multi-agent launcher uses crew roster when present, falls back to agentCount when absent, warns on invalid schema; 9 new tests added.",
       "validation": "npm run validate",
       "acceptance": [
         "agentRole?: 'planner' | 'implementer' | 'reviewer' added to RalphCodexConfig in src/config/types.ts; default 'implementer' when absent (no regression)",
@@ -2783,7 +2784,9 @@
       "id": "T99",
       "title": "Dynamic planning layer Phases 2+3: role-aware task claiming and role-specific prompt templates",
       "status": "todo",
-      "dependsOn": ["T98"],
+      "dependsOn": [
+        "T98"
+      ],
       "validation": "npm run validate",
       "acceptance": [
         "taskFile.ts claim acquisition checks the claiming agent's agentRole before selecting a task",
@@ -2805,7 +2808,9 @@
       "id": "T100",
       "title": "Dynamic planning layer Phase 4: pre-execution planning pass (inline and dedicated modes)",
       "status": "todo",
-      "dependsOn": ["T99"],
+      "dependsOn": [
+        "T99"
+      ],
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.planningPass config added: { enabled: boolean (default false), mode: 'dedicated' | 'inline' (default 'inline') } in types.ts, defaults.ts, readConfig.ts, package.json",
@@ -2825,7 +2830,9 @@
       "id": "T101",
       "title": "Dynamic planning layer Phase 5: crew configuration documentation and AGENTS.md update",
       "status": "todo",
-      "dependsOn": ["T100"],
+      "dependsOn": [
+        "T100"
+      ],
       "validation": "npm run validate",
       "acceptance": [
         "AGENTS.md crew configuration section added documenting agentRole, crew.json roster format, and planningPass config with a three-agent example crew.json (one planner, two implementers with goal and backstory strings)",
@@ -2858,5 +2865,5 @@
       ]
     }
   ],
-  "mutationCount": 73
+  "mutationCount": 74
 }

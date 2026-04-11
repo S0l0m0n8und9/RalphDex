@@ -436,7 +436,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     agentRole: readEnum(
       config,
       'agentRole',
-      ['build', 'review', 'watchdog', 'scm'],
+      ['build', 'review', 'watchdog', 'scm', 'planner', 'implementer', 'reviewer'],
       DEFAULT_CONFIG.agentRole
     ),
     preferredHandoffMode: readEnum<CodexHandoffMode>(

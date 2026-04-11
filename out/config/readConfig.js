@@ -309,7 +309,7 @@ function readConfig(workspaceFolder) {
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),
         copilotApprovalMode: readEnum(config, 'copilotApprovalMode', ['allow-all', 'allow-tools-only', 'interactive'], defaults_1.DEFAULT_CONFIG.copilotApprovalMode),
         agentId: readString(config, 'agentId', defaults_1.DEFAULT_CONFIG.agentId),
-        agentRole: readEnum(config, 'agentRole', ['build', 'review', 'watchdog', 'scm'], defaults_1.DEFAULT_CONFIG.agentRole),
+        agentRole: readEnum(config, 'agentRole', ['build', 'review', 'watchdog', 'scm', 'planner', 'implementer', 'reviewer'], defaults_1.DEFAULT_CONFIG.agentRole),
         preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], preset?.preferredHandoffMode ?? defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
         inspectionRootOverride: readString(config, 'inspectionRootOverride', defaults_1.DEFAULT_CONFIG.inspectionRootOverride),
         ralphIterationCap: readNumber(config, 'ralphIterationCap', preset?.ralphIterationCap ?? defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),

@@ -110,6 +110,33 @@ test('readConfig supports Copilot provider defaults and overrides', () => {
   assert.equal(config.newChatCommandId, 'github.copilot.cli.newSession');
 });
 
+test('readConfig defaults agentRole to implementer when absent', () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(config.agentRole, 'implementer');
+});
+
+test('readConfig accepts planning-layer agentRole values', () => {
+  const harness = vscodeTestHarness();
+
+  for (const role of ['planner', 'implementer', 'reviewer'] as const) {
+    harness.setConfiguration({ agentRole: role });
+    const config = readConfig(workspaceFolder('C:\\repo'));
+    assert.equal(config.agentRole, role);
+    harness.reset();
+  }
+});
+
+test('readConfig falls back to implementer for unknown agentRole', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({ agentRole: 'unknown-value' });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(config.agentRole, 'implementer');
+});
+
 test('readConfig applies enableModelTiering workspace override to modelTiering.enabled', () => {
   const harness = vscodeTestHarness();
   harness.setConfiguration({
