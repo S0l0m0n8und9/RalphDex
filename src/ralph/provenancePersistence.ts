@@ -4,6 +4,7 @@ import { Logger } from '../services/logger';
 import { stableJson } from './integrity';
 import {
   DEFAULT_RALPH_AGENT_ID,
+  PromptCacheStats,
   RalphHandoffNote,
   RalphIntegrityFailure,
   RalphIterationResult,
@@ -40,6 +41,7 @@ export function createProvenanceBundle(input: {
   iterationResultPath?: string | null;
   provenanceFailurePath?: string | null;
   provenanceFailureSummaryPath?: string | null;
+  promptCacheStats?: PromptCacheStats | null;
 }): RalphProvenanceBundle {
   const {
     prepared,
@@ -51,7 +53,8 @@ export function createProvenanceBundle(input: {
     cliInvocationPath = null,
     iterationResultPath = null,
     provenanceFailurePath = null,
-    provenanceFailureSummaryPath = null
+    provenanceFailureSummaryPath = null,
+    promptCacheStats = null
   } = input;
 
   return {
@@ -85,6 +88,7 @@ export function createProvenanceBundle(input: {
     executionPayloadHash,
     executionPayloadMatched,
     mismatchReason,
+    promptCacheStats,
     createdAt: prepared.executionPlan.createdAt,
     updatedAt: new Date().toISOString()
   };

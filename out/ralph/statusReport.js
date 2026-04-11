@@ -59,6 +59,13 @@ function compactList(values, limit) {
     const remaining = values.length - visible.length;
     return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
 }
+function formatPromptCacheStats(stats) {
+    if (!stats) {
+        return 'none';
+    }
+    const hit = stats.cacheHit === null ? 'unknown' : stats.cacheHit ? 'yes' : 'no';
+    return `static prefix ${stats.staticPrefixBytes} bytes | cache hit: ${hit}`;
+}
 function formatPromptBudgetSummary(promptEvidence) {
     const budget = promptEvidence?.promptBudget;
     if (!budget) {
@@ -243,6 +250,7 @@ function buildStatusReport(snapshot) {
         `- Current prompt selected sections: ${compactList(latestPromptEvidence?.promptBudget?.selectedSections ?? [], 6)}`,
         `- Current prompt omitted sections: ${compactList(latestPromptEvidence?.promptBudget?.omittedSections ?? [], 6)}`,
         `- Current reasoning effort: ${currentReasoningEffort}`,
+        `- Prompt cache stats: ${formatPromptCacheStats(latestProvenance?.promptCacheStats ?? null)}`,
         `- Task validation hint: ${latestPlan?.taskValidationHint ?? 'none'}`,
         `- Effective validation command: ${latestPlan?.effectiveValidationCommand ?? 'none'}`,
         `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,

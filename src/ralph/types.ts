@@ -278,6 +278,13 @@ export interface RalphVerificationResult {
   metadata?: Record<string, unknown>;
 }
 
+export interface PromptCacheStats {
+  /** Byte length of the static prefix sent with cache_control to the provider. */
+  staticPrefixBytes: number;
+  /** Whether the provider reported a cache hit; null if the provider did not report cache usage. */
+  cacheHit: boolean | null;
+}
+
 export interface RalphPromptEvidence {
   schemaVersion: 1;
   provenanceId?: string;
@@ -292,6 +299,7 @@ export interface RalphPromptEvidence {
   normalizedValidationCommandFrom: string | null;
   validationCommand: string | null;
   promptByteLength?: number;
+  promptCacheStats?: PromptCacheStats;
   promptBudget?: {
     policyName: string;
     budgetMode: 'within_budget' | 'trimmed';
@@ -604,6 +612,7 @@ export interface RalphProvenanceBundle {
   executionPayloadHash: string | null;
   executionPayloadMatched: boolean | null;
   mismatchReason: string | null;
+  promptCacheStats?: PromptCacheStats | null;
   createdAt: string;
   updatedAt: string;
 }

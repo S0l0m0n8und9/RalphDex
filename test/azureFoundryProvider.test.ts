@@ -8,6 +8,7 @@ import { createCliProviderForId } from '../src/codex/providerFactory';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
+import { STATIC_PREFIX_BOUNDARY } from '../src/prompt/promptBuilder';
 import { setHttpsClientOverride } from '../src/services/httpsClient';
 
 const ENDPOINT_URL = 'https://my-project.inference.ai.azure.com/models/my-deployment';
@@ -368,6 +369,153 @@ test('executeDirectly omits api-key header and warns when no API key is configur
       result.warnings.some((w) => /Azure AD/i.test(w)),
       'warning should mention Azure AD'
     );
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Prompt caching — cache_control placement and promptCacheStats
+// ---------------------------------------------------------------------------
+
+const PROMPT_WITH_BOUNDARY = `# System\n\nYou are Ralph.${STATIC_PREFIX_BOUNDARY}## Dynamic Section\n\nDo the task.`;
+
+test('executeDirectly sends message content as array with cache_control on static prefix', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-ctrl-'));
+  const req = {
+    ...request(),
+    prompt: PROMPT_WITH_BOUNDARY,
+    promptHash: hashText(PROMPT_WITH_BOUNDARY),
+    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  let capturedBody: unknown;
+  setHttpsClientOverride(async (opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    await provider().executeDirectly(req);
+
+    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
+    const content = body.messages[0].content;
+    assert.ok(Array.isArray(content), 'content should be an array when boundary is present');
+
+    const blocks = content as Array<{ type: string; text: string; cache_control?: { type: string } }>;
+    assert.equal(blocks[0].cache_control?.type, 'ephemeral', 'first block should have cache_control ephemeral');
+    assert.ok(!blocks[1].cache_control, 'second block should not have cache_control');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly returns promptCacheStats with staticPrefixBytes set', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-bytes-'));
+  const req = {
+    ...request(),
+    prompt: PROMPT_WITH_BOUNDARY,
+    promptHash: hashText(PROMPT_WITH_BOUNDARY),
+    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => ({
+    responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }),
+    statusCode: 200
+  }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.ok(result.promptCacheStats, 'promptCacheStats should be present on success');
+    const boundaryIdx = PROMPT_WITH_BOUNDARY.indexOf(STATIC_PREFIX_BOUNDARY);
+    const expectedStaticPrefixBytes = Buffer.byteLength(PROMPT_WITH_BOUNDARY.slice(0, boundaryIdx + 1), 'utf8');
+    assert.equal(result.promptCacheStats?.staticPrefixBytes, expectedStaticPrefixBytes,
+      'staticPrefixBytes should equal the byte length of the static prefix');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly sets cacheHit=true when response reports cache_read_input_tokens > 0', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-hit-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => ({
+    responseBody: JSON.stringify({
+      choices: [{ message: { content: 'ok' } }],
+      usage: { cache_read_input_tokens: 500, cache_creation_input_tokens: 0 }
+    }),
+    statusCode: 200
+  }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.promptCacheStats?.cacheHit, true, 'cacheHit should be true when cache_read_input_tokens > 0');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly sets cacheHit=false when only cache_creation_input_tokens is present', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-miss-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => ({
+    responseBody: JSON.stringify({
+      choices: [{ message: { content: 'ok' } }],
+      usage: { cache_read_input_tokens: 0, cache_creation_input_tokens: 800 }
+    }),
+    statusCode: 200
+  }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.promptCacheStats?.cacheHit, false, 'cacheHit should be false when cache_read_input_tokens is 0');
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly sets cacheHit=null when response has no cache usage data', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-null-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => ({
+    responseBody: JSON.stringify({
+      choices: [{ message: { content: 'ok' } }]
+      // no usage field
+    }),
+    statusCode: 200
+  }));
+  try {
+    const result = await provider().executeDirectly(req);
+
+    assert.equal(result.promptCacheStats?.cacheHit, null, 'cacheHit should be null when response has no cache usage');
   } finally {
     setHttpsClientOverride(null);
   }

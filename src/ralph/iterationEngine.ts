@@ -15,6 +15,7 @@ import {
 } from './iterationPreparation';
 import {
   DEFAULT_RALPH_AGENT_ID,
+  PromptCacheStats,
   RalphCliInvocation,
   RalphDiffSummary,
   RalphIterationResult,
@@ -235,6 +236,7 @@ export class RalphIterationEngine {
     let execStderr = '';
     let execExitCode: number | null = null;
     let execStdinHash: string | null = null;
+    let execPromptCacheStats: PromptCacheStats | null = null;
     let transcriptPath: string | undefined;
     let lastMessagePath: string | undefined;
     let lastMessage = '';
@@ -419,6 +421,7 @@ export class RalphIterationEngine {
         transcriptPath = execResult.transcriptPath;
         lastMessagePath = execResult.lastMessagePath;
         lastMessage = execResult.lastMessage;
+        execPromptCacheStats = execResult.promptCacheStats ?? null;
 
         invocation = {
           schemaVersion: 1,
@@ -1057,7 +1060,8 @@ export class RalphIterationEngine {
         executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
         mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
         cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
-        iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath
+        iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath,
+        promptCacheStats: execPromptCacheStats
       }),
       preflightReport: prepared.persistedPreflightReport,
       preflightSummary: prepared.preflightSummaryText,

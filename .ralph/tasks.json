@@ -2501,11 +2501,11 @@
     {
       "id": "T83",
       "title": "Prompt caching Phase 2: cache_control breakpoints for direct-API providers",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T81"
       ],
-      "notes": "For providers that call APIs directly (AzureFoundryProvider), insert cache_control breakpoints at the boundary between the static prefix (identified by STATIC_PREFIX_BOUNDARY in promptBuilder.ts) and dynamic content. Add a promptCacheStats field to RalphPromptEvidence and RalphProvenanceBundle to surface static-prefix byte count and whether the provider reports a cache hit. CLI-based providers (claude, copilot, codex) rely on implicit caching and require no change.",
+      "notes": "Added cache_control breakpoints to AzureFoundryProvider.executeDirectly; added PromptCacheStats to RalphPromptEvidence and RalphProvenanceBundle; wired through iterationEngine and provenancePersistence; surfaced in Show Status; 5 new unit tests added.",
       "validation": "npm run validate",
       "acceptance": [
         "AzureFoundryProvider.executeDirectly splits the prompt at STATIC_PREFIX_BOUNDARY and sends the static prefix with a cache_control marker in the API payload",
@@ -2533,5 +2533,5 @@
       ]
     }
   ],
-  "mutationCount": 56
+  "mutationCount": 57
 }

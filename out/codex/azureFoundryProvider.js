@@ -37,6 +37,7 @@ exports.AzureFoundryProvider = void 0;
 const fs = __importStar(require("fs/promises"));
 const integrity_1 = require("../ralph/integrity");
 const httpsClient_1 = require("../services/httpsClient");
+const promptBuilder_1 = require("../prompt/promptBuilder");
 const text_1 = require("../util/text");
 class AzureFoundryProvider {
     options;
@@ -109,8 +110,20 @@ class AzureFoundryProvider {
                 'Azure AD authentication would be attempted (not yet implemented). ' +
                 'Requests will proceed without an api-key header.');
         }
+        // Split the prompt at STATIC_PREFIX_BOUNDARY so the stable prefix can be
+        // sent with a cache_control marker, enabling prompt caching on Anthropic-
+        // compatible Azure deployments.
+        const staticPrefix = (0, promptBuilder_1.extractStaticPrefix)(request.prompt);
+        const staticPrefixBytes = Buffer.byteLength(staticPrefix, 'utf8');
+        const dynamicRemainder = request.prompt.slice(staticPrefix.length);
+        const messageContent = dynamicRemainder
+            ? [
+                { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
+                { type: 'text', text: dynamicRemainder }
+            ]
+            : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
         const requestBody = JSON.stringify({
-            messages: [{ role: 'user', content: request.prompt }],
+            messages: [{ role: 'user', content: messageContent }],
             model: this.options.modelDeployment || request.model
         });
         let endpointUrl = this.options.endpointUrl;
@@ -170,6 +183,11 @@ class AzureFoundryProvider {
             };
         }
         const lastMessage = await this.extractResponseText(responseBody, '', request.lastMessagePath);
+        // Parse cache usage from the response to populate promptCacheStats.
+        const promptCacheStats = {
+            staticPrefixBytes,
+            cacheHit: this.extractCacheHit(responseBody)
+        };
         return {
             strategy: 'cliExec',
             success: true,
@@ -182,7 +200,8 @@ class AzureFoundryProvider {
             stdinHash,
             transcriptPath: request.transcriptPath,
             lastMessagePath: request.lastMessagePath,
-            lastMessage
+            lastMessage,
+            promptCacheStats
         };
     }
     buildTranscript(result, request) {
@@ -217,6 +236,19 @@ class AzureFoundryProvider {
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
+    }
+    extractCacheHit(responseBody) {
+        try {
+            const parsed = JSON.parse(responseBody);
+            const { cache_read_input_tokens, cache_creation_input_tokens } = parsed.usage ?? {};
+            if (cache_read_input_tokens !== undefined || cache_creation_input_tokens !== undefined) {
+                return (cache_read_input_tokens ?? 0) > 0;
+            }
+        }
+        catch {
+            // Not valid JSON or no usage field — cache status unknown.
+        }
+        return null;
     }
     extractHttpErrorDetail(responseBody, statusCode) {
         try {

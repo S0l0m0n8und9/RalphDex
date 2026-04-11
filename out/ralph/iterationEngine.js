@@ -165,6 +165,7 @@ class RalphIterationEngine {
             let execStderr = '';
             let execExitCode = null;
             let execStdinHash = null;
+            let execPromptCacheStats = null;
             let transcriptPath;
             let lastMessagePath;
             let lastMessage = '';
@@ -326,6 +327,7 @@ class RalphIterationEngine {
                     transcriptPath = execResult.transcriptPath;
                     lastMessagePath = execResult.lastMessagePath;
                     lastMessage = execResult.lastMessage;
+                    execPromptCacheStats = execResult.promptCacheStats ?? null;
                     invocation = {
                         schemaVersion: 1,
                         kind: 'cliInvocation',
@@ -933,7 +935,8 @@ class RalphIterationEngine {
                     executionPayloadMatched: result.executionIntegrity?.executionPayloadMatched ?? null,
                     mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
                     cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
-                    iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath
+                    iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath,
+                    promptCacheStats: execPromptCacheStats
                 }),
                 preflightReport: prepared.persistedPreflightReport,
                 preflightSummary: prepared.preflightSummaryText,

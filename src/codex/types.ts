@@ -1,5 +1,5 @@
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
-import { RalphPromptKind } from '../ralph/types';
+import { PromptCacheStats, RalphPromptKind } from '../ralph/types';
 
 export type CodexStrategyId = 'ideCommand' | 'clipboard' | 'cliExec' | 'claudeCode';
 
@@ -48,6 +48,8 @@ export interface CodexExecResult extends CodexActionResult {
   transcriptPath: string;
   lastMessagePath: string;
   lastMessage: string;
+  /** Cache stats reported by the provider, if supported. Only populated for direct-API providers (e.g. AzureFoundryProvider). */
+  promptCacheStats?: PromptCacheStats;
 }
 
 export interface CodexStrategy {

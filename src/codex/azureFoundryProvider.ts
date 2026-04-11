@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import { hashText } from '../ralph/integrity';
+import { PromptCacheStats } from '../ralph/types';
 import { httpsPost } from '../services/httpsClient';
+import { extractStaticPrefix } from '../prompt/promptBuilder';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
@@ -19,6 +21,13 @@ export interface AzureFoundryProviderOptions {
 interface AzureFoundryResponse {
   choices?: Array<{ message?: { content?: string } }>;
   error?: { message?: string; code?: string };
+  /** Anthropic-style cache usage fields, present when the model supports prompt caching. */
+  usage?: {
+    cache_creation_input_tokens?: number;
+    cache_read_input_tokens?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
 }
 
 export class AzureFoundryProvider implements CliProvider {
@@ -105,8 +114,23 @@ export class AzureFoundryProvider implements CliProvider {
       );
     }
 
+    // Split the prompt at STATIC_PREFIX_BOUNDARY so the stable prefix can be
+    // sent with a cache_control marker, enabling prompt caching on Anthropic-
+    // compatible Azure deployments.
+    const staticPrefix = extractStaticPrefix(request.prompt);
+    const staticPrefixBytes = Buffer.byteLength(staticPrefix, 'utf8');
+    const dynamicRemainder = request.prompt.slice(staticPrefix.length);
+
+    const messageContent: Array<{ type: string; text: string; cache_control?: { type: string } }> =
+      dynamicRemainder
+        ? [
+            { type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: dynamicRemainder }
+          ]
+        : [{ type: 'text', text: staticPrefix, cache_control: { type: 'ephemeral' } }];
+
     const requestBody = JSON.stringify({
-      messages: [{ role: 'user', content: request.prompt }],
+      messages: [{ role: 'user', content: messageContent }],
       model: this.options.modelDeployment || request.model
     });
 
@@ -173,6 +197,12 @@ export class AzureFoundryProvider implements CliProvider {
 
     const lastMessage = await this.extractResponseText(responseBody, '', request.lastMessagePath);
 
+    // Parse cache usage from the response to populate promptCacheStats.
+    const promptCacheStats: PromptCacheStats = {
+      staticPrefixBytes,
+      cacheHit: this.extractCacheHit(responseBody)
+    };
+
     return {
       strategy: 'cliExec',
       success: true,
@@ -185,7 +215,8 @@ export class AzureFoundryProvider implements CliProvider {
       stdinHash,
       transcriptPath: request.transcriptPath,
       lastMessagePath: request.lastMessagePath,
-      lastMessage
+      lastMessage,
+      promptCacheStats
     };
   }
 
@@ -222,6 +253,19 @@ export class AzureFoundryProvider implements CliProvider {
       '',
       result.lastMessage || '(empty)'
     ].join('\n');
+  }
+
+  private extractCacheHit(responseBody: string): boolean | null {
+    try {
+      const parsed = JSON.parse(responseBody) as AzureFoundryResponse;
+      const { cache_read_input_tokens, cache_creation_input_tokens } = parsed.usage ?? {};
+      if (cache_read_input_tokens !== undefined || cache_creation_input_tokens !== undefined) {
+        return (cache_read_input_tokens ?? 0) > 0;
+      }
+    } catch {
+      // Not valid JSON or no usage field — cache status unknown.
+    }
+    return null;
   }
 
   private extractHttpErrorDetail(responseBody: string, statusCode: number): string {
