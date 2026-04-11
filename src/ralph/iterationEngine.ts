@@ -38,8 +38,14 @@ import {
   selectNextTaskForRole,
 } from './taskFile';
 import { parsePlanningResponse, readTaskPlan, writeTaskPlan } from './planningPass';
+import {
+  buildFailureDiagnosticPrompt,
+  classifyTransientFailure,
+  parseFailureDiagnosticResponse,
+  writeFailureAnalysis
+} from './failureDiagnostics';
 import { hashText, utf8ByteLength } from './integrity';
-import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation } from './loopLogic';
+import { buildTaskRemediation, classifyIterationOutcome, classifyVerificationStatus, decideLoopContinuation, shouldRunFailureDiagnostic } from './loopLogic';
 import { selectModelForTask } from './complexityScorer';
 import { runHook, HookRunContext } from './hookRunner';
 import {
@@ -326,6 +332,125 @@ export class RalphIterationEngine {
     } catch (err) {
       this.logger.warn('Inline planning pass failed; continuing without plan.', {
         taskId,
+        error: String(err)
+      });
+    }
+  }
+
+  /**
+   * Runs a failure-diagnostic CLI turn when the loop stops due to a blocked task
+   * or failed verifier. Writes failure-analysis.json. Best-effort: failures are
+   * logged and never abort the main loop.
+   */
+  private async maybeRunFailureDiagnostic(opts: {
+    taskId: string;
+    taskTitle: string;
+    result: import('./types').RalphIterationResult;
+    config: import('../config/types').RalphCodexConfig;
+    artifactRootDir: string;
+    iterationHistory: import('./types').RalphIterationResult[];
+    workspaceRoot: string;
+    lastIterationPrompt: string;
+    lastMessage: string;
+  }): Promise<void> {
+    try {
+      const { taskId, taskTitle, result, config, artifactRootDir, iterationHistory, workspaceRoot, lastIterationPrompt, lastMessage } = opts;
+
+      if (!shouldRunFailureDiagnostic(result.completionClassification, result.verificationStatus, config.failureDiagnostics)) {
+        return;
+      }
+
+      const failureSignal = result.verification.validationFailureSignature ?? result.summary ?? '';
+
+      // Transient failures are classified without an LLM call.
+      const transientCategory = classifyTransientFailure(failureSignal);
+      if (transientCategory) {
+        const analysis = {
+          schemaVersion: 1 as const,
+          kind: 'failureAnalysis' as const,
+          taskId,
+          createdAt: new Date().toISOString(),
+          rootCauseCategory: transientCategory,
+          confidence: 'high' as const,
+          summary: 'Failure classified as transient by pattern match.',
+          suggestedAction: 'Retry the task; the failure is likely due to a temporary infrastructure condition.'
+        };
+        await writeFailureAnalysis(artifactRootDir, taskId, analysis);
+        this.logger.info('Failure diagnostic: transient failure detected via pattern match.', { taskId });
+        return;
+      }
+
+      this.strategies.configureCliProvider(config);
+      const execStrategy = this.strategies.getCliExecStrategyForProvider();
+      if (!execStrategy.runExec) {
+        this.logger.warn('Failure diagnostic skipped: CLI strategy does not support exec.');
+        return;
+      }
+
+      const recentHistory = iterationHistory.slice(-3).map((h) => ({
+        iteration: h.iteration,
+        completionClassification: h.completionClassification,
+        verificationStatus: h.verificationStatus
+      }));
+
+      const diagnosticPrompt = buildFailureDiagnosticPrompt({
+        taskId,
+        taskTitle,
+        lastIterationPrompt,
+        lastMessage,
+        failureSignal,
+        recentHistory
+      });
+
+      const taskArtifactDir = path.join(artifactRootDir, taskId);
+      await fs.mkdir(taskArtifactDir, { recursive: true });
+      const promptPath = path.join(taskArtifactDir, 'failure-diagnostic-prompt.md');
+      const transcriptPath = path.join(taskArtifactDir, 'failure-diagnostic-transcript.json');
+      const lastMessagePath = path.join(taskArtifactDir, 'failure-diagnostic-last-message.txt');
+
+      await fs.writeFile(promptPath, diagnosticPrompt, 'utf8');
+
+      const execResult = await (execStrategy as { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> }).runExec({
+        commandPath: getCliCommandPath(config),
+        workspaceRoot,
+        executionRoot: workspaceRoot,
+        prompt: diagnosticPrompt,
+        promptPath,
+        promptHash: hashText(diagnosticPrompt),
+        promptByteLength: utf8ByteLength(diagnosticPrompt),
+        transcriptPath,
+        lastMessagePath,
+        model: config.model,
+        reasoningEffort: config.reasoningEffort,
+        sandboxMode: config.sandboxMode,
+        approvalMode: config.approvalMode,
+        timeoutMs: config.cliExecutionTimeoutMs > 0 ? config.cliExecutionTimeoutMs : undefined,
+        promptCaching: config.promptCaching
+      });
+
+      if (execResult.exitCode !== 0) {
+        this.logger.warn('Failure diagnostic exited non-zero; skipping failure-analysis.json.', {
+          taskId,
+          exitCode: execResult.exitCode
+        });
+        return;
+      }
+
+      const analysis = parseFailureDiagnosticResponse(execResult.lastMessage);
+      if (!analysis) {
+        this.logger.warn('Failure diagnostic produced no parseable analysis; skipping failure-analysis.json.', { taskId });
+        return;
+      }
+
+      const enriched = { ...analysis, taskId, createdAt: new Date().toISOString() };
+      await writeFailureAnalysis(artifactRootDir, taskId, enriched);
+      this.logger.info('Failure diagnostic wrote failure-analysis.json.', {
+        taskId,
+        rootCauseCategory: enriched.rootCauseCategory,
+        confidence: enriched.confidence
+      });
+    } catch (err) {
+      this.logger.warn('maybeRunFailureDiagnostic encountered an unexpected error; continuing.', {
         error: String(err)
       });
     }
@@ -1017,6 +1142,20 @@ export class RalphIterationEngine {
       result.warnings.push(
         `Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`
       );
+    }
+
+    if (!loopDecision.shouldContinue && result.selectedTaskId) {
+      await this.maybeRunFailureDiagnostic({
+        taskId: result.selectedTaskId,
+        taskTitle: prepared.selectedTask?.title ?? result.selectedTaskId,
+        result,
+        config: prepared.config,
+        artifactRootDir: prepared.paths.artifactDir,
+        iterationHistory: prepared.state.iterationHistory,
+        workspaceRoot: prepared.rootPath,
+        lastIterationPrompt: prepared.prompt,
+        lastMessage
+      });
     }
 
     let _effectiveTaskFile = afterCoreState.taskFile;

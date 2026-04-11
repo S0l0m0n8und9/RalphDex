@@ -1,4 +1,4 @@
-import { MemoryStrategy, PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig, RalphPlanningPassConfig } from './types';
+import { FailureDiagnosticsMode, MemoryStrategy, PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig, RalphPlanningPassConfig } from './types';
 
 export const DEFAULT_CONFIG: RalphCodexConfig = {
   cliProvider: 'claude',
@@ -77,5 +77,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   planningPass: {
     enabled: false,
     mode: 'inline'
-  } satisfies RalphPlanningPassConfig
+  } satisfies RalphPlanningPassConfig,
+  failureDiagnostics: 'auto' satisfies FailureDiagnosticsMode,
+  maxRecoveryAttempts: 3
 };

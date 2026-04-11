@@ -10,6 +10,7 @@ import {
   CodexHandoffMode,
   CodexReasoningEffort,
   CodexSandboxMode,
+  FailureDiagnosticsMode,
   MemoryStrategy,
   OperatorMode,
   PlanningPassMode,
@@ -638,6 +639,13 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1),
     operatorMode,
     prdGenerationTemplate: readString(config, 'prdGenerationTemplate', DEFAULT_CONFIG.prdGenerationTemplate),
-    planningPass: readPlanningPass(config, DEFAULT_CONFIG.planningPass)
+    planningPass: readPlanningPass(config, DEFAULT_CONFIG.planningPass),
+    failureDiagnostics: readEnum<FailureDiagnosticsMode>(
+      config,
+      'failureDiagnostics',
+      ['auto', 'off'],
+      DEFAULT_CONFIG.failureDiagnostics
+    ),
+    maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', DEFAULT_CONFIG.maxRecoveryAttempts, 1)
   };
 }

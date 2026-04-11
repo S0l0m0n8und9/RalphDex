@@ -30,6 +30,8 @@ export type PromptCachingMode = 'auto' | 'force' | 'off';
 
 export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
 
+export type FailureDiagnosticsMode = 'auto' | 'off';
+
 export type OperatorMode = 'simple' | 'multi-agent' | 'hardcore';
 
 export type PlanningPassMode = 'dedicated' | 'inline';
@@ -164,4 +166,6 @@ export interface RalphCodexConfig {
   operatorMode?: OperatorMode;
   prdGenerationTemplate: string;
   planningPass: RalphPlanningPassConfig;
+  failureDiagnostics: FailureDiagnosticsMode;
+  maxRecoveryAttempts: number;
 }

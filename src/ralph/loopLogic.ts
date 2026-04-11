@@ -551,3 +551,20 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
     message: 'Continue to the next Ralph iteration.'
   };
 }
+
+/**
+ * Returns true when Ralph should run a failure diagnostic pass.
+ *
+ * The diagnostic is warranted when the loop is stopping due to a blocked task
+ * or a failed verifier, and diagnostics are not suppressed by config.
+ */
+export function shouldRunFailureDiagnostic(
+  completionClassification: RalphCompletionClassification,
+  verificationStatus: RalphVerificationStatus,
+  mode: 'auto' | 'off'
+): boolean {
+  if (mode === 'off') {
+    return false;
+  }
+  return completionClassification === 'blocked' || verificationStatus === 'failed';
+}

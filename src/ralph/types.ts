@@ -14,6 +14,8 @@ export type RalphTaskMode = 'default' | 'documentation';
 
 export type RalphTaskTier = 'simple' | 'medium' | 'complex';
 
+export type FailureCategoryId = 'transient' | 'implementation_error' | 'task_ambiguity' | 'validation_mismatch' | 'dependency_missing' | 'environment_issue';
+
 export interface RalphTask {
   id: string;
   title: string;

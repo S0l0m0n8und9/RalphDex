@@ -340,7 +340,7 @@
         },
         "ralphCodex.claudeMaxTurns": {
           "type": "number",
-          "default": 50,
+          "default": 125,
           "minimum": 1,
           "maximum": 500,
           "description": "Maximum number of agentic turns per Claude CLI invocation."
@@ -736,10 +736,22 @@
         "ralphCodex.planningPass": {
           "type": "object",
           "default": {
-            "enabled": false,
+            "enabled": true,
             "mode": "inline"
           },
-          "description": "Pre-execution planning pass configuration. enabled (bool, default false): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
+          "description": "Pre-execution planning pass configuration. enabled (bool, default true): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
+        },
+        "ralphCodex.failureDiagnostics": {
+          "type": "string",
+          "enum": ["auto", "off"],
+          "default": "auto",
+          "description": "Controls whether Ralph runs a diagnostic pass when a task is blocked or the verifier fails. 'auto': run a diagnostic CLI invocation to classify the failure root cause and write a failure-analysis.json artifact. 'off': suppress all diagnostic invocations."
+        },
+        "ralphCodex.maxRecoveryAttempts": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "description": "Maximum number of recovery attempts Ralph will make after a classified failure before giving up and marking the task blocked."
         }
       }
     }
