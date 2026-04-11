@@ -490,6 +490,8 @@ export interface RalphWatchdogAction {
   suggestedChildTasks?: RalphSuggestedChildTask[];
 }
 
+export type RalphReviewOutcome = 'approved' | 'changes_required';
+
 export interface RalphCompletionReport {
   selectedTaskId: string;
   requestedStatus: RalphCompletionReportRequestedStatus;
@@ -499,6 +501,12 @@ export interface RalphCompletionReport {
   needsHumanReview?: boolean;
   suggestedChildTasks?: RalphSuggestedChildTask[];
   watchdog_actions?: RalphWatchdogAction[];
+  /** Planning-layer: plan text produced by a planner agent. */
+  proposedPlan?: string;
+  /** Planning-layer: outcome reported by a reviewer agent. */
+  reviewOutcome?: RalphReviewOutcome;
+  /** Planning-layer: reviewer notes accompanying reviewOutcome. */
+  reviewNotes?: string;
 }
 
 export type RalphCompletionReportStatus = 'applied' | 'rejected' | 'missing' | 'invalid';

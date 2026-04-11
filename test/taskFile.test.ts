@@ -18,6 +18,7 @@ import {
   releaseClaim,
   remainingSubtasks,
   selectNextTask,
+  selectNextTaskForRole,
   stringifyTaskFile,
   withTaskFileLock
 } from '../src/ralph/taskFile';
@@ -1392,4 +1393,134 @@ test('applySuggestedChildTasks inherits mode from parent task', () => {
 
   const child = result.tasks.find((task) => task.id === 'T1.1');
   assert.equal(child?.mode, 'documentation');
+});
+
+// ---------------------------------------------------------------------------
+// selectNextTaskForRole — role-aware task selection (planning layer, T99)
+// ---------------------------------------------------------------------------
+
+async function withTempDir(fn: (dir: string) => Promise<void>): Promise<void> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-taskfile-role-'));
+  try {
+    await fn(dir);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+}
+
+test('selectNextTaskForRole planner: skips todo task that already has task-plan.json, claims task without it', async () => {
+  await withTempDir(async (artifactsDir) => {
+    // T1 already has a plan artifact; T2 does not.
+    await fs.mkdir(path.join(artifactsDir, 'T1'), { recursive: true });
+    await fs.writeFile(path.join(artifactsDir, 'T1', 'task-plan.json'), '{}', 'utf8');
+
+    const taskFile = {
+      version: 2 as const,
+      tasks: [
+        { id: 'T1', title: 'Already planned', status: 'todo' as const },
+        { id: 'T2', title: 'Needs planning', status: 'todo' as const }
+      ]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'planner', artifactsDir);
+    assert.equal(selected?.id, 'T2', 'planner should skip T1 (has task-plan.json) and claim T2');
+  });
+});
+
+test('selectNextTaskForRole planner: returns null when all todo tasks have task-plan.json', async () => {
+  await withTempDir(async (artifactsDir) => {
+    await fs.mkdir(path.join(artifactsDir, 'T1'), { recursive: true });
+    await fs.writeFile(path.join(artifactsDir, 'T1', 'task-plan.json'), '{}', 'utf8');
+
+    const taskFile = {
+      version: 2 as const,
+      tasks: [{ id: 'T1', title: 'Already planned', status: 'todo' as const }]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'planner', artifactsDir);
+    assert.equal(selected, null, 'planner should idle when all todo tasks have plans');
+  });
+});
+
+test('selectNextTaskForRole reviewer: skips todo task, claims done task without review.json', async () => {
+  await withTempDir(async (artifactsDir) => {
+    const taskFile = {
+      version: 2 as const,
+      tasks: [
+        { id: 'T1', title: 'Still todo', status: 'todo' as const },
+        { id: 'T2', title: 'Done and unreviewed', status: 'done' as const }
+      ]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'reviewer', artifactsDir);
+    assert.equal(selected?.id, 'T2', 'reviewer should skip todo T1 and claim done T2 which has no review.json');
+  });
+});
+
+test('selectNextTaskForRole reviewer: skips done task that already has review.json', async () => {
+  await withTempDir(async (artifactsDir) => {
+    // T2 already reviewed; T3 not yet reviewed.
+    await fs.mkdir(path.join(artifactsDir, 'T2'), { recursive: true });
+    await fs.writeFile(path.join(artifactsDir, 'T2', 'review.json'), '{}', 'utf8');
+
+    const taskFile = {
+      version: 2 as const,
+      tasks: [
+        { id: 'T2', title: 'Already reviewed', status: 'done' as const },
+        { id: 'T3', title: 'Needs review', status: 'done' as const }
+      ]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'reviewer', artifactsDir);
+    assert.equal(selected?.id, 'T3', 'reviewer should skip T2 (has review.json) and claim T3');
+  });
+});
+
+test('selectNextTaskForRole reviewer: returns null when no reviewable done tasks remain', async () => {
+  await withTempDir(async (artifactsDir) => {
+    await fs.mkdir(path.join(artifactsDir, 'T1'), { recursive: true });
+    await fs.writeFile(path.join(artifactsDir, 'T1', 'review.json'), '{}', 'utf8');
+
+    const taskFile = {
+      version: 2 as const,
+      tasks: [{ id: 'T1', title: 'Already reviewed', status: 'done' as const }]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'reviewer', artifactsDir);
+    assert.equal(selected, null, 'reviewer should idle when all done tasks are already reviewed');
+  });
+});
+
+test('selectNextTaskForRole implementer: prefers todo task with task-plan.json', async () => {
+  await withTempDir(async (artifactsDir) => {
+    // T2 has a plan artifact; T1 does not.
+    await fs.mkdir(path.join(artifactsDir, 'T2'), { recursive: true });
+    await fs.writeFile(path.join(artifactsDir, 'T2', 'task-plan.json'), '{}', 'utf8');
+
+    const taskFile = {
+      version: 2 as const,
+      tasks: [
+        { id: 'T1', title: 'Unplanned task', status: 'todo' as const },
+        { id: 'T2', title: 'Planned task', status: 'todo' as const }
+      ]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'implementer', artifactsDir);
+    assert.equal(selected?.id, 'T2', 'implementer should prefer T2 which has a task-plan.json');
+  });
+});
+
+test('selectNextTaskForRole implementer: falls back to any selectable task when no planned tasks exist', async () => {
+  await withTempDir(async (artifactsDir) => {
+    const taskFile = {
+      version: 2 as const,
+      tasks: [
+        { id: 'T1', title: 'Unplanned task A', status: 'todo' as const },
+        { id: 'T2', title: 'Unplanned task B', status: 'todo' as const }
+      ]
+    };
+
+    const selected = await selectNextTaskForRole(taskFile, 'implementer', artifactsDir);
+    assert.equal(selected?.id, 'T1', 'implementer should fall back to first selectable task when no plans exist');
+  });
 });

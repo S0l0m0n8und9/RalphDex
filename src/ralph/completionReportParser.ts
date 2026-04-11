@@ -1,6 +1,7 @@
 import {
   RalphCompletionReport,
   RalphCompletionReportRequestedStatus,
+  RalphReviewOutcome,
   RalphSuggestedChildTask,
   RalphSuggestedTaskDependency,
   RalphWatchdogAction,
@@ -46,6 +47,10 @@ export function sanitizeCompletionText(value: string | undefined, maximumLength 
 
 export function isAllowedCompletionStatus(value: string): value is RalphCompletionReportRequestedStatus {
   return value === 'done' || value === 'blocked' || value === 'in_progress';
+}
+
+function isAllowedReviewOutcome(value: unknown): value is RalphReviewOutcome {
+  return value === 'approved' || value === 'changes_required';
 }
 
 function isAllowedWatchdogActionType(value: unknown): value is RalphWatchdogActionType {
@@ -370,7 +375,10 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
     needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
     suggestedChildTasks,
-    watchdog_actions: watchdogActions
+    watchdog_actions: watchdogActions,
+    proposedPlan: sanitizeCompletionText(typeof candidate.proposedPlan === 'string' ? candidate.proposedPlan : undefined, 4000),
+    reviewOutcome: isAllowedReviewOutcome(candidate.reviewOutcome) ? candidate.reviewOutcome : undefined,
+    reviewNotes: sanitizeCompletionText(typeof candidate.reviewNotes === 'string' ? candidate.reviewNotes : undefined)
   };
 
   return {

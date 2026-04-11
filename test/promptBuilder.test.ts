@@ -2302,3 +2302,126 @@ test('memoryObservability: summary strategy above threshold reports summaryGener
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Template routing for planning-layer roles (T99 AC12)
+// ---------------------------------------------------------------------------
+
+test('buildPrompt routes planner role to planning.md template', async () => {
+  const templateDir = await createTemplateDir();
+  await fs.writeFile(path.join(templateDir, 'planning.md'), await fs.readFile(
+    path.join(process.cwd(), 'prompt-templates', 'planning.md'),
+    'utf8'
+  ), 'utf8');
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 3,
+    selectionReason: 'T1 is the next actionable task.',
+    objectiveText: '# Project\n\nBuild the feature.\n',
+    progressText: '# Progress\n\n- Planning in progress.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 2 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Plan auth module', status: 'todo' }]
+    },
+    selectedTask: { id: 'T1', title: 'Plan auth module', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: 'npm run validate',
+    normalizedValidationCommandFrom: null,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'planner'
+    }
+  });
+
+  assert.equal(render.templatePath, path.join(templateDir, 'planning.md'));
+  assert.match(render.prompt, /You are Ralph's planner agent\./);
+  assert.match(render.prompt, /planning-only mode/);
+  assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement/);
+});
+
+test('buildPrompt routes reviewer role to review.md template', async () => {
+  const templateDir = await createTemplateDir();
+  await fs.writeFile(path.join(templateDir, 'review.md'), await fs.readFile(
+    path.join(process.cwd(), 'prompt-templates', 'review.md'),
+    'utf8'
+  ), 'utf8');
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 4,
+    selectionReason: 'T1 done task selected for review.',
+    objectiveText: '# Project\n\nReview completed work.\n',
+    progressText: '# Progress\n\n- T1 done.\n',
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 1 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Implement auth', status: 'done' }]
+    },
+    selectedTask: { id: 'T1', title: 'Implement auth', status: 'done' },
+    taskValidationHint: null,
+    effectiveValidationCommand: 'npm run validate',
+    normalizedValidationCommandFrom: null,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'reviewer'
+    }
+  });
+
+  assert.equal(render.templatePath, path.join(templateDir, 'review.md'));
+  assert.match(render.prompt, /You are Ralph's reviewer agent\./);
+  assert.match(render.prompt, /review-only mode/);
+  assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement/);
+});
+
+test('buildPrompt routes implementer role to standard iteration template', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 5,
+    selectionReason: 'T1 is the next todo task.',
+    objectiveText: '# Project\n\nImplement the feature.\n',
+    progressText: '# Progress\n\n- Starting T1.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Implement auth', status: 'todo' }]
+    },
+    selectedTask: { id: 'T1', title: 'Implement auth', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: 'npm run validate',
+    normalizedValidationCommandFrom: null,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'implementer'
+    }
+  });
+
+  assert.equal(render.templatePath, path.join(templateDir, 'iteration.md'));
+});
