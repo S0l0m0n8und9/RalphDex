@@ -211,3 +211,4 @@
 - Summary memory strategy implemented in promptBuilder: buildSummaryStrategyContext reads memory-summary.md when above threshold, maybeSummariseHistory in iterationPreparation invokes CLI and persists summary; 2 new tests added; 621 tests pass
 - memoryObservability (memoryStrategy, historyDepth, windowedEntryCount, summaryGenerationCost) added to RalphPromptEvidence and RalphProvenanceBundle; populated in promptBuilder and provenancePersistence; Show Status surfaces strategy, depth, and windowed entry count; 4 new tests cover all three strategies; 625 tests pass
 - Added OperatorMode type + operatorMode field to config; OPERATOR_PRESETS map for simple/multi-agent/hardcore; preset resolution as fallback in readConfig; package.json enum contribution; 3 unit tests; 628 tests pass
+- Surfaced operatorMode in Show Status with preset/explicit provenance; added 4 regression tests; AGENTS.md preset reference table; docs/workflows.md hardcore warning; 632 tests pass

@@ -1,5 +1,6 @@
 import * as path from 'path';
-import { RalphCodexConfig } from '../config/types';
+import { OperatorModeSettingProvenance } from '../config/readConfig';
+import { OperatorMode, RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
 import { EffectiveTierInfo } from './complexityScorer';
@@ -95,6 +96,13 @@ export interface RalphStatusSnapshot {
   effectiveTierInfo: EffectiveTierInfo | null;
   /** Effective tier for the task worked in the last completed iteration (null when unavailable). */
   lastTaskTierInfo: EffectiveTierInfo | null;
+  /** Active operator mode preset, or undefined when none is set. */
+  operatorMode: OperatorMode | undefined;
+  /**
+   * Per-setting provenance for all preset-affected keys.
+   * Non-null only when operatorMode is set.
+   */
+  operatorModeProvenance: OperatorModeSettingProvenance[] | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -346,10 +354,16 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
   const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
 
+  const operatorModeLines = snapshot.operatorModeProvenance
+    ? snapshot.operatorModeProvenance.map((entry) => `  - ${entry.key}: ${entry.value} (${entry.source})`)
+    : [];
+
   return [
     `# Ralph Status: ${snapshot.workspaceName}`,
     '',
     '## Loop',
+    `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
+    ...operatorModeLines,
     `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
     `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
     `- Next iteration: ${snapshot.nextIteration}`,

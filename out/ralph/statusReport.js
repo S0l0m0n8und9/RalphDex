@@ -237,10 +237,15 @@ function buildStatusReport(snapshot) {
     const scan = snapshot.workspaceScan;
     const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
     const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
+    const operatorModeLines = snapshot.operatorModeProvenance
+        ? snapshot.operatorModeProvenance.map((entry) => `  - ${entry.key}: ${entry.value} (${entry.source})`)
+        : [];
     return [
         `# Ralph Status: ${snapshot.workspaceName}`,
         '',
         '## Loop',
+        `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
+        ...operatorModeLines,
         `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
         `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
         `- Next iteration: ${snapshot.nextIteration}`,

@@ -178,6 +178,19 @@ On extension activation, Ralph scans `.ralph/artifacts/pipelines/` for resumable
    - `scm` → re-runs the SCM agent
 4. Continues writing phase checkpoints from that point so the run remains resumable if interrupted again.
 
+## Operator Mode Presets
+
+Set `ralphCodex.operatorMode` to apply a curated bundle of settings in one step. Ralph uses the preset values as fallbacks; any individually configured setting still takes precedence. `Show Status` reports each preset-affected setting and whether its current value came from the preset or an explicit override.
+
+Available modes:
+
+- **`simple`** — single supervised agent, human-review stops enabled, no SCM automation, verbatim memory.
+- **`multi-agent`** — three autonomous agents, branch-per-task SCM, model tiering, sliding-window memory, auto-backlog replenishment, watchdog and auto-review enabled.
+- **`hardcore`** — three autonomous agents with maximum automation: iteration cap 100, `summary` memory strategy, branch-per-task SCM, auto-remediation (`decompose_task` and `mark_blocked`) enabled, and pipeline human-review gates **disabled**.
+
+> **Warning — `hardcore` mode disables human-review gates and enables auto-remediation.**
+> With `operatorMode = hardcore`, `stopOnHumanReviewNeeded` is `false` and `autoApplyRemediation` includes both `decompose_task` and `mark_blocked`. Ralph will not pause for human approval when it detects a situation that normally requires review, and it will automatically rewrite `.ralph/tasks.json` when remediation fires. Only use this mode when you have tested the workspace against a representative task graph and trust the automated remediation path. Use `simple` or `multi-agent` first when starting a new project.
+
 ## Prompt Budgeting And Quota Control
 
 Ralph keeps prompt generation deterministic, but it does not render every prompt shape at the same size. Prompt budget policy is selected by prompt kind plus target so CLI execution gets enough context to act while IDE handoff stays tighter and easier to review.

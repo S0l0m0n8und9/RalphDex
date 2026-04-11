@@ -13,8 +13,7 @@ Ralphdex is a VS Code extension that:
 - Edit `src/` and `test/`. Treat `out/`, `out-test/`, and packaged `.vsix` files as generated artifacts.
 - Keep `AGENTS.md` thin: AGENTS.md is a routing/control document, not the place for detailed durable rules.
 - `package.json` is authoritative for commands, settings, activation events, scripts, and runtime expectations.
-- Keep docs aligned with code in the same change.
-- Prefer updating the focused doc that owns a rule instead of restating that rule elsewhere.
+- Keep docs aligned with code in the same change; prefer the focused doc that owns a rule over restating it elsewhere.
 
 ## Authoritative Doc Map
 
@@ -81,6 +80,16 @@ Validation entry points:
 - `npm run validate`: authoritative compile + type-check + test gate
 - `npm run test:activation`: thin real Extension Development Host smoke path
 
+## Operator Mode Presets
+
+`ralphCodex.operatorMode` applies a curated setting bundle; individual overrides take precedence. `Show Status` reports each preset-affected setting's source (`preset` vs `explicit`). Source of truth: `src/config/readConfig.ts` (`OPERATOR_PRESETS`). See [docs/workflows.md](docs/workflows.md#operator-mode-presets) for the `hardcore` safety warning.
+
+| Preset | Settings applied |
+|---|---|
+| `simple` | autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false, pipelineHumanGates=true, autoReviewOnParentDone=false, autoWatchdogOnStall=false, autoApplyRemediation=[], modelTiering.enabled=false |
+| `multi-agent` | autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=branch-per-task, memoryStrategy=sliding-window, autoReplenishBacklog=true, pipelineHumanGates=true, autoReviewOnParentDone=true, autoWatchdogOnStall=true, autoApplyRemediation=[], modelTiering.enabled=true |
+| `hardcore` | autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, ralphIterationCap=100, stopOnHumanReviewNeeded=false, scmStrategy=branch-per-task, memoryStrategy=summary, autoReplenishBacklog=true, pipelineHumanGates=false, autoReviewOnParentDone=true, autoWatchdogOnStall=true, autoApplyRemediation=decompose_task+mark_blocked, modelTiering.enabled=true |
+
 ## Task Schema
 
 `tasks.json` tasks may include an optional `tier` field (`simple` | `medium` | `complex`). When present, it overrides runtime heuristic scoring and forces `selectModelForTask` to use the declared tier directly. Omit it to let dynamic scoring decide.
@@ -98,8 +107,7 @@ Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md
 
 ## Brief Codex Boundaries
 
-- IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`.
+- IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`; do not invent direct composer injection or unsupported Codex IDE APIs.
 - Scripted automation is `codex exec`.
-- Do not invent direct composer injection or unsupported Codex IDE APIs.
 - `preferredHandoffMode = cliExec` does not make `Open Codex IDE` run the CLI.
 - CLI runs can prove prepared-and-executed prompt integrity; IDE handoff only proves the prepared prompt bundle.

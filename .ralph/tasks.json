@@ -2692,10 +2692,11 @@
     {
       "id": "T94",
       "title": "Operator mode presets Phases 3+4: surface active mode in Show Status and document in AGENTS.md",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T93"
       ],
+      "notes": "Surfaced operatorMode in Show Status with preset/explicit provenance; added 4 regression tests; AGENTS.md preset reference table; docs/workflows.md hardcore warning; 632 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "Show Status includes the active operatorMode label and whether each setting came from preset or explicit operator config",
@@ -2757,5 +2758,5 @@
       ]
     }
   ],
-  "mutationCount": 68
+  "mutationCount": 69
 }

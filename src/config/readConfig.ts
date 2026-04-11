@@ -298,6 +298,64 @@ function readHooks(
   return hooks;
 }
 
+export interface OperatorModeSettingProvenance {
+  key: string;
+  value: string;
+  source: 'preset' | 'explicit';
+}
+
+/**
+ * Returns per-setting provenance for all preset-affected keys when an operator mode is active.
+ * Returns null when no operator mode is set.
+ * For each setting, `source` is 'explicit' when the user has a workspace or global override,
+ * and 'preset' when the resolved value came from the preset fallback.
+ */
+export function resolveOperatorModeProvenance(
+  config: vscode.WorkspaceConfiguration,
+  resolvedConfig: RalphCodexConfig,
+  operatorMode: OperatorMode | undefined
+): OperatorModeSettingProvenance[] | null {
+  if (operatorMode === undefined) {
+    return null;
+  }
+
+  const checkKey = (key: string, resolvedValue: string): OperatorModeSettingProvenance => {
+    const inspect = config.inspect<unknown>(key);
+    const hasExplicit = inspect?.workspaceValue !== undefined || inspect?.globalValue !== undefined;
+    return { key, value: resolvedValue, source: hasExplicit ? 'explicit' : 'preset' };
+  };
+
+  const entries: OperatorModeSettingProvenance[] = [
+    checkKey('autonomyMode', resolvedConfig.autonomyMode),
+    checkKey('agentCount', String(resolvedConfig.agentCount)),
+    checkKey('preferredHandoffMode', resolvedConfig.preferredHandoffMode),
+    checkKey('ralphIterationCap', String(resolvedConfig.ralphIterationCap)),
+    checkKey('stopOnHumanReviewNeeded', String(resolvedConfig.stopOnHumanReviewNeeded)),
+    checkKey('scmStrategy', resolvedConfig.scmStrategy),
+    checkKey('memoryStrategy', resolvedConfig.memoryStrategy),
+    checkKey('autoReplenishBacklog', String(resolvedConfig.autoReplenishBacklog)),
+    checkKey('pipelineHumanGates', String(resolvedConfig.pipelineHumanGates)),
+    checkKey('autoReviewOnParentDone', String(resolvedConfig.autoReviewOnParentDone)),
+    checkKey('autoWatchdogOnStall', String(resolvedConfig.autoWatchdogOnStall)),
+    checkKey('autoApplyRemediation', resolvedConfig.autoApplyRemediation.join(', ') || 'none')
+  ];
+
+  // modelTiering.enabled needs special handling since it's nested and has a flat legacy key
+  const tieringInspect = config.inspect<unknown>('modelTiering');
+  const tieringRecord = (tieringInspect?.workspaceValue ?? tieringInspect?.globalValue) as Record<string, unknown> | undefined;
+  const enableInspect = config.inspect<boolean>('enableModelTiering');
+  const modelTieringExplicit = typeof tieringRecord?.enabled === 'boolean'
+    || enableInspect?.workspaceValue !== undefined
+    || enableInspect?.globalValue !== undefined;
+  entries.push({
+    key: 'modelTiering.enabled',
+    value: String(resolvedConfig.modelTiering.enabled),
+    source: modelTieringExplicit ? 'explicit' : 'preset'
+  });
+
+  return entries;
+}
+
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
