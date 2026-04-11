@@ -2783,10 +2783,11 @@
     {
       "id": "T99",
       "title": "Dynamic planning layer Phases 2+3: role-aware task claiming and role-specific prompt templates",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T98"
       ],
+      "notes": "Role-aware task claiming and role-specific prompt templates complete: selectNextTaskForRole, planning.md, review.md, parser updates, 10 new tests, 657 pass",
       "validation": "npm run validate",
       "acceptance": [
         "taskFile.ts claim acquisition checks the claiming agent's agentRole before selecting a task",
@@ -2865,5 +2866,5 @@
       ]
     }
   ],
-  "mutationCount": 74
+  "mutationCount": 75
 }

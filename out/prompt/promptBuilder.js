@@ -67,6 +67,8 @@ const TEMPLATE_FILE_BY_KIND = {
 const REVIEW_AGENT_TEMPLATE_FILE = 'review-agent.md';
 const WATCHDOG_AGENT_TEMPLATE_FILE = 'watchdog-agent.md';
 const SCM_AGENT_TEMPLATE_FILE = 'scm-agent.md';
+const PLANNING_AGENT_TEMPLATE_FILE = 'planning.md';
+const REVIEWER_AGENT_TEMPLATE_FILE = 'review.md';
 const PROMPT_INTRO_BY_KIND = {
     bootstrap: 'You are starting a fresh Ralph-guided Codex run inside an existing repository. Treat the repository and durable Ralph files as the source of truth.',
     iteration: 'You are continuing Ralph work from durable repository state, not from chat memory. Re-inspect the repo and selected task before editing.',
@@ -208,6 +210,22 @@ function effectiveAgentRole(config) {
     return config.agentRole ?? 'build';
 }
 function buildStrategyContext(target, kind, agentRole, taskLedgerDriftMessages = []) {
+    if (agentRole === 'planner') {
+        return [
+            `- Target: ${target === 'cliExec' ? 'Codex CLI planning execution via `codex exec`.' : 'manual Codex IDE planning handoff.'}`,
+            '- Operate in planning-only mode. Do not implement code changes.',
+            '- Analyse the selected task, break it into sub-steps if needed, and write a `task-plan.json` artifact.',
+            '- End with a completion report containing `proposedPlan`.'
+        ];
+    }
+    if (agentRole === 'reviewer') {
+        return [
+            `- Target: ${target === 'cliExec' ? 'Codex CLI review execution via `codex exec`.' : 'manual Codex IDE review handoff.'}`,
+            '- Operate in review-only mode. Do not implement code changes.',
+            '- Inspect the done task\'s artifacts, validation history, and changed files for quality issues.',
+            '- End with a completion report containing `reviewOutcome` and `reviewNotes`.'
+        ];
+    }
     if (agentRole === 'review') {
         return target === 'cliExec'
             ? [
@@ -577,6 +595,24 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
     ], budget);
 }
 function buildOperatingRules(agentRole, taskMode) {
+    if (agentRole === 'planner') {
+        return [
+            '- Read AGENTS.md plus the durable Ralph files before producing any plan.',
+            '- Do not implement code changes. This role produces plans and artifacts only.',
+            '- Write the task plan as a `task-plan.json` artifact under `.ralph/artifacts/<taskId>/`.',
+            '- Keep plans concrete, file-backed, and grounded in the actual repo state.',
+            '- Do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.'
+        ];
+    }
+    if (agentRole === 'reviewer') {
+        return [
+            '- Read AGENTS.md plus the durable Ralph files before making any review decisions.',
+            '- Do not implement fixes or refactors. This role audits done tasks and reports outcomes only.',
+            '- Keep the review evidence-driven and grounded in actual artifact and file state.',
+            '- Write the review result as a `review.json` artifact under `.ralph/artifacts/<taskId>/` when findings exist.',
+            '- Do not edit `.ralph/tasks.json` or `.ralph/progress.md`; return review results through the structured completion report instead.'
+        ];
+    }
     if (agentRole === 'review') {
         return [
             '- Read AGENTS.md plus the durable Ralph files before making non-trivial review decisions.',
@@ -626,6 +662,42 @@ function buildExecutionContract(target, kind, agentRole, taskMode) {
             contract.push('6. End with the concrete next task a human or later Ralph iteration should pick up.');
         }
         return contract;
+    }
+    if (agentRole === 'planner') {
+        if (target === 'cliExec') {
+            return [
+                '1. Inspect the workspace facts and the selected Ralph task before planning.',
+                '2. Analyse the task scope, acceptance criteria, and relevant files.',
+                '3. Produce a concrete step-by-step plan. Write it as `.ralph/artifacts/<taskId>/task-plan.json`.',
+                '4. Do not implement code changes. Planning artifacts only.',
+                '5. End with a fenced `json` completion report: `{ "selectedTaskId", "requestedStatus": "done", "proposedPlan": "<summary>", "suggestedValidationCommand"? }`.'
+            ];
+        }
+        return [
+            '1. Inspect the workspace facts and the selected Ralph task before planning.',
+            '2. Analyse the task scope, acceptance criteria, and relevant files.',
+            '3. Produce a concrete step-by-step plan describing what an implementer should do.',
+            '4. Do not make code changes. Emit the plan as a `task-plan.json` artifact.',
+            '5. End with the plan summary and the next human action.'
+        ];
+    }
+    if (agentRole === 'reviewer') {
+        if (target === 'cliExec') {
+            return [
+                '1. Inspect the workspace facts and the selected done task before reviewing.',
+                '2. Read task artifacts, changed files, and validation history.',
+                '3. Evaluate whether the task meets its acceptance criteria.',
+                '4. Do not make code changes. Write a `review.json` artifact with findings when issues exist.',
+                '5. End with a fenced `json` completion report: `{ "selectedTaskId", "requestedStatus", "reviewOutcome": "approved" | "changes_required", "reviewNotes"? }`.'
+            ];
+        }
+        return [
+            '1. Inspect the workspace facts and the selected done task before reviewing.',
+            '2. Read task artifacts, changed files, and validation evidence.',
+            '3. Evaluate whether the task meets its acceptance criteria.',
+            '4. Do not make code changes. Surface gaps clearly for human follow-up.',
+            '5. End with the review outcome and the next verification step.'
+        ];
     }
     if (agentRole === 'review') {
         if (target === 'cliExec') {
@@ -688,6 +760,34 @@ function buildFinalResponseContract(target, kind, agentRole, taskMode) {
             '- Whether a new actionable task now exists.',
             '- Any blocker that prevented safe backlog replenishment.'
         ];
+    }
+    if (agentRole === 'planner') {
+        return target === 'cliExec'
+            ? [
+                '- The task-plan.json artifact path.',
+                '- Summary of the proposed plan.',
+                '- Any blockers or ambiguities that prevent safe planning.',
+                '- End with a fenced `json` completion report block containing `proposedPlan`.'
+            ]
+            : [
+                '- The proposed plan and what an implementer should do.',
+                '- Any ambiguity or missing context that a human should resolve.',
+                '- The next concrete step for the implementing agent.'
+            ];
+    }
+    if (agentRole === 'reviewer') {
+        return target === 'cliExec'
+            ? [
+                '- The review.json artifact path (when findings exist).',
+                '- Review outcome: approved or changes_required.',
+                '- Specific findings and which acceptance criteria failed.',
+                '- End with a fenced `json` completion report block containing `reviewOutcome`.'
+            ]
+            : [
+                '- Review outcome: approved or changes_required.',
+                '- Specific findings and acceptance criteria gaps.',
+                '- The next human action or follow-up task.'
+            ];
     }
     if (agentRole === 'review') {
         return target === 'cliExec'
@@ -769,13 +869,17 @@ async function resolvePromptTemplateDirectory(rootPath, overrideDirectory) {
 }
 async function loadTemplate(kind, rootPath, overrideDirectory, agentRole) {
     const directory = await resolvePromptTemplateDirectory(rootPath, overrideDirectory);
-    const templateFile = agentRole === 'review'
-        ? REVIEW_AGENT_TEMPLATE_FILE
-        : agentRole === 'watchdog'
-            ? WATCHDOG_AGENT_TEMPLATE_FILE
-            : agentRole === 'scm'
-                ? SCM_AGENT_TEMPLATE_FILE
-                : TEMPLATE_FILE_BY_KIND[kind];
+    const templateFile = agentRole === 'planner'
+        ? PLANNING_AGENT_TEMPLATE_FILE
+        : agentRole === 'reviewer'
+            ? REVIEWER_AGENT_TEMPLATE_FILE
+            : agentRole === 'review'
+                ? REVIEW_AGENT_TEMPLATE_FILE
+                : agentRole === 'watchdog'
+                    ? WATCHDOG_AGENT_TEMPLATE_FILE
+                    : agentRole === 'scm'
+                        ? SCM_AGENT_TEMPLATE_FILE
+                        : TEMPLATE_FILE_BY_KIND[kind];
     const templatePath = path.join(directory, templateFile);
     const templateText = await fs.readFile(templatePath, 'utf8').then((text) => text.replace(/\r\n/g, '\n')).catch((error) => {
         throw new Error(`Failed to read Ralph prompt template ${templatePath}: ${error instanceof Error ? error.message : String(error)}`);

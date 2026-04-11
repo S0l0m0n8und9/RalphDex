@@ -47,6 +47,7 @@ exports.stringifyTaskFile = stringifyTaskFile;
 exports.countTaskStatuses = countTaskStatuses;
 exports.listSelectableTasks = listSelectableTasks;
 exports.selectNextTask = selectNextTask;
+exports.selectNextTaskForRole = selectNextTaskForRole;
 exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
 exports.isDocumentationMode = isDocumentationMode;
 exports.findTaskById = findTaskById;
@@ -839,6 +840,63 @@ function listSelectableTasks(taskFile) {
 }
 function selectNextTask(taskFile) {
     return listSelectableTasks(taskFile)[0] ?? null;
+}
+async function taskArtifactExists(artifactsDir, taskId, fileName) {
+    try {
+        await fs.access(path.join(artifactsDir, taskId, fileName));
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+/**
+ * Selects the next task appropriate for the given agent role.
+ *
+ * - planner: picks the first selectable todo task that has no task-plan.json artifact.
+ * - implementer: prefers todo tasks that already have a task-plan.json; falls back to
+ *   any selectable task when none are planned yet.
+ * - reviewer: picks the first done task that has no review.json artifact.
+ * - All other roles: delegates to selectNextTask (no role filtering).
+ *
+ * Returns null when the role has no claimable task (agent should idle).
+ */
+async function selectNextTaskForRole(taskFile, agentRole, artifactsDir) {
+    if (agentRole === 'planner') {
+        const sortByPriority = (tasks) => [...tasks].sort((l, r) => taskPriorityOrder(l) - taskPriorityOrder(r));
+        const todoTasks = sortByPriority(taskFile.tasks.filter((task) => task.status === 'todo' && isTaskSelectable(taskFile, task)));
+        for (const task of todoTasks) {
+            const hasPlan = await taskArtifactExists(artifactsDir, task.id, 'task-plan.json');
+            if (!hasPlan) {
+                return task;
+            }
+        }
+        return null;
+    }
+    if (agentRole === 'implementer') {
+        const selectable = listSelectableTasks(taskFile);
+        // Prefer tasks that already have a task-plan.json.
+        for (const task of selectable) {
+            const hasPlan = await taskArtifactExists(artifactsDir, task.id, 'task-plan.json');
+            if (hasPlan) {
+                return task;
+            }
+        }
+        // Fall back to any selectable task when no planned tasks are available.
+        return selectable[0] ?? null;
+    }
+    if (agentRole === 'reviewer') {
+        const sortByPriority = (tasks) => [...tasks].sort((l, r) => taskPriorityOrder(l) - taskPriorityOrder(r));
+        const doneTasks = sortByPriority(taskFile.tasks.filter((task) => task.status === 'done'));
+        for (const task of doneTasks) {
+            const hasReview = await taskArtifactExists(artifactsDir, task.id, 'review.json');
+            if (!hasReview) {
+                return task;
+            }
+        }
+        return null;
+    }
+    return selectNextTask(taskFile);
 }
 function collectAncestors(taskFile, taskId) {
     const ancestors = [];

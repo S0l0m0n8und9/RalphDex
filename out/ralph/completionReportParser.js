@@ -20,6 +20,9 @@ function sanitizeCompletionText(value, maximumLength = 400) {
 function isAllowedCompletionStatus(value) {
     return value === 'done' || value === 'blocked' || value === 'in_progress';
 }
+function isAllowedReviewOutcome(value) {
+    return value === 'approved' || value === 'changes_required';
+}
 function isAllowedWatchdogActionType(value) {
     return value === 'resolve_stale_claim' || value === 'decompose_task' || value === 'escalate_to_human';
 }
@@ -307,7 +310,10 @@ function parseCompletionReport(lastMessage) {
         validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
         needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
         suggestedChildTasks,
-        watchdog_actions: watchdogActions
+        watchdog_actions: watchdogActions,
+        proposedPlan: sanitizeCompletionText(typeof candidate.proposedPlan === 'string' ? candidate.proposedPlan : undefined, 4000),
+        reviewOutcome: isAllowedReviewOutcome(candidate.reviewOutcome) ? candidate.reviewOutcome : undefined,
+        reviewNotes: sanitizeCompletionText(typeof candidate.reviewNotes === 'string' ? candidate.reviewNotes : undefined)
     };
     return {
         status: 'parsed',
