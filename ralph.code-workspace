@@ -24,6 +24,8 @@
 				"provider": "claude"
 			}
 		},
-		"ralphCodex.ralphIterationCap": 15
+		"ralphCodex.ralphIterationCap": 15,
+		"ralphCodex.agentCount": 1,
+		"ralphCodex.scmStrategy": "commit-on-done"
 	}
 }

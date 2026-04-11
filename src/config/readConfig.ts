@@ -11,6 +11,7 @@ import {
   CodexReasoningEffort,
   CodexSandboxMode,
   MemoryStrategy,
+  OperatorMode,
   PromptCachingMode,
   RalphCodexConfig,
   RalphAutonomyMode,
@@ -151,6 +152,66 @@ function readPromptBudgetOverrideMap(
 
 const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'azure-foundry'];
 
+interface OperatorPreset {
+  autonomyMode: RalphAutonomyMode;
+  agentCount: number;
+  preferredHandoffMode: CodexHandoffMode;
+  modelTieringEnabled: boolean;
+  ralphIterationCap: number;
+  stopOnHumanReviewNeeded: boolean;
+  scmStrategy: RalphScmStrategy;
+  memoryStrategy: MemoryStrategy;
+  autoReplenishBacklog: boolean;
+  pipelineHumanGates: boolean;
+  autoReviewOnParentDone?: boolean;
+  autoWatchdogOnStall?: boolean;
+  autoApplyRemediation?: AutoApplyRemediationAction[];
+}
+
+const OPERATOR_PRESETS: Record<OperatorMode, OperatorPreset> = {
+  simple: {
+    autonomyMode: 'supervised',
+    agentCount: 1,
+    preferredHandoffMode: 'ideCommand',
+    modelTieringEnabled: false,
+    ralphIterationCap: 20,
+    stopOnHumanReviewNeeded: true,
+    scmStrategy: 'none',
+    memoryStrategy: 'verbatim',
+    autoReplenishBacklog: false,
+    pipelineHumanGates: true
+  },
+  'multi-agent': {
+    autonomyMode: 'autonomous',
+    agentCount: 3,
+    preferredHandoffMode: 'cliExec',
+    modelTieringEnabled: true,
+    ralphIterationCap: DEFAULT_CONFIG.ralphIterationCap,
+    stopOnHumanReviewNeeded: DEFAULT_CONFIG.stopOnHumanReviewNeeded,
+    scmStrategy: 'branch-per-task',
+    memoryStrategy: 'sliding-window',
+    autoReplenishBacklog: true,
+    pipelineHumanGates: true,
+    autoReviewOnParentDone: true,
+    autoWatchdogOnStall: true
+  },
+  hardcore: {
+    autonomyMode: 'autonomous',
+    agentCount: 3,
+    preferredHandoffMode: 'cliExec',
+    modelTieringEnabled: true,
+    ralphIterationCap: 100,
+    stopOnHumanReviewNeeded: DEFAULT_CONFIG.stopOnHumanReviewNeeded,
+    scmStrategy: 'branch-per-task',
+    memoryStrategy: 'summary',
+    autoReplenishBacklog: true,
+    pipelineHumanGates: false,
+    autoReviewOnParentDone: true,
+    autoWatchdogOnStall: true,
+    autoApplyRemediation: ['decompose_task', 'mark_blocked']
+  }
+};
+
 function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
   // Accept a plain string (backward-compat: old flat `simpleModel` format).
   if (typeof raw === 'string' && raw.trim()) {
@@ -240,6 +301,13 @@ function readHooks(
 export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexConfig {
   const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
 
+  const rawOperatorMode = config.get<string>('operatorMode');
+  const operatorMode: OperatorMode | undefined =
+    rawOperatorMode === 'simple' || rawOperatorMode === 'multi-agent' || rawOperatorMode === 'hardcore'
+      ? rawOperatorMode
+      : undefined;
+  const preset = operatorMode !== undefined ? OPERATOR_PRESETS[operatorMode] : undefined;
+
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
@@ -250,14 +318,14 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     config,
     'autonomyMode',
     ['supervised', 'autonomous'],
-    DEFAULT_CONFIG.autonomyMode
+    preset?.autonomyMode ?? DEFAULT_CONFIG.autonomyMode
   );
   const openSidebarFallback = getDefaultOpenSidebarCommandId(cliProvider);
   const newChatFallback = getDefaultNewChatCommandId(cliProvider);
   const autoReplenishBacklog = readBoolean(
     config,
     'autoReplenishBacklog',
-    DEFAULT_CONFIG.autoReplenishBacklog
+    preset?.autoReplenishBacklog ?? DEFAULT_CONFIG.autoReplenishBacklog
   );
   const autoReloadOnControlPlaneChange = readBoolean(
     config,
@@ -268,7 +336,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     config,
     'autoApplyRemediation',
     ['decompose_task', 'mark_blocked'],
-    DEFAULT_CONFIG.autoApplyRemediation
+    preset?.autoApplyRemediation ?? DEFAULT_CONFIG.autoApplyRemediation
   );
   const effectiveAutonomy = autonomyMode === 'autonomous'
     ? {
@@ -317,14 +385,14 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       config,
       'preferredHandoffMode',
       ['ideCommand', 'clipboard', 'cliExec'],
-      DEFAULT_CONFIG.preferredHandoffMode
+      preset?.preferredHandoffMode ?? DEFAULT_CONFIG.preferredHandoffMode
     ),
     inspectionRootOverride: readString(
       config,
       'inspectionRootOverride',
       DEFAULT_CONFIG.inspectionRootOverride
     ),
-    ralphIterationCap: readNumber(config, 'ralphIterationCap', DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+    ralphIterationCap: readNumber(config, 'ralphIterationCap', preset?.ralphIterationCap ?? DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
     verifierModes: readEnumArray<RalphVerifierMode>(
       config,
       'verifierModes',
@@ -370,7 +438,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       config,
       'scmStrategy',
       ['none', 'commit-on-done', 'branch-per-task'],
-      DEFAULT_CONFIG.scmStrategy
+      preset?.scmStrategy ?? DEFAULT_CONFIG.scmStrategy
     ),
     scmPrOnParentDone: readBoolean(
       config,
@@ -391,7 +459,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     stopOnHumanReviewNeeded: readBoolean(
       config,
       'stopOnHumanReviewNeeded',
-      DEFAULT_CONFIG.stopOnHumanReviewNeeded
+      preset?.stopOnHumanReviewNeeded ?? DEFAULT_CONFIG.stopOnHumanReviewNeeded
     ),
     autonomyMode,
     autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
@@ -447,7 +515,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
     claimTtlHours: readNumber(config, 'claimTtlHours', DEFAULT_CONFIG.claimTtlHours, 1),
     staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
-    agentCount: readNumber(config, 'agentCount', DEFAULT_CONFIG.agentCount, 1),
+    agentCount: readNumber(config, 'agentCount', preset?.agentCount ?? DEFAULT_CONFIG.agentCount, 1),
     modelTiering: (() => {
       const tiering = readModelTiering(config, DEFAULT_CONFIG.modelTiering);
       // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
@@ -457,16 +525,23 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       const enableOverride = enableInspect?.workspaceValue ?? enableInspect?.globalValue;
       if (typeof enableOverride === 'boolean') {
         tiering.enabled = enableOverride;
+      } else if (preset?.modelTieringEnabled !== undefined) {
+        // Apply preset value when modelTiering.enabled was not explicitly set.
+        const tieringInspect = config.inspect<unknown>('modelTiering');
+        const tieringRecord = (tieringInspect?.workspaceValue ?? tieringInspect?.globalValue) as Record<string, unknown> | undefined;
+        if (typeof tieringRecord?.enabled !== 'boolean') {
+          tiering.enabled = preset.modelTieringEnabled;
+        }
       }
       return tiering;
     })(),
     hooks: readHooks(config, DEFAULT_CONFIG.hooks),
-    autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', DEFAULT_CONFIG.autoWatchdogOnStall),
-    autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', DEFAULT_CONFIG.autoReviewOnParentDone),
+    autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', preset?.autoWatchdogOnStall ?? DEFAULT_CONFIG.autoWatchdogOnStall),
+    autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', preset?.autoReviewOnParentDone ?? DEFAULT_CONFIG.autoReviewOnParentDone),
     autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', DEFAULT_CONFIG.autoReviewOnLoopComplete),
     autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', DEFAULT_CONFIG.autoScmOnConflict),
     scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1),
-    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', DEFAULT_CONFIG.pipelineHumanGates),
+    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', preset?.pipelineHumanGates ?? DEFAULT_CONFIG.pipelineHumanGates),
     cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
     promptCaching: readEnum<PromptCachingMode>(
       config,
@@ -478,9 +553,10 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       config,
       'memoryStrategy',
       ['verbatim', 'sliding-window', 'summary'],
-      DEFAULT_CONFIG.memoryStrategy
+      preset?.memoryStrategy ?? DEFAULT_CONFIG.memoryStrategy
     ),
     memoryWindowSize: readNumber(config, 'memoryWindowSize', DEFAULT_CONFIG.memoryWindowSize, 1),
-    memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1)
+    memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1),
+    operatorMode
   };
 }

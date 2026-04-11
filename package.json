@@ -90,7 +90,8 @@
         "ralphCodex.promptCaching",
         "ralphCodex.memoryStrategy",
         "ralphCodex.memoryWindowSize",
-        "ralphCodex.memorySummaryThreshold"
+        "ralphCodex.memorySummaryThreshold",
+        "ralphCodex.operatorMode"
       ]
     },
     "virtualWorkspaces": {
@@ -681,6 +682,16 @@
           "minimum": 1,
           "maximum": 500,
           "description": "Minimum iteration count before automatic summarisation is triggered when memoryStrategy is summary. Reserved for future use."
+        },
+        "ralphCodex.operatorMode": {
+          "type": "string",
+          "enum": ["simple", "multi-agent", "hardcore"],
+          "enumDescriptions": [
+            "Single-agent supervised mode. Sets autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, modelTiering.enabled=false, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false, pipelineHumanGates=true.",
+            "Multi-agent autonomous mode. Sets autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, modelTiering.enabled=true, scmStrategy=branch-per-task, autoReplenishBacklog=true, autoReviewOnParentDone=true, memoryStrategy=sliding-window, autoWatchdogOnStall=true, pipelineHumanGates=true.",
+            "Fully autonomous high-capability mode. All multi-agent values plus ralphIterationCap=100, memoryStrategy=summary, pipelineHumanGates=false, autoApplyRemediation=[decompose_task, mark_blocked], modelTiering.complex.model=claude-opus-4-6."
+          ],
+          "description": "Operator mode preset that seeds baseline values for multiple Ralph settings. Individual settings always override the preset when explicitly configured. Omit to keep existing per-setting defaults."
         },
         "ralphCodex.enableModelTiering": {
           "type": "boolean",

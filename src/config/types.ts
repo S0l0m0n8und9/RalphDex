@@ -30,6 +30,8 @@ export type PromptCachingMode = 'auto' | 'force' | 'off';
 
 export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
 
+export type OperatorMode = 'simple' | 'multi-agent' | 'hardcore';
+
 /**
  * Per-tier model + optional provider override.
  * When `provider` is omitted the workspace's default `cliProvider` is used.
@@ -150,4 +152,5 @@ export interface RalphCodexConfig {
   memoryStrategy: MemoryStrategy;
   memoryWindowSize: number;
   memorySummaryThreshold: number;
+  operatorMode?: OperatorMode;
 }

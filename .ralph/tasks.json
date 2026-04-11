@@ -2673,7 +2673,8 @@
     {
       "id": "T93",
       "title": "Operator mode presets Phases 1+2: schema, package.json, and preset resolution in readConfig",
-      "status": "todo",
+      "status": "done",
+      "notes": "Added OperatorMode type + operatorMode field to config; OPERATOR_PRESETS map for simple/multi-agent/hardcore; preset resolution as fallback in readConfig; package.json enum contribution; 3 unit tests; 628 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "operatorMode?: 'simple' | 'multi-agent' | 'hardcore' added to RalphCodexConfig in src/config/types.ts with default undefined",
@@ -2756,5 +2757,5 @@
       ]
     }
   ],
-  "mutationCount": 67
+  "mutationCount": 68
 }
