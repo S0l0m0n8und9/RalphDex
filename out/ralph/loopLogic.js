@@ -8,6 +8,7 @@ exports.detectNoProgressSignals = detectNoProgressSignals;
 exports.classifyIterationOutcome = classifyIterationOutcome;
 exports.buildTaskRemediation = buildTaskRemediation;
 exports.decideLoopContinuation = decideLoopContinuation;
+exports.shouldRunFailureDiagnostic = shouldRunFailureDiagnostic;
 const types_1 = require("./types");
 const BACKLOG_REPLENISHMENT_DRIFT_CODES = new Set([
     'ledger_drift',
@@ -386,5 +387,17 @@ function decideLoopContinuation(input) {
         stopReason: null,
         message: 'Continue to the next Ralph iteration.'
     };
+}
+/**
+ * Returns true when Ralph should run a failure diagnostic pass.
+ *
+ * The diagnostic is warranted when the loop is stopping due to a blocked task
+ * or a failed verifier, and diagnostics are not suppressed by config.
+ */
+function shouldRunFailureDiagnostic(completionClassification, verificationStatus, mode) {
+    if (mode === 'off') {
+        return false;
+    }
+    return completionClassification === 'blocked' || verificationStatus === 'failed';
 }
 //# sourceMappingURL=loopLogic.js.map

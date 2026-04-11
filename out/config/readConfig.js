@@ -394,7 +394,9 @@ function readConfig(workspaceFolder) {
         memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1),
         operatorMode,
         prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate),
-        planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass)
+        planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass),
+        failureDiagnostics: readEnum(config, 'failureDiagnostics', ['auto', 'off'], defaults_1.DEFAULT_CONFIG.failureDiagnostics),
+        maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', defaults_1.DEFAULT_CONFIG.maxRecoveryAttempts, 1)
     };
 }
 //# sourceMappingURL=readConfig.js.map

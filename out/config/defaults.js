@@ -78,6 +78,8 @@ exports.DEFAULT_CONFIG = {
     planningPass: {
         enabled: false,
         mode: 'inline'
-    }
+    },
+    failureDiagnostics: 'auto',
+    maxRecoveryAttempts: 3
 };
 //# sourceMappingURL=defaults.js.map
