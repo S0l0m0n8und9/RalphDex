@@ -204,3 +204,4 @@
 - Added ralphCodex.promptCaching (auto/force/off, default auto); off suppresses cache_control in AzureFoundryProvider.executeDirectly; force emits warning on CLI-based providers lacking direct-HTTPS caching; 4 new unit tests; docs/prompt-calibration.md updated
 - Added 'Prompt Caching And Azure AI Foundry' section to docs/model-tiering.md covering supported model families, CLI-implicit vs direct-API-explicit caching distinction, and step-by-step Azure Monitor cache-hit verification.
 - Added RalphTaskTier type and tier field to RalphTask/RalphSuggestedChildTask; selectModelForTask short-circuits on explicit tier with explicit signal; taskDecomposition propagates tier to children; 3 unit tests added; all 607 tests pass
+- Added Task Schema section to AGENTS.md documenting optional tier field with example; added tier to invariants.md schema fragment; check:docs passes

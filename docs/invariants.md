@@ -46,7 +46,8 @@ These paths are stable parts of the product contract:
       "title": "Child task",
       "status": "todo",
       "parentId": "T1",
-      "dependsOn": ["T1"]
+      "dependsOn": ["T1"],
+      "tier": "simple"
     }
   ]
 }

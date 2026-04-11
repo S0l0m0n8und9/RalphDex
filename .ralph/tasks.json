@@ -2589,10 +2589,11 @@
     {
       "id": "T88",
       "title": "Static task-complexity tier Phase 3: document tier field in AGENTS.md",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T87"
       ],
+      "notes": "Added Task Schema section to AGENTS.md documenting optional tier field with example; added tier to invariants.md schema fragment; check:docs passes",
       "validation": "npm run check:docs",
       "acceptance": [
         "AGENTS.md task-schema section documents the optional tier field (simple|medium|complex) with a note that it overrides runtime scoring",
@@ -2633,5 +2634,5 @@
       ]
     }
   ],
-  "mutationCount": 61
+  "mutationCount": 62
 }

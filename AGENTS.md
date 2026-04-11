@@ -81,6 +81,21 @@ Validation entry points:
 - `npm run validate`: authoritative compile + type-check + test gate
 - `npm run test:activation`: thin real Extension Development Host smoke path
 
+## Task Schema
+
+`tasks.json` tasks may include an optional `tier` field (`simple` | `medium` | `complex`). When present, it overrides runtime heuristic scoring and forces `selectModelForTask` to use the declared tier directly. Omit it to let dynamic scoring decide.
+
+```json
+{
+  "id": "T5",
+  "title": "Implement caching layer",
+  "status": "todo",
+  "tier": "complex"
+}
+```
+
+Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md#task-graph-invariants).
+
 ## Brief Codex Boundaries
 
 - IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`.
