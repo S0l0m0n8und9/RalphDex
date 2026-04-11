@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
-import { buildStatusReport, RalphStatusSnapshot } from '../src/ralph/statusReport';
+import { buildStatusReport, EffectiveTierInfo, RalphStatusSnapshot } from '../src/ralph/statusReport';
 import { RalphTaskClaimGraphInspection } from '../src/ralph/taskFile';
 import { RalphPromptEvidence } from '../src/ralph/types';
 
@@ -559,6 +559,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     currentProvenanceId: 'run-i003-cli-20260307T000600Z',
     latestPipelineRunPath: null,
     latestPipelineRun: null,
+    effectiveTierInfo: null,
+    lastTaskTierInfo: null,
     ...overrides,
     recommendedSkills: overrides.recommendedSkills ?? []
   };
@@ -1179,4 +1181,48 @@ test('buildStatusReport omits Recommended Skills section when skills array is em
   const report = buildStatusReport(snapshot({ recommendedSkills: [] }));
 
   assert.doesNotMatch(report, /## Recommended Skills/);
+});
+
+// ---------------------------------------------------------------------------
+// Tier rendering
+// ---------------------------------------------------------------------------
+
+test('buildStatusReport shows scored tier for current task', () => {
+  const tierInfo: EffectiveTierInfo = { tier: 'medium', source: 'scored', score: 3 };
+  const report = buildStatusReport(snapshot({ effectiveTierInfo: tierInfo }));
+  assert.match(report, /- Current task:.*T2.*\[tier: medium \(scored, score=3\)\]/);
+});
+
+test('buildStatusReport shows explicit tier for current task', () => {
+  const tierInfo: EffectiveTierInfo = { tier: 'complex', source: 'explicit', score: null };
+  const report = buildStatusReport(snapshot({ effectiveTierInfo: tierInfo }));
+  assert.match(report, /- Current task:.*T2.*\[tier: complex \(explicit\)\]/);
+});
+
+test('buildStatusReport shows simple scored tier for current task', () => {
+  const tierInfo: EffectiveTierInfo = { tier: 'simple', source: 'scored', score: 0 };
+  const report = buildStatusReport(snapshot({ effectiveTierInfo: tierInfo }));
+  assert.match(report, /- Current task:.*T2.*\[tier: simple \(scored, score=0\)\]/);
+});
+
+test('buildStatusReport omits tier suffix for current task when effectiveTierInfo is null', () => {
+  const report = buildStatusReport(snapshot({ effectiveTierInfo: null }));
+  assert.doesNotMatch(report, /- Current task:.*\[tier:/);
+});
+
+test('buildStatusReport shows scored tier for last task', () => {
+  const tierInfo: EffectiveTierInfo = { tier: 'complex', source: 'scored', score: 7 };
+  const report = buildStatusReport(snapshot({ lastTaskTierInfo: tierInfo }));
+  assert.match(report, /- Last task:.*T1.*\[tier: complex \(scored, score=7\)\]/);
+});
+
+test('buildStatusReport shows explicit tier for last task', () => {
+  const tierInfo: EffectiveTierInfo = { tier: 'simple', source: 'explicit', score: null };
+  const report = buildStatusReport(snapshot({ lastTaskTierInfo: tierInfo }));
+  assert.match(report, /- Last task:.*T1.*\[tier: simple \(explicit\)\]/);
+});
+
+test('buildStatusReport omits tier suffix for last task when lastTaskTierInfo is null', () => {
+  const report = buildStatusReport(snapshot({ lastTaskTierInfo: null }));
+  assert.doesNotMatch(report, /- Last task:.*\[tier:/);
 });

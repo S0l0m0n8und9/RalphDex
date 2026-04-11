@@ -2,6 +2,7 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
+import { EffectiveTierInfo } from './complexityScorer';
 import { deriveRootPolicy } from './rootPolicy';
 import { PipelineRunArtifact } from './pipeline';
 import {
@@ -27,6 +28,8 @@ import {
   RalphWorkspaceState
 } from './types';
 import { GitStatusSnapshot } from './verifier';
+
+export { EffectiveTierInfo };
 
 export interface RalphLatestRemediationStatus {
   trigger: RalphTaskRemediation['trigger'];
@@ -88,6 +91,10 @@ export interface RalphStatusSnapshot {
   latestPipelineRunPath: string | null;
   latestPipelineRun: PipelineRunArtifact | null;
   recommendedSkills: RecommendedSkill[];
+  /** Effective tier for the currently selected task (null when no task is selected). */
+  effectiveTierInfo: EffectiveTierInfo | null;
+  /** Effective tier for the task worked in the last completed iteration (null when unavailable). */
+  lastTaskTierInfo: EffectiveTierInfo | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -282,6 +289,16 @@ function formatRecentRun(entry: RalphWorkspaceState['runHistory'][number]): stri
   return `- #${entry.iteration}: ${entry.mode} ${entry.promptKind} | ${entry.status} | exit ${entry.exitCode ?? 'none'}`;
 }
 
+function formatTierSuffix(tierInfo: EffectiveTierInfo | null): string {
+  if (!tierInfo) {
+    return '';
+  }
+  if (tierInfo.source === 'explicit') {
+    return ` [tier: ${tierInfo.tier} (explicit)]`;
+  }
+  return ` [tier: ${tierInfo.tier} (scored, score=${tierInfo.score})]`;
+}
+
 export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const renderDiagnostic = (diagnostic: RalphStatusSnapshot['preflightReport']['diagnostics'][number]): string =>
     `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
@@ -315,7 +332,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const currentRootPolicy = latestPlan?.rootPolicy ?? deriveRootPolicy(snapshot.workspaceScan);
   const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
   const lastTaskLabel = lastIteration?.selectedTaskId
-    ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}`
+    ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}${formatTierSuffix(snapshot.lastTaskTierInfo)}`
     : 'none';
   const lastPromptLabel = lastIteration
     ? `${lastIteration.promptKind} (${lastIntegrity?.promptTarget ?? 'unknown'})`
@@ -336,7 +353,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
     `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
     `- Next iteration: ${snapshot.nextIteration}`,
-    `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}` : 'none'}`,
+    `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}${formatTierSuffix(snapshot.effectiveTierInfo)}` : 'none'}`,
     `- Current prompt kind: ${latestPlan?.promptKind ?? 'none'}`,
     `- Current target mode: ${latestPlan?.promptTarget ?? 'none'}`,
     `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,

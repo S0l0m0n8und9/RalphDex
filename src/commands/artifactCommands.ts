@@ -23,6 +23,7 @@ import {
   buildMultiAgentStatusReport,
   computeStuckScore,
 } from '../ralph/multiAgentStatus';
+import type { RalphTask, RalphTaskTier } from '../ralph/types';
 import {
   collectStatusSnapshot,
   firstExistingPath,
@@ -448,6 +449,23 @@ async function readAllHandoffsForAgent(handoffDir: string, agentId: string): Pro
     .sort((a, b) => a.iteration - b.iteration);
 }
 
+function buildTaskTierLookup(rawTaskFile: unknown): Map<string, RalphTask> {
+  const lookup = new Map<string, RalphTask>();
+  if (typeof rawTaskFile !== 'object' || rawTaskFile === null) {
+    return lookup;
+  }
+  const record = rawTaskFile as Record<string, unknown>;
+  if (!Array.isArray(record.tasks)) {
+    return lookup;
+  }
+  for (const task of record.tasks) {
+    if (typeof task === 'object' && task !== null && typeof (task as Record<string, unknown>).id === 'string') {
+      lookup.set((task as Record<string, unknown>).id as string, task as RalphTask);
+    }
+  }
+  return lookup;
+}
+
 async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: string): Promise<AgentStatusSummary[]> {
   const agentsDir = path.join(ralphDir, 'agents');
   const handoffDir = path.join(ralphDir, 'handoff');
@@ -461,7 +479,11 @@ async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: st
     return [];
   }
 
-  const claimGraph = await inspectTaskClaimGraph(claimFilePath).catch(() => null);
+  const [claimGraph, rawTaskFile] = await Promise.all([
+    inspectTaskClaimGraph(claimFilePath).catch(() => null),
+    readJsonArtifact(path.join(ralphDir, 'tasks.json'))
+  ]);
+  const taskLookup = buildTaskTierLookup(rawTaskFile);
 
   const summaries = await Promise.all(
     agentFiles.map(async (fileName): Promise<AgentStatusSummary> => {
@@ -478,6 +500,14 @@ async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: st
       );
       const activeClaimTaskId = activeClaimEntry?.taskId ?? null;
 
+      const activeClaimTask = activeClaimTaskId ? taskLookup.get(activeClaimTaskId) ?? null : null;
+      const activeClaimTaskTier: RalphTaskTier | null = activeClaimTask?.tier ?? null;
+      const activeClaimTaskTierSource: 'explicit' | 'dynamic' | null = activeClaimTaskId === null
+        ? null
+        : activeClaimTask?.tier
+          ? 'explicit'
+          : 'dynamic';
+
       const handoffHistory = await readAllHandoffsForAgent(handoffDir, agentId);
       const stuckScore = computeStuckScore(handoffHistory);
       const latestHandoff = handoffHistory.length > 0 ? handoffHistory[handoffHistory.length - 1] : null;
@@ -487,6 +517,8 @@ async function readMultiAgentStatusSummaries(ralphDir: string, claimFilePath: st
         firstSeenAt,
         completedTaskCount,
         activeClaimTaskId,
+        activeClaimTaskTier,
+        activeClaimTaskTierSource,
         handoffHistory,
         latestHandoff,
         stuckScore,

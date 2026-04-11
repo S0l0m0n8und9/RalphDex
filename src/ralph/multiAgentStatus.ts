@@ -6,6 +6,8 @@
  * artifactCommands.ts; only computation and rendering live here.
  */
 
+import type { RalphTaskTier } from './types';
+
 export interface AgentHandoffSummary {
   iteration: number;
   selectedTaskId: string | null;
@@ -29,6 +31,17 @@ export interface AgentStatusSummary {
    * as no_progress.  A score >= STUCK_SCORE_THRESHOLD is surfaced as a warning.
    */
   stuckScore: number;
+  /**
+   * Explicit static tier set on the active claim task, or null when the task
+   * has no explicit tier or there is no active claim.
+   */
+  activeClaimTaskTier: RalphTaskTier | null;
+  /**
+   * 'explicit' when activeClaimTaskTier comes from the task's tier field;
+   * 'dynamic' when no explicit tier is set (heuristic scoring will apply at runtime);
+   * null when there is no active claim.
+   */
+  activeClaimTaskTierSource: 'explicit' | 'dynamic' | null;
 }
 
 /** Agents at or above this consecutive-no-progress count are flagged as stuck. */
@@ -114,7 +127,12 @@ export function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): st
     const agentPrefix = isStuck ? 'WARNING Agent' : 'Agent';
     lines.push(`${agentPrefix}: ${summary.agentId}${summary.firstSeenAt ? ` (first seen: ${summary.firstSeenAt})` : ''}`);
     lines.push(`  Tasks completed: ${summary.completedTaskCount}`);
-    lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}`);
+    const claimTierSuffix = summary.activeClaimTaskTierSource === null
+      ? ''
+      : summary.activeClaimTaskTierSource === 'explicit'
+        ? ` [tier: ${summary.activeClaimTaskTier} (explicit)]`
+        : ' [tier: dynamic]';
+    lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}${claimTierSuffix}`);
 
     if (isStuck) {
       lines.push(

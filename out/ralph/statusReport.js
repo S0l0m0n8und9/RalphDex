@@ -183,6 +183,15 @@ function formatRecentIteration(entry) {
 function formatRecentRun(entry) {
     return `- #${entry.iteration}: ${entry.mode} ${entry.promptKind} | ${entry.status} | exit ${entry.exitCode ?? 'none'}`;
 }
+function formatTierSuffix(tierInfo) {
+    if (!tierInfo) {
+        return '';
+    }
+    if (tierInfo.source === 'explicit') {
+        return ` [tier: ${tierInfo.tier} (explicit)]`;
+    }
+    return ` [tier: ${tierInfo.tier} (scored, score=${tierInfo.score})]`;
+}
 function buildStatusReport(snapshot) {
     const renderDiagnostic = (diagnostic) => `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
     const lastIteration = snapshot.lastIteration;
@@ -215,7 +224,7 @@ function buildStatusReport(snapshot) {
     const currentRootPolicy = latestPlan?.rootPolicy ?? (0, rootPolicy_1.deriveRootPolicy)(snapshot.workspaceScan);
     const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
     const lastTaskLabel = lastIteration?.selectedTaskId
-        ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}`
+        ? `${lastIteration.selectedTaskId}${lastIteration.selectedTaskTitle ? ` - ${lastIteration.selectedTaskTitle}` : ''}${formatTierSuffix(snapshot.lastTaskTierInfo)}`
         : 'none';
     const lastPromptLabel = lastIteration
         ? `${lastIteration.promptKind} (${lastIntegrity?.promptTarget ?? 'unknown'})`
@@ -235,7 +244,7 @@ function buildStatusReport(snapshot) {
         `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
         `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
         `- Next iteration: ${snapshot.nextIteration}`,
-        `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}` : 'none'}`,
+        `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}${formatTierSuffix(snapshot.effectiveTierInfo)}` : 'none'}`,
         `- Current prompt kind: ${latestPlan?.promptKind ?? 'none'}`,
         `- Current target mode: ${latestPlan?.promptTarget ?? 'none'}`,
         `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,

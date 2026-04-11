@@ -13,7 +13,7 @@
  *   score >= complexThreshold → complex model (e.g. claude-opus)
  */
 
-import { RalphCompletionClassification, RalphIterationResult, RalphTask, RalphTaskFile } from './types';
+import { RalphCompletionClassification, RalphIterationResult, RalphTask, RalphTaskFile, RalphTaskTier } from './types';
 import { CliProviderId, RalphModelTieringConfig } from '../config/types';
 
 export interface ComplexityScore {
@@ -144,4 +144,42 @@ export function selectModelForTask(input: {
   }
 
   return { model: tier.model, provider: tier.provider, score };
+}
+
+/** Resolved complexity tier with the source that determined it. */
+export interface EffectiveTierInfo {
+  tier: RalphTaskTier;
+  /** 'explicit' when the task carries a static tier field; 'scored' when derived from heuristics. */
+  source: 'explicit' | 'scored';
+  /** Complexity score used for threshold mapping; null when source is 'explicit'. */
+  score: number | null;
+}
+
+/**
+ * Derives the effective tier for a task without committing to a specific model.
+ * Useful for status reporting — shows what tier would apply regardless of whether
+ * tiering is enabled in config.
+ */
+export function deriveEffectiveTier(input: {
+  task: RalphTask;
+  taskFile: RalphTaskFile;
+  iterationHistory: RalphIterationResult[];
+  simpleThreshold: number;
+  complexThreshold: number;
+}): EffectiveTierInfo {
+  if (input.task.tier) {
+    return { tier: input.task.tier, source: 'explicit', score: null };
+  }
+
+  const complexity = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
+  let tier: RalphTaskTier;
+  if (complexity.score < input.simpleThreshold) {
+    tier = 'simple';
+  } else if (complexity.score >= input.complexThreshold) {
+    tier = 'complex';
+  } else {
+    tier = 'medium';
+  }
+
+  return { tier, source: 'scored', score: complexity.score };
 }

@@ -2604,10 +2604,11 @@
     {
       "id": "T89",
       "title": "Static task-complexity tier Phase 4: surface effective tier in Show Status and Show Multi-Agent Status",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T87"
       ],
+      "notes": "Surfaced effective tier in Show Status (current task + last task labels with explicit/scored distinction) and Show Multi-Agent Status (claim task with explicit/dynamic label); 10 regression tests added; 617 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "Show Status output includes the effective tier next to each active/recent task label",
@@ -2634,5 +2635,5 @@
       ]
     }
   ],
-  "mutationCount": 62
+  "mutationCount": 63
 }

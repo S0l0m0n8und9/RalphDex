@@ -51,6 +51,7 @@ const readConfig_1 = require("../config/readConfig");
 const preflight_1 = require("../ralph/preflight");
 const rootPolicy_1 = require("../ralph/rootPolicy");
 const statusReport_1 = require("../ralph/statusReport");
+const complexityScorer_1 = require("../ralph/complexityScorer");
 const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
@@ -374,6 +375,22 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         }),
         (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir)
     ]);
+    const tierThresholds = {
+        simpleThreshold: config.modelTiering.simpleThreshold,
+        complexThreshold: config.modelTiering.complexThreshold
+    };
+    const taskFile = taskInspection.taskFile;
+    const iterationHistory = inspection.state.iterationHistory;
+    const effectiveTierInfo = selectedTask && taskFile
+        ? (0, complexityScorer_1.deriveEffectiveTier)({ task: selectedTask, taskFile, iterationHistory, ...tierThresholds })
+        : null;
+    const lastTaskId = inspection.state.lastIteration?.selectedTaskId ?? null;
+    const lastTask = lastTaskId && taskFile
+        ? taskFile.tasks.find((task) => task.id === lastTaskId) ?? null
+        : null;
+    const lastTaskTierInfo = lastTask && taskFile
+        ? (0, complexityScorer_1.deriveEffectiveTier)({ task: lastTask, taskFile, iterationHistory, ...tierThresholds })
+        : null;
     return {
         workspaceName: workspaceFolder.name,
         rootPath: workspaceFolder.uri.fsPath,
@@ -381,7 +398,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         nextIteration: inspection.state.nextIteration,
         lastIteration: inspection.state.lastIteration,
         runHistory: inspection.state.runHistory,
-        iterationHistory: inspection.state.iterationHistory,
+        iterationHistory,
         taskCounts,
         taskFileError,
         selectedTask,
@@ -423,7 +440,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         currentProvenanceId,
         latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
         latestPipelineRun: latestPipelineEntry?.artifact ?? null,
-        recommendedSkills
+        recommendedSkills,
+        effectiveTierInfo,
+        lastTaskTierInfo
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

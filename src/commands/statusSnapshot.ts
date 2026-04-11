@@ -10,6 +10,7 @@ import {
   RalphLatestRemediationStatus,
   RalphStatusSnapshot
 } from '../ralph/statusReport';
+import { deriveEffectiveTier } from '../ralph/complexityScorer';
 import { RalphStateManager } from '../ralph/stateManager';
 import { inspectTaskClaimGraph, selectNextTask } from '../ralph/taskFile';
 import type {
@@ -382,6 +383,25 @@ export async function collectStatusSnapshot(
     readLatestPipelineArtifact(inspection.paths.artifactDir)
   ]);
 
+  const tierThresholds = {
+    simpleThreshold: config.modelTiering.simpleThreshold,
+    complexThreshold: config.modelTiering.complexThreshold
+  };
+  const taskFile = taskInspection.taskFile;
+  const iterationHistory = inspection.state.iterationHistory;
+
+  const effectiveTierInfo = selectedTask && taskFile
+    ? deriveEffectiveTier({ task: selectedTask, taskFile, iterationHistory, ...tierThresholds })
+    : null;
+
+  const lastTaskId = inspection.state.lastIteration?.selectedTaskId ?? null;
+  const lastTask = lastTaskId && taskFile
+    ? taskFile.tasks.find((task) => task.id === lastTaskId) ?? null
+    : null;
+  const lastTaskTierInfo = lastTask && taskFile
+    ? deriveEffectiveTier({ task: lastTask, taskFile, iterationHistory, ...tierThresholds })
+    : null;
+
   return {
     workspaceName: workspaceFolder.name,
     rootPath: workspaceFolder.uri.fsPath,
@@ -389,7 +409,7 @@ export async function collectStatusSnapshot(
     nextIteration: inspection.state.nextIteration,
     lastIteration: inspection.state.lastIteration,
     runHistory: inspection.state.runHistory,
-    iterationHistory: inspection.state.iterationHistory,
+    iterationHistory,
     taskCounts,
     taskFileError,
     selectedTask,
@@ -431,6 +451,8 @@ export async function collectStatusSnapshot(
     currentProvenanceId,
     latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
     latestPipelineRun: latestPipelineEntry?.artifact ?? null,
-    recommendedSkills
+    recommendedSkills,
+    effectiveTierInfo,
+    lastTaskTierInfo
   };
 }

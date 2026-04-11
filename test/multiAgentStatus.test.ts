@@ -161,6 +161,8 @@ function makeAgent(overrides: Partial<AgentStatusSummary> = {}): AgentStatusSumm
     firstSeenAt: '2026-01-01T00:00:00.000Z',
     completedTaskCount: 0,
     activeClaimTaskId: null,
+    activeClaimTaskTier: null,
+    activeClaimTaskTierSource: null,
     handoffHistory: [],
     latestHandoff: null,
     stuckScore: 0,
@@ -255,4 +257,39 @@ test('buildMultiAgentStatusReport: does not render heatmap line when handoff his
   const agent = makeAgent({ handoffHistory: [] });
   const report = buildMultiAgentStatusReport([agent]);
   assert.ok(!report.includes('No-progress heatmap'), 'should not include heatmap when no history');
+});
+
+// ---------------------------------------------------------------------------
+// Tier rendering in multi-agent status
+// ---------------------------------------------------------------------------
+
+test('buildMultiAgentStatusReport: shows explicit tier on current claim', () => {
+  const agent = makeAgent({
+    activeClaimTaskId: 'T7',
+    activeClaimTaskTier: 'complex',
+    activeClaimTaskTierSource: 'explicit',
+  });
+  const report = buildMultiAgentStatusReport([agent]);
+  assert.ok(report.includes('Current claim: T7 [tier: complex (explicit)]'), 'should show explicit tier');
+});
+
+test('buildMultiAgentStatusReport: shows dynamic tier label when no explicit tier is set', () => {
+  const agent = makeAgent({
+    activeClaimTaskId: 'T8',
+    activeClaimTaskTier: null,
+    activeClaimTaskTierSource: 'dynamic',
+  });
+  const report = buildMultiAgentStatusReport([agent]);
+  assert.ok(report.includes('Current claim: T8 [tier: dynamic]'), 'should show dynamic tier label');
+});
+
+test('buildMultiAgentStatusReport: omits tier suffix when there is no active claim', () => {
+  const agent = makeAgent({
+    activeClaimTaskId: null,
+    activeClaimTaskTier: null,
+    activeClaimTaskTierSource: null,
+  });
+  const report = buildMultiAgentStatusReport([agent]);
+  assert.ok(report.includes('Current claim: none'), 'should show none');
+  assert.ok(!report.includes('[tier:'), 'should not include tier suffix when no claim');
 });

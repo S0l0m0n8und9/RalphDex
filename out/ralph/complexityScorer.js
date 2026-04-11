@@ -16,6 +16,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.scoreTaskComplexity = scoreTaskComplexity;
 exports.selectModelForTask = selectModelForTask;
+exports.deriveEffectiveTier = deriveEffectiveTier;
 function childTaskCount(taskFile, taskId) {
     return taskFile.tasks.filter((candidate) => candidate.parentId === taskId).length;
 }
@@ -113,5 +114,27 @@ function selectModelForTask(input) {
         tier = input.tiering.medium;
     }
     return { model: tier.model, provider: tier.provider, score };
+}
+/**
+ * Derives the effective tier for a task without committing to a specific model.
+ * Useful for status reporting — shows what tier would apply regardless of whether
+ * tiering is enabled in config.
+ */
+function deriveEffectiveTier(input) {
+    if (input.task.tier) {
+        return { tier: input.task.tier, source: 'explicit', score: null };
+    }
+    const complexity = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
+    let tier;
+    if (complexity.score < input.simpleThreshold) {
+        tier = 'simple';
+    }
+    else if (complexity.score >= input.complexThreshold) {
+        tier = 'complex';
+    }
+    else {
+        tier = 'medium';
+    }
+    return { tier, source: 'scored', score: complexity.score };
 }
 //# sourceMappingURL=complexityScorer.js.map

@@ -79,7 +79,12 @@ function buildMultiAgentStatusReport(summaries) {
         const agentPrefix = isStuck ? 'WARNING Agent' : 'Agent';
         lines.push(`${agentPrefix}: ${summary.agentId}${summary.firstSeenAt ? ` (first seen: ${summary.firstSeenAt})` : ''}`);
         lines.push(`  Tasks completed: ${summary.completedTaskCount}`);
-        lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}`);
+        const claimTierSuffix = summary.activeClaimTaskTierSource === null
+            ? ''
+            : summary.activeClaimTaskTierSource === 'explicit'
+                ? ` [tier: ${summary.activeClaimTaskTier} (explicit)]`
+                : ' [tier: dynamic]';
+        lines.push(`  Current claim: ${summary.activeClaimTaskId ?? 'none'}${claimTierSuffix}`);
         if (isStuck) {
             lines.push(`  STUCK: ${summary.stuckScore} consecutive no-progress stop(s) on task ${summary.latestHandoff?.selectedTaskId ?? 'unknown'} — investigate or resolve stale claim`);
         }
