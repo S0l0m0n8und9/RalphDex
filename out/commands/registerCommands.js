@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerCommands = registerCommands;
 const fs = __importStar(require("fs/promises"));
+const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
@@ -1247,6 +1248,51 @@ function registerCommands(context, logger, broadcaster) {
                 logger.info(`Constructed skill: ${skill.name}`, { skillDir });
             }
             void vscode.window.showInformationMessage(`Constructed ${selectedSkills.length} skill(s): ${selectedSkills.map((s) => s.name).join(', ')}`);
+        }
+    });
+    // ---------- Regenerate PRD ----------
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.regeneratePrd',
+        label: 'Ralphdex: Regenerate PRD',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            if (!(await (0, fs_1.pathExists)(paths.prdPath))) {
+                void vscode.window.showErrorMessage('No .ralph/prd.md found. Run "Ralphdex: Initialize Workspace" first.');
+                return;
+            }
+            const currentPrdText = await fs.readFile(paths.prdPath, 'utf8');
+            progress.report({ message: 'Generating refined PRD — this may take a moment…' });
+            let generated;
+            try {
+                generated = await (0, projectGenerator_1.generateProjectDraft)(currentPrdText, config, workspaceFolder.uri.fsPath);
+            }
+            catch (err) {
+                const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
+                    ? err.message
+                    : String(err);
+                void vscode.window.showErrorMessage(`PRD regeneration failed: ${reason}`);
+                return;
+            }
+            const tempPath = path.join(os.tmpdir(), `ralph-prd-proposed-${Date.now()}.md`);
+            await fs.writeFile(tempPath, generated.prdText, 'utf8');
+            await vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(paths.prdPath), vscode.Uri.file(tempPath), 'Regenerate PRD: Current ↔ Proposed');
+            const choice = await vscode.window.showInformationMessage('Apply the refined PRD to prd.md?', 'Apply', 'Discard');
+            if (choice === 'Apply') {
+                await fs.writeFile(paths.prdPath, generated.prdText, 'utf8');
+                logger.info('Regenerated PRD applied.', { prdPath: paths.prdPath });
+                void vscode.window.showInformationMessage('Refined PRD saved to prd.md.');
+            }
+            else {
+                logger.info('Regenerated PRD discarded by operator.');
+            }
+            try {
+                await fs.unlink(tempPath);
+            }
+            catch {
+                // best-effort temp file cleanup
+            }
         }
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.

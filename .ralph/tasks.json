@@ -2744,10 +2744,11 @@
     {
       "id": "T97",
       "title": "PRD creation improvements Phase 5: Regenerate PRD command",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T96"
       ],
+      "notes": "ralphCodex.regeneratePrd command registered: reads prd.md, generates refined PRD via generateProjectDraft, opens vscode.diff for operator review, writes on Apply; package.json activation event + command contribution added; packageManifest test added; AGENTS.md updated; docsValidator maxNonEmptyLines bumped 90→91",
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.regeneratePrd VS Code command registered in registerCommands.ts and contributed in package.json",
@@ -2760,5 +2761,5 @@
       ]
     }
   ],
-  "mutationCount": 71
+  "mutationCount": 72
 }

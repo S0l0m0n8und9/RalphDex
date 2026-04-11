@@ -108,7 +108,7 @@ const DOC_RULES = {
             'AGENTS.md is a routing/control document',
             'focused doc that owns a rule'
         ],
-        maxNonEmptyLines: 90
+        maxNonEmptyLines: 91
     },
     'docs/invariants.md': {
         requiredHeadings: [

@@ -131,6 +131,7 @@
     "onCommand:ralphCodex.openLatestPipelineRun",
     "onCommand:ralphCodex.resumePipeline",
     "onCommand:ralphCodex.constructRecommendedSkills",
+    "onCommand:ralphCodex.regeneratePrd",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -259,6 +260,10 @@
       {
         "command": "ralphCodex.constructRecommendedSkills",
         "title": "Ralphdex: Construct Recommended Skills"
+      },
+      {
+        "command": "ralphCodex.regeneratePrd",
+        "title": "Ralphdex: Regenerate PRD"
       }
     ],
     "viewsContainers": {

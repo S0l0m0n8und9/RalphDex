@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
@@ -1516,6 +1517,68 @@ export function registerCommands(context: vscode.ExtensionContext, logger: Logge
       void vscode.window.showInformationMessage(
         `Constructed ${selectedSkills.length} skill(s): ${selectedSkills.map((s) => s.name).join(', ')}`
       );
+    }
+  });
+
+  // ---------- Regenerate PRD ----------
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.regeneratePrd',
+    label: 'Ralphdex: Regenerate PRD',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+
+      if (!(await pathExists(paths.prdPath))) {
+        void vscode.window.showErrorMessage(
+          'No .ralph/prd.md found. Run "Ralphdex: Initialize Workspace" first.'
+        );
+        return;
+      }
+
+      const currentPrdText = await fs.readFile(paths.prdPath, 'utf8');
+
+      progress.report({ message: 'Generating refined PRD — this may take a moment…' });
+      let generated: { prdText: string };
+      try {
+        generated = await generateProjectDraft(currentPrdText, config, workspaceFolder.uri.fsPath);
+      } catch (err) {
+        const reason = err instanceof ProjectGenerationError || err instanceof Error
+          ? err.message
+          : String(err);
+        void vscode.window.showErrorMessage(`PRD regeneration failed: ${reason}`);
+        return;
+      }
+
+      const tempPath = path.join(os.tmpdir(), `ralph-prd-proposed-${Date.now()}.md`);
+      await fs.writeFile(tempPath, generated.prdText, 'utf8');
+
+      await vscode.commands.executeCommand(
+        'vscode.diff',
+        vscode.Uri.file(paths.prdPath),
+        vscode.Uri.file(tempPath),
+        'Regenerate PRD: Current ↔ Proposed'
+      );
+
+      const choice = await vscode.window.showInformationMessage(
+        'Apply the refined PRD to prd.md?',
+        'Apply',
+        'Discard'
+      );
+
+      if (choice === 'Apply') {
+        await fs.writeFile(paths.prdPath, generated.prdText, 'utf8');
+        logger.info('Regenerated PRD applied.', { prdPath: paths.prdPath });
+        void vscode.window.showInformationMessage('Refined PRD saved to prd.md.');
+      } else {
+        logger.info('Regenerated PRD discarded by operator.');
+      }
+
+      try {
+        await fs.unlink(tempPath);
+      } catch {
+        // best-effort temp file cleanup
+      }
     }
   });
 

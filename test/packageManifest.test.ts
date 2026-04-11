@@ -143,6 +143,20 @@ test('package manifest contributes and activates the openLatestPipelineRun comma
   );
 });
 
+test('package manifest contributes and activates the regeneratePrd command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.regeneratePrd'),
+    'package.json must activate on ralphCodex.regeneratePrd'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.regeneratePrd' && entry.title === 'Ralphdex: Regenerate PRD'),
+    'package.json must contribute the Regenerate PRD command'
+  );
+});
+
 test('package manifest excludes the shim entry point from the VSIX payload', async () => {
   const manifest = await readPackageManifest();
   const vscodeIgnore = await fs.readFile(vscodeIgnorePath, 'utf8');
