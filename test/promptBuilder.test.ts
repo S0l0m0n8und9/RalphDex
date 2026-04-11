@@ -28,7 +28,8 @@ const paths: RalphPaths = {
   logDir: '/workspace/.ralph/logs',
   logFilePath: '/workspace/.ralph/logs/extension.log',
   artifactDir: '/workspace/.ralph/artifacts',
-  memorySummaryPath: '/workspace/.ralph/memory-summary.md'
+  memorySummaryPath: '/workspace/.ralph/memory-summary.md',
+  deadLetterPath: '/workspace/.ralph/dead-letter.json'
 };
 
 const validationProvenance = {

@@ -45,6 +45,7 @@ const cliActivity_1 = require("../services/cliActivity");
 const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 const statusSnapshot_1 = require("./statusSnapshot");
 const pipeline_1 = require("../ralph/pipeline");
+const deadLetter_1 = require("../ralph/deadLetter");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
 // ---------------------------------------------------------------------------
@@ -504,8 +505,12 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
             const claimFilePath = path.join(ralphDir, 'claims.json');
-            const summaries = await readMultiAgentStatusSummaries(ralphDir, claimFilePath);
-            const report = (0, multiAgentStatus_1.buildMultiAgentStatusReport)(summaries);
+            const deadLetterPath = path.join(ralphDir, 'dead-letter.json');
+            const [summaries, deadLetterQueue] = await Promise.all([
+                readMultiAgentStatusSummaries(ralphDir, claimFilePath),
+                (0, deadLetter_1.readDeadLetterQueue)(deadLetterPath)
+            ]);
+            const report = (0, multiAgentStatus_1.buildMultiAgentStatusReport)(summaries, deadLetterQueue.entries);
             logger.show(false);
             logger.appendText(report);
             logger.info('Multi-agent status snapshot generated.', {
@@ -570,6 +575,72 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 createdPaths: snapshot.createdPaths
             });
             void vscode.window.showInformationMessage('Ralph runtime state reset. Durable PRD, progress, and task files were preserved.');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.requeueDeadLetterTask',
+        label: 'Ralphdex: Requeue Dead-Letter Task',
+        handler: async (progress) => {
+            progress.report({ message: 'Loading dead-letter queue' });
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
+            const deadLetterPath = path.join(ralphDir, 'dead-letter.json');
+            const queue = await (0, deadLetter_1.readDeadLetterQueue)(deadLetterPath);
+            if (queue.entries.length === 0) {
+                void vscode.window.showInformationMessage('No tasks are in the dead-letter queue. Use Ralphdex: Show Status to inspect task state.');
+                return;
+            }
+            const items = queue.entries.map((entry) => ({
+                label: entry.taskId,
+                description: entry.taskTitle,
+                detail: `Dead-lettered: ${entry.deadLetteredAt} | Attempts: ${entry.recoveryAttemptCount}`
+            }));
+            const picked = await vscode.window.showQuickPick(items, {
+                placeHolder: 'Select a dead-letter task to requeue',
+                title: 'Ralphdex: Requeue Dead-Letter Task'
+            });
+            if (!picked) {
+                return;
+            }
+            const taskId = picked.label;
+            const confirmed = await vscode.window.showWarningMessage(`Requeue task ${taskId} (${picked.description})? This removes it from the dead-letter queue and resets its status to todo.`, { modal: true }, 'Requeue');
+            if (confirmed !== 'Requeue') {
+                return;
+            }
+            progress.report({ message: `Requeueing ${taskId}` });
+            const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+            await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+            // Remove from dead-letter first (safest order — worst case: removed from
+            // dead-letter but task still blocked, which is recoverable).
+            const removed = await (0, deadLetter_1.removeDeadLetterEntry)(deadLetterPath, taskId);
+            if (!removed) {
+                void vscode.window.showWarningMessage(`Task ${taskId} was no longer in the dead-letter queue. Refresh status and try again.`);
+                return;
+            }
+            // Reset task status to todo inside the task-file lock.
+            const locked = await (0, taskFile_1.withTaskFileLock)(inspection.paths.taskFilePath, undefined, async () => {
+                const raw = await fs.readFile(inspection.paths.taskFilePath, 'utf8');
+                const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+                const task = taskFile.tasks.find((t) => t.id === taskId);
+                if (!task) {
+                    return;
+                }
+                task.status = 'todo';
+                delete task.blocker;
+                const next = (0, taskFile_1.bumpMutationCount)(taskFile);
+                await fs.writeFile(inspection.paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
+            });
+            if (locked.outcome === 'lock_timeout') {
+                // Re-add to dead-letter so we don't lose it
+                const entry = queue.entries.find((e) => e.taskId === taskId);
+                if (entry) {
+                    await (0, deadLetter_1.appendDeadLetterEntry)(deadLetterPath, entry);
+                }
+                throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s). Task ${taskId} has been re-added to the dead-letter queue.`);
+            }
+            logger.info('Requeued dead-letter task.', { taskId });
+            void vscode.window.showInformationMessage(`Task ${taskId} has been removed from the dead-letter queue and reset to todo.`);
         }
     });
 }

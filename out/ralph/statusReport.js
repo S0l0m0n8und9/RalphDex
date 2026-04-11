@@ -428,6 +428,15 @@ function buildStatusReport(snapshot) {
         `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
         `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
         `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,
+        ...(snapshot.deadLetterEntries && snapshot.deadLetterEntries.length > 0
+            ? [
+                '',
+                '## Dead-Letter Queue',
+                `- Count: ${snapshot.deadLetterEntries.length}`,
+                ...snapshot.deadLetterEntries.map((entry) => `- ${entry.taskId}: ${entry.taskTitle} | dead-lettered: ${entry.deadLetteredAt} | recovery attempts: ${entry.recoveryAttemptCount} | last category: ${entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown'}`),
+                '- Command: Ralphdex: Requeue Dead-Letter Task (to reset a task to todo and remove from dead-letter queue)'
+            ]
+            : []),
         '',
         '## Git',
         `- Checkpoint mode: ${snapshot.gitCheckpointMode}`,

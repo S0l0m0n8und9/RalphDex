@@ -9,6 +9,7 @@ import {
   type AgentHandoffSummary,
   type AgentStatusSummary,
 } from '../src/ralph/multiAgentStatus';
+import type { DeadLetterEntry } from '../src/ralph/deadLetter';
 
 // ---------------------------------------------------------------------------
 // computeStuckScore
@@ -292,4 +293,52 @@ test('buildMultiAgentStatusReport: omits tier suffix when there is no active cla
   const report = buildMultiAgentStatusReport([agent]);
   assert.ok(report.includes('Current claim: none'), 'should show none');
   assert.ok(!report.includes('[tier:'), 'should not include tier suffix when no claim');
+});
+
+// ---------------------------------------------------------------------------
+// AC 7: dead-letter tasks rendered in Multi-Agent Status distinct from blocked
+// ---------------------------------------------------------------------------
+
+test('buildMultiAgentStatusReport: renders dead-letter section distinct from agent rows', () => {
+  const agent = makeAgent({ activeClaimTaskId: 'T1' });
+  const dlEntry: DeadLetterEntry = {
+    schemaVersion: 1,
+    kind: 'deadLetterEntry',
+    taskId: 'T99',
+    taskTitle: 'Exhausted Task',
+    deadLetteredAt: '2026-01-01T00:00:00.000Z',
+    diagnosticHistory: [{
+      schemaVersion: 1,
+      kind: 'failureAnalysis',
+      taskId: 'T99',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      rootCauseCategory: 'implementation_error',
+      confidence: 'high',
+      summary: 'Repeated implementation errors.',
+      suggestedAction: 'Manual review required.'
+    }],
+    recoveryAttemptCount: 5
+  };
+
+  const report = buildMultiAgentStatusReport([agent], [dlEntry]);
+
+  // Dead-letter section present
+  assert.ok(report.includes('=== Dead-Letter Queue ==='), 'should include dead-letter heading');
+  assert.ok(report.includes('Dead-Letter: T99'), 'should list dead-lettered task id');
+  assert.ok(report.includes('Exhausted Task'), 'should include task title');
+  assert.ok(report.includes('implementation_error'), 'should include last failure category');
+  assert.ok(report.includes('Recovery attempts: 5'), 'should include attempt count');
+
+  // Agent rows still present and separate from dead-letter
+  assert.ok(report.includes('=== Multi-Agent Status ==='), 'agent section heading still present');
+  assert.ok(report.includes('Agent:'), 'agent row still present');
+
+  // No dead-letter bleeding into blocked section
+  assert.ok(!report.includes('blocked'), 'dead-letter should not appear in blocked terminology');
+});
+
+test('buildMultiAgentStatusReport: omits dead-letter section when queue is empty', () => {
+  const agent = makeAgent({ activeClaimTaskId: null, activeClaimTaskTier: null, activeClaimTaskTierSource: null });
+  const report = buildMultiAgentStatusReport([agent], []);
+  assert.ok(!report.includes('Dead-Letter Queue'), 'dead-letter section should be absent when empty');
 });

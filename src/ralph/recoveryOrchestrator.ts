@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { FailureAnalysis } from './failureDiagnostics';
 import { getFailureAnalysisPath } from './failureDiagnostics';
+import type { DeadLetterEntry } from './deadLetter';
 
 /**
  * Recovery actions the orchestrator can dispatch for each failure category.
@@ -76,6 +77,17 @@ export interface RecoveryContext {
   releaseClaim: () => Promise<void>;
   /** Emit a VS Code information notification to the operator. */
   emitOperatorNotification: (message: string, failureAnalysisPath: string) => Promise<void>;
+  /**
+   * Optional callback invoked when the task is escalated to the dead-letter
+   * queue (max attempts exceeded or unrecognised category).  If omitted, the
+   * dead-letter write is skipped.
+   */
+  writeDeadLetterEntry?: (entry: DeadLetterEntry) => Promise<void>;
+  /**
+   * Full diagnostic history for the task (all failure-analysis.json entries),
+   * used to populate the dead-letter entry.  If omitted, defaults to [analysis].
+   */
+  diagnosticHistory?: FailureAnalysis[];
 }
 
 const BASE_BACKOFF_MS = 1_000;
@@ -144,6 +156,23 @@ async function writeRecoveryState(
  *
  * Returns a RecoveryDecision the caller uses to steer the next iteration.
  */
+async function maybeWriteDeadLetter(ctx: RecoveryContext, attemptCount: number): Promise<void> {
+  if (!ctx.writeDeadLetterEntry) {
+    return;
+  }
+  const history = ctx.diagnosticHistory ?? [ctx.analysis];
+  const entry: DeadLetterEntry = {
+    schemaVersion: 1,
+    kind: 'deadLetterEntry',
+    taskId: ctx.taskId,
+    taskTitle: ctx.taskTitle,
+    deadLetteredAt: new Date().toISOString(),
+    diagnosticHistory: history,
+    recoveryAttemptCount: attemptCount
+  };
+  await ctx.writeDeadLetterEntry(entry);
+}
+
 export async function dispatchRecovery(ctx: RecoveryContext): Promise<RecoveryDecision> {
   const { analysis, artifactRootDir, taskId, taskTitle, maxRecoveryAttempts, autoApplyRemediation } = ctx;
   const canAutoApply = autoApplyRemediation.length > 0;
@@ -169,6 +198,8 @@ export async function dispatchRecovery(ctx: RecoveryContext): Promise<RecoveryDe
         analysisPath
       );
     }
+
+    await maybeWriteDeadLetter(ctx, newAttemptCount);
 
     return {
       action: 'escalate_to_operator',
@@ -279,6 +310,7 @@ export async function dispatchRecovery(ctx: RecoveryContext): Promise<RecoveryDe
         );
       }
       newState.escalated = true;
+      await maybeWriteDeadLetter(ctx, newAttemptCount);
       decision = {
         action: 'escalate_to_operator',
         pauseAgent: true,

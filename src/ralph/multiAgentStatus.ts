@@ -7,6 +7,7 @@
  */
 
 import type { RalphTaskTier } from './types';
+import type { DeadLetterEntry } from './deadLetter';
 
 export interface AgentHandoffSummary {
   iteration: number;
@@ -112,8 +113,13 @@ export function buildNoProgressHeatmap(
  *
  * Agents with stuckScore >= STUCK_SCORE_THRESHOLD are rendered with a
  * WARNING prefix so operators can spot stuck agents quickly.
+ *
+ * Dead-letter entries are surfaced in a distinct section after the per-agent rows.
  */
-export function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): string {
+export function buildMultiAgentStatusReport(
+  summaries: AgentStatusSummary[],
+  deadLetterEntries: DeadLetterEntry[] = []
+): string {
   const lines: string[] = ['=== Multi-Agent Status ===', ''];
 
   if (summaries.length === 0) {
@@ -162,6 +168,20 @@ export function buildMultiAgentStatusReport(summaries: AgentStatusSummary[]): st
     }
 
     lines.push('');
+  }
+
+  if (deadLetterEntries.length > 0) {
+    lines.push('=== Dead-Letter Queue ===');
+    lines.push('');
+    for (const entry of deadLetterEntries) {
+      const lastCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
+      lines.push(`Dead-Letter: ${entry.taskId}: ${entry.taskTitle}`);
+      lines.push(`  Dead-lettered: ${entry.deadLetteredAt}`);
+      lines.push(`  Recovery attempts: ${entry.recoveryAttemptCount}`);
+      lines.push(`  Last failure category: ${lastCategory}`);
+      lines.push('');
+    }
+    lines.push('Run "Ralphdex: Requeue Dead-Letter Task" to reset a task to todo and remove it from the dead-letter queue.');
   }
 
   return lines.join('\n').trimEnd();

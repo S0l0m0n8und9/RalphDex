@@ -2897,10 +2897,11 @@
     {
       "id": "T104",
       "title": "Intelligent failure recovery Phase 3: dead-letter queue and requeue command",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T103"
       ],
+      "notes": "Dead-letter queue (dead-letter.json), requeue command (ralphCodex.requeueDeadLetterTask), status surface integration, and 9 unit tests covering all AC criteria. 720 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "When a task exhausts maxRecoveryAttempts across all playbook steps, write it to .ralph/dead-letter.json with full diagnostic history (all failure-analysis.json entries)",
@@ -2969,5 +2970,5 @@
       ]
     }
   ],
-  "mutationCount": 78
+  "mutationCount": 79
 }

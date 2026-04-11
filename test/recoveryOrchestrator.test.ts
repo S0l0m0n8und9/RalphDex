@@ -9,6 +9,7 @@ import {
   getRecoveryStatePath,
   type RecoveryContext
 } from '../src/ralph/recoveryOrchestrator';
+import { readDeadLetterQueue, type DeadLetterEntry } from '../src/ralph/deadLetter';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -312,4 +313,53 @@ test('getRecoveryStatePath returns expected path', () => {
   const dir = '/tmp/artifacts';
   const result = getRecoveryStatePath(dir, 'T42');
   assert.ok(result.endsWith(path.join('T42', 'recovery-state.json')));
+});
+
+// ---------------------------------------------------------------------------
+// AC 5: task written to dead-letter.json after exhausting recovery attempts
+// ---------------------------------------------------------------------------
+
+test('dispatchRecovery writes dead-letter entry after exhausting max recovery attempts', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-recovery-'));
+  try {
+    const dlPath = path.join(tmpDir, 'dead-letter.json');
+    const capturedEntries: DeadLetterEntry[] = [];
+    const analysis = makeAnalysis({ rootCauseCategory: 'transient' });
+    const diagnosticHistory = [analysis];
+
+    const ctx = makeContext(tmpDir, {
+      taskId: 'T5',
+      taskTitle: 'Exhausted Task',
+      analysis,
+      diagnosticHistory,
+      maxRecoveryAttempts: 1,
+      writeDeadLetterEntry: async (entry) => {
+        capturedEntries.push(entry);
+        // Also persist to file for round-trip verification
+        const { appendDeadLetterEntry } = await import('../src/ralph/deadLetter');
+        await appendDeadLetterEntry(dlPath, entry);
+      }
+    });
+
+    // First attempt — within limit, no dead letter
+    await dispatchRecovery(ctx);
+    assert.equal(capturedEntries.length, 0, 'no dead-letter on first attempt within limit');
+
+    // Second attempt — exceeds maxRecoveryAttempts (1), should dead-letter
+    const decision = await dispatchRecovery(ctx);
+    assert.equal(decision.action, 'escalate_to_operator');
+    assert.equal(decision.escalated, true);
+    assert.equal(capturedEntries.length, 1, 'dead-letter entry written on escalation');
+    assert.equal(capturedEntries[0].taskId, 'T5');
+    assert.equal(capturedEntries[0].taskTitle, 'Exhausted Task');
+    assert.equal(capturedEntries[0].diagnosticHistory.length, 1);
+    assert.equal(capturedEntries[0].recoveryAttemptCount, 2);
+
+    // Verify round-trip via file
+    const queue = await readDeadLetterQueue(dlPath);
+    assert.equal(queue.entries.length, 1);
+    assert.equal(queue.entries[0].taskId, 'T5');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
 });

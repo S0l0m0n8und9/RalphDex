@@ -16,6 +16,7 @@ import {
 import { RalphPaths } from './pathResolver';
 import type { RecommendedSkill } from './projectGenerator';
 import { RalphTaskClaimGraphInspection } from './taskFile';
+import type { DeadLetterEntry } from './deadLetter';
 import {
   RalphCliInvocation,
   RalphExecutionPlan,
@@ -103,6 +104,8 @@ export interface RalphStatusSnapshot {
    * Non-null only when operatorMode is set.
    */
   operatorModeProvenance: OperatorModeSettingProvenance[] | null;
+  /** Tasks that have been moved to the dead-letter queue after exhausting recovery attempts. */
+  deadLetterEntries?: DeadLetterEntry[];
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -564,6 +567,17 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- State file: ${relativeFromRoot(snapshot.rootPath, snapshot.stateFilePath)}`,
     `- Progress file: ${relativeFromRoot(snapshot.rootPath, snapshot.progressPath)}`,
     `- Task file: ${relativeFromRoot(snapshot.rootPath, snapshot.taskFilePath)}`,
+    ...(snapshot.deadLetterEntries && snapshot.deadLetterEntries.length > 0
+      ? [
+        '',
+        '## Dead-Letter Queue',
+        `- Count: ${snapshot.deadLetterEntries.length}`,
+        ...snapshot.deadLetterEntries.map((entry) =>
+          `- ${entry.taskId}: ${entry.taskTitle} | dead-lettered: ${entry.deadLetteredAt} | recovery attempts: ${entry.recoveryAttemptCount} | last category: ${entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown'}`
+        ),
+        '- Command: Ralphdex: Requeue Dead-Letter Task (to reset a task to todo and remove from dead-letter queue)'
+      ]
+      : []),
     '',
     '## Git',
     `- Checkpoint mode: ${snapshot.gitCheckpointMode}`,

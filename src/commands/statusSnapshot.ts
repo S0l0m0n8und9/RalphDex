@@ -31,6 +31,7 @@ import {
 } from '../ralph/verifier';
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
+import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { pathExists } from '../util/fs';
@@ -370,7 +371,7 @@ export async function collectStatusSnapshot(
   const recommendedSkills = await readRecommendedSkills(
     path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json')
   );
-  const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
+  const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry, deadLetterQueue] = await Promise.all([
     inspectGeneratedArtifactRetention({
       artifactRootDir: inspection.paths.artifactDir,
       promptDir: inspection.paths.promptDir,
@@ -382,8 +383,10 @@ export async function collectStatusSnapshot(
       artifactRootDir: inspection.paths.artifactDir,
       retentionCount: config.provenanceBundleRetentionCount
     }),
-    readLatestPipelineArtifact(inspection.paths.artifactDir)
+    readLatestPipelineArtifact(inspection.paths.artifactDir),
+    readDeadLetterQueue(inspection.paths.deadLetterPath)
   ]);
+  const deadLetterEntries: DeadLetterEntry[] = deadLetterQueue.entries;
 
   const tierThresholds = {
     simpleThreshold: config.modelTiering.simpleThreshold,
@@ -457,6 +460,7 @@ export async function collectStatusSnapshot(
     effectiveTierInfo,
     lastTaskTierInfo,
     operatorMode: config.operatorMode,
-    operatorModeProvenance
+    operatorModeProvenance,
+    deadLetterEntries
   };
 }

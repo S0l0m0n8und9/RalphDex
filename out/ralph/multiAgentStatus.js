@@ -66,8 +66,10 @@ function buildNoProgressHeatmap(handoffs, maxLen = exports.HEATMAP_WINDOW) {
  *
  * Agents with stuckScore >= STUCK_SCORE_THRESHOLD are rendered with a
  * WARNING prefix so operators can spot stuck agents quickly.
+ *
+ * Dead-letter entries are surfaced in a distinct section after the per-agent rows.
  */
-function buildMultiAgentStatusReport(summaries) {
+function buildMultiAgentStatusReport(summaries, deadLetterEntries = []) {
     const lines = ['=== Multi-Agent Status ===', ''];
     if (summaries.length === 0) {
         lines.push('No agent identity records found under .ralph/agents/.');
@@ -109,6 +111,19 @@ function buildMultiAgentStatusReport(summaries) {
             lines.push('  Last iteration: none');
         }
         lines.push('');
+    }
+    if (deadLetterEntries.length > 0) {
+        lines.push('=== Dead-Letter Queue ===');
+        lines.push('');
+        for (const entry of deadLetterEntries) {
+            const lastCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
+            lines.push(`Dead-Letter: ${entry.taskId}: ${entry.taskTitle}`);
+            lines.push(`  Dead-lettered: ${entry.deadLetteredAt}`);
+            lines.push(`  Recovery attempts: ${entry.recoveryAttemptCount}`);
+            lines.push(`  Last failure category: ${lastCategory}`);
+            lines.push('');
+        }
+        lines.push('Run "Ralphdex: Requeue Dead-Letter Task" to reset a task to todo and remove it from the dead-letter queue.');
     }
     return lines.join('\n').trimEnd();
 }

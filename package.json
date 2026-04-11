@@ -132,6 +132,7 @@
     "onCommand:ralphCodex.resumePipeline",
     "onCommand:ralphCodex.constructRecommendedSkills",
     "onCommand:ralphCodex.regeneratePrd",
+    "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard"
   ],
   "main": "./out/extension.js",
@@ -264,6 +265,10 @@
       {
         "command": "ralphCodex.regeneratePrd",
         "title": "Ralphdex: Regenerate PRD"
+      },
+      {
+        "command": "ralphCodex.requeueDeadLetterTask",
+        "title": "Ralphdex: Requeue Dead-Letter Task"
       }
     ],
     "viewsContainers": {

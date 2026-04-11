@@ -28,7 +28,8 @@ function createPaths(rootPath: string): RalphPaths {
     logDir: `${rootPath}/.ralph/logs`,
     logFilePath: `${rootPath}/.ralph/logs/extension.log`,
     artifactDir: `${rootPath}/.ralph/artifacts`,
-    memorySummaryPath: `${rootPath}/.ralph/memory-summary.md`
+    memorySummaryPath: `${rootPath}/.ralph/memory-summary.md`,
+    deadLetterPath: `${rootPath}/.ralph/dead-letter.json`
   };
 }
 

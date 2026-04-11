@@ -56,6 +56,7 @@ const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
 const pipeline_1 = require("../ralph/pipeline");
+const deadLetter_1 = require("../ralph/deadLetter");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
@@ -363,7 +364,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         agentHealthDiagnostics
     });
     const recommendedSkills = await readRecommendedSkills(path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json'));
-    const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry] = await Promise.all([
+    const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry, deadLetterQueue] = await Promise.all([
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: inspection.paths.artifactDir,
             promptDir: inspection.paths.promptDir,
@@ -375,8 +376,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             artifactRootDir: inspection.paths.artifactDir,
             retentionCount: config.provenanceBundleRetentionCount
         }),
-        (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir)
+        (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir),
+        (0, deadLetter_1.readDeadLetterQueue)(inspection.paths.deadLetterPath)
     ]);
+    const deadLetterEntries = deadLetterQueue.entries;
     const tierThresholds = {
         simpleThreshold: config.modelTiering.simpleThreshold,
         complexThreshold: config.modelTiering.complexThreshold
@@ -446,7 +449,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         effectiveTierInfo,
         lastTaskTierInfo,
         operatorMode: config.operatorMode,
-        operatorModeProvenance
+        operatorModeProvenance,
+        deadLetterEntries
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

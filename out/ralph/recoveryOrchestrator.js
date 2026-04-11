@@ -92,6 +92,22 @@ async function writeRecoveryState(artifactRootDir, taskId, state) {
  *
  * Returns a RecoveryDecision the caller uses to steer the next iteration.
  */
+async function maybeWriteDeadLetter(ctx, attemptCount) {
+    if (!ctx.writeDeadLetterEntry) {
+        return;
+    }
+    const history = ctx.diagnosticHistory ?? [ctx.analysis];
+    const entry = {
+        schemaVersion: 1,
+        kind: 'deadLetterEntry',
+        taskId: ctx.taskId,
+        taskTitle: ctx.taskTitle,
+        deadLetteredAt: new Date().toISOString(),
+        diagnosticHistory: history,
+        recoveryAttemptCount: attemptCount
+    };
+    await ctx.writeDeadLetterEntry(entry);
+}
 async function dispatchRecovery(ctx) {
     const { analysis, artifactRootDir, taskId, taskTitle, maxRecoveryAttempts, autoApplyRemediation } = ctx;
     const canAutoApply = autoApplyRemediation.length > 0;
@@ -111,6 +127,7 @@ async function dispatchRecovery(ctx) {
             await ctx.emitOperatorNotification(`Task ${taskId} (${taskTitle}) has exceeded the maximum recovery attempts ` +
                 `(${maxRecoveryAttempts}) for "${analysis.rootCauseCategory}". Manual intervention is required.`, analysisPath);
         }
+        await maybeWriteDeadLetter(ctx, newAttemptCount);
         return {
             action: 'escalate_to_operator',
             pauseAgent: true,
@@ -208,6 +225,7 @@ async function dispatchRecovery(ctx) {
                     `"${analysis.rootCauseCategory}". Manual review required.`, analysisPath);
             }
             newState.escalated = true;
+            await maybeWriteDeadLetter(ctx, newAttemptCount);
             decision = {
                 action: 'escalate_to_operator',
                 pauseAgent: true,
