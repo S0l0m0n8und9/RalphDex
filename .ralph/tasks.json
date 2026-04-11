@@ -2759,7 +2759,104 @@
         "AGENTS.md command list updated to include regeneratePrd",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T98",
+      "title": "Dynamic planning layer Phase 1: agent role schema and crew.json definition",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "agentRole?: 'planner' | 'implementer' | 'reviewer' added to RalphCodexConfig in src/config/types.ts; default 'implementer' when absent (no regression)",
+        "agentRole contributed as enum in package.json settings with descriptions for each value",
+        "readConfig.ts reads and validates agentRole, defaulting absent field to 'implementer'",
+        "Optional .ralph/crew.json roster schema defined: array of { id: string, role: AgentRole, goal?: string, backstory?: string }",
+        "When .ralph/crew.json exists, multi-agent launcher in registerCommands.ts reads it and uses its agent definitions instead of synthesising anonymous agentId-N agents from agentCount",
+        "When .ralph/crew.json is absent, existing multi-agent behaviour is preserved exactly (no regression)",
+        "Invalid .ralph/crew.json schema emits a preflight warning, not a crash",
+        "Unit test: absent agentRole defaults to 'implementer' in resolved config",
+        "Unit test: valid crew.json with 3 agents parsed correctly; missing crew.json falls back to agentCount synthesis",
+        "Unit test: malformed crew.json produces a preflight warning without crashing",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T99",
+      "title": "Dynamic planning layer Phases 2+3: role-aware task claiming and role-specific prompt templates",
+      "status": "todo",
+      "dependsOn": ["T98"],
+      "validation": "npm run validate",
+      "acceptance": [
+        "taskFile.ts claim acquisition checks the claiming agent's agentRole before selecting a task",
+        "planner agents claim todo tasks that have no task-plan.json artifact under .ralph/artifacts/<taskId>/",
+        "implementer agents prefer todo tasks that have an existing task-plan.json; fall back to any todo task when no planner is active in the crew",
+        "reviewer agents claim done tasks that have no review artifact under .ralph/artifacts/<taskId>/",
+        "When an agent's role has no claimable tasks the agent idles (returns no task) rather than claiming out-of-role; idling surfaced in Show Multi-Agent Status",
+        "prompt-templates/planning.md added: planner persona, planning completion-report variant returning { selectedTaskId, proposedPlan, proposedSubTasks?, suggestedValidationCommand? }",
+        "prompt-templates/review.md added: reviewer persona, review completion-report variant returning { selectedTaskId, reviewOutcome: 'approved' | 'changes_required', reviewNotes }",
+        "promptBuilder.ts selects planning.md for agentRole='planner', review.md for agentRole='reviewer', existing implementation template for 'implementer'",
+        "completionReportParser.ts parses proposedPlan and reviewOutcome fields without breaking on missing fields",
+        "Unit test: planner agent skips a task that already has task-plan.json and claims one that does not",
+        "Unit test: reviewer agent skips a todo task and claims a done task without a review artifact",
+        "Unit test: promptBuilder selects correct template per role",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T100",
+      "title": "Dynamic planning layer Phase 4: pre-execution planning pass (inline and dedicated modes)",
+      "status": "todo",
+      "dependsOn": ["T99"],
+      "validation": "npm run validate",
+      "acceptance": [
+        "ralphCodex.planningPass config added: { enabled: boolean (default false), mode: 'dedicated' | 'inline' (default 'inline') } in types.ts, defaults.ts, readConfig.ts, package.json",
+        "In inline mode (planningPass.enabled=true, mode='inline'): before the main iteration prompt the implementer agent runs a planning-prompt turn; response parsed to .ralph/artifacts/<taskId>/task-plan.json with schema { reasoning, approach, steps[], risks[], suggestedValidationCommand? }",
+        "When task-plan.json exists, promptBuilder.ts injects a Task Plan context section (reasoning + approach summary) before the task-focus section in the implementer prompt",
+        "When suggestedValidationCommand is present in task-plan.json and the task's validation field is currently empty, reconciliation.ts populates the validation field",
+        "In dedicated mode (planningPass.enabled=true, mode='dedicated'): planner agents claim tasks without task-plan.json per T99 role-aware claiming; implementer agents wait for task-plan.json",
+        "planningPass.enabled=false (default): no planning pass occurs, existing behaviour is preserved exactly (no regression)",
+        "Unit test: inline mode writes task-plan.json with correct schema on a mock planning-prompt response",
+        "Unit test: Task Plan section appears in implementer prompt when task-plan.json exists",
+        "Unit test: validation field populated from suggestedValidationCommand when field was previously empty; not overwritten when already set",
+        "Unit test: planningPass.enabled=false produces no task-plan.json and no Task Plan prompt section",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T101",
+      "title": "Dynamic planning layer Phase 5: crew configuration documentation and AGENTS.md update",
+      "status": "todo",
+      "dependsOn": ["T100"],
+      "validation": "npm run validate",
+      "acceptance": [
+        "AGENTS.md crew configuration section added documenting agentRole, crew.json roster format, and planningPass config with a three-agent example crew.json (one planner, two implementers with goal and backstory strings)",
+        "AGENTS.md command list updated if any new commands were registered in T98-T100",
+        "docs/workflows.md documents the planning pass workflow: what inline vs dedicated mode does, LLM cost (inline mode = 2 calls per task), how operators verify task-plan.json was written",
+        "docs/workflows.md notes that planningPass.enabled=false is the default and no new cost is incurred unless explicitly enabled",
+        "docsValidator maxNonEmptyLines bumped if AGENTS.md or workflows.md grew beyond the current threshold",
+        "npm run validate passes (including npm run check:docs)"
+      ]
+    },
+    {
+      "id": "T102",
+      "title": "Intelligent failure recovery Phase 1: FailureCategoryId taxonomy and diagnostic pass artifact",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "FailureCategoryId union type defined in src/ralph/types.ts: 'transient' | 'implementation_error' | 'task_ambiguity' | 'validation_mismatch' | 'dependency_missing' | 'environment_issue'",
+        "ralphCodex.failureDiagnostics: 'auto' | 'off' (default 'auto') added to RalphCodexConfig in types.ts, defaults.ts, readConfig.ts, package.json",
+        "ralphCodex.maxRecoveryAttempts: number (default 3) added to RalphCodexConfig in types.ts, defaults.ts, readConfig.ts, package.json",
+        "When failureDiagnostics='auto' and a task transitions to blocked or exhausts the verifier, loopLogic.ts triggers a diagnostic CLI invocation using the configured provider at the simple tier with a tight token budget",
+        "Diagnostic prompt receives: task definition, last iteration prompt + response (truncated to budget), failure output (validation stderr, verifier result, stop reason), and last 3 iteration history entries",
+        "Provider response parsed to .ralph/artifacts/<taskId>/failure-analysis.json: { rootCauseCategory, confidence, summary, suggestedAction, retryPromptAddendum? }",
+        "transient failures (known preflight signals: network error, lock contention, process timeout) assigned rootCauseCategory='transient' directly without an LLM diagnostic call",
+        "failureDiagnostics='off' suppresses the diagnostic invocation entirely; existing loop behaviour is preserved",
+        "Unit test: correct category assigned for each transient failure signal without an LLM call",
+        "Unit test: diagnostic LLM call skipped when failureDiagnostics='off'",
+        "Unit test: malformed or missing diagnostic response handled gracefully without crashing the loop",
+        "Unit test: failure-analysis.json written to the correct artifact path on a blocked task",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 72
+  "mutationCount": 73
 }
