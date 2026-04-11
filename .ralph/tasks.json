@@ -2621,8 +2621,8 @@
     {
       "id": "T90",
       "title": "Agent memory management Phases 1+2: add memoryStrategy config and implement sliding-window in promptBuilder",
-      "status": "todo",
-      "notes": "Combines PRD feature 10 Phases 1 and 2. Phase 1 is config plumbing; Phase 2 is a focused promptBuilder.ts change.",
+      "status": "done",
+      "notes": "Phases 1+2 complete: memoryStrategy/memoryWindowSize/memorySummaryThreshold added to config; sliding-window support implemented in promptBuilder; 2 new tests added; 619 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "memoryStrategy verbatim|sliding-window|summary added to RalphCodexConfig (types, defaults, readConfig, package.json) with default verbatim",
@@ -2635,5 +2635,5 @@
       ]
     }
   ],
-  "mutationCount": 63
+  "mutationCount": 64
 }

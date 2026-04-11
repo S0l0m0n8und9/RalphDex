@@ -1859,3 +1859,115 @@ test('static prefix is byte-identical across two prompt builds that differ only 
     `Static prefix snapshot mismatch. Inspect ${path.relative(process.cwd(), snapshotFile)} and update intentionally with npm test -- --updateSnapshot.`
   );
 });
+
+test('sliding-window memoryStrategy includes exactly the last memoryWindowSize iterations in prior-context', async () => {
+  const templateDir = await createTemplateDir();
+
+  const history = [1, 2, 3, 4, 5].map((n) =>
+    baseIterationResult({
+      iteration: n,
+      summary: `Completed step ${n}.`,
+      completionClassification: 'complete',
+      executionStatus: 'succeeded'
+    })
+  );
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 6,
+    selectionReason: 'Sliding-window test.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Steps 1-5 done.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 5 },
+    summary,
+    state: workspaceState({
+      lastIteration: history[history.length - 1],
+      iterationHistory: history
+    }),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T6', title: 'Step 6', status: 'todo' }] },
+    selectedTask: { id: 'T6', title: 'Step 6', status: 'todo' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      memoryStrategy: 'sliding-window',
+      memoryWindowSize: 3
+    }
+  });
+
+  // Should contain the last 3 iterations (3, 4, 5) but not the earlier ones (1, 2)
+  assert.match(render.prompt, /Iteration 3: complete \/ succeeded — Completed step 3\./);
+  assert.match(render.prompt, /Iteration 4: complete \/ succeeded — Completed step 4\./);
+  assert.match(render.prompt, /Iteration 5: complete \/ succeeded — Completed step 5\./);
+  assert.doesNotMatch(render.prompt, /Iteration 1:/);
+  assert.doesNotMatch(render.prompt, /Iteration 2:/);
+});
+
+test('static prefix is byte-identical across two sliding-window builds with different task inputs', async () => {
+  const history = [1, 2, 3].map((n) =>
+    baseIterationResult({
+      iteration: n,
+      summary: `Completed step ${n}.`,
+      completionClassification: 'complete',
+      executionStatus: 'succeeded'
+    })
+  );
+
+  const sharedInput = {
+    kind: 'iteration' as const,
+    target: 'cliExec' as const,
+    iteration: 4,
+    selectionReason: 'A prior Ralph prompt exists and there is no stronger prior-iteration signal.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Steps 1-3 done.\n',
+    taskCounts: { todo: 2, in_progress: 0, blocked: 0, done: 3 },
+    summary,
+    state: workspaceState({
+      lastIteration: history[history.length - 1],
+      iterationHistory: history
+    }),
+    paths,
+    taskFile: {
+      version: 2 as const,
+      tasks: [
+        { id: 'T20', title: 'Memory window task A', status: 'todo' as const },
+        { id: 'T21', title: 'Memory window task B', status: 'todo' as const }
+      ]
+    },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ok.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      memoryStrategy: 'sliding-window' as const,
+      memoryWindowSize: 3
+    }
+  };
+
+  const renderA = await buildPrompt({
+    ...sharedInput,
+    selectedTask: { id: 'T20', title: 'Memory window task A', status: 'todo' }
+  });
+
+  const renderB = await buildPrompt({
+    ...sharedInput,
+    selectedTask: { id: 'T21', title: 'Memory window task B', status: 'todo' }
+  });
+
+  const prefixA = extractStaticPrefix(renderA.prompt);
+  const prefixB = extractStaticPrefix(renderB.prompt);
+
+  assert.ok(prefixA.length > 0, 'Static prefix must be non-empty');
+  assert.equal(prefixA, prefixB, 'Static prefix must be byte-identical across two sliding-window builds that differ only in task input');
+});

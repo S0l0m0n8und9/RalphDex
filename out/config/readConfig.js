@@ -275,7 +275,10 @@ function readConfig(workspaceFolder) {
         scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1),
         pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', defaults_1.DEFAULT_CONFIG.pipelineHumanGates),
         cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', defaults_1.DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
-        promptCaching: readEnum(config, 'promptCaching', ['auto', 'force', 'off'], defaults_1.DEFAULT_CONFIG.promptCaching)
+        promptCaching: readEnum(config, 'promptCaching', ['auto', 'force', 'off'], defaults_1.DEFAULT_CONFIG.promptCaching),
+        memoryStrategy: readEnum(config, 'memoryStrategy', ['verbatim', 'sliding-window', 'summary'], defaults_1.DEFAULT_CONFIG.memoryStrategy),
+        memoryWindowSize: readNumber(config, 'memoryWindowSize', defaults_1.DEFAULT_CONFIG.memoryWindowSize, 1),
+        memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1)
     };
 }
 //# sourceMappingURL=readConfig.js.map

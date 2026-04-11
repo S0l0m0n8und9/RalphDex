@@ -28,6 +28,8 @@ export type RalphAutonomyMode = 'supervised' | 'autonomous';
 
 export type PromptCachingMode = 'auto' | 'force' | 'off';
 
+export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
+
 /**
  * Per-tier model + optional provider override.
  * When `provider` is omitted the workspace's default `cliProvider` is used.
@@ -145,4 +147,7 @@ export interface RalphCodexConfig {
   pipelineHumanGates: boolean;
   cliExecutionTimeoutMs: number;
   promptCaching: PromptCachingMode;
+  memoryStrategy: MemoryStrategy;
+  memoryWindowSize: number;
+  memorySummaryThreshold: number;
 }

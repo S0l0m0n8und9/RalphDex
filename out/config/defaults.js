@@ -70,6 +70,9 @@ exports.DEFAULT_CONFIG = {
     scmConflictRetryLimit: 1,
     pipelineHumanGates: false,
     cliExecutionTimeoutMs: 0,
-    promptCaching: 'auto'
+    promptCaching: 'auto',
+    memoryStrategy: 'verbatim',
+    memoryWindowSize: 10,
+    memorySummaryThreshold: 20
 };
 //# sourceMappingURL=defaults.js.map

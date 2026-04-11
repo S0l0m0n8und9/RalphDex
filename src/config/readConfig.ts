@@ -10,6 +10,7 @@ import {
   CodexHandoffMode,
   CodexReasoningEffort,
   CodexSandboxMode,
+  MemoryStrategy,
   PromptCachingMode,
   RalphCodexConfig,
   RalphAutonomyMode,
@@ -472,6 +473,14 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       'promptCaching',
       ['auto', 'force', 'off'],
       DEFAULT_CONFIG.promptCaching
-    )
+    ),
+    memoryStrategy: readEnum<MemoryStrategy>(
+      config,
+      'memoryStrategy',
+      ['verbatim', 'sliding-window', 'summary'],
+      DEFAULT_CONFIG.memoryStrategy
+    ),
+    memoryWindowSize: readNumber(config, 'memoryWindowSize', DEFAULT_CONFIG.memoryWindowSize, 1),
+    memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1)
   };
 }

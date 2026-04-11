@@ -206,3 +206,4 @@
 - Added RalphTaskTier type and tier field to RalphTask/RalphSuggestedChildTask; selectModelForTask short-circuits on explicit tier with explicit signal; taskDecomposition propagates tier to children; 3 unit tests added; all 607 tests pass
 - Added Task Schema section to AGENTS.md documenting optional tier field with example; added tier to invariants.md schema fragment; check:docs passes
 - Surfaced effective tier in Show Status (current task + last task labels with explicit/scored distinction) and Show Multi-Agent Status (claim task with explicit/dynamic label); 10 regression tests added; 617 tests pass
+- Phases 1+2 complete: memoryStrategy/memoryWindowSize/memorySummaryThreshold added to config; sliding-window support implemented in promptBuilder; 2 new tests added; 619 tests pass

@@ -87,7 +87,10 @@
         "ralphCodex.newChatCommandId",
         "ralphCodex.agentCount",
         "ralphCodex.pipelineHumanGates",
-        "ralphCodex.promptCaching"
+        "ralphCodex.promptCaching",
+        "ralphCodex.memoryStrategy",
+        "ralphCodex.memoryWindowSize",
+        "ralphCodex.memorySummaryThreshold"
       ]
     },
     "virtualWorkspaces": {
@@ -658,6 +661,26 @@
           "enum": ["auto", "force", "off"],
           "default": "auto",
           "description": "Controls prompt caching behaviour for providers that support it (currently Azure AI Foundry direct-HTTPS). auto (default): caching is applied when the provider supports it and is silent for CLI-based providers. force: caching is applied when supported; a warning is emitted when the active provider does not support explicit cache_control markers (e.g. codex, claude, copilot CLI). off: the cache_control marker is omitted from all requests, disabling prompt caching on direct-API providers. See docs/prompt-calibration.md for cost implications."
+        },
+        "ralphCodex.memoryStrategy": {
+          "type": "string",
+          "enum": ["verbatim", "sliding-window", "summary"],
+          "default": "verbatim",
+          "description": "Controls how Ralph manages agent memory across iterations. verbatim (default): the full last-iteration context is included verbatim in every prompt. sliding-window: only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: placeholder for a future summarisation strategy (behaves like verbatim for now)."
+        },
+        "ralphCodex.memoryWindowSize": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Number of recent iterations to include in the prior-iteration context section when memoryStrategy is sliding-window. Ignored for other memory strategies."
+        },
+        "ralphCodex.memorySummaryThreshold": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Minimum iteration count before automatic summarisation is triggered when memoryStrategy is summary. Reserved for future use."
         },
         "ralphCodex.enableModelTiering": {
           "type": "boolean",

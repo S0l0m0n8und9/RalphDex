@@ -61,7 +61,7 @@ const PROMPT_INTRO_BY_KIND: Record<RalphPromptKind, string> = {
 type PromptConfig = Pick<
 RalphCodexConfig,
 'promptTemplateDirectory' | 'promptIncludeVerifierFeedback' | 'promptPriorContextBudget'
-> & Partial<Pick<RalphCodexConfig, 'promptBudgetProfile' | 'customPromptBudget' | 'agentRole'>>;
+> & Partial<Pick<RalphCodexConfig, 'promptBudgetProfile' | 'customPromptBudget' | 'agentRole' | 'memoryStrategy' | 'memoryWindowSize'>>;
 
 export interface PromptGenerationInput {
   kind: RalphPromptKind;
@@ -537,6 +537,36 @@ function buildTaskContext(
     `- Constraints: ${selectedTask.constraints ? selectedTask.constraints.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
     `- Relevant files: ${selectedTask.context ? selectedTask.context.join(', ') : 'none'}`
   ];
+}
+
+function buildSlidingWindowContext(
+  state: RalphWorkspaceState,
+  windowSize: number,
+  budget: number,
+  sessionHandoff: RalphPromptSessionHandoff | null
+): string[] {
+  const handoffLines = sessionHandoff
+    ? [
+      '### Session Handoff',
+      `- Handoff summary: ${sessionHandoff.humanSummary}`,
+      `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
+      `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`,
+      `- Remaining task count at handoff: ${sessionHandoff.remainingTaskCount !== null ? String(sessionHandoff.remainingTaskCount) : 'unknown'}`
+    ]
+    : [];
+
+  const window = state.iterationHistory.slice(-windowSize);
+  if (window.length === 0) {
+    return handoffLines.length > 0
+      ? trimContextLines(handoffLines, budget)
+      : ['- No prior Ralph iteration has been recorded.'];
+  }
+
+  const entryLines = window.map((entry) =>
+    `- Iteration ${entry.iteration}: ${entry.completionClassification} / ${entry.executionStatus} — ${entry.summary}`
+  );
+
+  return trimContextLines([...handoffLines, ...entryLines], budget);
 }
 
 function buildPriorIterationContext(
@@ -1072,14 +1102,21 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       .split('\n')
       .map((line) => line.trimEnd())
       .filter((line) => line.length > 0),
-    priorIterationContext: buildPriorIterationContext(
-      input.state,
-      input.config.promptIncludeVerifierFeedback,
-      Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
-      input.paths.rootPath,
-      input.selectedTask,
-      input.sessionHandoff ?? null
-    )
+    priorIterationContext: input.config.memoryStrategy === 'sliding-window'
+      ? buildSlidingWindowContext(
+        input.state,
+        input.config.memoryWindowSize ?? 10,
+        Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
+        input.sessionHandoff ?? null
+      )
+      : buildPriorIterationContext(
+        input.state,
+        input.config.promptIncludeVerifierFeedback,
+        Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget),
+        input.paths.rootPath,
+        input.selectedTask,
+        input.sessionHandoff ?? null
+      )
   };
 
   const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };

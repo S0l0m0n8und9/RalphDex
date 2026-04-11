@@ -419,6 +419,25 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, preflightRep
         `- Relevant files: ${selectedTask.context ? selectedTask.context.join(', ') : 'none'}`
     ];
 }
+function buildSlidingWindowContext(state, windowSize, budget, sessionHandoff) {
+    const handoffLines = sessionHandoff
+        ? [
+            '### Session Handoff',
+            `- Handoff summary: ${sessionHandoff.humanSummary}`,
+            `- Handoff blocker: ${formatOptional(sessionHandoff.pendingBlocker)}`,
+            `- Handoff validation failure signature: ${formatOptional(sessionHandoff.validationFailureSignature)}`,
+            `- Remaining task count at handoff: ${sessionHandoff.remainingTaskCount !== null ? String(sessionHandoff.remainingTaskCount) : 'unknown'}`
+        ]
+        : [];
+    const window = state.iterationHistory.slice(-windowSize);
+    if (window.length === 0) {
+        return handoffLines.length > 0
+            ? trimContextLines(handoffLines, budget)
+            : ['- No prior Ralph iteration has been recorded.'];
+    }
+    const entryLines = window.map((entry) => `- Iteration ${entry.iteration}: ${entry.completionClassification} / ${entry.executionStatus} — ${entry.summary}`);
+    return trimContextLines([...handoffLines, ...entryLines], budget);
+}
 function buildPriorIterationContext(state, includeVerifierFeedback, budget, rootPath, selectedTask, sessionHandoff) {
     const handoffLines = sessionHandoff
         ? [
@@ -844,7 +863,9 @@ async function buildPrompt(input) {
             .split('\n')
             .map((line) => line.trimEnd())
             .filter((line) => line.length > 0),
-        priorIterationContext: buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask, input.sessionHandoff ?? null)
+        priorIterationContext: input.config.memoryStrategy === 'sliding-window'
+            ? buildSlidingWindowContext(input.state, input.config.memoryWindowSize ?? 10, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.sessionHandoff ?? null)
+            : buildPriorIterationContext(input.state, input.config.promptIncludeVerifierFeedback, Math.min(input.config.promptPriorContextBudget, budgetPolicy.priorBudget), input.paths.rootPath, input.selectedTask, input.sessionHandoff ?? null)
     };
     const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };
     const omittedSections = new Set();

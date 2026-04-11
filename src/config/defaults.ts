@@ -1,4 +1,4 @@
-import { PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig } from './types';
+import { MemoryStrategy, PromptCachingMode, RalphCodexConfig, RalphHooksConfig, RalphModelTieringConfig } from './types';
 
 export const DEFAULT_CONFIG: RalphCodexConfig = {
   cliProvider: 'claude',
@@ -69,5 +69,8 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   scmConflictRetryLimit: 1,
   pipelineHumanGates: false,
   cliExecutionTimeoutMs: 0,
-  promptCaching: 'auto' satisfies PromptCachingMode
+  promptCaching: 'auto' satisfies PromptCachingMode,
+  memoryStrategy: 'verbatim' satisfies MemoryStrategy,
+  memoryWindowSize: 10,
+  memorySummaryThreshold: 20
 };
