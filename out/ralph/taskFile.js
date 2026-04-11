@@ -48,6 +48,7 @@ exports.countTaskStatuses = countTaskStatuses;
 exports.listSelectableTasks = listSelectableTasks;
 exports.selectNextTask = selectNextTask;
 exports.autoCompleteSatisfiedAncestors = autoCompleteSatisfiedAncestors;
+exports.isDocumentationMode = isDocumentationMode;
 exports.findTaskById = findTaskById;
 exports.applySuggestedChildTasks = applySuggestedChildTasks;
 exports.applySuggestedChildTasksToFile = applySuggestedChildTasksToFile;
@@ -76,6 +77,7 @@ const SUPPORTED_TASK_FIELDS = new Set([
     'validation',
     'blocker',
     'priority',
+    'mode',
     'acceptance',
     'constraints',
     'context'
@@ -93,7 +95,12 @@ const LIKELY_TASK_FIELD_MISTAKES = new Map([
     ['guard_rails', 'constraints'],
     ['files', 'context'],
     ['relevantfiles', 'context'],
-    ['relevant_files', 'context']
+    ['relevant_files', 'context'],
+    ['type', 'mode'],
+    ['taskmode', 'mode'],
+    ['task_mode', 'mode'],
+    ['tasktype', 'mode'],
+    ['task_type', 'mode']
 ]);
 function isTaskStatus(value) {
     return value === 'todo' || value === 'in_progress' || value === 'blocked' || value === 'done';
@@ -112,6 +119,12 @@ function normalizeOptionalString(record, key) {
 }
 function normalizeTaskPriority(value) {
     if (value === 'low' || value === 'normal' || value === 'high') {
+        return value;
+    }
+    return undefined;
+}
+function normalizeTaskMode(value) {
+    if (value === 'default' || value === 'documentation') {
         return value;
     }
     return undefined;
@@ -371,6 +384,7 @@ function normalizeTask(candidate, source) {
         validation: normalizeOptionalString(record, 'validation'),
         blocker: normalizeOptionalString(record, 'blocker'),
         priority: normalizeTaskPriority(record.priority),
+        mode: normalizeTaskMode(record.mode),
         acceptance: normalizeOptionalStringArray(record, 'acceptance'),
         constraints: normalizeOptionalStringArray(record, 'constraints'),
         context: normalizeOptionalStringArray(record, 'context'),
@@ -887,6 +901,9 @@ function autoCompleteSatisfiedAncestors(taskFile, completedTaskId) {
         completedAncestorIds
     };
 }
+function isDocumentationMode(task) {
+    return task?.mode === 'documentation';
+}
 function findTaskById(taskFile, taskId) {
     if (!taskId) {
         return null;
@@ -940,6 +957,7 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
         dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
         validation: child.validation ?? undefined,
         notes: child.rationale,
+        mode: parentTask.mode,
         acceptance: child.acceptance,
         constraints: child.constraints,
         context: child.context

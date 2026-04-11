@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildPrompt, PromptRenderResult } from '../src/prompt/promptBuilder';
 import { RalphPaths } from '../src/ralph/pathResolver';
-import { RalphAgentRole } from '../src/ralph/types';
+import { RalphAgentRole, RalphTaskMode } from '../src/ralph/types';
 import { RalphPromptKind, RalphTask } from '../src/ralph/types';
 import {
   PromptScenarioFixture,
@@ -37,10 +37,14 @@ function selectedValidation(task: RalphTask | null): string | null {
 async function renderScenario(
   scenario: PromptScenarioFixture,
   kind: RalphPromptKind,
-  agentRole: RalphAgentRole = 'build'
+  agentRole: RalphAgentRole = 'build',
+  taskModeOverride?: RalphTaskMode
 ): Promise<PromptRenderResult> {
   const state = buildWorkspaceStateForScenario(scenario);
-  const selectedTask = findSelectedTaskForScenario(scenario);
+  let selectedTask = findSelectedTaskForScenario(scenario);
+  if (selectedTask && taskModeOverride) {
+    selectedTask = { ...selectedTask, mode: taskModeOverride };
+  }
   const validationCommand = selectedValidation(selectedTask);
   return buildPrompt({
     kind,
@@ -115,4 +119,29 @@ test('review agent iteration prompt uses the review template and review-only ins
   assert.match(render.prompt, /Do not make code changes\./);
   assert.match(render.prompt, /suggestedChildTasks/);
   assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement that advances the task\./);
+});
+
+// -- Documentation mode tests --
+
+test('documentation-mode iteration prompt uses doc-specific execution contract and operating rules', async () => {
+  const render = await renderScenario(promptScenarios.partialProgress, 'iteration', 'build', 'documentation');
+
+  assert.match(render.prompt, /Read and understand the code, modules, or features that the task asks you to document\./);
+  assert.match(render.prompt, /Write or update documentation files as specified by the task\./);
+  assert.match(render.prompt, /Documentation files \(\.md, \.txt, etc\.\) are the primary deliverable\./);
+  assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement that advances the task\./);
+});
+
+test('documentation-mode prompt includes doc-specific final response contract', async () => {
+  const render = await renderScenario(promptScenarios.partialProgress, 'iteration', 'build', 'documentation');
+
+  assert.match(render.prompt, /Created or updated documentation files\./);
+  assert.match(render.prompt, /Key code areas documented and their accuracy\./);
+});
+
+test('default-mode iteration prompt does not include documentation-specific instructions', async () => {
+  const render = await renderScenario(promptScenarios.partialProgress, 'iteration', 'build', 'default');
+
+  assert.doesNotMatch(render.prompt, /Documentation files \(\.md, \.txt, etc\.\) are the primary deliverable\./);
+  assert.match(render.prompt, /Implement the smallest coherent improvement that advances the task\./);
 });

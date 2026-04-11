@@ -27,6 +27,7 @@ import {
 import {
   countTaskStatuses,
   findTaskById,
+  isDocumentationMode,
   parseTaskFile,
   releaseClaim,
   remainingSubtasks,
@@ -507,7 +508,10 @@ export class RalphIterationEngine {
     broadcaster?.emitPhase(prepared.iteration, 'verify', prepared.config.agentId);
     progress.report({ message: 'Running Ralph verifiers' });
 
-    const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
+    const skipValidationForDocMode = isDocumentationMode(prepared.selectedTask);
+    const validationVerification = prepared.config.verifierModes.includes('validationCommand')
+      && executionStatus === 'succeeded'
+      && !skipValidationForDocMode
       ? await runValidationCommandVerifier({
         command: prepared.validationCommand,
         taskValidationHint: prepared.taskValidationHint,
@@ -523,9 +527,11 @@ export class RalphIterationEngine {
         result: {
           verifier: 'validationCommand' as const,
           status: 'skipped' as const,
-          summary: executionStatus === 'succeeded'
-            ? 'Validation-command verifier disabled for this iteration.'
-            : 'Validation-command verifier skipped because Codex execution did not succeed.',
+          summary: skipValidationForDocMode
+            ? 'Validation-command verifier skipped for documentation-mode task.'
+            : executionStatus === 'succeeded'
+              ? 'Validation-command verifier disabled for this iteration.'
+              : 'Validation-command verifier skipped because Codex execution did not succeed.',
           warnings: [],
           errors: [],
           command: prepared.validationCommand ?? undefined
@@ -582,7 +588,8 @@ export class RalphIterationEngine {
       relevantFileChanges: relevantFileChangesForOutcome,
       progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
       taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
-      previousIterations: prepared.state.iterationHistory
+      previousIterations: prepared.state.iterationHistory,
+      taskMode: prepared.selectedTask?.mode
     });
     const completionReconciliation = await reconcileCompletionReport({
       prepared,
@@ -692,7 +699,8 @@ export class RalphIterationEngine {
       relevantFileChanges: relevantFileChangesForOutcome,
       progressChanged: taskStateVerification.progressChanged,
       taskFileChanged: taskStateVerification.taskFileChanged,
-      previousIterations: prepared.state.iterationHistory
+      previousIterations: prepared.state.iterationHistory,
+      taskMode: prepared.selectedTask?.mode
     });
 
     let completionClassification = outcome.classification;

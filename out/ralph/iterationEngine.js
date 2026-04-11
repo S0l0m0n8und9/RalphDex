@@ -410,7 +410,10 @@ class RalphIterationEngine {
             const afterGit = shouldCaptureGit ? await (0, verifier_1.captureGitStatus)(prepared.rootPolicy.verificationRootPath) : EMPTY_GIT_STATUS;
             broadcaster?.emitPhase(prepared.iteration, 'verify', prepared.config.agentId);
             progress.report({ message: 'Running Ralph verifiers' });
-            const validationVerification = prepared.config.verifierModes.includes('validationCommand') && executionStatus === 'succeeded'
+            const skipValidationForDocMode = (0, taskFile_1.isDocumentationMode)(prepared.selectedTask);
+            const validationVerification = prepared.config.verifierModes.includes('validationCommand')
+                && executionStatus === 'succeeded'
+                && !skipValidationForDocMode
                 ? await (0, verifier_1.runValidationCommandVerifier)({
                     command: prepared.validationCommand,
                     taskValidationHint: prepared.taskValidationHint,
@@ -426,9 +429,11 @@ class RalphIterationEngine {
                     result: {
                         verifier: 'validationCommand',
                         status: 'skipped',
-                        summary: executionStatus === 'succeeded'
-                            ? 'Validation-command verifier disabled for this iteration.'
-                            : 'Validation-command verifier skipped because Codex execution did not succeed.',
+                        summary: skipValidationForDocMode
+                            ? 'Validation-command verifier skipped for documentation-mode task.'
+                            : executionStatus === 'succeeded'
+                                ? 'Validation-command verifier disabled for this iteration.'
+                                : 'Validation-command verifier skipped because Codex execution did not succeed.',
                         warnings: [],
                         errors: [],
                         command: prepared.validationCommand ?? undefined
@@ -483,7 +488,8 @@ class RalphIterationEngine {
                 relevantFileChanges: relevantFileChangesForOutcome,
                 progressChanged: prepared.beforeCoreState.hashes.progress !== afterCoreStateBeforeReconciliation.hashes.progress,
                 taskFileChanged: prepared.beforeCoreState.hashes.tasks !== afterCoreStateBeforeReconciliation.hashes.tasks,
-                previousIterations: prepared.state.iterationHistory
+                previousIterations: prepared.state.iterationHistory,
+                taskMode: prepared.selectedTask?.mode
             });
             const completionReconciliation = await (0, reconciliation_1.reconcileCompletionReport)({
                 prepared,
@@ -586,7 +592,8 @@ class RalphIterationEngine {
                 relevantFileChanges: relevantFileChangesForOutcome,
                 progressChanged: taskStateVerification.progressChanged,
                 taskFileChanged: taskStateVerification.taskFileChanged,
-                previousIterations: prepared.state.iterationHistory
+                previousIterations: prepared.state.iterationHistory,
+                taskMode: prepared.selectedTask?.mode
             });
             let completionClassification = outcome.classification;
             let followUpAction = outcome.followUpAction;

@@ -742,3 +742,83 @@ test('decideLoopContinuation stops on ledger drift even when auto-replenishment 
   assert.equal(decision.stopReason, 'no_actionable_task');
   assert.match(decision.message, /No executable Ralph task remains/i);
 });
+
+// -- Documentation mode tests --
+
+test('classifyIterationOutcome does not demote partial_progress to no_progress for documentation-mode tasks', () => {
+  const previous = iterationResult();
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'skipped',
+    validationFailureSignature: null,
+    relevantFileChanges: [],
+    progressChanged: true,
+    taskFileChanged: false,
+    previousIterations: [previous],
+    taskMode: 'documentation'
+  });
+
+  // progressChanged is true so baseClassification returns partial_progress.
+  // Without documentation mode this would be demoted to no_progress due to
+  // no_relevant_file_changes + same_task_selected_repeatedly, but documentation
+  // mode prevents the demotion.
+  assert.equal(outcome.classification, 'partial_progress');
+  assert.equal(outcome.followUpAction, 'continue_same_task');
+});
+
+test('classifyIterationOutcome still reports no_progress for documentation-mode tasks with zero signals', () => {
+  const previous = iterationResult();
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'skipped',
+    validationFailureSignature: null,
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [previous],
+    taskMode: 'documentation'
+  });
+
+  // No progress signals at all — even documentation mode cannot manufacture progress.
+  assert.equal(outcome.classification, 'no_progress');
+  assert.equal(outcome.followUpAction, 'retry_same_task');
+});
+
+test('classifyIterationOutcome demotes partial_progress to no_progress for default-mode tasks (regression guard)', () => {
+  const previous = iterationResult();
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    // verificationStatus 'passed' triggers partial_progress in baseClassification
+    verificationStatus: 'passed',
+    validationFailureSignature: previous.verification.validationFailureSignature,
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [previous],
+    taskMode: 'default'
+  });
+
+  // verificationStatus 'passed' produces partial_progress, but the demotion
+  // triggers because no_relevant_file_changes + task_and_progress_state_unchanged
+  // + same_validation_failure_signature are all present.
+  assert.equal(outcome.classification, 'no_progress');
+  assert.equal(outcome.followUpAction, 'retry_same_task');
+});

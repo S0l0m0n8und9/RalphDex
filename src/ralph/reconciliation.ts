@@ -9,6 +9,7 @@ import {
   findTaskById,
   inspectClaimOwnership,
   inspectTaskGraph,
+  isDocumentationMode,
   parseTaskFile,
   resolveStaleClaimByTask,
   withTaskFileLock,
@@ -117,8 +118,12 @@ export async function reconcileCompletionReport(
     // taskState verifier runs *after* reconciliation and will confirm the
     // status change in tasks.json, so the final verification still has a
     // meaningful gate.
+    //
+    // Documentation-mode tasks skip the validation gate entirely because their
+    // deliverables (markdown, text) are not verifiable by code-centric commands.
     const validationGatePassed = input.validationCommandStatus === 'passed';
-    if (!validationGatePassed && input.verificationStatus !== 'passed') {
+    const docMode = isDocumentationMode(input.selectedTask);
+    if (!validationGatePassed && input.verificationStatus !== 'passed' && !docMode) {
       warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
     }
     if (parsed.report.needsHumanReview) {

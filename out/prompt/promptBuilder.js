@@ -525,15 +525,27 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
             .map((entry) => entry.text)
     ], budget);
 }
-function buildOperatingRules(agentRole) {
+function buildOperatingRules(agentRole, taskMode) {
     if (agentRole === 'review') {
         return [
             '- Read AGENTS.md plus the durable Ralph files before making non-trivial review decisions.',
             '- Do not invent unsupported IDE APIs or hidden handoff channels.',
             '- Keep the review deterministic, file-backed, and evidence-driven.',
             '- Do not make implementation edits; this role reports review findings only.',
-            '- Prefer the repository’s real validation commands when they exist.',
+            '- Prefer the repository\'s real validation commands when they exist.',
             '- Do not edit `.ralph/tasks.json` or `.ralph/progress.md`; return review results through the structured completion report instead.'
+        ];
+    }
+    if (taskMode === 'documentation') {
+        return [
+            '- Read AGENTS.md plus the durable Ralph files before making non-trivial changes.',
+            '- Do not invent unsupported IDE APIs or hidden handoff channels.',
+            '- Focus on reading existing code, understanding behavior, and producing clear documentation.',
+            '- Do not make functional code changes unless the task specifically requires it.',
+            '- Documentation files (.md, .txt, etc.) are the primary deliverable.',
+            '- Verify documentation accuracy by reading the code it describes.',
+            '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
+            '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
         ];
     }
     return [
@@ -541,12 +553,12 @@ function buildOperatingRules(agentRole) {
         '- Do not invent unsupported IDE APIs or hidden handoff channels.',
         '- Keep architecture thin, deterministic, and file-backed.',
         '- Make the smallest coherent change that materially advances the selected Ralph task.',
-        '- Prefer the repository’s real validation commands when they exist.',
+        '- Prefer the repository\'s real validation commands when they exist.',
         '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
         '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
 }
-function buildExecutionContract(target, kind, agentRole) {
+function buildExecutionContract(target, kind, agentRole, taskMode) {
     if (kind === 'replenish-backlog') {
         const contract = [
             '1. Inspect the PRD, durable progress log, and current repo state before editing the task file.',
@@ -584,6 +596,23 @@ function buildExecutionContract(target, kind, agentRole) {
             '6. End with the concrete review outcome and the next verification step.'
         ];
     }
+    if (taskMode === 'documentation') {
+        const docContract = [
+            '1. Inspect the workspace facts and selected Ralph task before editing.',
+            '2. Read and understand the code, modules, or features that the task asks you to document.',
+            '3. Write or update documentation files as specified by the task.',
+            '4. Do not edit `.ralph/tasks.json` or `.ralph/progress.md` for normal task execution; Ralph will reconcile selected-task state from your completion report.'
+        ];
+        if (target === 'cliExec') {
+            docContract.push('5. Verify the documentation is accurate by cross-referencing the code it describes.');
+            docContract.push('6. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, and optional `needsHumanReview`.');
+        }
+        else {
+            docContract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');
+            docContract.push('6. End with the concrete next step a human can verify or run in the IDE.');
+        }
+        return docContract;
+    }
     const contract = [
         '1. Inspect the workspace facts and selected Ralph task before editing.',
         '2. Execute only the selected task, or explain deterministically why no safe task is available.',
@@ -600,7 +629,7 @@ function buildExecutionContract(target, kind, agentRole) {
     }
     return contract;
 }
-function buildFinalResponseContract(target, kind, agentRole) {
+function buildFinalResponseContract(target, kind, agentRole, taskMode) {
     if (kind === 'replenish-backlog') {
         return [
             '- Generated or updated task ids.',
@@ -623,6 +652,21 @@ function buildFinalResponseContract(target, kind, agentRole) {
                 '- Validation run or still needed.',
                 '- Review findings and proposed follow-up tasks.',
                 '- The next concrete IDE or terminal verification step.'
+            ];
+    }
+    if (taskMode === 'documentation') {
+        return target === 'cliExec'
+            ? [
+                '- Created or updated documentation files.',
+                '- Key code areas documented and their accuracy.',
+                '- Assumptions or areas where documentation may be incomplete.',
+                '- End with a fenced `json` completion report block for the selected task.'
+            ]
+            : [
+                '- Created or updated documentation files.',
+                '- Key code areas documented and their accuracy.',
+                '- What is ready for human review.',
+                '- The next concrete IDE or terminal step.'
             ];
     }
     if (target === 'cliExec') {
@@ -784,9 +828,9 @@ async function buildPrompt(input) {
     // They must be assembled before all per-iteration dynamic sections (see template order).
     const staticSectionBodies = {
         strategyContext: buildStrategyContext(input.target, input.kind, agentRole, taskLedgerDriftMessages),
-        operatingRules: buildOperatingRules(agentRole),
-        executionContract: buildExecutionContract(input.target, input.kind, agentRole),
-        finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole)
+        operatingRules: buildOperatingRules(agentRole, input.selectedTask?.mode),
+        executionContract: buildExecutionContract(input.target, input.kind, agentRole, input.selectedTask?.mode),
+        finalResponseContract: buildFinalResponseContract(input.target, input.kind, agentRole, input.selectedTask?.mode)
     };
     // === Dynamic sections: vary by task, state, or iteration ===
     // These sections follow the static prefix and carry per-iteration context.

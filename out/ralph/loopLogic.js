@@ -143,7 +143,13 @@ function classifyIterationOutcome(input) {
     const classification = baseClassification(input);
     const noProgressSignals = detectNoProgressSignals(input, classification);
     const strongNoProgressSignals = new Set(noProgressSignals);
+    // Documentation-mode tasks are never demoted from partial_progress to no_progress
+    // because their deliverables (markdown, text) are not captured by code-centric
+    // verification signals.  The base classification already gates on progressChanged
+    // and taskFileChanged, so only genuine zero-signal iterations stay at no_progress.
+    const isDocMode = input.taskMode === 'documentation';
     const shouldPromoteToNoProgress = classification === 'partial_progress'
+        && !isDocMode
         && strongNoProgressSignals.has('no_relevant_file_changes')
         && strongNoProgressSignals.has('task_and_progress_state_unchanged')
         && (strongNoProgressSignals.has('same_task_selected_repeatedly')

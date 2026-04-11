@@ -104,8 +104,12 @@ async function reconcileCompletionReport(input) {
         // taskState verifier runs *after* reconciliation and will confirm the
         // status change in tasks.json, so the final verification still has a
         // meaningful gate.
+        //
+        // Documentation-mode tasks skip the validation gate entirely because their
+        // deliverables (markdown, text) are not verifiable by code-centric commands.
         const validationGatePassed = input.validationCommandStatus === 'passed';
-        if (!validationGatePassed && input.verificationStatus !== 'passed') {
+        const docMode = (0, taskFile_1.isDocumentationMode)(input.selectedTask);
+        if (!validationGatePassed && input.verificationStatus !== 'passed' && !docMode) {
             warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
         }
         if (parsed.report.needsHumanReview) {
