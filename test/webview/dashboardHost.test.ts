@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import test from 'node:test';
 import { DashboardHost } from '../../src/webview/dashboardHost';
 import { IterationBroadcaster } from '../../src/ui/iterationBroadcaster';
+import { vscodeTestHarness } from '../support/vscodeTestHarness';
 
 // ---------------------------------------------------------------------------
 // Minimal mock helpers
@@ -51,6 +55,21 @@ function webviewSends(wv: MockWebview, msg: unknown): void {
 function makeSimpleRenderFn(label: string) {
   return (state: { workspaceName: string }, _nonce: string) =>
     `<html>${label}:${state.workspaceName}</html>`;
+}
+
+async function withMonotonicDateNow<T>(fn: () => Promise<T> | T): Promise<T> {
+  const originalNow = Date.now;
+  let ticks = 0;
+  (Date as typeof Date & { now: () => number }).now = () => {
+    ticks += 200;
+    return ticks;
+  };
+
+  try {
+    return await fn();
+  } finally {
+    (Date as typeof Date & { now: () => number }).now = originalNow;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -135,6 +154,79 @@ test('DashboardHost: inbound command triggers command-ack started then done', as
   // simply recorded in executedCommands), then a 'done' ack is sent.
   const doneAck = ackMessages.find((m) => m.status === 'done');
   assert.ok(doneAck, 'a done ack should be posted after command resolves');
+
+  broadcaster.dispose();
+});
+
+test('DashboardHost: refresh failure preserves last successful snapshot and reports error phase', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const renders: Array<{
+    phase: string;
+    errorMessage: string | null;
+    snapshotWorkspaceName: string | null;
+  }> = [];
+  let refreshCount = 0;
+
+  await withMonotonicDateNow(async () => {
+    const host = new DashboardHost(
+      wv as unknown as import('vscode').Webview,
+      broadcaster,
+      (state, _nonce) => {
+        renders.push({
+          phase: state.snapshotStatus.phase,
+          errorMessage: state.snapshotStatus.errorMessage,
+          snapshotWorkspaceName: state.dashboardSnapshot?.workspaceName ?? null
+        });
+        return `<html>${state.snapshotStatus.phase}:${state.dashboardSnapshot?.workspaceName ?? 'none'}</html>`;
+      } as never,
+      async () => {
+        refreshCount += 1;
+        if (refreshCount === 1) {
+          return { workspaceName: 'snapshot-one' } as never;
+        }
+        throw new Error('refresh failed');
+      }
+    );
+
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(renders.at(-1)?.phase, 'ready', 'initial snapshot load should reach ready');
+    assert.equal(renders.at(-1)?.snapshotWorkspaceName, 'snapshot-one');
+
+    await host.refreshDashboardSnapshot();
+
+    const lastRender = renders.at(-1);
+    assert.equal(lastRender?.phase, 'error', 'refresh failure should surface error phase');
+    assert.equal(lastRender?.errorMessage, 'refresh failed');
+    assert.equal(lastRender?.snapshotWorkspaceName, 'snapshot-one', 'failed refresh should keep last successful snapshot');
+  });
+
+  broadcaster.dispose();
+});
+
+test('DashboardHost: open-iteration-artifact opens the iteration summary path', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const harness = vscodeTestHarness();
+  harness.reset();
+
+  const artifactDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralphdash-'));
+  const summaryPath = path.join(artifactDir, 'summary.md');
+  const fallbackPath = path.join(artifactDir, 'preflight-summary.md');
+  await fs.writeFile(summaryPath, '# summary\n', 'utf8');
+  await fs.writeFile(fallbackPath, '# preflight\n', 'utf8');
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    makeSimpleRenderFn('panel') as never
+  );
+
+  webviewSends(wv, { type: 'open-iteration-artifact', artifactDir });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(harness.state.shownDocuments, [summaryPath], 'summary.md should be opened when present');
 
   broadcaster.dispose();
 });
