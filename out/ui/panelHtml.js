@@ -591,6 +591,7 @@ function buildTaskBoardSection(state) {
     <div class="metric-grid">
       <div class="metric"><span class="metric-label">Todo</span><span class="metric-value">${taskBoard.counts?.todo ?? 0}</span></div>
       <div class="metric"><span class="metric-label">In Progress</span><span class="metric-value">${taskBoard.counts?.in_progress ?? 0}</span></div>
+      <div class="metric"><span class="metric-label">Done</span><span class="metric-value ok">${taskBoard.counts?.done ?? 0}</span></div>
       <div class="metric"><span class="metric-label">Blocked</span><span class="metric-value warn">${taskBoard.counts?.blocked ?? 0}</span></div>
       <div class="metric"><span class="metric-label">Dead-Letter</span><span class="metric-value warn">${taskBoard.deadLetterCount}</span></div>
     </div>
@@ -642,6 +643,7 @@ function buildAgentGridSection(state) {
           ${row.isStuck ? `<span class="agent-stuck">stuck ${row.stuckScore}</span>` : ''}
         </div>
         <div class="dead-letter-meta">
+          <div><strong>First Seen</strong> ${formatUtc(row.firstSeenAt)}</div>
           <div><strong>Claim</strong> ${(0, htmlHelpers_1.esc)(row.activeClaimTaskId ?? 'idle')}</div>
           <div><strong>Completed</strong> ${row.completedTaskCount}</div>
           <div><strong>Latest</strong> ${(0, htmlHelpers_1.esc)(row.latestHandoffClassification ?? 'none')} · iter ${row.latestHandoffIteration ?? 'none'}</div>
@@ -685,10 +687,12 @@ function buildQuickActionsSection(state) {
     <div class="btn-grid">
       <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Artifact</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestRalphSummary"><span class="btn-label">Stop Context</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-local-action="open-settings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Dead-Letter</span><span class="btn-spinner"></span></button>` : ''}
       ${quick?.canAttemptLoop ? `<button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>` : ''}
     </div>
@@ -918,20 +922,6 @@ function buildPanelDashboardHtml(state, nonce) {
       document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); return; }
-
-        var localAction = e.target.closest('[data-local-action]');
-        if (localAction) {
-          var action = localAction.getAttribute('data-local-action');
-          if (action === 'open-settings') {
-            var settingsDetails = document.querySelector('details[data-section="settings"]');
-            if (settingsDetails) {
-              settingsDetails.open = true;
-              saveDetailsState();
-              settingsDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }
-          return;
-        }
 
         var kvAdd = e.target.closest('[data-setting-kv-add]');
         if (kvAdd) {

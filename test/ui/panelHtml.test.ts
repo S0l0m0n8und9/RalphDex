@@ -246,15 +246,49 @@ test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-lett
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-full');
   assert.ok(html.includes('pipeline-001'));
   assert.ok(html.includes('Last Stop</strong> repeated_no_progress'));
+  assert.ok(html.includes('data-command="ralphCodex.openLatestPipelineRun"'));
+  assert.match(html, /Done<\/span><span class="metric-value ok">4<\/span>/);
   assert.ok(html.includes('Dead-Letter'));
   assert.ok(html.includes('Recover failed task'));
   assert.ok(html.includes('validation_mismatch'));
   assert.ok(html.includes('Confidence</strong> high'));
   assert.ok(html.includes('agent-alpha'));
+  assert.ok(html.includes('First Seen</strong> 2026-01-01T00:00:00Z'));
   assert.ok(html.includes('stuck 3'));
   assert.ok(html.includes('Selected T110'));
   assert.ok(html.includes('Run Loop'));
   assert.ok(html.includes('Open Settings'));
+});
+
+test('buildPanelDashboardHtml quick actions expose latest artifact and settings commands', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-actions');
+  assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
+  assert.ok(html.includes('ralphCodex.openLatestProvenanceBundle'));
+  assert.ok(html.includes('ralphCodex.openLatestPromptEvidence'));
+  assert.ok(html.includes('ralphCodex.openLatestCliTranscript'));
+  assert.ok(html.includes('workbench.action.openSettings'));
+});
+
+test('buildPanelDashboardHtml renders multiple recent failure feed entries when present', () => {
+  const dashboardSnapshot = populatedDashboardSnapshot();
+  dashboardSnapshot.failureFeed.entries.push({
+    taskId: 'T201',
+    taskTitle: 'Repair pipeline resume',
+    category: 'implementation_error',
+    confidence: 'medium',
+    summary: 'Pipeline artifact did not reconcile cleanly.',
+    suggestedAction: 'Re-run the resume path after repairing the artifact.',
+    recoveryAttemptCount: 4,
+    remediationSummary: null,
+    humanReviewRecommended: false
+  });
+
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot }), 'dash-failures');
+
+  assert.ok(html.includes('Surface dashboard sections'));
+  assert.ok(html.includes('Repair pipeline resume'));
+  assert.ok(html.includes('Pipeline artifact did not reconcile cleanly.'));
+  assert.ok(html.includes('implementation_error'));
 });
 
 test('buildPanelDashboardHtml includes task detail sections for expandable tasks', () => {

@@ -7,6 +7,7 @@ import {
 import type { RalphStatusSnapshot } from '../src/ralph/statusReport';
 import type { AgentStatusSummary, AgentHandoffSummary } from '../src/ralph/multiAgentStatus';
 import type { DeadLetterEntry } from '../src/ralph/deadLetter';
+import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
 import type { PipelineRunArtifact } from '../src/ralph/pipeline';
 
 // ---------------------------------------------------------------------------
@@ -61,6 +62,24 @@ function makeDeadLetterEntry(taskId: string): DeadLetterEntry {
     deadLetteredAt: '2026-01-01T00:00:00.000Z',
     diagnosticHistory: [],
     recoveryAttemptCount: 3,
+  };
+}
+
+function makeFailureAnalysis(
+  taskId: string,
+  createdAt: string,
+  category: FailureAnalysis['rootCauseCategory'],
+  confidence: FailureAnalysis['confidence']
+): FailureAnalysis {
+  return {
+    schemaVersion: 1,
+    kind: 'failureAnalysis',
+    taskId,
+    createdAt,
+    rootCauseCategory: category,
+    confidence,
+    summary: `Failure summary for ${taskId}`,
+    suggestedAction: `Suggested action for ${taskId}`,
   };
 }
 
@@ -314,4 +333,71 @@ test('buildDashboardSnapshot: deadLetterEntries undefined treated as empty', () 
   const result = buildDashboardSnapshot(snapshot);
   assert.deepEqual(result.deadLetter.entries, []);
   assert.strictEqual(result.quickActions.hasDeadLetterEntries, false);
+});
+
+test('buildDashboardSnapshot: failure feed includes recent selected-task and dead-letter diagnostic events', () => {
+  const selectedTaskAnalysis = makeFailureAnalysis(
+    'T110',
+    '2026-01-06T00:00:00.000Z',
+    'validation_mismatch',
+    'high'
+  );
+  const deadLetterEntries: DeadLetterEntry[] = [
+    {
+      ...makeDeadLetterEntry('T200'),
+      taskTitle: 'Recover agent watchdog',
+      recoveryAttemptCount: 4,
+      diagnosticHistory: [
+        makeFailureAnalysis('T200', '2026-01-05T00:00:00.000Z', 'environment_issue', 'medium'),
+        makeFailureAnalysis('T200', '2026-01-02T00:00:00.000Z', 'dependency_missing', 'low'),
+      ],
+    },
+    {
+      ...makeDeadLetterEntry('T201'),
+      taskTitle: 'Repair pipeline resume',
+      diagnosticHistory: [
+        makeFailureAnalysis('T201', '2026-01-04T00:00:00.000Z', 'implementation_error', 'high'),
+        makeFailureAnalysis('T201', '2026-01-03T00:00:00.000Z', 'task_ambiguity', 'medium'),
+        makeFailureAnalysis('T201', '2026-01-01T00:00:00.000Z', 'transient', 'low'),
+      ],
+    },
+  ];
+
+  const snapshot = minimalSnapshot({
+    selectedTask: {
+      id: 'T110',
+      title: 'Surface dashboard sections',
+      status: 'in_progress',
+    } as RalphStatusSnapshot['selectedTask'],
+    latestFailureAnalysis: selectedTaskAnalysis,
+    latestRemediation: {
+      trigger: 'repeated_no_progress',
+      attemptCount: 2,
+      action: 'reframe_task',
+      humanReviewRecommended: true,
+      summary: 'Validation mismatch — adjusted prompt',
+      evidence: ['npm run validate failed'],
+    } as RalphStatusSnapshot['latestRemediation'],
+    recoveryAttemptCount: 2,
+    deadLetterEntries,
+  });
+
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.equal(result.failureFeed.entries.length, 5, 'failure feed should cap to the 5 most recent events');
+  assert.deepEqual(
+    result.failureFeed.entries.map((entry) => entry.taskId),
+    ['T110', 'T200', 'T201', 'T201', 'T200']
+  );
+  assert.deepEqual(
+    result.failureFeed.entries.map((entry) => entry.category),
+    ['validation_mismatch', 'environment_issue', 'implementation_error', 'task_ambiguity', 'dependency_missing']
+  );
+  assert.equal(result.failureFeed.entries[0].taskTitle, 'Surface dashboard sections');
+  assert.equal(result.failureFeed.entries[0].remediationSummary, 'Validation mismatch — adjusted prompt');
+  assert.equal(result.failureFeed.entries[0].humanReviewRecommended, true);
+  assert.equal(result.failureFeed.entries[1].taskTitle, 'Recover agent watchdog');
+  assert.equal(result.failureFeed.entries[1].recoveryAttemptCount, 4);
+  assert.equal(result.failureFeed.entries[1].remediationSummary, null);
+  assert.equal(result.failureFeed.entries[1].humanReviewRecommended, false);
 });

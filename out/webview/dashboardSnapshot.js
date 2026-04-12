@@ -83,21 +83,40 @@ function buildAgentGrid(summaries) {
     return { rows };
 }
 function buildFailureFeed(snapshot) {
-    if (!snapshot.latestFailureAnalysis || !snapshot.selectedTask) {
-        return { entries: [] };
+    const entriesWithTimestamps = [];
+    if (snapshot.latestFailureAnalysis && snapshot.selectedTask) {
+        entriesWithTimestamps.push({
+            taskId: snapshot.selectedTask.id,
+            taskTitle: snapshot.selectedTask.title,
+            category: snapshot.latestFailureAnalysis.rootCauseCategory,
+            confidence: snapshot.latestFailureAnalysis.confidence,
+            summary: snapshot.latestFailureAnalysis.summary,
+            suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
+            recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
+            remediationSummary: snapshot.latestRemediation?.summary ?? null,
+            humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
+            createdAt: snapshot.latestFailureAnalysis.createdAt,
+        });
     }
+    for (const deadLetterEntry of snapshot.deadLetterEntries ?? []) {
+        for (const analysis of deadLetterEntry.diagnosticHistory) {
+            entriesWithTimestamps.push({
+                taskId: deadLetterEntry.taskId,
+                taskTitle: deadLetterEntry.taskTitle,
+                category: analysis.rootCauseCategory,
+                confidence: analysis.confidence,
+                summary: analysis.summary,
+                suggestedAction: analysis.suggestedAction,
+                recoveryAttemptCount: deadLetterEntry.recoveryAttemptCount,
+                remediationSummary: null,
+                humanReviewRecommended: false,
+                createdAt: analysis.createdAt,
+            });
+        }
+    }
+    entriesWithTimestamps.sort((left, right) => compareIsoTimestampsDesc(left.createdAt, right.createdAt));
     return {
-        entries: [{
-                taskId: snapshot.selectedTask.id,
-                taskTitle: snapshot.selectedTask.title,
-                category: snapshot.latestFailureAnalysis.rootCauseCategory,
-                confidence: snapshot.latestFailureAnalysis.confidence,
-                summary: snapshot.latestFailureAnalysis.summary,
-                suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
-                recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
-                remediationSummary: snapshot.latestRemediation?.summary ?? null,
-                humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
-            }]
+        entries: entriesWithTimestamps.slice(0, 5).map(({ createdAt: _createdAt, ...entry }) => entry),
     };
 }
 function buildDeadLetter(snapshot) {
@@ -111,5 +130,19 @@ function buildQuickActions(snapshot) {
         hasBlockedTasks: (snapshot.taskCounts?.blocked ?? 0) > 0,
         canAttemptLoop: snapshot.workspaceTrusted && snapshot.selectedTask !== null,
     };
+}
+function compareIsoTimestampsDesc(left, right) {
+    const leftTime = Date.parse(left);
+    const rightTime = Date.parse(right);
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) {
+        return 0;
+    }
+    if (Number.isNaN(leftTime)) {
+        return 1;
+    }
+    if (Number.isNaN(rightTime)) {
+        return -1;
+    }
+    return rightTime - leftTime;
 }
 //# sourceMappingURL=dashboardSnapshot.js.map
