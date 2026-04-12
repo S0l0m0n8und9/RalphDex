@@ -2034,6 +2034,9 @@ test('New Project Wizard opens a dedicated wizard webview panel', async () => {
   assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
   assert.equal(harness.state.createdWebviewPanels[0]?.title, 'PRD Creation Wizard');
   assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /PRD Creation Wizard/);
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Web App/);
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Objective example/);
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Tech stack/);
 });
 
 test('Regenerate PRD opens the wizard at the existing PRD flow entry point', async () => {

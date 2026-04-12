@@ -70,6 +70,124 @@ function lastStateMessage(webview: MockWebview): { type: string; state: { warnin
   return states.at(-1)!;
 }
 
+test('PrdCreationWizardHost: renders expanded intake controls and guidance copy', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  assert.match(webview.html, /Web App/);
+  assert.match(webview.html, /CLI Tool/);
+  assert.match(webview.html, /Data Pipeline/);
+  assert.match(webview.html, /Objective example/);
+  assert.match(webview.html, /Characters:/);
+  assert.match(webview.html, /What good looks like/);
+  assert.match(webview.html, /Tech stack/);
+  assert.match(webview.html, /Out-of-scope/);
+  assert.match(webview.html, /Existing conventions/);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: generate composes structured intake fields into the existing draft contract', async () => {
+  const webview = makeMockWebview();
+  let generateInput: {
+    mode: 'new' | 'regenerate';
+    projectType: string;
+    objective: string;
+    constraints: string;
+    nonGoals: string;
+  } | null = null;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async (input) => {
+      generateInput = input;
+      return makeGeneratedDraft();
+    },
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'projectType', value: 'service' });
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Ship a deterministic API gateway.' });
+  webviewSends(webview, { type: 'update-field', field: 'techStack', value: 'TypeScript, VS Code extension host' });
+  webviewSends(webview, { type: 'update-field', field: 'outOfScope', value: 'Do not add telemetry or hosted services.' });
+  webviewSends(webview, { type: 'update-field', field: 'existingConventions', value: 'Keep file-backed artifacts and deterministic validation.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(generateInput, {
+    mode: 'new',
+    projectType: 'service',
+    objective: 'Ship a deterministic API gateway.',
+    constraints: [
+      'Tech stack:',
+      'TypeScript, VS Code extension host',
+      '',
+      'Existing conventions:',
+      'Keep file-backed artifacts and deterministic validation.'
+    ].join('\n'),
+    nonGoals: 'Do not add telemetry or hosted services.'
+  });
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: replaceContext exposes structured intake state for regenerate flows', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  host.replaceContext({
+    initialMode: 'regenerate',
+    initialProjectType: 'library',
+    initialObjective: 'Refresh the published SDK guide.',
+    initialConstraints: 'Use TypeScript only.',
+    initialNonGoals: 'No API redesign.'
+  });
+
+  const state = lastStateMessage(webview).state as {
+    mode: 'new' | 'regenerate';
+    projectType: string;
+    objective: string;
+    techStack: string;
+    outOfScope: string;
+    existingConventions: string;
+  };
+  assert.equal(state.mode, 'regenerate');
+  assert.equal(state.projectType, 'library');
+  assert.equal(state.objective, 'Refresh the published SDK guide.');
+  assert.equal(state.techStack, 'Use TypeScript only.');
+  assert.equal(state.outOfScope, 'No API redesign.');
+  assert.equal(state.existingConventions, '');
+
+  host.dispose();
+});
+
 test('PrdCreationWizardHost: generate falls back to bootstrap draft on generation failure', async () => {
   const webview = makeMockWebview();
 

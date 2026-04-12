@@ -62,9 +62,11 @@ export interface PrdCreationWizardHostOptions {
   onWriteComplete?: (result: PrdWizardWriteResult) => Promise<void>;
 }
 
+type StructuredField = 'projectType' | 'objective' | 'techStack' | 'outOfScope' | 'existingConventions';
+
 type WizardInboundMessage =
   | { type: 'set-step'; step: PrdWizardStep }
-  | { type: 'update-field'; field: 'projectType' | 'objective' | 'constraints' | 'nonGoals'; value: string }
+  | { type: 'update-field'; field: StructuredField; value: string }
   | { type: 'update-task-tier'; taskId: string; tier: '' | 'simple' | 'medium' | 'complex' }
   | { type: 'toggle-skill'; skillName: string }
   | { type: 'generate-draft' }
@@ -79,8 +81,9 @@ interface WizardState {
   step: PrdWizardStep;
   projectType: string;
   objective: string;
-  constraints: string;
-  nonGoals: string;
+  techStack: string;
+  outOfScope: string;
+  existingConventions: string;
   draft: PrdWizardDraftBundle | null;
   warning: string | null;
   error: string | null;
@@ -114,18 +117,99 @@ function bootstrapSeedTasks(): PrdWizardTaskDraft[] {
   ];
 }
 
+const PROJECT_TYPE_OPTIONS = [
+  {
+    value: 'web-app',
+    title: 'Web App',
+    description: 'Browser-based product with routed screens, UI flows, and deployed frontends.',
+    objectiveExample: 'Build a customer portal that lets operators review task state, inspect provenance, and approve blocked work.',
+    objectiveHint: 'Name the primary user, the workflow they need, and the concrete outcome they should reach.'
+  },
+  {
+    value: 'cli-tool',
+    title: 'CLI Tool',
+    description: 'Command-line utility focused on repeatable local or CI automation.',
+    objectiveExample: 'Create a CLI that validates Ralph runtime artifacts, summarizes failures, and exits non-zero on ledger drift.',
+    objectiveHint: 'Call out the operator, the input surface, and the deterministic output or exit behavior.'
+  },
+  {
+    value: 'library',
+    title: 'Library',
+    description: 'Reusable package, SDK, or module intended to be consumed by other code.',
+    objectiveExample: 'Ship a TypeScript library that exposes durable task-graph helpers with explicit validation and serialization APIs.',
+    objectiveHint: 'Describe the consumer, the API surface they need, and the reliability guarantees the package should provide.'
+  },
+  {
+    value: 'service',
+    title: 'Service',
+    description: 'Long-running backend, API, worker, or integration service.',
+    objectiveExample: 'Implement a service that accepts PRD fragments, produces Ralph task proposals, and stores every run with provenance.',
+    objectiveHint: 'Specify the caller, the request/response boundary, and the operational behavior the service must preserve.'
+  },
+  {
+    value: 'data-pipeline',
+    title: 'Data Pipeline',
+    description: 'Batch or streaming workflow that transforms, validates, or enriches data.',
+    objectiveExample: 'Build a pipeline that ingests Codex transcripts, normalizes completion reports, and emits verifier-ready evidence bundles.',
+    objectiveHint: 'Define the source data, the transformation, and the artifact or dataset produced at the end.'
+  },
+  {
+    value: 'mobile-app',
+    title: 'Mobile App',
+    description: 'Native or cross-platform application optimized for handheld interaction.',
+    objectiveExample: 'Create a mobile companion that surfaces Ralph status, recent blockers, and approval actions for on-call operators.',
+    objectiveHint: 'Describe the user on the move, the decision they need to make quickly, and the moment the app should support.'
+  },
+  {
+    value: 'other',
+    title: 'Other',
+    description: 'Use when the work does not fit the standard product shapes above.',
+    objectiveExample: 'Describe the system shape, the operator goal, and the durable outputs Ralph should produce.',
+    objectiveHint: 'Be explicit about the domain and success criteria so the generated draft does not have to guess.'
+  }
+] as const;
+
+const DEFAULT_PROJECT_TYPE = PROJECT_TYPE_OPTIONS[0].value;
+
+function getProjectTypeMeta(projectType: string) {
+  return PROJECT_TYPE_OPTIONS.find((option) => option.value === projectType) ?? PROJECT_TYPE_OPTIONS[0];
+}
+
+function coerceProjectType(projectType: string | undefined): string {
+  return getProjectTypeMeta(projectType ?? DEFAULT_PROJECT_TYPE).value;
+}
+
+function buildConstraintSummary(techStack: string, existingConventions: string): string {
+  const sections: string[] = [];
+
+  if (techStack.trim()) {
+    sections.push('Tech stack:', techStack.trim());
+  }
+
+  if (existingConventions.trim()) {
+    if (sections.length > 0) {
+      sections.push('');
+    }
+    sections.push('Existing conventions:', existingConventions.trim());
+  }
+
+  return sections.join('\n');
+}
+
 function createFallbackDraft(
   projectType: string,
   objective: string,
-  constraints: string,
-  nonGoals: string
+  techStack: string,
+  outOfScope: string,
+  existingConventions: string
 ): PrdWizardDraftBundle {
+  const constraintSummary = buildConstraintSummary(techStack, existingConventions);
   const lines = [
     '# Product / project brief',
     '',
     `## Project Type`,
     '',
-    projectType || 'General',
+    getProjectTypeMeta(projectType).title,
     '',
     '## Objective',
     '',
@@ -133,11 +217,11 @@ function createFallbackDraft(
     '',
     '## Constraints',
     '',
-    constraints.trim() || 'None recorded yet.',
+    constraintSummary || 'None recorded yet.',
     '',
     '## Non-Goals',
     '',
-    nonGoals.trim() || 'None recorded yet.'
+    outOfScope.trim() || 'None recorded yet.'
   ];
 
   return {
@@ -149,6 +233,14 @@ function createFallbackDraft(
 
 function normalizeRecommendedSkills(skills: RecommendedSkill[]): PrdWizardSkillSelection[] {
   return skills.map((skill) => ({ ...skill, selected: true }));
+}
+
+function mapLegacyInputs(initialConstraints: string | undefined, initialNonGoals: string | undefined): Pick<WizardState, 'techStack' | 'outOfScope' | 'existingConventions'> {
+  return {
+    techStack: initialConstraints ?? '',
+    outOfScope: initialNonGoals ?? '',
+    existingConventions: ''
+  };
 }
 
 function createNonce(): string {
@@ -190,10 +282,15 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       ...this.state,
       mode: context.initialMode ?? this.state.mode,
       step: context.initialStep ?? (context.initialMode === 'regenerate' ? 4 : 1),
-      projectType: context.initialProjectType ?? this.state.projectType,
+      projectType: context.initialProjectType ? coerceProjectType(context.initialProjectType) : this.state.projectType,
       objective: context.initialObjective ?? this.state.objective,
-      constraints: context.initialConstraints ?? this.state.constraints,
-      nonGoals: context.initialNonGoals ?? this.state.nonGoals,
+      ...(context.initialConstraints !== undefined || context.initialNonGoals !== undefined
+        ? mapLegacyInputs(context.initialConstraints, context.initialNonGoals)
+        : {
+          techStack: this.state.techStack,
+          outOfScope: this.state.outOfScope,
+          existingConventions: this.state.existingConventions
+        }),
       currentPrdPreview: context.initialPrdPreview ?? this.state.currentPrdPreview,
       paths: context.initialPaths ?? this.state.paths,
       configSummary: context.configSummary ?? this.state.configSummary,
@@ -214,13 +311,13 @@ export class PrdCreationWizardHost implements vscode.Disposable {
 
   private buildInitialState(): WizardState {
     const mode = this.options.initialMode;
+    const structuredInputs = mapLegacyInputs(this.options.initialConstraints, this.options.initialNonGoals);
     return {
       mode,
       step: this.options.initialStep ?? (mode === 'regenerate' ? 4 : 1),
-      projectType: this.options.initialProjectType ?? 'greenfield',
+      projectType: coerceProjectType(this.options.initialProjectType),
       objective: this.options.initialObjective ?? '',
-      constraints: this.options.initialConstraints ?? '',
-      nonGoals: this.options.initialNonGoals ?? '',
+      ...structuredInputs,
       draft: this.options.initialPrdPreview
         ? {
           prdText: this.options.initialPrdPreview,
@@ -310,8 +407,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         mode: this.state.mode,
         projectType: this.state.projectType,
         objective: this.state.objective,
-        constraints: this.state.constraints,
-        nonGoals: this.state.nonGoals
+        constraints: buildConstraintSummary(this.state.techStack, this.state.existingConventions),
+        nonGoals: this.state.outOfScope
       });
       this.state = {
         ...this.state,
@@ -335,8 +432,9 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         draft: createFallbackDraft(
           this.state.projectType,
           this.state.objective,
-          this.state.constraints,
-          this.state.nonGoals
+          this.state.techStack,
+          this.state.outOfScope,
+          this.state.existingConventions
         ),
         warning: `Generation fell back to a bootstrap draft. ${reason}`,
         error: null,
@@ -466,6 +564,14 @@ body {
   resize: vertical;
 }
 
+.field-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.92em;
+}
+
 .picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -570,6 +676,12 @@ body {
   color: var(--vscode-descriptionForeground);
 }
 
+.guidance-list {
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+}
+
 ul {
   padding-left: 18px;
 }
@@ -617,12 +729,19 @@ code {
           '<strong>' + step + '</strong><div>' + stepLabels[step] + '</div></button>';
       }
 
-      function pickerCard(value, title, description) {
+      const projectTypeOptions = ${JSON.stringify(PROJECT_TYPE_OPTIONS)};
+
+      function projectTypeMeta(projectType) {
+        return projectTypeOptions.find((option) => option.value === projectType) || projectTypeOptions[0];
+      }
+
+      function pickerCard(option) {
+        const value = option.value;
         const selected = state.projectType === value ? ' is-selected' : '';
         return '<div class="picker-card' + selected + '">' +
           '<button data-action="project-type" data-value="' + escapeHtml(value) + '">' +
-          '<strong>' + escapeHtml(title) + '</strong>' +
-          '<div class="muted">' + escapeHtml(description) + '</div>' +
+          '<strong>' + escapeHtml(option.title) + '</strong>' +
+          '<div class="muted">' + escapeHtml(option.description) + '</div>' +
           '</button></div>';
       }
 
@@ -679,6 +798,8 @@ code {
           return;
         }
         const currentPreview = state.draft?.prdText || state.currentPrdPreview || '';
+        const projectType = projectTypeMeta(state.projectType);
+        const objectiveLength = state.objective.length;
         const warning = state.warning ? '<div class="warning">' + escapeHtml(state.warning) + '</div>' : '';
         const error = state.error ? '<div class="error">' + escapeHtml(state.error) + '</div>' : '';
         document.getElementById('app').innerHTML = '' +
@@ -697,21 +818,23 @@ code {
               '<main class="wizard-main">' +
                 '<section class="wizard-step">' +
                   '<h2>1. Project Type</h2>' +
-                  '<div class="picker-grid">' +
-                    pickerCard('greenfield', 'Greenfield', 'Start from a new idea or product direction.') +
-                    pickerCard('enhancement', 'Enhancement', 'Evolve an existing feature set without replacing the whole system.') +
-                    pickerCard('recovery', 'Recovery', 'Stabilize or recover a brittle codebase before expansion.') +
-                  '</div>' +
+                  '<div class="picker-grid">' + projectTypeOptions.map((option) => pickerCard(option)).join('') + '</div>' +
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>2. Objective</h2>' +
                   '<label class="field"><span>Objective or PRD source</span><textarea data-field="objective" placeholder="Describe the outcome Ralph should turn into a draft.">' + escapeHtml(state.objective) + '</textarea></label>' +
-                  '<div class="note">Keep the objective concrete. For regeneration, the current PRD text can stay here and act as the source material.</div>' +
+                  '<div class="field-meta"><span>Objective example: ' + escapeHtml(projectType.objectiveExample) + '</span><span>Characters: ' + objectiveLength + '</span></div>' +
+                  '<div class="note"><strong>What good looks like</strong><ul class="guidance-list">' +
+                    '<li>' + escapeHtml(projectType.objectiveHint) + '</li>' +
+                    '<li>Keep the outcome concrete enough that Ralph can derive tasks without guessing at scope.</li>' +
+                    '<li>For regeneration, the current PRD text can stay here and act as the source material.</li>' +
+                  '</ul></div>' +
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>3. Constraints</h2>' +
-                  '<label class="field"><span>Constraints</span><textarea data-field="constraints" placeholder="Architecture limits, deadlines, interfaces, or guardrails.">' + escapeHtml(state.constraints) + '</textarea></label>' +
-                  '<label class="field"><span>Non-goals</span><textarea data-field="nonGoals" placeholder="What this draft should explicitly avoid or defer.">' + escapeHtml(state.nonGoals) + '</textarea></label>' +
+                  '<label class="field"><span>Tech stack</span><textarea data-field="techStack" placeholder="Languages, frameworks, runtime targets, or integration surfaces Ralph should assume.">' + escapeHtml(state.techStack) + '</textarea></label>' +
+                  '<label class="field"><span>Out-of-scope</span><textarea data-field="outOfScope" placeholder="What this draft should explicitly avoid, defer, or refuse to redesign.">' + escapeHtml(state.outOfScope) + '</textarea></label>' +
+                  '<label class="field"><span>Existing conventions</span><textarea data-field="existingConventions" placeholder="Repository patterns, architecture rules, or operator expectations the draft must preserve.">' + escapeHtml(state.existingConventions) + '</textarea></label>' +
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>4. Generate With Inline Preview</h2>' +
@@ -760,7 +883,7 @@ code {
 
         for (const button of document.querySelectorAll('[data-action="project-type"]')) {
           button.addEventListener('click', () => {
-            vscode.postMessage({ type: 'update-field', field: 'projectType', value: button.getAttribute('data-value') || 'greenfield' });
+            vscode.postMessage({ type: 'update-field', field: 'projectType', value: button.getAttribute('data-value') || '${DEFAULT_PROJECT_TYPE}' });
           });
         }
 

@@ -3140,7 +3140,94 @@
         "Package manifest test covers newProjectWizard activation event and command contribution",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T118",
+      "title": "Webview UI Phase 3 — complete the PRD Creation Wizard contract",
+      "status": "todo",
+      "dependsOn": [
+        "T118.1",
+        "T118.2",
+        "T118.3",
+        "T118.4"
+      ],
+      "notes": "T117 shipped the wizard shell and basic generate-preview-review-confirm flow, but the PRD still requires richer project-type/objective/constraint inputs, editable generated content, full task-card editing, and configuration application during confirm.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "The wizard matches the Phase 3 PRD contract across steps 1-7 instead of only the skeleton flow",
+        "Confirm applies the operator's selected wizard outputs and reports every file or setting updated",
+        "Regenerate PRD uses the same wizard with current-vs-generated comparison support",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T118.1",
+      "title": "Expand the wizard intake steps to match the PRD project-type, objective, and constraints UX",
+      "status": "done",
+      "parentId": "T118",
+      "dependsOn": [
+        "T117"
+      ],
+      "notes": "Expanded the PRD creation wizard intake to the broader project-type set, added project-type-aware objective guidance with a character counter, split constraints into structured fields while preserving the existing generateDraft contract, and added host plus webview coverage. Validation passed via npm run validate.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Project type offers Web App, CLI Tool, Library, Service, Data Pipeline, Mobile App, and Other with one-line orientation text",
+        "Objective step shows project-type-aware example prompts, a character counter, and a good-objective hint panel",
+        "Constraints step captures tech stack, out-of-scope, and existing conventions as distinct inputs surfaced through host state",
+        "Wizard host and webview tests cover the richer intake state and rendering"
+      ]
+    },
+    {
+      "id": "T118.2",
+      "title": "Make the generate step editable and regenerate-aware before any files are written",
+      "status": "todo",
+      "parentId": "T118",
+      "dependsOn": [
+        "T118.1"
+      ],
+      "notes": "Step 4 currently renders a read-only preview. Replace it with inline editable PRD text and, for regenerate mode, preserve the current PRD as a comparison surface so operators can review current versus generated content inside the wizard before confirm.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "The generated PRD preview is directly editable in the wizard before confirm-write",
+        "Regenerate mode keeps the existing PRD visible for comparison alongside or against the generated draft",
+        "Host state preserves operator edits to the generated PRD text through later steps and confirm-write",
+        "Focused host or command tests cover editable-preview and regenerate-comparison behavior"
+      ]
+    },
+    {
+      "id": "T118.3",
+      "title": "Upgrade task review cards to support full operator editing before commit",
+      "status": "todo",
+      "parentId": "T118",
+      "dependsOn": [
+        "T118.2"
+      ],
+      "notes": "The skeleton only supports tier edits. Match the PRD by letting operators reorder tasks, edit task titles, and delete unwanted generated tasks before writing tasks.json, while keeping ids deterministic and the stored task file version 2.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Task review cards support title editing, tier changes, deletion, and deterministic reordering",
+        "The persisted tasks.json reflects the reviewed order and edited task content without violating the flat v2 schema",
+        "Wizard safeguards prevent writing an empty or invalid task list",
+        "Regression tests cover editing, deleting, reordering, and persisted write output"
+      ]
+    },
+    {
+      "id": "T118.4",
+      "title": "Implement configuration selection and confirm-time application in the wizard",
+      "status": "todo",
+      "parentId": "T118",
+      "dependsOn": [
+        "T118.2"
+      ],
+      "notes": "Step 6 currently shows a static summary. Replace it with selectable operator-mode, provider, and suggested-skill recommendations, then make confirm apply the chosen config updates and report both files written and settings changed.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Configuration step presents recommended operator mode, recommended provider, and suggested skills as individually selectable or skippable options",
+        "Confirm applies the selected config changes through the supported VS Code configuration path and still writes prd.md and tasks.json",
+        "The write summary includes every file written plus any settings updated or skipped",
+        "Regression tests cover selection state, config application, and confirm summary output"
+      ]
     }
   ],
-  "mutationCount": 98
+  "mutationCount": 100
 }
