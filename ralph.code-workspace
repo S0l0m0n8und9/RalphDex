@@ -6,9 +6,9 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "claude",
-		"ralphCodex.model": "claude-sonnet-4-6",
-		"ralphCodex.promptBudgetProfile": "claude",
+		"ralphCodex.cliProvider": "codex",
+		"ralphCodex.model": "gpt-5.4",
+		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
 			"enabled": true,
 			"simple": {
@@ -16,11 +16,11 @@
 				"provider": "claude"
 			},
 			"medium": {
-				"model": "claude-sonnet-4-6",
-				"provider": "claude"
+				"model": "gpt-5.4",
+				"provider": "codex"
 			},
 			"complex": {
-				"model": "claude-opus-4-6",
+				"model": "claude-sonnet-4-6",
 				"provider": "claude"
 			}
 		},

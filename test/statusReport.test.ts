@@ -1076,6 +1076,16 @@ test('buildStatusReport surfaces the latest stale-claim resolution details', () 
   assert.match(report, /stale_claim_resolved/);
 });
 
+test('buildStatusReport surfaces current-task failure recovery state', () => {
+  const report = buildStatusReport(snapshot({
+    lastFailureCategory: 'implementation_error',
+    recoveryAttemptCount: 2
+  }));
+
+  assert.match(report, /Recovery attempts \(current task\): 2/);
+  assert.match(report, /Last failure category \(current task\): implementation_error/);
+});
+
 test('buildStatusReport keeps replenish-backlog drift exhaustion explicit in loop and latest-iteration sections', () => {
   const report = buildStatusReport(snapshot({
     taskCounts: { todo: 0, in_progress: 0, blocked: 1, done: 1 },

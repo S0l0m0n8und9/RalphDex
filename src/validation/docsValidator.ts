@@ -46,7 +46,8 @@ const REQUIRED_DOCS = [
   'docs/multi-agent-readiness.md',
   'docs/prompt-calibration.md',
   'docs/release-workflow.md',
-  'docs/model-tiering.md'
+  'docs/model-tiering.md',
+  'docs/failure-recovery.md'
 ] as const;
 
 const REQUIRED_AGENTS_HEADINGS = [
@@ -82,7 +83,8 @@ const REQUIRED_README_DOC_MAP_TARGETS = [
   'docs/boundaries.md',
   'docs/multi-agent-readiness.md',
   'docs/prompt-calibration.md',
-  'docs/release-workflow.md'
+  'docs/release-workflow.md',
+  'docs/failure-recovery.md'
 ];
 
 const REQUIRED_CODE_OWNER_FILES = [
@@ -265,6 +267,22 @@ const DOC_RULES: Record<string, DocRule> = {
       'ralphCodex.complexityTierThresholds',
       'simpleThreshold',
       'complexThreshold'
+    ]
+  },
+  'docs/failure-recovery.md': {
+    requiredHeadings: [
+      'Failure Category Taxonomy',
+      'Recovery Playbooks',
+      'Attempt Limits And Escalation',
+      'Dead-Letter Queue',
+      'Observability',
+      'Diagnostic Cost'
+    ],
+    requiredFragments: [
+      'failure-analysis.json',
+      'recovery-state.json',
+      'dead-letter.json',
+      'diagnosticCost'
     ]
   }
 };

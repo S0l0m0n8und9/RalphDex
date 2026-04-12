@@ -18,6 +18,7 @@ import type { RecommendedSkill } from './projectGenerator';
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import type { DeadLetterEntry } from './deadLetter';
 import {
+  FailureCategoryId,
   RalphCliInvocation,
   RalphExecutionPlan,
   RalphPromptEvidence,
@@ -106,6 +107,10 @@ export interface RalphStatusSnapshot {
   operatorModeProvenance: OperatorModeSettingProvenance[] | null;
   /** Tasks that have been moved to the dead-letter queue after exhausting recovery attempts. */
   deadLetterEntries?: DeadLetterEntry[];
+  /** Last diagnosed failure category for the currently selected task, or null when none recorded. */
+  lastFailureCategory?: FailureCategoryId | null;
+  /** Number of recovery attempts for the currently selected task, or null when none recorded. */
+  recoveryAttemptCount?: number | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -371,6 +376,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
     `- Next iteration: ${snapshot.nextIteration}`,
     `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}${formatTierSuffix(snapshot.effectiveTierInfo)}` : 'none'}`,
+    `- Recovery attempts (current task): ${snapshot.recoveryAttemptCount ?? 'none'}`,
+    `- Last failure category (current task): ${snapshot.lastFailureCategory ?? 'none'}`,
     `- Current prompt kind: ${latestPlan?.promptKind ?? 'none'}`,
     `- Current target mode: ${latestPlan?.promptTarget ?? 'none'}`,
     `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,

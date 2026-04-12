@@ -638,6 +638,8 @@ export interface RalphProvenanceBundle {
   mismatchReason: string | null;
   promptCacheStats?: PromptCacheStats | null;
   memoryObservability?: RalphMemoryObservability | null;
+  /** Token count for the failure-diagnostic invocation that preceded this bundle, if one ran. */
+  diagnosticCost?: number | null;
   createdAt: string;
   updatedAt: string;
 }

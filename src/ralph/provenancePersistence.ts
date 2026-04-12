@@ -42,6 +42,7 @@ export function createProvenanceBundle(input: {
   provenanceFailurePath?: string | null;
   provenanceFailureSummaryPath?: string | null;
   promptCacheStats?: PromptCacheStats | null;
+  diagnosticCost?: number | null;
 }): RalphProvenanceBundle {
   const {
     prepared,
@@ -54,7 +55,8 @@ export function createProvenanceBundle(input: {
     iterationResultPath = null,
     provenanceFailurePath = null,
     provenanceFailureSummaryPath = null,
-    promptCacheStats = null
+    promptCacheStats = null,
+    diagnosticCost = null
   } = input;
 
   return {
@@ -90,6 +92,7 @@ export function createProvenanceBundle(input: {
     mismatchReason,
     promptCacheStats,
     memoryObservability: prepared.promptEvidence.memoryObservability ?? null,
+    diagnosticCost,
     createdAt: prepared.executionPlan.createdAt,
     updatedAt: new Date().toISOString()
   };

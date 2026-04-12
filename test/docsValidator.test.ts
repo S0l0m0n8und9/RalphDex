@@ -136,6 +136,7 @@ Validation entry points:
 - [docs/multi-agent-readiness.md](${absolute('docs/multi-agent-readiness.md')}): multi-agent readiness
 - [docs/prompt-calibration.md](${absolute('docs/prompt-calibration.md')}): prompt calibration
 - [docs/release-workflow.md](${absolute('docs/release-workflow.md')}): release workflow
+- [docs/failure-recovery.md](${absolute('docs/failure-recovery.md')}): failure recovery
 `);
 
   await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
@@ -480,6 +481,35 @@ Each tier specifies a model and optional provider.
 ## Expected Cost Savings
 
 Simple tasks land in Haiku; complex tasks escalate to Opus.
+`);
+
+  await writeFile(rootPath, 'docs/failure-recovery.md', `# Failure Recovery
+
+This document owns the failure-category taxonomy, recovery playbooks, and cost implications.
+
+## Failure Category Taxonomy
+
+Each failure is classified before a recovery playbook is selected.
+
+## Recovery Playbooks
+
+Each category maps to a recovery action.
+
+## Attempt Limits And Escalation
+
+Recovery state is persisted in recovery-state.json. Attempts are capped by maxRecoveryAttempts.
+
+## Dead-Letter Queue
+
+Tasks that exhaust recovery attempts land in dead-letter.json.
+
+## Observability
+
+Show Status surfaces recovery-state.json and failure-analysis.json fields for the current task.
+
+## Diagnostic Cost
+
+Each LLM diagnostic incurs a token cost recorded in the diagnosticCost field of the provenance bundle.
 `);
 }
 

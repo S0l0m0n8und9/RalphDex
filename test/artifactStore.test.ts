@@ -186,6 +186,7 @@ function bundle(input: {
   iteration: number;
   status: RalphProvenanceBundle['status'];
   failure?: RalphIntegrityFailure;
+  diagnosticCost?: number | null;
 }): Omit<
   RalphProvenanceBundle,
   'executionSummaryPath'
@@ -228,6 +229,7 @@ function bundle(input: {
     executionPayloadHash: input.status === 'executed' ? `sha256:payload-${input.iteration}` : null,
     executionPayloadMatched: input.status === 'executed' ? true : null,
     mismatchReason: input.failure?.message ?? null,
+    diagnosticCost: input.diagnosticCost ?? null,
     createdAt: `2026-03-07T00:00:0${input.iteration}.000Z`,
     updatedAt: `2026-03-07T00:00:0${input.iteration}.000Z`
   };
@@ -449,6 +451,33 @@ test('writeProvenanceBundle persists completion-report divergence fields and sum
   assert.match(summary, /verifier-summary\.json/);
   assert.match(summary, /## Epistemic Gap/);
   assert.match(summary, /does not prove: That the model reasoned correctly internally or that its completion report is true without verifier support\./);
+});
+
+test('writeProvenanceBundle persists diagnosticCost in the provenance bundle manifest', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const provenanceId = 'run-i007-cli-20260307T000007Z';
+  const iteration = 7;
+  const paths = resolveProvenanceBundlePaths(artifactRootDir, provenanceId);
+
+  await writeProvenanceBundle({
+    artifactRootDir,
+    paths,
+    bundle: bundle({
+      artifactRootDir,
+      provenanceId,
+      iteration,
+      status: 'executed',
+      diagnosticCost: 137
+    }),
+    preflightReport: preflightReport({ provenanceId, iteration }),
+    preflightSummary: `Preflight summary for ${provenanceId}`
+  });
+
+  const persistedBundle = JSON.parse(
+    await fs.readFile(paths.bundlePath, 'utf8')
+  ) as import('../src/ralph/types').RalphProvenanceBundle;
+
+  assert.equal(persistedBundle.diagnosticCost, 137);
 });
 
 test('artifactStore exposes the protected generated-artifact roots explicitly', () => {

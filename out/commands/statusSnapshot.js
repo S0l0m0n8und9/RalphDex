@@ -57,6 +57,8 @@ const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
 const pipeline_1 = require("../ralph/pipeline");
 const deadLetter_1 = require("../ralph/deadLetter");
+const failureDiagnostics_1 = require("../ralph/failureDiagnostics");
+const recoveryOrchestrator_1 = require("../ralph/recoveryOrchestrator");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
@@ -380,6 +382,27 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         (0, deadLetter_1.readDeadLetterQueue)(inspection.paths.deadLetterPath)
     ]);
     const deadLetterEntries = deadLetterQueue.entries;
+    let lastFailureCategory = null;
+    let recoveryAttemptCount = null;
+    if (selectedTask) {
+        const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
+            fs.readFile((0, failureDiagnostics_1.getFailureAnalysisPath)(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
+            fs.readFile((0, recoveryOrchestrator_1.getRecoveryStatePath)(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null)
+        ]);
+        if (failureAnalysisRaw) {
+            const parsed = (0, failureDiagnostics_1.parseFailureDiagnosticResponse)(failureAnalysisRaw);
+            lastFailureCategory = parsed?.rootCauseCategory ?? null;
+        }
+        if (recoveryStateRaw) {
+            try {
+                const parsed = JSON.parse(recoveryStateRaw);
+                recoveryAttemptCount = typeof parsed.attemptCount === 'number' ? parsed.attemptCount : null;
+            }
+            catch {
+                // malformed JSON — leave null
+            }
+        }
+    }
     const tierThresholds = {
         simpleThreshold: config.modelTiering.simpleThreshold,
         complexThreshold: config.modelTiering.complexThreshold
@@ -450,7 +473,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         lastTaskTierInfo,
         operatorMode: config.operatorMode,
         operatorModeProvenance,
-        deadLetterEntries
+        deadLetterEntries,
+        lastFailureCategory,
+        recoveryAttemptCount
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

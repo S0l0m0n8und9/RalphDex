@@ -14,6 +14,7 @@ import { deriveEffectiveTier } from '../ralph/complexityScorer';
 import { RalphStateManager } from '../ralph/stateManager';
 import { inspectTaskClaimGraph, selectNextTask } from '../ralph/taskFile';
 import type {
+  FailureCategoryId,
   RalphCliInvocation,
   RalphExecutionPlan,
   RalphPromptEvidence,
@@ -32,6 +33,8 @@ import {
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
+import { getFailureAnalysisPath, parseFailureDiagnosticResponse } from '../ralph/failureDiagnostics';
+import { getRecoveryStatePath } from '../ralph/recoveryOrchestrator';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
 import { pathExists } from '../util/fs';
@@ -388,6 +391,27 @@ export async function collectStatusSnapshot(
   ]);
   const deadLetterEntries: DeadLetterEntry[] = deadLetterQueue.entries;
 
+  let lastFailureCategory: FailureCategoryId | null = null;
+  let recoveryAttemptCount: number | null = null;
+  if (selectedTask) {
+    const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
+      fs.readFile(getFailureAnalysisPath(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
+      fs.readFile(getRecoveryStatePath(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null)
+    ]);
+    if (failureAnalysisRaw) {
+      const parsed = parseFailureDiagnosticResponse(failureAnalysisRaw);
+      lastFailureCategory = parsed?.rootCauseCategory ?? null;
+    }
+    if (recoveryStateRaw) {
+      try {
+        const parsed = JSON.parse(recoveryStateRaw) as { attemptCount?: unknown };
+        recoveryAttemptCount = typeof parsed.attemptCount === 'number' ? parsed.attemptCount : null;
+      } catch {
+        // malformed JSON — leave null
+      }
+    }
+  }
+
   const tierThresholds = {
     simpleThreshold: config.modelTiering.simpleThreshold,
     complexThreshold: config.modelTiering.complexThreshold
@@ -461,6 +485,8 @@ export async function collectStatusSnapshot(
     lastTaskTierInfo,
     operatorMode: config.operatorMode,
     operatorModeProvenance,
-    deadLetterEntries
+    deadLetterEntries,
+    lastFailureCategory,
+    recoveryAttemptCount
   };
 }

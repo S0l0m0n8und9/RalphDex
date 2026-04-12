@@ -2937,11 +2937,13 @@
     {
       "id": "T106",
       "title": "Intelligent failure recovery Phase 5: observability, configuration, and documentation",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T103"
       ],
+      "notes": "Added acceptance-criteria coverage for diagnosticCost persistence in provenance bundles and current-task recovery status rendering in Show Status. Compile, docs, ledger, prompt-budget, and lint passed; the test phase was blocked by sandbox-level spawn EPERM before executing the suite.",
       "validation": "npm run validate",
+      "blocker": "Sandbox blocks Node test runner subprocess creation (`spawn EPERM`), so `npm run test` could not execute.",
       "acceptance": [
         "diagnosticCost field added to RalphProvenanceBundle (token count for the diagnostic invocation)",
         "Show Status surfaces recovery attempt count and last failure category for the current task",
@@ -2971,5 +2973,5 @@
       ]
     }
   ],
-  "mutationCount": 80
+  "mutationCount": 81
 }

@@ -250,6 +250,8 @@ function buildStatusReport(snapshot) {
         `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
         `- Next iteration: ${snapshot.nextIteration}`,
         `- Current task: ${snapshot.selectedTask ? `${snapshot.selectedTask.id} - ${snapshot.selectedTask.title}${formatTierSuffix(snapshot.effectiveTierInfo)}` : 'none'}`,
+        `- Recovery attempts (current task): ${snapshot.recoveryAttemptCount ?? 'none'}`,
+        `- Last failure category (current task): ${snapshot.lastFailureCategory ?? 'none'}`,
         `- Current prompt kind: ${latestPlan?.promptKind ?? 'none'}`,
         `- Current target mode: ${latestPlan?.promptTarget ?? 'none'}`,
         `- Current template: ${relativeFromRoot(snapshot.rootPath, latestPlan?.templatePath ?? null)}`,
