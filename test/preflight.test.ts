@@ -859,14 +859,14 @@ test('buildPreflightReport emits info when azure-foundry has endpoint but no API
     azureFoundryApiKey: ''
   }));
 
-  assert.equal(report.ready, true, 'should be ready — Azure AD stub path is acceptable');
+  assert.equal(report.ready, true, 'should be ready — Azure AD path is acceptable');
   assert.ok(
-    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_api_key_absent' && d.severity === 'info'),
-    'should have azure_foundry_auth_api_key_absent info diagnostic'
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_azure_ad' && d.severity === 'info'),
+    'should have azure_foundry_auth_azure_ad info diagnostic'
   );
   assert.ok(
-    report.diagnostics.some((d) => /Azure AD/i.test(d.message)),
-    'diagnostic message should mention Azure AD'
+    report.diagnostics.some((d) => /Azure AD/i.test(d.message) && /DefaultAzureCredential/i.test(d.message)),
+    'diagnostic message should mention Azure AD and DefaultAzureCredential'
   );
 });
 
@@ -878,7 +878,7 @@ test('buildPreflightReport emits info when azure-foundry has endpoint and API ke
 
   assert.equal(report.ready, true);
   assert.ok(
-    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_configured' && d.severity === 'info'),
-    'should have azure_foundry_auth_configured info diagnostic'
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_api_key_active' && d.severity === 'info'),
+    'should have azure_foundry_auth_api_key_active info diagnostic'
   );
 });

@@ -873,15 +873,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
       diagnostics.push(createDiagnostic(
         'codexAdapter',
         'info',
-        'azure_foundry_auth_api_key_absent',
-        'No API key configured for azure-foundry (ralphCodex.azureFoundryApiKey is empty). Azure AD authentication would be attempted when executed (not yet implemented).'
+        'azure_foundry_auth_azure_ad',
+        'No API key configured for azure-foundry. Azure AD authentication (DefaultAzureCredential) will be used. Ensure Azure credentials are available in the environment (e.g. az login, managed identity, or environment variables).'
       ));
     } else {
       diagnostics.push(createDiagnostic(
         'codexAdapter',
         'info',
-        'azure_foundry_auth_configured',
-        'Azure AI Foundry API key is configured.'
+        'azure_foundry_auth_api_key_active',
+        'Azure AI Foundry API key auth path is active.'
       ));
     }
   }

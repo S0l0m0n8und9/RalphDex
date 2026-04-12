@@ -704,13 +704,21 @@
         },
         "ralphCodex.promptCaching": {
           "type": "string",
-          "enum": ["auto", "force", "off"],
+          "enum": [
+            "auto",
+            "force",
+            "off"
+          ],
           "default": "auto",
           "description": "Controls prompt caching behaviour for providers that support it (currently Azure AI Foundry direct-HTTPS). auto (default): caching is applied when the provider supports it and is silent for CLI-based providers. force: caching is applied when supported; a warning is emitted when the active provider does not support explicit cache_control markers (e.g. codex, claude, copilot CLI). off: the cache_control marker is omitted from all requests, disabling prompt caching on direct-API providers. See docs/prompt-calibration.md for cost implications."
         },
         "ralphCodex.memoryStrategy": {
           "type": "string",
-          "enum": ["verbatim", "sliding-window", "summary"],
+          "enum": [
+            "verbatim",
+            "sliding-window",
+            "summary"
+          ],
           "default": "verbatim",
           "description": "Controls how Ralph manages agent memory across iterations. verbatim (default): the full last-iteration context is included verbatim in every prompt. sliding-window: only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: placeholder for a future summarisation strategy (behaves like verbatim for now)."
         },
@@ -730,7 +738,11 @@
         },
         "ralphCodex.operatorMode": {
           "type": "string",
-          "enum": ["simple", "multi-agent", "hardcore"],
+          "enum": [
+            "simple",
+            "multi-agent",
+            "hardcore"
+          ],
           "enumDescriptions": [
             "Single-agent supervised mode. Sets autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, modelTiering.enabled=false, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false, pipelineHumanGates=true.",
             "Multi-agent autonomous mode. Sets autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, modelTiering.enabled=true, scmStrategy=branch-per-task, autoReplenishBacklog=true, autoReviewOnParentDone=true, memoryStrategy=sliding-window, autoWatchdogOnStall=true, pipelineHumanGates=true.",
@@ -747,9 +759,18 @@
           "type": "object",
           "default": {
             "enabled": true,
-            "simple": { "provider": "copilot", "model": "claude-opus-4-6" },
-            "medium": { "provider": "claude", "model": "claude-sonnet-4-6" },
-            "complex": { "provider": "claude", "model": "claude-opus-4-6" },
+            "simple": {
+              "provider": "copilot",
+              "model": "claude-opus-4-6"
+            },
+            "medium": {
+              "provider": "claude",
+              "model": "claude-sonnet-4-6"
+            },
+            "complex": {
+              "provider": "claude",
+              "model": "claude-opus-4-6"
+            },
             "simpleThreshold": 2,
             "complexThreshold": 6
           },
@@ -770,7 +791,10 @@
         },
         "ralphCodex.failureDiagnostics": {
           "type": "string",
-          "enum": ["auto", "off"],
+          "enum": [
+            "auto",
+            "off"
+          ],
           "default": "auto",
           "description": "Controls whether Ralph runs a diagnostic pass when a task is blocked or the verifier fails. 'auto': run a diagnostic CLI invocation to classify the failure root cause and write a failure-analysis.json artifact. 'off': suppress all diagnostic invocations."
         },
@@ -807,5 +831,8 @@
     "@vscode/test-electron": "^2.5.2",
     "@vscode/vsce": "^3.7.1",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.13.1"
   }
 }

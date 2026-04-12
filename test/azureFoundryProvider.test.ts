@@ -344,7 +344,7 @@ test('executeDirectly sends api-key header when API key is configured', async ()
   }
 });
 
-test('executeDirectly omits api-key header and warns when no API key is configured', async () => {
+test('executeDirectly uses Azure AD Bearer token when no API key is configured', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-no-key-'));
   const req = {
     ...request(),
@@ -360,15 +360,100 @@ test('executeDirectly omits api-key header and warns when no API key is configur
     return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
   });
   try {
-    // provider() creates AzureFoundryProvider without apiKey
-    const result = await provider().executeDirectly(req);
+    const mockCredential = { getToken: async () => ({ token: 'mock-azure-ad-token' }) };
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
+    const result = await p.executeDirectly(req);
 
     assert.ok(!('api-key' in (capturedHeaders ?? {})), 'api-key header must not be sent when key is not configured');
+    assert.equal(capturedHeaders?.['Authorization'], 'Bearer mock-azure-ad-token', 'Authorization header must carry Bearer token from Azure AD');
+    assert.ok(result.success, 'request should succeed');
     assert.ok(result.warnings.length > 0, 'should have at least one warning');
     assert.ok(
       result.warnings.some((w) => /Azure AD/i.test(w)),
       'warning should mention Azure AD'
     );
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly returns failure when Azure AD credential returns null token', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-ad-null-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => {
+    throw new Error('should not be called');
+  });
+  try {
+    const mockCredential = { getToken: async () => null };
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
+    const result = await p.executeDirectly(req);
+
+    assert.equal(result.success, false);
+    assert.equal(result.exitCode, 1);
+    assert.match(result.message, /Azure AD authentication failed/);
+    assert.match(result.message, /returned no token/);
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly returns failure when Azure AD credential throws', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-ad-throw-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  setHttpsClientOverride(async () => {
+    throw new Error('should not be called');
+  });
+  try {
+    const mockCredential = { getToken: async () => { throw new Error('CredentialUnavailableError: No credential available'); } };
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
+    const result = await p.executeDirectly(req);
+
+    assert.equal(result.success, false);
+    assert.equal(result.exitCode, 1);
+    assert.match(result.message, /Azure AD authentication failed/);
+    assert.match(result.message, /CredentialUnavailableError/);
+  } finally {
+    setHttpsClientOverride(null);
+  }
+});
+
+test('executeDirectly prefers API key over Azure AD when both could be available', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-key-priority-'));
+  const req = {
+    ...request(),
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md')
+  };
+
+  await fs.mkdir(root, { recursive: true });
+
+  let capturedHeaders: Record<string, string> | undefined;
+  setHttpsClientOverride(async (opts) => {
+    capturedHeaders = opts.headers;
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+  try {
+    const mockCredential = { getToken: async () => { throw new Error('should not be called'); } };
+    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: 'my-key', credential: mockCredential });
+    const result = await p.executeDirectly(req);
+
+    assert.equal(capturedHeaders?.['api-key'], 'my-key', 'api-key header should be sent');
+    assert.ok(!capturedHeaders?.['Authorization'], 'Authorization header should not be present when API key is used');
+    assert.ok(result.success, 'request should succeed');
   } finally {
     setHttpsClientOverride(null);
   }
