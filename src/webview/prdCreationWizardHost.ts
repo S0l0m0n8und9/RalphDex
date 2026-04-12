@@ -67,6 +67,7 @@ type StructuredField = 'projectType' | 'objective' | 'techStack' | 'outOfScope' 
 type WizardInboundMessage =
   | { type: 'set-step'; step: PrdWizardStep }
   | { type: 'update-field'; field: StructuredField; value: string }
+  | { type: 'update-draft-prd-text'; value: string }
   | { type: 'update-task-tier'; taskId: string; tier: '' | 'simple' | 'medium' | 'complex' }
   | { type: 'toggle-skill'; skillName: string }
   | { type: 'generate-draft' }
@@ -247,6 +248,14 @@ function createNonce(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function createComparisonDraft(prdPreview: string): PrdWizardDraftBundle {
+  return {
+    prdText: prdPreview,
+    tasks: [],
+    recommendedSkills: []
+  };
+}
+
 export class PrdCreationWizardHost implements vscode.Disposable {
   private readonly bridge: MessageBridge<WizardOutboundMessage, WizardInboundMessage>;
   private readonly options: Omit<PrdCreationWizardHostOptions, 'webview'>;
@@ -278,9 +287,11 @@ export class PrdCreationWizardHost implements vscode.Disposable {
   }
 
   public replaceContext(context: Partial<Omit<PrdCreationWizardHostOptions, 'webview' | 'generateDraft' | 'writeDraft' | 'onWriteComplete'>>): void {
+    const currentPrdPreview = context.initialPrdPreview ?? this.state.currentPrdPreview;
+    const nextMode = context.initialMode ?? this.state.mode;
     this.state = {
       ...this.state,
-      mode: context.initialMode ?? this.state.mode,
+      mode: nextMode,
       step: context.initialStep ?? (context.initialMode === 'regenerate' ? 4 : 1),
       projectType: context.initialProjectType ? coerceProjectType(context.initialProjectType) : this.state.projectType,
       objective: context.initialObjective ?? this.state.objective,
@@ -291,7 +302,12 @@ export class PrdCreationWizardHost implements vscode.Disposable {
           outOfScope: this.state.outOfScope,
           existingConventions: this.state.existingConventions
         }),
-      currentPrdPreview: context.initialPrdPreview ?? this.state.currentPrdPreview,
+      draft: context.initialPrdPreview !== undefined
+        ? createComparisonDraft(context.initialPrdPreview)
+        : (nextMode === 'regenerate' && currentPrdPreview && !this.state.draft
+          ? createComparisonDraft(currentPrdPreview)
+          : this.state.draft),
+      currentPrdPreview,
       paths: context.initialPaths ?? this.state.paths,
       configSummary: context.configSummary ?? this.state.configSummary,
       warning: null,
@@ -319,11 +335,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       objective: this.options.initialObjective ?? '',
       ...structuredInputs,
       draft: this.options.initialPrdPreview
-        ? {
-          prdText: this.options.initialPrdPreview,
-          tasks: [],
-          recommendedSkills: []
-        }
+        ? createComparisonDraft(this.options.initialPrdPreview)
         : null,
       warning: null,
       error: null,
@@ -349,10 +361,25 @@ export class PrdCreationWizardHost implements vscode.Disposable {
           ...this.state,
           [message.field]: message.value,
           warning: null,
-          error: null,
-          ...(message.field === 'objective' && this.state.mode === 'regenerate'
-            ? { currentPrdPreview: message.value }
-            : {})
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'update-draft-prd-text':
+        this.state = {
+          ...this.state,
+          draft: this.state.draft
+            ? {
+              ...this.state.draft,
+              prdText: message.value
+            }
+            : {
+              prdText: message.value,
+              tasks: [],
+              recommendedSkills: []
+            },
+          warning: null,
+          error: null
         };
         this.emitState();
         return;
@@ -614,12 +641,32 @@ body {
 }
 
 .preview {
-  white-space: pre-wrap;
   border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
   padding: 12px;
   min-height: 260px;
   overflow: auto;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.preview-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-pane textarea {
+  min-height: 320px;
+  resize: vertical;
+}
+
+.preview-pane .preview {
+  white-space: pre-wrap;
 }
 
 .task-list,
@@ -797,11 +844,22 @@ code {
         if (!state) {
           return;
         }
-        const currentPreview = state.draft?.prdText || state.currentPrdPreview || '';
+        const currentPreview = state.currentPrdPreview || '';
+        const editableDraft = state.draft?.prdText || '';
         const projectType = projectTypeMeta(state.projectType);
         const objectiveLength = state.objective.length;
         const warning = state.warning ? '<div class="warning">' + escapeHtml(state.warning) + '</div>' : '';
         const error = state.error ? '<div class="error">' + escapeHtml(state.error) + '</div>' : '';
+        const regenerateComparison = state.mode === 'regenerate' && currentPreview
+          ? '<div class="preview-pane">' +
+              '<strong>Current PRD</strong>' +
+              '<div class="preview">' + escapeHtml(currentPreview) + '</div>' +
+            '</div>'
+          : '';
+        const draftEditor = '<div class="preview-pane">' +
+            '<strong>' + (state.mode === 'regenerate' ? 'Editable regenerated draft' : 'Editable generated draft') + '</strong>' +
+            '<textarea data-action="draft-prd-text" placeholder="Generate a draft, then refine the PRD text here before writing files.">' + escapeHtml(editableDraft) + '</textarea>' +
+          '</div>';
         document.getElementById('app').innerHTML = '' +
           '<div class="wizard-shell">' +
             '<section class="wizard-header">' +
@@ -838,7 +896,13 @@ code {
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>4. Generate With Inline Preview</h2>' +
-                  '<div class="preview">' + escapeHtml(currentPreview || 'No draft generated yet.') + '</div>' +
+                  '<div class="preview-grid">' +
+                    draftEditor +
+                    regenerateComparison +
+                  '</div>' +
+                  (!editableDraft && !(state.mode === 'regenerate' && currentPreview)
+                    ? '<div class="note">No draft generated yet. Use generate to seed the editable PRD before writing files.</div>'
+                    : '') +
                   '<div class="actions">' +
                     '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
                     '<button class="secondary" data-action="set-step" data-step="5">Review Tasks</button>' +
@@ -890,6 +954,12 @@ code {
         for (const field of document.querySelectorAll('textarea[data-field]')) {
           field.addEventListener('input', () => {
             vscode.postMessage({ type: 'update-field', field: field.getAttribute('data-field'), value: field.value });
+          });
+        }
+
+        for (const field of document.querySelectorAll('textarea[data-action="draft-prd-text"]')) {
+          field.addEventListener('input', () => {
+            vscode.postMessage({ type: 'update-draft-prd-text', value: field.value });
           });
         }
 

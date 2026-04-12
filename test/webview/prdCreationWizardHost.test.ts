@@ -188,6 +188,41 @@ test('PrdCreationWizardHost: replaceContext exposes structured intake state for 
   host.dispose();
 });
 
+test('PrdCreationWizardHost: regenerate context keeps the current PRD as comparison state', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  host.replaceContext({
+    initialMode: 'regenerate',
+    initialObjective: 'Use the current PRD as source material.',
+    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n'
+  });
+
+  const state = lastStateMessage(webview).state as {
+    mode: 'new' | 'regenerate';
+    objective: string;
+    currentPrdPreview: string | null;
+    draft: PrdWizardDraftBundle | null;
+  };
+  assert.equal(state.mode, 'regenerate');
+  assert.equal(state.objective, 'Use the current PRD as source material.');
+  assert.equal(state.currentPrdPreview, '# Existing PRD\n\nCurrent repo-owned content.\n');
+  assert.equal(state.draft?.prdText, '# Existing PRD\n\nCurrent repo-owned content.\n');
+
+  host.dispose();
+});
+
 test('PrdCreationWizardHost: generate falls back to bootstrap draft on generation failure', async () => {
   const webview = makeMockWebview();
 
@@ -269,6 +304,61 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
     path.join('workspace', '.ralph', 'tasks.json'),
     path.join('workspace', '.ralph', 'recommended-skills.json')
   ]);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: manual draft edits persist through later steps and confirm-write', async () => {
+  const webview = makeMockWebview();
+  let writeInput: PrdWizardDraftBundle | null = null;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'regenerate',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n',
+    generateDraft: async () => makeGeneratedDraft({
+      prdText: '# Generated PRD\n\nFresh generated content.\n',
+      tasks: [
+        { id: 'T1', title: 'Draft first task', status: 'todo' }
+      ],
+      recommendedSkills: [
+        { name: 'testing', description: 'Testing discipline', rationale: 'Verify changes.' }
+      ]
+    }),
+    writeDraft: async (draft) => {
+      writeInput = draft;
+      return { filesWritten: [path.join('workspace', '.ralph', 'prd.md')] };
+    }
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Refresh the PRD from the existing draft.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'update-draft-prd-text', value: '# Edited PRD\n\nOperator-owned changes.\n' });
+  webviewSends(webview, { type: 'set-step', step: 5 });
+  webviewSends(webview, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
+  webviewSends(webview, { type: 'set-step', step: 6 });
+  webviewSends(webview, { type: 'toggle-skill', skillName: 'testing' });
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(writeInput, 'confirm-write should pass the current draft bundle to writeDraft');
+  const writtenDraft = writeInput as PrdWizardDraftBundle;
+  assert.equal(writtenDraft.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
+  assert.equal(writtenDraft.tasks[0]?.tier, 'complex');
+  assert.equal(writtenDraft.recommendedSkills[0]?.selected, false);
+
+  const state = lastStateMessage(webview).state as {
+    currentPrdPreview: string | null;
+    draft: PrdWizardDraftBundle | null;
+  };
+  assert.equal(state.currentPrdPreview, '# Existing PRD\n\nCurrent repo-owned content.\n');
+  assert.equal(state.draft?.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
 
   host.dispose();
 });

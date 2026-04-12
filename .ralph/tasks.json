@@ -3180,12 +3180,12 @@
     {
       "id": "T118.2",
       "title": "Make the generate step editable and regenerate-aware before any files are written",
-      "status": "todo",
+      "status": "done",
       "parentId": "T118",
       "dependsOn": [
         "T118.1"
       ],
-      "notes": "Step 4 currently renders a read-only preview. Replace it with inline editable PRD text and, for regenerate mode, preserve the current PRD as a comparison surface so operators can review current versus generated content inside the wizard before confirm.",
+      "notes": "Made step 4 editable with dedicated draft-text state, preserved regenerate comparison context as a stable current-PRD baseline, and added focused host tests covering comparison seeding plus manual draft edits surviving later steps and confirm-write.",
       "validation": "npm run validate",
       "acceptance": [
         "The generated PRD preview is directly editable in the wizard before confirm-write",
@@ -3229,5 +3229,5 @@
       ]
     }
   ],
-  "mutationCount": 100
+  "mutationCount": 101
 }
