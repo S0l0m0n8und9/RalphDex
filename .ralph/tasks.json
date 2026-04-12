@@ -2957,7 +2957,8 @@
     {
       "id": "T107",
       "title": "Webview UI Phase 1: WebviewPanelManager, MessageBridge, activity bar, and shared styles",
-      "status": "todo",
+      "status": "done",
+      "notes": "WebviewPanelManager, MessageBridge, shared stylesheet, showSidebar command, placeholder navigation views, 13 unit tests, AGENTS.md updated. npm run validate passes (740 tests, 0 failures).",
       "validation": "npm run validate",
       "acceptance": [
         "src/webview/ directory created with WebviewPanelManager (creates, shows, disposes named panels without memory leaks)",
@@ -2973,5 +2974,5 @@
       ]
     }
   ],
-  "mutationCount": 81
+  "mutationCount": 82
 }

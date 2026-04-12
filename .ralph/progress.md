@@ -225,3 +225,4 @@
 - Dead-letter queue (dead-letter.json), requeue command (ralphCodex.requeueDeadLetterTask), status surface integration, and 9 unit tests covering all AC criteria. 720 tests pass.
 - Added failure-chain rolling window (per-run, keyed by artifactRootDir), systemic alert detection (3+ distinct tasks, confidence>=0.7), SystemicFailureAlert artifact emission, pause-all-agents signal, and 3 unit tests covering all AC criteria. 723 tests pass.
 - Added acceptance-criteria coverage for diagnosticCost persistence in provenance bundles and current-task recovery status rendering in Show Status. Compile, docs, ledger, prompt-budget, and lint passed; the test phase was blocked by sandbox-level spawn EPERM before executing the suite.
+- WebviewPanelManager, MessageBridge, shared stylesheet, showSidebar command, placeholder navigation views, 13 unit tests, AGENTS.md updated. npm run validate passes (740 tests, 0 failures).

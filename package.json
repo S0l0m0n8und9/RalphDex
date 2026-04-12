@@ -133,7 +133,8 @@
     "onCommand:ralphCodex.constructRecommendedSkills",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
-    "onView:ralphCodex.dashboard"
+    "onView:ralphCodex.dashboard",
+    "onCommand:ralphCodex.showSidebar"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -269,6 +270,10 @@
       {
         "command": "ralphCodex.requeueDeadLetterTask",
         "title": "Ralphdex: Requeue Dead-Letter Task"
+      },
+      {
+        "command": "ralphCodex.showSidebar",
+        "title": "Ralphdex: Show Sidebar"
       }
     ],
     "viewsContainers": {
@@ -286,6 +291,18 @@
           "type": "webview",
           "id": "ralphCodex.dashboard",
           "name": "Dashboard"
+        },
+        {
+          "type": "tree",
+          "id": "ralphCodex.tasks",
+          "name": "Tasks",
+          "visibility": "collapsed"
+        },
+        {
+          "type": "tree",
+          "id": "ralphCodex.logs",
+          "name": "Logs",
+          "visibility": "collapsed"
         }
       ]
     },
@@ -770,7 +787,7 @@
     "check:ledger": "node ./scripts/check-ledger.js",
     "prompt:calibrate": "node ./scripts/calibrate-prompt-budget.js",
     "check:prompt-budget": "node ./scripts/validate-prompt-budget.js",
-    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js",
+    "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js ./out-test/test/webview/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:e2e-pipeline": "node ./scripts/run-e2e-pipeline-smoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",

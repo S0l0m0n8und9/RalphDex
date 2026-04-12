@@ -157,6 +157,30 @@ test('package manifest contributes and activates the regeneratePrd command', asy
   );
 });
 
+test('package manifest contributes and activates the showSidebar command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.showSidebar'),
+    'package.json must activate on ralphCodex.showSidebar'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.showSidebar' && entry.title === 'Ralphdex: Show Sidebar'),
+    'package.json must contribute the Show Sidebar command'
+  );
+});
+
+test('package manifest activity bar entry includes placeholder navigation views', async () => {
+  const manifest = await readPackageManifest();
+  const views = (manifest.contributes as Record<string, unknown> & { views?: Record<string, Array<{ id?: string }>> })?.views ?? {};
+  const ralphViews = views['ralphCodex'] ?? [];
+
+  assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.dashboard'), 'ralphCodex container must include dashboard view');
+  assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.tasks'), 'ralphCodex container must include placeholder tasks view');
+  assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.logs'), 'ralphCodex container must include placeholder logs view');
+});
+
 test('package manifest excludes the shim entry point from the VSIX payload', async () => {
   const manifest = await readPackageManifest();
   const vscodeIgnore = await fs.readFile(vscodeIgnorePath, 'utf8');

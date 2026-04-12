@@ -1318,6 +1318,10 @@ function registerCommands(context, logger, broadcaster) {
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.
     (0, artifactCommands_1.registerArtifactAndMaintenanceCommands)(context, logger, stateManager, registerCommand);
+    // Show the Ralphdex activity bar sidebar (focuses the dashboard view).
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showSidebar', async () => {
+        await vscode.commands.executeCommand('ralphCodex.dashboard.focus');
+    }));
     // On activation: scan for interrupted pipeline runs and offer to resume.
     const activationFolder = vscode.workspace.workspaceFolders?.[0];
     if (activationFolder) {

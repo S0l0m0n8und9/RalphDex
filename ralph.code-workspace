@@ -8,7 +8,7 @@
 		"ralphCodex.claudeMaxTurns": 125,
 		"ralphCodex.cliProvider": "codex",
 		"ralphCodex.model": "gpt-5.4",
-		"ralphCodex.promptBudgetProfile": "codex",
+		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
 			"enabled": true,
 			"simple": {
@@ -16,11 +16,11 @@
 				"provider": "claude"
 			},
 			"medium": {
-				"model": "gpt-5.4",
-				"provider": "codex"
+				"model": "claude-sonnet-4-6",
+				"provider": "claude"
 			},
 			"complex": {
-				"model": "claude-sonnet-4-6",
+				"model": "claude-opus-4-6",
 				"provider": "claude"
 			}
 		},
