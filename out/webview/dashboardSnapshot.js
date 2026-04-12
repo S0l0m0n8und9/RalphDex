@@ -37,7 +37,16 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         failureFeed: buildFailureFeed(snapshot),
         deadLetter: buildDeadLetter(snapshot),
         quickActions: buildQuickActions(snapshot),
+        cost: buildCostSection(snapshot),
     };
+}
+function buildCostSection(snapshot) {
+    const bundle = snapshot.latestProvenanceBundle;
+    const executionCostUsd = bundle?.executionCostUsd ?? null;
+    const diagnosticCostUsd = typeof bundle?.diagnosticCost === 'number' ? bundle.diagnosticCost : null;
+    const promptCacheStats = bundle?.promptCacheStats ?? null;
+    const hasAnyCostData = executionCostUsd !== null || diagnosticCostUsd !== null;
+    return { executionCostUsd, diagnosticCostUsd, promptCacheStats, hasAnyCostData };
 }
 function buildPipelineStrip(snapshot) {
     const run = snapshot.latestPipelineRun;

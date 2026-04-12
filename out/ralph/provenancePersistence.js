@@ -51,7 +51,7 @@ const artifactStore_1 = require("./artifactStore");
 // Provenance bundle creation
 // ---------------------------------------------------------------------------
 function createProvenanceBundle(input) {
-    const { prepared, status, summary, executionPayloadHash = null, executionPayloadMatched = null, mismatchReason = null, cliInvocationPath = null, iterationResultPath = null, provenanceFailurePath = null, provenanceFailureSummaryPath = null, promptCacheStats = null, diagnosticCost = null } = input;
+    const { prepared, status, summary, executionPayloadHash = null, executionPayloadMatched = null, mismatchReason = null, cliInvocationPath = null, iterationResultPath = null, provenanceFailurePath = null, provenanceFailureSummaryPath = null, promptCacheStats = null, executionCostUsd = null, diagnosticCost = null } = input;
     return {
         schemaVersion: 1,
         kind: 'provenanceBundle',
@@ -84,6 +84,7 @@ function createProvenanceBundle(input) {
         executionPayloadMatched,
         mismatchReason,
         promptCacheStats,
+        executionCostUsd,
         memoryObservability: prepared.promptEvidence.memoryObservability ?? null,
         diagnosticCost,
         createdAt: prepared.executionPlan.createdAt,

@@ -9,6 +9,7 @@ import type { AgentStatusSummary, AgentHandoffSummary } from '../src/ralph/multi
 import type { DeadLetterEntry } from '../src/ralph/deadLetter';
 import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
 import type { PipelineRunArtifact } from '../src/ralph/pipeline';
+import type { RalphProvenanceBundle } from '../src/ralph/types';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -34,6 +35,7 @@ function minimalSnapshot(
       | 'lastFailureCategory'
       | 'recoveryAttemptCount'
       | 'latestFailureAnalysis'
+      | 'latestProvenanceBundle'
     >
   > = {}
 ): RalphStatusSnapshot {
@@ -49,6 +51,7 @@ function minimalSnapshot(
     lastFailureCategory: undefined,
     recoveryAttemptCount: undefined,
     latestFailureAnalysis: null,
+    latestProvenanceBundle: null,
     ...overrides,
   } as unknown as RalphStatusSnapshot;
 }
@@ -400,4 +403,93 @@ test('buildDashboardSnapshot: failure feed includes recent selected-task and dea
   assert.equal(result.failureFeed.entries[1].recoveryAttemptCount, 4);
   assert.equal(result.failureFeed.entries[1].remediationSummary, null);
   assert.equal(result.failureFeed.entries[1].humanReviewRecommended, false);
+});
+
+// ---------------------------------------------------------------------------
+// Cost ticker section
+// ---------------------------------------------------------------------------
+
+function makeProvenanceBundle(
+  overrides: Partial<Pick<RalphProvenanceBundle, 'executionCostUsd' | 'diagnosticCost' | 'promptCacheStats'>> = {}
+): RalphProvenanceBundle {
+  return {
+    schemaVersion: 1,
+    kind: 'provenanceBundle',
+    provenanceId: 'prov-test-001',
+    iteration: 1,
+    promptKind: 'iteration',
+    promptTarget: 'cliExec',
+    trustLevel: 'verifiedCliExecution',
+    status: 'executed',
+    summary: 'Test provenance bundle',
+    rootPolicy: {} as RalphProvenanceBundle['rootPolicy'],
+    selectedTaskId: 'T111',
+    selectedTaskTitle: 'Test task',
+    artifactDir: '.ralph/artifacts/iteration-001',
+    bundleDir: '.ralph/artifacts/provenance/prov-test-001',
+    preflightReportPath: '.ralph/artifacts/provenance/prov-test-001/preflight.json',
+    preflightSummaryPath: '.ralph/artifacts/provenance/prov-test-001/preflight-summary.md',
+    promptArtifactPath: null,
+    promptEvidencePath: null,
+    executionPlanPath: null,
+    executionPlanHash: null,
+    cliInvocationPath: null,
+    iterationResultPath: null,
+    provenanceFailurePath: null,
+    provenanceFailureSummaryPath: null,
+    promptHash: null,
+    promptByteLength: null,
+    executionPayloadHash: null,
+    executionPayloadMatched: null,
+    mismatchReason: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:01:00.000Z',
+    ...overrides,
+  };
+}
+
+test('buildDashboardSnapshot: cost section is unavailable when no provenance bundle', () => {
+  const snapshot = minimalSnapshot({ latestProvenanceBundle: null });
+  const result = buildDashboardSnapshot(snapshot);
+  assert.strictEqual(result.cost.executionCostUsd, null);
+  assert.strictEqual(result.cost.diagnosticCostUsd, null);
+  assert.strictEqual(result.cost.promptCacheStats, null);
+  assert.strictEqual(result.cost.hasAnyCostData, false);
+});
+
+test('buildDashboardSnapshot: cost section surfaces executionCostUsd and diagnosticCost from bundle', () => {
+  const bundle = makeProvenanceBundle({
+    executionCostUsd: 0.0142,
+    diagnosticCost: 0.0031,
+    promptCacheStats: { staticPrefixBytes: 8192, cacheHit: true },
+  });
+  const snapshot = minimalSnapshot({ latestProvenanceBundle: bundle });
+  const result = buildDashboardSnapshot(snapshot);
+  assert.strictEqual(result.cost.executionCostUsd, 0.0142);
+  assert.strictEqual(result.cost.diagnosticCostUsd, 0.0031);
+  assert.ok(result.cost.promptCacheStats !== null);
+  assert.strictEqual(result.cost.promptCacheStats!.cacheHit, true);
+  assert.strictEqual(result.cost.promptCacheStats!.staticPrefixBytes, 8192);
+  assert.strictEqual(result.cost.hasAnyCostData, true);
+});
+
+test('buildDashboardSnapshot: cost section marks hasAnyCostData false when both costs are null', () => {
+  const bundle = makeProvenanceBundle({
+    executionCostUsd: null,
+    diagnosticCost: null,
+    promptCacheStats: { staticPrefixBytes: 4096, cacheHit: null },
+  });
+  const snapshot = minimalSnapshot({ latestProvenanceBundle: bundle });
+  const result = buildDashboardSnapshot(snapshot);
+  assert.strictEqual(result.cost.hasAnyCostData, false);
+  assert.ok(result.cost.promptCacheStats !== null, 'cache stats still surfaced');
+});
+
+test('buildDashboardSnapshot: cost section exposes only executionCostUsd when diagnosticCost absent', () => {
+  const bundle = makeProvenanceBundle({ executionCostUsd: 0.0055 });
+  const snapshot = minimalSnapshot({ latestProvenanceBundle: bundle });
+  const result = buildDashboardSnapshot(snapshot);
+  assert.strictEqual(result.cost.executionCostUsd, 0.0055);
+  assert.strictEqual(result.cost.diagnosticCostUsd, null);
+  assert.strictEqual(result.cost.hasAnyCostData, true);
 });

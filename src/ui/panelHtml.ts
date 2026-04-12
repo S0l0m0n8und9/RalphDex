@@ -746,6 +746,43 @@ function buildDeadLetterSection(state: RalphDashboardState): string {
   </div>`;
 }
 
+function buildCostTickerSection(state: RalphDashboardState): string {
+  const cost = state.dashboardSnapshot?.cost ?? null;
+
+  if (!cost || !cost.hasAnyCostData) {
+    return `<div class="dashboard-summary-card">
+      <div class="card-title">Cost Ticker</div>
+      <div class="empty">No cost data reported by provider for the latest iteration.</div>
+    </div>`;
+  }
+
+  const execCost = cost.executionCostUsd !== null
+    ? `$${cost.executionCostUsd.toFixed(4)}`
+    : 'unavailable';
+  const diagCost = cost.diagnosticCostUsd !== null
+    ? `$${cost.diagnosticCostUsd.toFixed(4)}`
+    : 'none';
+
+  let cacheLabel = 'unavailable';
+  if (cost.promptCacheStats !== null) {
+    cacheLabel = cost.promptCacheStats.cacheHit === true
+      ? 'hit'
+      : cost.promptCacheStats.cacheHit === false
+        ? 'miss'
+        : 'unknown';
+  }
+
+  return `<div class="dashboard-summary-card">
+    <div class="card-title">Cost Ticker</div>
+    <div class="metric-grid">
+      <div class="metric"><span class="metric-label">Execution cost</span><span class="metric-value">${esc(execCost)}</span></div>
+      <div class="metric"><span class="metric-label">Diagnostic cost</span><span class="metric-value">${esc(diagCost)}</span></div>
+      <div class="metric"><span class="metric-label">Prompt cache</span><span class="metric-value">${esc(cacheLabel)}</span></div>
+      <div class="metric"><span class="metric-label">Cache prefix</span><span class="metric-value">${cost.promptCacheStats !== null ? `${cost.promptCacheStats.staticPrefixBytes.toLocaleString()} B` : 'unavailable'}</span></div>
+    </div>
+  </div>`;
+}
+
 function buildQuickActionsSection(state: RalphDashboardState): string {
   const quick = state.dashboardSnapshot?.quickActions ?? null;
   return `<div class="dashboard-summary-card">
@@ -812,6 +849,7 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         ${buildPipelineSection(state)}
         ${buildTaskBoardSection(state)}
         ${buildFailureFeedSection(state)}
+        ${buildCostTickerSection(state)}
       </div>
       <div class="card">
         <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done}` : ''}</div>

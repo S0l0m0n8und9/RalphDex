@@ -518,6 +518,7 @@ export class RalphIterationEngine {
     let execExitCode: number | null = null;
     let execStdinHash: string | null = null;
     let execPromptCacheStats: PromptCacheStats | null = null;
+    let execCostUsd: number | null = null;
     let transcriptPath: string | undefined;
     let lastMessagePath: string | undefined;
     let lastMessage = '';
@@ -704,6 +705,7 @@ export class RalphIterationEngine {
         lastMessagePath = execResult.lastMessagePath;
         lastMessage = execResult.lastMessage;
         execPromptCacheStats = execResult.promptCacheStats ?? null;
+        execCostUsd = execResult.executionCostUsd ?? null;
 
         invocation = {
           schemaVersion: 1,
@@ -1357,7 +1359,8 @@ export class RalphIterationEngine {
         mismatchReason: result.executionIntegrity?.mismatchReason ?? null,
         cliInvocationPath: invocation ? prepared.provenanceBundlePaths.cliInvocationPath : null,
         iterationResultPath: prepared.provenanceBundlePaths.iterationResultPath,
-        promptCacheStats: execPromptCacheStats
+        promptCacheStats: execPromptCacheStats,
+        executionCostUsd: execCostUsd
       }),
       preflightReport: prepared.persistedPreflightReport,
       preflightSummary: prepared.preflightSummaryText,

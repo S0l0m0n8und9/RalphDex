@@ -51,6 +51,8 @@ export interface CodexExecResult extends CodexActionResult {
   lastMessage: string;
   /** Cache stats reported by the provider, if supported. Only populated for direct-API providers (e.g. AzureFoundryProvider). */
   promptCacheStats?: PromptCacheStats;
+  /** Execution cost in USD reported by the provider's CLI output; null when the provider did not report it. */
+  executionCostUsd?: number | null;
 }
 
 export interface CodexStrategy {

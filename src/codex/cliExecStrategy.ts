@@ -112,7 +112,10 @@ export class CliExecCodexStrategy implements CodexStrategy {
         stdinHash,
         transcriptPath: request.transcriptPath,
         lastMessagePath: request.lastMessagePath,
-        lastMessage
+        lastMessage,
+        executionCostUsd: this.provider.extractExecutionCostUsd
+          ? this.provider.extractExecutionCostUsd(processResult.stdout)
+          : null
       };
     }
 

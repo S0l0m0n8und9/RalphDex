@@ -3030,12 +3030,12 @@
     {
       "id": "T111",
       "title": "Webview UI Phase 2.4: add dashboard cost-ticker observability from provenance and execution artifacts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T108",
         "T109"
       ],
-      "notes": "The PRD's dashboard includes a cost ticker, but the current UI model does not normalize available cost signals. Add a dashboard-facing cost snapshot that uses the provenance and execution data Ralph already persists, and render an explicit unavailable state when a provider does not report exact cost or token data.",
+      "notes": "Added dashboard cost-ticker: executionCostUsd persisted from claude CLI stream-json, DashboardCostSection typed with explicit null/unavailable semantics, cost ticker card rendered in panelHtml, 4 unit tests added, 767 tests pass",
       "validation": "npm run validate",
       "acceptance": [
         "Dashboard data assembly exposes currently available cost signals such as diagnosticCost, promptCacheStats, and any provider-reported execution cost already persisted in Ralph artifacts",
@@ -3064,5 +3064,5 @@
       ]
     }
   ],
-  "mutationCount": 91
+  "mutationCount": 92
 }

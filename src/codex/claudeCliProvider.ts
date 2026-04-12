@@ -102,6 +102,30 @@ export class ClaudeCliProvider implements CliProvider {
     return trimmed;
   }
 
+  public extractExecutionCostUsd(stdout: string): number | null {
+    const trimmed = stdout.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    for (const line of trimmed.split('\n')) {
+      const trimmedLine = line.trim();
+      if (!trimmedLine) {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(trimmedLine) as ClaudeJsonOutput;
+        if (parsed.type === 'result' && typeof parsed.cost_usd === 'number') {
+          return parsed.cost_usd;
+        }
+      } catch {
+        // skip unparseable lines
+      }
+    }
+
+    return null;
+  }
+
   public isIgnorableStderrLine(line: string): boolean {
     return /^╭|^│|^╰/.test(line)
       || /^Session:/.test(line)

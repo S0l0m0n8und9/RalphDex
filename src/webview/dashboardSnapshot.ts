@@ -18,7 +18,7 @@ import {
   type AgentStatusSummary,
 } from '../ralph/multiAgentStatus';
 import type { DeadLetterEntry } from '../ralph/deadLetter';
-import type { FailureCategoryId, RalphTaskCounts } from '../ralph/types';
+import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
 
 // ---------------------------------------------------------------------------
 // Pipeline strip
@@ -97,6 +97,27 @@ export interface DeadLetterSection {
 }
 
 // ---------------------------------------------------------------------------
+// Cost ticker
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalized cost signals from the latest provenance bundle.
+ *
+ * Each field uses an explicit null to signal "provider did not report this value"
+ * so the UI can distinguish between zero-cost and unknown-cost states.
+ */
+export interface DashboardCostSection {
+  /** Provider-reported execution cost (USD) for the main agent invocation; null = not reported. */
+  executionCostUsd: number | null;
+  /** Cost of the failure-diagnostic pass that preceded this bundle; null = no diagnostic ran. */
+  diagnosticCostUsd: number | null;
+  /** Prompt cache stats; null = provider did not report cache usage. */
+  promptCacheStats: PromptCacheStats | null;
+  /** True when at least one numeric cost signal is available from the latest bundle. */
+  hasAnyCostData: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Quick-action inputs
 // ---------------------------------------------------------------------------
 
@@ -121,6 +142,7 @@ export interface DashboardSnapshot {
   failureFeed: FailureFeedSection;
   deadLetter: DeadLetterSection;
   quickActions: QuickActionsSection;
+  cost: DashboardCostSection;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +173,17 @@ export function buildDashboardSnapshot(
     failureFeed: buildFailureFeed(snapshot),
     deadLetter: buildDeadLetter(snapshot),
     quickActions: buildQuickActions(snapshot),
+    cost: buildCostSection(snapshot),
   };
+}
+
+function buildCostSection(snapshot: RalphStatusSnapshot): DashboardCostSection {
+  const bundle = snapshot.latestProvenanceBundle;
+  const executionCostUsd = bundle?.executionCostUsd ?? null;
+  const diagnosticCostUsd = typeof bundle?.diagnosticCost === 'number' ? bundle.diagnosticCost : null;
+  const promptCacheStats = bundle?.promptCacheStats ?? null;
+  const hasAnyCostData = executionCostUsd !== null || diagnosticCostUsd !== null;
+  return { executionCostUsd, diagnosticCostUsd, promptCacheStats, hasAnyCostData };
 }
 
 function buildPipelineStrip(snapshot: RalphStatusSnapshot): PipelineStrip | null {

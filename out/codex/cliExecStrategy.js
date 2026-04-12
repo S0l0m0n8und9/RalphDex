@@ -126,7 +126,10 @@ class CliExecCodexStrategy {
                 stdinHash,
                 transcriptPath: request.transcriptPath,
                 lastMessagePath: request.lastMessagePath,
-                lastMessage
+                lastMessage,
+                executionCostUsd: this.provider.extractExecutionCostUsd
+                    ? this.provider.extractExecutionCostUsd(processResult.stdout)
+                    : null
             };
         }
         await fs.writeFile(request.transcriptPath, `${this.provider.buildTranscript(result, request).trimEnd()}\n`, 'utf8');

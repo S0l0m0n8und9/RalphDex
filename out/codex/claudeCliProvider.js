@@ -111,6 +111,28 @@ class ClaudeCliProvider {
         }
         return trimmed;
     }
+    extractExecutionCostUsd(stdout) {
+        const trimmed = stdout.trim();
+        if (!trimmed) {
+            return null;
+        }
+        for (const line of trimmed.split('\n')) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                continue;
+            }
+            try {
+                const parsed = JSON.parse(trimmedLine);
+                if (parsed.type === 'result' && typeof parsed.cost_usd === 'number') {
+                    return parsed.cost_usd;
+                }
+            }
+            catch {
+                // skip unparseable lines
+            }
+        }
+        return null;
+    }
     isIgnorableStderrLine(line) {
         return /^╭|^│|^╰/.test(line)
             || /^Session:/.test(line)

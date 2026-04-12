@@ -86,6 +86,12 @@ function populatedDashboardSnapshot(): DashboardSnapshot {
       hasDeadLetterEntries: true,
       hasBlockedTasks: true,
       canAttemptLoop: true
+    },
+    cost: {
+      executionCostUsd: 0.0142,
+      diagnosticCostUsd: null,
+      promptCacheStats: { staticPrefixBytes: 8192, cacheHit: true },
+      hasAnyCostData: true
     }
   };
 }

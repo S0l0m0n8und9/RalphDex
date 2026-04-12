@@ -638,6 +638,8 @@ export interface RalphProvenanceBundle {
   mismatchReason: string | null;
   promptCacheStats?: PromptCacheStats | null;
   memoryObservability?: RalphMemoryObservability | null;
+  /** Provider-reported execution cost in USD for the main agent invocation; null when the provider did not report it. */
+  executionCostUsd?: number | null;
   /** Token count for the failure-diagnostic invocation that preceded this bundle, if one ran. */
   diagnosticCost?: number | null;
   createdAt: string;
