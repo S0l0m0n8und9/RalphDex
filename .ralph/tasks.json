@@ -3197,12 +3197,12 @@
     {
       "id": "T118.3",
       "title": "Upgrade task review cards to support full operator editing before commit",
-      "status": "todo",
+      "status": "done",
       "parentId": "T118",
       "dependsOn": [
         "T118.2"
       ],
-      "notes": "The skeleton only supports tier edits. Match the PRD by letting operators reorder tasks, edit task titles, and delete unwanted generated tasks before writing tasks.json, while keeping ids deterministic and the stored task file version 2.",
+      "notes": "Upgraded the PRD wizard task review cards to support title edits, deterministic move up/down reordering, deletion, and guarded confirm-write validation. Hardened the locked tasks.json replacement path to preserve reviewed order under the flat v2 schema, and fixed task-file normalization to retain explicit tier overrides. Added regression coverage for wizard editing/safeguards, persisted write norm",
       "validation": "npm run validate",
       "acceptance": [
         "Task review cards support title editing, tier changes, deletion, and deterministic reordering",
@@ -3229,5 +3229,5 @@
       ]
     }
   ],
-  "mutationCount": 101
+  "mutationCount": 102
 }

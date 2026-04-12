@@ -68,7 +68,10 @@ type WizardInboundMessage =
   | { type: 'set-step'; step: PrdWizardStep }
   | { type: 'update-field'; field: StructuredField; value: string }
   | { type: 'update-draft-prd-text'; value: string }
+  | { type: 'update-task-title'; taskId: string; title: string }
   | { type: 'update-task-tier'; taskId: string; tier: '' | 'simple' | 'medium' | 'complex' }
+  | { type: 'move-task'; taskId: string; direction: 'up' | 'down' }
+  | { type: 'delete-task'; taskId: string }
   | { type: 'toggle-skill'; skillName: string }
   | { type: 'generate-draft' }
   | { type: 'confirm-write' };
@@ -256,6 +259,55 @@ function createComparisonDraft(prdPreview: string): PrdWizardDraftBundle {
   };
 }
 
+function updateDraftTasks(
+  draft: PrdWizardDraftBundle | null,
+  transform: (tasks: PrdWizardTaskDraft[]) => PrdWizardTaskDraft[]
+): PrdWizardDraftBundle | null {
+  if (!draft) {
+    return null;
+  }
+
+  return {
+    ...draft,
+    tasks: transform(draft.tasks)
+  };
+}
+
+function moveTask(tasks: PrdWizardTaskDraft[], taskId: string, direction: 'up' | 'down'): PrdWizardTaskDraft[] {
+  const currentIndex = tasks.findIndex((task) => task.id === taskId);
+  if (currentIndex < 0) {
+    return tasks;
+  }
+
+  const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+  if (targetIndex < 0 || targetIndex >= tasks.length) {
+    return tasks;
+  }
+
+  const reordered = [...tasks];
+  const [task] = reordered.splice(currentIndex, 1);
+  reordered.splice(targetIndex, 0, task);
+  return reordered;
+}
+
+function validateReviewedTasks(tasks: PrdWizardTaskDraft[]): string | null {
+  if (tasks.length === 0) {
+    return 'Review at least one task before writing files.';
+  }
+
+  for (const task of tasks) {
+    if (!task.id.trim()) {
+      return 'Each reviewed task must keep a non-empty id before writing files.';
+    }
+
+    if (!task.title.trim()) {
+      return `Task ${task.id} must have a non-empty title before writing files.`;
+    }
+  }
+
+  return null;
+}
+
 export class PrdCreationWizardHost implements vscode.Disposable {
   private readonly bridge: MessageBridge<WizardOutboundMessage, WizardInboundMessage>;
   private readonly options: Omit<PrdCreationWizardHostOptions, 'webview'>;
@@ -383,17 +435,47 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         };
         this.emitState();
         return;
+      case 'update-task-title':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTasks(this.state.draft, (tasks) => tasks.map((task) => (
+            task.id === message.taskId
+              ? { ...task, title: message.title }
+              : task
+          ))),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
       case 'update-task-tier':
         this.state = {
           ...this.state,
-          draft: this.state.draft
-            ? {
-              ...this.state.draft,
-              tasks: this.state.draft.tasks.map((task) => task.id === message.taskId
-                ? { ...task, ...(message.tier ? { tier: message.tier } : { tier: undefined }) }
-                : task)
-            }
-            : null
+          draft: updateDraftTasks(this.state.draft, (tasks) => tasks.map((task) => (
+            task.id === message.taskId
+              ? { ...task, ...(message.tier ? { tier: message.tier } : { tier: undefined }) }
+              : task
+          ))),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'move-task':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTasks(this.state.draft, (tasks) => moveTask(tasks, message.taskId, message.direction)),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'delete-task':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTasks(this.state.draft, (tasks) => tasks.filter((task) => task.id !== message.taskId)),
+          warning: null,
+          error: null
         };
         this.emitState();
         return;
@@ -480,12 +562,24 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       return;
     }
 
+    const taskValidationError = validateReviewedTasks(this.state.draft.tasks);
+    if (taskValidationError) {
+      this.state = {
+        ...this.state,
+        warning: taskValidationError,
+        error: null
+      };
+      this.emitState();
+      return;
+    }
+
     this.bridge.send({ type: 'busy', value: true });
     try {
       const result = await this.options.writeDraft(this.state.draft);
       this.state = {
         ...this.state,
         step: 7,
+        warning: null,
         error: null,
         writeSummary: result
       };
@@ -690,6 +784,37 @@ body {
   align-items: start;
 }
 
+.task-card header {
+  align-items: stretch;
+}
+
+.task-card-main {
+  flex: 1 1 auto;
+}
+
+.task-card-main input,
+.task-card-main select {
+  width: 100%;
+}
+
+.task-card-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 150px;
+}
+
+.task-move-buttons,
+.task-delete-row {
+  display: flex;
+  gap: 8px;
+}
+
+.task-move-buttons button,
+.task-delete-row button {
+  flex: 1 1 0;
+}
+
 .config-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -798,13 +923,27 @@ code {
         }
         return '<div class="task-list">' + state.draft.tasks.map((task) =>
           '<article class="task-card">' +
-            '<header><div><strong>' + escapeHtml(task.id) + '</strong><div>' + escapeHtml(task.title) + '</div></div>' +
-            '<label>Tier <select data-action="task-tier" data-task-id="' + escapeHtml(task.id) + '">' +
-              '<option value=""' + (!task.tier ? ' selected' : '') + '>Auto</option>' +
-              '<option value="simple"' + (task.tier === 'simple' ? ' selected' : '') + '>Simple</option>' +
-              '<option value="medium"' + (task.tier === 'medium' ? ' selected' : '') + '>Medium</option>' +
-              '<option value="complex"' + (task.tier === 'complex' ? ' selected' : '') + '>Complex</option>' +
-            '</select></label></header>' +
+            '<header>' +
+              '<div class="task-card-main">' +
+                '<strong>' + escapeHtml(task.id) + '</strong>' +
+                '<label class="field"><span>Title</span><input data-action="task-title" data-task-id="' + escapeHtml(task.id) + '" value="' + escapeHtml(task.title) + '" /></label>' +
+              '</div>' +
+              '<div class="task-card-controls">' +
+                '<label>Tier <select data-action="task-tier" data-task-id="' + escapeHtml(task.id) + '">' +
+                  '<option value=""' + (!task.tier ? ' selected' : '') + '>Auto</option>' +
+                  '<option value="simple"' + (task.tier === 'simple' ? ' selected' : '') + '>Simple</option>' +
+                  '<option value="medium"' + (task.tier === 'medium' ? ' selected' : '') + '>Medium</option>' +
+                  '<option value="complex"' + (task.tier === 'complex' ? ' selected' : '') + '>Complex</option>' +
+                '</select></label>' +
+                '<div class="task-move-buttons">' +
+                  '<button class="secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="up">Move Up</button>' +
+                  '<button class="secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="down">Move Down</button>' +
+                '</div>' +
+                '<div class="task-delete-row">' +
+                  '<button class="secondary" data-action="delete-task" data-task-id="' + escapeHtml(task.id) + '">Delete</button>' +
+                '</div>' +
+              '</div>' +
+            '</header>' +
             '<div class="muted">' + escapeHtml(task.validation || 'No task-specific validation hint') + '</div>' +
           '</article>'
         ).join('') + '</div>';
@@ -969,6 +1108,35 @@ code {
               type: 'update-task-tier',
               taskId: select.getAttribute('data-task-id'),
               tier: select.value
+            });
+          });
+        }
+
+        for (const input of document.querySelectorAll('input[data-action="task-title"]')) {
+          input.addEventListener('input', () => {
+            vscode.postMessage({
+              type: 'update-task-title',
+              taskId: input.getAttribute('data-task-id'),
+              title: input.value
+            });
+          });
+        }
+
+        for (const button of document.querySelectorAll('button[data-action="move-task"]')) {
+          button.addEventListener('click', () => {
+            vscode.postMessage({
+              type: 'move-task',
+              taskId: button.getAttribute('data-task-id'),
+              direction: button.getAttribute('data-direction')
+            });
+          });
+        }
+
+        for (const button of document.querySelectorAll('button[data-action="delete-task"]')) {
+          button.addEventListener('click', () => {
+            vscode.postMessage({
+              type: 'delete-task',
+              taskId: button.getAttribute('data-task-id')
             });
           });
         }

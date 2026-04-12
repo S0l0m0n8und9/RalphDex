@@ -297,6 +297,40 @@ async function appendTasksToFile(
   }
 }
 
+export function normalizeWizardTasksForPersistence(newTasks: PrdWizardTaskDraft[]): RalphTask[] {
+  if (newTasks.length === 0) {
+    throw new Error('Review at least one task before writing tasks.json.');
+  }
+
+  const normalizedTasks: RalphTask[] = newTasks.map((task) => {
+    const normalizedId = task.id.trim();
+    const normalizedTitle = task.title.trim();
+
+    if (!normalizedId) {
+      throw new Error('Each reviewed task must keep a non-empty id before writing tasks.json.');
+    }
+
+    if (!normalizedTitle) {
+      throw new Error(`Task ${task.id} must have a non-empty title before writing tasks.json.`);
+    }
+
+    return {
+      id: normalizedId,
+      title: normalizedTitle,
+      status: task.status,
+      ...(task.validation ? { validation: task.validation } : {}),
+      ...(task.tier ? { tier: task.tier } : {})
+    } satisfies RalphTask;
+  });
+
+  parseTaskFile(JSON.stringify({
+    version: 2,
+    tasks: normalizedTasks
+  }));
+
+  return normalizedTasks;
+}
+
 async function replaceTasksFile(
   tasksPath: string,
   newTasks: PrdWizardTaskDraft[]
@@ -309,13 +343,7 @@ async function replaceTasksFile(
 
     const next = bumpMutationCount({
       ...taskFile,
-      tasks: newTasks.map((task) => ({
-        id: task.id,
-        title: task.title,
-        status: task.status,
-        ...(task.validation ? { validation: task.validation } : {}),
-        ...(task.tier ? { tier: task.tier } : {})
-      }))
+      tasks: normalizeWizardTasksForPersistence(newTasks)
     });
 
     await fs.writeFile(tasksPath, stringifyTaskFile(next), 'utf8');

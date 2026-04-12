@@ -36,6 +36,7 @@ const SUPPORTED_TASK_FIELDS = new Set([
   'blocker',
   'priority',
   'mode',
+  'tier',
   'acceptance',
   'constraints',
   'context'
@@ -118,6 +119,13 @@ function normalizeTaskPriority(value: unknown): RalphTaskPriority | undefined {
 
 function normalizeTaskMode(value: unknown): RalphTaskMode | undefined {
   if (value === 'default' || value === 'documentation') {
+    return value;
+  }
+  return undefined;
+}
+
+function normalizeTaskTier(value: unknown): RalphTask['tier'] | undefined {
+  if (value === 'simple' || value === 'medium' || value === 'complex') {
     return value;
   }
   return undefined;
@@ -432,6 +440,7 @@ function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): Ra
     blocker: normalizeOptionalString(record, 'blocker'),
     priority: normalizeTaskPriority(record.priority),
     mode: normalizeTaskMode(record.mode),
+    tier: normalizeTaskTier(record.tier),
     acceptance: normalizeOptionalStringArray(record, 'acceptance'),
     constraints: normalizeOptionalStringArray(record, 'constraints'),
     context: normalizeOptionalStringArray(record, 'context'),

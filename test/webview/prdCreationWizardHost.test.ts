@@ -362,3 +362,105 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
 
   host.dispose();
 });
+
+test('PrdCreationWizardHost: task review supports title edits, reordering, and deletion before confirm-write', async () => {
+  const webview = makeMockWebview();
+  let writeInput: PrdWizardDraftBundle | null = null;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft({
+      tasks: [
+        { id: 'T1', title: 'First generated task', status: 'todo' },
+        { id: 'T2', title: 'Second generated task', status: 'todo' },
+        { id: 'T3', title: 'Third generated task', status: 'todo' }
+      ]
+    }),
+    writeDraft: async (draft) => {
+      writeInput = draft;
+      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
+    }
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable tasks.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'update-task-title', taskId: 'T2', title: 'Operator revised second task' });
+  webviewSends(webview, { type: 'move-task', taskId: 'T3', direction: 'up' });
+  webviewSends(webview, { type: 'delete-task', taskId: 'T1' });
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(writeInput, 'confirm-write should pass the reviewed tasks to writeDraft');
+  const writtenDraft = writeInput as PrdWizardDraftBundle;
+  assert.deepEqual(
+    writtenDraft.tasks.map((task) => ({ id: task.id, title: task.title })),
+    [
+      { id: 'T3', title: 'Third generated task' },
+      { id: 'T2', title: 'Operator revised second task' }
+    ]
+  );
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: confirm-write blocks empty or invalid reviewed task lists', async () => {
+  const webview = makeMockWebview();
+  let writeCount = 0;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft({
+      tasks: [
+        { id: 'T1', title: 'First generated task', status: 'todo' },
+        { id: 'T2', title: 'Second generated task', status: 'todo' }
+      ]
+    }),
+    writeDraft: async () => {
+      writeCount += 1;
+      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
+    }
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable tasks.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'update-task-title', taskId: 'T1', title: '   ' });
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  let state = lastStateMessage(webview).state as {
+    warning?: string;
+    draft: PrdWizardDraftBundle;
+  };
+  assert.equal(writeCount, 0, 'blank task titles must block confirm-write');
+  assert.match(state.warning ?? '', /must have a non-empty title/i);
+
+  webviewSends(webview, { type: 'update-task-title', taskId: 'T1', title: 'Recovered title' });
+  webviewSends(webview, { type: 'delete-task', taskId: 'T1' });
+  webviewSends(webview, { type: 'delete-task', taskId: 'T2' });
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  state = lastStateMessage(webview).state as {
+    warning?: string;
+    draft: PrdWizardDraftBundle;
+  };
+  assert.equal(writeCount, 0, 'empty task lists must block confirm-write');
+  assert.equal(state.draft.tasks.length, 0);
+  assert.match(state.warning ?? '', /at least one task/i);
+
+  host.dispose();
+});

@@ -1316,6 +1316,25 @@ test('parseTaskFile preserves mode: documentation on a task', () => {
   assert.equal(taskFile.tasks[0]?.mode, 'documentation');
 });
 
+test('parseTaskFile preserves explicit tier overrides and stringifyTaskFile round-trips them', () => {
+  const taskFile = parseTaskFile(JSON.stringify({
+    tasks: [
+      { id: 'T1', title: 'Simple task', status: 'todo', tier: 'simple' },
+      { id: 'T2', title: 'Complex task', status: 'todo', tier: 'complex' },
+      { id: 'T3', title: 'Auto-scored task', status: 'todo', tier: 'invalid' }
+    ]
+  }));
+
+  assert.equal(taskFile.tasks[0]?.tier, 'simple');
+  assert.equal(taskFile.tasks[1]?.tier, 'complex');
+  assert.equal(taskFile.tasks[2]?.tier, undefined);
+
+  const roundTripped = parseTaskFile(stringifyTaskFile(taskFile));
+  assert.equal(roundTripped.tasks[0]?.tier, 'simple');
+  assert.equal(roundTripped.tasks[1]?.tier, 'complex');
+  assert.equal(roundTripped.tasks[2]?.tier, undefined);
+});
+
 test('parseTaskFile preserves mode: default on a task', () => {
   const taskFile = parseTaskFile(JSON.stringify({
     tasks: [
