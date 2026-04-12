@@ -156,7 +156,7 @@ class DashboardHost {
             ...this.latestState,
             snapshotStatus: { phase: nextPhase, errorMessage: null }
         };
-        this.fullRender();
+        this.fullRender(true);
         try {
             const snapshot = await this.loadSnapshot();
             if (generation !== this.snapshotLoadGeneration) {
@@ -167,7 +167,7 @@ class DashboardHost {
                 dashboardSnapshot: snapshot,
                 snapshotStatus: { phase: 'ready', errorMessage: null }
             };
-            this.fullRender();
+            this.fullRender(true);
         }
         catch (error) {
             if (generation !== this.snapshotLoadGeneration) {
@@ -180,7 +180,7 @@ class DashboardHost {
                     errorMessage: error instanceof Error ? error.message : String(error)
                 }
             };
-            this.fullRender();
+            this.fullRender(true);
         }
     }
     async openIterationArtifact(artifactDir) {
@@ -254,10 +254,11 @@ class DashboardHost {
                 break;
         }
     }
-    fullRender() {
-        // Debounce: skip renders within 100ms of last render.
+    fullRender(force = false) {
+        // Debounce most renders to avoid repaint churn, but allow critical phase
+        // transitions to bypass the window so transient states do not get stuck.
         const now = Date.now();
-        if (now - this.lastRenderTime < 100) {
+        if (!force && now - this.lastRenderTime < 100) {
             return;
         }
         this.lastRenderTime = now;
