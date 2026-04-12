@@ -63,7 +63,8 @@ function defaultDashboardState() {
         diagnostics: [],
         agentLanes: [],
         config: null,
-        dashboardSnapshot: null
+        dashboardSnapshot: null,
+        snapshotStatus: { phase: 'idle', errorMessage: null }
     };
 }
 function buildDashboardTasks(taskFile, selectedTaskId) {

@@ -71,13 +71,14 @@ function buildTaskRow(task, isRunning) {
     const statusClass = task.status === 'done' ? 'done' : task.status === 'blocked' ? 'blocked' : '';
     const currentClass = task.isCurrent ? (isRunning ? 'current running' : 'current') : '';
     const check = task.status === 'done' ? '✓' : '';
-    return `<div class="task-row ${statusClass} ${currentClass}" data-task-id="${esc(task.id)}">
+    const detailId = `detail-${task.id}`;
+    return `<button type="button" class="task-row ${statusClass} ${currentClass}" data-task-id="${esc(task.id)}" aria-expanded="false" aria-controls="${esc(detailId)}">
     <span class="task-glyph">${glyph}</span>
     <span class="task-id">${esc(task.id)}</span>
     <span class="task-title">${esc(task.title)}</span>
     <span class="task-check">${check}</span>
-  </div>
-  <div class="task-detail" id="detail-${esc(task.id)}" style="display:none">
+  </button>
+  <div class="task-detail" id="${esc(detailId)}" hidden>
     <dl>
       ${task.notes ? `<dt>Notes</dt><dd>${esc(task.notes)}</dd>` : ''}
       ${task.blocker ? `<dt>Blocker</dt><dd>${esc(task.blocker)}</dd>` : ''}
@@ -105,13 +106,13 @@ function buildIterationRow(iter) {
     const glyph = exports.CLASSIFICATION_CHAR[iter.classification] ?? '?';
     const taskLabel = iter.taskId ?? '—';
     const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '';
-    return `<div class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}">
+    return `<button type="button" class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}" title="Open iteration artifact">
     <span class="iter-num">#${iter.iteration}</span>
     ${agentLabel}
     <span class="iter-task">${esc(taskLabel)}</span>
     <span class="iter-class">${iter.classification.replace(/_/g, ' ')}</span>
     <span class="iter-glyph">${glyph}</span>
-  </div>`;
+  </button>`;
 }
 function buildAgentLanes(lanes) {
     if (lanes.length === 0) {
@@ -212,11 +213,18 @@ function buildBaseCss() {
 .task-row {
   display: flex;
   align-items: flex-start;
+  width: 100%;
   padding: 3px 4px;
   cursor: pointer;
   border-left: 3px solid transparent;
   border-radius: 2px;
   transition: background 0.15s ease, border-color 0.15s ease;
+  background: transparent;
+  color: inherit;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  text-align: left;
 }
 
 .task-row:hover {
@@ -323,10 +331,15 @@ function buildBaseCss() {
 .iter-row {
   display: flex;
   align-items: center;
+  width: 100%;
   padding: 2px 4px;
   font-size: 11px;
   cursor: pointer;
   transition: background 0.15s ease;
+  background: transparent;
+  color: inherit;
+  border: none;
+  text-align: left;
 }
 
 .iter-row:hover {
@@ -398,6 +411,13 @@ function buildBaseCss() {
   font-size: 11px;
   font-style: italic;
   padding: 4px;
+}
+
+.task-row:focus-visible,
+.iter-row:focus-visible,
+.btn:focus-visible {
+  outline: 1px solid var(--ralph-amber);
+  outline-offset: 2px;
 }
 `;
 }

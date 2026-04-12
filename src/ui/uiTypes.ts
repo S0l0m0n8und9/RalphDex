@@ -191,6 +191,13 @@ export interface RalphDashboardConfigSnapshot {
   newChatCommandId: string;
 }
 
+export type RalphDashboardSnapshotPhase = 'idle' | 'loading' | 'refreshing' | 'ready' | 'error';
+
+export interface RalphDashboardSnapshotStatus {
+  phase: RalphDashboardSnapshotPhase;
+  errorMessage: string | null;
+}
+
 export interface RalphDashboardState {
   workspaceName: string;
   loopState: RalphUiLoopState;
@@ -206,6 +213,7 @@ export interface RalphDashboardState {
   agentLanes: RalphAgentLaneState[];
   config: RalphDashboardConfigSnapshot | null;
   dashboardSnapshot: DashboardSnapshot | null;
+  snapshotStatus: RalphDashboardSnapshotStatus;
 }
 
 /** Messages sent from extension to webview. */
@@ -218,4 +226,5 @@ export type RalphWebviewMessage =
 export type RalphWebviewCommand =
   | { type: 'command'; command: string }
   | { type: 'expand-task'; taskId: string }
-  | { type: 'update-setting'; key: string; value: unknown };
+  | { type: 'update-setting'; key: string; value: unknown }
+  | { type: 'open-iteration-artifact'; artifactDir: string };

@@ -20,6 +20,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     agentLanes: [],
     config: null,
     dashboardSnapshot: null,
+    snapshotStatus: { phase: 'idle', errorMessage: null },
     ...overrides
   };
 }
@@ -104,11 +105,14 @@ test('buildPanelDashboardHtml returns valid HTML with nonce-gated script and sty
   assert.ok(html.includes('<!DOCTYPE html>'));
 });
 
-test('buildPanelDashboardHtml uses two-column grid layout', () => {
+test('buildPanelDashboardHtml renders tabbed dashboard layout', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'n1');
-  assert.ok(html.includes('dashboard-grid'));
-  assert.ok(html.includes('panel-left'));
-  assert.ok(html.includes('panel-right'));
+  assert.ok(html.includes('tab-bar'));
+  assert.ok(html.includes('data-tab="overview"'));
+  assert.ok(html.includes('data-tab="work"'));
+  assert.ok(html.includes('data-tab="diagnostics"'));
+  assert.ok(html.includes('data-tab="settings"'));
+  assert.ok(html.includes('tab-overview'));
 });
 
 test('buildPanelDashboardHtml filters active tasks from done tasks', () => {
@@ -127,7 +131,7 @@ test('buildPanelDashboardHtml filters active tasks from done tasks', () => {
   assert.ok(html.includes('Blocked task'));
   // Done tasks in collapsible section
   assert.ok(html.includes('Completed (1)'));
-  assert.ok(html.includes('<details>'));
+  assert.ok(html.includes('data-section="completed-tasks"'));
 });
 
 test('buildPanelDashboardHtml shows all-done summary when every task is complete', () => {
@@ -239,13 +243,36 @@ test('buildPanelDashboardHtml shows empty state when no tasks', () => {
 
 test('buildPanelDashboardHtml renders empty dashboard summary sections when no durable snapshot is loaded', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'dash-empty');
-  assert.ok(html.includes('Pipeline Strip'));
+  assert.ok(html.includes('Pipeline'));
   assert.ok(html.includes('No pipeline run artifact recorded yet.'));
   assert.ok(html.includes('Task board unavailable until Ralph status is loaded.'));
   assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
   assert.ok(html.includes('No durable agent identity records found yet.'));
   assert.ok(html.includes('No tasks are parked in dead-letter.'));
-  assert.ok(html.includes('Quick Actions'));
+  assert.ok(html.includes('Common Actions'));
+});
+
+test('buildPanelDashboardHtml renders accessible task and history controls with persisted tabs', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    tasks: [{
+      id: 'T1',
+      title: 'Task one',
+      status: 'todo',
+      isCurrent: true,
+      priority: 'normal',
+      childIds: [],
+      dependsOn: []
+    }],
+    recentIterations: [
+      { iteration: 4, taskId: 'T1', taskTitle: 'Task one', classification: 'partial_progress', stopReason: null, artifactDir: '/tmp/iter' }
+    ],
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 }
+  }), 'tabs');
+
+  assert.ok(html.includes('role="tablist"'));
+  assert.ok(html.includes('saveStoredState({ activeTab: tabId })'));
+  assert.ok(html.includes('aria-expanded="false"'));
+  assert.ok(html.includes('type: \'open-iteration-artifact\''));
 });
 
 test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-letter, and failure sections', () => {

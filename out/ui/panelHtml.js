@@ -2,6 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildPanelDashboardHtml = buildPanelDashboardHtml;
 const htmlHelpers_1 = require("./htmlHelpers");
+const DASHBOARD_TABS = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'work', label: 'Work' },
+    { id: 'diagnostics', label: 'Diagnostics' },
+    { id: 'settings', label: 'Settings' }
+];
 // ---------------------------------------------------------------------------
 // Panel-specific CSS (extends base)
 // ---------------------------------------------------------------------------
@@ -355,6 +361,126 @@ details[open] > .settings-section-toggle::before { content: '▾ '; }
 .settings-advanced-toggle::-webkit-details-marker { display: none; }
 .settings-advanced-toggle::before { content: '▸ '; font-size: 10px; }
 details[open] > .settings-advanced-toggle::before { content: '▾ '; }
+
+.dashboard-shell {
+  display: grid;
+  gap: 12px;
+}
+
+.snapshot-banner {
+  border: 1px solid var(--ralph-border);
+  padding: 8px 10px;
+  font-size: 11px;
+}
+
+.snapshot-banner.loading,
+.snapshot-banner.refreshing {
+  border-color: var(--ralph-amber);
+  color: var(--ralph-amber);
+}
+
+.snapshot-banner.error {
+  border-color: var(--ralph-orange);
+  color: var(--ralph-orange);
+}
+
+.tab-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--ralph-border);
+  padding-bottom: 4px;
+}
+
+.tab-button {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ralph-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 0 6px;
+}
+
+.tab-button[aria-selected="true"] {
+  border-bottom-color: var(--ralph-amber);
+  color: var(--vscode-foreground);
+}
+
+.tab-button:focus-visible {
+  outline: 1px solid var(--ralph-amber);
+  outline-offset: 2px;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+.overview-grid,
+.diagnostics-grid,
+.settings-shell {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.work-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(280px, 0.95fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.card.span-2,
+.dashboard-summary-card.full {
+  grid-column: 1 / -1;
+}
+
+.card-subtitle {
+  color: var(--ralph-dim);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.history-list,
+.attention-list,
+.status-list,
+.task-summary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-list {
+  gap: 0;
+}
+
+.task-list.compact .task-detail {
+  display: none;
+}
+
+@media (max-width: 980px) {
+  body {
+    padding: 12px 16px 20px;
+  }
+
+  .dashboard-grid,
+  .overview-grid,
+  .diagnostics-grid,
+  .settings-shell,
+  .work-grid,
+  .dashboard-summary-grid,
+  .metric-grid,
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
 `;
 }
 // ---------------------------------------------------------------------------
@@ -730,13 +856,23 @@ function buildQuickActionsSection(state) {
     </div>
   </div>`;
 }
-// ---------------------------------------------------------------------------
-// Panel HTML builder
-// ---------------------------------------------------------------------------
-function buildPanelDashboardHtml(state, nonce) {
-    const isRunning = state.loopState === 'running';
-    const stateLabel = htmlHelpers_1.LOOP_STATE_LABEL[state.loopState];
-    // Split tasks into active vs done
+function buildSnapshotStatusBanner(state) {
+    const status = state.snapshotStatus;
+    if (status.phase === 'idle' || status.phase === 'ready') {
+        return '';
+    }
+    if (status.phase === 'loading') {
+        return `<div class="snapshot-banner loading">Loading dashboard snapshot...</div>`;
+    }
+    if (status.phase === 'refreshing') {
+        return `<div class="snapshot-banner refreshing">Refreshing durable dashboard data...</div>`;
+    }
+    if (state.dashboardSnapshot) {
+        return `<div class="snapshot-banner error">Showing last successful dashboard snapshot. Refresh failed: ${(0, htmlHelpers_1.esc)(status.errorMessage ?? 'unknown error')}</div>`;
+    }
+    return `<div class="snapshot-banner error">Dashboard snapshot unavailable. ${(0, htmlHelpers_1.esc)(status.errorMessage ?? 'unknown error')}</div>`;
+}
+function buildTaskCollections(state) {
     const statusOrder = { in_progress: 0, todo: 1, blocked: 2, done: 3 };
     const sorted = [...state.tasks].sort((a, b) => {
         if (a.isCurrent && !b.isCurrent)
@@ -745,11 +881,171 @@ function buildPanelDashboardHtml(state, nonce) {
             return 1;
         return (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
     });
-    const activeTasks = sorted.filter((t) => t.status !== 'done');
-    const doneTasks = sorted.filter((t) => t.status === 'done');
-    const allDone = activeTasks.length === 0 && doneTasks.length > 0;
-    // Disable loop/iteration buttons when running
-    const loopDisabled = isRunning ? ' disabled' : '';
+    const activeTasks = sorted.filter((task) => task.status !== 'done');
+    const doneTasks = sorted.filter((task) => task.status === 'done');
+    return { activeTasks, doneTasks, allDone: activeTasks.length === 0 && doneTasks.length > 0 };
+}
+function buildOverviewTab(state) {
+    const taskBoard = state.dashboardSnapshot?.taskBoard ?? null;
+    const quick = state.dashboardSnapshot?.quickActions ?? null;
+    const currentTask = state.tasks.find((task) => task.isCurrent) ?? state.tasks[0] ?? null;
+    const failure = state.dashboardSnapshot?.failureFeed.entries[0] ?? null;
+    const loopDisabled = state.loopState === 'running' ? ' disabled title="Loop already running"' : '';
+    const total = state.taskCounts
+        ? state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done
+        : 0;
+    return `<div class="overview-grid">
+    <div class="card">
+      <div class="card-title">Health</div>
+      <div class="metric-grid">
+        <div class="metric"><span class="metric-label">Loop State</span><span class="metric-value">${(0, htmlHelpers_1.esc)(htmlHelpers_1.LOOP_STATE_LABEL[state.loopState])}</span></div>
+        <div class="metric"><span class="metric-label">Role</span><span class="metric-value">${(0, htmlHelpers_1.esc)(state.agentRole)}</span></div>
+        <div class="metric"><span class="metric-label">Selected Task</span><span class="metric-value">${(0, htmlHelpers_1.esc)(taskBoard?.selectedTaskId ?? 'none')}</span></div>
+        <div class="metric"><span class="metric-label">Next Iteration</span><span class="metric-value">${taskBoard?.nextIteration ?? state.nextIteration}</span></div>
+        <div class="metric"><span class="metric-label">Preflight</span><span class="metric-value ${state.preflightReady ? 'ok' : 'warn'}">${state.preflightReady ? 'ready' : 'attention needed'}</span></div>
+        <div class="metric"><span class="metric-label">Progress</span><span class="metric-value">${state.taskCounts ? `${state.taskCounts.done}/${total}` : 'none'}</span></div>
+      </div>
+      <div style="margin-top:8px;">${(0, htmlHelpers_1.buildProgressBar)(taskBoard?.counts ?? state.taskCounts)}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Attention</div>
+      <div class="attention-list">
+        ${failure ? `<div>Latest failure: ${(0, htmlHelpers_1.esc)(failure.taskId)} · ${(0, htmlHelpers_1.esc)(failure.category)}</div>` : ''}
+        ${quick?.hasBlockedTasks ? '<div>Blocked tasks need review before the next clean run.</div>' : ''}
+        ${quick?.hasDeadLetterEntries ? '<div>Dead-letter contains parked work that may need requeue.</div>' : ''}
+        ${!state.preflightReady ? `<div>${(0, htmlHelpers_1.esc)(state.preflightSummary)}</div>` : ''}
+        ${!failure && !quick?.hasBlockedTasks && !quick?.hasDeadLetterEntries && state.preflightReady ? '<div>No immediate interruptions.</div>' : ''}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Current Work</div>
+      ${currentTask
+        ? `<div class="task-summary-list">
+            <div><strong>${(0, htmlHelpers_1.esc)(currentTask.id)}</strong> · ${(0, htmlHelpers_1.esc)(currentTask.title)}</div>
+            <div><strong>Status</strong> ${(0, htmlHelpers_1.esc)(currentTask.status.replace(/_/g, ' '))}</div>
+            ${currentTask.blocker ? `<div><strong>Blocker</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker)}</div>` : ''}
+            ${currentTask.validation ? `<div><strong>Validation</strong> ${(0, htmlHelpers_1.esc)(currentTask.validation)}</div>` : ''}
+            <div><strong>Next Step</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker ? 'Resolve blocker before starting another loop.' : currentTask.validation ? `Validate with ${currentTask.validation}.` : 'Start the next iteration when ready.')}</div>
+          </div>`
+        : '<div class="empty">No tasks yet — run Initialize Workspace.</div>'}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Recent Activity</div>
+      <div class="history-list">
+        ${state.recentIterations.length > 0
+        ? state.recentIterations.slice(0, 5).map(htmlHelpers_1.buildIterationRow).join('\n')
+        : '<div class="empty">No iterations yet.</div>'}
+      </div>
+    </div>
+
+    <div class="card span-2">
+      <div class="card-title">Common Actions</div>
+      <div class="btn-grid">
+        <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+  </div>`;
+}
+function buildWorkTab(state) {
+    const { activeTasks, doneTasks, allDone } = buildTaskCollections(state);
+    const total = state.taskCounts
+        ? state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done
+        : 0;
+    return `<div class="work-grid">
+    <div class="card">
+      <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${total}` : ''}</div>
+      ${allDone
+        ? `<div class="all-done-card">
+            <div class="check">✓</div>
+            <div class="label">All ${doneTasks.length} tasks completed</div>
+          </div>`
+        : activeTasks.length > 0
+            ? activeTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')
+            : '<div class="empty">No tasks yet — run Initialize Workspace</div>'}
+      ${!allDone && doneTasks.length > 0
+        ? `<details data-section="completed-tasks">
+            <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
+            ${doneTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')}
+          </details>`
+        : ''}
+    </div>
+
+    <div class="card">
+      <div class="card-title">History</div>
+      <div class="history-list">
+        ${state.recentIterations.length > 0
+        ? state.recentIterations.map(htmlHelpers_1.buildIterationRow).join('\n')
+        : '<div class="empty">No iterations yet</div>'}
+      </div>
+    </div>
+  </div>`;
+}
+function buildDiagnosticsTab(state) {
+    return `<div class="diagnostics-grid">
+    ${buildPipelineSection(state)}
+    ${buildTaskBoardSection(state)}
+    ${buildFailureFeedSection(state)}
+    ${buildAgentGridSection(state)}
+    ${buildDeadLetterSection(state)}
+    ${buildCostTickerSection(state)}
+    <div class="card">
+      <div class="card-title">Preflight</div>
+      ${(0, htmlHelpers_1.buildDiagnostics)(state)}
+    </div>
+    <div class="card">
+      <div class="card-title">Agent Controls</div>
+      <div class="btn-grid">
+        <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">Review Agent</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">Watchdog Agent</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">SCM Agent</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+  </div>`;
+}
+function buildSettingsTab(state) {
+    return `<div class="settings-shell">
+    <div class="card">
+      <div class="card-title">Project Actions</div>
+      <div class="btn-grid">
+        <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">New Project</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.switchProject"><span class="btn-label">Switch Project</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings UI</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Artifacts & Admin</div>
+      <div class="btn-grid">
+        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Pipeline Run</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest Transcript</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+
+    <div class="card span-2">
+      <div class="card-title">Settings</div>
+      ${state.config
+        ? buildSettingsSection(state.config)
+        : '<div class="empty">Config not loaded — reload window</div>'}
+    </div>
+  </div>`;
+}
+// ---------------------------------------------------------------------------
+// Panel HTML builder
+// ---------------------------------------------------------------------------
+function buildPanelDashboardHtml(state, nonce) {
+    const stateLabel = htmlHelpers_1.LOOP_STATE_LABEL[state.loopState];
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -760,92 +1056,31 @@ function buildPanelDashboardHtml(state, nonce) {
   <style nonce="${nonce}">${buildPanelCss()}</style>
 </head>
 <body>
-  <div class="header">
-    <div class="header-title">Ralphdex</div>
-    <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
-  </div>
-
-  ${(0, htmlHelpers_1.buildAgentLanes)(state.agentLanes)}
-  ${(0, htmlHelpers_1.buildProgressBar)(state.taskCounts)}
-
-  <div class="dashboard-grid">
-    <div class="panel-left">
-      <div class="dashboard-summary-grid">
-        ${buildPipelineSection(state)}
-        ${buildTaskBoardSection(state)}
-        ${buildFailureFeedSection(state)}
-        ${buildCostTickerSection(state)}
-      </div>
-      <div class="card">
-        <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done}` : ''}</div>
-        ${allDone
-        ? `<div class="all-done-card">
-              <div class="check">✓</div>
-              <div class="label">All ${doneTasks.length} tasks completed</div>
-            </div>`
-        : activeTasks.length > 0
-            ? activeTasks.map((t) => (0, htmlHelpers_1.buildTaskRow)(t, isRunning)).join('\n')
-            : '<div class="empty">No tasks yet — run Initialize Workspace</div>'}
-        ${!allDone && doneTasks.length > 0
-        ? `<details>
-              <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
-              ${doneTasks.map((t) => (0, htmlHelpers_1.buildTaskRow)(t, isRunning)).join('\n')}
-            </details>`
-        : ''}
-      </div>
-      <details class="card" data-section="settings">
-        <summary class="card-title" style="cursor: pointer;">Settings</summary>
-        ${state.config
-        ? buildSettingsSection(state.config)
-        : '<div class="empty">Config not loaded — reload window</div>'}
-      </details>
+  <div class="dashboard-shell">
+    <div class="header">
+      <div class="header-title">Ralphdex</div>
+      <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
     </div>
 
-    <div class="panel-right">
-      <div class="dashboard-summary-grid">
-        ${buildAgentGridSection(state)}
-        ${buildDeadLetterSection(state)}
-        ${buildQuickActionsSection(state)}
-      </div>
-      <div class="card">
-        <div class="card-title">Agents</div>
-        <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">◇ Review</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">⬡ Watch</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">⎔ SCM</span><span class="btn-spinner"></span></button>
-        </div>
+    ${(0, htmlHelpers_1.buildAgentLanes)(state.agentLanes)}
+    ${buildSnapshotStatusBanner(state)}
+
+    <div class="tab-layout">
+      <div class="tab-bar" role="tablist" aria-label="Dashboard sections">
+        ${DASHBOARD_TABS.map((tab, index) => `<button id="tab-button-${tab.id}" class="tab-button" type="button" role="tab" data-tab="${tab.id}" aria-selected="${index === 0 ? 'true' : 'false'}" aria-controls="tab-${tab.id}" tabindex="${index === 0 ? '0' : '-1'}">${tab.label}</button>`).join('')}
       </div>
 
-      <div class="card">
-        <div class="card-title">Actions</div>
-        <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">▸ Run Multi</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">▸ Run Iter</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prep Prompt</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
-        </div>
+      <div id="tab-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-overview">
+        ${buildOverviewTab(state)}
       </div>
-
-      <div class="card">
-        <div class="card-title">Projects</div>
-        <div class="btn-grid">
-          <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">⊞ New Project</span><span class="btn-spinner"></span></button>
-          <button class="btn" data-command="ralphCodex.switchProject"><span class="btn-label">⊟ Switch Project</span><span class="btn-spinner"></span></button>
-        </div>
+      <div id="tab-work" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-work" hidden>
+        ${buildWorkTab(state)}
       </div>
-
-      <div class="card">
-        <div class="card-title">History</div>
-        ${state.recentIterations.length > 0
-        ? state.recentIterations.map(htmlHelpers_1.buildIterationRow).join('\n')
-        : '<div class="empty">No iterations yet</div>'}
+      <div id="tab-diagnostics" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-diagnostics" hidden>
+        ${buildDiagnosticsTab(state)}
       </div>
-
-      <div class="card">
-        <div class="card-title">Preflight</div>
-        ${(0, htmlHelpers_1.buildDiagnostics)(state)}
+      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-settings" hidden>
+        ${buildSettingsTab(state)}
       </div>
     </div>
   </div>
@@ -854,21 +1089,28 @@ function buildPanelDashboardHtml(state, nonce) {
     (function() {
       var vscode = acquireVsCodeApi();
       var ackTimeouts = new WeakMap();
+      var TAB_IDS = ${JSON.stringify(DASHBOARD_TABS.map((tab) => tab.id))};
 
-      // Persist <details> open/close state across re-renders
+      function getStoredState() {
+        return vscode.getState() || {};
+      }
+
+      function saveStoredState(next) {
+        var current = getStoredState();
+        vscode.setState(Object.assign({}, current, next));
+      }
+
       function saveDetailsState() {
-        var state = vscode.getState() || {};
         var openSections = {};
         document.querySelectorAll('details[data-section]').forEach(function(el) {
           openSections[el.getAttribute('data-section')] = el.open;
         });
-        state.openSections = openSections;
-        vscode.setState(state);
+        saveStoredState({ openSections: openSections });
       }
 
       function restoreDetailsState() {
-        var state = vscode.getState();
-        if (!state || !state.openSections) return;
+        var state = getStoredState();
+        if (!state.openSections) return;
         document.querySelectorAll('details[data-section]').forEach(function(el) {
           var key = el.getAttribute('data-section');
           if (key in state.openSections) {
@@ -877,7 +1119,32 @@ function buildPanelDashboardHtml(state, nonce) {
         });
       }
 
+      function setActiveTab(tabId, shouldPersist) {
+        TAB_IDS.forEach(function(id) {
+          var button = document.querySelector('[data-tab="' + id + '"]');
+          var panel = document.getElementById('tab-' + id);
+          var selected = id === tabId;
+          if (button) {
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+            button.setAttribute('tabindex', selected ? '0' : '-1');
+          }
+          if (panel) {
+            panel.hidden = !selected;
+          }
+        });
+        if (shouldPersist) {
+          saveStoredState({ activeTab: tabId });
+        }
+      }
+
+      function restoreTabState() {
+        var state = getStoredState();
+        var tabId = TAB_IDS.indexOf(state.activeTab) >= 0 ? state.activeTab : 'overview';
+        setActiveTab(tabId, false);
+      }
+
       restoreDetailsState();
+      restoreTabState();
 
       document.addEventListener('toggle', function(e) {
         if (e.target.matches('details[data-section]')) {
@@ -953,6 +1220,12 @@ function buildPanelDashboardHtml(state, nonce) {
 
       // Event delegation — no inline handlers needed (CSP blocks onclick)
       document.addEventListener('click', function(e) {
+        var tab = e.target.closest('[data-tab]');
+        if (tab) {
+          setActiveTab(tab.getAttribute('data-tab'), true);
+          return;
+        }
+
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); return; }
 
@@ -988,14 +1261,16 @@ function buildPanelDashboardHtml(state, nonce) {
           var taskId = taskRow.getAttribute('data-task-id');
           var detail = document.getElementById('detail-' + taskId);
           if (detail) {
-            detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+            var expanded = taskRow.getAttribute('aria-expanded') === 'true';
+            taskRow.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            detail.hidden = expanded;
           }
           return;
         }
 
         var iterRow = e.target.closest('.iter-row[data-artifact-dir]');
         if (iterRow) {
-          vscode.postMessage({ type: 'command', command: 'ralphCodex.openLatestRalphSummary' });
+          vscode.postMessage({ type: 'open-iteration-artifact', artifactDir: iterRow.getAttribute('data-artifact-dir') });
           return;
         }
       });

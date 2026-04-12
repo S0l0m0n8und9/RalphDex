@@ -19,6 +19,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     agentLanes: [],
     config: null,
     dashboardSnapshot: null,
+    snapshotStatus: { phase: 'idle', errorMessage: null },
     ...overrides
   };
 }

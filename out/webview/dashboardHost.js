@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardHost = void 0;
 const vscode = __importStar(require("vscode"));
 const crypto = __importStar(require("crypto"));
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
 const readConfig_1 = require("../config/readConfig");
 const sidebarViewProvider_1 = require("../ui/sidebarViewProvider");
 const MessageBridge_1 = require("./MessageBridge");
@@ -81,6 +83,9 @@ class DashboardHost {
                 catch {
                     this.bridge.send({ type: 'command-ack', command: msg.command, status: 'error' });
                 }
+            }
+            if (msg.type === 'open-iteration-artifact') {
+                await this.openIterationArtifact(msg.artifactDir);
             }
             if (msg.type === 'update-setting') {
                 const wsFolder = vscode.workspace.workspaceFolders?.[0];
@@ -133,7 +138,8 @@ class DashboardHost {
             diagnostics: [],
             agentLanes: this.getLanes(),
             config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null,
-            dashboardSnapshot: this.latestState.dashboardSnapshot
+            dashboardSnapshot: this.latestState.dashboardSnapshot,
+            snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null }
         };
         this.fullRender();
         void this.refreshDashboardSnapshot();
@@ -144,20 +150,56 @@ class DashboardHost {
             return;
         }
         const generation = ++this.snapshotLoadGeneration;
+        const currentStatus = this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null };
+        const nextPhase = currentStatus.phase === 'idle' ? 'loading' : 'refreshing';
+        this.latestState = {
+            ...this.latestState,
+            snapshotStatus: { phase: nextPhase, errorMessage: null }
+        };
+        this.fullRender();
         try {
             const snapshot = await this.loadSnapshot();
             if (generation !== this.snapshotLoadGeneration) {
                 return;
             }
-            this.latestState = { ...this.latestState, dashboardSnapshot: snapshot };
+            this.latestState = {
+                ...this.latestState,
+                dashboardSnapshot: snapshot,
+                snapshotStatus: { phase: 'ready', errorMessage: null }
+            };
             this.fullRender();
         }
-        catch {
+        catch (error) {
             if (generation !== this.snapshotLoadGeneration) {
                 return;
             }
-            this.latestState = { ...this.latestState, dashboardSnapshot: null };
+            this.latestState = {
+                ...this.latestState,
+                snapshotStatus: {
+                    phase: 'error',
+                    errorMessage: error instanceof Error ? error.message : String(error)
+                }
+            };
             this.fullRender();
+        }
+    }
+    async openIterationArtifact(artifactDir) {
+        const summaryPath = path.join(artifactDir, 'summary.md');
+        const preflightSummaryPath = path.join(artifactDir, 'preflight-summary.md');
+        const target = (await this.pathExists(summaryPath)) ? summaryPath : (await this.pathExists(preflightSummaryPath) ? preflightSummaryPath : null);
+        if (!target) {
+            return;
+        }
+        const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
+        await vscode.window.showTextDocument(document, { preview: false });
+    }
+    async pathExists(candidate) {
+        try {
+            await fs.access(candidate);
+            return true;
+        }
+        catch {
+            return false;
         }
     }
     getLanes() {

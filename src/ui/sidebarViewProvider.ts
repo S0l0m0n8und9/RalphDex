@@ -77,7 +77,8 @@ export function defaultDashboardState(): import('./uiTypes').RalphDashboardState
     diagnostics: [],
     agentLanes: [],
     config: null,
-    dashboardSnapshot: null
+    dashboardSnapshot: null,
+    snapshotStatus: { phase: 'idle', errorMessage: null }
   };
 }
 

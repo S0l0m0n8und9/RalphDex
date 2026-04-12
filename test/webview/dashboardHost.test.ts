@@ -172,14 +172,17 @@ test('DashboardHost: refresh failure preserves last successful snapshot and repo
     const host = new DashboardHost(
       wv as unknown as import('vscode').Webview,
       broadcaster,
-      (state, _nonce) => {
+      ((state: {
+        snapshotStatus: { phase: string; errorMessage: string | null };
+        dashboardSnapshot: { workspaceName: string } | null;
+      }, _nonce: string) => {
         renders.push({
           phase: state.snapshotStatus.phase,
           errorMessage: state.snapshotStatus.errorMessage,
           snapshotWorkspaceName: state.dashboardSnapshot?.workspaceName ?? null
         });
         return `<html>${state.snapshotStatus.phase}:${state.dashboardSnapshot?.workspaceName ?? 'none'}</html>`;
-      } as never,
+      }) as never,
       async () => {
         refreshCount += 1;
         if (refreshCount === 1) {
@@ -224,9 +227,27 @@ test('DashboardHost: open-iteration-artifact opens the iteration summary path', 
   );
 
   webviewSends(wv, { type: 'open-iteration-artifact', artifactDir });
-  await new Promise((resolve) => setImmediate(resolve));
+
+  const deadline = Date.now() + 250;
+  while (harness.state.shownDocuments.length === 0 && Date.now() < deadline) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
 
   assert.deepEqual(harness.state.shownDocuments, [summaryPath], 'summary.md should be opened when present');
+
+  harness.reset();
+  const fallbackOnlyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralphdash-fallback-'));
+  const fallbackOnlyPath = path.join(fallbackOnlyDir, 'preflight-summary.md');
+  await fs.writeFile(fallbackOnlyPath, '# preflight only\n', 'utf8');
+
+  webviewSends(wv, { type: 'open-iteration-artifact', artifactDir: fallbackOnlyDir });
+
+  const fallbackDeadline = Date.now() + 250;
+  while (harness.state.shownDocuments.length === 0 && Date.now() < fallbackDeadline) {
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+
+  assert.deepEqual(harness.state.shownDocuments, [fallbackOnlyPath], 'preflight-summary.md should be opened when summary.md is absent');
 
   broadcaster.dispose();
 });
