@@ -130,7 +130,8 @@ export class DashboardHost implements vscode.Disposable {
     void this.refreshDashboardSnapshot();
   }
 
-  private async refreshDashboardSnapshot(): Promise<void> {
+  /** Forces a fresh snapshot load and re-renders. Safe to call concurrently — uses a generation counter to drop stale results. */
+  async refreshDashboardSnapshot(): Promise<void> {
     if (!this.loadSnapshot) {
       return;
     }

@@ -61,7 +61,7 @@ For a fresh clone, start by installing dependencies and running the validation g
    ```
 
 4. Press `F5` to launch the Extension Development Host.
-5. Use `Ralphdex: Show Status` to inspect the current workspace state.
+5. Use `Ralphdex: Show Status` to open the dashboard and inspect the current workspace state.
 6. Use `Ralphdex: Prepare Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run CLI Iteration`, or `Ralphdex: Run CLI Loop` depending on the workflow you want.
 
 For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace`. The command creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and `.ralph/.gitignore`. After initialization, replace the placeholder in `.ralph/prd.md` with the real objective before preparing prompts.
@@ -96,8 +96,8 @@ Ralph separates durable source-of-truth files from generated runtime evidence:
 
 For day-to-day loop inspection:
 
-1. `Ralphdex: Show Status` for the selected task, recent history, and stale surfaces.
-2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary.
+1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
+2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
 3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what Codex returned.
 4. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 

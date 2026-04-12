@@ -3048,12 +3048,12 @@
     {
       "id": "T112",
       "title": "Webview UI Phase 2.5: route Show Status workflows through the dashboard and align docs and tests",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T110",
         "T111"
       ],
-      "notes": "The PRD calls for Show Status and Show Multi-Agent Status to become dashboard-first workflows. After the migrated dashboard can render the required sections, route those status commands to the panel, preserve output-channel or artifact inspection as secondary paths where still useful, and update the owning docs so the dashboard-first operator flow is explicit.",
+      "notes": "Routed showRalphStatus and showMultiAgentStatus through ralphCodex.showDashboard + ralphCodex.refreshDashboard; raw reports still written to output channel; docs and tests updated; 768 tests pass.",
       "validation": "npm run validate",
       "acceptance": [
         "Ralphdex: Show Status and Ralphdex: Show Multi-Agent Status open or focus the dashboard instead of only writing text output to the channel",
@@ -3064,5 +3064,5 @@
       ]
     }
   ],
-  "mutationCount": 92
+  "mutationCount": 93
 }

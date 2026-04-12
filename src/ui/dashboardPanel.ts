@@ -53,6 +53,11 @@ export class RalphDashboardPanel implements vscode.Disposable {
     this.host.updateFromWatchedState(watched);
   }
 
+  /** Forces a fresh snapshot load. No-op if the host has no snapshot loader. */
+  public refreshSnapshot(): void {
+    void this.host.refreshDashboardSnapshot();
+  }
+
   public dispose(): void {
     RalphDashboardPanel.currentPanel = undefined;
     this.host.dispose();

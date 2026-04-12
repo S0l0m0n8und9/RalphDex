@@ -398,7 +398,7 @@ Use this recovery matrix when artifacts go missing mid-loop:
 
 Use the inspection commands by question, not just by file name:
 
-- `Show Status`: "What is Ralph doing now, what did the last few iterations do, and did retention or latest-surface repair change anything?"
+- `Show Status`: "What is Ralph doing now, what did the last few iterations do, and did retention or latest-surface repair change anything?" Opens or focuses the dashboard with a fresh snapshot; raw text report also written to the output channel for audit.
 - `Open Latest Ralph Summary`: "What was the newest iteration outcome in human-readable form?"
 - `Open Latest Prompt Evidence`: "Which template, task context, and inspected root snapshot produced the current prompt?"
 - `Open Latest CLI Transcript`: "What did `codex exec` print, or what last message survived when the transcript is unavailable?"
@@ -406,7 +406,7 @@ Use the inspection commands by question, not just by file name:
 
 ## Inspect State
 
-- `Ralphdex: Show Status` writes a readable summary to the `Ralphdex` output channel.
+- `Ralphdex: Show Status` opens or focuses the dashboard panel with a fresh snapshot. The raw status report is also written to the `Ralphdex` output channel for audit and debugging; choose "Show Output" in the notification to bring it forward.
 - The status summary includes the current loop/preflight snapshot, the latest iteration, the latest prompt-budget policy, required versus optional prompt sections plus omission order and kept versus omitted sections, current planned prompt byte count, current CLI reasoning effort when available, recent iteration and run history from `.ralph/state.json`, the latest remediation summary plus action, attempt count, human-review flag, proposed child-task count and dependency sketch when available, and proposal path when repeated-stop guidance exists, the current generated-artifact and provenance-bundle retention windows including protected retained entries, and whether any missing latest-summary/latest-provenance surfaces were repaired or remain stale during the status refresh.
 - The same status summary also keeps the task-claim lifecycle explicit: it shows the current claim holder for the selected task, groups all active claims by `agentId` with task id, task title, claim timestamp, and stale/fresh state, reminds the operator that only CLI execution owns blocking claim acquire/release, and points stale-claim recovery through `Ralphdex: Resolve Stale Task Claim` when a stale canonical holder is blocking reselection.
 - If preflight blocks on task-ledger drift such as a parent marked `done` while any descendant remains `todo`, `in_progress`, or `blocked`, repair `.ralph/tasks.json` first instead of retrying Codex on the same stale graph.

@@ -30,6 +30,7 @@
 		"ralphCodex.scmPrOnParentDone": false,
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
 		"ralphCodex.autoReplenishBacklog": true,
-		"ralphCodex.reasoningEffort": "high"
+		"ralphCodex.reasoningEffort": "high",
+		"ralphCodex.sandboxMode": "danger-full-access"
 	}
 }

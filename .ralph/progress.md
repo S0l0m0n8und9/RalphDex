@@ -236,3 +236,4 @@
 - Improved the dashboard failure feed so it now surfaces up to 5 recent failure events from the selected task and dead-letter diagnostic history, with regression coverage for ordering/capping and multi-entry rendering.
 - All six dashboard sections implemented and tested: pipeline strip, task board, agent grid, failure feed, dead-letter, quick actions. Quick-actions bar wires through the approved command surface. 763 tests pass.
 - Added dashboard cost-ticker: executionCostUsd persisted from claude CLI stream-json, DashboardCostSection typed with explicit null/unavailable semantics, cost ticker card rendered in panelHtml, 4 unit tests added, 767 tests pass
+- Routed showRalphStatus and showMultiAgentStatus through ralphCodex.showDashboard + ralphCodex.refreshDashboard; raw reports still written to output channel; docs and tests updated; 768 tests pass.

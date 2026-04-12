@@ -73,6 +73,10 @@ class RalphDashboardPanel {
     updateFromWatchedState(watched) {
         this.host.updateFromWatchedState(watched);
     }
+    /** Forces a fresh snapshot load. No-op if the host has no snapshot loader. */
+    refreshSnapshot() {
+        void this.host.refreshDashboardSnapshot();
+    }
     dispose() {
         RalphDashboardPanel.currentPanel = undefined;
         this.host.dispose();

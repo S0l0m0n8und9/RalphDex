@@ -291,7 +291,6 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             const workspaceFolder = await withWorkspaceFolder();
             const status = await (0, statusSnapshot_1.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
             const report = (0, statusReport_1.buildStatusReport)(status);
-            logger.show(false);
             logger.appendText(report);
             logger.info('Ralph status snapshot generated.', {
                 workspace: status.workspaceName,
@@ -301,10 +300,14 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 selectedTaskId: status.selectedTask?.id ?? null,
                 stopReason: status.lastIteration?.stopReason ?? null
             });
+            // Open or focus the dashboard and force a fresh snapshot load so the
+            // operator sees current data even if the panel was already open.
+            await vscode.commands.executeCommand('ralphCodex.showDashboard');
+            await vscode.commands.executeCommand('ralphCodex.refreshDashboard');
             const primaryAction = status.latestSummaryPath ? 'Open Latest Summary' : 'Show Output';
             const choice = await vscode.window.showInformationMessage(vscode.workspace.isTrusted
-                ? 'Ralph status summary is available in the Ralphdex output channel.'
-                : 'Ralph status summary is available in the Ralphdex output channel in limited mode.', primaryAction, 'Show Output');
+                ? 'Ralph status is available in the dashboard. Raw report written to the output channel.'
+                : 'Ralph status is available in the dashboard in limited mode. Raw report written to the output channel.', primaryAction, 'Show Output');
             if (choice === 'Open Latest Summary' && status.latestSummaryPath) {
                 await openLatestRalphSummary(workspaceFolder, stateManager, logger);
             }
@@ -398,7 +401,6 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
         handler: async (progress) => {
             progress.report({ message: 'Collecting per-agent status' });
             const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
             const claimFilePath = path.join(ralphDir, 'claims.json');
             const deadLetterPath = path.join(ralphDir, 'dead-letter.json');
@@ -407,19 +409,21 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
                 (0, deadLetter_1.readDeadLetterQueue)(deadLetterPath)
             ]);
             const report = (0, multiAgentStatus_1.buildMultiAgentStatusReport)(summaries, deadLetterQueue.entries);
-            logger.show(false);
             logger.appendText(report);
             logger.info('Multi-agent status snapshot generated.', {
                 workspace: workspaceFolder.name,
                 agentCount: summaries.length
             });
-            void vscode.window.showInformationMessage(summaries.length > 0
-                ? `Multi-agent status for ${summaries.length} agent(s) is available in the Ralphdex output channel.`
-                : 'No agent identity records found. Run at least one CLI iteration to populate agent state.', 'Show Output').then((choice) => {
-                if (choice === 'Show Output') {
-                    logger.show(false);
-                }
-            });
+            // Open or focus the dashboard and force a fresh snapshot load so the
+            // operator sees current per-agent data even if the panel was already open.
+            await vscode.commands.executeCommand('ralphCodex.showDashboard');
+            await vscode.commands.executeCommand('ralphCodex.refreshDashboard');
+            const choice = await vscode.window.showInformationMessage(summaries.length > 0
+                ? `Multi-agent status for ${summaries.length} agent(s) is available in the dashboard. Raw report written to the output channel.`
+                : 'No agent identity records found. Run at least one CLI iteration to populate agent state.', 'Show Output');
+            if (choice === 'Show Output') {
+                logger.show(false);
+            }
         }
     });
     registerCommand(context, logger, {

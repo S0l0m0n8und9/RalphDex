@@ -52,6 +52,15 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // Forces a fresh snapshot reload on the open panel, if any. Idempotent: no-op
+  // when no panel is open. Show Status commands call this after revealing the
+  // panel to guarantee the operator sees current data rather than a cached view.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ralphCodex.refreshDashboard', () => {
+      RalphDashboardPanel.currentPanel?.refreshSnapshot();
+    })
+  );
+
   // Wire broadcaster events to the status bar.
   // DashboardHost owns its own broadcaster subscription, so the panel and
   // sidebar are updated internally without an extra listener here.

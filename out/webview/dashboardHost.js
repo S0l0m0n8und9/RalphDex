@@ -138,6 +138,7 @@ class DashboardHost {
         this.fullRender();
         void this.refreshDashboardSnapshot();
     }
+    /** Forces a fresh snapshot load and re-renders. Safe to call concurrently — uses a generation counter to drop stale results. */
     async refreshDashboardSnapshot() {
         if (!this.loadSnapshot) {
             return;

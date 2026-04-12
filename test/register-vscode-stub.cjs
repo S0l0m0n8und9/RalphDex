@@ -235,6 +235,19 @@ const vscodeStub = {
     },
     registerWebviewViewProvider() {
       return { dispose() {} };
+    },
+    createWebviewPanel(_viewType, _title, _showOptions, _options) {
+      const webview = {
+        html: '',
+        onDidReceiveMessage(_handler) { return { dispose() {} }; },
+        async postMessage() { return true; }
+      };
+      return {
+        webview,
+        reveal() {},
+        onDidDispose(_callback) { return { dispose() {} }; },
+        dispose() {}
+      };
     }
   }
 };
