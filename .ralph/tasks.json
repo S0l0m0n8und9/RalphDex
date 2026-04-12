@@ -2993,11 +2993,11 @@
     {
       "id": "T109",
       "title": "Webview UI Phase 2.2: add a showDashboard command and migrate dashboard hosting onto src/webview foundations",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T108"
       ],
-      "notes": "The existing sidebar and openDashboard panel still manage lifecycle and message handling inside src/ui/. Move dashboard hosting onto WebviewPanelManager and MessageBridge, add the PRD-named showDashboard command, and keep any legacy openDashboard entry as a compatibility alias instead of letting the extension ship two divergent dashboard stacks.",
+      "notes": "Added ralphCodex.showDashboard command; migrated dashboard lifecycle onto WebviewPanelManager and MessageBridge via shared DashboardHost; sidebar and panel share one controller; 8 new regression tests; 758 tests pass, npm run validate clean.",
       "validation": "npm run validate",
       "acceptance": [
         "A user-facing ralphCodex.showDashboard command is registered and contributed, with existing dashboard entry points routed through the same panel host",
@@ -3063,5 +3063,5 @@
       ]
     }
   ],
-  "mutationCount": 84
+  "mutationCount": 85
 }

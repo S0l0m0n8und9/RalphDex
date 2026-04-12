@@ -7,6 +7,7 @@ import { IterationBroadcaster } from './ui/iterationBroadcaster';
 import { RalphSidebarViewProvider } from './ui/sidebarViewProvider';
 import { RalphStateWatcher } from './ui/stateWatcher';
 import { RalphStatusBar, showStatusBarQuickPick } from './ui/statusBarItem';
+import { WebviewPanelManager } from './webview/WebviewPanelManager';
 
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
@@ -19,6 +20,9 @@ export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new RalphStatusBar();
   context.subscriptions.push(statusBar);
 
+  const panelManager = new WebviewPanelManager(vscode.window);
+  context.subscriptions.push(panelManager);
+
   const sidebarProvider = new RalphSidebarViewProvider(context.extensionUri, broadcaster);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(RalphSidebarViewProvider.viewType, sidebarProvider)
@@ -29,18 +33,27 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', showStatusBarQuickPick)
   );
 
-  // Dashboard panel command — opens full dashboard in editor area
+  // Primary dashboard command — opens the full dashboard in the editor area.
   context.subscriptions.push(
-    vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-      RalphDashboardPanel.createOrShow(context.extensionUri, broadcaster);
+    vscode.commands.registerCommand('ralphCodex.showDashboard', () => {
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
     })
   );
 
-  // Wire broadcaster events to status bar and panel
+  // Legacy alias — keeps existing status bar items, sidebar buttons, and any
+  // saved key bindings working without a breaking change.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
+    })
+  );
+
+  // Wire broadcaster events to the status bar.
+  // DashboardHost owns its own broadcaster subscription, so the panel and
+  // sidebar are updated internally without an extra listener here.
   context.subscriptions.push(
     broadcaster.onEvent((event) => {
       statusBar.updateFromBroadcast(event);
-      RalphDashboardPanel.currentPanel?.updateFromBroadcast(event);
     })
   );
 

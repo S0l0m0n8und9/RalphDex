@@ -44,6 +44,7 @@ const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
 const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
 const stateWatcher_1 = require("./ui/stateWatcher");
 const statusBarItem_1 = require("./ui/statusBarItem");
+const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
@@ -52,18 +53,26 @@ function activate(context) {
     context.subscriptions.push(broadcaster);
     const statusBar = new statusBarItem_1.RalphStatusBar();
     context.subscriptions.push(statusBar);
+    const panelManager = new WebviewPanelManager_1.WebviewPanelManager(vscode.window);
+    context.subscriptions.push(panelManager);
     const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebarViewProvider_1.RalphSidebarViewProvider.viewType, sidebarProvider));
     // Status bar quick-pick command
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
-    // Dashboard panel command — opens full dashboard in editor area
-    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-        dashboardPanel_1.RalphDashboardPanel.createOrShow(context.extensionUri, broadcaster);
+    // Primary dashboard command — opens the full dashboard in the editor area.
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', () => {
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
     }));
-    // Wire broadcaster events to status bar and panel
+    // Legacy alias — keeps existing status bar items, sidebar buttons, and any
+    // saved key bindings working without a breaking change.
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
+    }));
+    // Wire broadcaster events to the status bar.
+    // DashboardHost owns its own broadcaster subscription, so the panel and
+    // sidebar are updated internally without an extra listener here.
     context.subscriptions.push(broadcaster.onEvent((event) => {
         statusBar.updateFromBroadcast(event);
-        dashboardPanel_1.RalphDashboardPanel.currentPanel?.updateFromBroadcast(event);
     }));
     // State watcher — responds to .ralph/ file changes
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

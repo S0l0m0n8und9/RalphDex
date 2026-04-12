@@ -134,7 +134,8 @@
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
-    "onCommand:ralphCodex.showSidebar"
+    "onCommand:ralphCodex.showSidebar",
+    "onCommand:ralphCodex.showDashboard"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -238,6 +239,10 @@
       {
         "command": "ralphCodex.runScmAgent",
         "title": "Ralph: Run SCM Agent"
+      },
+      {
+        "command": "ralphCodex.showDashboard",
+        "title": "Ralphdex: Show Dashboard"
       },
       {
         "command": "ralphCodex.openDashboard",

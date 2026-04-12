@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as crypto from 'crypto';
 import { readConfig } from '../config/readConfig';
 import type { RalphCodexConfig } from '../config/types';
 import type { RalphTaskFile } from '../ralph/types';
@@ -7,204 +6,61 @@ import type { IterationBroadcaster } from './iterationBroadcaster';
 import { buildDashboardHtml } from './sidebarHtml';
 import type { RalphWatchedState } from './stateWatcher';
 import type {
-  RalphAgentLaneState,
   RalphDashboardConfigSnapshot,
-  RalphDashboardIteration,
-  RalphDashboardState,
   RalphDashboardTask,
-  RalphIterationPhase,
-  RalphWebviewCommand,
-  RalphWebviewMessage
 } from './uiTypes';
-import { WebviewConfigSync } from './webviewConfigSync';
+import { DashboardHost } from '../webview/dashboardHost';
 
 /**
  * Provides the sidebar webview launcher for Ralphdex.
  * Registered as a WebviewViewProvider for the `ralphCodex.dashboard` view.
+ *
+ * State assembly, broadcast handling, and message wiring are delegated to
+ * {@link DashboardHost} so the sidebar and the editor-panel share one
+ * implementation.
  */
 export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'ralphCodex.dashboard';
 
-  private view: vscode.WebviewView | undefined;
-  private latestState: RalphDashboardState;
-  private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
-  private broadcastDisposable: vscode.Disposable | undefined;
-  private lastRenderTime = 0;
-  private readonly configSync = new WebviewConfigSync();
+  private host: DashboardHost | undefined;
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly broadcaster: IterationBroadcaster
-  ) {
-    this.latestState = defaultDashboardState();
-  }
+  ) {}
 
   public resolveWebviewView(
     webviewView: vscode.WebviewView,
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ): void {
-    this.view = webviewView;
     webviewView.webview.options = { enableScripts: true };
 
-    // Listen for commands from the webview — with ack feedback
-    webviewView.webview.onDidReceiveMessage(async (msg: RalphWebviewCommand) => {
-      if (msg.type === 'command' && msg.command) {
-        this.postMessage({ type: 'command-ack', command: msg.command, status: 'started' });
-        try {
-          await this.configSync.whenIdle();
-          await vscode.commands.executeCommand(msg.command);
-          this.postMessage({ type: 'command-ack', command: msg.command, status: 'done' });
-        } catch {
-          this.postMessage({ type: 'command-ack', command: msg.command, status: 'error' });
-        }
-      }
-      if (msg.type === 'update-setting') {
-        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-        await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
-        if (workspaceFolder) {
-          const freshConfig = readConfig(workspaceFolder);
-          this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
-          // Do NOT fullRender() here — the user's input already shows the new
-          // value; a full HTML replace would destroy focus and cursor position.
-          // The updated latestState will be picked up by the next natural render.
-        }
-      }
-    });
-
-    // Listen for broadcast events
-    this.broadcastDisposable?.dispose();
-    this.broadcastDisposable = this.broadcaster.onEvent((event) => {
-      switch (event.type) {
-        case 'phase': {
-          const laneKey = event.agentId ?? 'default';
-          this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
-          // Send lightweight phase update (no full re-render)
-          this.postMessage({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
-          break;
-        }
-        case 'loop-start':
-          this.latestState = { ...this.latestState, loopState: 'running', iterationCap: event.iterationCap };
-          this.fullRender();
-          break;
-        case 'iteration-start': {
-          const laneKey = event.agentId ?? 'default';
-          this.agentLanesMap.set(laneKey, { phase: 'inspect', iteration: event.iteration });
-          this.latestState = {
-            ...this.latestState,
-            loopState: 'running',
-            agentLanes: this.getLanes()
-          };
-          this.fullRender();
-          break;
-        }
-        case 'iteration-end': {
-          const laneKey = event.agentId ?? 'default';
-          this.agentLanesMap.delete(laneKey);
-          this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
-          this.fullRender();
-          break;
-        }
-        case 'loop-end':
-          this.agentLanesMap.clear();
-          this.latestState = {
-            ...this.latestState,
-            loopState: event.stopReason ? 'stopped' : 'idle',
-            agentLanes: []
-          };
-          this.fullRender();
-          break;
-      }
-    });
-
-    this.fullRender();
+    // Dispose any previous host before creating a new one (VS Code may call
+    // resolveWebviewView again if the view is hidden and re-shown).
+    this.host?.dispose();
+    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml);
 
     webviewView.onDidDispose(() => {
-      this.broadcastDisposable?.dispose();
-      this.broadcastDisposable = undefined;
-      this.view = undefined;
+      this.host?.dispose();
+      this.host = undefined;
     });
   }
 
   public updateFromWatchedState(watched: RalphWatchedState): void {
-    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-    const config = workspaceFolder ? readConfig(workspaceFolder) : null;
-    const ws = watched.workspaceState;
-
-    const tasks = buildDashboardTasks(watched.taskFile, watched.selectedTaskId);
-    const taskCounts = watched.taskFile
-      ? countTasks(watched.taskFile)
-      : null;
-
-    const recentIterations: RalphDashboardIteration[] = (ws?.iterationHistory ?? [])
-      .slice(-5)
-      .reverse()
-      .map((iter) => ({
-        iteration: iter.iteration,
-        taskId: iter.selectedTaskId,
-        taskTitle: iter.selectedTaskTitle,
-        classification: iter.completionClassification,
-        stopReason: iter.stopReason,
-        artifactDir: iter.artifactDir,
-        agentId: iter.agentId
-      }));
-
-    this.latestState = {
-      workspaceName: workspaceFolder?.name ?? 'unknown',
-      loopState: this.latestState.loopState === 'running' ? 'running' : (ws?.lastIteration?.stopReason ? 'stopped' : 'idle'),
-      agentRole: config?.agentRole ?? 'build',
-      nextIteration: ws?.nextIteration ?? 1,
-      iterationCap: config?.ralphIterationCap ?? 5,
-      taskCounts,
-      tasks,
-      recentIterations,
-      preflightReady: true,
-      preflightSummary: 'ok',
-      diagnostics: [],
-      agentLanes: this.getLanes(),
-      config: config ? snapshotConfig(config) : null
-    };
-
-    this.fullRender();
-  }
-
-  private getLanes(): RalphAgentLaneState[] {
-    return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
-      agentId,
-      phase: lane.phase,
-      iteration: lane.iteration
-    }));
-  }
-
-  private fullRender(): void {
-    if (!this.view) {
-      return;
-    }
-    // Debounce: skip renders within 100ms of last render
-    const now = Date.now();
-    if (now - this.lastRenderTime < 100) {
-      return;
-    }
-    this.lastRenderTime = now;
-
-    const nonce = crypto.randomBytes(16).toString('hex');
-    this.view.webview.html = buildDashboardHtml(this.latestState, nonce);
-  }
-
-  private postMessage(message: RalphWebviewMessage): void {
-    void this.view?.webview.postMessage(message);
+    this.host?.updateFromWatchedState(watched);
   }
 
   public dispose(): void {
-    this.broadcastDisposable?.dispose();
+    this.host?.dispose();
   }
 }
 
 // ---------------------------------------------------------------------------
-// Helpers (exported for reuse by dashboard panel)
+// Helpers (exported for reuse by DashboardHost and tests)
 // ---------------------------------------------------------------------------
 
-export function defaultDashboardState(): RalphDashboardState {
+export function defaultDashboardState(): import('./uiTypes').RalphDashboardState {
   return {
     workspaceName: 'workspace',
     loopState: 'idle',
