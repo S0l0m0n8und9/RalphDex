@@ -197,6 +197,8 @@ const DOC_RULES: Record<string, DocRule> = {
       'Prepare A Prompt For IDE Use',
       'Run One CLI Iteration',
       'Run The Ralph Loop',
+      'Memory Strategy',
+      'Azure AI Foundry Provider',
       'Inspect State',
       'Reset State',
       'Diagnostics'
@@ -382,7 +384,86 @@ const CHECKED_CONFIG_DEFAULTS: ReadonlyArray<{
     packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.planningPass', 'default', 'enabled'],
     expectedValue: DEFAULT_CONFIG.planningPass.enabled,
     label: 'ralphCodex.planningPass.enabled'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.planningPass', 'default', 'mode'],
+    expectedValue: DEFAULT_CONFIG.planningPass.mode,
+    label: 'ralphCodex.planningPass.mode'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.memoryStrategy', 'default'],
+    expectedValue: DEFAULT_CONFIG.memoryStrategy,
+    label: 'ralphCodex.memoryStrategy'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.memoryWindowSize', 'default'],
+    expectedValue: DEFAULT_CONFIG.memoryWindowSize,
+    label: 'ralphCodex.memoryWindowSize'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.memorySummaryThreshold', 'default'],
+    expectedValue: DEFAULT_CONFIG.memorySummaryThreshold,
+    label: 'ralphCodex.memorySummaryThreshold'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.agentCount', 'default'],
+    expectedValue: DEFAULT_CONFIG.agentCount,
+    label: 'ralphCodex.agentCount'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.pipelineHumanGates', 'default'],
+    expectedValue: DEFAULT_CONFIG.pipelineHumanGates,
+    label: 'ralphCodex.pipelineHumanGates'
   }
+];
+
+/**
+ * Patterns that indicate a description claims a default value. Each captures the
+ * claimed default as group 1. This detects contradictions like a description saying
+ * "default true" when the actual default is false.
+ */
+const DESCRIPTION_DEFAULT_PATTERNS: RegExp[] = [
+  /\bdefault\s+(true|false)\b/i,
+  /\(default:\s*(true|false)\)/i,
+  /\bdefault[s]?\s+to\s+`?(true|false)`?/i
+];
+
+/**
+ * Configuration keys where description text should be checked for
+ * contradictions against the actual default value.
+ */
+const DESCRIPTION_CONTRADICTION_CHECKS: ReadonlyArray<{
+  propertyKey: string;
+  defaultPath: string[];
+  label: string;
+}> = [
+  {
+    propertyKey: 'ralphCodex.planningPass',
+    defaultPath: ['enabled'],
+    label: 'ralphCodex.planningPass.enabled'
+  },
+  {
+    propertyKey: 'ralphCodex.memoryStrategy',
+    defaultPath: [],
+    label: 'ralphCodex.memoryStrategy'
+  },
+  {
+    propertyKey: 'ralphCodex.memorySummaryThreshold',
+    defaultPath: [],
+    label: 'ralphCodex.memorySummaryThreshold'
+  },
+  {
+    propertyKey: 'ralphCodex.pipelineHumanGates',
+    defaultPath: [],
+    label: 'ralphCodex.pipelineHumanGates'
+  }
+];
+
+/** Phrases that must not appear in a description when the feature is implemented. */
+const STALE_PLACEHOLDER_PHRASES = [
+  'reserved for future use',
+  'placeholder for a future',
+  'behaves like verbatim for now'
 ];
 
 async function validateConfigDefaults(input: {
@@ -439,6 +520,81 @@ async function validateConfigDefaults(input: {
       });
     }
   }
+
+  validateDescriptionContradictions(packageJson, input.issues);
+}
+
+function validateDescriptionContradictions(
+  packageJson: unknown,
+  issues: DocsValidationIssue[]
+): void {
+  const props = resolveJsonPath(packageJson, ['contributes', 'configuration', 'properties']);
+  if (props === undefined || typeof props !== 'object' || props === null) {
+    return;
+  }
+
+  for (const check of DESCRIPTION_CONTRADICTION_CHECKS) {
+    const entry = (props as Record<string, unknown>)[check.propertyKey];
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+
+    const entryObj = entry as Record<string, unknown>;
+    const description = typeof entryObj['description'] === 'string' ? entryObj['description'] : '';
+
+    // Check for stale placeholder phrases
+    for (const phrase of STALE_PLACEHOLDER_PHRASES) {
+      if (description.toLowerCase().includes(phrase.toLowerCase())) {
+        issues.push({
+          code: 'config_description_stale_placeholder',
+          filePath: 'package.json',
+          message: `Description for ${check.label} contains stale placeholder text "${phrase}". Update the description to reflect the current implementation.`
+        });
+      }
+    }
+
+    // Check for boolean default contradictions in description text
+    let actualDefault: unknown = entryObj['default'];
+    for (const segment of check.defaultPath) {
+      if (actualDefault !== null && typeof actualDefault === 'object') {
+        actualDefault = (actualDefault as Record<string, unknown>)[segment];
+      } else {
+        actualDefault = undefined;
+        break;
+      }
+    }
+
+    if (typeof actualDefault !== 'boolean') {
+      continue;
+    }
+
+    for (const pattern of DESCRIPTION_DEFAULT_PATTERNS) {
+      const match = pattern.exec(description);
+      if (!match) {
+        continue;
+      }
+
+      const claimedDefault = match[1].toLowerCase() === 'true';
+      if (claimedDefault !== actualDefault) {
+        issues.push({
+          code: 'config_description_default_contradiction',
+          filePath: 'package.json',
+          message: `Description for ${check.label} claims default is ${claimedDefault} but the actual default is ${actualDefault}. Align the description text with the manifest default.`
+        });
+      }
+    }
+  }
+}
+
+function resolveJsonPath(root: unknown, pathSegments: string[]): unknown {
+  let node = root;
+  for (const key of pathSegments) {
+    if (node === null || typeof node !== 'object' || !(key in (node as Record<string, unknown>))) {
+      return undefined;
+    }
+    node = (node as Record<string, unknown>)[key];
+  }
+  return node;
 }
 
 export function formatDocsValidationReport(issues: DocsValidationIssue[]): string {

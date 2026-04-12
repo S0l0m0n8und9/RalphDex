@@ -35,6 +35,21 @@ async function seedValidRepository(rootPath: string): Promise<void> {
               enabled: false,
               mode: 'inline'
             }
+          },
+          'ralphCodex.memoryStrategy': {
+            default: 'verbatim'
+          },
+          'ralphCodex.memoryWindowSize': {
+            default: 10
+          },
+          'ralphCodex.memorySummaryThreshold': {
+            default: 20
+          },
+          'ralphCodex.agentCount': {
+            default: 1
+          },
+          'ralphCodex.pipelineHumanGates': {
+            default: false
           }
         }
       }
@@ -213,6 +228,14 @@ Run the loop.
 The autonomyMode setting controls loop defaults, but hard stops still require the operator.
 
 blocked preflight remains a hard stop even in autonomyMode.
+
+## Memory Strategy
+
+Memory strategy controls prior-iteration context.
+
+## Azure AI Foundry Provider
+
+Azure AI Foundry direct-HTTPS provider.
 
 ## Inspect State
 

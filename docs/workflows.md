@@ -193,6 +193,8 @@ Available modes:
 
 ## Prompt Budgeting And Quota Control
 
+> **Maturity: stable** (`codex` profile) / **experimental** (`claude` and `custom` profiles) — only the built-in `codex` matrix is calibrated for production use. The `claude` profile is an intentionally provisional higher-context placeholder. The `custom` profile exposes per-policy overrides for operators who measure their own token targets.
+
 Ralph keeps prompt generation deterministic, but it does not render every prompt shape at the same size. Prompt budget policy is selected by prompt kind plus target so CLI execution gets enough context to act while IDE handoff stays tighter and easier to review.
 
 The current built-in budget tiers are:
@@ -496,6 +498,8 @@ That PR creation step is intentionally failure-tolerant:
 
 ## Planning Pass
 
+> **Maturity: beta** — inline mode is stable in single-agent loops; dedicated mode requires manual crew coordination and is less exercised.
+
 The planning pass is an optional pre-execution step that produces a `task-plan.json` artifact before the implementer prompt runs. It is disabled by default — `ralphCodex.planningPass.enabled` defaults to `false`, so no additional LLM cost is incurred unless you explicitly enable it.
 
 ### Inline Mode
@@ -515,6 +519,44 @@ cat .ralph/artifacts/<taskId>/task-plan.json
 ```
 
 The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array), and an optional `suggestedValidationCommand`. If the file is absent after a dedicated-mode planning iteration, inspect `.ralph/artifacts/latest-summary.md` to confirm the planner agent's iteration ran and completed.
+
+## Memory Strategy
+
+> **Maturity: stable** (`verbatim`) / **stable** (`sliding-window`) / **beta** (`summary`) — verbatim and sliding-window are production-exercised. Summary invokes the configured CLI provider to produce a condensed `memory-summary.md` and incurs an additional LLM call when the iteration count exceeds `memorySummaryThreshold`.
+
+`ralphCodex.memoryStrategy` controls how Ralph manages prior-iteration context across iterations:
+
+- **`verbatim`** (default) — the full last-iteration context is included verbatim in every prompt. Simplest and most predictable; prompt size grows with iteration history.
+- **`sliding-window`** — only the last `ralphCodex.memoryWindowSize` (default 10) iterations are included. Older entries are dropped to keep prompts compact. Good for long loops where full verbatim history would exceed the prompt budget.
+- **`summary`** — when the iteration count exceeds `ralphCodex.memorySummaryThreshold` (default 20), Ralph invokes the configured CLI provider to produce a condensed `memory-summary.md` that replaces verbatim history in subsequent prompts. Below the threshold, behaves like verbatim. Each summarisation is an additional LLM call; inspect `.ralph/memory-summary.md` for the latest output.
+
+The operator presets select memory strategies automatically: `simple` uses `verbatim`, `multi-agent` uses `sliding-window`, and `hardcore` uses `summary`.
+
+## Azure AI Foundry Provider
+
+> **Maturity: beta** — the direct-HTTPS provider with DefaultAzureCredential is functional but requires operator-managed Azure identity configuration.
+
+Set `ralphCodex.cliProvider` to `azure-foundry` to use the Azure AI Foundry direct-HTTPS provider instead of a local CLI tool.
+
+### Required configuration
+
+| Setting | Purpose |
+|---|---|
+| `ralphCodex.azureFoundryEndpointUrl` | Azure OpenAI endpoint (e.g. `https://<resource>.openai.azure.com/`) |
+| `ralphCodex.azureFoundryModelDeployment` | Deployment name (e.g. `gpt-4o`) |
+
+### Authentication
+
+Ralph supports two authentication paths:
+
+1. **API key** — set `ralphCodex.azureFoundryApiKey`. Simplest path; no additional dependencies.
+2. **Azure AD (DefaultAzureCredential)** — leave `azureFoundryApiKey` empty and install `@azure/identity` as a workspace dependency. Ralph lazily loads `DefaultAzureCredential` and acquires a bearer token. Ensure credentials are available in the environment (e.g. `az login`, managed identity, or environment variables).
+
+Preflight reports a warning when no API key is set and `@azure/identity` is installed (Azure AD path) and an error when neither authentication method is available.
+
+### Prompt caching
+
+`ralphCodex.promptCaching` applies to the Azure AI Foundry provider: `auto` (default) adds `cache_control` markers silently, `force` adds them with a warning when unsupported, and `off` disables them. See [docs/prompt-calibration.md](prompt-calibration.md) for token-cost implications.
 
 ## Reset State
 

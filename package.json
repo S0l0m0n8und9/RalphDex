@@ -720,7 +720,7 @@
             "summary"
           ],
           "default": "verbatim",
-          "description": "Controls how Ralph manages agent memory across iterations. verbatim (default): the full last-iteration context is included verbatim in every prompt. sliding-window: only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: placeholder for a future summarisation strategy (behaves like verbatim for now)."
+          "description": "Controls how Ralph manages agent memory across iterations. verbatim (default): the full last-iteration context is included verbatim in every prompt. sliding-window: only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: when iteration count exceeds memorySummaryThreshold, Ralph invokes the configured CLI provider to produce a condensed memory-summary.md that replaces verbatim history in subsequent prompts."
         },
         "ralphCodex.memoryWindowSize": {
           "type": "number",
@@ -734,7 +734,7 @@
           "default": 20,
           "minimum": 1,
           "maximum": 500,
-          "description": "Minimum iteration count before automatic summarisation is triggered when memoryStrategy is summary. Reserved for future use."
+          "description": "Minimum iteration count before automatic summarisation is triggered when memoryStrategy is summary. Below this threshold the summary strategy behaves like verbatim."
         },
         "ralphCodex.operatorMode": {
           "type": "string",
@@ -787,7 +787,7 @@
             "enabled": false,
             "mode": "inline"
           },
-          "description": "Pre-execution planning pass configuration. enabled (bool, default true): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
+          "description": "Pre-execution planning pass configuration. enabled (bool, default false): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
         },
         "ralphCodex.failureDiagnostics": {
           "type": "string",

@@ -3110,8 +3110,8 @@
     {
       "id": "T116",
       "title": "Documentation and operator-trust reconciliation (PRD item 19)",
-      "status": "todo",
-      "notes": "Ensure surfaced behavior matches actual runtime capability and cost model. Remove outdated placeholder/reserved-for-future text where implementation already exists. Add feature maturity markers (stable/beta/experimental) to major toggles. Add a PR checklist item requiring docs + manifest + runtime default review for any config change.",
+      "status": "done",
+      "notes": "Fixed 3 manifest-description contradictions (planningPass.enabled 'default true'→'default false', memoryStrategy summary 'placeholder'→actual behavior, memorySummaryThreshold 'reserved for future use'→active description). Added maturity markers (stable/beta/experimental) to docs/workflows.md for planning pass, prompt budget profiles, memory strategy, and Azure AI Foundry provider. Added new 'Memor",
       "validation": "npm run check:docs",
       "acceptance": [
         "No contradictions remain between manifest descriptions, docs, and implementation behavior for planning pass, memory summary, prompt profile, and Azure provider auth",
@@ -3142,5 +3142,5 @@
       ]
     }
   ],
-  "mutationCount": 96
+  "mutationCount": 97
 }
