@@ -15,6 +15,7 @@ export interface VscodeStubState {
   errorMessages: VscodeMessageCall[];
   shownDocuments: Array<string | null>;
   executedCommands: Array<{ command: string; args: unknown[] }>;
+  createdWebviewPanels: Array<{ viewType: string; title: string; html: string }>;
   inputBoxValue?: string;
   messageChoice?: string;
   quickPickSelections: unknown[];

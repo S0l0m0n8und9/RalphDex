@@ -3124,12 +3124,12 @@
     {
       "id": "T117",
       "title": "Webview UI Phase 3 — PRD Creation Wizard skeleton",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T108",
         "T109"
       ],
-      "notes": "Register ralphCodex.newProjectWizard command and implement a multi-step webview wizard: project-type card picker, objective text area with hints, constraints fields, generate step invoking projectGenerator.ts, task review cards, configuration/recommended-skills step, and confirm/write step. The wizard also serves as the entry point for the regeneratePrd flow.",
+      "notes": "Added a PRD creation wizard webview with generate-preview-review-confirm flow, registered newProjectWizard in the manifest and command wiring, routed regeneratePrd into the wizard at step 4 with the current PRD preloaded, and added host/manifest/command tests. Full validation passed via npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "ralphCodex.newProjectWizard command is registered in registerCommands.ts and package.json with activation event, and shows a multi-step wizard panel via WebviewPanelManager",
@@ -3142,5 +3142,5 @@
       ]
     }
   ],
-  "mutationCount": 97
+  "mutationCount": 98
 }

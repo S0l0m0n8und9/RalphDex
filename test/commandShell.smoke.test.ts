@@ -2020,6 +2020,36 @@ test('New Project aborts with a warning when the project slug already exists', a
   );
 });
 
+test('New Project Wizard opens a dedicated wizard webview panel', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.newProjectWizard');
+
+  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
+  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
+  assert.equal(harness.state.createdWebviewPanels[0]?.title, 'PRD Creation Wizard');
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /PRD Creation Wizard/);
+});
+
+test('Regenerate PRD opens the wizard at the existing PRD flow entry point', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.regeneratePrd');
+
+  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
+  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
+});
+
 test('Switch Project shows info message when no named projects exist yet', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

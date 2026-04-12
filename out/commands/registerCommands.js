@@ -47,6 +47,7 @@ const async_1 = require("../util/async");
 const error_1 = require("../util/error");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
+const prdCreationWizardPanel_1 = require("../ui/prdCreationWizardPanel");
 const workspaceSupport_1 = require("./workspaceSupport");
 const statusSnapshot_1 = require("./statusSnapshot");
 const artifactCommands_1 = require("./artifactCommands");
@@ -54,6 +55,7 @@ const pipeline_1 = require("../ralph/pipeline");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const crewRoster_1 = require("../ralph/crewRoster");
+const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -241,6 +243,117 @@ async function appendTasksToFile(tasksPath, newTasks) {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
 }
+async function replaceTasksFile(tasksPath, newTasks) {
+    const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
+        let taskFile = { version: 2, tasks: [] };
+        if (await (0, fs_1.pathExists)(tasksPath)) {
+            taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(tasksPath, 'utf8'));
+        }
+        const next = (0, taskFile_1.bumpMutationCount)({
+            ...taskFile,
+            tasks: newTasks.map((task) => ({
+                id: task.id,
+                title: task.title,
+                status: task.status,
+                ...(task.validation ? { validation: task.validation } : {}),
+                ...(task.tier ? { tier: task.tier } : {})
+            }))
+        });
+        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+}
+function buildWizardGenerationPrompt(input) {
+    if (input.mode === 'regenerate') {
+        const suffix = [
+            input.constraints.trim() ? `\n\n## Additional Constraints\n\n${input.constraints.trim()}` : '',
+            input.nonGoals.trim() ? `\n\n## Additional Non-Goals\n\n${input.nonGoals.trim()}` : ''
+        ].join('');
+        return `${input.objective.trim()}${suffix}`;
+    }
+    const sections = [
+        `Project type: ${input.projectType}`,
+        '',
+        'Objective:',
+        input.objective.trim()
+    ];
+    if (input.constraints.trim()) {
+        sections.push('', 'Constraints:', input.constraints.trim());
+    }
+    if (input.nonGoals.trim()) {
+        sections.push('', 'Non-goals:', input.nonGoals.trim());
+    }
+    return sections.join('\n');
+}
+async function openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, options) {
+    if (!panelManager) {
+        throw new Error('PRD Creation Wizard is unavailable because the panel manager was not initialized.');
+    }
+    if (!(await (0, fs_1.pathExists)(paths.ralphDir))) {
+        void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.');
+        return;
+    }
+    const recommendedSkillsPath = path.join(path.dirname(paths.prdPath), 'recommended-skills.json');
+    const configSummary = {
+        'CLI provider': config.cliProvider,
+        'Model': config.model,
+        ...(0, prdCreationWizardHost_1.summarizeWizardPaths)({
+            prdPath: paths.prdPath,
+            tasksPath: paths.taskFilePath,
+            recommendedSkillsPath
+        })
+    };
+    prdCreationWizardPanel_1.PrdCreationWizardPanel.createOrReveal(panelManager, {
+        initialMode: options?.mode ?? 'new',
+        initialObjective: options?.initialObjective,
+        initialPrdPreview: options?.initialPrdPreview,
+        initialStep: options?.initialStep,
+        initialPaths: {
+            prdPath: paths.prdPath,
+            tasksPath: paths.taskFilePath,
+            recommendedSkillsPath
+        },
+        configSummary,
+        generateDraft: async (input) => {
+            const generated = await (0, projectGenerator_1.generateProjectDraft)(buildWizardGenerationPrompt(input), config, workspaceFolder.uri.fsPath);
+            return {
+                prdText: generated.prdText,
+                tasks: generated.tasks.map((task) => ({
+                    id: task.id,
+                    title: task.title,
+                    status: task.status,
+                    validation: task.validation
+                })),
+                recommendedSkills: generated.recommendedSkills,
+                taskCountWarning: generated.taskCountWarning
+            };
+        },
+        writeDraft: async (draft) => {
+            await fs.mkdir(path.dirname(paths.prdPath), { recursive: true });
+            await fs.writeFile(paths.prdPath, draft.prdText, 'utf8');
+            await replaceTasksFile(paths.taskFilePath, draft.tasks);
+            const filesWritten = [paths.prdPath, paths.taskFilePath];
+            const selectedSkills = draft.recommendedSkills
+                .filter((skill) => skill.selected)
+                .map(({ selected: _selected, ...skill }) => skill);
+            if (selectedSkills.length > 0) {
+                await fs.writeFile(recommendedSkillsPath, `${JSON.stringify(selectedSkills, null, 2)}\n`, 'utf8');
+                filesWritten.push(recommendedSkillsPath);
+            }
+            return { filesWritten };
+        },
+        onWriteComplete: async (result) => {
+            logger.info('PRD wizard wrote Ralph files.', {
+                filesWritten: result.filesWritten
+            });
+            await openTextFile(paths.prdPath);
+            await openTextFile(paths.taskFilePath);
+            void vscode.window.showInformationMessage(`PRD wizard wrote: ${(0, prdCreationWizardHost_1.relativeWizardWriteSummary)(workspaceFolder.uri.fsPath, result).filesWritten.join(', ')}`);
+        }
+    });
+}
 /**
  * Map the last completed pipeline phase to the phase that should run on resume.
  * Returns null for phases that are not resumable (artifact was in a terminal state).
@@ -302,7 +415,7 @@ function registerCommand(context, logger, spec) {
         }
     }));
 }
-function registerCommands(context, logger, broadcaster) {
+function registerCommands(context, logger, broadcaster, panelManager) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
@@ -509,6 +622,19 @@ function registerCommands(context, logger, broadcaster) {
             logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
             await openTextFile(tasksPath);
             void vscode.window.showInformationMessage(`Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.newProjectWizard',
+        label: 'Ralphdex: New Project Wizard',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {
+                mode: 'new',
+                initialStep: 1
+            });
         }
     });
     registerCommand(context, logger, {
@@ -1284,13 +1410,20 @@ function registerCommands(context, logger, broadcaster) {
                 return;
             }
             const currentPrdText = await fs.readFile(paths.prdPath, 'utf8');
+            await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {
+                mode: 'regenerate',
+                initialObjective: currentPrdText,
+                initialPrdPreview: currentPrdText,
+                initialStep: 4
+            });
+            return;
             progress.report({ message: 'Generating refined PRD — this may take a moment…' });
             let generated;
             try {
                 generated = await (0, projectGenerator_1.generateProjectDraft)(currentPrdText, config, workspaceFolder.uri.fsPath);
             }
             catch (err) {
-                const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
+                const reason = err instanceof Error
                     ? err.message
                     : String(err);
                 void vscode.window.showErrorMessage(`PRD regeneration failed: ${reason}`);

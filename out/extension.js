@@ -97,7 +97,7 @@ function activate(context) {
         // Initial read
         void watcher.refresh();
     }
-    (0, registerCommands_1.registerCommands)(context, logger, broadcaster);
+    (0, registerCommands_1.registerCommands)(context, logger, broadcaster, panelManager);
     logger.info('Activated Ralphdex extension.', {
         workspaceTrusted: vscode.workspace.isTrusted,
         activationMode: vscode.workspace.isTrusted ? 'full' : 'limited'

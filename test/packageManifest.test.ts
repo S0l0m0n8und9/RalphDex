@@ -157,6 +157,20 @@ test('package manifest contributes and activates the regeneratePrd command', asy
   );
 });
 
+test('package manifest contributes and activates the newProjectWizard command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.newProjectWizard'),
+    'package.json must activate on ralphCodex.newProjectWizard'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.newProjectWizard' && entry.title === 'Ralphdex: New Project Wizard'),
+    'package.json must contribute the New Project Wizard command'
+  );
+});
+
 test('package manifest contributes and activates the showSidebar command', async () => {
   const manifest = await readPackageManifest();
   const commands = manifest.contributes?.commands ?? [];

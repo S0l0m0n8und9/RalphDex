@@ -13,6 +13,7 @@ const state = {
   errorMessages: [],
   shownDocuments: [],
   executedCommands: [],
+  createdWebviewPanels: [],
   inputBoxValue: undefined,
   messageChoice: undefined,
   quickPickSelections: []
@@ -29,6 +30,7 @@ function reset() {
   state.errorMessages = [];
   state.shownDocuments = [];
   state.executedCommands = [];
+  state.createdWebviewPanels = [];
   state.inputBoxValue = undefined;
   state.messageChoice = undefined;
   state.updatedSettings = {};
@@ -242,6 +244,20 @@ const vscodeStub = {
         onDidReceiveMessage(_handler) { return { dispose() {} }; },
         async postMessage() { return true; }
       };
+      const panelRecord = {
+        viewType: _viewType,
+        title: _title,
+        html: webview.html
+      };
+      state.createdWebviewPanels.push(panelRecord);
+      Object.defineProperty(webview, 'html', {
+        get() {
+          return panelRecord.html;
+        },
+        set(value) {
+          panelRecord.html = value;
+        }
+      });
       return {
         webview,
         reveal() {},

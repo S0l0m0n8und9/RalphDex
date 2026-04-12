@@ -103,6 +103,7 @@
   "activationEvents": [
     "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.addTask",
+    "onCommand:ralphCodex.newProjectWizard",
     "onCommand:ralphCodex.newProject",
     "onCommand:ralphCodex.switchProject",
     "onCommand:ralphCodex.generatePrompt",
@@ -147,6 +148,10 @@
       {
         "command": "ralphCodex.addTask",
         "title": "Ralphdex: Add Task"
+      },
+      {
+        "command": "ralphCodex.newProjectWizard",
+        "title": "Ralphdex: New Project Wizard"
       },
       {
         "command": "ralphCodex.newProject",

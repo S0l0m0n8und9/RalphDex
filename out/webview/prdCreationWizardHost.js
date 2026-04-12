@@ -1,0 +1,759 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PrdCreationWizardHost = void 0;
+exports.summarizeWizardPaths = summarizeWizardPaths;
+exports.relativeWizardWriteSummary = relativeWizardWriteSummary;
+const path = __importStar(require("path"));
+const MessageBridge_1 = require("./MessageBridge");
+const styles_1 = require("./styles");
+const projectGenerator_1 = require("../ralph/projectGenerator");
+function escapeHtml(value) {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+function bootstrapSeedTasks() {
+    return [
+        {
+            id: 'T1',
+            title: 'Expand PRD into a full product requirements document',
+            status: 'todo'
+        },
+        {
+            id: 'T2',
+            title: 'Create a starter backlog from the expanded PRD',
+            status: 'todo'
+        }
+    ];
+}
+function createFallbackDraft(projectType, objective, constraints, nonGoals) {
+    const lines = [
+        '# Product / project brief',
+        '',
+        `## Project Type`,
+        '',
+        projectType || 'General',
+        '',
+        '## Objective',
+        '',
+        objective.trim() || 'Describe the project objective here.',
+        '',
+        '## Constraints',
+        '',
+        constraints.trim() || 'None recorded yet.',
+        '',
+        '## Non-Goals',
+        '',
+        nonGoals.trim() || 'None recorded yet.'
+    ];
+    return {
+        prdText: `${lines.join('\n')}\n`,
+        tasks: bootstrapSeedTasks(),
+        recommendedSkills: []
+    };
+}
+function normalizeRecommendedSkills(skills) {
+    return skills.map((skill) => ({ ...skill, selected: true }));
+}
+function createNonce() {
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+class PrdCreationWizardHost {
+    bridge;
+    options;
+    state;
+    isDisposed = false;
+    constructor(options) {
+        this.options = {
+            initialMode: options.initialMode,
+            initialPaths: options.initialPaths,
+            initialProjectType: options.initialProjectType,
+            initialObjective: options.initialObjective,
+            initialConstraints: options.initialConstraints,
+            initialNonGoals: options.initialNonGoals,
+            initialStep: options.initialStep,
+            initialPrdPreview: options.initialPrdPreview,
+            configSummary: options.configSummary,
+            generateDraft: options.generateDraft,
+            writeDraft: options.writeDraft,
+            onWriteComplete: options.onWriteComplete
+        };
+        this.bridge = new MessageBridge_1.MessageBridge(options.webview);
+        this.state = this.buildInitialState();
+        options.webview.html = renderWizardHtml(createNonce());
+        this.bridge.onMessage((message) => {
+            void this.handleMessage(message);
+        });
+        this.emitState();
+    }
+    replaceContext(context) {
+        this.state = {
+            ...this.state,
+            mode: context.initialMode ?? this.state.mode,
+            step: context.initialStep ?? (context.initialMode === 'regenerate' ? 4 : 1),
+            projectType: context.initialProjectType ?? this.state.projectType,
+            objective: context.initialObjective ?? this.state.objective,
+            constraints: context.initialConstraints ?? this.state.constraints,
+            nonGoals: context.initialNonGoals ?? this.state.nonGoals,
+            currentPrdPreview: context.initialPrdPreview ?? this.state.currentPrdPreview,
+            paths: context.initialPaths ?? this.state.paths,
+            configSummary: context.configSummary ?? this.state.configSummary,
+            warning: null,
+            error: null,
+            writeSummary: null
+        };
+        this.emitState();
+    }
+    dispose() {
+        if (this.isDisposed) {
+            return;
+        }
+        this.isDisposed = true;
+        this.bridge.dispose();
+    }
+    buildInitialState() {
+        const mode = this.options.initialMode;
+        return {
+            mode,
+            step: this.options.initialStep ?? (mode === 'regenerate' ? 4 : 1),
+            projectType: this.options.initialProjectType ?? 'greenfield',
+            objective: this.options.initialObjective ?? '',
+            constraints: this.options.initialConstraints ?? '',
+            nonGoals: this.options.initialNonGoals ?? '',
+            draft: this.options.initialPrdPreview
+                ? {
+                    prdText: this.options.initialPrdPreview,
+                    tasks: [],
+                    recommendedSkills: []
+                }
+                : null,
+            warning: null,
+            error: null,
+            currentPrdPreview: this.options.initialPrdPreview ?? null,
+            writeSummary: null,
+            configSummary: this.options.configSummary ?? {},
+            paths: this.options.initialPaths
+        };
+    }
+    emitState() {
+        this.bridge.send({ type: 'state', state: this.state });
+    }
+    async handleMessage(message) {
+        switch (message.type) {
+            case 'set-step':
+                this.state = { ...this.state, step: message.step, warning: null, error: null };
+                this.emitState();
+                return;
+            case 'update-field':
+                this.state = {
+                    ...this.state,
+                    [message.field]: message.value,
+                    warning: null,
+                    error: null,
+                    ...(message.field === 'objective' && this.state.mode === 'regenerate'
+                        ? { currentPrdPreview: message.value }
+                        : {})
+                };
+                this.emitState();
+                return;
+            case 'update-task-tier':
+                this.state = {
+                    ...this.state,
+                    draft: this.state.draft
+                        ? {
+                            ...this.state.draft,
+                            tasks: this.state.draft.tasks.map((task) => task.id === message.taskId
+                                ? { ...task, ...(message.tier ? { tier: message.tier } : { tier: undefined }) }
+                                : task)
+                        }
+                        : null
+                };
+                this.emitState();
+                return;
+            case 'toggle-skill':
+                this.state = {
+                    ...this.state,
+                    draft: this.state.draft
+                        ? {
+                            ...this.state.draft,
+                            recommendedSkills: this.state.draft.recommendedSkills.map((skill) => skill.name === message.skillName
+                                ? { ...skill, selected: !skill.selected }
+                                : skill)
+                        }
+                        : null
+                };
+                this.emitState();
+                return;
+            case 'generate-draft':
+                await this.generateDraft();
+                return;
+            case 'confirm-write':
+                await this.confirmWrite();
+                return;
+        }
+    }
+    async generateDraft() {
+        const objective = this.state.objective.trim();
+        if (!objective) {
+            this.state = { ...this.state, error: 'Add an objective or existing PRD text before generating a draft.' };
+            this.emitState();
+            return;
+        }
+        this.bridge.send({ type: 'busy', value: true });
+        try {
+            const generated = await this.options.generateDraft({
+                mode: this.state.mode,
+                projectType: this.state.projectType,
+                objective: this.state.objective,
+                constraints: this.state.constraints,
+                nonGoals: this.state.nonGoals
+            });
+            this.state = {
+                ...this.state,
+                step: 4,
+                draft: {
+                    prdText: generated.prdText,
+                    tasks: generated.tasks,
+                    recommendedSkills: normalizeRecommendedSkills(generated.recommendedSkills)
+                },
+                warning: generated.taskCountWarning ?? null,
+                error: null,
+                writeSummary: null
+            };
+        }
+        catch (error) {
+            const reason = error instanceof projectGenerator_1.ProjectGenerationError || error instanceof Error
+                ? error.message
+                : String(error);
+            this.state = {
+                ...this.state,
+                step: 4,
+                draft: createFallbackDraft(this.state.projectType, this.state.objective, this.state.constraints, this.state.nonGoals),
+                warning: `Generation fell back to a bootstrap draft. ${reason}`,
+                error: null,
+                writeSummary: null
+            };
+        }
+        finally {
+            this.bridge.send({ type: 'busy', value: false });
+            this.emitState();
+        }
+    }
+    async confirmWrite() {
+        if (!this.state.draft) {
+            this.state = { ...this.state, error: 'Generate a draft before writing files.' };
+            this.emitState();
+            return;
+        }
+        this.bridge.send({ type: 'busy', value: true });
+        try {
+            const result = await this.options.writeDraft(this.state.draft);
+            this.state = {
+                ...this.state,
+                step: 7,
+                error: null,
+                writeSummary: result
+            };
+            this.emitState();
+            await this.options.onWriteComplete?.(result);
+        }
+        catch (error) {
+            this.state = {
+                ...this.state,
+                error: error instanceof Error ? error.message : String(error)
+            };
+            this.emitState();
+        }
+        finally {
+            this.bridge.send({ type: 'busy', value: false });
+        }
+    }
+}
+exports.PrdCreationWizardHost = PrdCreationWizardHost;
+function renderWizardHtml(nonce) {
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PRD Creation Wizard</title>
+    <style nonce="${nonce}">
+${styles_1.SHARED_WEBVIEW_CSS}
+
+body {
+  padding: 0;
+}
+
+.wizard-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.wizard-header,
+.wizard-step,
+.wizard-summary,
+.task-card,
+.skill-row,
+.config-grid {
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.wizard-header {
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.wizard-header p {
+  color: var(--vscode-descriptionForeground);
+  margin-top: 4px;
+}
+
+.wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.wizard-step-button {
+  text-align: left;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+  padding: 10px;
+}
+
+.wizard-step-button.is-active {
+  border-color: var(--vscode-focusBorder);
+}
+
+.wizard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 16px;
+}
+
+.wizard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.wizard-step {
+  padding: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.picker-card {
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+  padding: 12px;
+  background: var(--vscode-editor-background);
+}
+
+.picker-card.is-selected {
+  border-color: var(--vscode-focusBorder);
+}
+
+.picker-card button {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.note,
+.warning,
+.error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--vscode-focusBorder);
+  background: var(--vscode-textBlockQuote-background, transparent);
+}
+
+.warning {
+  border-left-color: var(--vscode-inputValidation-warningBorder);
+}
+
+.error {
+  border-left-color: var(--vscode-inputValidation-errorBorder);
+}
+
+.preview {
+  white-space: pre-wrap;
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+  background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
+  padding: 12px;
+  min-height: 260px;
+  overflow: auto;
+}
+
+.task-list,
+.skill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-card,
+.skill-row,
+.wizard-summary {
+  padding: 12px;
+}
+
+.task-card header,
+.skill-row header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1px;
+}
+
+.config-grid div {
+  padding: 12px;
+  background: var(--vscode-editor-background);
+}
+
+.config-grid dt {
+  color: var(--vscode-descriptionForeground);
+  margin-bottom: 4px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.actions .secondary {
+  background: var(--vscode-button-secondaryBackground, var(--vscode-editor-background));
+  color: var(--vscode-button-secondaryForeground, var(--vscode-editor-foreground));
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+}
+
+.muted {
+  color: var(--vscode-descriptionForeground);
+}
+
+ul {
+  padding-left: 18px;
+}
+
+code {
+  font-family: var(--vscode-editor-font-family, monospace);
+}
+
+@media (max-width: 900px) {
+  .wizard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script nonce="${nonce}">
+      const vscode = acquireVsCodeApi();
+      let state = null;
+      let busy = false;
+
+      const stepLabels = {
+        1: 'Project Type',
+        2: 'Objective',
+        3: 'Constraints',
+        4: 'Generate',
+        5: 'Tasks',
+        6: 'Config & Skills',
+        7: 'Confirm'
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function stepButton(step) {
+        const active = state.step === step ? ' is-active' : '';
+        return '<button class="wizard-step-button' + active + '" data-action="set-step" data-step="' + step + '">' +
+          '<strong>' + step + '</strong><div>' + stepLabels[step] + '</div></button>';
+      }
+
+      function pickerCard(value, title, description) {
+        const selected = state.projectType === value ? ' is-selected' : '';
+        return '<div class="picker-card' + selected + '">' +
+          '<button data-action="project-type" data-value="' + escapeHtml(value) + '">' +
+          '<strong>' + escapeHtml(title) + '</strong>' +
+          '<div class="muted">' + escapeHtml(description) + '</div>' +
+          '</button></div>';
+      }
+
+      function taskList() {
+        if (!state.draft || state.draft.tasks.length === 0) {
+          return '<p class="empty">Generate a draft to review task cards.</p>';
+        }
+        return '<div class="task-list">' + state.draft.tasks.map((task) =>
+          '<article class="task-card">' +
+            '<header><div><strong>' + escapeHtml(task.id) + '</strong><div>' + escapeHtml(task.title) + '</div></div>' +
+            '<label>Tier <select data-action="task-tier" data-task-id="' + escapeHtml(task.id) + '">' +
+              '<option value=""' + (!task.tier ? ' selected' : '') + '>Auto</option>' +
+              '<option value="simple"' + (task.tier === 'simple' ? ' selected' : '') + '>Simple</option>' +
+              '<option value="medium"' + (task.tier === 'medium' ? ' selected' : '') + '>Medium</option>' +
+              '<option value="complex"' + (task.tier === 'complex' ? ' selected' : '') + '>Complex</option>' +
+            '</select></label></header>' +
+            '<div class="muted">' + escapeHtml(task.validation || 'No task-specific validation hint') + '</div>' +
+          '</article>'
+        ).join('') + '</div>';
+      }
+
+      function skillList() {
+        if (!state.draft || state.draft.recommendedSkills.length === 0) {
+          return '<p class="empty">No recommended skills are selected for this draft.</p>';
+        }
+        return '<div class="skill-list">' + state.draft.recommendedSkills.map((skill) =>
+          '<label class="skill-row"><header><div><strong>' + escapeHtml(skill.name) + '</strong><div class="muted">' + escapeHtml(skill.description) + '</div></div>' +
+          '<input type="checkbox" data-action="toggle-skill" data-skill-name="' + escapeHtml(skill.name) + '"' + (skill.selected ? ' checked' : '') + ' /></header>' +
+          '<div class="muted">' + escapeHtml(skill.rationale) + '</div></label>'
+        ).join('') + '</div>';
+      }
+
+      function configSummary() {
+        const entries = Object.entries(state.configSummary || {});
+        if (entries.length === 0) {
+          return '<p class="empty">No config summary available.</p>';
+        }
+        return '<dl class="config-grid">' + entries.map(([key, value]) =>
+          '<div><dt>' + escapeHtml(key) + '</dt><dd>' + escapeHtml(value) + '</dd></div>'
+        ).join('') + '</dl>';
+      }
+
+      function writeSummary() {
+        if (!state.writeSummary) {
+          return '<p class="empty">Confirm the write to persist <code>prd.md</code> and <code>tasks.json</code>.</p>';
+        }
+        return '<div class="wizard-summary"><strong>Files written</strong><ul>' +
+          state.writeSummary.filesWritten.map((file) => '<li><code>' + escapeHtml(file) + '</code></li>').join('') +
+          '</ul></div>';
+      }
+
+      function render() {
+        if (!state) {
+          return;
+        }
+        const currentPreview = state.draft?.prdText || state.currentPrdPreview || '';
+        const warning = state.warning ? '<div class="warning">' + escapeHtml(state.warning) + '</div>' : '';
+        const error = state.error ? '<div class="error">' + escapeHtml(state.error) + '</div>' : '';
+        document.getElementById('app').innerHTML = '' +
+          '<div class="wizard-shell">' +
+            '<section class="wizard-header">' +
+              '<h1>PRD Creation Wizard</h1>' +
+              '<p>' + (state.mode === 'regenerate'
+                ? 'Resume from the generate step with the current PRD preloaded, refine the draft, then write the updated files.'
+                : 'Capture project intent, preview the PRD before writing, review the task backlog, and confirm every file Ralph will persist.') + '</p>' +
+              '<div class="wizard-steps">' +
+                stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) + stepButton(6) + stepButton(7) +
+              '</div>' +
+              warning + error +
+            '</section>' +
+            '<div class="wizard-layout">' +
+              '<main class="wizard-main">' +
+                '<section class="wizard-step">' +
+                  '<h2>1. Project Type</h2>' +
+                  '<div class="picker-grid">' +
+                    pickerCard('greenfield', 'Greenfield', 'Start from a new idea or product direction.') +
+                    pickerCard('enhancement', 'Enhancement', 'Evolve an existing feature set without replacing the whole system.') +
+                    pickerCard('recovery', 'Recovery', 'Stabilize or recover a brittle codebase before expansion.') +
+                  '</div>' +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>2. Objective</h2>' +
+                  '<label class="field"><span>Objective or PRD source</span><textarea data-field="objective" placeholder="Describe the outcome Ralph should turn into a draft.">' + escapeHtml(state.objective) + '</textarea></label>' +
+                  '<div class="note">Keep the objective concrete. For regeneration, the current PRD text can stay here and act as the source material.</div>' +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>3. Constraints</h2>' +
+                  '<label class="field"><span>Constraints</span><textarea data-field="constraints" placeholder="Architecture limits, deadlines, interfaces, or guardrails.">' + escapeHtml(state.constraints) + '</textarea></label>' +
+                  '<label class="field"><span>Non-goals</span><textarea data-field="nonGoals" placeholder="What this draft should explicitly avoid or defer.">' + escapeHtml(state.nonGoals) + '</textarea></label>' +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>4. Generate With Inline Preview</h2>' +
+                  '<div class="preview">' + escapeHtml(currentPreview || 'No draft generated yet.') + '</div>' +
+                  '<div class="actions">' +
+                    '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+                    '<button class="secondary" data-action="set-step" data-step="5">Review Tasks</button>' +
+                  '</div>' +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>5. Task Review Cards</h2>' +
+                  taskList() +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>6. Configuration And Recommended Skills</h2>' +
+                  configSummary() +
+                  '<div class="actions"><button class="secondary" data-action="set-step" data-step="7">Go To Confirm</button></div>' +
+                  '<h3 style="margin-top:16px;">Recommended Skills</h3>' +
+                  skillList() +
+                '</section>' +
+              '</main>' +
+              '<aside class="wizard-main">' +
+                '<section class="wizard-step">' +
+                  '<h2>7. Confirm And Write Summary</h2>' +
+                  '<div class="wizard-summary"><strong>Targets</strong><ul>' +
+                    '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
+                    '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
+                    (state.paths.recommendedSkillsPath ? '<li><code>' + escapeHtml(state.paths.recommendedSkillsPath) + '</code></li>' : '') +
+                  '</ul></div>' +
+                  writeSummary() +
+                  '<div class="actions">' +
+                    '<button data-action="confirm-write"' + ((!state.draft || busy) ? ' disabled' : '') + '>Write Files</button>' +
+                    '<button class="secondary" data-action="set-step" data-step="4">Back To Preview</button>' +
+                  '</div>' +
+                '</section>' +
+              '</aside>' +
+            '</div>' +
+          '</div>';
+
+        for (const button of document.querySelectorAll('[data-action="set-step"]')) {
+          button.addEventListener('click', () => {
+            const step = Number(button.getAttribute('data-step'));
+            vscode.postMessage({ type: 'set-step', step });
+          });
+        }
+
+        for (const button of document.querySelectorAll('[data-action="project-type"]')) {
+          button.addEventListener('click', () => {
+            vscode.postMessage({ type: 'update-field', field: 'projectType', value: button.getAttribute('data-value') || 'greenfield' });
+          });
+        }
+
+        for (const field of document.querySelectorAll('textarea[data-field]')) {
+          field.addEventListener('input', () => {
+            vscode.postMessage({ type: 'update-field', field: field.getAttribute('data-field'), value: field.value });
+          });
+        }
+
+        for (const select of document.querySelectorAll('select[data-action="task-tier"]')) {
+          select.addEventListener('change', () => {
+            vscode.postMessage({
+              type: 'update-task-tier',
+              taskId: select.getAttribute('data-task-id'),
+              tier: select.value
+            });
+          });
+        }
+
+        for (const checkbox of document.querySelectorAll('input[data-action="toggle-skill"]')) {
+          checkbox.addEventListener('change', () => {
+            vscode.postMessage({ type: 'toggle-skill', skillName: checkbox.getAttribute('data-skill-name') });
+          });
+        }
+
+        const generate = document.querySelector('[data-action="generate-draft"]');
+        if (generate) {
+          generate.addEventListener('click', () => vscode.postMessage({ type: 'generate-draft' }));
+        }
+
+        const confirm = document.querySelector('[data-action="confirm-write"]');
+        if (confirm) {
+          confirm.addEventListener('click', () => vscode.postMessage({ type: 'confirm-write' }));
+        }
+      }
+
+      window.addEventListener('message', (event) => {
+        const message = event.data;
+        if (!message || typeof message !== 'object') {
+          return;
+        }
+        if (message.type === 'state') {
+          state = message.state;
+          render();
+          return;
+        }
+        if (message.type === 'busy') {
+          busy = !!message.value;
+          render();
+        }
+      });
+    </script>
+  </body>
+</html>`;
+}
+function summarizeWizardPaths(paths) {
+    return {
+        'PRD path': paths.prdPath,
+        'Task path': paths.tasksPath,
+        ...(paths.recommendedSkillsPath ? { 'Recommended skills': paths.recommendedSkillsPath } : {})
+    };
+}
+function relativeWizardWriteSummary(rootPath, result) {
+    return {
+        filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target))
+    };
+}
+//# sourceMappingURL=prdCreationWizardHost.js.map
