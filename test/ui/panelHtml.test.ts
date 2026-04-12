@@ -271,6 +271,11 @@ test('buildPanelDashboardHtml renders accessible task and history controls with 
 
   assert.ok(html.includes('role="tablist"'));
   assert.ok(html.includes('saveStoredState({ activeTab: tabId })'));
+  assert.ok(html.includes("document.addEventListener('keydown'"));
+  assert.ok(html.includes("e.key === 'ArrowRight'"));
+  assert.ok(html.includes("e.key === 'ArrowLeft'"));
+  assert.ok(html.includes("e.key === 'Home'"));
+  assert.ok(html.includes("e.key === 'End'"));
   assert.ok(html.includes('aria-expanded="false"'));
   assert.ok(html.includes('type: \'open-iteration-artifact\''));
 });

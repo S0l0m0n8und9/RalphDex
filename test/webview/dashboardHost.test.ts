@@ -72,6 +72,17 @@ async function withMonotonicDateNow<T>(fn: () => Promise<T> | T): Promise<T> {
   }
 }
 
+async function withFrozenDateNow<T>(fn: () => Promise<T> | T): Promise<T> {
+  const originalNow = Date.now;
+  (Date as typeof Date & { now: () => number }).now = () => 1000;
+
+  try {
+    return await fn();
+  } finally {
+    (Date as typeof Date & { now: () => number }).now = originalNow;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -204,6 +215,34 @@ test('DashboardHost: refresh failure preserves last successful snapshot and repo
     assert.equal(lastRender?.errorMessage, 'refresh failed');
     assert.equal(lastRender?.snapshotWorkspaceName, 'snapshot-one', 'failed refresh should keep last successful snapshot');
   });
+
+  broadcaster.dispose();
+});
+
+test('DashboardHost: snapshot completion renders are not dropped inside the debounce window', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const phases: string[] = [];
+
+  await withFrozenDateNow(async () => {
+    new DashboardHost(
+      wv as unknown as import('vscode').Webview,
+      broadcaster,
+      ((state: { snapshotStatus: { phase: string } }, _nonce: string) => {
+        phases.push(state.snapshotStatus.phase);
+        return `<html>${state.snapshotStatus.phase}</html>`;
+      }) as never,
+      async () => ({ workspaceName: 'snapshot-one' }) as never
+    );
+
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  assert.deepEqual(
+    phases,
+    ['idle', 'loading', 'ready'],
+    'snapshot loading and ready renders should both run even when Date.now() does not advance'
+  );
 
   broadcaster.dispose();
 });

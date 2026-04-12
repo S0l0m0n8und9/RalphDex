@@ -1306,6 +1306,39 @@ export function buildPanelDashboardHtml(state: RalphDashboardState, nonce: strin
         sendSettingUpdate(el);
       });
 
+      document.addEventListener('keydown', function(e) {
+        var tab = e.target.closest('[data-tab]');
+        if (!tab) {
+          return;
+        }
+
+        var currentIdx = TAB_IDS.indexOf(tab.getAttribute('data-tab'));
+        if (currentIdx < 0) {
+          return;
+        }
+
+        var nextIdx = currentIdx;
+        if (e.key === 'ArrowRight') {
+          nextIdx = (currentIdx + 1) % TAB_IDS.length;
+        } else if (e.key === 'ArrowLeft') {
+          nextIdx = (currentIdx - 1 + TAB_IDS.length) % TAB_IDS.length;
+        } else if (e.key === 'Home') {
+          nextIdx = 0;
+        } else if (e.key === 'End') {
+          nextIdx = TAB_IDS.length - 1;
+        } else {
+          return;
+        }
+
+        e.preventDefault();
+        var nextTabId = TAB_IDS[nextIdx];
+        setActiveTab(nextTabId, true);
+        var nextTab = document.querySelector('[data-tab="' + nextTabId + '"]');
+        if (nextTab && typeof nextTab.focus === 'function') {
+          nextTab.focus();
+        }
+      });
+
       // Event delegation — no inline handlers needed (CSP blocks onclick)
       document.addEventListener('click', function(e) {
         var tab = e.target.closest('[data-tab]');

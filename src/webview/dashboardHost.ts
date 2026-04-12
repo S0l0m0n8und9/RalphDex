@@ -150,7 +150,7 @@ export class DashboardHost implements vscode.Disposable {
       ...this.latestState,
       snapshotStatus: { phase: nextPhase, errorMessage: null }
     };
-    this.fullRender();
+    this.fullRender(true);
 
     try {
       const snapshot = await this.loadSnapshot();
@@ -162,7 +162,7 @@ export class DashboardHost implements vscode.Disposable {
         dashboardSnapshot: snapshot,
         snapshotStatus: { phase: 'ready', errorMessage: null }
       };
-      this.fullRender();
+      this.fullRender(true);
     } catch (error) {
       if (generation !== this.snapshotLoadGeneration) {
         return;
@@ -174,7 +174,7 @@ export class DashboardHost implements vscode.Disposable {
           errorMessage: error instanceof Error ? error.message : String(error)
         }
       };
-      this.fullRender();
+      this.fullRender(true);
     }
   }
 
@@ -254,10 +254,11 @@ export class DashboardHost implements vscode.Disposable {
     }
   }
 
-  private fullRender(): void {
-    // Debounce: skip renders within 100ms of last render.
+  private fullRender(force = false): void {
+    // Debounce most renders to avoid repaint churn, but allow critical phase
+    // transitions to bypass the window so transient states do not get stuck.
     const now = Date.now();
-    if (now - this.lastRenderTime < 100) {
+    if (!force && now - this.lastRenderTime < 100) {
       return;
     }
     this.lastRenderTime = now;
