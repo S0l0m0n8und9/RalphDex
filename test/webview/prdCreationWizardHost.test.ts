@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { ProjectGenerationError } from '../../src/ralph/projectGenerator';
 import {
   PrdCreationWizardHost,
+  type PrdWizardConfigSelection,
   type PrdWizardDraftBundle,
   type PrdWizardGenerateResult,
   type PrdWizardWriteResult
@@ -62,8 +63,29 @@ function makeGeneratedDraft(overrides: Partial<PrdWizardGenerateResult> = {}): P
   };
 }
 
-function lastStateMessage(webview: MockWebview): { type: string; state: { warning?: string; writeSummary?: { filesWritten: string[] } } } {
-  const states = webview.posted.filter((msg): msg is { type: string; state: { warning?: string; writeSummary?: { filesWritten: string[] } } } =>
+function makeConfigSelections(): PrdWizardConfigSelection[] {
+  return [
+    {
+      key: 'operatorMode',
+      label: 'Operator mode',
+      value: 'simple',
+      description: 'Use the simple preset while the project is still being shaped.',
+      rationale: 'Keeps the initial flow supervised and deterministic.',
+      selected: true
+    },
+    {
+      key: 'cliProvider',
+      label: 'CLI provider',
+      value: 'codex',
+      description: 'Use Codex CLI for generation and iteration handoff.',
+      rationale: 'Matches the workspace default CLI path and current operator workflow.',
+      selected: true
+    }
+  ];
+}
+
+function lastStateMessage(webview: MockWebview): { type: string; state: { warning?: string; writeSummary?: { filesWritten: string[]; settingsUpdated?: string[]; settingsSkipped?: string[] } } } {
+  const states = webview.posted.filter((msg): msg is { type: string; state: { warning?: string; writeSummary?: { filesWritten: string[]; settingsUpdated?: string[]; settingsSkipped?: string[] } } } =>
     typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'state'
   );
   assert.ok(states.length > 0, 'Expected at least one state message');
@@ -80,6 +102,7 @@ test('PrdCreationWizardHost: renders expanded intake controls and guidance copy'
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft(),
     writeDraft: async () => ({ filesWritten: [] })
   });
@@ -93,6 +116,17 @@ test('PrdCreationWizardHost: renders expanded intake controls and guidance copy'
   assert.match(webview.html, /Tech stack/);
   assert.match(webview.html, /Out-of-scope/);
   assert.match(webview.html, /Existing conventions/);
+
+  const state = lastStateMessage(webview).state as {
+    configSelections: PrdWizardConfigSelection[];
+  };
+  assert.deepEqual(
+    state.configSelections.map(({ key, value, selected }) => ({ key, value, selected })),
+    [
+      { key: 'operatorMode', value: 'simple', selected: true },
+      { key: 'cliProvider', value: 'codex', selected: true }
+    ]
+  );
 
   host.dispose();
 });
@@ -114,6 +148,7 @@ test('PrdCreationWizardHost: generate composes structured intake fields into the
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async (input) => {
       generateInput = input;
       return makeGeneratedDraft();
@@ -157,6 +192,7 @@ test('PrdCreationWizardHost: replaceContext exposes structured intake state for 
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft(),
     writeDraft: async () => ({ filesWritten: [] })
   });
@@ -198,6 +234,7 @@ test('PrdCreationWizardHost: regenerate context keeps the current PRD as compari
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft(),
     writeDraft: async () => ({ filesWritten: [] })
   });
@@ -233,6 +270,7 @@ test('PrdCreationWizardHost: generate falls back to bootstrap draft on generatio
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => {
       throw new ProjectGenerationError('CLI unavailable');
     },
@@ -272,6 +310,7 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft(),
     writeDraft: async (draft): Promise<PrdWizardWriteResult> => {
       writeInput = draft;
@@ -280,6 +319,13 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
           path.join('workspace', '.ralph', 'prd.md'),
           path.join('workspace', '.ralph', 'tasks.json'),
           path.join('workspace', '.ralph', 'recommended-skills.json')
+        ],
+        settingsUpdated: [
+          'ralphCodex.operatorMode = simple',
+          'ralphCodex.cliProvider = codex'
+        ],
+        settingsSkipped: [
+          'testing (not selected)'
         ]
       };
     }
@@ -299,10 +345,24 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
   assert.ok(writeInput, 'confirm-write should pass the current draft bundle to writeDraft');
   const writtenDraft = writeInput as PrdWizardDraftBundle;
   assert.equal(writtenDraft.tasks[0]?.title, 'Draft first task');
+  assert.deepEqual(
+    writtenDraft.configSelections.map(({ key, selected, value }) => ({ key, selected, value })),
+    [
+      { key: 'operatorMode', selected: true, value: 'simple' },
+      { key: 'cliProvider', selected: true, value: 'codex' }
+    ]
+  );
   assert.deepEqual(lastStateMessage(webview).state.writeSummary?.filesWritten, [
     path.join('workspace', '.ralph', 'prd.md'),
     path.join('workspace', '.ralph', 'tasks.json'),
     path.join('workspace', '.ralph', 'recommended-skills.json')
+  ]);
+  assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsUpdated, [
+    'ralphCodex.operatorMode = simple',
+    'ralphCodex.cliProvider = codex'
+  ]);
+  assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsSkipped, [
+    'testing (not selected)'
   ]);
 
   host.dispose();
@@ -320,6 +380,7 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
     initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n',
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft({
       prdText: '# Generated PRD\n\nFresh generated content.\n',
       tasks: [
@@ -343,6 +404,7 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
   webviewSends(webview, { type: 'set-step', step: 5 });
   webviewSends(webview, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
   webviewSends(webview, { type: 'set-step', step: 6 });
+  webviewSends(webview, { type: 'toggle-config-selection', key: 'operatorMode' });
   webviewSends(webview, { type: 'toggle-skill', skillName: 'testing' });
   webviewSends(webview, { type: 'confirm-write' });
   await new Promise((resolve) => setImmediate(resolve));
@@ -351,6 +413,7 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
   const writtenDraft = writeInput as PrdWizardDraftBundle;
   assert.equal(writtenDraft.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
   assert.equal(writtenDraft.tasks[0]?.tier, 'complex');
+  assert.equal(writtenDraft.configSelections[0]?.selected, false);
   assert.equal(writtenDraft.recommendedSkills[0]?.selected, false);
 
   const state = lastStateMessage(webview).state as {
@@ -374,6 +437,7 @@ test('PrdCreationWizardHost: task review supports title edits, reordering, and d
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft({
       tasks: [
         { id: 'T1', title: 'First generated task', status: 'todo' },
@@ -421,6 +485,7 @@ test('PrdCreationWizardHost: confirm-write blocks empty or invalid reviewed task
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
+    configSelections: makeConfigSelections(),
     generateDraft: async () => makeGeneratedDraft({
       tasks: [
         { id: 'T1', title: 'First generated task', status: 'todo' },
@@ -461,6 +526,41 @@ test('PrdCreationWizardHost: confirm-write blocks empty or invalid reviewed task
   assert.equal(writeCount, 0, 'empty task lists must block confirm-write');
   assert.equal(state.draft.tasks.length, 0);
   assert.match(state.warning ?? '', /at least one task/i);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: config recommendations persist through toggles and generation', async () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    configSelections: makeConfigSelections(),
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'toggle-config-selection', key: 'operatorMode' });
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Build a deterministic wizard.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    draft: PrdWizardDraftBundle | null;
+  };
+  assert.deepEqual(
+    state.draft?.configSelections.map(({ key, selected, value }) => ({ key, selected, value })),
+    [
+      { key: 'operatorMode', selected: false, value: 'simple' },
+      { key: 'cliProvider', selected: true, value: 'codex' }
+    ]
+  );
 
   host.dispose();
 });

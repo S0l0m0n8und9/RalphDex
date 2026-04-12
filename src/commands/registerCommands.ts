@@ -50,11 +50,13 @@ import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { parseCrewRoster } from '../ralph/crewRoster';
 import type { CrewMember } from '../ralph/crewRoster';
 import {
+  buildPrdWizardConfigSelections,
+  writePrdWizardDraft
+} from './prdWizardPersistence';
+import {
   relativeWizardWriteSummary,
-  summarizeWizardPaths,
   type PrdWizardDraftBundle,
   type PrdWizardGenerateResult,
-  type PrdWizardTaskDraft,
   type PrdWizardWriteResult
 } from '../webview/prdCreationWizardHost';
 
@@ -297,63 +299,6 @@ async function appendTasksToFile(
   }
 }
 
-export function normalizeWizardTasksForPersistence(newTasks: PrdWizardTaskDraft[]): RalphTask[] {
-  if (newTasks.length === 0) {
-    throw new Error('Review at least one task before writing tasks.json.');
-  }
-
-  const normalizedTasks: RalphTask[] = newTasks.map((task) => {
-    const normalizedId = task.id.trim();
-    const normalizedTitle = task.title.trim();
-
-    if (!normalizedId) {
-      throw new Error('Each reviewed task must keep a non-empty id before writing tasks.json.');
-    }
-
-    if (!normalizedTitle) {
-      throw new Error(`Task ${task.id} must have a non-empty title before writing tasks.json.`);
-    }
-
-    return {
-      id: normalizedId,
-      title: normalizedTitle,
-      status: task.status,
-      ...(task.validation ? { validation: task.validation } : {}),
-      ...(task.tier ? { tier: task.tier } : {})
-    } satisfies RalphTask;
-  });
-
-  parseTaskFile(JSON.stringify({
-    version: 2,
-    tasks: normalizedTasks
-  }));
-
-  return normalizedTasks;
-}
-
-async function replaceTasksFile(
-  tasksPath: string,
-  newTasks: PrdWizardTaskDraft[]
-): Promise<void> {
-  const locked = await withTaskFileLock(tasksPath, undefined, async () => {
-    let taskFile: RalphTaskFile = { version: 2, tasks: [] };
-    if (await pathExists(tasksPath)) {
-      taskFile = parseTaskFile(await fs.readFile(tasksPath, 'utf8'));
-    }
-
-    const next = bumpMutationCount({
-      ...taskFile,
-      tasks: normalizeWizardTasksForPersistence(newTasks)
-    });
-
-    await fs.writeFile(tasksPath, stringifyTaskFile(next), 'utf8');
-  });
-
-  if (locked.outcome === 'lock_timeout') {
-    throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-  }
-}
-
 function buildWizardGenerationPrompt(input: {
   mode: 'new' | 'regenerate';
   projectType: string;
@@ -412,15 +357,6 @@ async function openPrdCreationWizard(
   }
 
   const recommendedSkillsPath = path.join(path.dirname(paths.prdPath), 'recommended-skills.json');
-  const configSummary = {
-    'CLI provider': config.cliProvider,
-    'Model': config.model,
-    ...summarizeWizardPaths({
-      prdPath: paths.prdPath,
-      tasksPath: paths.taskFilePath,
-      recommendedSkillsPath
-    })
-  };
 
   PrdCreationWizardPanel.createOrReveal(panelManager, {
     initialMode: options?.mode ?? 'new',
@@ -432,7 +368,7 @@ async function openPrdCreationWizard(
       tasksPath: paths.taskFilePath,
       recommendedSkillsPath
     },
-    configSummary,
+    configSelections: buildPrdWizardConfigSelections(config),
     generateDraft: async (input): Promise<PrdWizardGenerateResult> => {
       const generated = await generateProjectDraft(
         buildWizardGenerationPrompt(input),
@@ -452,29 +388,29 @@ async function openPrdCreationWizard(
       };
     },
     writeDraft: async (draft: PrdWizardDraftBundle): Promise<PrdWizardWriteResult> => {
-      await fs.mkdir(path.dirname(paths.prdPath), { recursive: true });
-      await fs.writeFile(paths.prdPath, draft.prdText, 'utf8');
-      await replaceTasksFile(paths.taskFilePath, draft.tasks);
-
-      const filesWritten = [paths.prdPath, paths.taskFilePath];
-      const selectedSkills = draft.recommendedSkills
-        .filter((skill) => skill.selected)
-        .map(({ selected: _selected, ...skill }) => skill);
-      if (selectedSkills.length > 0) {
-        await fs.writeFile(recommendedSkillsPath, `${JSON.stringify(selectedSkills, null, 2)}\n`, 'utf8');
-        filesWritten.push(recommendedSkillsPath);
-      }
-
-      return { filesWritten };
+      return writePrdWizardDraft(workspaceFolder, draft, {
+        prdPath: paths.prdPath,
+        tasksPath: paths.taskFilePath,
+        recommendedSkillsPath
+      });
     },
     onWriteComplete: async (result) => {
       logger.info('PRD wizard wrote Ralph files.', {
-        filesWritten: result.filesWritten
+        filesWritten: result.filesWritten,
+        settingsUpdated: result.settingsUpdated ?? [],
+        settingsSkipped: result.settingsSkipped ?? []
       });
       await openTextFile(paths.prdPath);
       await openTextFile(paths.taskFilePath);
+      const summary = relativeWizardWriteSummary(workspaceFolder.uri.fsPath, result);
+      const updateSummary = summary.settingsUpdated && summary.settingsUpdated.length > 0
+        ? ` Settings updated: ${summary.settingsUpdated.join(', ')}.`
+        : '';
+      const skipSummary = summary.settingsSkipped && summary.settingsSkipped.length > 0
+        ? ` Skipped: ${summary.settingsSkipped.join(', ')}.`
+        : '';
       void vscode.window.showInformationMessage(
-        `PRD wizard wrote: ${relativeWizardWriteSummary(workspaceFolder.uri.fsPath, result).filesWritten.join(', ')}`
+        `PRD wizard wrote: ${summary.filesWritten.join(', ')}.${updateSummary}${skipSummary}`
       );
     }
   });

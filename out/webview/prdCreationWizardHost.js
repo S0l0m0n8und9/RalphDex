@@ -133,7 +133,7 @@ function buildConstraintSummary(techStack, existingConventions) {
     }
     return sections.join('\n');
 }
-function createFallbackDraft(projectType, objective, techStack, outOfScope, existingConventions) {
+function createFallbackDraft(projectType, objective, techStack, outOfScope, existingConventions, configSelections) {
     const constraintSummary = buildConstraintSummary(techStack, existingConventions);
     const lines = [
         '# Product / project brief',
@@ -157,11 +157,15 @@ function createFallbackDraft(projectType, objective, techStack, outOfScope, exis
     return {
         prdText: `${lines.join('\n')}\n`,
         tasks: bootstrapSeedTasks(),
-        recommendedSkills: []
+        recommendedSkills: [],
+        configSelections: cloneConfigSelections(configSelections)
     };
 }
 function normalizeRecommendedSkills(skills) {
     return skills.map((skill) => ({ ...skill, selected: true }));
+}
+function cloneConfigSelections(configSelections) {
+    return configSelections.map((selection) => ({ ...selection }));
 }
 function mapLegacyInputs(initialConstraints, initialNonGoals) {
     return {
@@ -177,7 +181,8 @@ function createComparisonDraft(prdPreview) {
     return {
         prdText: prdPreview,
         tasks: [],
-        recommendedSkills: []
+        recommendedSkills: [],
+        configSelections: []
     };
 }
 function updateDraftTasks(draft, transform) {
@@ -232,7 +237,7 @@ class PrdCreationWizardHost {
             initialNonGoals: options.initialNonGoals,
             initialStep: options.initialStep,
             initialPrdPreview: options.initialPrdPreview,
-            configSummary: options.configSummary,
+            configSelections: options.configSelections,
             generateDraft: options.generateDraft,
             writeDraft: options.writeDraft,
             onWriteComplete: options.onWriteComplete
@@ -262,13 +267,19 @@ class PrdCreationWizardHost {
                     existingConventions: this.state.existingConventions
                 }),
             draft: context.initialPrdPreview !== undefined
-                ? createComparisonDraft(context.initialPrdPreview)
+                ? {
+                    ...createComparisonDraft(context.initialPrdPreview),
+                    configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections)
+                }
                 : (nextMode === 'regenerate' && currentPrdPreview && !this.state.draft
-                    ? createComparisonDraft(currentPrdPreview)
+                    ? {
+                        ...createComparisonDraft(currentPrdPreview),
+                        configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections)
+                    }
                     : this.state.draft),
             currentPrdPreview,
             paths: context.initialPaths ?? this.state.paths,
-            configSummary: context.configSummary ?? this.state.configSummary,
+            configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections),
             warning: null,
             error: null,
             writeSummary: null
@@ -292,13 +303,16 @@ class PrdCreationWizardHost {
             objective: this.options.initialObjective ?? '',
             ...structuredInputs,
             draft: this.options.initialPrdPreview
-                ? createComparisonDraft(this.options.initialPrdPreview)
+                ? {
+                    ...createComparisonDraft(this.options.initialPrdPreview),
+                    configSelections: cloneConfigSelections(this.options.configSelections ?? [])
+                }
                 : null,
             warning: null,
             error: null,
             currentPrdPreview: this.options.initialPrdPreview ?? null,
             writeSummary: null,
-            configSummary: this.options.configSummary ?? {},
+            configSelections: cloneConfigSelections(this.options.configSelections ?? []),
             paths: this.options.initialPaths
         };
     }
@@ -331,7 +345,8 @@ class PrdCreationWizardHost {
                         : {
                             prdText: message.value,
                             tasks: [],
-                            recommendedSkills: []
+                            recommendedSkills: [],
+                            configSelections: cloneConfigSelections(this.state.configSelections)
                         },
                     warning: null,
                     error: null
@@ -373,6 +388,25 @@ class PrdCreationWizardHost {
                 this.state = {
                     ...this.state,
                     draft: updateDraftTasks(this.state.draft, (tasks) => tasks.filter((task) => task.id !== message.taskId)),
+                    warning: null,
+                    error: null
+                };
+                this.emitState();
+                return;
+            case 'toggle-config-selection':
+                this.state = {
+                    ...this.state,
+                    configSelections: this.state.configSelections.map((selection) => selection.key === message.key
+                        ? { ...selection, selected: !selection.selected }
+                        : selection),
+                    draft: this.state.draft
+                        ? {
+                            ...this.state.draft,
+                            configSelections: this.state.draft.configSelections.map((selection) => selection.key === message.key
+                                ? { ...selection, selected: !selection.selected }
+                                : selection)
+                        }
+                        : null,
                     warning: null,
                     error: null
                 };
@@ -422,7 +456,8 @@ class PrdCreationWizardHost {
                 draft: {
                     prdText: generated.prdText,
                     tasks: generated.tasks,
-                    recommendedSkills: normalizeRecommendedSkills(generated.recommendedSkills)
+                    recommendedSkills: normalizeRecommendedSkills(generated.recommendedSkills),
+                    configSelections: cloneConfigSelections(this.state.configSelections)
                 },
                 warning: generated.taskCountWarning ?? null,
                 error: null,
@@ -436,7 +471,7 @@ class PrdCreationWizardHost {
             this.state = {
                 ...this.state,
                 step: 4,
-                draft: createFallbackDraft(this.state.projectType, this.state.objective, this.state.techStack, this.state.outOfScope, this.state.existingConventions),
+                draft: createFallbackDraft(this.state.projectType, this.state.objective, this.state.techStack, this.state.outOfScope, this.state.existingConventions, this.state.configSelections),
                 warning: `Generation fell back to a bootstrap draft. ${reason}`,
                 error: null,
                 writeSummary: null
@@ -515,7 +550,7 @@ body {
 .wizard-summary,
 .task-card,
 .skill-row,
-.config-grid {
+.config-choice {
   border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   background: var(--vscode-sideBar-background, var(--vscode-editor-background));
 }
@@ -707,20 +742,31 @@ body {
   flex: 1 1 0;
 }
 
-.config-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1px;
+.config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.config-grid div {
+.config-choice {
   padding: 12px;
-  background: var(--vscode-editor-background);
 }
 
-.config-grid dt {
+.config-choice header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   color: var(--vscode-descriptionForeground);
-  margin-bottom: 4px;
+  font-size: 12px;
 }
 
 .actions {
@@ -852,22 +898,40 @@ code {
         ).join('') + '</div>';
       }
 
-      function configSummary() {
-        const entries = Object.entries(state.configSummary || {});
-        if (entries.length === 0) {
-          return '<p class="empty">No config summary available.</p>';
+      function configSelectionList() {
+        const selections = state.configSelections || [];
+        if (selections.length === 0) {
+          return '<p class="empty">No configuration recommendations are available for this draft.</p>';
         }
-        return '<dl class="config-grid">' + entries.map(([key, value]) =>
-          '<div><dt>' + escapeHtml(key) + '</dt><dd>' + escapeHtml(value) + '</dd></div>'
-        ).join('') + '</dl>';
+        return '<div class="config-list">' + selections.map((selection) =>
+          '<label class="config-choice"><header><div><strong>' + escapeHtml(selection.label) + '</strong>' +
+          '<div class="muted"><code>ralphCodex.' + escapeHtml(selection.key) + '</code> = <code>' + escapeHtml(selection.value) + '</code></div>' +
+          '</div><div><span class="status-pill">' + (selection.selected ? 'Selected' : 'Skipped') + '</span> ' +
+          '<input type="checkbox" data-action="toggle-config-selection" data-config-key="' + escapeHtml(selection.key) + '"' + (selection.selected ? ' checked' : '') + ' /></div></header>' +
+          '<div class="muted">' + escapeHtml(selection.description) + '</div>' +
+          '<div class="muted">' + escapeHtml(selection.rationale) + '</div></label>'
+        ).join('') + '</div>';
       }
 
       function writeSummary() {
         if (!state.writeSummary) {
           return '<p class="empty">Confirm the write to persist <code>prd.md</code> and <code>tasks.json</code>.</p>';
         }
+        const filesWritten = state.writeSummary.filesWritten || [];
+        const settingsUpdated = state.writeSummary.settingsUpdated || [];
+        const settingsSkipped = state.writeSummary.settingsSkipped || [];
         return '<div class="wizard-summary"><strong>Files written</strong><ul>' +
-          state.writeSummary.filesWritten.map((file) => '<li><code>' + escapeHtml(file) + '</code></li>').join('') +
+          filesWritten.map((file) => '<li><code>' + escapeHtml(file) + '</code></li>').join('') +
+          '</ul>' +
+          '<strong>Configuration updates</strong><ul>' +
+          (settingsUpdated.length > 0
+            ? settingsUpdated.map((entry) => '<li>' + escapeHtml(entry) + '</li>').join('')
+            : '<li>No configuration changes applied.</li>') +
+          '</ul>' +
+          '<strong>Skipped recommendations</strong><ul>' +
+          (settingsSkipped.length > 0
+            ? settingsSkipped.map((entry) => '<li>' + escapeHtml(entry) + '</li>').join('')
+            : '<li>No recommendations were skipped.</li>') +
           '</ul></div>';
       }
 
@@ -945,7 +1009,7 @@ code {
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>6. Configuration And Recommended Skills</h2>' +
-                  configSummary() +
+                  configSelectionList() +
                   '<div class="actions"><button class="secondary" data-action="set-step" data-step="7">Go To Confirm</button></div>' +
                   '<h3 style="margin-top:16px;">Recommended Skills</h3>' +
                   skillList() +
@@ -1039,6 +1103,12 @@ code {
           });
         }
 
+        for (const checkbox of document.querySelectorAll('input[data-action="toggle-config-selection"]')) {
+          checkbox.addEventListener('change', () => {
+            vscode.postMessage({ type: 'toggle-config-selection', key: checkbox.getAttribute('data-config-key') });
+          });
+        }
+
         const generate = document.querySelector('[data-action="generate-draft"]');
         if (generate) {
           generate.addEventListener('click', () => vscode.postMessage({ type: 'generate-draft' }));
@@ -1078,7 +1148,9 @@ function summarizeWizardPaths(paths) {
 }
 function relativeWizardWriteSummary(rootPath, result) {
     return {
-        filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target))
+        filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target)),
+        settingsUpdated: result.settingsUpdated,
+        settingsSkipped: result.settingsSkipped
     };
 }
 //# sourceMappingURL=prdCreationWizardHost.js.map

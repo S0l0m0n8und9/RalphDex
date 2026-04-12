@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   normalizeWizardTasksForPersistence
-} from '../src/commands/registerCommands';
+} from '../src/commands/prdWizardPersistence';
 
 test('normalizeWizardTasksForPersistence preserves reviewed order and supported fields', () => {
   const tasks = normalizeWizardTasksForPersistence([

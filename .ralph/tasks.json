@@ -3214,12 +3214,12 @@
     {
       "id": "T118.4",
       "title": "Implement configuration selection and confirm-time application in the wizard",
-      "status": "todo",
+      "status": "done",
       "parentId": "T118",
       "dependsOn": [
         "T118.2"
       ],
-      "notes": "Step 6 currently shows a static summary. Replace it with selectable operator-mode, provider, and suggested-skill recommendations, then make confirm apply the chosen config updates and report both files written and settings changed.",
+      "notes": "Implemented selectable operator-mode and CLI-provider recommendations in the PRD wizard, applied selected settings through the VS Code workspace configuration API at confirm time, and expanded the write summary plus regression coverage for selection state, persistence, and skipped recommendations.",
       "validation": "npm run validate",
       "acceptance": [
         "Configuration step presents recommended operator mode, recommended provider, and suggested skills as individually selectable or skippable options",
@@ -3229,5 +3229,5 @@
       ]
     }
   ],
-  "mutationCount": 102
+  "mutationCount": 103
 }
