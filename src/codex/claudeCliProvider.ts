@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import { runProcess } from '../services/processRunner';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
@@ -189,6 +190,21 @@ export class ClaudeCliProvider implements CliProvider {
       '',
       result.lastMessage || '(empty)'
     ].join('\n');
+  }
+
+  public async summarizeText(prompt: string, cwd: string): Promise<string> {
+    const result = await runProcess('claude', ['-p', '-', '--no-session-persistence'], {
+      cwd,
+      stdinText: prompt
+    });
+    if (result.code !== 0) {
+      throw new Error(`claude summarization exited with code ${result.code}`);
+    }
+    const text = result.stdout.trim();
+    if (!text) {
+      throw new Error('claude summarization returned empty output');
+    }
+    return text;
   }
 
   private extractFailureDetail(stderr: string, lastMessage: string): string | null {

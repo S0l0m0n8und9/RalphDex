@@ -110,4 +110,12 @@ export class CodexStrategyRegistry {
   public getCliExecStrategy(): CodexStrategy {
     return this.cliExecStrategy;
   }
+
+  /** Return the active CliProvider for the current configuration. */
+  public getActiveCliProvider(): CliProvider | undefined {
+    if (!this.currentConfig) {
+      return undefined;
+    }
+    return createCliProvider(this.currentConfig);
+  }
 }

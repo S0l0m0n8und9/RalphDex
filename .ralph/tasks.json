@@ -3093,11 +3093,11 @@
     {
       "id": "T115",
       "title": "Provider-agnostic memory summarization (PRD item 18)",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T114"
       ],
-      "notes": "Replace the hardcoded claude -p - summarization invocation in iterationPreparation.ts with a provider-strategy abstraction so memoryStrategy=summary works across codex, claude, copilot, and azure-foundry providers without provider-specific flag assumptions.",
+      "notes": "All acceptance criteria verified as complete: (1) maybeSummariseHistory routes through provider.summarizeText — no hardcoded claude -p - remains; (2) summarizationMode field (provider_exec | fallback_summary) is explicit in memory-summary.md and surfaced in RalphMemoryObservability/provenance; (3) preflight emits memory_summarization_fallback info diagnostic when fallback is active; (4) memorySumm",
       "validation": "npm run validate",
       "acceptance": [
         "maybeSummariseHistory invokes summarization through the active CliProvider or CliExecCodexStrategy rather than a hardcoded claude -p - shell command",
@@ -3142,5 +3142,5 @@
       ]
     }
   ],
-  "mutationCount": 95
+  "mutationCount": 96
 }

@@ -184,6 +184,7 @@ export class RalphIterationEngine {
       configOverrides: options?.configOverrides,
       stateManager: this.stateManager,
       logger: this.logger,
+      cliProvider: this.strategies.getActiveCliProvider(),
       persistBlockedPreflightBundle: (input) => persistBlockedPreflightBundle(input, this.logger),
       persistPreparedProvenanceBundle: (preparedContext) => persistPreparedProvenanceBundle(preparedContext, this.logger)
     });
@@ -486,6 +487,7 @@ export class RalphIterationEngine {
       focusTaskId: options.focusTaskId,
       stateManager: this.stateManager,
       logger: this.logger,
+      cliProvider: this.strategies.getActiveCliProvider(),
       persistBlockedPreflightBundle: (input) => persistBlockedPreflightBundle(input, this.logger),
       persistPreparedProvenanceBundle: (preparedContext) => persistPreparedProvenanceBundle(preparedContext, this.logger)
     });

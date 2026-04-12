@@ -98,6 +98,13 @@ class CodexStrategyRegistry {
     getCliExecStrategy() {
         return this.cliExecStrategy;
     }
+    /** Return the active CliProvider for the current configuration. */
+    getActiveCliProvider() {
+        if (!this.currentConfig) {
+            return undefined;
+        }
+        return createCliProvider(this.currentConfig);
+    }
 }
 exports.CodexStrategyRegistry = CodexStrategyRegistry;
 //# sourceMappingURL=providerFactory.js.map

@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { getCliCommandPath } from '../config/providers';
 import { readConfig } from '../config/readConfig';
 import { RalphCodexConfig } from '../config/types';
+import { CliProvider } from '../codex/cliProvider';
 import { buildPrompt, createPromptFileName, decidePromptKind } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
 import { runProcess } from '../services/processRunner';
@@ -22,6 +23,7 @@ import {
   RalphPromptTarget,
   RalphProvenanceTrustLevel,
   RalphRootPolicy,
+  RalphSummarizationMode,
   RalphTask,
   RalphTaskCounts,
   RalphTaskFile,
@@ -129,6 +131,8 @@ export interface PrepareIterationContextInput {
   focusTaskId?: string;
   stateManager: RalphStateManager;
   logger: Logger;
+  /** When set, memory summarization routes through this provider instead of a hardcoded CLI command. */
+  cliProvider?: CliProvider;
   persistBlockedPreflightBundle: (input: {
     paths: ReturnType<RalphStateManager['resolvePaths']>;
     provenanceId: string;
@@ -370,7 +374,7 @@ export async function prepareIterationContext(
     newChatCommandId: config.newChatCommandId,
     availableCommands
   });
-  const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+  const [artifactReadinessDiagnostics, agentHealthDiagnostics, lastSummarizationMode] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath,
       artifactRootDir: snapshot.paths.artifactDir,
@@ -387,7 +391,8 @@ export async function prepareIterationContext(
       artifactDir: snapshot.paths.artifactDir,
       staleClaimTtlMs: config.claimTtlHours * 60 * 60 * 1000,
       staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
-    })
+    }),
+    readLastSummarizationMode(snapshot.paths.memorySummaryPath)
   ]);
   const preflightReport = buildPreflightReport({
     rootPath,
@@ -408,7 +413,8 @@ export async function prepareIterationContext(
     ideCommandSupport,
     artifactReadinessDiagnostics,
     agentHealthDiagnostics,
-    sessionHandoff
+    sessionHandoff,
+    lastSummarizationMode
   });
   const preflightArtifactPaths = resolvePreflightArtifactPaths(snapshot.paths.artifactDir, iteration);
   const {
@@ -461,7 +467,7 @@ export async function prepareIterationContext(
   }
 
   progress.report({ message: 'Generating Ralph prompt' });
-  await maybeSummariseHistory(snapshot.state, config, snapshot.paths.memorySummaryPath, rootPath);
+  const summarizationMode = await maybeSummariseHistory(snapshot.state, config, snapshot.paths.memorySummaryPath, rootPath, input.cliProvider);
   const artifactPaths = resolveIterationArtifactPaths(snapshot.paths.artifactDir, iteration);
   const provenanceBundlePaths = resolveProvenanceBundlePaths(snapshot.paths.artifactDir, provenanceId);
 
@@ -499,6 +505,14 @@ export async function prepareIterationContext(
     ...promptRender.evidence,
     provenanceId
   };
+
+  // Enrich memoryObservability with the actual summarization mode from the provider call
+  if (promptEvidence.memoryObservability && summarizationMode !== null) {
+    promptEvidence.memoryObservability = {
+      ...promptEvidence.memoryObservability,
+      summarizationMode
+    };
+  }
 
   const promptPath = await stateManager.writePrompt(
     snapshot.paths,
@@ -746,21 +760,38 @@ async function checkoutGitBranch(rootPath: string, branchName: string): Promise<
 }
 
 /**
+ * Read the summarization mode from a previously-written memory-summary.md.
+ * Returns null when the file doesn't exist or contains no mode metadata.
+ */
+export async function readLastSummarizationMode(memorySummaryPath: string): Promise<RalphSummarizationMode | null> {
+  try {
+    const content = await fs.readFile(memorySummaryPath, 'utf8');
+    const match = content.match(/summarization-mode=(provider_exec|fallback_summary)/);
+    return match ? match[1] as RalphSummarizationMode : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * When memoryStrategy is 'summary' and the history depth exceeds memorySummaryThreshold,
- * invoke the configured CLI to produce a one-paragraph summary of the older entries
+ * invoke the configured CLI provider to produce a one-paragraph summary of the older entries
  * (those outside the memoryWindowSize window) and persist the result to memory-summary.md.
  *
  * Re-summarisation only occurs when the count of old entries (history beyond the window)
  * has grown since the last summarisation run.
+ *
+ * Returns the summarization mode used, or null when summarization was skipped.
  */
 export async function maybeSummariseHistory(
   state: RalphWorkspaceState,
   config: RalphCodexConfig,
   memorySummaryPath: string,
-  rootPath: string
-): Promise<void> {
+  rootPath: string,
+  provider?: CliProvider
+): Promise<RalphSummarizationMode | null> {
   if (config.memoryStrategy !== 'summary') {
-    return;
+    return null;
   }
 
   const windowSize = config.memoryWindowSize ?? 10;
@@ -768,7 +799,7 @@ export async function maybeSummariseHistory(
   const totalDepth = state.iterationHistory.length;
 
   if (totalDepth <= threshold) {
-    return;
+    return null;
   }
 
   const oldEntries = state.iterationHistory.slice(0, -windowSize);
@@ -778,7 +809,7 @@ export async function maybeSummariseHistory(
   let lastSummarizedOldCount = 0;
   try {
     const existing = await fs.readFile(memorySummaryPath, 'utf8');
-    const match = existing.match(/^<!-- ralph-memory: summarized-old-count=(\d+) -->/m);
+    const match = existing.match(/^<!-- ralph-memory: summarized-old-count=(\d+)\b/m);
     if (match) {
       lastSummarizedOldCount = parseInt(match[1], 10);
     }
@@ -787,7 +818,7 @@ export async function maybeSummariseHistory(
   }
 
   if (oldCount <= lastSummarizedOldCount) {
-    return;
+    return null;
   }
 
   const entriesText = oldEntries.map((entry) =>
@@ -802,19 +833,25 @@ export async function maybeSummariseHistory(
     entriesText
   ].join('\n');
 
-  const commandPath = getCliCommandPath(config);
   let summaryText: string;
-  try {
-    const result = await runProcess(commandPath, ['-p', '-'], {
-      cwd: rootPath,
-      stdinText: prompt
-    });
-    summaryText = result.stdout.trim() || `${oldCount} prior iterations completed.`;
-  } catch {
+  let summarizationMode: RalphSummarizationMode;
+
+  if (provider?.summarizeText) {
+    try {
+      summaryText = await provider.summarizeText(prompt, rootPath);
+      summarizationMode = 'provider_exec';
+    } catch {
+      summaryText = `${oldCount} prior iterations completed.`;
+      summarizationMode = 'fallback_summary';
+    }
+  } else {
+    // No provider or provider lacks summarizeText — use static fallback
     summaryText = `${oldCount} prior iterations completed.`;
+    summarizationMode = 'fallback_summary';
   }
 
-  const fileContent = `<!-- ralph-memory: summarized-old-count=${oldCount} -->\n${summaryText}\n`;
+  const fileContent = `<!-- ralph-memory: summarized-old-count=${oldCount} summarization-mode=${summarizationMode} -->\n${summaryText}\n`;
   await fs.mkdir(path.dirname(memorySummaryPath), { recursive: true });
   await fs.writeFile(memorySummaryPath, fileContent, 'utf8');
+  return summarizationMode;
 }

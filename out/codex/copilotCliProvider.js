@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CopilotCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
+const processRunner_1 = require("../services/processRunner");
 const text_1 = require("../util/text");
 class CopilotCliProvider {
     options;
@@ -174,6 +175,38 @@ class CopilotCliProvider {
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
+    }
+    async summarizeText(prompt, cwd) {
+        const result = await (0, processRunner_1.runProcess)('copilot', ['-s', '--no-ask-user', '--output-format=json'], {
+            cwd,
+            stdinText: prompt,
+            shell: process.platform === 'win32'
+        });
+        if (result.code !== 0) {
+            throw new Error(`copilot summarization exited with code ${result.code}`);
+        }
+        // Parse JSONL output for the last assistant.message content
+        const lines = result.stdout.trim().split('\n');
+        for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (!line) {
+                continue;
+            }
+            try {
+                const parsed = JSON.parse(line);
+                if (parsed.type === 'assistant.message' && typeof parsed.data?.content === 'string' && parsed.data.content.trim()) {
+                    return parsed.data.content.trim();
+                }
+            }
+            catch {
+                break;
+            }
+        }
+        const text = result.stdout.trim();
+        if (!text) {
+            throw new Error('copilot summarization returned empty output');
+        }
+        return text;
     }
     extractFailureDetail(stderr, lastMessage) {
         const stderrLines = stderr

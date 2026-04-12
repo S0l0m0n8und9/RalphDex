@@ -22,4 +22,11 @@ export interface CliProvider {
   extractExecutionCostUsd?(stdout: string): number | null;
   /** When present, the strategy calls this instead of spawning a child process. */
   executeDirectly?(request: CodexExecRequest): Promise<CodexExecResult>;
+  /**
+   * Run a lightweight text-in / text-out summarization call through this provider.
+   * Used by memory summarization so the call routes through the active provider
+   * rather than a hardcoded CLI binary.  Implementations should throw on failure
+   * so the caller can distinguish provider_exec from fallback_summary.
+   */
+  summarizeText?(prompt: string, cwd: string): Promise<string>;
 }

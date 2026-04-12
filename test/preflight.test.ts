@@ -909,3 +909,100 @@ test('buildPreflightReport emits info when azure-foundry has endpoint and API ke
     'should have azure_foundry_auth_api_key_active info diagnostic'
   );
 });
+
+// ---------------------------------------------------------------------------
+// Memory summarization fallback diagnostic
+// ---------------------------------------------------------------------------
+
+test('buildPreflightReport emits info diagnostic when lastSummarizationMode is fallback_summary', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Test', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: null,
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus,
+    lastSummarizationMode: 'fallback_summary'
+  });
+
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'memory_summarization_fallback' && d.severity === 'info'),
+    'should emit memory_summarization_fallback info diagnostic when last mode was fallback'
+  );
+});
+
+test('buildPreflightReport does not emit fallback diagnostic when lastSummarizationMode is provider_exec', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Test', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: null,
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus,
+    lastSummarizationMode: 'provider_exec'
+  });
+
+  assert.ok(
+    !report.diagnostics.some((d) => d.code === 'memory_summarization_fallback'),
+    'should not emit fallback diagnostic when provider_exec succeeded'
+  );
+});
+
+test('buildPreflightReport does not emit fallback diagnostic when lastSummarizationMode is null', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Test', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: null,
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus,
+    lastSummarizationMode: null
+  });
+
+  assert.ok(
+    !report.diagnostics.some((d) => d.code === 'memory_summarization_fallback'),
+    'should not emit fallback diagnostic when no summarization occurred'
+  );
+});

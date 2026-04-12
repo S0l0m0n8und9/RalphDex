@@ -247,6 +247,43 @@ class AzureFoundryProvider {
             promptCacheStats
         };
     }
+    async summarizeText(prompt, _cwd) {
+        const requestBody = JSON.stringify({
+            messages: [{ role: 'user', content: prompt }],
+            model: this.options.modelDeployment || undefined
+        });
+        let endpointUrl = this.options.endpointUrl;
+        if (this.options.apiVersion) {
+            const separator = endpointUrl.includes('?') ? '&' : '?';
+            endpointUrl += `${separator}api-version=${encodeURIComponent(this.options.apiVersion)}`;
+        }
+        const headers = {};
+        if (this.options.apiKey) {
+            headers['api-key'] = this.options.apiKey;
+        }
+        else {
+            const credential = await this.resolveCredential();
+            const tokenResponse = await credential.getToken(AZURE_COGNITIVE_SERVICES_SCOPE);
+            if (!tokenResponse?.token) {
+                throw new Error('Azure AD authentication failed for summarization');
+            }
+            headers['Authorization'] = `Bearer ${tokenResponse.token}`;
+        }
+        const { responseBody, statusCode } = await (0, httpsClient_1.httpsPost)({
+            url: endpointUrl,
+            body: requestBody,
+            headers
+        });
+        if (statusCode < 200 || statusCode >= 300) {
+            throw new Error(`Azure AI Foundry summarization failed with HTTP ${statusCode}`);
+        }
+        const parsed = JSON.parse(responseBody);
+        const content = parsed.choices?.[0]?.message?.content?.trim();
+        if (!content) {
+            throw new Error('Azure AI Foundry summarization returned empty content');
+        }
+        return content;
+    }
     buildTranscript(result, request) {
         const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
         const commandLine = result.args.length === 0

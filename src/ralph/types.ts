@@ -292,11 +292,15 @@ export interface PromptCacheStats {
   cacheHit: boolean | null;
 }
 
+export type RalphSummarizationMode = 'provider_exec' | 'fallback_summary';
+
 export interface RalphMemoryObservability {
   memoryStrategy: string;
   historyDepth: number;
   windowedEntryCount: number;
   summaryGenerationCost: boolean;
+  /** Indicates whether summarization was performed by the active provider or fell back to a static summary. */
+  summarizationMode?: RalphSummarizationMode | null;
 }
 
 export interface RalphPromptEvidence {

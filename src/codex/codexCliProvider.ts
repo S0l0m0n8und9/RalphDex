@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { CodexApprovalMode, CodexReasoningEffort, CodexSandboxMode } from '../config/types';
+import { runProcess } from '../services/processRunner';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
@@ -107,6 +108,22 @@ export class CodexCliProvider implements CliProvider {
       '',
       result.lastMessage || '(empty)'
     ].join('\n');
+  }
+
+  public async summarizeText(prompt: string, cwd: string): Promise<string> {
+    const result = await runProcess('codex', ['exec', '--quiet', '-'], {
+      cwd,
+      stdinText: prompt,
+      shell: process.platform === 'win32'
+    });
+    if (result.code !== 0) {
+      throw new Error(`codex summarization exited with code ${result.code}`);
+    }
+    const text = result.stdout.trim();
+    if (!text) {
+      throw new Error('codex summarization returned empty output');
+    }
+    return text;
   }
 
   private extractFailureDetail(stderr: string, lastMessage: string): string | null {

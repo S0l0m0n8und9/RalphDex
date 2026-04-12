@@ -186,6 +186,10 @@ class MockStrategyRegistry {
     return this.getCliExecStrategy();
   }
 
+  public getActiveCliProvider(): undefined {
+    return undefined;
+  }
+
   public getCliExecStrategy(): { runExec: (request: CodexExecRequest) => Promise<CodexExecResult> } {
     return {
       runExec: async (request) => {

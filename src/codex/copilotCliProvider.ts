@@ -1,4 +1,5 @@
 import * as fs from 'fs/promises';
+import { runProcess } from '../services/processRunner';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
 import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
@@ -166,6 +167,36 @@ export class CopilotCliProvider implements CliProvider {
       '',
       result.lastMessage || '(empty)'
     ].join('\n');
+  }
+
+  public async summarizeText(prompt: string, cwd: string): Promise<string> {
+    const result = await runProcess('copilot', ['-s', '--no-ask-user', '--output-format=json'], {
+      cwd,
+      stdinText: prompt,
+      shell: process.platform === 'win32'
+    });
+    if (result.code !== 0) {
+      throw new Error(`copilot summarization exited with code ${result.code}`);
+    }
+    // Parse JSONL output for the last assistant.message content
+    const lines = result.stdout.trim().split('\n');
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line) { continue; }
+      try {
+        const parsed = JSON.parse(line) as { type?: string; data?: { content?: string } };
+        if (parsed.type === 'assistant.message' && typeof parsed.data?.content === 'string' && parsed.data.content.trim()) {
+          return parsed.data.content.trim();
+        }
+      } catch {
+        break;
+      }
+    }
+    const text = result.stdout.trim();
+    if (!text) {
+      throw new Error('copilot summarization returned empty output');
+    }
+    return text;
   }
 
   private extractFailureDetail(stderr: string, lastMessage: string): string | null {

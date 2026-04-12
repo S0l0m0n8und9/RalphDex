@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CodexCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const processRunner_1 = require("../services/processRunner");
 const text_1 = require("../util/text");
 class CodexCliProvider {
     options;
@@ -124,6 +125,21 @@ class CodexCliProvider {
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
+    }
+    async summarizeText(prompt, cwd) {
+        const result = await (0, processRunner_1.runProcess)('codex', ['exec', '--quiet', '-'], {
+            cwd,
+            stdinText: prompt,
+            shell: process.platform === 'win32'
+        });
+        if (result.code !== 0) {
+            throw new Error(`codex summarization exited with code ${result.code}`);
+        }
+        const text = result.stdout.trim();
+        if (!text) {
+            throw new Error('codex summarization returned empty output');
+        }
+        return text;
     }
     extractFailureDetail(stderr, lastMessage) {
         const stderrLines = stderr

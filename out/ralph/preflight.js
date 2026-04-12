@@ -580,6 +580,9 @@ function buildPreflightReport(input) {
             diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'no_actionable_task', 'No actionable task is currently selectable. Check blocked tasks and incomplete dependencies.'));
         }
     }
+    if (input.lastSummarizationMode === 'fallback_summary') {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'memory_summarization_fallback', 'Memory summarization used a static fallback instead of the active provider. The provider\'s summarizeText call failed or is not implemented. Check provider connectivity.'));
+    }
     if (input.codexCliSupport) {
         const cliSupport = input.codexCliSupport;
         const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');

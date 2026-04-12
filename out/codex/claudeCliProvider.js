@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ClaudeCliProvider = void 0;
 const fs = __importStar(require("fs/promises"));
+const processRunner_1 = require("../services/processRunner");
 const text_1 = require("../util/text");
 class ClaudeCliProvider {
     options;
@@ -190,6 +191,20 @@ class ClaudeCliProvider {
             '',
             result.lastMessage || '(empty)'
         ].join('\n');
+    }
+    async summarizeText(prompt, cwd) {
+        const result = await (0, processRunner_1.runProcess)('claude', ['-p', '-', '--no-session-persistence'], {
+            cwd,
+            stdinText: prompt
+        });
+        if (result.code !== 0) {
+            throw new Error(`claude summarization exited with code ${result.code}`);
+        }
+        const text = result.stdout.trim();
+        if (!text) {
+            throw new Error('claude summarization returned empty output');
+        }
+        return text;
     }
     extractFailureDetail(stderr, lastMessage) {
         const stderrLines = stderr

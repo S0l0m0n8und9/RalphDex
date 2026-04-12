@@ -406,6 +406,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Memory strategy: ${latestPromptEvidence?.memoryObservability?.memoryStrategy ?? 'none'}`,
     `- Memory history depth: ${latestPromptEvidence?.memoryObservability?.historyDepth ?? 'none'}`,
     `- Memory windowed entry count: ${latestPromptEvidence?.memoryObservability?.windowedEntryCount ?? 'none'}`,
+    `- Memory summarization mode: ${latestPromptEvidence?.memoryObservability?.summarizationMode ?? 'none'}`,
     `- Prompt cache stats: ${formatPromptCacheStats(latestProvenance?.promptCacheStats ?? null)}`,
     `- Task validation hint: ${latestPlan?.taskValidationHint ?? 'none'}`,
     `- Effective validation command: ${latestPlan?.effectiveValidationCommand ?? 'none'}`,

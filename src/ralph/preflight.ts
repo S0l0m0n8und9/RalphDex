@@ -18,6 +18,7 @@ import {
   RalphPreflightDiagnostic,
   RalphPreflightReport,
   RalphPromptSessionHandoff,
+  RalphSummarizationMode,
   RalphTask,
   RalphTaskCounts,
   RalphValidationCommandReadiness
@@ -197,6 +198,8 @@ export interface RalphPreflightInput {
   artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
   agentHealthDiagnostics?: RalphPreflightExternalDiagnostic[];
   sessionHandoff?: RalphPromptSessionHandoff | null;
+  /** Summarization mode from the most recent iteration; used to emit an info diagnostic when fallback is active. */
+  lastSummarizationMode?: RalphSummarizationMode | null;
 }
 
 export interface RalphPreflightExternalDiagnostic {
@@ -825,6 +828,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
         'No actionable task is currently selectable. Check blocked tasks and incomplete dependencies.'
       ));
     }
+  }
+
+  if (input.lastSummarizationMode === 'fallback_summary') {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      'info',
+      'memory_summarization_fallback',
+      'Memory summarization used a static fallback instead of the active provider. The provider\'s summarizeText call failed or is not implemented. Check provider connectivity.'
+    ));
   }
 
   if (input.codexCliSupport) {
