@@ -6,8 +6,8 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "codex",
-		"ralphCodex.model": "gpt-5.4",
+		"ralphCodex.cliProvider": "claude",
+		"ralphCodex.model": "claude-sonnet-4-6",
 		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
 			"enabled": true,
@@ -30,7 +30,7 @@
 		"ralphCodex.scmPrOnParentDone": false,
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
 		"ralphCodex.autoReplenishBacklog": true,
-		"ralphCodex.reasoningEffort": "high",
+		"ralphCodex.reasoningEffort": "medium",
 		"ralphCodex.sandboxMode": "danger-full-access"
 	}
 }

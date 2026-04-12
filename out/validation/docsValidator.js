@@ -38,6 +38,7 @@ exports.formatDocsValidationReport = formatDocsValidationReport;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const fs_1 = require("../util/fs");
+const defaults_1 = require("../config/defaults");
 const REQUIRED_DOCS = [
     'AGENTS.md',
     'README.md',
@@ -339,6 +340,7 @@ async function validateRepositoryDocs(rootDir) {
         markdownCache,
         issues
     });
+    await validateConfigDefaults({ repoRoot, issues });
     return issues.sort((left, right) => {
         const fileOrder = left.filePath.localeCompare(right.filePath);
         if (fileOrder !== 0) {
@@ -350,6 +352,72 @@ async function validateRepositoryDocs(rootDir) {
         }
         return left.message.localeCompare(right.message);
     });
+}
+/**
+ * The set of package.json configuration keys whose `default` values must stay in sync
+ * with src/config/defaults.ts. Each entry maps the package.json property path to the
+ * expected value derived from DEFAULT_CONFIG.
+ */
+const CHECKED_CONFIG_DEFAULTS = [
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.promptBudgetProfile', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.promptBudgetProfile,
+        label: 'ralphCodex.promptBudgetProfile'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.planningPass', 'default', 'enabled'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.planningPass.enabled,
+        label: 'ralphCodex.planningPass.enabled'
+    }
+];
+async function validateConfigDefaults(input) {
+    const packageJsonPath = path.join(input.repoRoot, 'package.json');
+    if (!(await (0, fs_1.pathExists)(packageJsonPath))) {
+        input.issues.push({
+            code: 'config_default_missing_package_json',
+            filePath: 'package.json',
+            message: 'package.json not found; cannot validate config defaults.'
+        });
+        return;
+    }
+    let packageJson;
+    try {
+        const text = await fs.readFile(packageJsonPath, 'utf8');
+        packageJson = JSON.parse(text);
+    }
+    catch {
+        input.issues.push({
+            code: 'config_default_parse_error',
+            filePath: 'package.json',
+            message: 'Failed to parse package.json; cannot validate config defaults.'
+        });
+        return;
+    }
+    for (const check of CHECKED_CONFIG_DEFAULTS) {
+        let node = packageJson;
+        for (const key of check.packageJsonPath) {
+            if (node === null || typeof node !== 'object' || !(key in node)) {
+                node = undefined;
+                break;
+            }
+            node = node[key];
+        }
+        if (node === undefined) {
+            input.issues.push({
+                code: 'config_default_missing',
+                filePath: 'package.json',
+                message: `Missing default for ${check.label} at path ${check.packageJsonPath.join('.')}. Expected ${JSON.stringify(check.expectedValue)}.`
+            });
+            continue;
+        }
+        if (node !== check.expectedValue) {
+            input.issues.push({
+                code: 'config_default_mismatch',
+                filePath: 'package.json',
+                message: `Default for ${check.label} in package.json is ${JSON.stringify(node)} but src/config/defaults.ts has ${JSON.stringify(check.expectedValue)}. Align them to fix this drift.`
+            });
+        }
+    }
 }
 function formatDocsValidationReport(issues) {
     if (issues.length === 0) {

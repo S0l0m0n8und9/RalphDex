@@ -611,7 +611,7 @@
             "claude",
             "custom"
           ],
-          "default": "claude",
+          "default": "codex",
           "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context placeholder matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
         },
         "ralphCodex.customPromptBudget": {
@@ -763,7 +763,7 @@
         "ralphCodex.planningPass": {
           "type": "object",
           "default": {
-            "enabled": true,
+            "enabled": false,
             "mode": "inline"
           },
           "description": "Pre-execution planning pass configuration. enabled (bool, default true): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."

@@ -563,6 +563,10 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     lastTaskTierInfo: null,
     operatorMode: undefined,
     operatorModeProvenance: null,
+    planningPassEnabled: false,
+    planningPassEnabledSource: 'manifest-default',
+    promptBudgetProfile: 'codex',
+    promptBudgetProfileSource: 'manifest-default',
     ...overrides,
     recommendedSkills: overrides.recommendedSkills ?? []
   };

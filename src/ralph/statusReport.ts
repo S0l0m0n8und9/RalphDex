@@ -106,6 +106,12 @@ export interface RalphStatusSnapshot {
    * Non-null only when operatorMode is set.
    */
   operatorModeProvenance: OperatorModeSettingProvenance[] | null;
+  /** Effective value of planningPass.enabled and whether it came from a user override or the manifest default. */
+  planningPassEnabled: boolean;
+  planningPassEnabledSource: 'explicit' | 'manifest-default';
+  /** Effective value of promptBudgetProfile and whether it came from a user override or the manifest default. */
+  promptBudgetProfile: string;
+  promptBudgetProfileSource: 'explicit' | 'manifest-default';
   /** Tasks that have been moved to the dead-letter queue after exhausting recovery attempts. */
   deadLetterEntries?: DeadLetterEntry[];
   /** Last diagnosed failure category for the currently selected task, or null when none recorded. */
@@ -375,6 +381,8 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     '## Loop',
     `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
     ...operatorModeLines,
+    `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
+    `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,
     `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
     `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
     `- Next iteration: ${snapshot.nextIteration}`,

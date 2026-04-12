@@ -256,6 +256,14 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     const operatorModeProvenance = (0, readConfig_1.resolveOperatorModeProvenance)(rawConfig, config, config.operatorMode);
+    const planningPassInspect = rawConfig.inspect('planningPass');
+    const planningPassExplicit = planningPassInspect?.workspaceValue !== undefined
+        || planningPassInspect?.globalValue !== undefined;
+    const planningPassEnabledSource = planningPassExplicit ? 'explicit' : 'manifest-default';
+    const budgetProfileInspect = rawConfig.inspect('promptBudgetProfile');
+    const budgetProfileExplicit = budgetProfileInspect?.workspaceValue !== undefined
+        || budgetProfileInspect?.globalValue !== undefined;
+    const promptBudgetProfileSource = budgetProfileExplicit ? 'explicit' : 'manifest-default';
     const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
     await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
     const taskInspection = inspection.fileStatus.taskFilePath
@@ -475,6 +483,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         lastTaskTierInfo,
         operatorMode: config.operatorMode,
         operatorModeProvenance,
+        planningPassEnabled: config.planningPass.enabled,
+        planningPassEnabledSource,
+        promptBudgetProfile: config.promptBudgetProfile,
+        promptBudgetProfileSource,
         deadLetterEntries,
         lastFailureCategory,
         recoveryAttemptCount,

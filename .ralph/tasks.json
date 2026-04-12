@@ -3062,7 +3062,85 @@
         "Smoke or regression coverage confirms the status commands now route through the dashboard workflow",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T113",
+      "title": "Configuration/default consistency hardening (PRD item 16)",
+      "status": "done",
+      "notes": "Aligned planningPass.enabled and promptBudgetProfile defaults between package.json and defaults.ts; added config-default drift check to check:docs; Show Status now reports effective value and source for both settings",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A single source-of-truth table or mechanism exists for shipped defaults and is consumed or enforced by docs validation",
+        "Show Status reports both the effective value and source (preset, manifest default, or explicit) for planningPass.enabled and promptBudgetProfile",
+        "npm run check:docs fails when package.json default and src/config/defaults.ts diverge for planningPass.enabled or promptBudgetProfile",
+        "npm run validate passes with no config-default mismatch warnings"
+      ]
+    },
+    {
+      "id": "T114",
+      "title": "Azure Foundry authentication completion (PRD item 17)",
+      "status": "todo",
+      "notes": "Complete the keyless Azure AD auth path and remove the stub warning. Implement DefaultAzureCredential via @azure/identity in azureFoundryProvider.ts. Upgrade preflight from informational warning to explicit auth-readiness checks for API key and Azure AD paths.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "AzureFoundryProvider acquires a bearer token via DefaultAzureCredential when no API key is configured, and sends it as Authorization: Bearer in the HTTPS request",
+        "API-key auth path is preserved and API key values are never written to transcripts, provenance artifacts, or output channels",
+        "Preflight explicitly states which auth path is active and emits an error when neither API key nor Azure AD credential is available",
+        "Unit tests cover API key path, Azure AD token acquisition path, and failure mapping for each",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T115",
+      "title": "Provider-agnostic memory summarization (PRD item 18)",
+      "status": "todo",
+      "dependsOn": [
+        "T114"
+      ],
+      "notes": "Replace the hardcoded claude -p - summarization invocation in iterationPreparation.ts with a provider-strategy abstraction so memoryStrategy=summary works across codex, claude, copilot, and azure-foundry providers without provider-specific flag assumptions.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "maybeSummariseHistory invokes summarization through the active CliProvider or CliExecCodexStrategy rather than a hardcoded claude -p - shell command",
+        "Silent fallback is replaced by an explicit fallback artifact field (summarizationMode: provider_exec or fallback_summary) visible in provenance and status",
+        "Fallback events are surfaced as a preflight info diagnostic so operators can audit whether provider-backed summarization is actually running",
+        "Regression tests verify summarization invocation per provider variant and fallback signaling when the provider call fails",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T116",
+      "title": "Documentation and operator-trust reconciliation (PRD item 19)",
+      "status": "todo",
+      "notes": "Ensure surfaced behavior matches actual runtime capability and cost model. Remove outdated placeholder/reserved-for-future text where implementation already exists. Add feature maturity markers (stable/beta/experimental) to major toggles. Add a PR checklist item requiring docs + manifest + runtime default review for any config change.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "No contradictions remain between manifest descriptions, docs, and implementation behavior for planning pass, memory summary, prompt profile, and Azure provider auth",
+        "Operator-facing docs use explicit maturity markers (stable, beta, experimental) for planning pass, memory summary, promptBudgetProfile, and Azure Foundry auth paths",
+        "A CONTRIBUTING.md or docs/pr-checklist.md entry requires docs + manifest + runtime default review for any config change",
+        "npm run check:docs fails if contradictions matching a defined pattern are introduced in future changes",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T117",
+      "title": "Webview UI Phase 3 — PRD Creation Wizard skeleton",
+      "status": "todo",
+      "dependsOn": [
+        "T108",
+        "T109"
+      ],
+      "notes": "Register ralphCodex.newProjectWizard command and implement a multi-step webview wizard: project-type card picker, objective text area with hints, constraints fields, generate step invoking projectGenerator.ts, task review cards, configuration/recommended-skills step, and confirm/write step. The wizard also serves as the entry point for the regeneratePrd flow.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "ralphCodex.newProjectWizard command is registered in registerCommands.ts and package.json with activation event, and shows a multi-step wizard panel via WebviewPanelManager",
+        "Wizard steps are: project-type picker, objective text area, constraints, generate (with inline PRD preview), task review cards with editable tier, configuration/recommended-skills selection, and confirm/write summary",
+        "Generate step calls generateProjectDraft and renders the draft PRD inline before writing to disk; fallback to static template on CLI failure is preserved",
+        "Confirm/write step writes prd.md and tasks.json and shows a summary of every file written",
+        "Wizard is also reachable from the regeneratePrd flow opening step 4 with existing prd.md pre-loaded",
+        "Package manifest test covers newProjectWizard activation event and command contribution",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 93
+  "mutationCount": 94
 }

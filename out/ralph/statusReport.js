@@ -246,6 +246,8 @@ function buildStatusReport(snapshot) {
         '## Loop',
         `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
         ...operatorModeLines,
+        `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
+        `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,
         `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,
         `- Configured agent count: ${snapshot.agentCount}${snapshot.agentCount > 1 ? ` (parallel mode)` : ' (single-agent)'}`,
         `- Next iteration: ${snapshot.nextIteration}`,

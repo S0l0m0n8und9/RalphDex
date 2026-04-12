@@ -260,6 +260,16 @@ export async function collectStatusSnapshot(
   const config = readConfig(workspaceFolder);
   const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
   const operatorModeProvenance = resolveOperatorModeProvenance(rawConfig, config, config.operatorMode);
+
+  const planningPassInspect = rawConfig.inspect<unknown>('planningPass');
+  const planningPassExplicit = planningPassInspect?.workspaceValue !== undefined
+    || planningPassInspect?.globalValue !== undefined;
+  const planningPassEnabledSource: 'explicit' | 'manifest-default' = planningPassExplicit ? 'explicit' : 'manifest-default';
+
+  const budgetProfileInspect = rawConfig.inspect<unknown>('promptBudgetProfile');
+  const budgetProfileExplicit = budgetProfileInspect?.workspaceValue !== undefined
+    || budgetProfileInspect?.globalValue !== undefined;
+  const promptBudgetProfileSource: 'explicit' | 'manifest-default' = budgetProfileExplicit ? 'explicit' : 'manifest-default';
   const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
   await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
 
@@ -487,6 +497,10 @@ export async function collectStatusSnapshot(
     lastTaskTierInfo,
     operatorMode: config.operatorMode,
     operatorModeProvenance,
+    planningPassEnabled: config.planningPass.enabled,
+    planningPassEnabledSource,
+    promptBudgetProfile: config.promptBudgetProfile,
+    promptBudgetProfileSource,
     deadLetterEntries,
     lastFailureCategory,
     recoveryAttemptCount,

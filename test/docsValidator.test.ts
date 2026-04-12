@@ -26,6 +26,15 @@ async function seedValidRepository(rootPath: string): Promise<void> {
             items: {
               enum: ['validationCommand', 'gitDiff', 'taskState']
             }
+          },
+          'ralphCodex.promptBudgetProfile': {
+            default: 'codex'
+          },
+          'ralphCodex.planningPass': {
+            default: {
+              enabled: false,
+              mode: 'inline'
+            }
           }
         }
       }
