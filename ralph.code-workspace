@@ -8,7 +8,7 @@
 		"ralphCodex.claudeMaxTurns": 125,
 		"ralphCodex.cliProvider": "codex",
 		"ralphCodex.model": "gpt-5.4",
-		"ralphCodex.promptBudgetProfile": "claude",
+		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
 			"enabled": true,
 			"simple": {
@@ -29,6 +29,7 @@
 		"ralphCodex.scmStrategy": "commit-on-done",
 		"ralphCodex.scmPrOnParentDone": false,
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
-		"ralphCodex.autoReplenishBacklog": true
+		"ralphCodex.autoReplenishBacklog": true,
+		"ralphCodex.reasoningEffort": "medium"
 	}
 }

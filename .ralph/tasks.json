@@ -2972,7 +2972,96 @@
         "AGENTS.md code owners updated for src/webview/",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T108",
+      "title": "Webview UI Phase 2.1: consolidate dashboard data onto durable status snapshots",
+      "status": "done",
+      "dependsOn": [
+        "T107"
+      ],
+      "notes": "Defined DashboardSnapshot type and buildDashboardSnapshot assembler in src/webview/dashboardSnapshot.ts; 9 unit tests pass; npm run validate clean at 749 tests.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A typed dashboard snapshot or adapter under src/webview/ is built from durable Ralph status sources instead of bespoke watcher-only shaping",
+        "The snapshot includes pipeline-strip, task-board, agent-grid, failure-feed, dead-letter, and quick-action inputs, using null or empty states when data is unavailable",
+        "Snapshot assembly reuses collectStatusSnapshot(...) and existing multi-agent or dead-letter helpers rather than introducing a third independent status pipeline",
+        "Unit tests cover an empty Ralph workspace and a populated workspace with pipeline, failure, and dead-letter data",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T109",
+      "title": "Webview UI Phase 2.2: add a showDashboard command and migrate dashboard hosting onto src/webview foundations",
+      "status": "todo",
+      "dependsOn": [
+        "T108"
+      ],
+      "notes": "The existing sidebar and openDashboard panel still manage lifecycle and message handling inside src/ui/. Move dashboard hosting onto WebviewPanelManager and MessageBridge, add the PRD-named showDashboard command, and keep any legacy openDashboard entry as a compatibility alias instead of letting the extension ship two divergent dashboard stacks.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A user-facing ralphCodex.showDashboard command is registered and contributed, with existing dashboard entry points routed through the same panel host",
+        "Dashboard panel lifecycle uses WebviewPanelManager instead of bespoke singleton handling in src/ui/",
+        "Extension to webview message flow uses MessageBridge with a typed command or state contract instead of raw untyped onDidReceiveMessage wiring",
+        "Sidebar launch and editor-panel launch share the same dashboard host and do not create duplicate panels or divergent state models",
+        "Regression tests cover open, reveal, dispose, and command-ack flows for the migrated dashboard host",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T110",
+      "title": "Webview UI Phase 2.3: surface pipeline, agent, task, and failure sections in the dashboard",
+      "status": "todo",
+      "dependsOn": [
+        "T109"
+      ],
+      "notes": "Once the dashboard is on the new host, bring it up to the PRD's Phase 2 contract: pipeline strip, agent grid, task board, failure feed, and quick actions should all be rendered from durable Ralph state, and failure or recovery actions must continue to route through existing command handlers instead of direct webview-side mutations.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Dashboard renders a pipeline strip with latest phase, progress, elapsed or stop context, and latest pipeline-run linkage when available",
+        "Dashboard renders an agent grid and task board sourced from durable status data, including distinct dead-letter visibility rather than folding those tasks into blocked",
+        "Dashboard renders a failure feed with recent failure category, confidence, and task context, plus action buttons that route through the existing command layer",
+        "Dashboard exposes a quick-actions bar for pause or resume, stop, latest-artifact, and settings-oriented actions defined by the approved command surface",
+        "UI tests cover empty-state and populated-state rendering for pipeline, agent, task, dead-letter, and failure sections",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T111",
+      "title": "Webview UI Phase 2.4: add dashboard cost-ticker observability from provenance and execution artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T108",
+        "T109"
+      ],
+      "notes": "The PRD's dashboard includes a cost ticker, but the current UI model does not normalize available cost signals. Add a dashboard-facing cost snapshot that uses the provenance and execution data Ralph already persists, and render an explicit unavailable state when a provider does not report exact cost or token data.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Dashboard data assembly exposes currently available cost signals such as diagnosticCost, promptCacheStats, and any provider-reported execution cost already persisted in Ralph artifacts",
+        "Cost aggregation stays deterministic and file-backed; the dashboard does not scrape raw transcript text in the webview itself",
+        "Dashboard renders a cost ticker with sensible exact or unavailable states instead of inventing token or dollar values when the provider did not report them",
+        "Unit tests cover both unavailable-cost and populated-cost dashboard states",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T112",
+      "title": "Webview UI Phase 2.5: route Show Status workflows through the dashboard and align docs and tests",
+      "status": "todo",
+      "dependsOn": [
+        "T110",
+        "T111"
+      ],
+      "notes": "The PRD calls for Show Status and Show Multi-Agent Status to become dashboard-first workflows. After the migrated dashboard can render the required sections, route those status commands to the panel, preserve output-channel or artifact inspection as secondary paths where still useful, and update the owning docs so the dashboard-first operator flow is explicit.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Ralphdex: Show Status and Ralphdex: Show Multi-Agent Status open or focus the dashboard instead of only writing text output to the channel",
+        "Operators still retain a deterministic path to the raw status report or latest artifacts where those text surfaces remain useful for audit and debugging",
+        "README.md, docs/architecture.md, and any workflow docs that own the status UX are updated for the dashboard-first flow and command surface",
+        "Smoke or regression coverage confirms the status commands now route through the dashboard workflow",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 82
+  "mutationCount": 84
 }
