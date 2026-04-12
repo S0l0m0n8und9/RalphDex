@@ -449,6 +449,62 @@ Acceptance criteria for Phase 1:
 - Activity bar entry registered and clickable without throwing.
 - `npm run validate` passes.
 
+**16. Configuration/default consistency hardening**
+
+Objective: eliminate behavior drift caused by contradictory defaults and stale docs.
+
+Deliverables:
+- Align `ralphCodex.planningPass.enabled` defaults across `package.json`, `src/config/defaults.ts`, and docs so the shipped behavior is deterministic.
+- Align `ralphCodex.promptBudgetProfile` default with calibrated guidance (codex vs claude placeholder) and document migration impact.
+- Add a docs/config consistency check to `npm run check:docs` so default-value drift fails CI.
+
+Acceptance criteria:
+- A single source-of-truth table exists for defaults and is consumed by docs validation.
+- `Show Status` reports both effective value and source (`preset`, `manifest default`, or `explicit`) for planning pass and prompt budget profile.
+- `npm run validate` passes with no config-default mismatch warnings.
+
+**17. Azure Foundry authentication completion**
+
+Objective: complete the unfinished keyless auth path and remove “not yet implemented” behavior for Azure AD.
+
+Deliverables:
+- Implement Azure AD credential flow (Managed Identity / `DefaultAzureCredential`) in the Azure Foundry provider.
+- Keep API-key flow intact and ensure credentials are never persisted in artifacts/transcripts.
+- Upgrade preflight from informational warning to explicit auth-readiness checks for API key and Azure AD paths.
+
+Acceptance criteria:
+- Azure Foundry runs succeed with either API key or Azure AD token path.
+- Preflight clearly states which auth path is active and whether it is executable.
+- Unit tests cover both auth modes and failure mapping.
+
+**18. Provider-agnostic memory summarization**
+
+Objective: remove partial implementation risk in `memoryStrategy=summary` by routing summarization through provider-aware execution.
+
+Deliverables:
+- Replace hardcoded `command -p -` summarization invocation with provider strategy abstraction.
+- Preserve fallback behavior, but emit explicit telemetry/warnings when fallback text is used.
+- Add artifacts indicating summarization mode (`provider_exec`, `fallback_summary`) for auditability.
+
+Acceptance criteria:
+- Summary-mode works across codex, claude, copilot, and azure-foundry providers without provider-specific flag assumptions.
+- Silent fallback is removed; fallback events are visible in status and provenance.
+- Regression tests verify summarization invocation per provider and fallback signaling.
+
+**19. Documentation and operator-trust reconciliation**
+
+Objective: ensure surfaced behavior matches actual runtime capability and cost model.
+
+Deliverables:
+- Remove outdated “placeholder/reserved for future” text where implementation already exists (or gate feature if intentionally not production-ready).
+- Add a “feature maturity” marker (`stable`, `beta`, `experimental`) to major toggles: planning pass, memory summary, prompt profile, Azure provider auth path.
+- Add a PR checklist item requiring docs + manifest + runtime default review for any config change.
+
+Acceptance criteria:
+- No contradictions remain between manifest descriptions, docs, and implementation behavior for reviewed features.
+- Operator-facing docs explicitly identify calibrated vs non-calibrated defaults.
+- `npm run check:docs` fails on future contradiction patterns introduced in this phase.
+
 **99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
