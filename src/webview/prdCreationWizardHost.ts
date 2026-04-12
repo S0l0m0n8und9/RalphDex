@@ -108,6 +108,7 @@ interface WizardState {
   warning: string | null;
   error: string | null;
   currentPrdPreview: string | null;
+  comparisonSummary?: string | null;
   writeSummary: PrdWizardWriteResult | null;
   configSelections: PrdWizardConfigSelection[];
   paths: PrdWizardPaths;
@@ -331,6 +332,42 @@ function validateReviewedTasks(tasks: PrdWizardTaskDraft[]): string | null {
   return null;
 }
 
+function countChangedLines(currentText: string, draftText: string): number {
+  const currentLines = currentText.split(/\r?\n/);
+  const draftLines = draftText.split(/\r?\n/);
+  const lineCount = Math.max(currentLines.length, draftLines.length);
+  let changed = 0;
+
+  for (let index = 0; index < lineCount; index += 1) {
+    if ((currentLines[index] ?? '') !== (draftLines[index] ?? '')) {
+      changed += 1;
+    }
+  }
+
+  return changed;
+}
+
+function buildComparisonSummary(
+  mode: PrdWizardMode,
+  currentPrdPreview: string | null,
+  draftText: string | null
+): string | null {
+  if (mode !== 'regenerate' || !currentPrdPreview) {
+    return null;
+  }
+
+  if (draftText === null) {
+    return 'Current PRD loaded. Generate a new draft to compare changes.';
+  }
+
+  if (draftText === currentPrdPreview) {
+    return 'Draft matches the current PRD.';
+  }
+
+  const changedLines = countChangedLines(currentPrdPreview, draftText);
+  return `${changedLines} changed lines vs current PRD.`;
+}
+
 export class PrdCreationWizardHost implements vscode.Disposable {
   private readonly bridge: MessageBridge<WizardOutboundMessage, WizardInboundMessage>;
   private readonly options: Omit<PrdCreationWizardHostOptions, 'webview'>;
@@ -431,7 +468,17 @@ export class PrdCreationWizardHost implements vscode.Disposable {
   }
 
   private emitState(): void {
-    this.bridge.send({ type: 'state', state: this.state });
+    this.bridge.send({
+      type: 'state',
+      state: {
+        ...this.state,
+        comparisonSummary: buildComparisonSummary(
+          this.state.mode,
+          this.state.currentPrdPreview,
+          this.state.draft?.prdText ?? null
+        )
+      }
+    });
   }
 
   private async handleMessage(message: WizardInboundMessage): Promise<void> {
@@ -1072,6 +1119,9 @@ code {
         const objectiveLength = state.objective.length;
         const warning = state.warning ? '<div class="warning">' + escapeHtml(state.warning) + '</div>' : '';
         const error = state.error ? '<div class="error">' + escapeHtml(state.error) + '</div>' : '';
+        const comparisonSummary = state.comparisonSummary
+          ? '<div class="note"><strong>Comparison</strong><div>' + escapeHtml(state.comparisonSummary) + '</div></div>'
+          : '';
         const regenerateComparison = state.mode === 'regenerate' && currentPreview
           ? '<div class="preview-pane">' +
               '<strong>Current PRD</strong>' +
@@ -1118,6 +1168,7 @@ code {
                 '</section>' +
                 '<section class="wizard-step">' +
                   '<h2>4. Generate With Inline Preview</h2>' +
+                  comparisonSummary +
                   '<div class="preview-grid">' +
                     draftEditor +
                     regenerateComparison +

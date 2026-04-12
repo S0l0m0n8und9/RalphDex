@@ -260,6 +260,50 @@ test('PrdCreationWizardHost: regenerate context keeps the current PRD as compari
   host.dispose();
 });
 
+test('PrdCreationWizardHost: regenerate state includes a current-vs-draft comparison summary', async () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'regenerate',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    initialObjective: 'Refine the existing PRD.',
+    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n',
+    configSelections: makeConfigSelections(),
+    generateDraft: async () => makeGeneratedDraft({
+      prdText: '# Generated PRD\n\nFresh generated content.\n'
+    }),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  let state = lastStateMessage(webview).state as {
+    comparisonSummary?: string | null;
+  };
+  assert.equal(state.comparisonSummary, 'Draft matches the current PRD.');
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  state = lastStateMessage(webview).state as {
+    comparisonSummary?: string | null;
+  };
+  assert.match(state.comparisonSummary ?? '', /changed lines vs current PRD/i);
+
+  webviewSends(webview, { type: 'update-draft-prd-text', value: '# Existing PRD\n\nCurrent repo-owned content.\n' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  state = lastStateMessage(webview).state as {
+    comparisonSummary?: string | null;
+  };
+  assert.equal(state.comparisonSummary, 'Draft matches the current PRD.');
+
+  host.dispose();
+});
+
 test('PrdCreationWizardHost: generate falls back to bootstrap draft on generation failure', async () => {
   const webview = makeMockWebview();
 

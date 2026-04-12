@@ -3144,14 +3144,14 @@
     {
       "id": "T118",
       "title": "Webview UI Phase 3 — complete the PRD Creation Wizard contract",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T118.1",
         "T118.2",
         "T118.3",
         "T118.4"
       ],
-      "notes": "T117 shipped the wizard shell and basic generate-preview-review-confirm flow, but the PRD still requires richer project-type/objective/constraint inputs, editable generated content, full task-card editing, and configuration application during confirm.",
+      "notes": "Completed the remaining PRD wizard Phase 3 contract gaps by adding regenerate-mode current-vs-draft comparison summaries in step 4 and ensuring confirm rewrites recommended-skills.json even when the operator deselects every skill. Focused wizard tests and full npm run validate both passed.",
       "validation": "npm run validate",
       "acceptance": [
         "The wizard matches the Phase 3 PRD contract across steps 1-7 instead of only the skeleton flow",
@@ -3229,5 +3229,5 @@
       ]
     }
   ],
-  "mutationCount": 103
+  "mutationCount": 106
 }
