@@ -3079,8 +3079,8 @@
     {
       "id": "T114",
       "title": "Azure Foundry authentication completion (PRD item 17)",
-      "status": "todo",
-      "notes": "Complete the keyless Azure AD auth path and remove the stub warning. Implement DefaultAzureCredential via @azure/identity in azureFoundryProvider.ts. Upgrade preflight from informational warning to explicit auth-readiness checks for API key and Azure AD paths.",
+      "status": "done",
+      "notes": "All acceptance criteria verified: DefaultAzureCredential bearer token path implemented in azureFoundryProvider.ts, API-key path preserved with redaction, preflight emits 4 auth-readiness diagnostics (endpoint_missing error, auth_azure_ad warning, no_auth_available error, auth_api_key_active info), 13+ unit tests cover both auth paths and all failure modes. npm run validate passes with 776 tests, 0",
       "validation": "npm run validate",
       "acceptance": [
         "AzureFoundryProvider acquires a bearer token via DefaultAzureCredential when no API key is configured, and sends it as Authorization: Bearer in the HTTPS request",
@@ -3142,5 +3142,5 @@
       ]
     }
   ],
-  "mutationCount": 94
+  "mutationCount": 95
 }

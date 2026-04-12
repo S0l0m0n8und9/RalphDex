@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.setAzureIdentityResolvableOverride = setAzureIdentityResolvableOverride;
 exports.summarizeActiveClaimsByAgent = summarizeActiveClaimsByAgent;
 exports.checkStaleState = checkStaleState;
 exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
@@ -55,6 +56,29 @@ const CATEGORY_LABELS = {
     agentHealth: 'Agent Health'
 };
 const DEFAULT_STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+/**
+ * Synchronous probe for `@azure/identity` availability. Returns `true` when
+ * the module can be resolved from the extension's `node_modules`, meaning
+ * `DefaultAzureCredential` will be importable at execution time.
+ *
+ * Exported for test substitution via `setAzureIdentityResolvableOverride`.
+ */
+let azureIdentityResolvableOverride = null;
+function setAzureIdentityResolvableOverride(value) {
+    azureIdentityResolvableOverride = value;
+}
+function isAzureIdentityResolvable() {
+    if (azureIdentityResolvableOverride !== null) {
+        return azureIdentityResolvableOverride;
+    }
+    try {
+        require.resolve('@azure/identity');
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
 function createDiagnostic(category, severity, code, message, details = {}) {
     return {
         category,
@@ -588,10 +612,15 @@ function buildPreflightReport(input) {
             diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_endpoint_missing', 'cliProvider is set to azure-foundry but ralphCodex.azureFoundryEndpointUrl is not configured.'));
         }
         else if (!input.config.azureFoundryApiKey) {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'azure_foundry_auth_api_key_absent', 'No API key configured for azure-foundry (ralphCodex.azureFoundryApiKey is empty). Azure AD authentication would be attempted when executed (not yet implemented).'));
+            if (isAzureIdentityResolvable()) {
+                diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'azure_foundry_auth_azure_ad', 'No API key configured for azure-foundry. Azure AD authentication (DefaultAzureCredential) will be used. Ensure Azure credentials are available in the environment (e.g. az login, managed identity, or environment variables).'));
+            }
+            else {
+                diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_no_auth_available', 'No API key configured for azure-foundry and @azure/identity is not installed. Neither API-key nor Azure AD authentication is available. Configure ralphCodex.azureFoundryApiKey or install @azure/identity for DefaultAzureCredential support.'));
+            }
         }
         else {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'azure_foundry_auth_configured', 'Azure AI Foundry API key is configured.'));
+            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'azure_foundry_auth_api_key_active', 'Azure AI Foundry API key auth path is active.'));
         }
     }
     if (input.config.verifierModes.includes('validationCommand')) {

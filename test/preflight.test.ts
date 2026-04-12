@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
+import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport, setAzureIdentityResolvableOverride } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
@@ -853,21 +853,48 @@ test('buildPreflightReport emits error when azure-foundry endpoint is not config
   );
 });
 
-test('buildPreflightReport emits info when azure-foundry has endpoint but no API key', () => {
-  const report = buildPreflightReport(azureFoundryBaseInput({
-    azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
-    azureFoundryApiKey: ''
-  }));
+test('buildPreflightReport emits warning when azure-foundry has endpoint but no API key and @azure/identity is available', () => {
+  setAzureIdentityResolvableOverride(true);
+  try {
+    const report = buildPreflightReport(azureFoundryBaseInput({
+      azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      azureFoundryApiKey: ''
+    }));
 
-  assert.equal(report.ready, true, 'should be ready — Azure AD path is acceptable');
-  assert.ok(
-    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_azure_ad' && d.severity === 'info'),
-    'should have azure_foundry_auth_azure_ad info diagnostic'
-  );
-  assert.ok(
-    report.diagnostics.some((d) => /Azure AD/i.test(d.message) && /DefaultAzureCredential/i.test(d.message)),
-    'diagnostic message should mention Azure AD and DefaultAzureCredential'
-  );
+    assert.equal(report.ready, true, 'should be ready — Azure AD path is acceptable');
+    assert.ok(
+      report.diagnostics.some((d) => d.code === 'azure_foundry_auth_azure_ad' && d.severity === 'warning'),
+      'should have azure_foundry_auth_azure_ad warning diagnostic'
+    );
+    assert.ok(
+      report.diagnostics.some((d) => /Azure AD/i.test(d.message) && /DefaultAzureCredential/i.test(d.message)),
+      'diagnostic message should mention Azure AD and DefaultAzureCredential'
+    );
+  } finally {
+    setAzureIdentityResolvableOverride(null);
+  }
+});
+
+test('buildPreflightReport emits error when azure-foundry has no API key and @azure/identity is not installed', () => {
+  setAzureIdentityResolvableOverride(false);
+  try {
+    const report = buildPreflightReport(azureFoundryBaseInput({
+      azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      azureFoundryApiKey: ''
+    }));
+
+    assert.equal(report.ready, false, 'should not be ready when neither auth method is available');
+    assert.ok(
+      report.diagnostics.some((d) => d.code === 'azure_foundry_no_auth_available' && d.severity === 'error'),
+      'should have azure_foundry_no_auth_available error diagnostic'
+    );
+    assert.ok(
+      report.diagnostics.some((d) => /neither/i.test(d.message) && /azureFoundryApiKey/i.test(d.message)),
+      'error diagnostic should mention neither auth method and the config key'
+    );
+  } finally {
+    setAzureIdentityResolvableOverride(null);
+  }
 });
 
 test('buildPreflightReport emits info when azure-foundry has endpoint and API key', () => {
