@@ -17,6 +17,7 @@ import { RalphPaths } from './pathResolver';
 import type { RecommendedSkill } from './projectGenerator';
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import type { DeadLetterEntry } from './deadLetter';
+import type { FailureAnalysis } from './failureDiagnostics';
 import {
   FailureCategoryId,
   RalphCliInvocation,
@@ -111,6 +112,8 @@ export interface RalphStatusSnapshot {
   lastFailureCategory?: FailureCategoryId | null;
   /** Number of recovery attempts for the currently selected task, or null when none recorded. */
   recoveryAttemptCount?: number | null;
+  /** Latest parsed failure-analysis.json for the currently selected task, or null when none recorded. */
+  latestFailureAnalysis?: FailureAnalysis | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {

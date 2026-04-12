@@ -18,18 +18,20 @@ const dashboardHost_1 = require("../webview/dashboardHost");
 class RalphSidebarViewProvider {
     extensionUri;
     broadcaster;
+    loadSnapshot;
     static viewType = 'ralphCodex.dashboard';
     host;
-    constructor(extensionUri, broadcaster) {
+    constructor(extensionUri, broadcaster, loadSnapshot) {
         this.extensionUri = extensionUri;
         this.broadcaster = broadcaster;
+        this.loadSnapshot = loadSnapshot;
     }
     resolveWebviewView(webviewView, _context, _token) {
         webviewView.webview.options = { enableScripts: true };
         // Dispose any previous host before creating a new one (VS Code may call
         // resolveWebviewView again if the view is hidden and re-shown).
         this.host?.dispose();
-        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, sidebarHtml_1.buildDashboardHtml);
+        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, sidebarHtml_1.buildDashboardHtml, this.loadSnapshot);
         webviewView.onDidDispose(() => {
             this.host?.dispose();
             this.host = undefined;
@@ -60,7 +62,8 @@ function defaultDashboardState() {
         preflightSummary: 'ok',
         diagnostics: [],
         agentLanes: [],
-        config: null
+        config: null,
+        dashboardSnapshot: null
     };
 }
 function buildDashboardTasks(taskFile, selectedTaskId) {

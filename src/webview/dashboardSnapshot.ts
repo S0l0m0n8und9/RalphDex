@@ -33,6 +33,7 @@ export interface PipelineStrip {
   loopStartTime: string;
   loopEndTime: string | null;
   prUrl: string | null;
+  lastStopReason: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -41,6 +42,7 @@ export interface PipelineStrip {
 
 export interface TaskBoardSection {
   counts: RalphTaskCounts | null;
+  deadLetterCount: number;
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
   nextIteration: number;
@@ -70,11 +72,20 @@ export interface AgentGridSection {
 // Failure feed
 // ---------------------------------------------------------------------------
 
-export interface FailureFeedSection {
-  lastFailureCategory: FailureCategoryId | null;
+export interface FailureFeedEntry {
+  taskId: string;
+  taskTitle: string;
+  category: FailureCategoryId;
+  confidence: 'high' | 'medium' | 'low';
+  summary: string;
+  suggestedAction: string;
   recoveryAttemptCount: number | null;
   remediationSummary: string | null;
   humanReviewRecommended: boolean;
+}
+
+export interface FailureFeedSection {
+  entries: FailureFeedEntry[];
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +145,7 @@ export function buildDashboardSnapshot(
 ): DashboardSnapshot {
   return {
     workspaceName: snapshot.workspaceName,
-    pipeline: buildPipelineStrip(snapshot.latestPipelineRun),
+    pipeline: buildPipelineStrip(snapshot),
     taskBoard: buildTaskBoard(snapshot),
     agentGrid: buildAgentGrid(agentSummaries),
     failureFeed: buildFailureFeed(snapshot),
@@ -143,7 +154,8 @@ export function buildDashboardSnapshot(
   };
 }
 
-function buildPipelineStrip(run: PipelineRunArtifact | null): PipelineStrip | null {
+function buildPipelineStrip(snapshot: RalphStatusSnapshot): PipelineStrip | null {
+  const run = snapshot.latestPipelineRun;
   if (!run) {
     return null;
   }
@@ -156,12 +168,14 @@ function buildPipelineStrip(run: PipelineRunArtifact | null): PipelineStrip | nu
     loopStartTime: run.loopStartTime,
     loopEndTime: run.loopEndTime ?? null,
     prUrl: run.prUrl ?? null,
+    lastStopReason: snapshot.lastIteration?.stopReason ?? null,
   };
 }
 
 function buildTaskBoard(snapshot: RalphStatusSnapshot): TaskBoardSection {
   return {
     counts: snapshot.taskCounts,
+    deadLetterCount: snapshot.deadLetterEntries?.length ?? 0,
     selectedTaskId: snapshot.selectedTask?.id ?? null,
     selectedTaskTitle: snapshot.selectedTask?.title ?? null,
     nextIteration: snapshot.nextIteration,
@@ -187,11 +201,22 @@ function buildAgentGrid(summaries: AgentStatusSummary[] | null): AgentGridSectio
 }
 
 function buildFailureFeed(snapshot: RalphStatusSnapshot): FailureFeedSection {
+  if (!snapshot.latestFailureAnalysis || !snapshot.selectedTask) {
+    return { entries: [] };
+  }
+
   return {
-    lastFailureCategory: snapshot.lastFailureCategory ?? null,
-    recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
-    remediationSummary: snapshot.latestRemediation?.summary ?? null,
-    humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
+    entries: [{
+      taskId: snapshot.selectedTask.id,
+      taskTitle: snapshot.selectedTask.title,
+      category: snapshot.latestFailureAnalysis.rootCauseCategory,
+      confidence: snapshot.latestFailureAnalysis.confidence,
+      summary: snapshot.latestFailureAnalysis.summary,
+      suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
+      recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
+      remediationSummary: snapshot.latestRemediation?.summary ?? null,
+      humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
+    }]
   };
 }
 

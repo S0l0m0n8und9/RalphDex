@@ -3011,12 +3011,13 @@
     {
       "id": "T110",
       "title": "Webview UI Phase 2.3: surface pipeline, agent, task, and failure sections in the dashboard",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T109"
       ],
-      "notes": "Once the dashboard is on the new host, bring it up to the PRD's Phase 2 contract: pipeline strip, agent grid, task board, failure feed, and quick actions should all be rendered from durable Ralph state, and failure or recovery actions must continue to route through existing command handlers instead of direct webview-side mutations.",
+      "notes": "Dashboard panel now loads durable status, pipeline, agent, dead-letter, and failure data and renders the Phase 2.3 sections with command-routed actions. Focused dashboard snapshot and panel tests were updated for empty and populated states.",
       "validation": "npm run validate",
+      "blocker": "npm run validate still fails at the final test step in this environment because Node's test runner cannot spawn subprocesses (spawn EPERM). Compile, docs, ledger, prompt-budget, and lint all passed.",
       "acceptance": [
         "Dashboard renders a pipeline strip with latest phase, progress, elapsed or stop context, and latest pipeline-run linkage when available",
         "Dashboard renders an agent grid and task board sourced from durable status data, including distinct dead-letter visibility rather than folding those tasks into blocked",
@@ -3063,5 +3064,5 @@
       ]
     }
   ],
-  "mutationCount": 85
+  "mutationCount": 86
 }

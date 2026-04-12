@@ -48,8 +48,8 @@ class RalphDashboardPanel {
     static viewType = 'ralphCodex.dashboardPanel';
     static currentPanel;
     host;
-    constructor(panel, broadcaster) {
-        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, panelHtml_1.buildPanelDashboardHtml);
+    constructor(panel, broadcaster, loadSnapshot) {
+        this.host = new dashboardHost_1.DashboardHost(panel.webview, broadcaster, panelHtml_1.buildPanelDashboardHtml, loadSnapshot);
         panel.onDidDispose(() => this.dispose());
     }
     /**
@@ -57,7 +57,7 @@ class RalphDashboardPanel {
      * The `manager` must be the same instance across calls so `createOrReveal`
      * can detect and reveal an already-open panel.
      */
-    static createOrReveal(manager, broadcaster) {
+    static createOrReveal(manager, broadcaster, loadSnapshot) {
         const panel = manager.createOrReveal('dashboard', {
             viewType: RalphDashboardPanel.viewType,
             title: 'Ralphdex',
@@ -68,7 +68,7 @@ class RalphDashboardPanel {
             // Existing panel was just revealed by createOrReveal — nothing more to do.
             return;
         }
-        RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster);
+        RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot);
     }
     updateFromWatchedState(watched) {
         this.host.updateFromWatchedState(watched);

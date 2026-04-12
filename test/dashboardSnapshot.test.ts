@@ -32,6 +32,7 @@ function minimalSnapshot(
       | 'deadLetterEntries'
       | 'lastFailureCategory'
       | 'recoveryAttemptCount'
+      | 'latestFailureAnalysis'
     >
   > = {}
 ): RalphStatusSnapshot {
@@ -46,6 +47,7 @@ function minimalSnapshot(
     deadLetterEntries: undefined,
     lastFailureCategory: undefined,
     recoveryAttemptCount: undefined,
+    latestFailureAnalysis: null,
     ...overrides,
   } as unknown as RalphStatusSnapshot;
 }
@@ -122,14 +124,12 @@ test('buildDashboardSnapshot: empty Ralph workspace returns null/empty sections'
   assert.strictEqual(result.workspaceName, 'test-workspace');
   assert.strictEqual(result.pipeline, null);
   assert.strictEqual(result.taskBoard.counts, null);
+  assert.strictEqual(result.taskBoard.deadLetterCount, 0);
   assert.strictEqual(result.taskBoard.selectedTaskId, null);
   assert.strictEqual(result.taskBoard.selectedTaskTitle, null);
   assert.strictEqual(result.taskBoard.nextIteration, 1);
   assert.deepEqual(result.agentGrid, { rows: [] });
-  assert.strictEqual(result.failureFeed.lastFailureCategory, null);
-  assert.strictEqual(result.failureFeed.recoveryAttemptCount, null);
-  assert.strictEqual(result.failureFeed.remediationSummary, null);
-  assert.strictEqual(result.failureFeed.humanReviewRecommended, false);
+  assert.deepEqual(result.failureFeed.entries, []);
   assert.deepEqual(result.deadLetter.entries, []);
   assert.strictEqual(result.quickActions.hasDeadLetterEntries, false);
   assert.strictEqual(result.quickActions.hasBlockedTasks, false);
@@ -165,6 +165,16 @@ test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, fail
       summary: 'Validation mismatch — adjusted prompt',
       evidence: ['npm run validate failed'],
     } as RalphStatusSnapshot['latestRemediation'],
+    latestFailureAnalysis: {
+      schemaVersion: 1,
+      kind: 'failureAnalysis',
+      taskId: 'T108',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      rootCauseCategory: 'validation_mismatch',
+      confidence: 'high',
+      summary: 'Output shape does not match the verifier contract.',
+      suggestedAction: 'Align the emitted payload to the validator schema.',
+    },
     deadLetterEntries: [makeDeadLetterEntry('T99'), makeDeadLetterEntry('T100')],
     lastFailureCategory: 'validation_mismatch',
     recoveryAttemptCount: 2,
@@ -182,15 +192,18 @@ test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, fail
 
   // Task board
   assert.deepEqual(result.taskBoard.counts, { todo: 5, in_progress: 1, blocked: 2, done: 234 });
+  assert.strictEqual(result.taskBoard.deadLetterCount, 2);
   assert.strictEqual(result.taskBoard.selectedTaskId, 'T108');
   assert.strictEqual(result.taskBoard.selectedTaskTitle, 'Webview UI Phase 2.1');
   assert.strictEqual(result.taskBoard.nextIteration, 42);
 
   // Failure feed
-  assert.strictEqual(result.failureFeed.lastFailureCategory, 'validation_mismatch');
-  assert.strictEqual(result.failureFeed.recoveryAttemptCount, 2);
-  assert.strictEqual(result.failureFeed.remediationSummary, 'Validation mismatch — adjusted prompt');
-  assert.strictEqual(result.failureFeed.humanReviewRecommended, true);
+  assert.strictEqual(result.failureFeed.entries.length, 1);
+  assert.strictEqual(result.failureFeed.entries[0].category, 'validation_mismatch');
+  assert.strictEqual(result.failureFeed.entries[0].confidence, 'high');
+  assert.strictEqual(result.failureFeed.entries[0].recoveryAttemptCount, 2);
+  assert.strictEqual(result.failureFeed.entries[0].remediationSummary, 'Validation mismatch — adjusted prompt');
+  assert.strictEqual(result.failureFeed.entries[0].humanReviewRecommended, true);
 
   // Dead-letter
   assert.strictEqual(result.deadLetter.entries.length, 2);
@@ -293,6 +306,7 @@ test('buildDashboardSnapshot: pipeline strip includes prUrl when present', () =>
   assert.strictEqual(result.pipeline!.phase, 'done');
   assert.strictEqual(result.pipeline!.loopEndTime, '2026-01-02T00:00:00.000Z');
   assert.strictEqual(result.pipeline!.prUrl, 'https://github.com/org/repo/pull/42');
+  assert.strictEqual(result.pipeline!.lastStopReason, null);
 });
 
 test('buildDashboardSnapshot: deadLetterEntries undefined treated as empty', () => {

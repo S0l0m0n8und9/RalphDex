@@ -384,6 +384,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const deadLetterEntries = deadLetterQueue.entries;
     let lastFailureCategory = null;
     let recoveryAttemptCount = null;
+    let latestFailureAnalysis = null;
     if (selectedTask) {
         const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
             fs.readFile((0, failureDiagnostics_1.getFailureAnalysisPath)(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
@@ -391,6 +392,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         ]);
         if (failureAnalysisRaw) {
             const parsed = (0, failureDiagnostics_1.parseFailureDiagnosticResponse)(failureAnalysisRaw);
+            latestFailureAnalysis = parsed;
             lastFailureCategory = parsed?.rootCauseCategory ?? null;
         }
         if (recoveryStateRaw) {
@@ -475,7 +477,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         operatorModeProvenance,
         deadLetterEntries,
         lastFailureCategory,
-        recoveryAttemptCount
+        recoveryAttemptCount,
+        latestFailureAnalysis
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

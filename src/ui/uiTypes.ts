@@ -4,6 +4,7 @@ import type {
   RalphTaskCounts,
   RalphTaskStatus,
 } from '../ralph/types';
+import type { DashboardSnapshot } from '../webview/dashboardSnapshot';
 
 // ---------------------------------------------------------------------------
 // Status bar
@@ -204,6 +205,7 @@ export interface RalphDashboardState {
   diagnostics: Array<{ severity: string; message: string }>;
   agentLanes: RalphAgentLaneState[];
   config: RalphDashboardConfigSnapshot | null;
+  dashboardSnapshot: DashboardSnapshot | null;
 }
 
 /** Messages sent from extension to webview. */

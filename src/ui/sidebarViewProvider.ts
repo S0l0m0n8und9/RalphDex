@@ -10,6 +10,7 @@ import type {
   RalphDashboardTask,
 } from './uiTypes';
 import { DashboardHost } from '../webview/dashboardHost';
+import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 
 /**
  * Provides the sidebar webview launcher for Ralphdex.
@@ -26,7 +27,8 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
 
   public constructor(
     private readonly extensionUri: vscode.Uri,
-    private readonly broadcaster: IterationBroadcaster
+    private readonly broadcaster: IterationBroadcaster,
+    private readonly loadSnapshot?: DashboardSnapshotLoader
   ) {}
 
   public resolveWebviewView(
@@ -39,7 +41,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     // Dispose any previous host before creating a new one (VS Code may call
     // resolveWebviewView again if the view is hidden and re-shown).
     this.host?.dispose();
-    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml);
+    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml, this.loadSnapshot);
 
     webviewView.onDidDispose(() => {
       this.host?.dispose();
@@ -74,7 +76,8 @@ export function defaultDashboardState(): import('./uiTypes').RalphDashboardState
     preflightSummary: 'ok',
     diagnostics: [],
     agentLanes: [],
-    config: null
+    config: null,
+    dashboardSnapshot: null
   };
 }
 

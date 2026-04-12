@@ -4,6 +4,7 @@ import type { RalphWatchedState } from './stateWatcher';
 import { buildPanelDashboardHtml } from './panelHtml';
 import { DashboardHost } from '../webview/dashboardHost';
 import type { WebviewPanelManager } from '../webview/WebviewPanelManager';
+import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 
 /**
  * Editor-area dashboard panel.
@@ -18,8 +19,8 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
   private readonly host: DashboardHost;
 
-  private constructor(panel: vscode.WebviewPanel, broadcaster: IterationBroadcaster) {
-    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml);
+  private constructor(panel: vscode.WebviewPanel, broadcaster: IterationBroadcaster, loadSnapshot?: DashboardSnapshotLoader) {
+    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot);
     panel.onDidDispose(() => this.dispose());
   }
 
@@ -28,7 +29,11 @@ export class RalphDashboardPanel implements vscode.Disposable {
    * The `manager` must be the same instance across calls so `createOrReveal`
    * can detect and reveal an already-open panel.
    */
-  public static createOrReveal(manager: WebviewPanelManager, broadcaster: IterationBroadcaster): void {
+  public static createOrReveal(
+    manager: WebviewPanelManager,
+    broadcaster: IterationBroadcaster,
+    loadSnapshot?: DashboardSnapshotLoader
+  ): void {
     const panel = manager.createOrReveal('dashboard', {
       viewType: RalphDashboardPanel.viewType,
       title: 'Ralphdex',
@@ -41,7 +46,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       return;
     }
 
-    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster);
+    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot);
   }
 
   public updateFromWatchedState(watched: RalphWatchedState): void {

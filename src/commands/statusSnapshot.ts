@@ -33,7 +33,7 @@ import {
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
-import { getFailureAnalysisPath, parseFailureDiagnosticResponse } from '../ralph/failureDiagnostics';
+import { getFailureAnalysisPath, parseFailureDiagnosticResponse, type FailureAnalysis } from '../ralph/failureDiagnostics';
 import { getRecoveryStatePath } from '../ralph/recoveryOrchestrator';
 import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { Logger } from '../services/logger';
@@ -393,6 +393,7 @@ export async function collectStatusSnapshot(
 
   let lastFailureCategory: FailureCategoryId | null = null;
   let recoveryAttemptCount: number | null = null;
+  let latestFailureAnalysis: FailureAnalysis | null = null;
   if (selectedTask) {
     const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
       fs.readFile(getFailureAnalysisPath(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
@@ -400,6 +401,7 @@ export async function collectStatusSnapshot(
     ]);
     if (failureAnalysisRaw) {
       const parsed = parseFailureDiagnosticResponse(failureAnalysisRaw);
+      latestFailureAnalysis = parsed;
       lastFailureCategory = parsed?.rootCauseCategory ?? null;
     }
     if (recoveryStateRaw) {
@@ -487,6 +489,7 @@ export async function collectStatusSnapshot(
     operatorModeProvenance,
     deadLetterEntries,
     lastFailureCategory,
-    recoveryAttemptCount
+    recoveryAttemptCount,
+    latestFailureAnalysis
   };
 }

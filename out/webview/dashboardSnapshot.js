@@ -31,7 +31,7 @@ const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 function buildDashboardSnapshot(snapshot, agentSummaries = null) {
     return {
         workspaceName: snapshot.workspaceName,
-        pipeline: buildPipelineStrip(snapshot.latestPipelineRun),
+        pipeline: buildPipelineStrip(snapshot),
         taskBoard: buildTaskBoard(snapshot),
         agentGrid: buildAgentGrid(agentSummaries),
         failureFeed: buildFailureFeed(snapshot),
@@ -39,7 +39,8 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         quickActions: buildQuickActions(snapshot),
     };
 }
-function buildPipelineStrip(run) {
+function buildPipelineStrip(snapshot) {
+    const run = snapshot.latestPipelineRun;
     if (!run) {
         return null;
     }
@@ -52,11 +53,13 @@ function buildPipelineStrip(run) {
         loopStartTime: run.loopStartTime,
         loopEndTime: run.loopEndTime ?? null,
         prUrl: run.prUrl ?? null,
+        lastStopReason: snapshot.lastIteration?.stopReason ?? null,
     };
 }
 function buildTaskBoard(snapshot) {
     return {
         counts: snapshot.taskCounts,
+        deadLetterCount: snapshot.deadLetterEntries?.length ?? 0,
         selectedTaskId: snapshot.selectedTask?.id ?? null,
         selectedTaskTitle: snapshot.selectedTask?.title ?? null,
         nextIteration: snapshot.nextIteration,
@@ -80,11 +83,21 @@ function buildAgentGrid(summaries) {
     return { rows };
 }
 function buildFailureFeed(snapshot) {
+    if (!snapshot.latestFailureAnalysis || !snapshot.selectedTask) {
+        return { entries: [] };
+    }
     return {
-        lastFailureCategory: snapshot.lastFailureCategory ?? null,
-        recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
-        remediationSummary: snapshot.latestRemediation?.summary ?? null,
-        humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
+        entries: [{
+                taskId: snapshot.selectedTask.id,
+                taskTitle: snapshot.selectedTask.title,
+                category: snapshot.latestFailureAnalysis.rootCauseCategory,
+                confidence: snapshot.latestFailureAnalysis.confidence,
+                summary: snapshot.latestFailureAnalysis.summary,
+                suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
+                recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
+                remediationSummary: snapshot.latestRemediation?.summary ?? null,
+                humanReviewRecommended: snapshot.latestRemediation?.humanReviewRecommended ?? false,
+            }]
     };
 }
 function buildDeadLetter(snapshot) {

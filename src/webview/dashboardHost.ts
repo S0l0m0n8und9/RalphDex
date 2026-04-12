@@ -20,6 +20,7 @@ import {
 } from '../ui/sidebarViewProvider';
 import { MessageBridge } from './MessageBridge';
 import { WebviewConfigSync } from '../ui/webviewConfigSync';
+import type { DashboardSnapshotLoader } from './dashboardDataLoader';
 
 /**
  * Shared dashboard controller used by both the editor-panel and the sidebar.
@@ -35,11 +36,13 @@ export class DashboardHost implements vscode.Disposable {
   private readonly configSync = new WebviewConfigSync();
   private readonly bridge: MessageBridge<RalphWebviewMessage, RalphWebviewCommand>;
   private readonly broadcastDisposable: vscode.Disposable;
+  private snapshotLoadGeneration = 0;
 
   constructor(
     private readonly webview: vscode.Webview,
     broadcaster: IterationBroadcaster,
-    private readonly renderFn: (state: RalphDashboardState, nonce: string) => string
+    private readonly renderFn: (state: RalphDashboardState, nonce: string) => string,
+    private readonly loadSnapshot?: DashboardSnapshotLoader
   ) {
     this.latestState = defaultDashboardState();
 
@@ -81,6 +84,7 @@ export class DashboardHost implements vscode.Disposable {
     });
 
     this.fullRender();
+    void this.refreshDashboardSnapshot();
   }
 
   /** Updates state from file-watcher changes and triggers a full render. */
@@ -118,10 +122,34 @@ export class DashboardHost implements vscode.Disposable {
       preflightSummary: 'ok',
       diagnostics: [],
       agentLanes: this.getLanes(),
-      config: config ? snapshotConfig(config) : null
+      config: config ? snapshotConfig(config) : null,
+      dashboardSnapshot: this.latestState.dashboardSnapshot
     };
 
     this.fullRender();
+    void this.refreshDashboardSnapshot();
+  }
+
+  private async refreshDashboardSnapshot(): Promise<void> {
+    if (!this.loadSnapshot) {
+      return;
+    }
+
+    const generation = ++this.snapshotLoadGeneration;
+    try {
+      const snapshot = await this.loadSnapshot();
+      if (generation !== this.snapshotLoadGeneration) {
+        return;
+      }
+      this.latestState = { ...this.latestState, dashboardSnapshot: snapshot };
+      this.fullRender();
+    } catch {
+      if (generation !== this.snapshotLoadGeneration) {
+        return;
+      }
+      this.latestState = { ...this.latestState, dashboardSnapshot: null };
+      this.fullRender();
+    }
   }
 
   private getLanes(): RalphAgentLaneState[] {

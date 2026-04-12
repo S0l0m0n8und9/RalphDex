@@ -45,6 +45,8 @@ const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
 const stateWatcher_1 = require("./ui/stateWatcher");
 const statusBarItem_1 = require("./ui/statusBarItem");
 const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
+const dashboardDataLoader_1 = require("./webview/dashboardDataLoader");
+const stateManager_1 = require("./ralph/stateManager");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
@@ -55,18 +57,20 @@ function activate(context) {
     context.subscriptions.push(statusBar);
     const panelManager = new WebviewPanelManager_1.WebviewPanelManager(vscode.window);
     context.subscriptions.push(panelManager);
-    const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster);
+    const dashboardStateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
+    const dashboardSnapshotLoader = (0, dashboardDataLoader_1.createDashboardSnapshotLoader)(dashboardStateManager, logger);
+    const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster, dashboardSnapshotLoader);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebarViewProvider_1.RalphSidebarViewProvider.viewType, sidebarProvider));
     // Status bar quick-pick command
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
     // Primary dashboard command — opens the full dashboard in the editor area.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', () => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
     }));
     // Legacy alias — keeps existing status bar items, sidebar buttons, and any
     // saved key bindings working without a breaking change.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
     }));
     // Wire broadcaster events to the status bar.
     // DashboardHost owns its own broadcaster subscription, so the panel and

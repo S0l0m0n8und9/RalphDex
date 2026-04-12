@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildPanelDashboardHtml } from '../../src/ui/panelHtml';
 import type { RalphDashboardState } from '../../src/ui/uiTypes';
+import type { DashboardSnapshot } from '../../src/webview/dashboardSnapshot';
 
 function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashboardState {
   return {
@@ -18,7 +19,74 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     diagnostics: [],
     agentLanes: [],
     config: null,
+    dashboardSnapshot: null,
     ...overrides
+  };
+}
+
+function populatedDashboardSnapshot(): DashboardSnapshot {
+  return {
+    workspaceName: 'test-ws',
+    pipeline: {
+      runId: 'pipeline-001',
+      status: 'running',
+      phase: 'loop',
+      rootTaskId: 'Tpipe-1',
+      decomposedTaskCount: 3,
+      loopStartTime: '2026-01-01T00:00:00.000Z',
+      loopEndTime: null,
+      prUrl: null,
+      lastStopReason: 'repeated_no_progress'
+    },
+    taskBoard: {
+      counts: { todo: 2, in_progress: 1, blocked: 1, done: 4 },
+      deadLetterCount: 1,
+      selectedTaskId: 'T110',
+      selectedTaskTitle: 'Surface dashboard sections',
+      nextIteration: 9
+    },
+    agentGrid: {
+      rows: [{
+        agentId: 'agent-alpha',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        completedTaskCount: 4,
+        activeClaimTaskId: 'T110',
+        stuckScore: 3,
+        isStuck: true,
+        latestHandoffClassification: 'no_progress',
+        latestHandoffIteration: 8,
+        noProgressHeatmap: '[..XXX]'
+      }]
+    },
+    failureFeed: {
+      entries: [{
+        taskId: 'T110',
+        taskTitle: 'Surface dashboard sections',
+        category: 'validation_mismatch',
+        confidence: 'high',
+        summary: 'Verifier contract mismatch.',
+        suggestedAction: 'Align emitted dashboard payload.',
+        recoveryAttemptCount: 2,
+        remediationSummary: 'Validation mismatch — adjusted prompt',
+        humanReviewRecommended: true
+      }]
+    },
+    deadLetter: {
+      entries: [{
+        schemaVersion: 1,
+        kind: 'deadLetterEntry',
+        taskId: 'T99',
+        taskTitle: 'Recover failed task',
+        deadLetteredAt: '2026-01-01T00:00:00.000Z',
+        diagnosticHistory: [],
+        recoveryAttemptCount: 3
+      }]
+    },
+    quickActions: {
+      hasDeadLetterEntries: true,
+      hasBlockedTasks: true,
+      canAttemptLoop: true
+    }
   };
 }
 
@@ -161,6 +229,32 @@ test('buildPanelDashboardHtml eagerly persists plain setting inputs before comma
 test('buildPanelDashboardHtml shows empty state when no tasks', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'n10');
   assert.ok(html.includes('No tasks yet'));
+});
+
+test('buildPanelDashboardHtml renders empty dashboard summary sections when no durable snapshot is loaded', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'dash-empty');
+  assert.ok(html.includes('Pipeline Strip'));
+  assert.ok(html.includes('No pipeline run artifact recorded yet.'));
+  assert.ok(html.includes('Task board unavailable until Ralph status is loaded.'));
+  assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
+  assert.ok(html.includes('No durable agent identity records found yet.'));
+  assert.ok(html.includes('No tasks are parked in dead-letter.'));
+  assert.ok(html.includes('Quick Actions'));
+});
+
+test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-letter, and failure sections', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-full');
+  assert.ok(html.includes('pipeline-001'));
+  assert.ok(html.includes('Last Stop</strong> repeated_no_progress'));
+  assert.ok(html.includes('Dead-Letter'));
+  assert.ok(html.includes('Recover failed task'));
+  assert.ok(html.includes('validation_mismatch'));
+  assert.ok(html.includes('Confidence</strong> high'));
+  assert.ok(html.includes('agent-alpha'));
+  assert.ok(html.includes('stuck 3'));
+  assert.ok(html.includes('Selected T110'));
+  assert.ok(html.includes('Run Loop'));
+  assert.ok(html.includes('Open Settings'));
 });
 
 test('buildPanelDashboardHtml includes task detail sections for expandable tasks', () => {

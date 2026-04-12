@@ -41,6 +41,140 @@ body {
   margin-bottom: 6px;
 }
 
+.dashboard-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.dashboard-summary-card {
+  border: 1px solid var(--ralph-border);
+  padding: 8px 10px;
+  min-height: 120px;
+}
+
+.dashboard-summary-card.full {
+  grid-column: 1 / -1;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.metric {
+  border: 1px solid var(--ralph-border);
+  padding: 6px 8px;
+}
+
+.metric-label {
+  display: block;
+  font-size: 10px;
+  color: var(--ralph-dim);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.metric-value.warn { color: var(--ralph-orange); }
+.metric-value.ok { color: var(--ralph-green); }
+
+.pipeline-meta,
+.failure-meta,
+.dead-letter-meta {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.inline-actions .btn {
+  flex: 1 1 140px;
+}
+
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.agent-card {
+  border: 1px solid var(--ralph-border);
+  padding: 8px 10px;
+}
+
+.agent-card.stuck {
+  border-color: var(--ralph-orange);
+}
+
+.agent-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.agent-badge {
+  color: var(--ralph-amber);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.agent-stuck {
+  color: var(--ralph-orange);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.agent-list,
+.dead-letter-list {
+  display: grid;
+  gap: 8px;
+}
+
+.dead-letter-item {
+  border: 1px solid var(--ralph-border);
+  padding: 8px 10px;
+}
+
+.pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.pill {
+  border: 1px solid var(--ralph-border);
+  padding: 2px 6px;
+  font-size: 10px;
+  color: var(--ralph-dim);
+}
+
+.pill.warn {
+  border-color: var(--ralph-orange);
+  color: var(--ralph-orange);
+}
+
+.pill.ok {
+  border-color: var(--ralph-green);
+  color: var(--ralph-green);
+}
+
 /* Wider task ID in panel */
 .dashboard-grid .task-id {
   width: 100px;
@@ -392,6 +526,174 @@ function buildSettingsSection(cfg) {
     ];
     return sections.join('\n');
 }
+function formatUtc(value) {
+    if (!value) {
+        return 'none';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return (0, htmlHelpers_1.esc)(value);
+    }
+    return (0, htmlHelpers_1.esc)(date.toISOString().replace('.000Z', 'Z'));
+}
+function formatElapsed(start, end) {
+    const startTime = new Date(start).getTime();
+    const endTime = end ? new Date(end).getTime() : Date.now();
+    if (Number.isNaN(startTime) || Number.isNaN(endTime) || endTime < startTime) {
+        return 'unknown';
+    }
+    const totalSeconds = Math.round((endTime - startTime) / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if (minutes === 0) {
+        return `${seconds}s`;
+    }
+    return `${minutes}m ${seconds}s`;
+}
+function buildPipelineSection(state) {
+    const snapshot = state.dashboardSnapshot;
+    if (!snapshot?.pipeline) {
+        return `<div class="dashboard-summary-card full">
+      <div class="card-title">Pipeline Strip</div>
+      <div class="empty">No pipeline run artifact recorded yet.</div>
+    </div>`;
+    }
+    const pipeline = snapshot.pipeline;
+    return `<div class="dashboard-summary-card full">
+    <div class="card-title">Pipeline Strip</div>
+    <div class="pipeline-meta">
+      <div><strong>Run</strong> ${(0, htmlHelpers_1.esc)(pipeline.runId)} · ${(0, htmlHelpers_1.esc)(pipeline.status)}${pipeline.phase ? ` · phase ${(0, htmlHelpers_1.esc)(pipeline.phase)}` : ''}</div>
+      <div><strong>Elapsed</strong> ${(0, htmlHelpers_1.esc)(formatElapsed(pipeline.loopStartTime, pipeline.loopEndTime))}</div>
+      <div><strong>Root Task</strong> ${(0, htmlHelpers_1.esc)(pipeline.rootTaskId)} · ${pipeline.decomposedTaskCount} child task(s)</div>
+      <div><strong>Started</strong> ${formatUtc(pipeline.loopStartTime)}${pipeline.loopEndTime ? ` · <strong>Ended</strong> ${formatUtc(pipeline.loopEndTime)}` : ''}</div>
+      <div><strong>Last Stop</strong> ${(0, htmlHelpers_1.esc)(pipeline.lastStopReason ?? 'none')}</div>
+      <div><strong>PR</strong> ${pipeline.prUrl ? (0, htmlHelpers_1.esc)(pipeline.prUrl) : 'none'}</div>
+    </div>
+    <div class="inline-actions">
+      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Open Pipeline</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
+    </div>
+  </div>`;
+}
+function buildTaskBoardSection(state) {
+    const snapshot = state.dashboardSnapshot;
+    const taskBoard = snapshot?.taskBoard ?? null;
+    if (!taskBoard) {
+        return `<div class="dashboard-summary-card">
+      <div class="card-title">Task Board</div>
+      <div class="empty">Task board unavailable until Ralph status is loaded.</div>
+    </div>`;
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Task Board</div>
+    ${(0, htmlHelpers_1.buildProgressBar)(taskBoard.counts)}
+    <div class="metric-grid">
+      <div class="metric"><span class="metric-label">Todo</span><span class="metric-value">${taskBoard.counts?.todo ?? 0}</span></div>
+      <div class="metric"><span class="metric-label">In Progress</span><span class="metric-value">${taskBoard.counts?.in_progress ?? 0}</span></div>
+      <div class="metric"><span class="metric-label">Blocked</span><span class="metric-value warn">${taskBoard.counts?.blocked ?? 0}</span></div>
+      <div class="metric"><span class="metric-label">Dead-Letter</span><span class="metric-value warn">${taskBoard.deadLetterCount}</span></div>
+    </div>
+    <div class="pill-row">
+      <span class="pill">Selected ${(0, htmlHelpers_1.esc)(taskBoard.selectedTaskId ?? 'none')}</span>
+      <span class="pill">Next iteration ${taskBoard.nextIteration}</span>
+    </div>
+    ${taskBoard.selectedTaskTitle ? `<div class="dead-letter-meta" style="margin-top:8px;"><div><strong>Selected task</strong> ${(0, htmlHelpers_1.esc)(taskBoard.selectedTaskTitle)}</div></div>` : ''}
+  </div>`;
+}
+function buildFailureFeedSection(state) {
+    const entries = state.dashboardSnapshot?.failureFeed.entries ?? [];
+    if (entries.length === 0) {
+        return `<div class="dashboard-summary-card">
+      <div class="card-title">Failure Feed</div>
+      <div class="empty">No failure-analysis artifact for the selected task.</div>
+    </div>`;
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Failure Feed</div>
+    ${entries.map((entry) => `<div class="failure-meta">
+      <div><strong>${(0, htmlHelpers_1.esc)(entry.taskId)}</strong> · ${(0, htmlHelpers_1.esc)(entry.taskTitle)}</div>
+      <div><strong>Category</strong> ${(0, htmlHelpers_1.esc)(entry.category)} · <strong>Confidence</strong> ${(0, htmlHelpers_1.esc)(entry.confidence)}</div>
+      <div><strong>Summary</strong> ${(0, htmlHelpers_1.esc)(entry.summary)}</div>
+      <div><strong>Suggested action</strong> ${(0, htmlHelpers_1.esc)(entry.suggestedAction)}</div>
+      <div><strong>Recovery attempts</strong> ${entry.recoveryAttemptCount ?? 0} · <strong>Human review</strong> ${entry.humanReviewRecommended ? 'recommended' : 'not requested'}</div>
+      ${entry.remediationSummary ? `<div><strong>Remediation</strong> ${(0, htmlHelpers_1.esc)(entry.remediationSummary)}</div>` : ''}
+      <div class="inline-actions">
+        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">View</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.applyLatestTaskDecompositionProposal"><span class="btn-label">Recover</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>`).join('\n')}
+  </div>`;
+}
+function buildAgentGridSection(state) {
+    const rows = state.dashboardSnapshot?.agentGrid.rows ?? [];
+    if (rows.length === 0) {
+        return `<div class="dashboard-summary-card">
+      <div class="card-title">Agent Grid</div>
+      <div class="empty">No durable agent identity records found yet.</div>
+    </div>`;
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Agent Grid</div>
+    <div class="agent-grid">
+      ${rows.map((row) => `<div class="agent-card${row.isStuck ? ' stuck' : ''}">
+        <div class="agent-card-head">
+          <span class="agent-badge">${(0, htmlHelpers_1.esc)(row.agentId)}</span>
+          ${row.isStuck ? `<span class="agent-stuck">stuck ${row.stuckScore}</span>` : ''}
+        </div>
+        <div class="dead-letter-meta">
+          <div><strong>Claim</strong> ${(0, htmlHelpers_1.esc)(row.activeClaimTaskId ?? 'idle')}</div>
+          <div><strong>Completed</strong> ${row.completedTaskCount}</div>
+          <div><strong>Latest</strong> ${(0, htmlHelpers_1.esc)(row.latestHandoffClassification ?? 'none')} · iter ${row.latestHandoffIteration ?? 'none'}</div>
+          <div><strong>Heatmap</strong> ${(0, htmlHelpers_1.esc)(row.noProgressHeatmap || '[none]')}</div>
+        </div>
+      </div>`).join('\n')}
+    </div>
+  </div>`;
+}
+function buildDeadLetterSection(state) {
+    const entries = state.dashboardSnapshot?.deadLetter.entries ?? [];
+    if (entries.length === 0) {
+        return `<div class="dashboard-summary-card">
+      <div class="card-title">Dead-Letter</div>
+      <div class="empty">No tasks are parked in dead-letter.</div>
+    </div>`;
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Dead-Letter</div>
+    <div class="dead-letter-list">
+      ${entries.map((entry) => {
+        const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
+        return `<div class="dead-letter-item">
+          <div><strong>${(0, htmlHelpers_1.esc)(entry.taskId)}</strong> · ${(0, htmlHelpers_1.esc)(entry.taskTitle)}</div>
+          <div class="dead-letter-meta">
+            <div><strong>Dead-lettered</strong> ${formatUtc(entry.deadLetteredAt)}</div>
+            <div><strong>Attempts</strong> ${entry.recoveryAttemptCount} · <strong>Last category</strong> ${(0, htmlHelpers_1.esc)(latestCategory)}</div>
+          </div>
+        </div>`;
+    }).join('\n')}
+    </div>
+    <div class="inline-actions">
+      <button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue</span><span class="btn-spinner"></span></button>
+    </div>
+  </div>`;
+}
+function buildQuickActionsSection(state) {
+    const quick = state.dashboardSnapshot?.quickActions ?? null;
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Quick Actions</div>
+    <div class="btn-grid">
+      <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Artifact</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestRalphSummary"><span class="btn-label">Stop Context</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-local-action="open-settings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
+      ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Dead-Letter</span><span class="btn-spinner"></span></button>` : ''}
+      ${quick?.canAttemptLoop ? `<button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>` : ''}
+    </div>
+  </div>`;
+}
 // ---------------------------------------------------------------------------
 // Panel HTML builder
 // ---------------------------------------------------------------------------
@@ -432,6 +734,11 @@ function buildPanelDashboardHtml(state, nonce) {
 
   <div class="dashboard-grid">
     <div class="panel-left">
+      <div class="dashboard-summary-grid">
+        ${buildPipelineSection(state)}
+        ${buildTaskBoardSection(state)}
+        ${buildFailureFeedSection(state)}
+      </div>
       <div class="card">
         <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done}` : ''}</div>
         ${allDone
@@ -458,6 +765,11 @@ function buildPanelDashboardHtml(state, nonce) {
     </div>
 
     <div class="panel-right">
+      <div class="dashboard-summary-grid">
+        ${buildAgentGridSection(state)}
+        ${buildDeadLetterSection(state)}
+        ${buildQuickActionsSection(state)}
+      </div>
       <div class="card">
         <div class="card-title">Agents</div>
         <div class="btn-grid">
@@ -606,6 +918,20 @@ function buildPanelDashboardHtml(state, nonce) {
       document.addEventListener('click', function(e) {
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); return; }
+
+        var localAction = e.target.closest('[data-local-action]');
+        if (localAction) {
+          var action = localAction.getAttribute('data-local-action');
+          if (action === 'open-settings') {
+            var settingsDetails = document.querySelector('details[data-section="settings"]');
+            if (settingsDetails) {
+              settingsDetails.open = true;
+              saveDetailsState();
+              settingsDetails.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
+          return;
+        }
 
         var kvAdd = e.target.closest('[data-setting-kv-add]');
         if (kvAdd) {

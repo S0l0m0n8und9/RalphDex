@@ -50,15 +50,18 @@ const webviewConfigSync_1 = require("../ui/webviewConfigSync");
 class DashboardHost {
     webview;
     renderFn;
+    loadSnapshot;
     latestState;
     agentLanesMap = new Map();
     lastRenderTime = 0;
     configSync = new webviewConfigSync_1.WebviewConfigSync();
     bridge;
     broadcastDisposable;
-    constructor(webview, broadcaster, renderFn) {
+    snapshotLoadGeneration = 0;
+    constructor(webview, broadcaster, renderFn, loadSnapshot) {
         this.webview = webview;
         this.renderFn = renderFn;
+        this.loadSnapshot = loadSnapshot;
         this.latestState = (0, sidebarViewProvider_1.defaultDashboardState)();
         // Eagerly populate config so settings are visible on first render.
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -95,6 +98,7 @@ class DashboardHost {
             this.handleBroadcast(event);
         });
         this.fullRender();
+        void this.refreshDashboardSnapshot();
     }
     /** Updates state from file-watcher changes and triggers a full render. */
     updateFromWatchedState(watched) {
@@ -128,9 +132,32 @@ class DashboardHost {
             preflightSummary: 'ok',
             diagnostics: [],
             agentLanes: this.getLanes(),
-            config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null
+            config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null,
+            dashboardSnapshot: this.latestState.dashboardSnapshot
         };
         this.fullRender();
+        void this.refreshDashboardSnapshot();
+    }
+    async refreshDashboardSnapshot() {
+        if (!this.loadSnapshot) {
+            return;
+        }
+        const generation = ++this.snapshotLoadGeneration;
+        try {
+            const snapshot = await this.loadSnapshot();
+            if (generation !== this.snapshotLoadGeneration) {
+                return;
+            }
+            this.latestState = { ...this.latestState, dashboardSnapshot: snapshot };
+            this.fullRender();
+        }
+        catch {
+            if (generation !== this.snapshotLoadGeneration) {
+                return;
+            }
+            this.latestState = { ...this.latestState, dashboardSnapshot: null };
+            this.fullRender();
+        }
     }
     getLanes() {
         return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({

@@ -18,6 +18,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     diagnostics: [],
     agentLanes: [],
     config: null,
+    dashboardSnapshot: null,
     ...overrides
   };
 }
