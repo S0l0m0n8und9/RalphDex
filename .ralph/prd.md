@@ -505,6 +505,123 @@ Acceptance criteria:
 - Operator-facing docs explicitly identify calibrated vs non-calibrated defaults.
 - `npm run check:docs` fails on future contradiction patterns introduced in this phase.
 
+### Continued multi-agent evolution horizon (post-foundation)
+
+The milestones above establish a working multi-agent baseline (claims, loop parallelism, planning/recovery scaffolding, pipeline phases, review pass, human gates). The next horizon is not “more agents in parallel”; it is a stronger orchestration contract that stays deterministic, file-backed, and operator-legible under higher coordination complexity.
+
+The phases below intentionally borrow proven ideas from CrewAI (role-specialized crews + flows), AutoGen (GraphFlow + handoffs), LangGraph (explicit state graph orchestration), and Swarm-style lightweight delegation — but only where those ideas fit Ralphdex’s durable artifact and verifier-first trust model.
+
+**20. Durable orchestration graph + supervisor ledger**
+
+Why it matters:
+
+Current pipeline checkpoints are phase-oriented (`scaffold` → `loop` → `review` → `scm`) and resumable, but they do not yet express richer multi-agent coordination semantics (conditional branches, bounded loops, fan-out/fan-in joins) as first-class durable state. A graph-backed supervisor ledger makes orchestration explicit, replayable, and auditable without introducing hidden runtime memory.
+
+Concrete work:
+
+- Add `.ralph/orchestration/<runId>/graph.json` (graph definition) and `.ralph/orchestration/<runId>/state.json` (runtime cursor + node outcomes) as durable orchestration artifacts.
+- Define a small orchestration DSL with bounded node kinds: `task_exec`, `review`, `verify_gate`, `human_gate`, `handoff`, `fanout`, `fanin`, `replan`, `scm_submit`.
+- Add `src/ralph/orchestrationSupervisor.ts` that advances exactly one graph transition per persisted state update (write-then-advance discipline), so each move is inspectable and resumable.
+- Enforce deterministic transition guards: each edge transition must cite verifier outcomes, claim status, or explicit operator action id; no freeform “agent decided” transition reasons.
+- Persist per-node span artifacts (`node-<id>-span.json`) including start/end timestamps, assigned agent role/id, input artifact references, output artifact references, and stop classification.
+- Integrate with existing pipeline artifacting by embedding orchestration graph pointers in `.ralph/artifacts/pipelines/<runId>.json` and latest-pointer surfaces.
+
+Scope boundaries:
+
+- This is an orchestration layer, not a replacement for `tasks.json`; tasks remain the source of truth for work definitions.
+- Supervisor execution is intentionally single-writer per run (one durable cursor), even when worker agents run in parallel.
+- No opaque external workflow engine runtime is introduced; orchestration state remains repository-local JSON under `.ralph/`.
+
+Acceptance criteria:
+
+- A run interrupted mid-graph resumes from `state.json` without recomputing already-completed node effects.
+- `Show Status` (and dashboard surfaces) can display current node, prior node outcomes, and pending branch nodes from persisted graph state alone.
+- Every graph transition has a persisted evidence reference set (verifier/human action/claim event); transitions without evidence are rejected as invalid.
+- `npm run validate` passes with graph-schema and supervisor regression coverage.
+
+**21. Explicit handoff contract + contested/stale handoff lifecycle**
+
+Why it matters:
+
+Ralphdex already persists session handoff notes for clean loop stops, but multi-agent delegation still lacks a strict handoff contract between roles. Without an explicit contract, delegation can silently widen scope, lose constraints, or create stale “who owns what next” ambiguity. A durable handoff protocol turns delegation into evidence-backed state, not implicit prompt carryover.
+
+Concrete work:
+
+- Introduce `.ralph/handoffs/<handoffId>.json` with required fields: `fromAgentId`, `toRole`, `taskId`, `objective`, `constraints`, `acceptedEvidence`, `expectedOutputContract`, `stopConditions`, `createdAt`, `expiresAt`, `provenanceLinks`.
+- Add handoff statuses: `proposed`, `accepted`, `rejected`, `expired`, `superseded`, `contested`, with append-only transition history.
+- Add acceptance rules: only eligible receiving roles may accept; acceptance must include an explicit claim/reference to the selected task and current graph node.
+- Add stale/contested detection integrated into preflight Agent Health diagnostics, similar to claim stale detection, with explicit operator/watchdog resolution paths.
+- Add handoff reconciliation checks in `reconciliation.ts`: completion reports must match accepted handoff scope when one exists; out-of-scope completion claims are downgraded and surfaced for review.
+- Add latest-pointer convenience artifacts (`latest-handoff.json`, `latest-handoff-summary.md`) and status/report sections.
+
+Scope boundaries:
+
+- Handoffs do not grant task ownership; claim acquisition remains authoritative for execution exclusivity.
+- Group-chat style unconstrained multi-party conversation is not the default coordination model; handoff remains pairwise and explicit.
+- Handoff contract does not carry hidden memory blobs; all referenced context must point to durable artifacts.
+
+Acceptance criteria:
+
+- Delegated execution without an `accepted` handoff record is blocked for graph nodes requiring handoff.
+- Expired or contested handoffs are surfaced in preflight and status and cannot be silently auto-accepted.
+- Completion reconciliation emits a deterministic warning when output violates the accepted handoff output contract.
+- `npm run validate` passes with handoff lifecycle tests (propose/accept/expire/contested).
+
+**22. Role topology + least-context execution envelopes**
+
+Why it matters:
+
+Role labels alone are insufficient if every role sees the same broad context and can mutate equivalent surfaces. Reliable multi-agent behavior requires both role-specific permissions and role-specific context windows that are explicit and inspectable. This aligns with CrewAI-style role specialization and LangGraph subagent isolation while preserving Ralphdex’s no-hidden-memory rule.
+
+Concrete work:
+
+- Define a durable role policy map (`.ralph/roles/policy.json`) covering allowed node kinds, allowed task-state mutations, required verifier gates, and human-gate requirements per role (`planner`, `implementer`, `reviewer`, `verifier`, `recovery`, `scm`, optional `operator_proxy`).
+- Add context-envelope artifacts per execution (`context-envelope.json`) that enumerate exactly which files/artifacts were exposed to that role, plus omission reasons.
+- Extend `promptBuilder.ts` with role-specific context selectors: planners get task graph + constraints; implementers get task-local code context + plan; reviewers/verifiers get diff + acceptance criteria + verifier outputs; SCM agents get only merge/PR metadata.
+- Add policy enforcement in execution/reconciliation paths: role attempts to emit disallowed actions (for example, reviewer requesting source edits) are downgraded to policy violations with deterministic stop reasons.
+- Add role-policy diagnostics to preflight and status so operators can see the effective policy source (`preset`, `crew`, or explicit override).
+
+Scope boundaries:
+
+- This phase does not introduce autonomous role inference from freeform model output; role assignment remains explicit via config/crew.
+- Context isolation is allowlist-based and artifact-referenced; no vector-memory retrieval dependency is introduced.
+- Operator overrides remain possible but must be explicit and persisted.
+
+Acceptance criteria:
+
+- For each role, prompt evidence proves only allowed context sections were included, and the envelope is persisted per iteration.
+- Policy violation attempts produce deterministic classifications (not silent coercion) and are visible in status/dashboard surfaces.
+- Regression tests cover at least one blocked disallowed action per role class.
+- `npm run validate` passes.
+
+**23. Adaptive re-planning + deterministic fan-out/fan-in reconciliation**
+
+Why it matters:
+
+Parallel execution currently improves throughput, but reconciliation semantics are still mostly linear: one task, one completion report, one verifier pass at a time. To scale multi-agent execution safely, Ralphdex needs explicit fan-out/fan-in rules and bounded adaptive re-planning when verifier/recovery evidence shows the current plan is wrong.
+
+Concrete work:
+
+- Add plan-graph artifacts (`plan-graph.json`) that map parent tasks to execution waves (fan-out sets) and explicit merge criteria (fan-in gates).
+- Define fan-out safety rules: only tasks with no unresolved dependency edges and no shared write-risk label may run in the same wave; violations block wave launch.
+- Define fan-in gates executed by verifier/reviewer roles: all child outcomes collected, merge conflict summary resolved, validation aggregate passed, and parent acceptance criteria re-evaluated before marking parent done.
+- Add bounded adaptive re-planning node (`replan`) triggered only by specific evidence classes (repeated verifier mismatch, systemic failure alert, unresolved merge conflict set) with strict caps (`maxReplansPerParent`, `maxGeneratedChildren`).
+- Persist re-plan decision artifacts documenting trigger evidence, rejected alternatives, chosen mutation, and resulting task-graph diff.
+- Add human choke points for high-risk mutations (scope expansion above threshold, dependency rewiring across parent boundaries, SCM actions after contested fan-in).
+
+Scope boundaries:
+
+- Re-planning is not open-ended autonomous planning; it is bounded, evidence-triggered, and capped per parent task.
+- Fan-in does not bypass existing task invariants (parent completion monotonicity, dependency validity, lock-guarded writes).
+- No silent auto-merge of conflicting child outputs; conflict resolution remains explicit with reviewer/verifier evidence.
+
+Acceptance criteria:
+
+- Parallel wave execution records a durable wave artifact with member tasks, launch guard checks, and completion outcomes.
+- Parent tasks cannot transition to `done` until fan-in gates are satisfied and persisted.
+- Re-plan cap exhaustion triggers a deterministic `human_review_needed`/operator escalation path instead of infinite planner loops.
+- `npm run validate` passes with fan-out/fan-in and replan-cap regression tests.
+
 **99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
