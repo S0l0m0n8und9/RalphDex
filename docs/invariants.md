@@ -296,6 +296,22 @@ Git handling is detection/reporting only. Do not add branch orchestration, workt
 
 This section defines the canonical shape and field-presence rules enforced by `normalizeTask` in `src/ralph/taskFile.ts`. Every newly created `RalphTask` — whether parsed from `tasks.json`, converted from a `RalphSuggestedChildTask`, or synthesized by any other producer — passes through normalization before it enters the in-memory task graph.
 
+The canonical `RalphTask` interface lives in `src/ralph/types.ts`. The `SUPPORTED_TASK_FIELDS` set and normalization functions live in `src/ralph/taskFile.ts`.
+
+### Producer Entry Points
+
+New tasks enter the system through one of these paths. Every path terminates in `normalizeTask`, which enforces the rules below.
+
+| Producer | Entry point | Notes |
+|----------|-------------|-------|
+| Manual edit of `tasks.json` | `parseTaskFileText` → `normalizeTask` | All fields come from the file author. The parser adds a `source` location for diagnostic reporting. |
+| Task decomposition | `buildDecompositionProposal` → `applySuggestedChildTasks` → write → `parseTaskFile` → `normalizeTask` | Child IDs follow `${parentId}.${index}`. `dependsOn`, `validation`, `mode`, `tier`, and `acceptance` may be derived from the parent. |
+| Remediation (reframe / mark_blocked) | `remediationSuggestedChildTasks` → `applySuggestedChildTasks` → write → `parseTaskFile` → `normalizeTask` | Creates a single `.1` child scoped to the remediation action. |
+| Pipeline root | `buildPipelineRootTask` → write → `parseTaskFile` → `normalizeTask` | Minimal shape: only `id`, `title`, `status`, and `notes`. Other fields are absent. |
+| Pipeline children | `buildPipelineChildTasks` → `applySuggestedChildTasks` → write → `parseTaskFile` → `normalizeTask` | Children are derived from PRD sections with sequential dependencies. `validation` is `null` in the suggestion (becomes `undefined` post-normalization). |
+
+For paths that go through `applySuggestedChildTasks`, the in-memory conversion applies field mapping (e.g., `rationale` → `notes`, `null` → `undefined`) and parent inheritance (e.g., `mode`), but full normalization — coercion, deduplication, unknown-field drop — happens on the subsequent write-then-read cycle via `applySuggestedChildTasksWithinLock`, which calls `stringifyTaskFile` followed by `parseTaskFile`.
+
 ### Required Fields
 
 These three fields must be present and valid on every task. Normalization throws if any is missing or has the wrong type.
@@ -310,9 +326,9 @@ These three fields must be present and valid on every task. Normalization throws
 
 Optional fields follow one of three presence behaviors:
 
-- **preserve-source**: kept exactly as the producer supplied it (after normalization coercion). The producer is the sole authority.
-- **derive-if-possible**: when the producer does not supply a value, a parent or context-aware path may derive one. The derived value is still subject to normalization coercion.
-- **leave-absent**: omitted from the normalized task unless the producer explicitly supplies a value. No automatic derivation.
+- **preserve-source**: kept exactly as the producer supplied it (after normalization coercion). The producer is the sole authority; the system never synthesizes or overrides this value.
+- **derive-if-possible**: when the producer does not supply a value, a parent or context-aware path may derive one. The derived value is still subject to normalization coercion. During source parsing (reading `tasks.json`), no derivation occurs — the field survives only if the file author wrote it. Derivation happens exclusively in producer code paths like decomposition and pipeline construction.
+- **leave-absent**: omitted from the normalized task unless the producer explicitly supplies a value. No automatic derivation, regardless of producer path.
 
 | Field | Type | Category | Coercion Rules |
 |-------|------|----------|----------------|
@@ -321,13 +337,23 @@ Optional fields follow one of three presence behaviors:
 | `notes` | `string?` | derive-if-possible | Trimmed. Returns `undefined` if empty or whitespace-only. Decomposition maps `rationale` → `notes`. |
 | `validation` | `string?` | derive-if-possible | Trimmed. Returns `undefined` if empty or whitespace-only. Decomposition inherits parent's `validation`. `null` from suggested children becomes `undefined`. |
 | `blocker` | `string?` | leave-absent | Trimmed. Returns `undefined` if empty or whitespace-only. |
-| `priority` | `RalphTaskPriority?` | leave-absent | Must be `'low'`, `'normal'`, or `'high'`. Returns `undefined` if invalid or absent. |
-| `mode` | `RalphTaskMode?` | derive-if-possible | Must be `'default'` or `'documentation'`. Returns `undefined` if invalid. Decomposition inherits parent's `mode`. |
-| `tier` | `RalphTaskTier?` | derive-if-possible | Must be `'simple'`, `'medium'`, or `'complex'`. Returns `undefined` if invalid. Decomposition inherits parent's `tier` when present. |
+| `priority` | `RalphTaskPriority?` | leave-absent | Must be `'low'`, `'normal'`, or `'high'`. Returns `undefined` if invalid or absent. Task selection treats absent as `'normal'` for ordering, but the stored value stays `undefined`. |
+| `mode` | `RalphTaskMode?` | derive-if-possible | Must be `'default'` or `'documentation'`. Returns `undefined` if invalid. Decomposition inherits parent's `mode`. Runtime treats absent as `'default'`. |
+| `tier` | `RalphTaskTier?` | derive-if-possible | Must be `'simple'`, `'medium'`, or `'complex'`. Returns `undefined` if invalid. Decomposition inherits parent's `tier` when present. When absent, runtime heuristic scoring determines complexity. |
 | `acceptance` | `string[]?` | derive-if-possible | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. Decomposition derives acceptance from parent when possible. |
 | `constraints` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
 | `context` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
-| `source` | `RalphTaskSourceLocation?` | preserve-source | Injected by the parser for diagnostic line/column reporting. Not persisted to disk. |
+| `source` | `RalphTaskSourceLocation?` | preserve-source | Injected by the parser for diagnostic line/column reporting. Not persisted to disk; stripped during serialization. |
+
+### Source Parsing vs Synthesis
+
+When a task is read from `tasks.json` (source parsing), `normalizeTask` applies coercion but never invents field values. A field that is absent in the file stays absent after normalization. The derive-if-possible category only activates through explicit producer code in decomposition, remediation, or pipeline construction — not through `normalizeTask` itself.
+
+This means:
+
+- **acceptance**, **validation**, and **tier** written by a human in `tasks.json` survive normalization exactly as authored (after coercion). If the human omits them, they remain `undefined`.
+- **constraints** and **context** are leave-absent: they survive only when a producer (human or code) explicitly sets them. Decomposition preserves these from `RalphSuggestedChildTask` when supplied but never synthesizes them.
+- **mode** and **tier** are inherited from the parent during decomposition but left absent when parsing a manually authored `tasks.json` that omits them.
 
 ### Coercion Invariants
 
@@ -336,7 +362,49 @@ Optional fields follow one of three presence behaviors:
 3. **Dependency deduplication**: `dependsOn` passes through `Set` after trimming, so duplicate task IDs are silently collapsed.
 4. **Enum rejection**: `priority`, `mode`, and `tier` silently become `undefined` when the supplied value is not a recognized enum member. They do not throw.
 5. **Unknown-field drop**: only fields in `SUPPORTED_TASK_FIELDS` survive normalization. Any field not in that set is silently discarded. The supported set is: `id`, `title`, `status`, `parentId`, `dependsOn`, `notes`, `validation`, `blocker`, `priority`, `mode`, `tier`, `acceptance`, `constraints`, `context`.
-6. **Auto-correction**: before normalization, commonly misspelled field names (e.g. `dependencies` → `dependsOn`, `acceptance_criteria` → `acceptance`, `files` → `context`) are auto-corrected with a diagnostic warning. The correction is applied before validation so the corrected field name enters normalization normally.
+6. **Auto-correction**: before normalization, commonly misspelled field names are auto-corrected with a diagnostic warning. The correction is applied before validation so the corrected field name enters normalization normally. See the auto-correction reference below.
+
+### Auto-Correction Reference
+
+The `LIKELY_TASK_FIELD_MISTAKES` map in `src/ralph/taskFile.ts` corrects these misspellings. Correction only applies when the target field is not already present on the task object.
+
+| Misspelled name | Corrected to |
+|-----------------|--------------|
+| `dependencies`, `dependency`, `dependson`, `depends_on` | `dependsOn` |
+| `acceptancecriteria`, `acceptance_criteria`, `donecriteria`, `done_criteria` | `acceptance` |
+| `guardrails`, `guard_rails` | `constraints` |
+| `files`, `relevantfiles`, `relevant_files` | `context` |
+| `type`, `taskmode`, `task_mode`, `tasktype`, `task_type` | `mode` |
+
+Field name comparison is case-insensitive and ignores non-alphanumeric characters (via `normalizedFieldKey`).
+
+### Serialization and Persistence
+
+`stringifyTaskFile` in `src/ralph/taskFile.ts` controls how the in-memory task graph is written back to `tasks.json`:
+
+- The `source` field is stripped before serialization. It is diagnostic-only and never appears in the persisted file.
+- Fields whose value is `undefined` are omitted from the JSON output (standard `JSON.stringify` behavior). This means optional fields that normalization set to `undefined` do not appear as `null` or empty in the file.
+- The output is deterministic: `JSON.stringify(obj, null, 2)` with a trailing newline.
+- The `mutationCount` field on the task file object is included only when present (non-`undefined`).
+
+### Producer-Facing Type: `RalphSuggestedChildTask`
+
+The `RalphSuggestedChildTask` interface in `src/ralph/types.ts` is the shape that decomposition, remediation, and pipeline code use to propose new child tasks before they are converted to persisted `RalphTask` entries.
+
+| Field | Type | Required | Mapping to `RalphTask` |
+|-------|------|----------|------------------------|
+| `id` | `string` | yes | Direct. |
+| `title` | `string` | yes | Direct. |
+| `parentId` | `string` | yes | Direct. |
+| `dependsOn` | `RalphSuggestedTaskDependency[]` | yes | Flattened to `string[]` via `.map(d => d.taskId)`. |
+| `validation` | `string \| null` | yes | `null` becomes `undefined`. |
+| `rationale` | `string` | yes | Maps to `notes`. |
+| `acceptance` | `string[]?` | no | Preserved if supplied. |
+| `constraints` | `string[]?` | no | Preserved if supplied. |
+| `context` | `string[]?` | no | Preserved if supplied. |
+| `tier` | `RalphTaskTier?` | no | Preserved if supplied. |
+
+`RalphSuggestedTaskDependency` carries a `taskId` (string) and a `reason` (`'blocks_sequence'` or `'inherits_parent_dependency'`). Only `taskId` is persisted; the `reason` is used for proposal diagnostics.
 
 ### Child-Task Conversion Rules
 
@@ -355,3 +423,4 @@ When `applySuggestedChildTasks` converts a `RalphSuggestedChildTask` into a pers
 | `context` | Preserved from the suggestion if supplied. |
 | `tier` | Preserved from the suggestion if supplied. |
 | Parent status | If the parent was `done` or `todo`, it is promoted to `'in_progress'`. |
+| Parent `dependsOn` | Updated to include all new child IDs (deduplicated). |

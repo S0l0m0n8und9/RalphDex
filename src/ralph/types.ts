@@ -16,27 +16,52 @@ export type RalphTaskTier = 'simple' | 'medium' | 'complex';
 
 export type FailureCategoryId = 'transient' | 'implementation_error' | 'task_ambiguity' | 'validation_mismatch' | 'dependency_missing' | 'environment_issue';
 
+/**
+ * Canonical normalized task shape.
+ *
+ * Every task entering the in-memory graph — whether parsed from `tasks.json`,
+ * converted from a {@link RalphSuggestedChildTask}, or built by pipeline
+ * construction — passes through `normalizeTask` (src/ralph/taskFile.ts).
+ *
+ * Each optional field follows one of three presence categories:
+ * - **preserve-source** — kept as the producer supplied it; never synthesized.
+ * - **derive-if-possible** — parent/context may derive it during decomposition
+ *   or pipeline construction, but source-parsing never invents a value.
+ * - **leave-absent** — omitted unless the producer explicitly sets it.
+ *
+ * Full field-presence rules, coercion invariants, and producer entry points:
+ * see docs/invariants.md § Normalized Task Contract.
+ */
 export interface RalphTask {
+  /** Required. Non-empty, trimmed. Uniquely identifies the task in the graph. */
   id: string;
+  /** Required. Non-empty, trimmed. Human-readable summary of the task. */
   title: string;
+  /** Required. One of 'todo', 'in_progress', 'blocked', 'done'. */
   status: RalphTaskStatus;
+  /** preserve-source. Links this task to its parent in the task graph. */
   parentId?: string;
+  /** derive-if-possible. Prerequisite task IDs. Deduplicated via Set after trim; empty array becomes undefined. */
   dependsOn?: string[];
+  /** derive-if-possible. Free-form notes. Decomposition maps `rationale` → `notes`. */
   notes?: string;
+  /** derive-if-possible. Verification command or instruction. Decomposition inherits from parent. `null` from suggestions becomes `undefined`. */
   validation?: string;
+  /** leave-absent. Describes why the task is blocked. Only set when status is 'blocked'. */
   blocker?: string;
-  /** Optional priority hint. Higher-priority tasks are selected first when multiple tasks are actionable. Defaults to 'normal'. */
+  /** leave-absent. Higher-priority tasks are selected first when multiple tasks are actionable. Absent treated as 'normal' for ordering. */
   priority?: RalphTaskPriority;
-  /** Task execution mode. 'documentation' relaxes code-centric verification gates. Defaults to 'default'. */
+  /** derive-if-possible. 'documentation' relaxes code-centric verification gates. Absent treated as 'default'. Decomposition inherits from parent. */
   mode?: RalphTaskMode;
-  /** Static complexity tier override. When set, selectModelForTask uses this directly instead of heuristic scoring. */
+  /** derive-if-possible. When set, selectModelForTask uses this directly instead of heuristic scoring. Decomposition inherits from parent. */
   tier?: RalphTaskTier;
-  /** Concrete done-criteria: the task is complete when every item in this list is satisfied. */
+  /** derive-if-possible. Concrete done-criteria: the task is complete when every item is satisfied. Empty array becomes undefined. */
   acceptance?: string[];
-  /** Per-task guardrails: things the agent must not do while working on this task. */
+  /** leave-absent. Per-task guardrails: things the agent must not do while working on this task. */
   constraints?: string[];
-  /** Pointers to relevant files or modules so the agent knows where to look first. */
+  /** leave-absent. Pointers to relevant files or modules so the agent knows where to look first. */
   context?: string[];
+  /** preserve-source. Parser-injected diagnostic location. Not persisted to disk; stripped during serialization. */
   source?: RalphTaskSourceLocation;
 }
 
@@ -217,8 +242,19 @@ export interface RalphTaskRemediationHistoryEntry {
   noProgressSignals: string[];
 }
 
+/**
+ * Dependency reference within a {@link RalphSuggestedChildTask} proposal.
+ *
+ * Only `taskId` is persisted to the resulting `RalphTask.dependsOn` array.
+ * The `reason` field is diagnostic-only — used in proposal reporting but
+ * not stored in the task graph.
+ *
+ * See docs/invariants.md § Normalized Task Contract — Producer-Facing Type.
+ */
 export interface RalphSuggestedTaskDependency {
+  /** Task ID of the dependency target. Persisted to `RalphTask.dependsOn`. */
   taskId: string;
+  /** Diagnostic classification. Not persisted. */
   reason: 'blocks_sequence' | 'inherits_parent_dependency';
 }
 
