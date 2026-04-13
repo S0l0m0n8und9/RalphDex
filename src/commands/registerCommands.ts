@@ -17,6 +17,7 @@ import type {
   RalphTask,
   RalphTaskFile,
 } from '../ralph/types';
+import type { RalphNewTaskInput } from '../ralph/taskNormalization';
 import { Logger } from '../services/logger';
 import { sleep } from '../util/async';
 import { toErrorMessage } from '../util/error';
@@ -53,6 +54,7 @@ import {
   buildPrdWizardConfigSelections,
   writePrdWizardDraft
 } from './prdWizardPersistence';
+import { appendNormalizedTasksToFile } from '../ralph/taskCreation';
 import {
   relativeWizardWriteSummary,
   type PrdWizardDraftBundle,
@@ -159,7 +161,7 @@ async function initializeFreshWorkspace(rootPath: string): Promise<{
  * Returns tasks whose titles come from the PRD's headings (or a placeholder).
  * IDs start at T<offset+1>.
  */
-function draftTasksFromPrd(prdText: string, idOffset = 0): Pick<RalphTask, 'id' | 'title' | 'status'>[] {
+function draftTasksFromPrd(prdText: string, idOffset = 0): RalphNewTaskInput[] {
   const sections = parsePrdSections(prdText);
   return sections.map((title, i) => ({
     id: `T${idOffset + i + 1}`,
@@ -174,7 +176,7 @@ function draftTasksFromPrd(prdText: string, idOffset = 0): Pick<RalphTask, 'id' 
  * Used as the fallback when AI generation is unavailable or the user skips
  * the objective prompt.
  */
-function buildBootstrapSeedTasks(): Partial<RalphTask> & Pick<RalphTask, 'id' | 'title' | 'status'>[] {
+function buildBootstrapSeedTasks(): RalphNewTaskInput[] {
   return [
     {
       id: 'T1',
@@ -205,7 +207,7 @@ function buildBootstrapSeedTasks(): Partial<RalphTask> & Pick<RalphTask, 'id' | 
         'At least 2 of the new tasks have no dependsOn (entry points for Ralph)'
       ]
     }
-  ] as (Partial<RalphTask> & Pick<RalphTask, 'id' | 'title' | 'status'>)[];
+  ];
 }
 
 const RALPH_PROJECTS_DIR = 'projects';
@@ -276,29 +278,6 @@ async function switchToProject(
 /**
  * Append tasks to an existing tasks.json file under lock.
  */
-async function appendTasksToFile(
-  tasksPath: string,
-  newTasks: (Partial<RalphTask> & Pick<RalphTask, 'id' | 'title' | 'status'>)[]
-): Promise<void> {
-  if (newTasks.length === 0) {
-    return;
-  }
-
-  const locked = await withTaskFileLock(tasksPath, undefined, async () => {
-    const raw = await fs.readFile(tasksPath, 'utf8');
-    const taskFile = parseTaskFile(raw);
-    const next = bumpMutationCount({
-      ...taskFile,
-      tasks: [...taskFile.tasks, ...newTasks as RalphTask[]]
-    });
-    await fs.writeFile(tasksPath, stringifyTaskFile(next), 'utf8');
-  });
-
-  if (locked.outcome === 'lock_timeout') {
-    throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-  }
-}
-
 function buildWizardGenerationPrompt(input: {
   mode: 'new' | 'regenerate';
   projectType: string;
@@ -378,10 +357,8 @@ async function openPrdCreationWizard(
       return {
         prdText: generated.prdText,
         tasks: generated.tasks.map((task) => ({
-          id: task.id,
-          title: task.title,
-          status: task.status,
-          validation: task.validation
+          ...task,
+          status: task.status ?? 'todo'
         })),
         recommendedSkills: generated.recommendedSkills,
         taskCountWarning: generated.taskCountWarning
@@ -657,7 +634,7 @@ export function registerCommands(
       });
 
       let prdText: string;
-      let drafts: (Partial<RalphTask> & Pick<RalphTask, 'id' | 'title' | 'status'>)[];
+      let drafts: RalphNewTaskInput[];
       let skillsPath: string | undefined;
 
       if (objective?.trim()) {
@@ -692,7 +669,7 @@ export function registerCommands(
       logger.info('Wrote prd.md.');
 
       // Step 2: Write starter tasks
-      await appendTasksToFile(result.tasksPath, drafts);
+      await appendNormalizedTasksToFile(result.tasksPath, drafts);
       logger.info(`Wrote ${drafts.length} starter task(s) to tasks.json.`);
 
       // Open both files side-by-side so the user can review and refine
@@ -744,7 +721,7 @@ export function registerCommands(
         return { ...t, id };
       });
 
-      await appendTasksToFile(tasksPath, deduped);
+      await appendNormalizedTasksToFile(tasksPath, deduped);
       logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
 
       await openTextFile(tasksPath);
@@ -818,7 +795,7 @@ export function registerCommands(
       const config = readConfig(workspaceFolder);
 
       let prdText: string;
-      let drafts: (Partial<RalphTask> & Pick<RalphTask, 'id' | 'title' | 'status'>)[];
+      let drafts: RalphNewTaskInput[];
 
       if (objective?.trim()) {
         progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
@@ -857,7 +834,7 @@ export function registerCommands(
         throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
       }
 
-      await appendTasksToFile(absPaths.tasksPath, drafts);
+      await appendNormalizedTasksToFile(absPaths.tasksPath, drafts);
       await fs.writeFile(absPaths.progressPath, '', 'utf8');
 
       logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });

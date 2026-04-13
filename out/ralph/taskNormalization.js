@@ -12,7 +12,8 @@ const taskFile_1 = require("./taskFile");
  * This is the single entry point that all task producers should use when
  * creating new tasks. It applies — in order:
  *
- * 1. **Alias mapping** — `rationale` → `notes`.
+ * 1. **Alias mapping** — `rationale` → `notes`,
+ *    `suggestedValidationCommand` → `validation`.
  * 2. **Structured-dependency flattening** — `{ taskId }[]` → `string[]`.
  * 3. **Null coercion** — `validation: null` → `undefined`.
  * 4. **Default status** — injects `'todo'` (or `options.defaultStatus`) when absent.
@@ -23,11 +24,15 @@ const taskFile_1 = require("./taskFile");
  */
 function normalizeNewTask(input, options) {
     const record = { ...input };
-    // 1. Alias mapping: rationale → notes (when notes is absent).
+    // 1. Alias mapping: rationale → notes, suggestedValidationCommand → validation.
     if (record.rationale !== undefined && record.notes === undefined) {
         record.notes = record.rationale;
     }
+    if (record.suggestedValidationCommand !== undefined && record.validation === undefined) {
+        record.validation = record.suggestedValidationCommand;
+    }
     delete record.rationale;
+    delete record.suggestedValidationCommand;
     // 2. Flatten structured dependsOn entries to plain task-ID strings.
     if (Array.isArray(record.dependsOn)) {
         record.dependsOn = record.dependsOn.map((dep) => {

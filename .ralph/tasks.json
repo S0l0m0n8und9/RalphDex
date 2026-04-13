@@ -3289,12 +3289,12 @@
     {
       "id": "T119.3",
       "title": "Route PRD generation, wizard persistence, Initialize Workspace, and New Project through the shared task-creation pipeline",
-      "status": "todo",
+      "status": "done",
       "parentId": "T119",
       "dependsOn": [
         "T119.2"
       ],
-      "notes": "Unify the currently split generation flows so AI-generated tasks and fallback/bootstrap tasks are normalized the same way before writing. This should cover generateProjectDraft parsing, PRD wizard confirm-write, Initialize Workspace, and New Project project creation.",
+      "notes": "Routed PRD generation, wizard persistence, and command-driven task creation through a shared normalization/persistence pipeline. AI-generated and bootstrap tasks now preserve richer supported fields instead of being narrowed before writing tasks.json.",
       "validation": "npm run validate",
       "acceptance": [
         "generateProjectDraft parsing can carry richer task fields through to persistence",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 109
+  "mutationCount": 110
 }

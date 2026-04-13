@@ -40,8 +40,7 @@ exports.writePrdWizardDraft = writePrdWizardDraft;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
-const taskFile_1 = require("../ralph/taskFile");
-const fs_1 = require("../util/fs");
+const taskCreation_1 = require("../ralph/taskCreation");
 function buildPrdWizardConfigSelections(config) {
     const operatorMode = config.operatorMode ?? 'simple';
     return [
@@ -66,47 +65,10 @@ function buildPrdWizardConfigSelections(config) {
     ];
 }
 function normalizeWizardTasksForPersistence(newTasks) {
-    if (newTasks.length === 0) {
-        throw new Error('Review at least one task before writing tasks.json.');
-    }
-    const normalizedTasks = newTasks.map((task) => {
-        const normalizedId = task.id.trim();
-        const normalizedTitle = task.title.trim();
-        if (!normalizedId) {
-            throw new Error('Each reviewed task must keep a non-empty id before writing tasks.json.');
-        }
-        if (!normalizedTitle) {
-            throw new Error(`Task ${task.id} must have a non-empty title before writing tasks.json.`);
-        }
-        return {
-            id: normalizedId,
-            title: normalizedTitle,
-            status: task.status,
-            ...(task.validation ? { validation: task.validation } : {}),
-            ...(task.tier ? { tier: task.tier } : {})
-        };
-    });
-    (0, taskFile_1.parseTaskFile)(JSON.stringify({
-        version: 2,
-        tasks: normalizedTasks
-    }));
-    return normalizedTasks;
+    return (0, taskCreation_1.normalizeTaskInputsForPersistence)(newTasks);
 }
 async function replaceTasksFile(tasksPath, newTasks) {
-    const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
-        let taskFile = { version: 2, tasks: [] };
-        if (await (0, fs_1.pathExists)(tasksPath)) {
-            taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(tasksPath, 'utf8'));
-        }
-        const next = (0, taskFile_1.bumpMutationCount)({
-            ...taskFile,
-            tasks: normalizeWizardTasksForPersistence(newTasks)
-        });
-        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
+    await (0, taskCreation_1.replaceTasksFileWithNormalizedTasks)(tasksPath, newTasks);
 }
 function selectionSettingKey(selection) {
     return selection.key;

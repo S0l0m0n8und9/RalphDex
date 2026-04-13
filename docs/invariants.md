@@ -296,11 +296,11 @@ Git handling is detection/reporting only. Do not add branch orchestration, workt
 
 This section defines the canonical shape and field-presence rules enforced by `normalizeTask` in `src/ralph/taskFile.ts`. Every newly created `RalphTask` — whether parsed from `tasks.json`, converted from a `RalphSuggestedChildTask`, or synthesized by any other producer — passes through normalization before it enters the in-memory task graph.
 
-The canonical `RalphTask` interface lives in `src/ralph/types.ts`. The `SUPPORTED_TASK_FIELDS` set and normalization functions live in `src/ralph/taskFile.ts`. The shared producer-facing pipeline lives in `src/ralph/taskNormalization.ts`.
+The canonical `RalphTask` interface lives in `src/ralph/types.ts`. The `SUPPORTED_TASK_FIELDS` set and normalization functions live in `src/ralph/taskFile.ts`. The shared producer-facing pipeline lives in `src/ralph/taskNormalization.ts`, and the shared persistence helpers used by command handlers and wizard writes live in `src/ralph/taskCreation.ts`.
 
 ### Shared Normalization Pipeline
 
-`normalizeNewTask` in `src/ralph/taskNormalization.ts` is the single entry point that all task producers should use when creating new tasks. It applies alias mapping (`rationale` → `notes`), structured-dependency flattening (`{ taskId }[]` → `string[]`), `null` → `undefined` coercion, default status injection, field-name auto-correction, optional parent augmentation for derive-if-possible fields, and canonical normalization via `normalizeTask`. Producers that previously built raw task objects should call `normalizeNewTask` instead to guarantee consistent coercion and field preservation.
+`normalizeNewTask` in `src/ralph/taskNormalization.ts` is the single entry point that all task producers should use when creating new tasks. It applies alias mapping (`rationale` → `notes`, `suggestedValidationCommand` → `validation`), structured-dependency flattening (`{ taskId }[]` → `string[]`), `null` → `undefined` coercion, default status injection, field-name auto-correction, optional parent augmentation for derive-if-possible fields, and canonical normalization via `normalizeTask`. Producers that previously built raw task objects should call `normalizeNewTask` instead to guarantee consistent coercion and field preservation.
 
 ### Producer Entry Points
 
@@ -313,6 +313,8 @@ New tasks enter the system through one of these paths. Every path terminates in 
 | Remediation (reframe / mark_blocked) | `remediationSuggestedChildTasks` → `applySuggestedChildTasks` → `normalizeNewTask` | Creates a single `.1` child scoped to the remediation action. |
 | Pipeline root | `buildPipelineRootTask` → `normalizeNewTask` → write → `parseTaskFile` → `normalizeTask` | Minimal shape: only `id`, `title`, and `notes`. Status defaults to `'todo'`. |
 | Pipeline children | `buildPipelineChildTasks` → `applySuggestedChildTasks` → `normalizeNewTask` | Children are derived from PRD sections with sequential dependencies. `validation: null` becomes `undefined` via `normalizeNewTask`. |
+| PRD generation / bootstrap append | `generateProjectDraft` or command-local drafts → `appendNormalizedTasksToFile` → `normalizeNewTask` | Initialize Workspace, New Project, and Add Task append through the shared persistence helper so richer producer fields survive AI generation and fallback/bootstrap paths. |
+| PRD wizard confirm-write | `writePrdWizardDraft` → `replaceTasksFileWithNormalizedTasks` → `normalizeNewTask` | Reviewed wizard tasks replace the target `tasks.json` through the same shared normalization/persistence boundary used by append flows. |
 
 For paths that go through `applySuggestedChildTasks`, children are normalized at creation time via `normalizeNewTask` (which handles alias mapping, dependency flattening, parent augmentation, and canonical coercion). The subsequent write-then-read cycle via `applySuggestedChildTasksWithinLock` re-normalizes through `parseTaskFile` for consistency.
 

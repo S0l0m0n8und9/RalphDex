@@ -10,7 +10,8 @@
  * `src/ralph/taskFile.ts` (the same normalizer used during file parsing)
  * and adds producer-facing conveniences:
  *
- * - Field alias mapping (e.g., `rationale` → `notes`)
+ * - Field alias mapping (e.g., `rationale` → `notes`,
+ *   `suggestedValidationCommand` → `validation`)
  * - Structured-dependency flattening (`{ taskId }[]` → `string[]`)
  * - `null` → `undefined` coercion for nullable producer fields
  * - Optional parent-task augmentation for derive-if-possible fields
@@ -36,7 +37,8 @@ import { autoCorrectKnownMistakes, normalizeTask } from './taskFile';
  * Loose producer-facing input accepted by {@link normalizeNewTask}.
  *
  * Accepts every supported `RalphTask` field plus common aliases and
- * producer-specific shapes (e.g., `rationale`, structured `dependsOn`).
+ * producer-specific shapes (e.g., `rationale`, `suggestedValidationCommand`,
+ * structured `dependsOn`).
  * Unknown fields and aliases are resolved before the record enters the
  * canonical `normalizeTask` coercion path.
  */
@@ -73,6 +75,8 @@ export interface RalphNewTaskInput {
   context?: string[];
   /** Alias for `notes`. Mapped when `notes` is absent. */
   rationale?: string;
+  /** Alias for `validation`. Mapped when `validation` is absent. */
+  suggestedValidationCommand?: string | null;
   /** Allow additional keys so alias auto-correction can process them. */
   [key: string]: unknown;
 }
@@ -105,7 +109,8 @@ export interface TaskNormalizationOptions {
  * This is the single entry point that all task producers should use when
  * creating new tasks. It applies — in order:
  *
- * 1. **Alias mapping** — `rationale` → `notes`.
+ * 1. **Alias mapping** — `rationale` → `notes`,
+ *    `suggestedValidationCommand` → `validation`.
  * 2. **Structured-dependency flattening** — `{ taskId }[]` → `string[]`.
  * 3. **Null coercion** — `validation: null` → `undefined`.
  * 4. **Default status** — injects `'todo'` (or `options.defaultStatus`) when absent.
@@ -120,11 +125,15 @@ export function normalizeNewTask(
 ): RalphTask {
   const record: Record<string, unknown> = { ...input };
 
-  // 1. Alias mapping: rationale → notes (when notes is absent).
+  // 1. Alias mapping: rationale → notes, suggestedValidationCommand → validation.
   if (record.rationale !== undefined && record.notes === undefined) {
     record.notes = record.rationale;
   }
+  if (record.suggestedValidationCommand !== undefined && record.validation === undefined) {
+    record.validation = record.suggestedValidationCommand;
+  }
   delete record.rationale;
+  delete record.suggestedValidationCommand;
 
   // 2. Flatten structured dependsOn entries to plain task-ID strings.
   if (Array.isArray(record.dependsOn)) {

@@ -3,15 +3,15 @@ import * as vscode from 'vscode';
 import { MessageBridge } from './MessageBridge';
 import { SHARED_WEBVIEW_CSS } from './styles';
 import { ProjectGenerationError, type RecommendedSkill } from '../ralph/projectGenerator';
-import type { RalphTask } from '../ralph/types';
+import type { RalphTaskStatus } from '../ralph/types';
+import type { RalphNewTaskInput } from '../ralph/taskNormalization';
 import type { CliProviderId, OperatorMode } from '../config/types';
 
 export type PrdWizardMode = 'new' | 'regenerate';
 export type PrdWizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-export interface PrdWizardTaskDraft extends Pick<RalphTask, 'id' | 'title' | 'status'> {
-  validation?: string;
-  tier?: 'simple' | 'medium' | 'complex';
+export interface PrdWizardTaskDraft extends RalphNewTaskInput {
+  status: RalphTaskStatus;
 }
 
 export interface PrdWizardGenerateResult {

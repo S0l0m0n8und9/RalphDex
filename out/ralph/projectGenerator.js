@@ -77,18 +77,23 @@ function parseGenerationResponse(responseText) {
         throw new ProjectGenerationError('AI response JSON block must contain a non-empty "tasks" array.');
     }
     const tasks = parsedObj.tasks.map((item, i) => {
+        const itemRecord = item;
         if (typeof item !== 'object' || item === null ||
-            typeof item.id !== 'string' ||
-            typeof item.title !== 'string') {
+            typeof itemRecord.id !== 'string' ||
+            typeof itemRecord.title !== 'string') {
             throw new ProjectGenerationError(`Task at index ${i} is missing required "id" or "title" field.`);
         }
-        const rawValidation = item.suggestedValidationCommand;
+        const taskRecord = { ...itemRecord };
+        const rawValidation = taskRecord.suggestedValidationCommand;
         const validation = typeof rawValidation === 'string' && rawValidation.trim()
             ? rawValidation.trim()
             : undefined;
+        delete taskRecord.status;
+        delete taskRecord.suggestedValidationCommand;
         return {
-            id: item.id,
-            title: item.title,
+            id: itemRecord.id,
+            title: itemRecord.title,
+            ...taskRecord,
             status: 'todo',
             ...(validation !== undefined ? { validation } : {})
         };
@@ -130,6 +135,7 @@ Requirements:
 - Tasks must correspond one-to-one with the ## work area sections
 - Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
 - Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
+- Each task must include required fields \`id\` and \`title\`. Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only.
 
 ## Good vs bad task formulation
 
@@ -146,14 +152,24 @@ Bad examples:
 - "Add logging" — no scope or acceptance bar; an agent could add one log line and declare done
 
 For each task, supply a \`suggestedValidationCommand\`: the shell command an agent should run to confirm the task is complete (e.g. \`npm run validate\`, \`npm test -- <suite>\`, \`npm run build\`). Omit if no single command applies.
+- You may also include any of these optional task fields when they materially improve autonomous execution: \`notes\`, \`rationale\` (alias for notes), \`dependsOn\`, \`acceptance\`, \`constraints\`, \`context\`, \`priority\`, \`mode\`, and \`tier\`.
+- Keep optional fields concise and deterministic. Use \`dependsOn\` only for true prerequisites. Use \`context\` for specific files/modules. Use \`acceptance\` for concrete done criteria. Use \`tier\` only when complexity is obvious (\`simple\`, \`medium\`, \`complex\`).
 
 - End your response with EXACTLY this structure (no text after the closing fence):
 
 \`\`\`json
 {
   "tasks": [
-    { "id": "T1", "title": "short task title", "status": "todo", "suggestedValidationCommand": "npm run validate" },
-    { "id": "T2", "title": "short task title", "status": "todo" }
+    {
+      "id": "T1",
+      "title": "short task title",
+      "status": "todo",
+      "suggestedValidationCommand": "npm run validate",
+      "acceptance": ["one concrete done check"],
+      "context": ["src/example.ts"],
+      "tier": "medium"
+    },
+    { "id": "T2", "title": "short task title", "status": "todo", "dependsOn": ["T1"] }
   ],
   "recommendedSkills": [
     { "name": "skill-name", "description": "one-line description of the skill", "rationale": "why this skill suits the project type and tasks" }

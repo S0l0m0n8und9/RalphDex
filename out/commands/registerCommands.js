@@ -56,6 +56,7 @@ const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const crewRoster_1 = require("../ralph/crewRoster");
 const prdWizardPersistence_1 = require("./prdWizardPersistence");
+const taskCreation_1 = require("../ralph/taskCreation");
 const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
@@ -227,23 +228,6 @@ async function switchToProject(workspaceFolder, prdPath, tasksPath, progressPath
 /**
  * Append tasks to an existing tasks.json file under lock.
  */
-async function appendTasksToFile(tasksPath, newTasks) {
-    if (newTasks.length === 0) {
-        return;
-    }
-    const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
-        const raw = await fs.readFile(tasksPath, 'utf8');
-        const taskFile = (0, taskFile_1.parseTaskFile)(raw);
-        const next = (0, taskFile_1.bumpMutationCount)({
-            ...taskFile,
-            tasks: [...taskFile.tasks, ...newTasks]
-        });
-        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
-}
 function buildWizardGenerationPrompt(input) {
     if (input.mode === 'regenerate') {
         const suffix = [
@@ -291,10 +275,8 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
             return {
                 prdText: generated.prdText,
                 tasks: generated.tasks.map((task) => ({
-                    id: task.id,
-                    title: task.title,
-                    status: task.status,
-                    validation: task.validation
+                    ...task,
+                    status: task.status ?? 'todo'
                 })),
                 recommendedSkills: generated.recommendedSkills,
                 taskCountWarning: generated.taskCountWarning
@@ -552,7 +534,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             await fs.writeFile(result.prdPath, prdText, 'utf8');
             logger.info('Wrote prd.md.');
             // Step 2: Write starter tasks
-            await appendTasksToFile(result.tasksPath, drafts);
+            await (0, taskCreation_1.appendNormalizedTasksToFile)(result.tasksPath, drafts);
             logger.info(`Wrote ${drafts.length} starter task(s) to tasks.json.`);
             // Open both files side-by-side so the user can review and refine
             await openTextFile(result.prdPath);
@@ -590,7 +572,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 counter++;
                 return { ...t, id };
             });
-            await appendTasksToFile(tasksPath, deduped);
+            await (0, taskCreation_1.appendNormalizedTasksToFile)(tasksPath, deduped);
             logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
             await openTextFile(tasksPath);
             void vscode.window.showInformationMessage(`Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`, 'Got it');
@@ -686,7 +668,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             if (emptyLocked.outcome === 'lock_timeout') {
                 throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
             }
-            await appendTasksToFile(absPaths.tasksPath, drafts);
+            await (0, taskCreation_1.appendNormalizedTasksToFile)(absPaths.tasksPath, drafts);
             await fs.writeFile(absPaths.progressPath, '', 'utf8');
             logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });
             const relPaths = projectRelativePaths(slug);

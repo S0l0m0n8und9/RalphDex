@@ -329,6 +329,48 @@ test('parseGenerationResponse maps suggestedValidationCommand to task validation
   assert.equal(tasks[0].validation, 'npm run validate');
 });
 
+test('parseGenerationResponse preserves richer supported task fields for downstream normalization', () => {
+  const response = `# P
+\`\`\`json
+{
+  "tasks": [
+    {
+      "id": " T1 ",
+      "title": " Build API ",
+      "status": "done",
+      "rationale": "Preserve as notes alias until normalization.",
+      "dependsOn": ["T0", { "taskId": "Tbase" }],
+      "acceptance": ["Has endpoint coverage"],
+      "constraints": ["Do not change auth"],
+      "context": ["src/api"],
+      "priority": "high",
+      "mode": "documentation",
+      "tier": "complex",
+      "suggestedValidationCommand": "npm run validate"
+    }
+  ]
+}
+\`\`\``;
+
+  const { tasks } = parseGenerationResponse(response);
+  assert.deepEqual(tasks, [
+    {
+      id: ' T1 ',
+      title: ' Build API ',
+      status: 'todo',
+      rationale: 'Preserve as notes alias until normalization.',
+      dependsOn: ['T0', { taskId: 'Tbase' }],
+      acceptance: ['Has endpoint coverage'],
+      constraints: ['Do not change auth'],
+      context: ['src/api'],
+      priority: 'high',
+      mode: 'documentation',
+      tier: 'complex',
+      validation: 'npm run validate'
+    }
+  ]);
+});
+
 test('parseGenerationResponse handles missing suggestedValidationCommand without error', () => {
   const response = `# P\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n\`\`\``;
   const { tasks } = parseGenerationResponse(response);

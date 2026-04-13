@@ -1,10 +1,12 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { withTaskFileLock, parseTaskFile, stringifyTaskFile, bumpMutationCount } from '../ralph/taskFile';
-import type { RalphTask, RalphTaskFile } from '../ralph/types';
-import type { CliProviderId, OperatorMode, RalphCodexConfig } from '../config/types';
-import { pathExists } from '../util/fs';
+import type { RalphTask } from '../ralph/types';
+import type { OperatorMode, RalphCodexConfig } from '../config/types';
+import {
+  normalizeTaskInputsForPersistence,
+  replaceTasksFileWithNormalizedTasks
+} from '../ralph/taskCreation';
 import type {
   PrdWizardConfigSelection,
   PrdWizardDraftBundle,
@@ -46,60 +48,14 @@ export function buildPrdWizardConfigSelections(
 }
 
 export function normalizeWizardTasksForPersistence(newTasks: PrdWizardTaskDraft[]): RalphTask[] {
-  if (newTasks.length === 0) {
-    throw new Error('Review at least one task before writing tasks.json.');
-  }
-
-  const normalizedTasks: RalphTask[] = newTasks.map((task) => {
-    const normalizedId = task.id.trim();
-    const normalizedTitle = task.title.trim();
-
-    if (!normalizedId) {
-      throw new Error('Each reviewed task must keep a non-empty id before writing tasks.json.');
-    }
-
-    if (!normalizedTitle) {
-      throw new Error(`Task ${task.id} must have a non-empty title before writing tasks.json.`);
-    }
-
-    return {
-      id: normalizedId,
-      title: normalizedTitle,
-      status: task.status,
-      ...(task.validation ? { validation: task.validation } : {}),
-      ...(task.tier ? { tier: task.tier } : {})
-    } satisfies RalphTask;
-  });
-
-  parseTaskFile(JSON.stringify({
-    version: 2,
-    tasks: normalizedTasks
-  }));
-
-  return normalizedTasks;
+  return normalizeTaskInputsForPersistence(newTasks);
 }
 
 export async function replaceTasksFile(
   tasksPath: string,
   newTasks: PrdWizardTaskDraft[]
 ): Promise<void> {
-  const locked = await withTaskFileLock(tasksPath, undefined, async () => {
-    let taskFile: RalphTaskFile = { version: 2, tasks: [] };
-    if (await pathExists(tasksPath)) {
-      taskFile = parseTaskFile(await fs.readFile(tasksPath, 'utf8'));
-    }
-
-    const next = bumpMutationCount({
-      ...taskFile,
-      tasks: normalizeWizardTasksForPersistence(newTasks)
-    });
-
-    await fs.writeFile(tasksPath, stringifyTaskFile(next), 'utf8');
-  });
-
-  if (locked.outcome === 'lock_timeout') {
-    throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-  }
+  await replaceTasksFileWithNormalizedTasks(tasksPath, newTasks);
 }
 
 function selectionSettingKey(selection: PrdWizardConfigSelection): 'operatorMode' | 'cliProvider' {
