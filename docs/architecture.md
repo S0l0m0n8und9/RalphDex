@@ -54,7 +54,7 @@ Stable state and artifact locations live under `.ralph/`. The durable file model
 
 The execution trust chain, run-bundle contract, and blocked integrity-failure behavior are defined in [docs/provenance.md](provenance.md).
 
-`src/ralph/taskFile.ts` also owns the thin task-claim ledger used by agent coordination. Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
+`src/ralph/taskFile.ts` owns task normalization and the thin task-claim ledger used by agent coordination. The canonical field-presence rules — required, preserve-source, derive-if-possible, and leave-absent categories — are enforced by `normalizeTask` and documented in [docs/invariants.md § Normalized Task Contract](invariants.md#normalized-task-contract). Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
 `src/ralph/iterationEngine.ts` is within the target line budget (≤1100 lines). Stream-formatting helpers live in `src/ralph/cliOutputFormatter.ts`, auto-remediation helpers live in `src/ralph/taskDecomposition.ts`, and review-agent policy lives in `src/ralph/reviewPolicy.ts`.
 

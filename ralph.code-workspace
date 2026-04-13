@@ -6,9 +6,9 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "codex",
-		"ralphCodex.model": "gpt-5.4",
-		"ralphCodex.promptBudgetProfile": "codex",
+		"ralphCodex.cliProvider": "copilot",
+		"ralphCodex.model": "claude-opus-4.6",
+		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
 			"enabled": false,
 			"simple": {
@@ -30,7 +30,7 @@
 		"ralphCodex.scmPrOnParentDone": false,
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
 		"ralphCodex.autoReplenishBacklog": true,
-		"ralphCodex.reasoningEffort": "medium",
+		"ralphCodex.reasoningEffort": "high",
 		"ralphCodex.sandboxMode": "danger-full-access"
 	}
 }

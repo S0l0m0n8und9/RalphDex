@@ -3227,7 +3227,135 @@
         "The write summary includes every file written plus any settings updated or skipped",
         "Regression tests cover selection state, config application, and confirm summary output"
       ]
+    },
+    {
+      "id": "T119",
+      "title": "Make complete task shaping a shared invariant across every Ralph task-creation path",
+      "status": "todo",
+      "dependsOn": [
+        "T118",
+        "T119.1",
+        "T119.2",
+        "T119.3",
+        "T119.4",
+        "T119.5",
+        "T119.6"
+      ],
+      "notes": "The current PRD-generation and wizard flows can drop rich task fields, and other producers may drift independently. Introduce one canonical task-normalization and augmentation path so tasks created from PRD generation, Initialize Workspace, New Project, Add Task, wizard persistence, decomposition, remediation, and future producers all preserve the same complete schema or emit explicit absence semantics.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A single shared task-shaping pipeline exists for all newly created Ralph tasks before they are written to tasks.json",
+        "The shared pipeline preserves or derives rich task fields including acceptance, constraints, context, validation, and tier when provided by upstream producers",
+        "Every supported task producer routes through the shared pipeline instead of hand-rolling partial task objects",
+        "Regression tests prove equivalent normalized output across PRD generation, wizard persistence, initialize/new-project bootstrap, add-task, and remediation or decomposition producers",
+        "Operator-facing docs explain the invariant and the expected field-presence behavior for newly created tasks",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T119.1",
+      "title": "Define the canonical normalized-task contract and field-presence rules for newly created Ralph tasks",
+      "status": "done",
+      "parentId": "T119",
+      "dependsOn": [
+        "T118"
+      ],
+      "notes": "Closed the remaining documentation gaps for the normalized-task contract: added test/taskContract.test.ts coverage entry to docs/testing.md and added normalization responsibility plus invariants.md cross-reference to docs/architecture.md. All acceptance criteria are now satisfied.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "A durable doc or code-owned contract defines the normalized task shape for newly created tasks",
+        "Field rules cover id, title, status, acceptance, constraints, context, validation, tier, and dependency handling",
+        "The contract distinguishes preserve-source, derive-if-possible, and leave-absent behaviors",
+        "The documented contract aligns with RalphTask and any producer-facing helper types"
+      ]
+    },
+    {
+      "id": "T119.2",
+      "title": "Implement a shared task-normalization and augmentation pipeline for all task producers",
+      "status": "todo",
+      "parentId": "T119",
+      "dependsOn": [
+        "T119.1"
+      ],
+      "notes": "Create one reusable helper that canonicalizes ids, trims text, deduplicates arrays, maps known aliases, preserves rich fields, and optionally augments sparse inputs into the normalized creation contract before persistence.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A single reusable helper or module owns task normalization for newly created tasks",
+        "The helper accepts producer inputs richer than the current flat id-title-status subset and emits normalized RalphTask-compatible objects",
+        "Rich fields such as acceptance, constraints, context, validation, and tier are preserved when supplied",
+        "The helper does not silently drop supported schema fields"
+      ]
+    },
+    {
+      "id": "T119.3",
+      "title": "Route PRD generation, wizard persistence, Initialize Workspace, and New Project through the shared task-creation pipeline",
+      "status": "todo",
+      "parentId": "T119",
+      "dependsOn": [
+        "T119.2"
+      ],
+      "notes": "Unify the currently split generation flows so AI-generated tasks and fallback/bootstrap tasks are normalized the same way before writing. This should cover generateProjectDraft parsing, PRD wizard confirm-write, Initialize Workspace, and New Project project creation.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "generateProjectDraft parsing can carry richer task fields through to persistence",
+        "PRD wizard write paths use the shared task pipeline instead of bespoke minimal persistence shaping",
+        "Initialize Workspace and New Project no longer hard-code thinner task objects than the shared contract allows",
+        "No supported field is lost solely because a task came from the PRD generation path"
+      ]
+    },
+    {
+      "id": "T119.4",
+      "title": "Route Add Task, decomposition, remediation, and future task producers through the shared task-creation pipeline",
+      "status": "todo",
+      "parentId": "T119",
+      "dependsOn": [
+        "T119.2"
+      ],
+      "notes": "Close the genericity gap by ensuring operator-driven and system-driven task creation paths all reuse the same normalizer. This includes PRD-derived add-task generation, decomposition proposal application, remediation-produced children, and any helper that appends tasks.json entries directly.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Add Task uses the shared task pipeline for PRD-derived additions",
+        "Decomposition or remediation child-task creation uses the shared task pipeline before writing tasks.json",
+        "There is no remaining known code path that appends supported task objects while bypassing the shared normalizer",
+        "Future producer extension points are obvious and documented in code comments or module ownership docs"
+      ]
+    },
+    {
+      "id": "T119.5",
+      "title": "Add regression coverage proving every task producer preserves complete task structure",
+      "status": "todo",
+      "parentId": "T119",
+      "dependsOn": [
+        "T119.3",
+        "T119.4"
+      ],
+      "notes": "Lock in the invariant with focused tests per producer and shared helper tests. Cover preservation of acceptance, constraints, context, validation, and tier, plus expected absence behavior when a source legitimately omits a field.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Unit tests cover the shared task-normalization helper on rich and sparse inputs",
+        "Regression tests cover PRD generation, wizard persistence, Initialize Workspace, New Project, Add Task, and remediation or decomposition creation paths",
+        "Tests fail if supported fields are silently dropped during producer-specific writes",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T119.6",
+      "title": "Document the shared task-creation invariant and align UI expectations around complete generated tasks",
+      "status": "todo",
+      "parentId": "T119",
+      "dependsOn": [
+        "T119.3",
+        "T119.4"
+      ],
+      "notes": "Update the owned docs so operators understand that generated tasks should now emerge with a fuller structure, and call out any remaining cases where a field may be absent because the upstream source genuinely lacked that information.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "README and the focused owner docs describe the shared task-creation invariant",
+        "Docs explain which rich fields should generally appear on generated tasks and when absence is still valid",
+        "Any UI or workflow docs that mention generated tasks are aligned with the new expectation",
+        "npm run check:docs passes"
+      ]
     }
   ],
-  "mutationCount": 106
+  "mutationCount": 108
 }
