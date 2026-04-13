@@ -4,10 +4,12 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import {
+  applySuggestedChildTasksToFile,
   appendNormalizedTasksToFile,
   normalizeTaskInputsForPersistence,
   replaceTasksFileWithNormalizedTasks
 } from '../src/ralph/taskCreation';
+import type { RalphTask } from '../src/ralph/types';
 
 test('normalizeTaskInputsForPersistence preserves order and shared normalization semantics', () => {
   const tasks = normalizeTaskInputsForPersistence([
@@ -121,4 +123,54 @@ test('replaceTasksFileWithNormalizedTasks rewrites the file using the shared nor
     }
   ]);
   assert.equal(parsed.mutationCount, 1);
+});
+
+test('applySuggestedChildTasksToFile persists child tasks through the shared task-creation pipeline', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-child-create-'));
+  const tasksPath = path.join(tempDir, 'tasks.json');
+  await fs.writeFile(tasksPath, `${JSON.stringify({
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Document module',
+        status: 'todo',
+        mode: 'documentation',
+        tier: 'complex',
+        validation: 'npm run validate',
+        dependsOn: ['T0']
+      },
+      {
+        id: 'T0',
+        title: 'Foundation',
+        status: 'done'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+
+  const nextTaskFile = await applySuggestedChildTasksToFile(tasksPath, 'T1', [
+    {
+      id: 'T1.1',
+      title: ' Document API ',
+      parentId: 'T1',
+      dependsOn: [{ taskId: 'T0', reason: 'inherits_parent_dependency' }],
+      validation: null,
+      rationale: ' Narrow the first documentation slice. '
+    }
+  ]);
+
+  const child = nextTaskFile.tasks.find((task: RalphTask) => task.id === 'T1.1');
+  assert.ok(child);
+  assert.equal(child.title, 'Document API');
+  assert.equal(child.status, 'todo');
+  assert.equal(child.notes, 'Narrow the first documentation slice.');
+  assert.equal(child.mode, 'documentation');
+  assert.equal(child.tier, 'complex');
+  assert.equal(child.validation, 'npm run validate');
+
+  const persisted = JSON.parse(await fs.readFile(tasksPath, 'utf8')) as {
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+  assert.equal(persisted.mutationCount, 1);
 });

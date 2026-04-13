@@ -39,6 +39,7 @@ const completionReportParser_1 = require("./completionReportParser");
 const artifactStore_1 = require("./artifactStore");
 const planningPass_1 = require("./planningPass");
 const taskFile_1 = require("./taskFile");
+const taskCreation_1 = require("./taskCreation");
 async function reconcileCompletionReport(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
     const artifactBase = {
@@ -345,7 +346,7 @@ async function processWatchdogActions(input, watchdogActions) {
                 warnings.push(`Watchdog action decompose_task could not find task ${action.taskId}.`);
                 continue;
             }
-            await (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, action.taskId, action.suggestedChildTasks);
+            await (0, taskCreation_1.applySuggestedChildTasksToFile)(input.taskFilePath, action.taskId, action.suggestedChildTasks);
             taskFileChanged = true;
             continue;
         }

@@ -1,8 +1,14 @@
 import * as fs from 'fs/promises';
 import { pathExists } from '../util/fs';
-import { bumpMutationCount, parseTaskFile, stringifyTaskFile, withTaskFileLock } from './taskFile';
+import {
+  applySuggestedChildTasks,
+  bumpMutationCount,
+  parseTaskFile,
+  stringifyTaskFile,
+  withTaskFileLock
+} from './taskFile';
 import { normalizeNewTask, type RalphNewTaskInput } from './taskNormalization';
-import type { RalphTask, RalphTaskFile } from './types';
+import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
 export function normalizeTaskInputsForPersistence(newTasks: RalphNewTaskInput[]): RalphTask[] {
   if (newTasks.length === 0) {
@@ -50,6 +56,35 @@ export async function appendNormalizedTasksToFile(
   if (locked.outcome === 'lock_timeout') {
     throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
   }
+}
+
+/**
+ * Producer-facing persistence entry point for task decomposition, remediation,
+ * and any future child-task producers. Keeps child creation on the same
+ * lock/parse/normalize/write pipeline used by append and replace flows while
+ * reusing `applySuggestedChildTasks` for the pure task-graph transform.
+ */
+export async function applySuggestedChildTasksToFile(
+  taskFilePath: string,
+  parentTaskId: string,
+  suggestedChildTasks: RalphSuggestedChildTask[]
+): Promise<RalphTaskFile> {
+  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
+    const currentTaskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+    const nextTaskFile = bumpMutationCount(
+      applySuggestedChildTasks(currentTaskFile, parentTaskId, suggestedChildTasks)
+    );
+    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  });
+
+  if (locked.outcome === 'lock_timeout') {
+    throw new Error(
+      `Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`
+    );
+  }
+
+  return locked.value;
 }
 
 export async function replaceTasksFileWithNormalizedTasks(

@@ -51,6 +51,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
 const taskFile_1 = require("./taskFile");
+const taskCreation_1 = require("./taskCreation");
 const taskNormalization_1 = require("./taskNormalization");
 const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
 /**
@@ -131,19 +132,24 @@ function buildPipelineChildTasks(runId, rootTaskId, sections) {
  * Add the pipeline-root task to the task file (under lock) and return it.
  */
 async function addPipelineRootTask(taskFilePath, rootTask) {
-    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
-        const taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'));
-        const nextTaskFile = (0, taskFile_1.bumpMutationCount)({
-            ...taskFile,
-            tasks: [...taskFile.tasks, rootTask]
-        });
-        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
-        return nextTaskFile;
-    });
-    if (locked.outcome === 'lock_timeout') {
-        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-    }
-    return locked.value;
+    const rootTaskInput = {
+        id: rootTask.id,
+        title: rootTask.title,
+        status: rootTask.status,
+        ...(rootTask.parentId !== undefined ? { parentId: rootTask.parentId } : {}),
+        ...(rootTask.dependsOn !== undefined ? { dependsOn: rootTask.dependsOn } : {}),
+        ...(rootTask.notes !== undefined ? { notes: rootTask.notes } : {}),
+        ...(rootTask.validation !== undefined ? { validation: rootTask.validation } : {}),
+        ...(rootTask.blocker !== undefined ? { blocker: rootTask.blocker } : {}),
+        ...(rootTask.priority !== undefined ? { priority: rootTask.priority } : {}),
+        ...(rootTask.mode !== undefined ? { mode: rootTask.mode } : {}),
+        ...(rootTask.tier !== undefined ? { tier: rootTask.tier } : {}),
+        ...(rootTask.acceptance !== undefined ? { acceptance: rootTask.acceptance } : {}),
+        ...(rootTask.constraints !== undefined ? { constraints: rootTask.constraints } : {}),
+        ...(rootTask.context !== undefined ? { context: rootTask.context } : {})
+    };
+    await (0, taskCreation_1.appendNormalizedTasksToFile)(taskFilePath, [rootTaskInput]);
+    return (0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'));
 }
 /**
  * Write the pipeline run artifact to .ralph/artifacts/pipelines/<runId>.json.
@@ -174,7 +180,7 @@ async function scaffoldPipelineRun(input) {
     const childTasks = buildPipelineChildTasks(runId, rootTaskId, sections);
     const childTaskIds = childTasks.map((t) => t.id);
     await addPipelineRootTask(input.taskFilePath, rootTask);
-    await (0, taskFile_1.applySuggestedChildTasksToFile)(input.taskFilePath, rootTaskId, childTasks);
+    await (0, taskCreation_1.applySuggestedChildTasksToFile)(input.taskFilePath, rootTaskId, childTasks);
     const loopStartTime = new Date().toISOString();
     const artifact = {
         schemaVersion: 1,

@@ -52,6 +52,7 @@ exports.autoApplyMarkBlockedRemediation = autoApplyMarkBlockedRemediation;
 exports.autoApplyDecomposeTaskRemediation = autoApplyDecomposeTaskRemediation;
 const fs = __importStar(require("fs/promises"));
 const taskFile_1 = require("./taskFile");
+const taskCreation_1 = require("./taskCreation");
 const MAX_REMEDIATION_CHILD_TASKS = 3;
 function normalizeWhitespace(value) {
     return value.replace(/\s+/g, ' ').trim();
@@ -301,7 +302,7 @@ async function applyTaskDecompositionProposalArtifact(taskFilePath, remediationA
         throw new Error('The provided remediation artifact does not contain an applicable task-decomposition proposal.');
     }
     return {
-        taskFile: await (0, taskFile_1.applySuggestedChildTasksToFile)(taskFilePath, proposal.parentTaskId, proposal.suggestedChildTasks),
+        taskFile: await (0, taskCreation_1.applySuggestedChildTasksToFile)(taskFilePath, proposal.parentTaskId, proposal.suggestedChildTasks),
         parentTaskId: proposal.parentTaskId,
         childTaskIds: proposal.suggestedChildTasks.map((task) => task.id)
     };

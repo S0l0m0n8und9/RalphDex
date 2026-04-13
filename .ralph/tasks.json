@@ -3306,12 +3306,12 @@
     {
       "id": "T119.4",
       "title": "Route Add Task, decomposition, remediation, and future task producers through the shared task-creation pipeline",
-      "status": "todo",
+      "status": "done",
       "parentId": "T119",
       "dependsOn": [
         "T119.2"
       ],
-      "notes": "Close the genericity gap by ensuring operator-driven and system-driven task creation paths all reuse the same normalizer. This includes PRD-derived add-task generation, decomposition proposal application, remediation-produced children, and any helper that appends tasks.json entries directly.",
+      "notes": "Added a shared producer-facing child-task persistence helper in src/ralph/taskCreation.ts, routed decomposition/remediation/pipeline child creation through it, and moved pipeline root append onto the same task-creation pipeline. Updated docs/tests to make the shared extension point explicit and verified with npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "Add Task uses the shared task pipeline for PRD-derived additions",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 110
+  "mutationCount": 111
 }

@@ -189,6 +189,7 @@ test('scaffoldPipelineRun creates root + child tasks and writes artifact', async
     const taskIds = taskFile.tasks.map((t: { id: string }) => t.id);
 
     assert.ok(taskIds.includes(result.rootTaskId), 'root task must be in tasks.json');
+    assert.equal(taskFile.mutationCount, 2, 'pipeline scaffold should record both root and child task-creation writes');
     for (const childId of result.childTaskIds) {
       assert.ok(taskIds.includes(childId), `child task ${childId} must be in tasks.json`);
     }

@@ -3,13 +3,13 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { hashText, stableJson } from './integrity';
 import {
-  applySuggestedChildTasksToFile,
-  bumpMutationCount,
-  parseTaskFile,
-  stringifyTaskFile,
-  withTaskFileLock
+  parseTaskFile
 } from './taskFile';
-import { normalizeNewTask } from './taskNormalization';
+import {
+  appendNormalizedTasksToFile,
+  applySuggestedChildTasksToFile
+} from './taskCreation';
+import { normalizeNewTask, type RalphNewTaskInput } from './taskNormalization';
 import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
 export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
@@ -137,21 +137,24 @@ export async function addPipelineRootTask(
   taskFilePath: string,
   rootTask: RalphTask
 ): Promise<RalphTaskFile> {
-  const locked = await withTaskFileLock(taskFilePath, undefined, async () => {
-    const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
-    const nextTaskFile = bumpMutationCount({
-      ...taskFile,
-      tasks: [...taskFile.tasks, rootTask]
-    });
-    await fs.writeFile(taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
-    return nextTaskFile;
-  });
-
-  if (locked.outcome === 'lock_timeout') {
-    throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
-  }
-
-  return locked.value;
+  const rootTaskInput: RalphNewTaskInput = {
+    id: rootTask.id,
+    title: rootTask.title,
+    status: rootTask.status,
+    ...(rootTask.parentId !== undefined ? { parentId: rootTask.parentId } : {}),
+    ...(rootTask.dependsOn !== undefined ? { dependsOn: rootTask.dependsOn } : {}),
+    ...(rootTask.notes !== undefined ? { notes: rootTask.notes } : {}),
+    ...(rootTask.validation !== undefined ? { validation: rootTask.validation } : {}),
+    ...(rootTask.blocker !== undefined ? { blocker: rootTask.blocker } : {}),
+    ...(rootTask.priority !== undefined ? { priority: rootTask.priority } : {}),
+    ...(rootTask.mode !== undefined ? { mode: rootTask.mode } : {}),
+    ...(rootTask.tier !== undefined ? { tier: rootTask.tier } : {}),
+    ...(rootTask.acceptance !== undefined ? { acceptance: rootTask.acceptance } : {}),
+    ...(rootTask.constraints !== undefined ? { constraints: rootTask.constraints } : {}),
+    ...(rootTask.context !== undefined ? { context: rootTask.context } : {})
+  };
+  await appendNormalizedTasksToFile(taskFilePath, [rootTaskInput]);
+  return parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
 }
 
 /**

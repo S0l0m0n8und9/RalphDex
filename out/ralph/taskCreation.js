@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizeTaskInputsForPersistence = normalizeTaskInputsForPersistence;
 exports.appendNormalizedTasksToFile = appendNormalizedTasksToFile;
+exports.applySuggestedChildTasksToFile = applySuggestedChildTasksToFile;
 exports.replaceTasksFileWithNormalizedTasks = replaceTasksFileWithNormalizedTasks;
 const fs = __importStar(require("fs/promises"));
 const fs_1 = require("../util/fs");
@@ -75,6 +76,24 @@ async function appendNormalizedTasksToFile(tasksPath, newTasks) {
     if (locked.outcome === 'lock_timeout') {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
     }
+}
+/**
+ * Producer-facing persistence entry point for task decomposition, remediation,
+ * and any future child-task producers. Keeps child creation on the same
+ * lock/parse/normalize/write pipeline used by append and replace flows while
+ * reusing `applySuggestedChildTasks` for the pure task-graph transform.
+ */
+async function applySuggestedChildTasksToFile(taskFilePath, parentTaskId, suggestedChildTasks) {
+    const locked = await (0, taskFile_1.withTaskFileLock)(taskFilePath, undefined, async () => {
+        const currentTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'));
+        const nextTaskFile = (0, taskFile_1.bumpMutationCount)((0, taskFile_1.applySuggestedChildTasks)(currentTaskFile, parentTaskId, suggestedChildTasks));
+        await fs.writeFile(taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        return (0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8'));
+    });
+    if (locked.outcome === 'lock_timeout') {
+        throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
+    }
+    return locked.value;
 }
 async function replaceTasksFileWithNormalizedTasks(tasksPath, newTasks) {
     const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {

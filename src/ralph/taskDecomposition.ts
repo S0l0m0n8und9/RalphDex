@@ -7,7 +7,8 @@ import {
   RalphTaskRemediationArtifact,
   RalphTaskRemediationHistoryEntry
 } from './types';
-import { applySuggestedChildTasksToFile, findTaskById, parseTaskFile, stringifyTaskFile, withTaskFileLock } from './taskFile';
+import { findTaskById, parseTaskFile, stringifyTaskFile, withTaskFileLock } from './taskFile';
+import { applySuggestedChildTasksToFile } from './taskCreation';
 
 const MAX_REMEDIATION_CHILD_TASKS = 3;
 

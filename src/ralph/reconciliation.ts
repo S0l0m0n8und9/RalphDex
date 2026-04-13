@@ -4,7 +4,6 @@ import { CompletionReportArtifact, parseCompletionReport } from './completionRep
 import { writeWatchdogDiagnosticArtifact } from './artifactStore';
 import { readTaskPlan } from './planningPass';
 import {
-  applySuggestedChildTasksToFile,
   autoCompleteSatisfiedAncestors,
   bumpMutationCount,
   findTaskById,
@@ -16,6 +15,7 @@ import {
   withTaskFileLock,
   stringifyTaskFile
 } from './taskFile';
+import { applySuggestedChildTasksToFile } from './taskCreation';
 import {
   RalphCompletionClassification,
   RalphIterationResult,

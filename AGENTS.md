@@ -35,6 +35,7 @@ Ralphdex is a VS Code extension that:
 - `src/ralph/iterationEngine.ts`: loop orchestration and phase order
 - `src/ralph/completionReportParser.ts`: completion-report parsing and structured extraction from Codex output
 - `src/ralph/taskDecomposition.ts`: remediation artifact shaping, deterministic child-task decomposition, and auto-remediation application (mark_blocked, decompose_task)
+- `src/ralph/taskCreation.ts`: shared producer-facing task-creation pipeline for append, replace, and child-task persistence
 - `src/ralph/cliOutputFormatter.ts`: claude stream-json line formatting for log output
 - `src/ralph/reviewPolicy.ts`: review-agent file-change anomaly detection and policy enforcement
 - `src/ralph/reconciliation.ts`: completion-report reconciliation into task-state updates and warnings
@@ -50,8 +51,6 @@ Ralphdex is a VS Code extension that:
 - `src/webview/`: reusable webview infrastructure — WebviewPanelManager (named-panel lifecycle), MessageBridge (typed extension↔webview messaging), and shared stylesheet
 
 ## Command And Validation Entry Points
-
-User-facing commands come from `package.json` and `src/commands/registerCommands.ts`:
 
 - `Ralphdex: Prepare Prompt`
 - `Ralphdex: Open Codex IDE`
@@ -76,8 +75,6 @@ User-facing commands come from `package.json` and `src/commands/registerCommands
 - `Ralphdex: Construct Recommended Skills`
 - `Ralphdex: Regenerate PRD`
 - `Ralphdex: Show Sidebar`
-
-Validation entry points:
 
 - `npm run check:docs`: deterministic docs/architecture sanity checks for required files, headings, links, and ownership guardrails
 - `npm run validate`: authoritative compile + type-check + test gate
