@@ -302,6 +302,8 @@ The canonical `RalphTask` interface lives in `src/ralph/types.ts`. The `SUPPORTE
 
 `normalizeNewTask` in `src/ralph/taskNormalization.ts` is the single entry point that all task producers should use when creating new tasks. It applies alias mapping (`rationale` → `notes`, `suggestedValidationCommand` → `validation`), structured-dependency flattening (`{ taskId }[]` → `string[]`), `null` → `undefined` coercion, default status injection, field-name auto-correction, optional parent augmentation for derive-if-possible fields, and canonical normalization via `normalizeTask`. Producers that previously built raw task objects should call `normalizeNewTask` instead to guarantee consistent coercion and field preservation.
 
+Operator-facing expectation: generated tasks should emerge from any supported producer path with the richest canonical shape that Ralph can prove at creation time, not an artificially reduced `id`/`title`/`status` subset. When a producer knows `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, or derives `dependsOn`/`mode` from a parent or scaffold context, those fields should survive into persisted `tasks.json` through the shared pipeline. Missing fields are still canonical only when the upstream producer genuinely lacked that information, when the field is in the leave-absent category below, or when a minimal producer such as the pipeline-root scaffold intentionally has only a narrower source payload.
+
 ### Producer Entry Points
 
 New tasks enter the system through one of these paths. Every path terminates in `normalizeTask` (directly or via `normalizeNewTask`), which enforces the rules below.
@@ -311,12 +313,14 @@ New tasks enter the system through one of these paths. Every path terminates in 
 | Manual edit of `tasks.json` | `parseTaskFileText` → `normalizeTask` | All fields come from the file author. The parser adds a `source` location for diagnostic reporting. |
 | Task decomposition | `buildDecompositionProposal` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Child IDs follow `${parentId}.${index}`. `dependsOn`, `validation`, `mode`, `tier`, and `acceptance` may be derived from the parent via `normalizeNewTask` augmentation. |
 | Remediation (reframe / mark_blocked) | `remediationSuggestedChildTasks` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Creates a single `.1` child scoped to the remediation action. |
-| Pipeline root | `buildPipelineRootTask` → `taskCreation.appendNormalizedTasksToFile` → `normalizeNewTask` → `parseTaskFile` → `normalizeTask` | Minimal shape: only `id`, `title`, and `notes`. Status defaults to `'todo'`. |
+| Pipeline root | `buildPipelineRootTask` → `taskCreation.appendNormalizedTasksToFile` → `normalizeNewTask` → `parseTaskFile` → `normalizeTask` | Intentionally minimal source payload: only `id`, `title`, and `notes`. Status defaults to `'todo'`, and other optional fields remain absent because the scaffold path does not know them yet. |
 | Pipeline children | `buildPipelineChildTasks` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Children are derived from PRD sections with sequential dependencies. `validation: null` becomes `undefined` via `normalizeNewTask`. |
 | PRD generation / bootstrap append | `generateProjectDraft` or command-local drafts → `appendNormalizedTasksToFile` → `normalizeNewTask` | Initialize Workspace, New Project, and Add Task append through the shared persistence helper so richer producer fields survive AI generation and fallback/bootstrap paths. |
 | PRD wizard confirm-write | `writePrdWizardDraft` → `replaceTasksFileWithNormalizedTasks` → `normalizeNewTask` | Reviewed wizard tasks replace the target `tasks.json` through the same shared normalization/persistence boundary used by append flows. |
 
 For paths that go through `taskCreation.applySuggestedChildTasksToFile`, children are normalized at creation time via `normalizeNewTask` (which handles alias mapping, dependency flattening, parent augmentation, and canonical coercion). The subsequent write-then-read cycle re-normalizes through `parseTaskFile` for consistency.
+
+This shared invariant is deliberate for UI and workflow surfaces: operator-visible commands should describe generated tasks as "complete when the source is complete" rather than implying that sparse generated tasks are the normal or preferred result. Sparse output is valid only for producer paths whose source data is truly sparse.
 
 ### Required Fields
 
@@ -360,6 +364,7 @@ This means:
 - **acceptance**, **validation**, and **tier** written by a human in `tasks.json` survive normalization exactly as authored (after coercion). If the human omits them, they remain `undefined`.
 - **constraints** and **context** are leave-absent: they survive only when a producer (human or code) explicitly sets them. Decomposition preserves these from `RalphSuggestedChildTask` when supplied but never synthesizes them.
 - **mode** and **tier** are inherited from the parent during decomposition but left absent when parsing a manually authored `tasks.json` that omits them.
+- generated tasks should therefore usually carry the richest known subset of `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, `dependsOn`, and `mode`; absence is canonical only when the source path did not know the value or the field is intentionally leave-absent.
 
 ### Coercion Invariants
 

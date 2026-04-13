@@ -66,6 +66,8 @@ For a fresh clone, start by installing dependencies and running the validation g
 
 For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace`. The command creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and `.ralph/.gitignore`. After initialization, replace the placeholder in `.ralph/prd.md` with the real objective before preparing prompts.
 
+Newly generated Ralph tasks now share one normalization and persistence pipeline across bootstrap commands, PRD generation, wizard writes, decomposition, remediation, and pipeline scaffolding. In practice that means generated tasks should keep the richest producer-supplied shape Ralph knows at creation time, including fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and any derived dependency or mode metadata when those values are available. A generated task may still omit some optional fields when the upstream producer genuinely lacked that information or when the canonical contract leaves the field absent by design. See [docs/invariants.md#normalized-task-contract](docs/invariants.md#normalized-task-contract) for the authoritative field-presence rules.
+
 To build a distributable local package: `npm run package` then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension`.
 
 ## Durable Files
@@ -82,7 +84,7 @@ Ralph keeps its durable state in the workspace:
 - artifacts and latest pointers: `.ralph/artifacts/`
 - logs: `.ralph/logs/extension.log`
 
-The durable task model is explicit and flat. See [docs/invariants.md](docs/invariants.md) for the version-2 task schema and control-plane rules.
+The durable task model is explicit and flat. Newly created tasks also share one producer-facing normalization path, so AI-generated, wizard-reviewed, decomposed, remediated, and pipeline-scaffolded tasks all persist through the same version-2 contract instead of bespoke thinner write paths. See [docs/invariants.md](docs/invariants.md) for the task schema, field-presence rules, and control-plane invariants.
 
 ## Artifact Lifecycle
 

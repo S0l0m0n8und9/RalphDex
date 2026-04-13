@@ -40,6 +40,8 @@ This workflow proves that the repo can build a distributable `.vsix`. It does no
 
 This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
 
+That initial `tasks.json` now enters the same shared task-creation pipeline used by later PRD generation, wizard persistence, decomposition, remediation, and pipeline scaffolding. Generated tasks should therefore preserve the richest fields the bootstrap or AI source already knows instead of being reduced to a title-only starter shape. Optional fields may still be absent when the source objective did not provide them yet; [docs/invariants.md#normalized-task-contract](invariants.md#normalized-task-contract) is the authoritative contract.
+
 The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ralph warns and aborts instead of overwriting the current workspace state. That keeps initialization for clean clones separate from runtime cleanup or reset flows on an active workspace.
 
 ## Prepare A Prompt For IDE Use
@@ -106,7 +108,7 @@ Per-iteration artifacts now also include `completion-report.json`, which records
 
 When the same selected task stops with repeated no-progress, repeated blocked starts, or repeated identical failure evidence, the persisted iteration result, latest-result pointer, latest summary, and status report now also carry a bounded remediation recommendation. That recommendation stays deterministic and human-review-first; it does not trigger an automatic extra model pass.
 
-If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralphdex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried.
+If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralphdex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried. The approved child tasks should keep the richest known proposal fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and derived dependency metadata when the remediation artifact supplied them; fields remain absent only when the proposal did not know them.
 
 Ralph may also auto-apply `decompose_task` during `Run CLI Iteration` or `Run CLI Loop`, but only when `ralphCodex.autoApplyRemediation` includes `decompose_task` or `ralphCodex.autonomyMode = autonomous` makes that setting effective at runtime. In that mode Ralph still persists the remediation artifact first, then applies the suggested child tasks through the same task-file validation and `withTaskFileLock` write path used by the explicit apply command. If validation fails, Ralph leaves `.ralph/tasks.json` unchanged and records a warning on the iteration result instead of forcing the edit.
 
@@ -152,6 +154,8 @@ The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
 - `prUrl` — GitHub/GitLab PR URL extracted from the SCM agent completion report (when available)
 
 This command is the supported end-to-end pipeline path. It does not bypass the normal task-graph, claim, or iteration-cap constraints; it only adds the scaffold tasks and then delegates execution to the existing multi-agent loop.
+
+Pipeline scaffolding follows the same generated-task invariant as every other producer path. The pipeline-root task is intentionally sparse because the scaffold only knows the PRD title and notes at that point, but the section-derived child tasks still persist through the shared normalization boundary so sequential dependencies, inherited fields, and any richer producer-supplied metadata are preserved instead of being stripped by a pipeline-specific write path.
 
 ### Configurable Human-Review Gate
 
@@ -421,7 +425,7 @@ Use the inspection commands by question, not just by file name:
 - `Ralphdex: Open Latest Provenance Bundle` opens the newest provenance summary surface.
 - `Ralphdex: Open Latest Prompt Evidence` opens `latest-prompt-evidence.json` for direct prompt-context inspection.
 - `Ralphdex: Open Latest CLI Transcript` opens the newest CLI transcript and falls back to the newest last-message artifact when a transcript path is unavailable.
-- `Ralphdex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`.
+- `Ralphdex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`. Approved child tasks persist through the same shared normalization path as other generated-task producers, so review them as full tasks rather than assuming a title/status-only scaffold.
 - `Ralphdex: Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory for folder-level inspection.
 - `Ralphdex: Cleanup Runtime Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
 

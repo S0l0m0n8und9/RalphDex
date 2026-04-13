@@ -3341,13 +3341,13 @@
     {
       "id": "T119.6",
       "title": "Document the shared task-creation invariant and align UI expectations around complete generated tasks",
-      "status": "todo",
+      "status": "done",
       "parentId": "T119",
       "dependsOn": [
         "T119.3",
         "T119.4"
       ],
-      "notes": "Update the owned docs so operators understand that generated tasks should now emerge with a fuller structure, and call out any remaining cases where a field may be absent because the upstream source genuinely lacked that information.",
+      "notes": "Documented the shared generated-task invariant across README, invariants, and workflow docs. Clarified that generated tasks should retain the richest known fields through the shared normalization pipeline, while sparse output is only canonical when the source genuinely lacks that data or the producer is intentionally minimal such as the pipeline-root scaffold.",
       "validation": "npm run check:docs",
       "acceptance": [
         "README and the focused owner docs describe the shared task-creation invariant",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 112
+  "mutationCount": 113
 }
