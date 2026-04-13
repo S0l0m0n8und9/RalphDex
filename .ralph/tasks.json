@@ -3272,12 +3272,12 @@
     {
       "id": "T119.2",
       "title": "Implement a shared task-normalization and augmentation pipeline for all task producers",
-      "status": "todo",
+      "status": "done",
       "parentId": "T119",
       "dependsOn": [
         "T119.1"
       ],
-      "notes": "Create one reusable helper that canonicalizes ids, trims text, deduplicates arrays, maps known aliases, preserves rich fields, and optionally augments sparse inputs into the normalized creation contract before persistence.",
+      "notes": "Created src/ralph/taskNormalization.ts with normalizeNewTask — a single reusable pipeline that canonicalizes IDs, trims text, deduplicates arrays, maps aliases (rationale→notes, structured dependsOn, null validation), augments from parent, and delegates to normalizeTask. Wired into applySuggestedChildTasks and buildPipelineRootTask. Added 28 tests. Updated docs/invariants.md. Full validation passe",
       "validation": "npm run validate",
       "acceptance": [
         "A single reusable helper or module owns task normalization for newly created tasks",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 108
+  "mutationCount": 109
 }

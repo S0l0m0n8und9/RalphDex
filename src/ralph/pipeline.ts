@@ -9,6 +9,7 @@ import {
   stringifyTaskFile,
   withTaskFileLock
 } from './taskFile';
+import { normalizeNewTask } from './taskNormalization';
 import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
 export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
@@ -99,12 +100,11 @@ export function parsePrdSections(prdText: string): string[] {
  * Build the pipeline-root parent task (not yet written to disk).
  */
 export function buildPipelineRootTask(rootTaskId: string, runId: string): RalphTask {
-  return {
+  return normalizeNewTask({
     id: rootTaskId,
     title: `Pipeline run ${runId}`,
-    status: 'todo',
     notes: `Auto-generated pipeline root. Created by ralphCodex.runPipeline at ${new Date().toISOString()}.`
-  };
+  });
 }
 
 /**

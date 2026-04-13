@@ -161,7 +161,7 @@ test('contract: suggested child tasks convert with correct field mapping', () =>
 
   assert.equal(child.status, 'todo', 'status forced to todo');
   assert.equal(child.parentId, 'T1');
-  assert.deepEqual(child.dependsOn, [], 'empty dependsOn stays as empty array in raw conversion');
+  assert.deepEqual(child.dependsOn, undefined, 'empty dependsOn becomes undefined after normalization');
   assert.equal(child.validation, 'npm run lint');
   assert.equal(child.notes, 'Narrow scope to linting first', 'rationale maps to notes');
   assert.equal(child.mode, 'documentation', 'mode inherited from parent');

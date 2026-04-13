@@ -51,6 +51,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
 const taskFile_1 = require("./taskFile");
+const taskNormalization_1 = require("./taskNormalization");
 const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
 /**
  * Extract the first GitHub/GitLab PR URL from a progress note string.
@@ -102,12 +103,11 @@ function parsePrdSections(prdText) {
  * Build the pipeline-root parent task (not yet written to disk).
  */
 function buildPipelineRootTask(rootTaskId, runId) {
-    return {
+    return (0, taskNormalization_1.normalizeNewTask)({
         id: rootTaskId,
         title: `Pipeline run ${runId}`,
-        status: 'todo',
         notes: `Auto-generated pipeline root. Created by ralphCodex.runPipeline at ${new Date().toISOString()}.`
-    };
+    });
 }
 /**
  * Build child task suggestions from PRD section titles.

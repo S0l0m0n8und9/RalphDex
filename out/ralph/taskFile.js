@@ -37,6 +37,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.withTaskFileLock = withTaskFileLock;
+exports.autoCorrectKnownMistakes = autoCorrectKnownMistakes;
+exports.normalizeTask = normalizeTask;
 exports.inspectTaskGraph = inspectTaskGraph;
 exports.inspectTaskFileText = inspectTaskFileText;
 exports.createDefaultTaskFile = createDefaultTaskFile;
@@ -59,6 +61,7 @@ exports.markTaskInProgress = markTaskInProgress;
 const fs = __importStar(require("node:fs/promises"));
 const path = __importStar(require("node:path"));
 const fileLock_1 = require("../util/fileLock");
+const taskNormalization_1 = require("./taskNormalization");
 // Re-export claims module so existing `import { ... } from './taskFile'` paths
 // continue to work without any changes to consumers.
 __exportStar(require("./taskClaims"), exports);
@@ -1047,20 +1050,18 @@ function applySuggestedChildTasks(taskFile, parentTaskId, suggestedChildTasks) {
             }
         }
     }
-    const proposedChildren = suggestedChildTasks.map((child) => ({
+    const proposedChildren = suggestedChildTasks.map((child) => (0, taskNormalization_1.normalizeNewTask)({
         id: child.id,
         title: child.title,
-        status: 'todo',
         parentId: child.parentId,
-        dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
-        validation: child.validation ?? undefined,
-        notes: child.rationale,
-        mode: parentTask.mode,
+        dependsOn: child.dependsOn,
+        validation: child.validation,
+        rationale: child.rationale,
         acceptance: child.acceptance,
         constraints: child.constraints,
         context: child.context,
         tier: child.tier
-    }));
+    }, { parentTask, defaultStatus: 'todo' }));
     const parentDependencies = Array.from(new Set([
         ...(parentTask.dependsOn ?? []),
         ...proposedChildren.map((child) => child.id)

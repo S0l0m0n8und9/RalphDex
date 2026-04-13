@@ -1,6 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { withFileLock } from '../util/fileLock';
+import { normalizeNewTask } from './taskNormalization';
 import {
   RalphAgentRole,
   RalphPreflightDiagnostic,
@@ -196,7 +197,7 @@ function normalizedFieldKey(key: string): string {
  * Remap known wrong field names to their correct equivalents in place.
  * Returns the list of corrected keys (original → corrected) for diagnostics.
  */
-function autoCorrectKnownMistakes(record: Record<string, unknown>): Array<{ original: string; corrected: string }> {
+export function autoCorrectKnownMistakes(record: Record<string, unknown>): Array<{ original: string; corrected: string }> {
   const corrections: Array<{ original: string; corrected: string }> = [];
 
   for (const key of Object.keys(record)) {
@@ -445,7 +446,7 @@ function extractTaskEntryLocations(raw: string): RalphTaskSourceLocation[] {
  * - Enum fields (`priority`, `mode`, `tier`) silently become `undefined` on invalid values
  * - Only fields in `SUPPORTED_TASK_FIELDS` survive; unknown fields are dropped
  */
-function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): RalphTask {
+export function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): RalphTask {
   if (typeof candidate !== 'object' || candidate === null) {
     throw new Error('Task entries must be objects.');
   }
@@ -1279,20 +1280,20 @@ export function applySuggestedChildTasks(
     }
   }
 
-  const proposedChildren: RalphTask[] = suggestedChildTasks.map((child) => ({
-    id: child.id,
-    title: child.title,
-    status: 'todo',
-    parentId: child.parentId,
-    dependsOn: child.dependsOn.map((dependency) => dependency.taskId),
-    validation: child.validation ?? undefined,
-    notes: child.rationale,
-    mode: parentTask.mode,
-    acceptance: child.acceptance,
-    constraints: child.constraints,
-    context: child.context,
-    tier: child.tier
-  }));
+  const proposedChildren: RalphTask[] = suggestedChildTasks.map((child) =>
+    normalizeNewTask({
+      id: child.id,
+      title: child.title,
+      parentId: child.parentId,
+      dependsOn: child.dependsOn,
+      validation: child.validation,
+      rationale: child.rationale,
+      acceptance: child.acceptance,
+      constraints: child.constraints,
+      context: child.context,
+      tier: child.tier
+    }, { parentTask, defaultStatus: 'todo' })
+  );
 
   const parentDependencies = Array.from(new Set([
     ...(parentTask.dependsOn ?? []),

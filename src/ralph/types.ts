@@ -22,6 +22,10 @@ export type FailureCategoryId = 'transient' | 'implementation_error' | 'task_amb
  * Every task entering the in-memory graph — whether parsed from `tasks.json`,
  * converted from a {@link RalphSuggestedChildTask}, or built by pipeline
  * construction — passes through `normalizeTask` (src/ralph/taskFile.ts).
+ * Producers creating new tasks should use `normalizeNewTask`
+ * (src/ralph/taskNormalization.ts) which adds alias mapping, dependency
+ * flattening, parent augmentation, and default status before delegating
+ * to `normalizeTask`.
  *
  * Each optional field follows one of three presence categories:
  * - **preserve-source** — kept as the producer supplied it; never synthesized.
