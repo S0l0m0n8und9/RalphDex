@@ -1449,6 +1449,10 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showSidebar', async () => {
         await vscode.commands.executeCommand('ralphCodex.dashboard.focus');
     }));
+    // Focus the durable task tree view inside the Ralphdex activity bar.
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showTasks', async () => {
+        await vscode.commands.executeCommand('ralphCodex.tasks.focus');
+    }));
     // On activation: scan for interrupted pipeline runs and offer to resume.
     const activationFolder = vscode.workspace.workspaceFolders?.[0];
     if (activationFolder) {

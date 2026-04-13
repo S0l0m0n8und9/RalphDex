@@ -185,6 +185,20 @@ test('package manifest contributes and activates the showSidebar command', async
   );
 });
 
+test('package manifest contributes and activates the showTasks command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.showTasks'),
+    'package.json must activate on ralphCodex.showTasks'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.showTasks' && entry.title === 'Ralphdex: Show Tasks'),
+    'package.json must contribute the Show Tasks command'
+  );
+});
+
 test('package manifest activity bar entry includes placeholder navigation views', async () => {
   const manifest = await readPackageManifest();
   const views = (manifest.contributes as Record<string, unknown> & { views?: Record<string, Array<{ id?: string }>> })?.views ?? {};

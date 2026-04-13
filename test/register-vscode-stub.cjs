@@ -14,6 +14,8 @@ const state = {
   shownDocuments: [],
   executedCommands: [],
   createdWebviewPanels: [],
+  registeredTreeDataProviders: [],
+  createdFileSystemWatchers: [],
   inputBoxValue: undefined,
   messageChoice: undefined,
   quickPickSelections: []
@@ -31,6 +33,8 @@ function reset() {
   state.shownDocuments = [];
   state.executedCommands = [];
   state.createdWebviewPanels = [];
+  state.registeredTreeDataProviders = [];
+  state.createdFileSystemWatchers = [];
   state.inputBoxValue = undefined;
   state.messageChoice = undefined;
   state.updatedSettings = {};
@@ -70,8 +74,33 @@ class StubEventEmitter {
   }
 }
 
+class StubTreeItem {
+  constructor(label, collapsibleState = 0) {
+    this.label = label;
+    this.collapsibleState = collapsibleState;
+    this.description = undefined;
+    this.tooltip = undefined;
+    this.command = undefined;
+    this.contextValue = undefined;
+    this.iconPath = undefined;
+  }
+}
+
+class StubThemeIcon {
+  constructor(id) {
+    this.id = id;
+  }
+}
+
 const vscodeStub = {
   EventEmitter: StubEventEmitter,
+  TreeItem: StubTreeItem,
+  ThemeIcon: StubThemeIcon,
+  TreeItemCollapsibleState: {
+    None: 0,
+    Collapsed: 1,
+    Expanded: 2
+  },
   ProgressLocation: {
     Notification: 15
   },
@@ -159,11 +188,27 @@ const vscodeStub = {
         }
       };
     },
-    createFileSystemWatcher() {
+    createFileSystemWatcher(pattern) {
+      const watcherRecord = {
+        pattern,
+        changeListeners: [],
+        createListeners: [],
+        deleteListeners: []
+      };
+      state.createdFileSystemWatchers.push(watcherRecord);
       return {
-        onDidChange() { return { dispose() {} }; },
-        onDidCreate() { return { dispose() {} }; },
-        onDidDelete() { return { dispose() {} }; },
+        onDidChange(listener) {
+          watcherRecord.changeListeners.push(listener);
+          return { dispose() {} };
+        },
+        onDidCreate(listener) {
+          watcherRecord.createListeners.push(listener);
+          return { dispose() {} };
+        },
+        onDidDelete(listener) {
+          watcherRecord.deleteListeners.push(listener);
+          return { dispose() {} };
+        },
         dispose() {}
       };
     },
@@ -235,6 +280,10 @@ const vscodeStub = {
         dispose() {}
       };
     },
+    registerTreeDataProvider(viewId, provider) {
+      state.registeredTreeDataProviders.push({ viewId, provider });
+      return { dispose() {} };
+    },
     registerWebviewViewProvider() {
       return { dispose() {} };
     },
@@ -292,6 +341,20 @@ global.__RALPH_VSCODE_STUB__ = {
   },
   getOutputLines(name) {
     return outputChannels.get(name)?.lines ?? [];
+  },
+  fireFileSystemWatcher(index, event, uri = undefined) {
+    const watcher = state.createdFileSystemWatchers[index];
+    if (!watcher) {
+      return;
+    }
+    const listeners = event === 'create'
+      ? watcher.createListeners
+      : event === 'delete'
+        ? watcher.deleteListeners
+        : watcher.changeListeners;
+    for (const listener of listeners) {
+      listener(uri);
+    }
   }
 };
 

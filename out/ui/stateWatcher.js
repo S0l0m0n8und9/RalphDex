@@ -39,8 +39,9 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const taskFile_1 = require("../ralph/taskFile");
 /**
- * Watches `.ralph/tasks.json` and `.ralph/state.json` for changes,
- * reads them, and fires a typed event with the combined state.
+ * Watches `.ralph/tasks.json`, claim/dead-letter state, and compact per-task
+ * artifacts for changes, reads the core state files, and fires a typed event
+ * with the combined state.
  * Debounces at 300ms to avoid thrashing during rapid writes.
  */
 class RalphStateWatcher {
@@ -53,12 +54,15 @@ class RalphStateWatcher {
     constructor(workspaceRoot) {
         this.workspaceRoot = workspaceRoot;
         this.ralphDir = path.join(workspaceRoot, '.ralph');
-        const pattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json}');
-        const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-        watcher.onDidChange(() => this.scheduleRefresh());
-        watcher.onDidCreate(() => this.scheduleRefresh());
-        watcher.onDidDelete(() => this.scheduleRefresh());
-        this.watchers.push(watcher);
+        const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json}');
+        const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json}');
+        for (const pattern of [statePattern, artifactPattern]) {
+            const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+            watcher.onDidChange(() => this.scheduleRefresh());
+            watcher.onDidCreate(() => this.scheduleRefresh());
+            watcher.onDidDelete(() => this.scheduleRefresh());
+            this.watchers.push(watcher);
+        }
     }
     scheduleRefresh() {
         if (this.debounceTimer) {

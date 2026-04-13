@@ -249,6 +249,7 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.revealLatestProvenanceBundleDirectory'));
   assert.ok(commands.includes('ralphCodex.cleanupRalphRuntimeArtifacts'));
   assert.ok(commands.includes('ralphCodex.constructRecommendedSkills'));
+  assert.ok(commands.includes('ralphCodex.showTasks'));
 
   const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /"message":"Effective Ralph autonomy configuration\."/);
@@ -500,6 +501,22 @@ test('Show Multi-Agent Status routes through the dashboard and writes raw report
   // Raw report still written to the output channel for audit/debugging.
   const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /Multi-Agent Status/);
+});
+
+test('Show Tasks focuses the task tree view', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.showTasks');
+
+  assert.ok(
+    harness.state.executedCommands.some((entry) => entry.command === 'ralphCodex.tasks.focus'),
+    'showTasks must focus the task tree view'
+  );
 });
 
 test('Test Current Provider Connection reports the active provider readiness using the existing CLI support checks', async () => {

@@ -3416,13 +3416,13 @@
     {
       "id": "T120.3",
       "title": "Add a structured task view over durable tasks, plans, and dead-letter state",
-      "status": "todo",
+      "status": "done",
       "parentId": "T120",
       "dependsOn": [
         "T107",
         "T119"
       ],
-      "notes": "Implement PRD item 15 Phase 5 by turning the existing task state, plan artifacts, and dead-letter queue into a command-backed interactive view that stays live on filesystem updates and keeps mutations on the existing command surface.",
+      "notes": "Implemented the Ralphdex task tree view over durable tasks, claims, dead-letter state, and per-task plan/diagnostic artifacts; added Show Tasks focus wiring and expanded watcher coverage for dead-letter and task artifact refresh.",
       "validation": "npm run validate",
       "acceptance": [
         "A user-visible Ralphdex task view or showTasks command renders tasks with id, title, status, effective tier, dependency chips, and dead-letter separation",
@@ -3453,5 +3453,5 @@
       ]
     }
   ],
-  "mutationCount": 117
+  "mutationCount": 118
 }

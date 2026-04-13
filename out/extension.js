@@ -45,6 +45,7 @@ const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
 const sidebarViewProvider_1 = require("./ui/sidebarViewProvider");
 const stateWatcher_1 = require("./ui/stateWatcher");
 const statusBarItem_1 = require("./ui/statusBarItem");
+const taskTreeView_1 = require("./ui/taskTreeView");
 const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
 const dashboardDataLoader_1 = require("./webview/dashboardDataLoader");
 const stateManager_1 = require("./ralph/stateManager");
@@ -88,12 +89,19 @@ function activate(context) {
     // State watcher — responds to .ralph/ file changes
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     if (workspaceRoot) {
+        const primaryWorkspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!primaryWorkspaceFolder) {
+            return;
+        }
+        const taskTreeProvider = new taskTreeView_1.RalphTaskTreeDataProvider(primaryWorkspaceFolder);
+        context.subscriptions.push(vscode.window.registerTreeDataProvider('ralphCodex.tasks', taskTreeProvider));
         const watcher = new stateWatcher_1.RalphStateWatcher(workspaceRoot);
         context.subscriptions.push(watcher);
         watcher.onStateChange((state) => {
             statusBar.updateFromWatchedState(state);
             sidebarProvider.updateFromWatchedState(state);
             dashboardPanel_1.RalphDashboardPanel.currentPanel?.updateFromWatchedState(state);
+            taskTreeProvider.refresh();
         });
         // Initial read
         void watcher.refresh();

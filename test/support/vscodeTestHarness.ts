@@ -16,6 +16,13 @@ export interface VscodeStubState {
   shownDocuments: Array<string | null>;
   executedCommands: Array<{ command: string; args: unknown[] }>;
   createdWebviewPanels: Array<{ viewType: string; title: string; html: string }>;
+  registeredTreeDataProviders: Array<{ viewId: string; provider: unknown }>;
+  createdFileSystemWatchers: Array<{
+    pattern: unknown;
+    changeListeners: unknown[];
+    createListeners: unknown[];
+    deleteListeners: unknown[];
+  }>;
   inputBoxValue?: string;
   messageChoice?: string;
   quickPickSelections: unknown[];
@@ -31,6 +38,7 @@ export interface VscodeTestHarness {
   setMessageChoice(value: string | undefined): void;
   setQuickPickSelections(selections: unknown[]): void;
   getOutputLines(name: string): string[];
+  fireFileSystemWatcher(index: number, event: 'change' | 'create' | 'delete', uri?: unknown): void;
 }
 
 declare global {

@@ -136,6 +136,7 @@
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
     "onCommand:ralphCodex.showSidebar",
+    "onCommand:ralphCodex.showTasks",
     "onCommand:ralphCodex.showDashboard"
   ],
   "main": "./out/extension.js",
@@ -284,6 +285,10 @@
       {
         "command": "ralphCodex.showSidebar",
         "title": "Ralphdex: Show Sidebar"
+      },
+      {
+        "command": "ralphCodex.showTasks",
+        "title": "Ralphdex: Show Tasks"
       }
     ],
     "viewsContainers": {

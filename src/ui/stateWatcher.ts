@@ -11,8 +11,9 @@ export interface RalphWatchedState {
 }
 
 /**
- * Watches `.ralph/tasks.json` and `.ralph/state.json` for changes,
- * reads them, and fires a typed event with the combined state.
+ * Watches `.ralph/tasks.json`, claim/dead-letter state, and compact per-task
+ * artifacts for changes, reads the core state files, and fires a typed event
+ * with the combined state.
  * Debounces at 300ms to avoid thrashing during rapid writes.
  */
 export class RalphStateWatcher implements vscode.Disposable {
@@ -26,12 +27,16 @@ export class RalphStateWatcher implements vscode.Disposable {
   public constructor(private readonly workspaceRoot: string) {
     this.ralphDir = path.join(workspaceRoot, '.ralph');
 
-    const pattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json}');
-    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
-    watcher.onDidChange(() => this.scheduleRefresh());
-    watcher.onDidCreate(() => this.scheduleRefresh());
-    watcher.onDidDelete(() => this.scheduleRefresh());
-    this.watchers.push(watcher);
+    const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json}');
+    const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json}');
+
+    for (const pattern of [statePattern, artifactPattern]) {
+      const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+      watcher.onDidChange(() => this.scheduleRefresh());
+      watcher.onDidCreate(() => this.scheduleRefresh());
+      watcher.onDidDelete(() => this.scheduleRefresh());
+      this.watchers.push(watcher);
+    }
   }
 
   private scheduleRefresh(): void {
