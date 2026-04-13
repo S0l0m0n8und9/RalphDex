@@ -67,7 +67,6 @@ import {
 import { collectStatusSnapshot } from './statusSnapshot';
 import { buildDashboardSnapshot, type DiagnosisSection } from '../webview/dashboardSnapshot';
 import { autoApplyMarkBlockedRemediation } from '../ralph/taskDecomposition';
-import { FailureDiagnosisPanel } from '../ui/failureDiagnosisPanel';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -1336,10 +1335,9 @@ export function registerCommands(
         void vscode.window.showWarningMessage('No failure diagnosis is available for the selected task.');
         return;
       }
-      if (!panelManager) {
-        throw new Error('Failure diagnosis panel manager is unavailable.');
-      }
-      FailureDiagnosisPanel.createOrReveal(panelManager, diagnosis);
+      await vscode.commands.executeCommand('ralphCodex.showDashboard', {
+        activeTab: 'diagnostics'
+      });
     }
   });
 

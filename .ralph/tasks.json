@@ -3359,14 +3359,14 @@
     {
       "id": "T120",
       "title": "Complete the remaining full webview UI contract for settings, task, and failure surfaces",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T120.1",
         "T120.2",
         "T120.3",
         "T120.4"
       ],
-      "notes": "The dashboard and PRD wizard foundations are already shipped, but PRD item 15 still has unfinished operator-facing surfaces: settings discovery/configuration, a structured task view, and failure-detail notification flows.",
+      "notes": "Routed Open Failure Diagnosis through the shared dashboard diagnostics tab, updated smoke coverage to reject the legacy dedicated diagnosis panel path, aligned operator docs, and passed npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "Ralphdex ships the remaining PRD item 15 webview surfaces without introducing a second UI stack outside src/webview and src/ui",
@@ -3453,5 +3453,5 @@
       ]
     }
   ],
-  "mutationCount": 119
+  "mutationCount": 120
 }

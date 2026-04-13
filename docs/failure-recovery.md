@@ -32,13 +32,13 @@ Each category maps to a recovery action:
 
 When `autoApplyRemediation` includes the relevant action, Ralph applies it automatically. Otherwise it emits an operator notification and pauses.
 
-When a diagnostic artifact is recorded for the selected task, Ralphdex can surface a focused operator diagnosis view:
+When a diagnostic artifact is recorded for the selected task, Ralphdex can surface a focused operator diagnosis workflow:
 
-- `Ralphdex: Open Failure Diagnosis` opens a dedicated webview backed by the current task's `failure-analysis.json` and `recovery-state.json`.
+- `Ralphdex: Open Failure Diagnosis` opens the shared Ralph dashboard on the diagnostics tab, backed by the current task's `failure-analysis.json` and `recovery-state.json`.
 - `Ralphdex: Auto-Recover Task` routes through the existing retry/decomposition paths for the selected task.
 - `Ralphdex: Skip Task` marks the selected task blocked while preserving the durable failure evidence.
 
-The dashboard diagnostics tab mirrors the same persisted diagnosis state, so dismissing the notification toast does not lose the recovery context.
+Because the command routes through the same dashboard host as the rest of the operator UI, dismissing the notification toast does not lose the recovery context or create a second diagnosis-specific webview stack.
 
 ## Attempt Limits And Escalation
 

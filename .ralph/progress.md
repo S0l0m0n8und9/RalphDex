@@ -264,3 +264,4 @@
 - Added an inline settings-panel provider test action backed by a new internal command, extracted provider-readiness diagnostics from preflight into a shared helper, and added panel plus command regressions covering the new path.
 - Implemented the Ralphdex task tree view over durable tasks, claims, dead-letter state, and per-task plan/diagnostic artifacts; added Show Tasks focus wiring and expanded watcher coverage for dead-letter and task artifact refresh.
 - Gated failure-diagnosis notifications on fresh failure-analysis artifact writes to prevent stale recovery toasts, and added smoke coverage for View Diagnosis, Auto-Recover task-ambiguity routing, and Skip Task blocker persistence.
+- Routed Open Failure Diagnosis through the shared dashboard diagnostics tab, updated smoke coverage to reject the legacy dedicated diagnosis panel path, aligned operator docs, and passed npm run validate.

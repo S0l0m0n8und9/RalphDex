@@ -101,7 +101,8 @@ For day-to-day loop inspection:
 1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
 2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
 3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what Codex returned.
-4. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
+4. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
+5. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 
 See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/provenance.md](docs/provenance.md) for the trust model.
 

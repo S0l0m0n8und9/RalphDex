@@ -64,7 +64,6 @@ const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
 const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
-const failureDiagnosisPanel_1 = require("../ui/failureDiagnosisPanel");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -1074,10 +1073,9 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 void vscode.window.showWarningMessage('No failure diagnosis is available for the selected task.');
                 return;
             }
-            if (!panelManager) {
-                throw new Error('Failure diagnosis panel manager is unavailable.');
-            }
-            failureDiagnosisPanel_1.FailureDiagnosisPanel.createOrReveal(panelManager, diagnosis);
+            await vscode.commands.executeCommand('ralphCodex.showDashboard', {
+                activeTab: 'diagnostics'
+            });
         }
     });
     registerCommand(context, logger, {

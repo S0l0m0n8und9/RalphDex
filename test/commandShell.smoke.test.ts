@@ -1716,7 +1716,7 @@ test('Run CLI Iteration does not surface stale failure diagnosis after a success
   );
 });
 
-test('Run CLI Loop surfaces a fresh failure diagnosis notification and View Diagnosis opens the focused panel', async () => {
+test('Run CLI Loop surfaces a fresh failure diagnosis notification and View Diagnosis routes to the dashboard diagnostics tab', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1743,10 +1743,14 @@ test('Run CLI Loop surfaces a fresh failure diagnosis notification and View Diag
     harness.state.infoMessages.some((entry) => /Failure diagnosis ready for T1: Validator and emitted payload drifted apart\./.test(entry.message)),
     'Expected a fresh failure diagnosis notification'
   );
-  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one diagnosis panel to be created');
-  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.failureDiagnosisPanel');
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Align the emitted payload to the validator schema\./);
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Preserve the validator contract while retrying\./);
+  const showDashboardCall = harness.state.executedCommands.find((entry) => entry.command === 'ralphCodex.showDashboard');
+  assert.ok(showDashboardCall, 'Expected View Diagnosis to route through ralphCodex.showDashboard');
+  assert.deepEqual(showDashboardCall?.args[0], { activeTab: 'diagnostics' });
+  assert.equal(
+    harness.state.createdWebviewPanels.some((panel) => panel.viewType === 'ralphCodex.failureDiagnosisPanel'),
+    false,
+    'Expected no dedicated failure diagnosis panel to be created'
+  );
 });
 
 test('Auto-Recover Task routes task ambiguity to the decomposition proposal command', async () => {
