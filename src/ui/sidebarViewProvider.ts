@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
+import { buildSettingsSurfaceSnapshot } from '../config/settingsSurface';
 import type { RalphCodexConfig } from '../config/types';
 import type { RalphTaskFile } from '../ralph/types';
 import type { IterationBroadcaster } from './iterationBroadcaster';
 import { buildDashboardHtml } from './sidebarHtml';
 import type { RalphWatchedState } from './stateWatcher';
 import type {
-  RalphDashboardConfigSnapshot,
   RalphDashboardTask,
 } from './uiTypes';
 import { DashboardHost } from '../webview/dashboardHost';
@@ -76,9 +76,10 @@ export function defaultDashboardState(): import('./uiTypes').RalphDashboardState
     preflightSummary: 'ok',
     diagnostics: [],
     agentLanes: [],
-    config: null,
+    settingsSurface: null,
     dashboardSnapshot: null,
-    snapshotStatus: { phase: 'idle', errorMessage: null }
+    snapshotStatus: { phase: 'idle', errorMessage: null },
+    viewIntent: null
   };
 }
 
@@ -121,63 +122,11 @@ export function countTasks(taskFile: RalphTaskFile): { todo: number; in_progress
   return counts;
 }
 
-export function snapshotConfig(config: RalphCodexConfig): RalphDashboardConfigSnapshot {
-  return {
-    cliProvider: config.cliProvider,
-    model: config.model,
-    agentRole: config.agentRole,
-    agentId: config.agentId,
-    agentCount: config.agentCount,
-    autonomyMode: config.autonomyMode,
-    ralphIterationCap: config.ralphIterationCap,
-    preferredHandoffMode: config.preferredHandoffMode,
-    claudeMaxTurns: config.claudeMaxTurns,
-    claudePermissionMode: config.claudePermissionMode,
-    copilotApprovalMode: config.copilotApprovalMode,
-    copilotMaxAutopilotContinues: config.copilotMaxAutopilotContinues,
-    reasoningEffort: config.reasoningEffort,
-    approvalMode: config.approvalMode,
-    sandboxMode: config.sandboxMode,
-    scmStrategy: config.scmStrategy,
-    gitCheckpointMode: config.gitCheckpointMode,
-    noProgressThreshold: config.noProgressThreshold,
-    repeatedFailureThreshold: config.repeatedFailureThreshold,
-    stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
-    clipboardAutoCopy: config.clipboardAutoCopy,
-    autoReplenishBacklog: config.autoReplenishBacklog,
-    autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
-    promptBudgetProfile: config.promptBudgetProfile,
-    codexCommandPath: config.codexCommandPath,
-    claudeCommandPath: config.claudeCommandPath,
-    copilotCommandPath: config.copilotCommandPath,
-    inspectionRootOverride: config.inspectionRootOverride,
-    artifactRetentionPath: config.artifactRetentionPath,
-    ralphTaskFilePath: config.ralphTaskFilePath,
-    prdPath: config.prdPath,
-    progressPath: config.progressPath,
-    promptTemplateDirectory: config.promptTemplateDirectory,
-    generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-    provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
-    watchdogStaleTtlMs: config.watchdogStaleTtlMs,
-    claimTtlHours: config.claimTtlHours,
-    staleLockThresholdMinutes: config.staleLockThresholdMinutes,
-    promptPriorContextBudget: config.promptPriorContextBudget,
-    scmPrOnParentDone: config.scmPrOnParentDone,
-    promptIncludeVerifierFeedback: config.promptIncludeVerifierFeedback,
-    validationCommandOverride: config.validationCommandOverride,
-    verifierModes: [...config.verifierModes],
-    autoApplyRemediation: [...config.autoApplyRemediation],
-    customPromptBudget: { ...config.customPromptBudget },
-    modelTiering: {
-      enabled: config.modelTiering.enabled,
-      simple: { ...config.modelTiering.simple },
-      medium: { ...config.modelTiering.medium },
-      complex: { ...config.modelTiering.complex },
-      simpleThreshold: config.modelTiering.simpleThreshold,
-      complexThreshold: config.modelTiering.complexThreshold
-    },
-    hooks: { ...config.hooks },
-    openSidebarCommandId: config.openSidebarCommandId,
-    newChatCommandId: config.newChatCommandId
-  };
+export function snapshotConfig(
+  config: RalphCodexConfig,
+  options?: {
+    newSettingKeys?: string[];
+  }
+) {
+  return buildSettingsSurfaceSnapshot(config, options);
 }

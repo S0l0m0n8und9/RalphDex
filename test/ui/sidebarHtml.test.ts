@@ -17,9 +17,10 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     preflightSummary: 'ok',
     diagnostics: [],
     agentLanes: [],
-    config: null,
+    settingsSurface: null,
     dashboardSnapshot: null,
     snapshotStatus: { phase: 'idle', errorMessage: null },
+    viewIntent: null,
     ...overrides
   };
 }

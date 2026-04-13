@@ -38,6 +38,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const registerCommands_1 = require("./commands/registerCommands");
 const readConfig_1 = require("./config/readConfig");
+const settingsSurface_1 = require("./config/settingsSurface");
 const logger_1 = require("./services/logger");
 const dashboardPanel_1 = require("./ui/dashboardPanel");
 const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
@@ -64,13 +65,13 @@ function activate(context) {
     // Status bar quick-pick command
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
     // Primary dashboard command — opens the full dashboard in the editor area.
-    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', () => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
     }));
     // Legacy alias — keeps existing status bar items, sidebar buttons, and any
     // saved key bindings working without a breaking change.
-    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
+    context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
     }));
     // Forces a fresh snapshot reload on the open panel, if any. Idempotent: no-op
     // when no panel is open. Show Status commands call this after revealing the
@@ -116,6 +117,22 @@ function activate(context) {
             autoReplenishBacklog: config.autoReplenishBacklog
         });
     }
+    void (async () => {
+        const persistedState = await (0, settingsSurface_1.readSettingsDiscoveryState)(context.globalState ?? context.workspaceState);
+        const metadata = (0, settingsSurface_1.getSettingsSurfaceMetadata)();
+        const notice = persistedState ? (0, settingsSurface_1.collectNewSettingsNotice)(metadata, persistedState) : null;
+        await (0, settingsSurface_1.writeSettingsDiscoveryState)(context.globalState ?? context.workspaceState, metadata);
+        if (!notice) {
+            return;
+        }
+        const choice = await vscode.window.showInformationMessage(notice.message, 'Open Settings Panel');
+        if (choice === 'Open Settings Panel') {
+            await vscode.commands.executeCommand('ralphCodex.showDashboard', {
+                activeTab: 'settings',
+                focusSettingKey: notice.focusSettingKey
+            });
+        }
+    })();
 }
 function deactivate() {
     // no-op

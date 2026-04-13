@@ -4,6 +4,7 @@ import type {
   RalphTaskCounts,
   RalphTaskStatus,
 } from '../ralph/types';
+import type { SettingsSurfaceSnapshot } from '../config/settingsSurface';
 import type { DashboardSnapshot } from '../webview/dashboardSnapshot';
 
 // ---------------------------------------------------------------------------
@@ -112,83 +113,10 @@ export interface RalphDashboardIteration {
   agentId?: string;
 }
 
-export interface RalphDashboardConfigSnapshot {
-  cliProvider: string;
-  model: string;
-  agentRole: string;
-  agentId: string;
-  agentCount: number;
-  autonomyMode: string;
-  ralphIterationCap: number;
-  preferredHandoffMode: string;
-  claudeMaxTurns: number;
-  claudePermissionMode: string;
-  copilotApprovalMode: string;
-  copilotMaxAutopilotContinues: number;
-  reasoningEffort: string;
-  approvalMode: string;
-  sandboxMode: string;
-  scmStrategy: string;
-  gitCheckpointMode: string;
-  noProgressThreshold: number;
-  repeatedFailureThreshold: number;
-  stopOnHumanReviewNeeded: boolean;
-  clipboardAutoCopy: boolean;
-  autoReplenishBacklog: boolean;
-  autoReloadOnControlPlaneChange: boolean;
-  promptBudgetProfile: string;
-
-  // Paths
-  codexCommandPath: string;
-  claudeCommandPath: string;
-  copilotCommandPath: string;
-  inspectionRootOverride: string;
-  artifactRetentionPath: string;
-  ralphTaskFilePath: string;
-  prdPath: string;
-  progressPath: string;
-  promptTemplateDirectory: string;
-
-  // Numbers
-  generatedArtifactRetentionCount: number;
-  provenanceBundleRetentionCount: number;
-  watchdogStaleTtlMs: number;
-  claimTtlHours: number;
-  staleLockThresholdMinutes: number;
-  promptPriorContextBudget: number;
-
-  // Booleans
-  scmPrOnParentDone: boolean;
-  promptIncludeVerifierFeedback: boolean;
-
-  // String
-  validationCommandOverride: string;
-
-  // Multi-select arrays
-  verifierModes: string[];
-  autoApplyRemediation: string[];
-
-  // Complex objects
-  customPromptBudget: Partial<Record<string, number>>;
-  modelTiering: {
-    enabled: boolean;
-    simple: { provider?: string; model: string };
-    medium: { provider?: string; model: string };
-    complex: { provider?: string; model: string };
-    simpleThreshold: number;
-    complexThreshold: number;
-  };
-  hooks: {
-    beforeIteration?: string;
-    afterIteration?: string;
-    onTaskComplete?: string;
-    onStop?: string;
-    onFailure?: string;
-  };
-
-  // Internal/Advanced
-  openSidebarCommandId: string;
-  newChatCommandId: string;
+export interface RalphDashboardViewIntent {
+  activeTab?: 'overview' | 'work' | 'diagnostics' | 'settings';
+  focusSettingKey?: string;
+  newSettingKeys?: string[];
 }
 
 export type RalphDashboardSnapshotPhase = 'idle' | 'loading' | 'refreshing' | 'ready' | 'error';
@@ -211,9 +139,10 @@ export interface RalphDashboardState {
   preflightSummary: string;
   diagnostics: Array<{ severity: string; message: string }>;
   agentLanes: RalphAgentLaneState[];
-  config: RalphDashboardConfigSnapshot | null;
+  settingsSurface: SettingsSurfaceSnapshot | null;
   dashboardSnapshot: DashboardSnapshot | null;
   snapshotStatus: RalphDashboardSnapshotStatus;
+  viewIntent: RalphDashboardViewIntent | null;
 }
 
 /** Messages sent from extension to webview. */

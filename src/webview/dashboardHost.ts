@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { readConfig } from '../config/readConfig';
+import type { RalphDashboardViewIntent } from '../ui/uiTypes';
 import type { IterationBroadcaster } from '../ui/iterationBroadcaster';
 import type {
   RalphAgentLaneState,
@@ -39,20 +40,27 @@ export class DashboardHost implements vscode.Disposable {
   private readonly bridge: MessageBridge<RalphWebviewMessage, RalphWebviewCommand>;
   private readonly broadcastDisposable: vscode.Disposable;
   private snapshotLoadGeneration = 0;
+  private newSettingKeys: string[];
 
   constructor(
     private readonly webview: vscode.Webview,
     broadcaster: IterationBroadcaster,
     private readonly renderFn: (state: RalphDashboardState, nonce: string) => string,
-    private readonly loadSnapshot?: DashboardSnapshotLoader
+    private readonly loadSnapshot?: DashboardSnapshotLoader,
+    initialViewIntent: RalphDashboardViewIntent | null = null
   ) {
     this.latestState = defaultDashboardState();
+    this.newSettingKeys = [...(initialViewIntent?.newSettingKeys ?? [])];
 
     // Eagerly populate config so settings are visible on first render.
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     if (workspaceFolder) {
       const initialConfig = readConfig(workspaceFolder);
-      this.latestState = { ...this.latestState, config: snapshotConfig(initialConfig) };
+      this.latestState = {
+        ...this.latestState,
+        settingsSurface: snapshotConfig(initialConfig, { newSettingKeys: this.newSettingKeys }),
+        viewIntent: initialViewIntent
+      };
     }
 
     this.bridge = new MessageBridge<RalphWebviewMessage, RalphWebviewCommand>(webview);
@@ -76,7 +84,10 @@ export class DashboardHost implements vscode.Disposable {
         await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
         if (wsFolder) {
           const freshConfig = readConfig(wsFolder);
-          this.latestState = { ...this.latestState, config: snapshotConfig(freshConfig) };
+          this.latestState = {
+            ...this.latestState,
+            settingsSurface: snapshotConfig(freshConfig, { newSettingKeys: this.newSettingKeys })
+          };
           // Do NOT fullRender() here — the user's input already shows the new
           // value; a full HTML replace would destroy focus and cursor position.
           // The updated latestState will be picked up by the next natural render.
@@ -127,13 +138,28 @@ export class DashboardHost implements vscode.Disposable {
       preflightSummary: 'ok',
       diagnostics: [],
       agentLanes: this.getLanes(),
-      config: config ? snapshotConfig(config) : null,
+      settingsSurface: config ? snapshotConfig(config, { newSettingKeys: this.newSettingKeys }) : null,
       dashboardSnapshot: this.latestState.dashboardSnapshot,
-      snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null }
+      snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null },
+      viewIntent: this.latestState.viewIntent
     };
 
     this.fullRender();
     void this.refreshDashboardSnapshot();
+  }
+
+  public applyViewIntent(intent: RalphDashboardViewIntent | null): void {
+    this.newSettingKeys = [...(intent?.newSettingKeys ?? [])];
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    const refreshedSettings = workspaceFolder
+      ? snapshotConfig(readConfig(workspaceFolder), { newSettingKeys: this.newSettingKeys })
+      : this.latestState.settingsSurface;
+    this.latestState = {
+      ...this.latestState,
+      settingsSurface: refreshedSettings,
+      viewIntent: intent
+    };
+    this.fullRender(true);
   }
 
   /** Forces a fresh snapshot load and re-renders. Safe to call concurrently — uses a generation counter to drop stale results. */

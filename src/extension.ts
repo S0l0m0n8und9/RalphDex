@@ -1,6 +1,12 @@
 import * as vscode from 'vscode';
 import { registerCommands } from './commands/registerCommands';
 import { readConfig } from './config/readConfig';
+import {
+  collectNewSettingsNotice,
+  getSettingsSurfaceMetadata,
+  readSettingsDiscoveryState,
+  writeSettingsDiscoveryState
+} from './config/settingsSurface';
 import { Logger } from './services/logger';
 import { RalphDashboardPanel } from './ui/dashboardPanel';
 import { IterationBroadcaster } from './ui/iterationBroadcaster';
@@ -39,16 +45,16 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Primary dashboard command — opens the full dashboard in the editor area.
   context.subscriptions.push(
-    vscode.commands.registerCommand('ralphCodex.showDashboard', () => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
+    vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
     })
   );
 
   // Legacy alias — keeps existing status bar items, sidebar buttons, and any
   // saved key bindings working without a breaking change.
   context.subscriptions.push(
-    vscode.commands.registerCommand('ralphCodex.openDashboard', () => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader);
+    vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
     })
   );
 
@@ -108,6 +114,25 @@ export function activate(context: vscode.ExtensionContext): void {
       autoReplenishBacklog: config.autoReplenishBacklog
     });
   }
+
+  void (async () => {
+    const persistedState = await readSettingsDiscoveryState(context.globalState ?? context.workspaceState);
+    const metadata = getSettingsSurfaceMetadata();
+    const notice = persistedState ? collectNewSettingsNotice(metadata, persistedState) : null;
+    await writeSettingsDiscoveryState(context.globalState ?? context.workspaceState, metadata);
+
+    if (!notice) {
+      return;
+    }
+
+    const choice = await vscode.window.showInformationMessage(notice.message, 'Open Settings Panel');
+    if (choice === 'Open Settings Panel') {
+      await vscode.commands.executeCommand('ralphCodex.showDashboard', {
+        activeTab: 'settings',
+        focusSettingKey: notice.focusSettingKey
+      });
+    }
+  })();
 }
 
 export function deactivate(): void {

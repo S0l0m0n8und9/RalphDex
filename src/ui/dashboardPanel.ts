@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import type { IterationBroadcaster } from './iterationBroadcaster';
 import type { RalphWatchedState } from './stateWatcher';
+import type { RalphDashboardViewIntent } from './uiTypes';
 import { buildPanelDashboardHtml } from './panelHtml';
 import { DashboardHost } from '../webview/dashboardHost';
 import type { WebviewPanelManager } from '../webview/WebviewPanelManager';
@@ -19,8 +20,13 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
   private readonly host: DashboardHost;
 
-  private constructor(panel: vscode.WebviewPanel, broadcaster: IterationBroadcaster, loadSnapshot?: DashboardSnapshotLoader) {
-    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot);
+  private constructor(
+    panel: vscode.WebviewPanel,
+    broadcaster: IterationBroadcaster,
+    loadSnapshot?: DashboardSnapshotLoader,
+    initialViewIntent: RalphDashboardViewIntent | null = null
+  ) {
+    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot, initialViewIntent);
     panel.onDidDispose(() => this.dispose());
   }
 
@@ -32,7 +38,8 @@ export class RalphDashboardPanel implements vscode.Disposable {
   public static createOrReveal(
     manager: WebviewPanelManager,
     broadcaster: IterationBroadcaster,
-    loadSnapshot?: DashboardSnapshotLoader
+    loadSnapshot?: DashboardSnapshotLoader,
+    viewIntent: RalphDashboardViewIntent | null = null
   ): void {
     const panel = manager.createOrReveal('dashboard', {
       viewType: RalphDashboardPanel.viewType,
@@ -43,10 +50,11 @@ export class RalphDashboardPanel implements vscode.Disposable {
 
     if (RalphDashboardPanel.currentPanel) {
       // Existing panel was just revealed by createOrReveal — nothing more to do.
+      RalphDashboardPanel.currentPanel.host.applyViewIntent(viewIntent);
       return;
     }
 
-    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot);
+    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot, viewIntent);
   }
 
   public updateFromWatchedState(watched: RalphWatchedState): void {

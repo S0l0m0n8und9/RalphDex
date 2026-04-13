@@ -60,16 +60,22 @@ class DashboardHost {
     bridge;
     broadcastDisposable;
     snapshotLoadGeneration = 0;
-    constructor(webview, broadcaster, renderFn, loadSnapshot) {
+    newSettingKeys;
+    constructor(webview, broadcaster, renderFn, loadSnapshot, initialViewIntent = null) {
         this.webview = webview;
         this.renderFn = renderFn;
         this.loadSnapshot = loadSnapshot;
         this.latestState = (0, sidebarViewProvider_1.defaultDashboardState)();
+        this.newSettingKeys = [...(initialViewIntent?.newSettingKeys ?? [])];
         // Eagerly populate config so settings are visible on first render.
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         if (workspaceFolder) {
             const initialConfig = (0, readConfig_1.readConfig)(workspaceFolder);
-            this.latestState = { ...this.latestState, config: (0, sidebarViewProvider_1.snapshotConfig)(initialConfig) };
+            this.latestState = {
+                ...this.latestState,
+                settingsSurface: (0, sidebarViewProvider_1.snapshotConfig)(initialConfig, { newSettingKeys: this.newSettingKeys }),
+                viewIntent: initialViewIntent
+            };
         }
         this.bridge = new MessageBridge_1.MessageBridge(webview);
         this.bridge.onMessage(async (msg) => {
@@ -92,7 +98,10 @@ class DashboardHost {
                 await this.configSync.enqueueSettingUpdate(msg.key, msg.value);
                 if (wsFolder) {
                     const freshConfig = (0, readConfig_1.readConfig)(wsFolder);
-                    this.latestState = { ...this.latestState, config: (0, sidebarViewProvider_1.snapshotConfig)(freshConfig) };
+                    this.latestState = {
+                        ...this.latestState,
+                        settingsSurface: (0, sidebarViewProvider_1.snapshotConfig)(freshConfig, { newSettingKeys: this.newSettingKeys })
+                    };
                     // Do NOT fullRender() here — the user's input already shows the new
                     // value; a full HTML replace would destroy focus and cursor position.
                     // The updated latestState will be picked up by the next natural render.
@@ -137,12 +146,26 @@ class DashboardHost {
             preflightSummary: 'ok',
             diagnostics: [],
             agentLanes: this.getLanes(),
-            config: config ? (0, sidebarViewProvider_1.snapshotConfig)(config) : null,
+            settingsSurface: config ? (0, sidebarViewProvider_1.snapshotConfig)(config, { newSettingKeys: this.newSettingKeys }) : null,
             dashboardSnapshot: this.latestState.dashboardSnapshot,
-            snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null }
+            snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null },
+            viewIntent: this.latestState.viewIntent
         };
         this.fullRender();
         void this.refreshDashboardSnapshot();
+    }
+    applyViewIntent(intent) {
+        this.newSettingKeys = [...(intent?.newSettingKeys ?? [])];
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        const refreshedSettings = workspaceFolder
+            ? (0, sidebarViewProvider_1.snapshotConfig)((0, readConfig_1.readConfig)(workspaceFolder), { newSettingKeys: this.newSettingKeys })
+            : this.latestState.settingsSurface;
+        this.latestState = {
+            ...this.latestState,
+            settingsSurface: refreshedSettings,
+            viewIntent: intent
+        };
+        this.fullRender(true);
     }
     /** Forces a fresh snapshot load and re-renders. Safe to call concurrently — uses a generation counter to drop stale results. */
     async refreshDashboardSnapshot() {

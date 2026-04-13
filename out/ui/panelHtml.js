@@ -347,6 +347,34 @@ details[open] > .settings-section-toggle::before { content: '▾ '; }
   padding: 4px 0 8px 0;
 }
 
+.settings-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section-desc {
+  color: var(--ralph-dim);
+  font-size: 11px;
+  margin: 0 0 8px 0;
+  grid-column: 1 / -1;
+}
+
+.settings-entry-meta {
+  color: var(--ralph-dim);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.settings-badge {
+  border: 1px solid var(--ralph-amber);
+  color: var(--ralph-amber);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+}
+
 /* Advanced section (same styling, dimmer) */
 .settings-advanced-toggle {
   font-family: var(--ralph-font);
@@ -490,167 +518,55 @@ function select(key, value, options) {
     const opts = options.map((o) => `<option value="${(0, htmlHelpers_1.esc)(o)}"${o === value ? ' selected' : ''}>${(0, htmlHelpers_1.esc)(o)}</option>`).join('');
     return `<select data-setting="${(0, htmlHelpers_1.esc)(key)}">${opts}</select>`;
 }
-function numberInput(key, value, min, max) {
-    return `<input type="number" data-setting="${(0, htmlHelpers_1.esc)(key)}" value="${value}" min="${min}" max="${max}">`;
+function numberInput(key, value) {
+    return `<input type="number" data-setting="${(0, htmlHelpers_1.esc)(key)}" value="${value}">`;
 }
 function textInput(key, value) {
     return `<input type="text" data-setting="${(0, htmlHelpers_1.esc)(key)}" value="${(0, htmlHelpers_1.esc)(value)}">`;
 }
-function checkbox(key, value, label) {
-    return `<label class="setting-check"><input type="checkbox" data-setting="${(0, htmlHelpers_1.esc)(key)}"${value ? ' checked' : ''}> ${(0, htmlHelpers_1.esc)(label)}</label>`;
+function checkbox(key, value) {
+    return `<label class="setting-check"><input type="checkbox" data-setting="${(0, htmlHelpers_1.esc)(key)}"${value ? ' checked' : ''}></label>`;
 }
-function multiCheckbox(key, selected, allOptions) {
-    return allOptions.map((opt) => {
-        const checked = selected.includes(opt) ? ' checked' : '';
-        return `<label class="setting-check">
-      <input type="checkbox" data-setting-multi="${(0, htmlHelpers_1.esc)(key)}" value="${(0, htmlHelpers_1.esc)(opt)}"${checked}> ${(0, htmlHelpers_1.esc)(opt)}
-    </label>`;
-    }).join('');
+function renderSettingControl(entry) {
+    if (entry.control === 'boolean') {
+        return checkbox(entry.key, Boolean(entry.value));
+    }
+    if (entry.control === 'number') {
+        return numberInput(entry.key, Number(entry.value ?? 0));
+    }
+    if (entry.control === 'enum') {
+        return select(entry.key, String(entry.value ?? ''), entry.options ?? []);
+    }
+    return textInput(entry.key, String(entry.value ?? ''));
 }
-function keyValueEditor(key, map) {
-    const entries = Object.entries(map);
-    const rows = entries.map(([k, v]) => `<div class="kv-row" data-setting-kv="${(0, htmlHelpers_1.esc)(key)}">
-      <input type="text" class="kv-key" value="${(0, htmlHelpers_1.esc)(k)}" placeholder="key">
-      <input type="number" class="kv-value" value="${v}" min="0">
-      <button class="kv-remove" title="Remove">✕</button>
-    </div>`).join('');
-    return `<div class="kv-editor" data-setting-kv-group="${(0, htmlHelpers_1.esc)(key)}">
-    ${rows}
-    <button class="kv-add" data-setting-kv-add="${(0, htmlHelpers_1.esc)(key)}">+ Add entry</button>
-  </div>`;
-}
-function nestedInput(parentKey, subKey, type, value, label) {
-    const fullKey = `${parentKey}.${subKey}`;
-    if (type === 'checkbox') {
-        return `<label class="setting-check">
-      <input type="checkbox" data-setting-nested="${(0, htmlHelpers_1.esc)(fullKey)}"${value ? ' checked' : ''}> ${(0, htmlHelpers_1.esc)(label ?? subKey)}
-    </label>`;
+function buildSettingsSection(state) {
+    const settingsSurface = state.settingsSurface;
+    if (!settingsSurface) {
+        return '<div class="empty">Config not loaded — reload window</div>';
     }
-    if (type === 'number') {
-        return `<input type="number" data-setting-nested="${(0, htmlHelpers_1.esc)(fullKey)}" value="${value}">`;
-    }
-    return `<input type="text" data-setting-nested="${(0, htmlHelpers_1.esc)(fullKey)}" value="${(0, htmlHelpers_1.esc)(String(value))}">`;
-}
-function nestedSelect(parentKey, subKey, value, options) {
-    const fullKey = `${parentKey}.${subKey}`;
-    const opts = options.map((o) => `<option value="${(0, htmlHelpers_1.esc)(o)}"${o === value ? ' selected' : ''}>${(0, htmlHelpers_1.esc)(o)}</option>`).join('');
-    return `<select data-setting-nested="${(0, htmlHelpers_1.esc)(fullKey)}">${opts}</select>`;
-}
-function buildSettingsSection(cfg) {
-    function group(title, content, open = false) {
-        const sectionId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        return `<details class="settings-section" data-section="${(0, htmlHelpers_1.esc)(sectionId)}"${open ? ' open' : ''}>
-      <summary class="settings-section-toggle">${(0, htmlHelpers_1.esc)(title)}</summary>
-      <div class="settings-grid">${content}</div>
-    </details>`;
-    }
-    function row(label, control, full = false) {
-        return `<div class="setting-row"${full ? ' style="grid-column: 1 / -1"' : ''}>
-      <span class="setting-label">${(0, htmlHelpers_1.esc)(label)}</span>
-      <div class="setting-control">${control}</div>
-    </div>`;
-    }
-    function checkRow(control) {
-        return `<div class="setting-row" style="grid-column: 1 / -1">${control}</div>`;
-    }
-    const sections = [
-        group('Provider & Model', [
-            row('CLI Provider', select('cliProvider', cfg.cliProvider, ['codex', 'claude', 'copilot'])),
-            row('Model', textInput('model', cfg.model)),
-            row('Reasoning Effort', select('reasoningEffort', cfg.reasoningEffort, ['medium', 'high'])),
-            row('Prompt Budget', select('promptBudgetProfile', cfg.promptBudgetProfile, ['codex', 'claude', 'custom']))
-        ].join('\n'), true),
-        group('Agent', [
-            row('Role', select('agentRole', cfg.agentRole, ['implementer', 'planner', 'reviewer', 'build', 'review', 'watchdog', 'scm'])),
-            row('Agent ID', textInput('agentId', cfg.agentId)),
-            row('Agent Count', numberInput('agentCount', cfg.agentCount, 1, 20)),
-            row('Autonomy', select('autonomyMode', cfg.autonomyMode, ['supervised', 'autonomous']))
-        ].join('\n'), true),
-        group('Execution', [
-            row('Iteration Cap', numberInput('ralphIterationCap', cfg.ralphIterationCap, 1, 100)),
-            row('Handoff Mode', select('preferredHandoffMode', cfg.preferredHandoffMode, ['ideCommand', 'clipboard', 'cliExec'])),
-            row('No-Progress Stop', numberInput('noProgressThreshold', cfg.noProgressThreshold, 1, 20)),
-            row('Failure Stop', numberInput('repeatedFailureThreshold', cfg.repeatedFailureThreshold, 1, 20))
-        ].join('\n')),
-        group('Claude CLI', [
-            row('Max Turns', numberInput('claudeMaxTurns', cfg.claudeMaxTurns, 1, 500)),
-            row('Permission Mode', select('claudePermissionMode', cfg.claudePermissionMode, ['dangerously-skip-permissions', 'default']))
-        ].join('\n')),
-        group('Copilot CLI', [
-            row('Approval Mode', select('copilotApprovalMode', cfg.copilotApprovalMode, ['allow-all', 'allow-tools-only', 'interactive'])),
-            row('Max Autopilot Continues', numberInput('copilotMaxAutopilotContinues', cfg.copilotMaxAutopilotContinues, 1, 500))
-        ].join('\n')),
-        group('Codex CLI', [
-            row('Approval Mode', select('approvalMode', cfg.approvalMode, ['never', 'on-request', 'untrusted'])),
-            row('Sandbox Mode', select('sandboxMode', cfg.sandboxMode, ['read-only', 'workspace-write', 'danger-full-access']))
-        ].join('\n')),
-        group('SCM & Git', [
-            row('SCM Strategy', select('scmStrategy', cfg.scmStrategy, ['none', 'commit-on-done', 'branch-per-task'])),
-            row('Git Checkpoint', select('gitCheckpointMode', cfg.gitCheckpointMode, ['off', 'snapshot', 'snapshotAndDiff'])),
-            checkRow(checkbox('scmPrOnParentDone', cfg.scmPrOnParentDone, 'Create PR on parent done'))
-        ].join('\n')),
-        group('Behaviour', [
-            checkRow(checkbox('stopOnHumanReviewNeeded', cfg.stopOnHumanReviewNeeded, 'Stop on human review needed')),
-            checkRow(checkbox('clipboardAutoCopy', cfg.clipboardAutoCopy, 'Auto-copy prompts to clipboard')),
-            checkRow(checkbox('autoReplenishBacklog', cfg.autoReplenishBacklog, 'Auto-replenish backlog')),
-            checkRow(checkbox('autoReloadOnControlPlaneChange', cfg.autoReloadOnControlPlaneChange, 'Auto-reload on control plane change'))
-        ].join('\n')),
-        group('Paths', [
-            row('Codex Command Path', textInput('codexCommandPath', cfg.codexCommandPath)),
-            row('Claude Command Path', textInput('claudeCommandPath', cfg.claudeCommandPath)),
-            row('Copilot Command Path', textInput('copilotCommandPath', cfg.copilotCommandPath)),
-            row('Inspection Root Override', textInput('inspectionRootOverride', cfg.inspectionRootOverride)),
-            row('Artifact Retention Path', textInput('artifactRetentionPath', cfg.artifactRetentionPath)),
-            row('Task File Path', textInput('ralphTaskFilePath', cfg.ralphTaskFilePath)),
-            row('PRD Path', textInput('prdPath', cfg.prdPath)),
-            row('Progress Path', textInput('progressPath', cfg.progressPath)),
-            row('Prompt Template Directory', textInput('promptTemplateDirectory', cfg.promptTemplateDirectory))
-        ].join('\n')),
-        group('Verifier', [
-            row('Verifier Modes', multiCheckbox('verifierModes', cfg.verifierModes, ['validationCommand', 'gitDiff', 'taskState']), true),
-            row('Validation Command Override', textInput('validationCommandOverride', cfg.validationCommandOverride))
-        ].join('\n')),
-        group('Prompt', [
-            row('Prior Context Budget', numberInput('promptPriorContextBudget', cfg.promptPriorContextBudget, 0, 100000)),
-            checkRow(checkbox('promptIncludeVerifierFeedback', cfg.promptIncludeVerifierFeedback, 'Include verifier feedback')),
-            row('Custom Prompt Budget', keyValueEditor('customPromptBudget', cfg.customPromptBudget), true)
-        ].join('\n')),
-        group('Retention', [
-            row('Artifact Retention Count', numberInput('generatedArtifactRetentionCount', cfg.generatedArtifactRetentionCount, 0, 100)),
-            row('Provenance Bundle Count', numberInput('provenanceBundleRetentionCount', cfg.provenanceBundleRetentionCount, 0, 100))
-        ].join('\n')),
-        group('Timing', [
-            row('Watchdog Stale TTL (ms)', numberInput('watchdogStaleTtlMs', cfg.watchdogStaleTtlMs, 0, 604800000)),
-            row('Claim TTL (hours)', numberInput('claimTtlHours', cfg.claimTtlHours, 1, 720)),
-            row('Stale Lock Threshold (min)', numberInput('staleLockThresholdMinutes', cfg.staleLockThresholdMinutes, 1, 1440))
-        ].join('\n')),
-        group('Remediation', [
-            row('Auto-Apply Remediation', multiCheckbox('autoApplyRemediation', cfg.autoApplyRemediation, ['decompose_task', 'mark_blocked']), true)
-        ].join('\n')),
-        group('Model Tiering', [
-            checkRow(nestedInput('modelTiering', 'enabled', 'checkbox', cfg.modelTiering.enabled, 'Enable model tiering')),
-            row('Simple Provider', nestedSelect('modelTiering', 'simple.provider', cfg.modelTiering.simple.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
-            row('Simple Model', nestedInput('modelTiering', 'simple.model', 'text', cfg.modelTiering.simple.model)),
-            row('Medium Provider', nestedSelect('modelTiering', 'medium.provider', cfg.modelTiering.medium.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
-            row('Medium Model', nestedInput('modelTiering', 'medium.model', 'text', cfg.modelTiering.medium.model)),
-            row('Complex Provider', nestedSelect('modelTiering', 'complex.provider', cfg.modelTiering.complex.provider ?? '', ['', 'codex', 'claude', 'copilot'])),
-            row('Complex Model', nestedInput('modelTiering', 'complex.model', 'text', cfg.modelTiering.complex.model)),
-            row('Simple Threshold', nestedInput('modelTiering', 'simpleThreshold', 'number', cfg.modelTiering.simpleThreshold)),
-            row('Complex Threshold', nestedInput('modelTiering', 'complexThreshold', 'number', cfg.modelTiering.complexThreshold))
-        ].join('\n')),
-        group('Hooks', [
-            row('Before Iteration', nestedInput('hooks', 'beforeIteration', 'text', cfg.hooks.beforeIteration ?? '')),
-            row('After Iteration', nestedInput('hooks', 'afterIteration', 'text', cfg.hooks.afterIteration ?? '')),
-            row('On Task Complete', nestedInput('hooks', 'onTaskComplete', 'text', cfg.hooks.onTaskComplete ?? '')),
-            row('On Stop', nestedInput('hooks', 'onStop', 'text', cfg.hooks.onStop ?? '')),
-            row('On Failure', nestedInput('hooks', 'onFailure', 'text', cfg.hooks.onFailure ?? ''))
-        ].join('\n')),
-        group('Advanced', [
-            row('Open Sidebar Command ID', textInput('openSidebarCommandId', cfg.openSidebarCommandId)),
-            row('New Chat Command ID', textInput('newChatCommandId', cfg.newChatCommandId))
-        ].join('\n'))
-    ];
-    return sections.join('\n');
+    return settingsSurface.sections.map((section, index) => `
+    <details class="settings-section" data-section="settings-${(0, htmlHelpers_1.esc)(section.id)}"${index === 0 ? ' open' : ''}>
+      <summary class="settings-section-toggle">
+        <span class="settings-section-head">
+          <span>${(0, htmlHelpers_1.esc)(section.title)}</span>
+          ${section.hasNewSettings ? '<span class="settings-badge">NEW</span>' : ''}
+        </span>
+      </summary>
+      <div class="settings-grid">
+        <div class="settings-section-desc">${(0, htmlHelpers_1.esc)(section.description)}</div>
+        ${section.entries.map((entry) => `
+          <div class="setting-row" data-setting-entry="${(0, htmlHelpers_1.esc)(entry.key)}">
+            <span class="setting-label">${(0, htmlHelpers_1.esc)(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>
+            <div class="setting-control">${renderSettingControl(entry)}</div>
+            <div class="settings-entry-meta">
+              <div>${(0, htmlHelpers_1.esc)(entry.description)}</div>
+              <div>Default: ${(0, htmlHelpers_1.esc)(String(entry.defaultValue ?? ''))}</div>
+            </div>
+          </div>
+        `).join('\n')}
+      </div>
+    </details>
+  `).join('\n');
 }
 function formatUtc(value) {
     if (!value) {
@@ -1035,9 +951,7 @@ function buildSettingsTab(state) {
 
     <div class="card span-2">
       <div class="card-title">Settings</div>
-      ${state.config
-        ? buildSettingsSection(state.config)
-        : '<div class="empty">Config not loaded — reload window</div>'}
+      ${buildSettingsSection(state)}
     </div>
   </div>`;
 }
@@ -1137,14 +1051,43 @@ function buildPanelDashboardHtml(state, nonce) {
         }
       }
 
+      var VIEW_INTENT = ${JSON.stringify({
+        activeTab: state.viewIntent?.activeTab ?? null,
+        focusSettingKey: state.viewIntent?.focusSettingKey ?? null
+    })};
+
       function restoreTabState() {
         var state = getStoredState();
-        var tabId = TAB_IDS.indexOf(state.activeTab) >= 0 ? state.activeTab : 'overview';
+        var tabId = TAB_IDS.indexOf(state.activeTab) >= 0
+          ? state.activeTab
+          : (VIEW_INTENT.activeTab && TAB_IDS.indexOf(VIEW_INTENT.activeTab) >= 0 ? VIEW_INTENT.activeTab : 'overview');
         setActiveTab(tabId, false);
+      }
+
+      function focusRequestedSetting() {
+        if (!VIEW_INTENT.focusSettingKey) {
+          return;
+        }
+
+        var target = document.querySelector('[data-setting-entry="' + VIEW_INTENT.focusSettingKey + '"]');
+        if (!target) {
+          return;
+        }
+
+        var details = target.closest('details[data-section]');
+        if (details) {
+          details.open = true;
+        }
+
+        var control = target.querySelector('[data-setting], [data-setting-nested], [data-setting-multi]');
+        if (control && typeof control.focus === 'function') {
+          control.focus();
+        }
       }
 
       restoreDetailsState();
       restoreTabState();
+      focusRequestedSetting();
 
       document.addEventListener('toggle', function(e) {
         if (e.target.matches('details[data-section]')) {

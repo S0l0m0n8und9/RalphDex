@@ -3355,7 +3355,103 @@
         "Any UI or workflow docs that mention generated tasks are aligned with the new expectation",
         "npm run check:docs passes"
       ]
+    },
+    {
+      "id": "T120",
+      "title": "Complete the remaining full webview UI contract for settings, task, and failure surfaces",
+      "status": "todo",
+      "dependsOn": [
+        "T120.1",
+        "T120.2",
+        "T120.3",
+        "T120.4"
+      ],
+      "notes": "The dashboard and PRD wizard foundations are already shipped, but PRD item 15 still has unfinished operator-facing surfaces: settings discovery/configuration, a structured task view, and failure-detail notification flows.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Ralphdex ships the remaining PRD item 15 webview surfaces without introducing a second UI stack outside src/webview and src/ui",
+        "Settings discovery, task inspection, and failure-detail actions all read from durable Ralph state and route mutations through existing command wiring",
+        "Operator-facing docs and manifest command surfaces stay aligned with the implemented dashboard-first UX",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T120.1",
+      "title": "Define a durable settings-surface contract for new-setting discovery and panel rendering",
+      "status": "done",
+      "parentId": "T120",
+      "dependsOn": [
+        "T112",
+        "T117",
+        "T118"
+      ],
+      "notes": "Added a manifest-backed typed settings-surface contract, routed dashboard settings rendering through shared metadata, implemented NEW-setting discovery with one-time notification and deep-link focus, and added regression coverage. Validation passed with npm run validate.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A typed settings metadata source exists for the Ralphdex settings panel and can identify recently introduced settings for NEW badging",
+        "The metadata can drive operator-mode, provider, memory, planning, and Azure Foundry sections without duplicating config defaults in multiple files",
+        "A lightweight discovery path exists for the one-time 'new settings available' notification and deep link target",
+        "Regression coverage proves the metadata stays aligned with package manifest expectations"
+      ]
+    },
+    {
+      "id": "T120.2",
+      "title": "Implement the Ralphdex settings panel with inline config testing and new-setting discovery",
+      "status": "todo",
+      "parentId": "T120",
+      "dependsOn": [
+        "T120.1",
+        "T114",
+        "T116"
+      ],
+      "notes": "Build the PRD item 15 Phase 4 surface on top of WebviewPanelManager and MessageBridge: grouped settings sections, NEW badges, blur-applied edits, provider Test Connection actions, and the update-time notification/deep-link flow.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A command-backed Ralphdex settings panel renders grouped provider, memory, planning, and orchestration settings from the shared metadata source",
+        "The panel exposes inline provider validation actions that reuse existing preflight or provider checks rather than inventing a parallel execution path",
+        "Newly introduced settings can trigger a one-time notification that opens the settings panel at the first NEW item",
+        "Panel, host, and command tests cover rendering, update messaging, and command routing"
+      ]
+    },
+    {
+      "id": "T120.3",
+      "title": "Add a structured task view over durable tasks, plans, and dead-letter state",
+      "status": "todo",
+      "parentId": "T120",
+      "dependsOn": [
+        "T107",
+        "T119"
+      ],
+      "notes": "Implement PRD item 15 Phase 5 by turning the existing task state, plan artifacts, and dead-letter queue into a command-backed interactive view that stays live on filesystem updates and keeps mutations on the existing command surface.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "A user-visible Ralphdex task view or showTasks command renders tasks with id, title, status, effective tier, dependency chips, and dead-letter separation",
+        "Expanded task detail can surface plan or diagnostic summaries from durable artifacts when present",
+        "Available actions route through existing supported commands such as mark blocked, requeue dead-letter, or related task-state mutations instead of bypassing command wiring",
+        "Filesystem-change coverage proves the view refreshes from tasks.json, claims, and dead-letter updates without stale state"
+      ]
+    },
+    {
+      "id": "T120.4",
+      "title": "Add failure-detail notifications and a focused diagnosis view for recovery actions",
+      "status": "todo",
+      "parentId": "T120",
+      "dependsOn": [
+        "T103",
+        "T104",
+        "T105",
+        "T106",
+        "T107"
+      ],
+      "notes": "Finish PRD item 15 Phase 6 so failure-analysis.json becomes an actionable operator surface: durable notification actions, focused diagnosis rendering, and explicit auto-recover or skip-task routing backed by existing recovery logic.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Failure-diagnostic completion can emit an operator notification with View Diagnosis, Auto-Recover, and Skip Task actions",
+        "View Diagnosis opens a focused webview backed by failure-analysis.json and recovery-state.json with plain-English cause, confidence, suggested action, and retry prompt addendum",
+        "Auto-Recover and Skip Task route through existing recovery or task-state commands and preserve durable evidence",
+        "Regression coverage proves notifications persist useful state in the dashboard or failure feed even when the toast is dismissed"
+      ]
     }
   ],
-  "mutationCount": 114
+  "mutationCount": 116
 }

@@ -5,6 +5,7 @@ exports.defaultDashboardState = defaultDashboardState;
 exports.buildDashboardTasks = buildDashboardTasks;
 exports.countTasks = countTasks;
 exports.snapshotConfig = snapshotConfig;
+const settingsSurface_1 = require("../config/settingsSurface");
 const sidebarHtml_1 = require("./sidebarHtml");
 const dashboardHost_1 = require("../webview/dashboardHost");
 /**
@@ -62,9 +63,10 @@ function defaultDashboardState() {
         preflightSummary: 'ok',
         diagnostics: [],
         agentLanes: [],
-        config: null,
+        settingsSurface: null,
         dashboardSnapshot: null,
-        snapshotStatus: { phase: 'idle', errorMessage: null }
+        snapshotStatus: { phase: 'idle', errorMessage: null },
+        viewIntent: null
     };
 }
 function buildDashboardTasks(taskFile, selectedTaskId) {
@@ -102,64 +104,7 @@ function countTasks(taskFile) {
     }
     return counts;
 }
-function snapshotConfig(config) {
-    return {
-        cliProvider: config.cliProvider,
-        model: config.model,
-        agentRole: config.agentRole,
-        agentId: config.agentId,
-        agentCount: config.agentCount,
-        autonomyMode: config.autonomyMode,
-        ralphIterationCap: config.ralphIterationCap,
-        preferredHandoffMode: config.preferredHandoffMode,
-        claudeMaxTurns: config.claudeMaxTurns,
-        claudePermissionMode: config.claudePermissionMode,
-        copilotApprovalMode: config.copilotApprovalMode,
-        copilotMaxAutopilotContinues: config.copilotMaxAutopilotContinues,
-        reasoningEffort: config.reasoningEffort,
-        approvalMode: config.approvalMode,
-        sandboxMode: config.sandboxMode,
-        scmStrategy: config.scmStrategy,
-        gitCheckpointMode: config.gitCheckpointMode,
-        noProgressThreshold: config.noProgressThreshold,
-        repeatedFailureThreshold: config.repeatedFailureThreshold,
-        stopOnHumanReviewNeeded: config.stopOnHumanReviewNeeded,
-        clipboardAutoCopy: config.clipboardAutoCopy,
-        autoReplenishBacklog: config.autoReplenishBacklog,
-        autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
-        promptBudgetProfile: config.promptBudgetProfile,
-        codexCommandPath: config.codexCommandPath,
-        claudeCommandPath: config.claudeCommandPath,
-        copilotCommandPath: config.copilotCommandPath,
-        inspectionRootOverride: config.inspectionRootOverride,
-        artifactRetentionPath: config.artifactRetentionPath,
-        ralphTaskFilePath: config.ralphTaskFilePath,
-        prdPath: config.prdPath,
-        progressPath: config.progressPath,
-        promptTemplateDirectory: config.promptTemplateDirectory,
-        generatedArtifactRetentionCount: config.generatedArtifactRetentionCount,
-        provenanceBundleRetentionCount: config.provenanceBundleRetentionCount,
-        watchdogStaleTtlMs: config.watchdogStaleTtlMs,
-        claimTtlHours: config.claimTtlHours,
-        staleLockThresholdMinutes: config.staleLockThresholdMinutes,
-        promptPriorContextBudget: config.promptPriorContextBudget,
-        scmPrOnParentDone: config.scmPrOnParentDone,
-        promptIncludeVerifierFeedback: config.promptIncludeVerifierFeedback,
-        validationCommandOverride: config.validationCommandOverride,
-        verifierModes: [...config.verifierModes],
-        autoApplyRemediation: [...config.autoApplyRemediation],
-        customPromptBudget: { ...config.customPromptBudget },
-        modelTiering: {
-            enabled: config.modelTiering.enabled,
-            simple: { ...config.modelTiering.simple },
-            medium: { ...config.modelTiering.medium },
-            complex: { ...config.modelTiering.complex },
-            simpleThreshold: config.modelTiering.simpleThreshold,
-            complexThreshold: config.modelTiering.complexThreshold
-        },
-        hooks: { ...config.hooks },
-        openSidebarCommandId: config.openSidebarCommandId,
-        newChatCommandId: config.newChatCommandId
-    };
+function snapshotConfig(config, options) {
+    return (0, settingsSurface_1.buildSettingsSurfaceSnapshot)(config, options);
 }
 //# sourceMappingURL=sidebarViewProvider.js.map

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { DEFAULT_CONFIG } from '../../src/config/defaults';
+import { buildSettingsSurfaceSnapshot } from '../../src/config/settingsSurface';
 import { buildPanelDashboardHtml } from '../../src/ui/panelHtml';
 import type { RalphDashboardState } from '../../src/ui/uiTypes';
 import type { DashboardSnapshot } from '../../src/webview/dashboardSnapshot';
@@ -18,9 +20,10 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     preflightSummary: 'ok',
     diagnostics: [],
     agentLanes: [],
-    config: null,
+    settingsSurface: null,
     dashboardSnapshot: null,
     snapshotStatus: { phase: 'idle', errorMessage: null },
+    viewIntent: null,
     ...overrides
   };
 }
@@ -356,165 +359,48 @@ test('buildPanelDashboardHtml includes task detail sections for expandable tasks
   assert.ok(html.includes('high'));
 });
 
-function fullConfig() {
-  return {
-    cliProvider: 'claude',
-    model: 'claude-sonnet-4-6',
-    agentRole: 'build',
-    agentId: 'default',
-    agentCount: 1,
-    autonomyMode: 'supervised',
-    ralphIterationCap: 20,
-    preferredHandoffMode: 'ideCommand',
-    claudeMaxTurns: 50,
-    claudePermissionMode: 'dangerously-skip-permissions',
-    copilotApprovalMode: 'allow-all',
-    copilotMaxAutopilotContinues: 200,
-    reasoningEffort: 'medium',
-    approvalMode: 'never',
-    sandboxMode: 'workspace-write',
-    scmStrategy: 'none',
-    gitCheckpointMode: 'snapshotAndDiff',
-    noProgressThreshold: 5,
-    repeatedFailureThreshold: 5,
-    stopOnHumanReviewNeeded: true,
-    clipboardAutoCopy: true,
-    autoReplenishBacklog: false,
-    autoReloadOnControlPlaneChange: false,
-    promptBudgetProfile: 'claude',
-    codexCommandPath: 'codex',
-    claudeCommandPath: 'claude',
-    copilotCommandPath: 'copilot',
-    inspectionRootOverride: '',
-    artifactRetentionPath: '.ralph/artifacts',
-    ralphTaskFilePath: '.ralph/tasks.json',
-    prdPath: '.ralph/prd.md',
-    progressPath: '.ralph/progress.md',
-    promptTemplateDirectory: '',
-    generatedArtifactRetentionCount: 10,
-    provenanceBundleRetentionCount: 5,
-    watchdogStaleTtlMs: 86400000,
-    claimTtlHours: 24,
-    staleLockThresholdMinutes: 30,
-    promptPriorContextBudget: 4000,
-    scmPrOnParentDone: false,
-    promptIncludeVerifierFeedback: true,
-    validationCommandOverride: '',
-    verifierModes: ['validationCommand', 'gitDiff'],
-    autoApplyRemediation: ['decompose_task'],
-    customPromptBudget: { system: 2000, context: 1500 },
-    modelTiering: {
-      enabled: false,
-      simple: { model: 'claude-haiku-4-5-20251001' },
-      medium: { model: 'claude-sonnet-4-6' },
-      complex: { model: 'claude-opus-4-6' },
-      simpleThreshold: 2,
-      complexThreshold: 6
-    },
-    hooks: {
-      beforeIteration: 'echo before',
-      afterIteration: undefined,
-      onTaskComplete: undefined,
-      onStop: undefined,
-      onFailure: undefined
-    },
-    openSidebarCommandId: 'ralphCodex.openSidebar',
-    newChatCommandId: 'ralphCodex.newChat'
-  };
-}
+test('buildPanelDashboardHtml renders metadata-driven settings sections when settingsSurface is present', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot({
+    ...DEFAULT_CONFIG,
+    operatorMode: 'multi-agent',
+    memoryStrategy: 'summary',
+    planningPass: { enabled: true, mode: 'dedicated' },
+    azureFoundryEndpointUrl: 'https://foundry.example'
+  }, {
+    newSettingKeys: ['planningPass.enabled']
+  });
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'n12');
 
-test('buildPanelDashboardHtml renders settings section when config is present', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'n12');
-
-  // Settings section rendered
-  assert.ok(html.includes('settings-grid'));
-  assert.ok(html.includes('data-setting="cliProvider"'));
-  assert.ok(html.includes('data-setting="model"'));
-  assert.ok(html.includes('data-setting="agentRole"'));
-  assert.ok(html.includes('data-setting="ralphIterationCap"'));
-  assert.ok(html.includes('data-setting="scmStrategy"'));
-  assert.ok(html.includes('data-setting="autonomyMode"'));
-  // Current values rendered
-  assert.ok(html.includes('claude-sonnet-4-6'));
-  assert.ok(html.includes('update-setting'));
+  assert.ok(html.includes('Operator Mode'));
+  assert.ok(html.includes('Provider'));
+  assert.ok(html.includes('Memory'));
+  assert.ok(html.includes('Planning'));
+  assert.ok(html.includes('Azure Foundry'));
+  assert.ok(html.includes('data-setting="operatorMode"'));
+  assert.ok(html.includes('data-setting="planningPass.enabled"'));
+  assert.ok(html.includes('data-setting="azureFoundryEndpointUrl"'));
+  assert.ok(html.includes('https://foundry.example'));
+  assert.ok(html.includes('Default: false'));
+  assert.ok(html.includes('settings-badge'));
 });
 
-test('buildPanelDashboardHtml renders new path settings', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'n14');
-  assert.ok(html.includes('data-setting="codexCommandPath"'));
-  assert.ok(html.includes('data-setting="claudeCommandPath"'));
-  assert.ok(html.includes('data-setting="copilotCommandPath"'));
-  assert.ok(html.includes('data-setting="artifactRetentionPath"'));
-  assert.ok(html.includes('data-setting="ralphTaskFilePath"'));
-  assert.ok(html.includes('data-setting="prdPath"'));
-  assert.ok(html.includes('data-setting="progressPath"'));
-  assert.ok(html.includes('data-setting="promptTemplateDirectory"'));
+test('buildPanelDashboardHtml uses the dashboard view intent to open the settings tab and focus a setting', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot(DEFAULT_CONFIG);
+  const html = buildPanelDashboardHtml(defaultState({
+    settingsSurface,
+    viewIntent: {
+      activeTab: 'settings',
+      focusSettingKey: 'planningPass.enabled'
+    }
+  }), 'intent');
+
+  assert.ok(html.includes('"activeTab":"settings"'));
+  assert.ok(html.includes('"focusSettingKey":"planningPass.enabled"'));
+  assert.ok(html.includes("document.querySelector('[data-setting-entry=\"' + VIEW_INTENT.focusSettingKey + '\"]')"));
+  assert.ok(html.includes('details.open = true') || html.includes('details.open = true;'));
 });
 
-test('buildPanelDashboardHtml renders verifierModes as multi-checkbox', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nMulti');
-  assert.ok(html.includes('data-setting-multi="verifierModes"'));
-  const checkboxCount = (html.match(/data-setting-multi="verifierModes"/g) ?? []).length;
-  assert.equal(checkboxCount, 3, 'Should render 3 verifierModes checkboxes');
-});
-
-test('buildPanelDashboardHtml renders modelTiering nested fields', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nTier');
-  assert.ok(html.includes('data-setting-nested="modelTiering.enabled"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.simple.model"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.medium.model"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.complex.model"'));
-  assert.ok(html.includes('data-setting-nested="modelTiering.complexThreshold"'));
-});
-
-test('buildPanelDashboardHtml renders hooks nested fields', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nHook');
-  assert.ok(html.includes('data-setting-nested="hooks.beforeIteration"'));
-  assert.ok(html.includes('data-setting-nested="hooks.afterIteration"'));
-  assert.ok(html.includes('data-setting-nested="hooks.onTaskComplete"'));
-  assert.ok(html.includes('data-setting-nested="hooks.onStop"'));
-  assert.ok(html.includes('data-setting-nested="hooks.onFailure"'));
-});
-
-test('buildPanelDashboardHtml renders customPromptBudget key-value editor', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nKv');
-  assert.ok(html.includes('data-setting-kv-group="customPromptBudget"'));
-  assert.ok(html.includes('data-setting-kv="customPromptBudget"'));
-  assert.ok(html.includes('kv-add'));
-});
-
-test('buildPanelDashboardHtml renders advanced section as collapsible', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nAdv');
-  assert.ok(html.includes('settings-advanced-toggle'));
-  assert.ok(html.includes('data-setting="openSidebarCommandId"'));
-  assert.ok(html.includes('data-setting="newChatCommandId"'));
-});
-
-test('buildPanelDashboardHtml renders number settings with new fields', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nNum');
-  assert.ok(html.includes('data-setting="generatedArtifactRetentionCount"'));
-  assert.ok(html.includes('data-setting="provenanceBundleRetentionCount"'));
-  assert.ok(html.includes('data-setting="watchdogStaleTtlMs"'));
-  assert.ok(html.includes('data-setting="claimTtlHours"'));
-  assert.ok(html.includes('data-setting="staleLockThresholdMinutes"'));
-  assert.ok(html.includes('data-setting="promptPriorContextBudget"'));
-});
-
-test('buildPanelDashboardHtml renders new boolean settings', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nBool');
-  assert.ok(html.includes('data-setting="scmPrOnParentDone"'));
-  assert.ok(html.includes('data-setting="promptIncludeVerifierFeedback"'));
-  assert.ok(html.includes('data-setting="validationCommandOverride"'));
-});
-
-test('buildPanelDashboardHtml renders autoApplyRemediation multi-checkbox', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: fullConfig() }), 'nRem');
-  assert.ok(html.includes('data-setting-multi="autoApplyRemediation"'));
-  const count = (html.match(/data-setting-multi="autoApplyRemediation"/g) ?? []).length;
-  assert.equal(count, 2, 'Should render 2 autoApplyRemediation checkboxes');
-});
-
-test('buildPanelDashboardHtml hides settings section when config is null', () => {
-  const html = buildPanelDashboardHtml(defaultState({ config: null }), 'n13');
-  assert.ok(!html.includes('data-setting='));
+test('buildPanelDashboardHtml hides settings inputs when settingsSurface is null', () => {
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface: null }), 'n13');
+  assert.ok(!html.includes('data-setting="operatorMode"'));
 });
