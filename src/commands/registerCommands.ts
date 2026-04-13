@@ -122,6 +122,25 @@ async function openTextFile(target: string): Promise<void> {
   await vscode.window.showTextDocument(document, { preview: false });
 }
 
+async function readFocusedDiagnosisArtifactStamp(
+  workspaceFolder: vscode.WorkspaceFolder,
+  stateManager: RalphStateManager,
+  logger: Logger
+): Promise<string | null> {
+  const status = await collectStatusSnapshot(workspaceFolder, stateManager, logger);
+  const artifactPath = status.latestFailureAnalysisPath;
+  if (!artifactPath) {
+    return null;
+  }
+
+  try {
+    const stats = await fs.stat(artifactPath);
+    return `${artifactPath}:${stats.mtimeMs}`;
+  } catch {
+    return null;
+  }
+}
+
 function buildSkipTaskBlocker(diagnosis: DiagnosisSection): string {
   return `Skipped after diagnosis (${diagnosis.category}): ${diagnosis.suggestedAction}`;
 }
@@ -501,7 +520,15 @@ export function registerCommands(
     return buildDashboardSnapshot(status).diagnosis;
   }
 
-  async function showFailureDiagnosisNotification(workspaceFolder: vscode.WorkspaceFolder): Promise<void> {
+  async function showFailureDiagnosisNotification(
+    workspaceFolder: vscode.WorkspaceFolder,
+    previousArtifactStamp: string | null
+  ): Promise<void> {
+    const currentArtifactStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
+    if (!currentArtifactStamp || currentArtifactStamp === previousArtifactStamp) {
+      return;
+    }
+
     const diagnosis = await loadFocusedDiagnosis(workspaceFolder);
     if (!diagnosis) {
       return;
@@ -1040,6 +1067,7 @@ export function registerCommands(
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
       broadcaster?.emitIterationStart({
         iteration: 0,
         iterationCap: 1,
@@ -1068,7 +1096,7 @@ export function registerCommands(
         : `Ralph CLI iteration ${run.result.iteration} completed. ${run.result.summary}`;
 
       void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
-      await showFailureDiagnosisNotification(workspaceFolder);
+      await showFailureDiagnosisNotification(workspaceFolder, previousDiagnosisStamp);
     }
   });
 
@@ -1178,6 +1206,7 @@ export function registerCommands(
     handler: async (progress, token) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
       logger.show(false);
       logger.info('Starting Ralph loop.', {
         rootPath: workspaceFolder.uri.fsPath,
@@ -1271,7 +1300,7 @@ export function registerCommands(
           void vscode.window.showInformationMessage(
             `Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`
           );
-          await showFailureDiagnosisNotification(workspaceFolder);
+          await showFailureDiagnosisNotification(workspaceFolder, previousDiagnosisStamp);
           return;
         }
       }

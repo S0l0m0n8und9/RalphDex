@@ -3434,7 +3434,7 @@
     {
       "id": "T120.4",
       "title": "Add failure-detail notifications and a focused diagnosis view for recovery actions",
-      "status": "in_progress",
+      "status": "done",
       "parentId": "T120",
       "dependsOn": [
         "T103",
@@ -3443,7 +3443,7 @@
         "T106",
         "T107"
       ],
-      "notes": "Finish PRD item 15 Phase 6 so failure-analysis.json becomes an actionable operator surface: durable notification actions, focused diagnosis rendering, and explicit auto-recover or skip-task routing backed by existing recovery logic.",
+      "notes": "Gated failure-diagnosis notifications on fresh failure-analysis artifact writes to prevent stale recovery toasts, and added smoke coverage for View Diagnosis, Auto-Recover task-ambiguity routing, and Skip Task blocker persistence.",
       "validation": "npm run validate",
       "acceptance": [
         "Failure-diagnostic completion can emit an operator notification with View Diagnosis, Auto-Recover, and Skip Task actions",
@@ -3453,5 +3453,5 @@
       ]
     }
   ],
-  "mutationCount": 118
+  "mutationCount": 119
 }

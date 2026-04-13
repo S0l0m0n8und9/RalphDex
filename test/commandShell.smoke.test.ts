@@ -80,6 +80,43 @@ async function seedWorkspace(rootPath: string): Promise<void> {
   }, null, 2), 'utf8');
 }
 
+async function writeFailureDiagnosisArtifacts(
+  rootPath: string,
+  taskId: string,
+  overrides: {
+    category?: string;
+    confidence?: string;
+    summary?: string;
+    suggestedAction?: string;
+    retryPromptAddendum?: string;
+    attemptCount?: number;
+  } = {}
+): Promise<void> {
+  const taskArtifactDir = path.join(rootPath, '.ralph', 'artifacts', taskId);
+  await fs.mkdir(taskArtifactDir, { recursive: true });
+  await fs.writeFile(path.join(taskArtifactDir, 'failure-analysis.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'failureAnalysis',
+    taskId,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    rootCauseCategory: overrides.category ?? 'validation_mismatch',
+    confidence: overrides.confidence ?? 'high',
+    summary: overrides.summary ?? `Failure summary for ${taskId}`,
+    suggestedAction: overrides.suggestedAction ?? `Suggested action for ${taskId}`,
+    ...(overrides.retryPromptAddendum ? { retryPromptAddendum: overrides.retryPromptAddendum } : {})
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(taskArtifactDir, 'recovery-state.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'recoveryState',
+    taskId,
+    category: overrides.category ?? 'validation_mismatch',
+    attemptCount: overrides.attemptCount ?? 2,
+    lastAttemptAt: '2026-01-01T00:00:00.000Z',
+    escalated: false,
+    ...(overrides.retryPromptAddendum ? { retryPromptAddendum: overrides.retryPromptAddendum } : {})
+  }, null, 2), 'utf8');
+}
+
 async function readLatestPrompt(rootPath: string): Promise<string> {
   return fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-prompt.md'), 'utf8');
 }
@@ -1650,6 +1687,121 @@ test('Run CLI Iteration does not auto-reload on a control-plane reload stop even
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph CLI iteration 1 completed\. Iteration summary\./
+  );
+});
+
+test('Run CLI Iteration does not surface stale failure diagnosis after a successful run', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await writeFailureDiagnosisArtifacts(rootPath, 'T1');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => createMockRun(workspaceFolderArg.uri.fsPath, mode, null),
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+    }
+  );
+
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI iteration 1 completed\. Iteration summary\./
+  );
+  assert.equal(
+    harness.state.infoMessages.some((entry) => /Failure diagnosis ready for T1/.test(entry.message)),
+    false
+  );
+});
+
+test('Run CLI Loop surfaces a fresh failure diagnosis notification and View Diagnosis opens the focused panel', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('View Diagnosis');
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      await writeFailureDiagnosisArtifacts(workspaceFolderArg.uri.fsPath, 'T1', {
+        summary: 'Validator and emitted payload drifted apart.',
+        suggestedAction: 'Align the emitted payload to the validator schema.',
+        retryPromptAddendum: 'Preserve the validator contract while retrying.'
+      });
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'human_review_needed');
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    }
+  );
+
+  assert.ok(
+    harness.state.infoMessages.some((entry) => /Failure diagnosis ready for T1: Validator and emitted payload drifted apart\./.test(entry.message)),
+    'Expected a fresh failure diagnosis notification'
+  );
+  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one diagnosis panel to be created');
+  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.failureDiagnosisPanel');
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Align the emitted payload to the validator schema\./);
+  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Preserve the validator contract while retrying\./);
+});
+
+test('Auto-Recover Task routes task ambiguity to the decomposition proposal command', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await writeFailureDiagnosisArtifacts(rootPath, 'T1', {
+    category: 'task_ambiguity',
+    summary: 'The task is too ambiguous for deterministic implementation.',
+    suggestedAction: 'Apply the latest decomposition proposal before retrying.'
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const executeCalls = await withMockedExecuteCommand(async (calls) => {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.autoRecoverTask');
+    return calls;
+  });
+
+  assert.ok(
+    executeCalls.some((entry) => entry.command === 'ralphCodex.applyLatestTaskDecompositionProposal'),
+    'Expected task ambiguity recovery to route through decomposition'
+  );
+  assert.equal(
+    executeCalls.some((entry) => entry.command === 'ralphCodex.runRalphIteration'),
+    false
+  );
+});
+
+test('Skip Task marks the selected task blocked using the diagnosis summary', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await writeFailureDiagnosisArtifacts(rootPath, 'T1', {
+    category: 'validation_mismatch',
+    summary: 'The validation contract no longer matches the generated output.',
+    suggestedAction: 'Update the generator to satisfy the validator before retrying.'
+  });
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Skip Task');
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.skipTask');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string; status: string; blocker?: string }>;
+  };
+  const task = taskFile.tasks.find((entry) => entry.id === 'T1');
+
+  assert.equal(task?.status, 'blocked');
+  assert.equal(
+    task?.blocker,
+    'Skipped after diagnosis (validation_mismatch): Update the generator to satisfy the validator before retrying.'
   );
 });
 

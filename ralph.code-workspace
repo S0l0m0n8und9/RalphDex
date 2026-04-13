@@ -53,8 +53,8 @@
 			"mode": "inline"
 		},
 		"ralphCodex.operatorMode": "hardcore",
-		"ralphCodex.prdPath": ".ralph/projects/newprojval/prd.md",
-		"ralphCodex.ralphTaskFilePath": ".ralph/projects/newprojval/tasks.json",
-		"ralphCodex.progressPath": ".ralph/projects/newprojval/progress.md"
+		"ralphCodex.prdPath": ".ralph/prd.md",
+		"ralphCodex.ralphTaskFilePath": ".ralph/tasks.json",
+		"ralphCodex.progressPath": ".ralph/progress.md"
 	}
 }
