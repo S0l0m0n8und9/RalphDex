@@ -106,7 +106,7 @@ Validation entry points:
 }
 ```
 
-Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md#task-graph-invariants).
+Full schema rules and invariants live in [docs/invariants.md](docs/invariants.md#task-graph-invariants). The canonical normalized-task contract — field-presence categories, coercion rules, and child-task conversion behavior — lives in [docs/invariants.md § Normalized Task Contract](docs/invariants.md#normalized-task-contract).
 
 ## Crew Configuration
 

@@ -104,6 +104,11 @@ export async function withTaskFileLock<T>(
   }, fn) as RalphTaskFileLockResult<T>;
 }
 
+/**
+ * Coerces an optional string field: trims whitespace and returns `undefined`
+ * when the result is empty. Empty strings never survive normalization.
+ * See docs/invariants.md § Normalized Task Contract — Coercion Invariants.
+ */
 function normalizeOptionalString(record: Record<string, unknown>, key: string): string | undefined {
   return typeof record[key] === 'string' && record[key].trim().length > 0
     ? record[key].trim()
@@ -131,6 +136,11 @@ function normalizeTaskTier(value: unknown): RalphTask['tier'] | undefined {
   return undefined;
 }
 
+/**
+ * Coerces an optional string-array field: keeps only string entries, trims each,
+ * filters out empties, and returns `undefined` when the result array is empty.
+ * See docs/invariants.md § Normalized Task Contract — Coercion Invariants.
+ */
 function normalizeOptionalStringArray(record: Record<string, unknown>, key: string): string[] | undefined {
   if (!Array.isArray(record[key])) {
     return undefined;
@@ -144,6 +154,11 @@ function normalizeOptionalStringArray(record: Record<string, unknown>, key: stri
   return normalized.length > 0 ? normalized : undefined;
 }
 
+/**
+ * Coerces `dependsOn`: trims entries, filters empties, and deduplicates via `Set`.
+ * Returns `undefined` when the result array is empty.
+ * See docs/invariants.md § Normalized Task Contract — Coercion Invariants.
+ */
 function normalizeDependencyList(record: Record<string, unknown>): string[] | undefined {
   if (!Array.isArray(record.dependsOn)) {
     return undefined;
@@ -419,6 +434,17 @@ function extractTaskEntryLocations(raw: string): RalphTaskSourceLocation[] {
   return locations;
 }
 
+/**
+ * Normalizes a raw task candidate into a canonical `RalphTask`.
+ *
+ * Enforces the normalized-task contract documented in
+ * docs/invariants.md § Normalized Task Contract:
+ * - `id`, `title`, `status` are required and validated
+ * - Optional string fields are trimmed; empties become `undefined`
+ * - Optional array fields are filtered and deduplicated; empties become `undefined`
+ * - Enum fields (`priority`, `mode`, `tier`) silently become `undefined` on invalid values
+ * - Only fields in `SUPPORTED_TASK_FIELDS` survive; unknown fields are dropped
+ */
 function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocation): RalphTask {
   if (typeof candidate !== 'object' || candidate === null) {
     throw new Error('Task entries must be objects.');

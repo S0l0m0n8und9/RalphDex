@@ -222,6 +222,19 @@ export interface RalphSuggestedTaskDependency {
   reason: 'blocks_sequence' | 'inherits_parent_dependency';
 }
 
+/**
+ * Producer-facing shape for proposing new child tasks during decomposition or remediation.
+ *
+ * When applied via `applySuggestedChildTasks`, these suggestions are converted to persisted
+ * `RalphTask` entries with the following mapping:
+ * - `status` is forced to `'todo'`
+ * - `rationale` maps to `notes`
+ * - `validation: null` becomes `undefined`
+ * - `mode` is inherited from the parent task, not from the suggestion
+ * - `dependsOn` entries are flattened to `taskId` strings
+ *
+ * See docs/invariants.md § Normalized Task Contract for the full field-presence contract.
+ */
 export interface RalphSuggestedChildTask {
   id: string;
   title: string;

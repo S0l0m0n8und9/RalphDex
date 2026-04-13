@@ -291,3 +291,67 @@ Generated non-provenance artifact cleanup also stays deterministic and file-base
 - allow `0` to disable automatic cleanup
 
 Git handling is detection/reporting only. Do not add branch orchestration, worktree orchestration, or destructive git behavior as part of the control plane.
+
+## Normalized Task Contract
+
+This section defines the canonical shape and field-presence rules enforced by `normalizeTask` in `src/ralph/taskFile.ts`. Every newly created `RalphTask` — whether parsed from `tasks.json`, converted from a `RalphSuggestedChildTask`, or synthesized by any other producer — passes through normalization before it enters the in-memory task graph.
+
+### Required Fields
+
+These three fields must be present and valid on every task. Normalization throws if any is missing or has the wrong type.
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `id` | `string` | Must be a non-empty string. Trimmed of leading/trailing whitespace. |
+| `title` | `string` | Must be a non-empty string. Trimmed of leading/trailing whitespace. |
+| `status` | `RalphTaskStatus` | Must be one of `'todo'`, `'in_progress'`, `'blocked'`, `'done'`. |
+
+### Optional Fields and Presence Categories
+
+Optional fields follow one of three presence behaviors:
+
+- **preserve-source**: kept exactly as the producer supplied it (after normalization coercion). The producer is the sole authority.
+- **derive-if-possible**: when the producer does not supply a value, a parent or context-aware path may derive one. The derived value is still subject to normalization coercion.
+- **leave-absent**: omitted from the normalized task unless the producer explicitly supplies a value. No automatic derivation.
+
+| Field | Type | Category | Coercion Rules |
+|-------|------|----------|----------------|
+| `parentId` | `string?` | preserve-source | Trimmed. Returns `undefined` if empty or whitespace-only. |
+| `dependsOn` | `string[]?` | derive-if-possible | Each entry trimmed, empties filtered, deduplicated via `Set`. Returns `undefined` if result array is empty. Decomposition derives sequential and inherited dependencies. |
+| `notes` | `string?` | derive-if-possible | Trimmed. Returns `undefined` if empty or whitespace-only. Decomposition maps `rationale` → `notes`. |
+| `validation` | `string?` | derive-if-possible | Trimmed. Returns `undefined` if empty or whitespace-only. Decomposition inherits parent's `validation`. `null` from suggested children becomes `undefined`. |
+| `blocker` | `string?` | leave-absent | Trimmed. Returns `undefined` if empty or whitespace-only. |
+| `priority` | `RalphTaskPriority?` | leave-absent | Must be `'low'`, `'normal'`, or `'high'`. Returns `undefined` if invalid or absent. |
+| `mode` | `RalphTaskMode?` | derive-if-possible | Must be `'default'` or `'documentation'`. Returns `undefined` if invalid. Decomposition inherits parent's `mode`. |
+| `tier` | `RalphTaskTier?` | derive-if-possible | Must be `'simple'`, `'medium'`, or `'complex'`. Returns `undefined` if invalid. Decomposition inherits parent's `tier` when present. |
+| `acceptance` | `string[]?` | derive-if-possible | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. Decomposition derives acceptance from parent when possible. |
+| `constraints` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
+| `context` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
+| `source` | `RalphTaskSourceLocation?` | preserve-source | Injected by the parser for diagnostic line/column reporting. Not persisted to disk. |
+
+### Coercion Invariants
+
+1. **String coercion**: optional string fields that contain only whitespace or are empty after trimming become `undefined`, not empty strings.
+2. **Array coercion**: optional array fields filter out non-string entries and entries that are empty after trimming. If the resulting array is empty, the field becomes `undefined`, not `[]`.
+3. **Dependency deduplication**: `dependsOn` passes through `Set` after trimming, so duplicate task IDs are silently collapsed.
+4. **Enum rejection**: `priority`, `mode`, and `tier` silently become `undefined` when the supplied value is not a recognized enum member. They do not throw.
+5. **Unknown-field drop**: only fields in `SUPPORTED_TASK_FIELDS` survive normalization. Any field not in that set is silently discarded. The supported set is: `id`, `title`, `status`, `parentId`, `dependsOn`, `notes`, `validation`, `blocker`, `priority`, `mode`, `tier`, `acceptance`, `constraints`, `context`.
+6. **Auto-correction**: before normalization, commonly misspelled field names (e.g. `dependencies` → `dependsOn`, `acceptance_criteria` → `acceptance`, `files` → `context`) are auto-corrected with a diagnostic warning. The correction is applied before validation so the corrected field name enters normalization normally.
+
+### Child-Task Conversion Rules
+
+When `applySuggestedChildTasks` converts a `RalphSuggestedChildTask` into a persisted `RalphTask`:
+
+| Aspect | Rule |
+|--------|------|
+| `status` | Always forced to `'todo'` regardless of any suggested value. |
+| `parentId` | Taken directly from the suggested child's `parentId`. |
+| `dependsOn` | Extracted from `RalphSuggestedTaskDependency[].taskId`. |
+| `validation` | `null` from the suggestion becomes `undefined` in the persisted task. |
+| `notes` | Mapped from the suggestion's `rationale` field. |
+| `mode` | Inherited from the parent task's `mode`, not from the suggestion. |
+| `acceptance` | Preserved from the suggestion if supplied. |
+| `constraints` | Preserved from the suggestion if supplied. |
+| `context` | Preserved from the suggestion if supplied. |
+| `tier` | Preserved from the suggestion if supplied. |
+| Parent status | If the parent was `done` or `todo`, it is promoted to `'in_progress'`. |
