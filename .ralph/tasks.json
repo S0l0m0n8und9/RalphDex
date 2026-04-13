@@ -3231,7 +3231,7 @@
     {
       "id": "T119",
       "title": "Make complete task shaping a shared invariant across every Ralph task-creation path",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T118",
         "T119.1",
@@ -3241,7 +3241,7 @@
         "T119.5",
         "T119.6"
       ],
-      "notes": "The current PRD-generation and wizard flows can drop rich task fields, and other producers may drift independently. Introduce one canonical task-normalization and augmentation path so tasks created from PRD generation, Initialize Workspace, New Project, Add Task, wizard persistence, decomposition, remediation, and future producers all preserve the same complete schema or emit explicit absence semantics.",
+      "notes": "Re-inspected the repo and verified that the shared task-creation invariant is already implemented across taskNormalization/taskCreation, producer routing, docs, and regression coverage. No further safe code change was required; npm run validate passed fresh.",
       "validation": "npm run validate",
       "acceptance": [
         "A single shared task-shaping pipeline exists for all newly created Ralph tasks before they are written to tasks.json",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 113
+  "mutationCount": 114
 }
