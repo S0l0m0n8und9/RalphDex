@@ -363,6 +363,7 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
   const settingsSurface = buildSettingsSurfaceSnapshot({
     ...DEFAULT_CONFIG,
     operatorMode: 'multi-agent',
+    cliProvider: 'copilot',
     memoryStrategy: 'summary',
     planningPass: { enabled: true, mode: 'dedicated' },
     azureFoundryEndpointUrl: 'https://foundry.example'
@@ -382,6 +383,8 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
   assert.ok(html.includes('https://foundry.example'));
   assert.ok(html.includes('Default: false'));
   assert.ok(html.includes('settings-badge'));
+  assert.ok(html.includes('ralphCodex.testCurrentProviderConnection'));
+  assert.ok(html.includes('Test GitHub Copilot Connection'));
 });
 
 test('buildPanelDashboardHtml uses the dashboard view intent to open the settings tab and focus a setting', () => {

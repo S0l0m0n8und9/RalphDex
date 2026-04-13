@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.setAzureIdentityResolvableOverride = setAzureIdentityResolvableOverride;
 exports.summarizeActiveClaimsByAgent = summarizeActiveClaimsByAgent;
+exports.collectProviderReadinessDiagnostics = collectProviderReadinessDiagnostics;
 exports.checkStaleState = checkStaleState;
 exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
 exports.buildPreflightReport = buildPreflightReport;
@@ -173,6 +174,53 @@ function readTimestampMs(value) {
     }
     const timestampMs = new Date(value).getTime();
     return Number.isNaN(timestampMs) ? null : timestampMs;
+}
+function collectProviderReadinessDiagnostics(input) {
+    const diagnostics = [];
+    if (input.codexCliSupport) {
+        const cliSupport = input.codexCliSupport;
+        const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');
+        const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
+        if (input.codexCliSupport.check === 'pathMissing') {
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));
+        }
+        else if (input.codexCliSupport.check === 'pathNotExecutable') {
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_not_executable', `Configured ${providerLabel} CLI path is not executable: ${input.codexCliSupport.commandPath}.`));
+        }
+        else if (input.codexCliSupport.check === 'pathLookupAssumed') {
+            diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'codex_cli_path_lookup_assumed', `${providerLabel} CLI will be resolved from PATH at runtime: ${input.codexCliSupport.commandPath}. Availability is assumed until execution starts.`));
+        }
+        else if (input.codexCliSupport.check === 'pathVerifiedExecutable') {
+            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
+        }
+    }
+    if (input.ideCommandSupport?.status === 'unavailable') {
+        const missingCommands = input.ideCommandSupport.missingCommandIds
+            .filter((commandId) => commandId && commandId !== 'none');
+        diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'ide_command_strategy_unavailable', missingCommands.length > 0
+            ? `Configured IDE command strategy is unavailable. Missing VS Code commands: ${missingCommands.join(', ')}. Clipboard handoff can still fall back.`
+            : 'Configured IDE command strategy is unavailable because no usable VS Code command ids were configured. Clipboard handoff can still fall back.'));
+    }
+    else if (input.ideCommandSupport?.status === 'available') {
+        diagnostics.push(createDiagnostic('codexAdapter', 'info', 'ide_command_strategy_available', `Configured IDE command strategy is available via ${input.ideCommandSupport.openSidebarCommandId} and ${input.ideCommandSupport.newChatCommandId}.`));
+    }
+    if (input.config.cliProvider === 'azure-foundry') {
+        if (!input.config.azureFoundryEndpointUrl) {
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_endpoint_missing', 'cliProvider is set to azure-foundry but ralphCodex.azureFoundryEndpointUrl is not configured.'));
+        }
+        else if (!input.config.azureFoundryApiKey) {
+            if (isAzureIdentityResolvable()) {
+                diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'azure_foundry_auth_azure_ad', 'No API key configured for azure-foundry. Azure AD authentication (DefaultAzureCredential) will be used. Ensure Azure credentials are available in the environment (e.g. az login, managed identity, or environment variables).'));
+            }
+            else {
+                diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_no_auth_available', 'No API key configured for azure-foundry and @azure/identity is not installed. Neither API-key nor Azure AD authentication is available. Configure ralphCodex.azureFoundryApiKey or install @azure/identity for DefaultAzureCredential support.'));
+            }
+        }
+        else {
+            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'azure_foundry_auth_api_key_active', 'Azure AI Foundry API key auth path is active.'));
+        }
+    }
+    return diagnostics;
 }
 function claimMatchesSignal(claim, signal) {
     const claimTaskId = readStringField(claim, 'taskId');
@@ -583,49 +631,11 @@ function buildPreflightReport(input) {
     if (input.lastSummarizationMode === 'fallback_summary') {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'memory_summarization_fallback', 'Memory summarization used a static fallback instead of the active provider. The provider\'s summarizeText call failed or is not implemented. Check provider connectivity.'));
     }
-    if (input.codexCliSupport) {
-        const cliSupport = input.codexCliSupport;
-        const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');
-        const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
-        if (input.codexCliSupport.check === 'pathMissing') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));
-        }
-        else if (input.codexCliSupport.check === 'pathNotExecutable') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_not_executable', `Configured ${providerLabel} CLI path is not executable: ${input.codexCliSupport.commandPath}.`));
-        }
-        else if (input.codexCliSupport.check === 'pathLookupAssumed') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'codex_cli_path_lookup_assumed', `${providerLabel} CLI will be resolved from PATH at runtime: ${input.codexCliSupport.commandPath}. Availability is assumed until execution starts.`));
-        }
-        else if (input.codexCliSupport.check === 'pathVerifiedExecutable') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
-        }
-    }
-    if (input.ideCommandSupport?.status === 'unavailable') {
-        const missingCommands = input.ideCommandSupport.missingCommandIds
-            .filter((commandId) => commandId && commandId !== 'none');
-        diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'ide_command_strategy_unavailable', missingCommands.length > 0
-            ? `Configured IDE command strategy is unavailable. Missing VS Code commands: ${missingCommands.join(', ')}. Clipboard handoff can still fall back.`
-            : 'Configured IDE command strategy is unavailable because no usable VS Code command ids were configured. Clipboard handoff can still fall back.'));
-    }
-    else if (input.ideCommandSupport?.status === 'available') {
-        diagnostics.push(createDiagnostic('codexAdapter', 'info', 'ide_command_strategy_available', `Configured IDE command strategy is available via ${input.ideCommandSupport.openSidebarCommandId} and ${input.ideCommandSupport.newChatCommandId}.`));
-    }
-    if (input.config.cliProvider === 'azure-foundry') {
-        if (!input.config.azureFoundryEndpointUrl) {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_endpoint_missing', 'cliProvider is set to azure-foundry but ralphCodex.azureFoundryEndpointUrl is not configured.'));
-        }
-        else if (!input.config.azureFoundryApiKey) {
-            if (isAzureIdentityResolvable()) {
-                diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'azure_foundry_auth_azure_ad', 'No API key configured for azure-foundry. Azure AD authentication (DefaultAzureCredential) will be used. Ensure Azure credentials are available in the environment (e.g. az login, managed identity, or environment variables).'));
-            }
-            else {
-                diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_no_auth_available', 'No API key configured for azure-foundry and @azure/identity is not installed. Neither API-key nor Azure AD authentication is available. Configure ralphCodex.azureFoundryApiKey or install @azure/identity for DefaultAzureCredential support.'));
-            }
-        }
-        else {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'azure_foundry_auth_api_key_active', 'Azure AI Foundry API key auth path is active.'));
-        }
-    }
+    diagnostics.push(...collectProviderReadinessDiagnostics({
+        config: input.config,
+        codexCliSupport: input.codexCliSupport,
+        ideCommandSupport: input.ideCommandSupport
+    }));
     if (input.config.verifierModes.includes('validationCommand')) {
         if (!input.validationCommand) {
             diagnostics.push(createDiagnostic('validationVerifier', 'warning', 'validation_command_missing', 'Validation-command verifier is enabled but no validation command was selected for this iteration.'));

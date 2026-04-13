@@ -3397,14 +3397,14 @@
     {
       "id": "T120.2",
       "title": "Implement the Ralphdex settings panel with inline config testing and new-setting discovery",
-      "status": "todo",
+      "status": "done",
       "parentId": "T120",
       "dependsOn": [
         "T120.1",
         "T114",
         "T116"
       ],
-      "notes": "Build the PRD item 15 Phase 4 surface on top of WebviewPanelManager and MessageBridge: grouped settings sections, NEW badges, blur-applied edits, provider Test Connection actions, and the update-time notification/deep-link flow.",
+      "notes": "Added an inline settings-panel provider test action backed by a new internal command, extracted provider-readiness diagnostics from preflight into a shared helper, and added panel plus command regressions covering the new path.",
       "validation": "npm run validate",
       "acceptance": [
         "A command-backed Ralphdex settings panel renders grouped provider, memory, planning, and orchestration settings from the shared metadata source",
@@ -3453,5 +3453,5 @@
       ]
     }
   ],
-  "mutationCount": 116
+  "mutationCount": 117
 }

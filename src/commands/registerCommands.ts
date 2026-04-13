@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { readConfig } from '../config/readConfig';
+import { getCliProviderLabel, getCliCommandPath } from '../config/providers';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { RalphIterationEngine } from '../ralph/iterationEngine';
 import { RalphStateManager } from '../ralph/stateManager';
@@ -19,6 +20,7 @@ import type {
 } from '../ralph/types';
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
 import { Logger } from '../services/logger';
+import { inspectCliSupport } from '../services/codexCliSupport';
 import { sleep } from '../util/async';
 import { toErrorMessage } from '../util/error';
 import { pathExists } from '../util/fs';
@@ -55,6 +57,7 @@ import {
   writePrdWizardDraft
 } from './prdWizardPersistence';
 import { appendNormalizedTasksToFile } from '../ralph/taskCreation';
+import { collectProviderReadinessDiagnostics } from '../ralph/preflight';
 import {
   relativeWizardWriteSummary,
   type PrdWizardDraftBundle,
@@ -113,6 +116,10 @@ async function showWarnings(warnings: string[]): Promise<void> {
 async function openTextFile(target: string): Promise<void> {
   const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
   await vscode.window.showTextDocument(document, { preview: false });
+}
+
+function summarizeProviderDiagnostics(messages: readonly string[]): string {
+  return messages.join(' ');
 }
 
 async function initializeFreshWorkspace(rootPath: string): Promise<{
@@ -1576,6 +1583,46 @@ export function registerCommands(
       void vscode.window.showInformationMessage(
         `Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`
       );
+    }
+  });
+
+  registerCommand(context, logger, {
+    commandId: 'ralphCodex.testCurrentProviderConnection',
+    label: 'Ralphdex: Test Current Provider Connection',
+    handler: async (progress) => {
+      const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      const providerLabel = getCliProviderLabel(config.cliProvider);
+      progress.report({ message: `Testing ${providerLabel} provider readiness` });
+
+      const cliSupport = await inspectCliSupport(config.cliProvider, getCliCommandPath(config));
+      const diagnostics = collectProviderReadinessDiagnostics({
+        config,
+        codexCliSupport: cliSupport
+      });
+      const summary = summarizeProviderDiagnostics(diagnostics.map((diagnostic) => diagnostic.message));
+
+      logger.info('Provider readiness test completed.', {
+        provider: config.cliProvider,
+        commandPath: cliSupport.commandPath,
+        checks: diagnostics.map((diagnostic) => ({
+          severity: diagnostic.severity,
+          code: diagnostic.code,
+          message: diagnostic.message
+        }))
+      });
+
+      if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
+        void vscode.window.showErrorMessage(summary);
+        return;
+      }
+
+      if (diagnostics.some((diagnostic) => diagnostic.severity === 'warning')) {
+        void vscode.window.showWarningMessage(summary);
+        return;
+      }
+
+      void vscode.window.showInformationMessage(summary || `${providerLabel} provider readiness checks passed.`);
     }
   });
 

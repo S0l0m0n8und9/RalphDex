@@ -502,6 +502,48 @@ test('Show Multi-Agent Status routes through the dashboard and writes raw report
   assert.match(output, /Multi-Agent Status/);
 });
 
+test('Test Current Provider Connection reports the active provider readiness using the existing CLI support checks', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    cliProvider: 'copilot',
+    copilotCommandPath: 'copilot'
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+
+  assert.match(
+    harness.state.warningMessages.at(-1)?.message ?? '',
+    /GitHub Copilot CLI will be resolved from PATH at runtime: copilot/
+  );
+});
+
+test('Test Current Provider Connection blocks azure-foundry when required auth or endpoint settings are missing', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    cliProvider: 'azure-foundry',
+    azureFoundryCommandPath: 'azure-foundry',
+    azureFoundryEndpointUrl: '',
+    azureFoundryApiKey: ''
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+
+  assert.match(
+    harness.state.errorMessages.at(-1)?.message ?? '',
+    /ralphCodex\.azureFoundryEndpointUrl is not configured/
+  );
+});
+
 test('Open Latest Ralph Summary explains when no summary artifact exists yet', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

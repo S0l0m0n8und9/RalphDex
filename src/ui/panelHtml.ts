@@ -12,6 +12,7 @@ import {
   LOOP_STATE_LABEL,
   PHASE_LABELS
 } from './htmlHelpers';
+import type { CliProviderId } from '../config/types';
 
 type DashboardTabId = 'overview' | 'work' | 'diagnostics' | 'settings';
 
@@ -566,11 +567,36 @@ function renderSettingControl(entry: NonNullable<RalphDashboardState['settingsSu
   return textInput(entry.key, String(entry.value ?? ''));
 }
 
+function getCurrentCliProvider(settingsSurface: NonNullable<RalphDashboardState['settingsSurface']>): CliProviderId {
+  const providerEntry = settingsSurface.sections
+    .flatMap((section) => section.entries)
+    .find((entry) => entry.key === 'cliProvider');
+  const providerValue = providerEntry?.value;
+  return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'azure-foundry'
+    ? providerValue
+    : 'codex';
+}
+
+function getProviderTestLabel(provider: CliProviderId): string {
+  switch (provider) {
+    case 'claude':
+      return 'Test Claude Connection';
+    case 'copilot':
+      return 'Test GitHub Copilot Connection';
+    case 'azure-foundry':
+      return 'Test Azure AI Foundry Connection';
+    default:
+      return 'Test Codex Connection';
+  }
+}
+
 function buildSettingsSection(state: RalphDashboardState): string {
   const settingsSurface = state.settingsSurface;
   if (!settingsSurface) {
     return '<div class="empty">Config not loaded — reload window</div>';
   }
+
+  const currentProvider = getCurrentCliProvider(settingsSurface);
 
   return settingsSurface.sections.map((section, index) => `
     <details class="settings-section" data-section="settings-${esc(section.id)}"${index === 0 ? ' open' : ''}>
@@ -582,6 +608,11 @@ function buildSettingsSection(state: RalphDashboardState): string {
       </summary>
       <div class="settings-grid">
         <div class="settings-section-desc">${esc(section.description)}</div>
+        ${section.id === 'provider' ? `
+          <div class="inline-actions" style="grid-column: 1 / -1; margin-top: -2px; margin-bottom: 4px;">
+            <button class="btn" data-command="ralphCodex.testCurrentProviderConnection"><span class="btn-label">${esc(getProviderTestLabel(currentProvider))}</span><span class="btn-spinner"></span></button>
+          </div>
+        ` : ''}
         ${section.entries.map((entry) => `
           <div class="setting-row" data-setting-entry="${esc(entry.key)}">
             <span class="setting-label">${esc(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>

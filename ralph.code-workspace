@@ -31,6 +31,10 @@
 		"ralphCodex.autoReloadOnControlPlaneChange": false,
 		"ralphCodex.autoReplenishBacklog": true,
 		"ralphCodex.reasoningEffort": "medium",
-		"ralphCodex.sandboxMode": "danger-full-access"
+		"ralphCodex.sandboxMode": "danger-full-access",
+		"ralphCodex.azureFoundryApiKey": "",
+		"ralphCodex.azureFoundryApiVersion": "2024-04-01-preview",
+		"ralphCodex.azureFoundryModelDeployment": "",
+		"ralphCodex.azureFoundryEndpointUrl": ""
 	}
 }

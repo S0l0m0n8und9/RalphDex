@@ -39,10 +39,12 @@ const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
+const providers_1 = require("../config/providers");
 const providerFactory_1 = require("../codex/providerFactory");
 const iterationEngine_1 = require("../ralph/iterationEngine");
 const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
+const codexCliSupport_1 = require("../services/codexCliSupport");
 const async_1 = require("../util/async");
 const error_1 = require("../util/error");
 const fs_1 = require("../util/fs");
@@ -57,6 +59,7 @@ const projectGenerator_1 = require("../ralph/projectGenerator");
 const crewRoster_1 = require("../ralph/crewRoster");
 const prdWizardPersistence_1 = require("./prdWizardPersistence");
 const taskCreation_1 = require("../ralph/taskCreation");
+const preflight_1 = require("../ralph/preflight");
 const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
@@ -92,6 +95,9 @@ async function showWarnings(warnings) {
 async function openTextFile(target) {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
     await vscode.window.showTextDocument(document, { preview: false });
+}
+function summarizeProviderDiagnostics(messages) {
+    return messages.join(' ');
 }
 async function initializeFreshWorkspace(rootPath) {
     const ralphDir = path.join(rootPath, '.ralph');
@@ -1282,6 +1288,40 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
             const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
             void vscode.window.showInformationMessage(`Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.testCurrentProviderConnection',
+        label: 'Ralphdex: Test Current Provider Connection',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const providerLabel = (0, providers_1.getCliProviderLabel)(config.cliProvider);
+            progress.report({ message: `Testing ${providerLabel} provider readiness` });
+            const cliSupport = await (0, codexCliSupport_1.inspectCliSupport)(config.cliProvider, (0, providers_1.getCliCommandPath)(config));
+            const diagnostics = (0, preflight_1.collectProviderReadinessDiagnostics)({
+                config,
+                codexCliSupport: cliSupport
+            });
+            const summary = summarizeProviderDiagnostics(diagnostics.map((diagnostic) => diagnostic.message));
+            logger.info('Provider readiness test completed.', {
+                provider: config.cliProvider,
+                commandPath: cliSupport.commandPath,
+                checks: diagnostics.map((diagnostic) => ({
+                    severity: diagnostic.severity,
+                    code: diagnostic.code,
+                    message: diagnostic.message
+                }))
+            });
+            if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
+                void vscode.window.showErrorMessage(summary);
+                return;
+            }
+            if (diagnostics.some((diagnostic) => diagnostic.severity === 'warning')) {
+                void vscode.window.showWarningMessage(summary);
+                return;
+            }
+            void vscode.window.showInformationMessage(summary || `${providerLabel} provider readiness checks passed.`);
         }
     });
     // ---------- Construct Recommended Skills ----------
