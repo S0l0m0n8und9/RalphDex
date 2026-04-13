@@ -23,7 +23,7 @@ import {
   RalphTaskCounts,
   RalphValidationCommandReadiness
 } from './types';
-import { DEFAULT_CLAIM_TTL_MS } from './taskFile';
+import { DEFAULT_CLAIM_TTL_MS, selectNextTask } from './taskFile';
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
@@ -243,7 +243,9 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
         'codexAdapter',
         'error',
         'codex_cli_missing',
-        `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`
+        input.codexCliSupport.configuredAs === 'pathLookup'
+          ? `${providerLabel} CLI command could not be resolved from PATH: ${input.codexCliSupport.commandPath}. Install the CLI or update ${configKey} to an explicit executable path.`
+          : `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`
       ));
     } else if (input.codexCliSupport.check === 'pathNotExecutable') {
       diagnostics.push(createDiagnostic(
@@ -264,7 +266,9 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
         'codexAdapter',
         'info',
         'codex_cli_path_verified',
-        `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`
+        input.codexCliSupport.configuredAs === 'pathLookup'
+          ? `${providerLabel} CLI was resolved from PATH and verified: ${input.codexCliSupport.commandPath}.`
+          : `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`
       ));
     }
   }
@@ -987,7 +991,8 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
 
   if (input.taskInspection.taskFile && input.selectedTask === null) {
     const counts = input.taskCounts;
-    if (counts && (counts.todo > 0 || counts.in_progress > 0 || counts.blocked > 0)) {
+    const nextActionableTask = selectNextTask(input.taskInspection.taskFile);
+    if (nextActionableTask === null && counts && (counts.todo > 0 || counts.in_progress > 0 || counts.blocked > 0)) {
       diagnostics.push(createDiagnostic(
         'workspaceRuntime',
         'warning',

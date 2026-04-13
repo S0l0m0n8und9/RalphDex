@@ -158,7 +158,9 @@ function collectProviderReadinessDiagnostics(input) {
         const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');
         const configKey = cliSupport.configKey ?? 'ralphCodex.codexCommandPath';
         if (input.codexCliSupport.check === 'pathMissing') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_missing', input.codexCliSupport.configuredAs === 'pathLookup'
+                ? `${providerLabel} CLI command could not be resolved from PATH: ${input.codexCliSupport.commandPath}. Install the CLI or update ${configKey} to an explicit executable path.`
+                : `Configured ${providerLabel} CLI path does not exist: ${input.codexCliSupport.commandPath}. Update ${configKey}.`));
         }
         else if (input.codexCliSupport.check === 'pathNotExecutable') {
             diagnostics.push(createDiagnostic('codexAdapter', 'error', 'codex_cli_not_executable', `Configured ${providerLabel} CLI path is not executable: ${input.codexCliSupport.commandPath}.`));
@@ -167,7 +169,9 @@ function collectProviderReadinessDiagnostics(input) {
             diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'codex_cli_path_lookup_assumed', `${providerLabel} CLI will be resolved from PATH at runtime: ${input.codexCliSupport.commandPath}. Availability is assumed until execution starts.`));
         }
         else if (input.codexCliSupport.check === 'pathVerifiedExecutable') {
-            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
+            diagnostics.push(createDiagnostic('codexAdapter', 'info', 'codex_cli_path_verified', input.codexCliSupport.configuredAs === 'pathLookup'
+                ? `${providerLabel} CLI was resolved from PATH and verified: ${input.codexCliSupport.commandPath}.`
+                : `Configured ${providerLabel} CLI executable was verified: ${input.codexCliSupport.commandPath}.`));
         }
     }
     if (input.ideCommandSupport?.status === 'unavailable') {
@@ -634,7 +638,8 @@ function buildPreflightReport(input) {
     }
     if (input.taskInspection.taskFile && input.selectedTask === null) {
         const counts = input.taskCounts;
-        if (counts && (counts.todo > 0 || counts.in_progress > 0 || counts.blocked > 0)) {
+        const nextActionableTask = (0, taskFile_1.selectNextTask)(input.taskInspection.taskFile);
+        if (nextActionableTask === null && counts && (counts.todo > 0 || counts.in_progress > 0 || counts.blocked > 0)) {
             diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'no_actionable_task', 'No actionable task is currently selectable. Check blocked tasks and incomplete dependencies.'));
         }
     }

@@ -13,3 +13,4 @@ out-test/
 .DS_Store
 Thumbs.db
 *.tmp
+ralph.code-workspace

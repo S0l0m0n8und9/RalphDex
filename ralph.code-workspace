@@ -6,8 +6,8 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "copilot",
-		"ralphCodex.model": "gpt-4.1",
+		"ralphCodex.cliProvider": "codex",
+		"ralphCodex.model": "gpt-5.4",
 		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
 			"enabled": false,
@@ -35,6 +35,23 @@
 		"ralphCodex.azureFoundryApiKey": "",
 		"ralphCodex.azureFoundryApiVersion": "2024-04-01-preview",
 		"ralphCodex.azureFoundryModelDeployment": "",
-		"ralphCodex.azureFoundryEndpointUrl": ""
+		"ralphCodex.azureFoundryEndpointUrl": "",
+		"ralphCodex.copilotFoundry": {
+			"auth": {
+				"tenantId": "baf3ef7f-da5c-48f0-a7ad-a46b559c1f03",
+				"subscriptionId": "ed499b38-2e0d-47fe-9c07-f9fbfaaa8962"
+			},
+			"azure": {
+				"resourceGroup": "azureai",
+				"resourceName": "me-me3mef6a-eastus2"
+			},
+			"model": {
+				"deployment": "gpt-5.4"
+			}
+		},
+		"ralphCodex.planningPass": {
+			"mode": "dedicated"
+		},
+		"ralphCodex.operatorMode": "hardcore"
 	}
 }

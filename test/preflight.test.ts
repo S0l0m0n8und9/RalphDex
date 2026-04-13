@@ -299,6 +299,36 @@ test('buildPreflightReport surfaces an informational diagnostic when resuming fr
   assert.match(report.summary, /Workspace\/runtime: 1 info/);
 });
 
+test('buildPreflightReport does not emit no_actionable_task when an unselected task is still selectable', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Selectable task', status: 'todo' },
+      { id: 'T2', title: 'Blocked sibling', status: 'blocked' }
+    ]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 1, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus
+  });
+
+  assert.equal(report.diagnostics.some((diagnostic) => diagnostic.code === 'no_actionable_task'), false);
+});
+
 test('inspectPreflightArtifactReadiness reports stale latest surfaces and missing latest-pointer targets', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
@@ -764,6 +794,47 @@ test('buildPreflightReport uses GitHub Copilot labels and config keys for Copilo
 
   assert.ok(report.diagnostics.some((diagnostic) =>
     diagnostic.message.includes('GitHub Copilot CLI will be resolved from PATH at runtime: copilot')
+  ));
+});
+
+test('buildPreflightReport reports verified PATH lookup resolution for Copilot Foundry', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-foundry',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        commandPath: 'copilot'
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    claimGraph: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus,
+    codexCliSupport: {
+      commandPath: 'C:\\Users\\ben.jones\\AppData\\Roaming\\npm\\copilot.cmd',
+      configuredAs: 'pathLookup',
+      check: 'pathVerifiedExecutable',
+      confidence: 'verified',
+      provider: 'copilot-foundry',
+      configKey: 'ralphCodex.copilotFoundry.commandPath'
+    } as any
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) =>
+    diagnostic.message.includes('Copilot Foundry CLI was resolved from PATH and verified: C:\\Users\\ben.jones\\AppData\\Roaming\\npm\\copilot.cmd')
   ));
 });
 

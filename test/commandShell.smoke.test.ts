@@ -550,9 +550,14 @@ test('Test Current Provider Connection reports the active provider readiness usi
   activate(createExtensionContext());
   await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
 
-  assert.match(
+  const readinessMessage = [
     harness.state.warningMessages.at(-1)?.message ?? '',
-    /GitHub Copilot CLI will be resolved from PATH at runtime: copilot/
+    harness.state.infoMessages.at(-1)?.message ?? ''
+  ].find((message) => message.length > 0) ?? '';
+
+  assert.match(
+    readinessMessage,
+    /GitHub Copilot CLI (will be resolved from PATH at runtime: copilot|was resolved from PATH and verified:)/
   );
 });
 

@@ -26,10 +26,40 @@ test('inspectCodexCliSupport reports explicit missing paths', async () => {
   assert.equal(support.check, 'pathMissing');
 });
 
-test('inspectCodexCliSupport leaves PATH lookups unverified', async () => {
-  const support = await inspectCodexCliSupport('codex');
-  assert.equal(support.check, 'pathLookupAssumed');
-  assert.equal(support.confidence, 'assumed');
+test('inspectCodexCliSupport verifies PATH lookups when the command is resolvable', async () => {
+  const rootPath = await makeTempRoot();
+  const executableName = process.platform === 'win32' ? 'copilot.cmd' : 'copilot';
+  const executablePath = path.join(rootPath, executableName);
+  await fs.writeFile(executablePath, process.platform === 'win32' ? '@echo off\r\necho ok\r\n' : '#!/bin/sh\necho ok\n', 'utf8');
+  if (process.platform !== 'win32') {
+    await fs.chmod(executablePath, 0o755);
+  }
+
+  const originalPath = process.env.PATH;
+  process.env.PATH = `${rootPath}${path.delimiter}${originalPath ?? ''}`;
+  try {
+    const support = await inspectCodexCliSupport('copilot');
+    assert.equal(support.configuredAs, 'pathLookup');
+    assert.equal(support.check, 'pathVerifiedExecutable');
+    assert.equal(support.confidence, 'verified');
+    assert.ok(support.commandPath.toLowerCase().endsWith(executableName.toLowerCase()));
+  } finally {
+    process.env.PATH = originalPath;
+  }
+});
+
+test('inspectCodexCliSupport blocks unresolved PATH lookups', async () => {
+  const originalPath = process.env.PATH;
+  process.env.PATH = '';
+  try {
+    const support = await inspectCodexCliSupport('definitely-not-a-real-command');
+    assert.equal(support.configuredAs, 'pathLookup');
+    assert.equal(support.check, 'pathMissing');
+    assert.equal(support.confidence, 'blocked');
+    assert.equal(support.commandPath, 'definitely-not-a-real-command');
+  } finally {
+    process.env.PATH = originalPath;
+  }
 });
 
 test('inspectCodexCliSupport distinguishes explicit paths that are not executable', async () => {

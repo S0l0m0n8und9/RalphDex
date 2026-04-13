@@ -43,20 +43,71 @@ function usesExplicitPath(commandPath) {
 }
 async function isExecutable(commandPath) {
     try {
-        await fs.access(commandPath, fs.constants.X_OK);
+        await fs.access(commandPath, process.platform === 'win32' ? fs.constants.F_OK : fs.constants.X_OK);
         return true;
     }
     catch {
         return false;
     }
 }
+async function pathEntryExists(candidatePath) {
+    try {
+        await fs.access(candidatePath, fs.constants.F_OK);
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function candidateExtensionsForLookup(commandPath) {
+    if (process.platform !== 'win32') {
+        return [''];
+    }
+    const ext = path.extname(commandPath);
+    if (ext) {
+        return [''];
+    }
+    const pathExt = (process.env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD;.PS1')
+        .split(';')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+    return ['', ...pathExt];
+}
+async function resolveCommandFromPath(commandPath) {
+    const pathValue = process.env.PATH ?? '';
+    const pathEntries = pathValue
+        .split(path.delimiter)
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+    for (const entry of pathEntries) {
+        for (const extension of candidateExtensionsForLookup(commandPath)) {
+            const candidatePath = path.join(entry, `${commandPath}${extension}`);
+            if (!(await pathEntryExists(candidatePath))) {
+                continue;
+            }
+            if (await isExecutable(candidatePath)) {
+                return candidatePath;
+            }
+        }
+    }
+    return null;
+}
 async function inspectCodexCliSupport(commandPath) {
     if (!usesExplicitPath(commandPath)) {
+        const resolvedPath = await resolveCommandFromPath(commandPath);
+        if (resolvedPath) {
+            return {
+                commandPath: resolvedPath,
+                configuredAs: 'pathLookup',
+                check: 'pathVerifiedExecutable',
+                confidence: 'verified'
+            };
+        }
         return {
             commandPath,
             configuredAs: 'pathLookup',
-            check: 'pathLookupAssumed',
-            confidence: 'assumed'
+            check: 'pathMissing',
+            confidence: 'blocked'
         };
     }
     try {
@@ -91,7 +142,11 @@ async function inspectCliSupport(provider, commandPath) {
         ? 'ralphCodex.claudeCommandPath'
         : provider === 'copilot'
             ? 'ralphCodex.copilotCommandPath'
-            : 'ralphCodex.codexCommandPath';
+            : provider === 'copilot-foundry'
+                ? 'ralphCodex.copilotFoundry.commandPath'
+                : provider === 'azure-foundry'
+                    ? 'ralphCodex.azureFoundry.commandPath'
+                    : 'ralphCodex.codexCommandPath';
     return {
         ...base,
         provider,
