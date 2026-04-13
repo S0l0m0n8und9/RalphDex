@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport, setAzureIdentityResolvableOverride } from '../src/ralph/preflight';
+import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
@@ -828,7 +828,15 @@ function azureFoundryBaseInput(configOverrides: Partial<(typeof DEFAULT_CONFIG)>
   return {
     rootPath: '/workspace',
     workspaceTrusted: true,
-    config: { ...DEFAULT_CONFIG, cliProvider: 'azure-foundry' as const, ...configOverrides },
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'azure-foundry' as const,
+      ...configOverrides,
+      azureFoundry: {
+        ...DEFAULT_CONFIG.azureFoundry,
+        ...configOverrides.azureFoundry
+      }
+    },
     taskInspection: azureFoundryTaskInspection(),
     taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
     selectedTask: null,
@@ -842,65 +850,69 @@ function azureFoundryBaseInput(configOverrides: Partial<(typeof DEFAULT_CONFIG)>
 
 test('buildPreflightReport emits error when azure-foundry endpoint is not configured', () => {
   const report = buildPreflightReport(azureFoundryBaseInput({
-    azureFoundryEndpointUrl: '',
-    azureFoundryApiKey: ''
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: ''
+    }
   }));
 
   assert.equal(report.ready, false, 'should not be ready when endpoint is missing');
   assert.ok(
-    report.diagnostics.some((d) => d.code === 'azure_foundry_endpoint_missing' && d.severity === 'error'),
+      report.diagnostics.some((d) => d.code === 'azure_foundry_endpoint_missing' && d.severity === 'error'),
     'should have azure_foundry_endpoint_missing error'
   );
 });
 
-test('buildPreflightReport emits warning when azure-foundry has endpoint but no API key and @azure/identity is available', () => {
-  setAzureIdentityResolvableOverride(true);
-  try {
-    const report = buildPreflightReport(azureFoundryBaseInput({
-      azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
-      azureFoundryApiKey: ''
-    }));
-
-    assert.equal(report.ready, true, 'should be ready — Azure AD path is acceptable');
-    assert.ok(
-      report.diagnostics.some((d) => d.code === 'azure_foundry_auth_azure_ad' && d.severity === 'warning'),
-      'should have azure_foundry_auth_azure_ad warning diagnostic'
-    );
-    assert.ok(
-      report.diagnostics.some((d) => /Azure AD/i.test(d.message) && /DefaultAzureCredential/i.test(d.message)),
-      'diagnostic message should mention Azure AD and DefaultAzureCredential'
-    );
-  } finally {
-    setAzureIdentityResolvableOverride(null);
-  }
-});
-
-test('buildPreflightReport emits error when azure-foundry has no API key and @azure/identity is not installed', () => {
-  setAzureIdentityResolvableOverride(false);
-  try {
-    const report = buildPreflightReport(azureFoundryBaseInput({
-      azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
-      azureFoundryApiKey: ''
-    }));
-
-    assert.equal(report.ready, false, 'should not be ready when neither auth method is available');
-    assert.ok(
-      report.diagnostics.some((d) => d.code === 'azure_foundry_no_auth_available' && d.severity === 'error'),
-      'should have azure_foundry_no_auth_available error diagnostic'
-    );
-    assert.ok(
-      report.diagnostics.some((d) => /neither/i.test(d.message) && /azureFoundryApiKey/i.test(d.message)),
-      'error diagnostic should mention neither auth method and the config key'
-    );
-  } finally {
-    setAzureIdentityResolvableOverride(null);
-  }
-});
-
-test('buildPreflightReport emits info when azure-foundry has endpoint and API key', () => {
+test('buildPreflightReport emits info when azure-foundry uses az-bearer auth', () => {
   const report = buildPreflightReport(azureFoundryBaseInput({
-    azureFoundryEndpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
-    azureFoundryApiKey: 'secret-key'
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      auth: {
+        ...DEFAULT_CONFIG.azureFoundry.auth,
+        mode: 'az-bearer',
+        tenantId: 'tenant-1',
+        subscriptionId: 'sub-1'
+      }
+    }
+  }));
+
+  assert.equal(report.ready, true);
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_az_bearer' && d.severity === 'info')
+  );
+});
+
+test('buildPreflightReport emits error when azure-foundry env-api-key mode is missing env var metadata', () => {
+  const report = buildPreflightReport(azureFoundryBaseInput({
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      auth: {
+        ...DEFAULT_CONFIG.azureFoundry.auth,
+        mode: 'env-api-key',
+        apiKeyEnvVar: ''
+      }
+    }
+  }));
+
+  assert.equal(report.ready, false);
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_api_key_env_missing' && d.severity === 'error')
+  );
+});
+
+test('buildPreflightReport emits info when azure-foundry env-api-key mode is configured', () => {
+  const report = buildPreflightReport(azureFoundryBaseInput({
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      auth: {
+        ...DEFAULT_CONFIG.azureFoundry.auth,
+        mode: 'env-api-key',
+        apiKeyEnvVar: 'AZURE_OPENAI_API_KEY'
+      }
+    }
   }));
 
   assert.equal(report.ready, true);

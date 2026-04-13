@@ -31,10 +31,27 @@ class MemoryMemento implements vscode.Memento {
   }
 }
 
+class MemorySecretStorage {
+  private readonly values = new Map<string, string>();
+
+  public async get(key: string): Promise<string | undefined> {
+    return this.values.get(key);
+  }
+
+  public async store(key: string, value: string): Promise<void> {
+    this.values.set(key, value);
+  }
+
+  public async delete(key: string): Promise<void> {
+    this.values.delete(key);
+  }
+}
+
 function createExtensionContext(): vscode.ExtensionContext {
   return {
     subscriptions: [],
     workspaceState: new MemoryMemento(),
+    secrets: new MemorySecretStorage(),
     extensionUri: vscode.Uri.file(__dirname)
   } as unknown as vscode.ExtensionContext;
 }
@@ -547,9 +564,19 @@ test('Test Current Provider Connection blocks azure-foundry when required auth o
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
     cliProvider: 'azure-foundry',
-    azureFoundryCommandPath: 'azure-foundry',
-    azureFoundryEndpointUrl: '',
-    azureFoundryApiKey: ''
+    azureFoundry: {
+      commandPath: 'azure-foundry',
+      endpointUrl: '',
+      modelDeployment: '',
+      apiVersion: '2024-12-01-preview',
+      auth: {
+        mode: 'env-api-key',
+        tenantId: '',
+        subscriptionId: '',
+        apiKeyEnvVar: '',
+        secretStorageKey: ''
+      }
+    }
   });
 
   activate(createExtensionContext());
@@ -557,8 +584,62 @@ test('Test Current Provider Connection blocks azure-foundry when required auth o
 
   assert.match(
     harness.state.errorMessages.at(-1)?.message ?? '',
-    /ralphCodex\.azureFoundryEndpointUrl is not configured/
+    /ralphCodex\.azureFoundry\.endpointUrl is not configured/
   );
+});
+
+test('Set Provider Secret stores a value in VS Code SecretStorage without writing workspace settings', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const context = createExtensionContext();
+  activate(context);
+
+  harness.setInputBoxValue('copilotFoundry.primary');
+  const secretPrompts: string[] = [];
+  const originalShowInputBox = vscode.window.showInputBox;
+  (vscode.window.showInputBox as unknown) = async (options?: vscode.InputBoxOptions) => {
+    secretPrompts.push(options?.prompt ?? '');
+    if ((options?.prompt ?? '').includes('Secret value')) {
+      return 'super-secret-value';
+    }
+    return 'copilotFoundry.primary';
+  };
+
+  try {
+    await vscode.commands.executeCommand('ralphCodex.setProviderSecret');
+  } finally {
+    (vscode.window.showInputBox as unknown) = originalShowInputBox;
+  }
+
+  const secrets = (context as unknown as { secrets: MemorySecretStorage }).secrets;
+  assert.equal(await secrets.get('copilotFoundry.primary'), 'super-secret-value');
+  assert.equal(harness.state.updatedSettings.copilotFoundry, undefined);
+});
+
+test('Clear Provider Secret removes a value from VS Code SecretStorage', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const context = createExtensionContext();
+  const secrets = (context as unknown as { secrets: MemorySecretStorage }).secrets;
+  await secrets.store('copilotFoundry.primary', 'super-secret-value');
+  activate(context);
+
+  const originalShowInputBox = vscode.window.showInputBox;
+  (vscode.window.showInputBox as unknown) = async () => 'copilotFoundry.primary';
+  try {
+    await vscode.commands.executeCommand('ralphCodex.clearProviderSecret');
+  } finally {
+    (vscode.window.showInputBox as unknown) = originalShowInputBox;
+  }
+
+  assert.equal(await secrets.get('copilotFoundry.primary'), undefined);
+  assert.equal(harness.state.updatedSettings.copilotFoundry, undefined);
 });
 
 test('Open Latest Ralph Summary explains when no summary artifact exists yet', async () => {

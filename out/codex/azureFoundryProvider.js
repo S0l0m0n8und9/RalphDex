@@ -39,8 +39,7 @@ const integrity_1 = require("../ralph/integrity");
 const httpsClient_1 = require("../services/httpsClient");
 const promptBuilder_1 = require("../prompt/promptBuilder");
 const text_1 = require("../util/text");
-/** The default OAuth scope for Azure AI Foundry / Azure OpenAI endpoints. */
-const AZURE_COGNITIVE_SERVICES_SCOPE = 'https://cognitiveservices.azure.com/.default';
+const azureAuthResolver_1 = require("./azureAuthResolver");
 class AzureFoundryProvider {
     options;
     id = 'azure-foundry';
@@ -96,7 +95,7 @@ class AzureFoundryProvider {
     }
     describeLaunchError(commandPath, error) {
         if (error.code === 'ENOENT') {
-            return `Azure AI Foundry CLI was not found at "${commandPath}". Install the Azure AI Foundry CLI or update ralphCodex.azureFoundryCommandPath.`;
+            return `Azure AI Foundry CLI was not found at "${commandPath}". Install the Azure AI Foundry CLI or update ralphCodex.azureFoundry.commandPath.`;
         }
         if (error.code === 'HTTP_ERROR' || /\b(4\d\d|5\d\d)\b/.test(error.message)) {
             return `Azure AI Foundry endpoint returned an error: ${error.message}`;
@@ -134,50 +133,32 @@ class AzureFoundryProvider {
         }
         // Auth headers are intentionally excluded from transcripts and provenance artifacts.
         const headers = {};
-        if (this.options.apiKey) {
-            headers['api-key'] = this.options.apiKey;
+        try {
+            const auth = await (0, azureAuthResolver_1.resolveAzureAuth)(this.options.auth);
+            headers[auth.headerName] = auth.headerValue;
+            if (auth.kind === 'bearer') {
+                warnings.push(`Using Azure CLI bearer-token authentication (${auth.redactedSource}).`);
+            }
+            else {
+                warnings.push(`Using secure Azure API key authentication via ${auth.redactedSource}.`);
+            }
         }
-        else {
-            // Azure AD (DefaultAzureCredential) token acquisition path.
-            try {
-                const credential = await this.resolveCredential();
-                const tokenResponse = await credential.getToken(AZURE_COGNITIVE_SERVICES_SCOPE);
-                if (!tokenResponse?.token) {
-                    return {
-                        strategy: 'cliExec',
-                        success: false,
-                        message: 'Azure AD authentication failed: DefaultAzureCredential returned no token. Ensure Azure credentials are available in the environment or configure ralphCodex.azureFoundryApiKey.',
-                        warnings,
-                        exitCode: 1,
-                        stdout: '',
-                        stderr: 'Azure AD token acquisition returned null',
-                        args: [],
-                        stdinHash,
-                        transcriptPath: request.transcriptPath,
-                        lastMessagePath: request.lastMessagePath,
-                        lastMessage: ''
-                    };
-                }
-                headers['Authorization'] = `Bearer ${tokenResponse.token}`;
-                warnings.push('Using Azure AD (DefaultAzureCredential) for authentication. No API key configured.');
-            }
-            catch (credError) {
-                const credMessage = credError instanceof Error ? credError.message : String(credError);
-                return {
-                    strategy: 'cliExec',
-                    success: false,
-                    message: `Azure AD authentication failed: ${credMessage}. Configure ralphCodex.azureFoundryApiKey or ensure Azure credentials are available in the environment.`,
-                    warnings,
-                    exitCode: 1,
-                    stdout: '',
-                    stderr: `Azure AD credential error: ${credMessage}`,
-                    args: [],
-                    stdinHash,
-                    transcriptPath: request.transcriptPath,
-                    lastMessagePath: request.lastMessagePath,
-                    lastMessage: ''
-                };
-            }
+        catch (authError) {
+            const authMessage = authError instanceof Error ? authError.message : String(authError);
+            return {
+                strategy: 'cliExec',
+                success: false,
+                message: `Azure authentication failed: ${authMessage}`,
+                warnings,
+                exitCode: 1,
+                stdout: '',
+                stderr: authMessage,
+                args: [],
+                stdinHash,
+                transcriptPath: request.transcriptPath,
+                lastMessagePath: request.lastMessagePath,
+                lastMessage: ''
+            };
         }
         let responseBody;
         let statusCode;
@@ -257,18 +238,10 @@ class AzureFoundryProvider {
             const separator = endpointUrl.includes('?') ? '&' : '?';
             endpointUrl += `${separator}api-version=${encodeURIComponent(this.options.apiVersion)}`;
         }
-        const headers = {};
-        if (this.options.apiKey) {
-            headers['api-key'] = this.options.apiKey;
-        }
-        else {
-            const credential = await this.resolveCredential();
-            const tokenResponse = await credential.getToken(AZURE_COGNITIVE_SERVICES_SCOPE);
-            if (!tokenResponse?.token) {
-                throw new Error('Azure AD authentication failed for summarization');
-            }
-            headers['Authorization'] = `Bearer ${tokenResponse.token}`;
-        }
+        const auth = await (0, azureAuthResolver_1.resolveAzureAuth)(this.options.auth);
+        const headers = {
+            [auth.headerName]: auth.headerValue
+        };
         const { responseBody, statusCode } = await (0, httpsClient_1.httpsPost)({
             url: endpointUrl,
             body: requestBody,
@@ -357,21 +330,6 @@ class AzureFoundryProvider {
             }
         }
         return null;
-    }
-    /**
-     * Resolve a TokenCredentialLike for Azure AD auth. Uses the injected
-     * credential when available; otherwise lazily imports `@azure/identity`
-     * and constructs a DefaultAzureCredential.
-     */
-    async resolveCredential() {
-        if (this.options.credential) {
-            return this.options.credential;
-        }
-        // Dynamic import keeps @azure/identity out of the critical path for
-        // API-key-only users and avoids module-load errors when the package
-        // is not installed in lightweight environments.
-        const { DefaultAzureCredential } = await Promise.resolve().then(() => __importStar(require('@azure/identity')));
-        return new DefaultAzureCredential();
     }
 }
 exports.AzureFoundryProvider = AzureFoundryProvider;

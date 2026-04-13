@@ -49,7 +49,10 @@ export class CliExecCodexStrategy implements CodexStrategy {
       });
       result = await this.provider.executeDirectly(request);
     } else {
-      const launchSpec = this.provider.buildLaunchSpec(request, !(await hasGitMetadata(request.executionRoot)));
+      const skipGitCheck = !(await hasGitMetadata(request.executionRoot));
+      const launchSpec = this.provider.prepareLaunchSpec
+        ? await this.provider.prepareLaunchSpec(request, skipGitCheck)
+        : this.provider.buildLaunchSpec(request, skipGitCheck);
       const args = launchSpec.args;
 
       this.logger.info(`Starting ${this.provider.id} CLI exec.`, {
@@ -67,6 +70,7 @@ export class CliExecCodexStrategy implements CodexStrategy {
           cwd: launchSpec.cwd,
           stdinText: launchSpec.stdinText,
           shell: launchSpec.shell,
+          env: launchSpec.env,
           onStdoutChunk: request.onStdoutChunk,
           onStderrChunk: request.onStderrChunk,
           timeoutMs: request.timeoutMs

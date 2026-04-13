@@ -1445,6 +1445,53 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.
     (0, artifactCommands_1.registerArtifactAndMaintenanceCommands)(context, logger, stateManager, registerCommand);
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.setProviderSecret',
+        label: 'Ralphdex: Set Provider Secret',
+        handler: async () => {
+            if (!('secrets' in context) || !context.secrets) {
+                throw new Error('VS Code SecretStorage is not available in this environment.');
+            }
+            const secretKey = (await vscode.window.showInputBox({
+                title: 'Set Provider Secret',
+                prompt: 'Secret storage key',
+                placeHolder: 'e.g. copilotFoundry.primary'
+            }))?.trim();
+            if (!secretKey) {
+                return;
+            }
+            const secretValue = await vscode.window.showInputBox({
+                title: 'Set Provider Secret',
+                prompt: `Secret value for ${secretKey}`,
+                password: true,
+                ignoreFocusOut: true
+            });
+            if (typeof secretValue !== 'string' || secretValue.length === 0) {
+                return;
+            }
+            await context.secrets.store(secretKey, secretValue);
+            void vscode.window.showInformationMessage(`Stored provider secret in VS Code SecretStorage: ${secretKey}.`);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.clearProviderSecret',
+        label: 'Ralphdex: Clear Provider Secret',
+        handler: async () => {
+            if (!('secrets' in context) || !context.secrets) {
+                throw new Error('VS Code SecretStorage is not available in this environment.');
+            }
+            const secretKey = (await vscode.window.showInputBox({
+                title: 'Clear Provider Secret',
+                prompt: 'Secret storage key to delete',
+                placeHolder: 'e.g. copilotFoundry.primary'
+            }))?.trim();
+            if (!secretKey) {
+                return;
+            }
+            await context.secrets.delete(secretKey);
+            void vscode.window.showInformationMessage(`Cleared provider secret from VS Code SecretStorage: ${secretKey}.`);
+        }
+    });
     // Show the Ralphdex activity bar sidebar (focuses the dashboard view).
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showSidebar', async () => {
         await vscode.commands.executeCommand('ralphCodex.dashboard.focus');

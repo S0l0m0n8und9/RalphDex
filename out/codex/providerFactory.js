@@ -8,6 +8,7 @@ const claudeCliProvider_1 = require("./claudeCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
 const copilotCliProvider_1 = require("./copilotCliProvider");
+const copilotFoundryCliProvider_1 = require("./copilotFoundryCliProvider");
 const codexCliProvider_1 = require("./codexCliProvider");
 const ideCommandStrategy_1 = require("./ideCommandStrategy");
 function createCliProvider(config) {
@@ -30,12 +31,15 @@ function createCliProviderForId(providerId, config) {
             maxAutopilotContinues: config.copilotMaxAutopilotContinues
         });
     }
+    if (providerId === 'copilot-foundry') {
+        return new copilotFoundryCliProvider_1.CopilotFoundryCliProvider(config.copilotFoundry);
+    }
     if (providerId === 'azure-foundry') {
         return new azureFoundryProvider_1.AzureFoundryProvider({
-            endpointUrl: config.azureFoundryEndpointUrl,
-            apiKey: config.azureFoundryApiKey,
-            modelDeployment: config.azureFoundryModelDeployment,
-            apiVersion: config.azureFoundryApiVersion,
+            endpointUrl: config.azureFoundry.endpointUrl,
+            auth: config.azureFoundry.auth,
+            modelDeployment: config.azureFoundry.modelDeployment,
+            apiVersion: config.azureFoundry.apiVersion,
             promptCaching: config.promptCaching
         });
     }

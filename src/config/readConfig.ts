@@ -3,6 +3,9 @@ import { DEFAULT_CONFIG } from './defaults';
 import { getDefaultNewChatCommandId, getDefaultOpenSidebarCommandId } from './providers';
 import {
   AutoApplyRemediationAction,
+  AzureAuthConfig,
+  AzureAuthMode,
+  AzureFoundryConfig,
   ClaudePermissionMode,
   CliProviderId,
   CopilotApprovalMode,
@@ -19,6 +22,7 @@ import {
   RalphAutonomyMode,
   RalphGitCheckpointMode,
   RalphHooksConfig,
+  CopilotFoundryConfig,
   RalphModelTierConfig,
   RalphModelTieringConfig,
   RalphPlanningPassConfig,
@@ -153,7 +157,99 @@ function readPromptBudgetOverrideMap(
   return normalized;
 }
 
-const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'azure-foundry'];
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readStringField(record: Record<string, unknown>, key: string, fallback: string): string {
+  return typeof record[key] === 'string' && record[key].trim() ? record[key].trim() : fallback;
+}
+
+function readNumberField(record: Record<string, unknown>, key: string, fallback: number, minimum: number): number {
+  const value = record[key];
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(minimum, Math.floor(value));
+  }
+
+  return fallback;
+}
+
+function readEnumField<T extends string>(
+  record: Record<string, unknown>,
+  key: string,
+  allowed: readonly T[],
+  fallback: T
+): T {
+  const value = record[key];
+  return typeof value === 'string' && allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function readAzureAuthConfig(raw: unknown, fallback: AzureAuthConfig): AzureAuthConfig {
+  const record = asRecord(raw);
+  if (!record) {
+    return fallback;
+  }
+
+  return {
+    mode: readEnumField<AzureAuthMode>(record, 'mode', ['az-bearer', 'env-api-key', 'vscode-secret'], fallback.mode),
+    tenantId: readStringField(record, 'tenantId', fallback.tenantId),
+    subscriptionId: readStringField(record, 'subscriptionId', fallback.subscriptionId),
+    apiKeyEnvVar: readStringField(record, 'apiKeyEnvVar', fallback.apiKeyEnvVar),
+    secretStorageKey: readStringField(record, 'secretStorageKey', fallback.secretStorageKey)
+  };
+}
+
+function readCopilotFoundryConfig(raw: unknown, fallback: CopilotFoundryConfig): CopilotFoundryConfig {
+  const record = asRecord(raw);
+  if (!record) {
+    return fallback;
+  }
+
+  const azure = asRecord(record.azure);
+  const model = asRecord(record.model);
+
+  return {
+    commandPath: readStringField(record, 'commandPath', fallback.commandPath),
+    approvalMode: readEnumField<CopilotApprovalMode>(
+      record,
+      'approvalMode',
+      ['allow-all', 'allow-tools-only', 'interactive'],
+      fallback.approvalMode
+    ),
+    maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1),
+    auth: readAzureAuthConfig(record.auth, fallback.auth),
+    azure: {
+      resourceGroup: readStringField(azure ?? {}, 'resourceGroup', fallback.azure.resourceGroup),
+      resourceName: readStringField(azure ?? {}, 'resourceName', fallback.azure.resourceName),
+      baseUrlOverride: readStringField(azure ?? {}, 'baseUrlOverride', fallback.azure.baseUrlOverride)
+    },
+    model: {
+      deployment: readStringField(model ?? {}, 'deployment', fallback.model.deployment),
+      wireApi: readStringField(model ?? {}, 'wireApi', fallback.model.wireApi)
+    }
+  };
+}
+
+function readAzureFoundryConfig(raw: unknown, fallback: AzureFoundryConfig): AzureFoundryConfig {
+  const record = asRecord(raw);
+  if (!record) {
+    return fallback;
+  }
+
+  return {
+    commandPath: readStringField(record, 'commandPath', fallback.commandPath),
+    endpointUrl: readStringField(record, 'endpointUrl', fallback.endpointUrl),
+    modelDeployment: readStringField(record, 'modelDeployment', fallback.modelDeployment),
+    apiVersion: readStringField(record, 'apiVersion', fallback.apiVersion),
+    auth: readAzureAuthConfig(record.auth, fallback.auth)
+  };
+}
+
+const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'];
 
 interface OperatorPreset {
   autonomyMode: RalphAutonomyMode;
@@ -391,7 +487,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
-    ['codex', 'claude', 'copilot', 'azure-foundry'],
+    ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'],
     DEFAULT_CONFIG.cliProvider
   );
   const autonomyMode = readEnum<RalphAutonomyMode>(
@@ -435,11 +531,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
     copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
-    azureFoundryCommandPath: readString(config, 'azureFoundryCommandPath', DEFAULT_CONFIG.azureFoundryCommandPath),
-    azureFoundryEndpointUrl: readString(config, 'azureFoundryEndpointUrl', DEFAULT_CONFIG.azureFoundryEndpointUrl),
-    azureFoundryApiKey: readString(config, 'azureFoundryApiKey', DEFAULT_CONFIG.azureFoundryApiKey),
-    azureFoundryModelDeployment: readString(config, 'azureFoundryModelDeployment', DEFAULT_CONFIG.azureFoundryModelDeployment),
-    azureFoundryApiVersion: readString(config, 'azureFoundryApiVersion', DEFAULT_CONFIG.azureFoundryApiVersion),
+    copilotFoundry: readCopilotFoundryConfig(config.get<unknown>('copilotFoundry'), DEFAULT_CONFIG.copilotFoundry),
+    azureFoundry: readAzureFoundryConfig(config.get<unknown>('azureFoundry'), DEFAULT_CONFIG.azureFoundry),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),
     copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
     claudePermissionMode: readEnum<ClaudePermissionMode>(

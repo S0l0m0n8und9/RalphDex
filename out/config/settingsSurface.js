@@ -65,32 +65,54 @@ const SECTION_METADATA = [
         description: 'Pre-execution planning pass controls surfaced from the shared config contract.'
     },
     {
+        id: 'copilot-foundry',
+        title: 'Copilot Foundry',
+        description: 'Grouped Copilot CLI + Azure OpenAI BYOK controls.'
+    },
+    {
         id: 'azure-foundry',
         title: 'Azure Foundry',
-        description: 'Azure AI Foundry connection details for the direct provider path.'
+        description: 'Grouped Azure AI Foundry direct-provider controls.'
     }
 ];
 const SETTINGS_SURFACE_REGISTRY = [
-    { key: 'operatorMode', manifestKey: 'ralphCodex.operatorMode', sectionId: 'operator-mode', title: 'Operator Mode', control: 'enum' },
-    { key: 'autonomyMode', manifestKey: 'ralphCodex.autonomyMode', sectionId: 'operator-mode', title: 'Autonomy Mode', control: 'enum' },
-    { key: 'agentCount', manifestKey: 'ralphCodex.agentCount', sectionId: 'operator-mode', title: 'Agent Count', control: 'number' },
-    { key: 'preferredHandoffMode', manifestKey: 'ralphCodex.preferredHandoffMode', sectionId: 'operator-mode', title: 'Preferred Handoff', control: 'enum' },
-    { key: 'cliProvider', manifestKey: 'ralphCodex.cliProvider', sectionId: 'provider', title: 'CLI Provider', control: 'enum' },
-    { key: 'model', manifestKey: 'ralphCodex.model', sectionId: 'provider', title: 'Model', control: 'string' },
-    { key: 'codexCommandPath', manifestKey: 'ralphCodex.codexCommandPath', sectionId: 'provider', title: 'Codex Command Path', control: 'string' },
-    { key: 'claudeCommandPath', manifestKey: 'ralphCodex.claudeCommandPath', sectionId: 'provider', title: 'Claude Command Path', control: 'string' },
-    { key: 'copilotCommandPath', manifestKey: 'ralphCodex.copilotCommandPath', sectionId: 'provider', title: 'Copilot Command Path', control: 'string' },
-    { key: 'memoryStrategy', manifestKey: 'ralphCodex.memoryStrategy', sectionId: 'memory', title: 'Memory Strategy', control: 'enum' },
-    { key: 'memoryWindowSize', manifestKey: 'ralphCodex.memoryWindowSize', sectionId: 'memory', title: 'Memory Window Size', control: 'number' },
-    { key: 'memorySummaryThreshold', manifestKey: 'ralphCodex.memorySummaryThreshold', sectionId: 'memory', title: 'Memory Summary Threshold', control: 'number' },
-    { key: 'promptBudgetProfile', manifestKey: 'ralphCodex.promptBudgetProfile', sectionId: 'memory', title: 'Prompt Budget Profile', control: 'enum' },
-    { key: 'planningPass.enabled', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Enabled', control: 'boolean' },
-    { key: 'planningPass.mode', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Mode', control: 'enum' },
-    { key: 'azureFoundryCommandPath', manifestKey: 'ralphCodex.azureFoundryCommandPath', sectionId: 'azure-foundry', title: 'Azure Foundry Command Path', control: 'string' },
-    { key: 'azureFoundryEndpointUrl', manifestKey: 'ralphCodex.azureFoundryEndpointUrl', sectionId: 'azure-foundry', title: 'Azure Foundry Endpoint URL', control: 'string' },
-    { key: 'azureFoundryApiKey', manifestKey: 'ralphCodex.azureFoundryApiKey', sectionId: 'azure-foundry', title: 'Azure Foundry API Key', control: 'string' },
-    { key: 'azureFoundryModelDeployment', manifestKey: 'ralphCodex.azureFoundryModelDeployment', sectionId: 'azure-foundry', title: 'Azure Foundry Model Deployment', control: 'string' },
-    { key: 'azureFoundryApiVersion', manifestKey: 'ralphCodex.azureFoundryApiVersion', sectionId: 'azure-foundry', title: 'Azure Foundry API Version', control: 'string' }
+    { key: 'operatorMode', manifestKey: 'ralphCodex.operatorMode', sectionId: 'operator-mode', title: 'Operator Mode', control: 'enum', description: 'Preset that seeds multiple Ralph settings at once.' },
+    { key: 'autonomyMode', manifestKey: 'ralphCodex.autonomyMode', sectionId: 'operator-mode', title: 'Autonomy Mode', control: 'enum', description: 'Shorthand for supervised or autonomous loop behaviour.' },
+    { key: 'agentCount', manifestKey: 'ralphCodex.agentCount', sectionId: 'operator-mode', title: 'Agent Count', control: 'number', description: 'Number of concurrent Ralph agents configured for the workspace.' },
+    { key: 'preferredHandoffMode', manifestKey: 'ralphCodex.preferredHandoffMode', sectionId: 'operator-mode', title: 'Preferred Handoff', control: 'enum', description: 'Preferred way to hand a generated prompt to Codex.' },
+    { key: 'cliProvider', manifestKey: 'ralphCodex.cliProvider', sectionId: 'provider', title: 'CLI Provider', control: 'enum', description: 'Primary provider used for scripted CLI iterations.' },
+    { key: 'model', manifestKey: 'ralphCodex.model', sectionId: 'provider', title: 'Model', control: 'string', description: 'Default model identifier passed to the active provider.' },
+    { key: 'codexCommandPath', manifestKey: 'ralphCodex.codexCommandPath', sectionId: 'provider', title: 'Codex Command Path', control: 'string', description: 'Path or command name for the Codex CLI executable.' },
+    { key: 'claudeCommandPath', manifestKey: 'ralphCodex.claudeCommandPath', sectionId: 'provider', title: 'Claude Command Path', control: 'string', description: 'Path or command name for the Claude CLI executable.' },
+    { key: 'copilotCommandPath', manifestKey: 'ralphCodex.copilotCommandPath', sectionId: 'provider', title: 'Copilot Command Path', control: 'string', description: 'Path or command name for the GitHub Copilot CLI executable.' },
+    { key: 'memoryStrategy', manifestKey: 'ralphCodex.memoryStrategy', sectionId: 'memory', title: 'Memory Strategy', control: 'enum', description: 'Controls how Ralph carries context between iterations.' },
+    { key: 'memoryWindowSize', manifestKey: 'ralphCodex.memoryWindowSize', sectionId: 'memory', title: 'Memory Window Size', control: 'number', description: 'Number of recent iterations included in sliding-window memory.' },
+    { key: 'memorySummaryThreshold', manifestKey: 'ralphCodex.memorySummaryThreshold', sectionId: 'memory', title: 'Memory Summary Threshold', control: 'number', description: 'Iteration count before summary mode starts condensing history.' },
+    { key: 'promptBudgetProfile', manifestKey: 'ralphCodex.promptBudgetProfile', sectionId: 'memory', title: 'Prompt Budget Profile', control: 'enum', description: 'Prompt-budget calibration profile used when shaping prompts.' },
+    { key: 'planningPass.enabled', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Enabled', control: 'boolean', description: 'Enable the pre-execution planning pass.' },
+    { key: 'planningPass.mode', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Mode', control: 'enum', description: 'Choose inline or dedicated planning execution.', options: ['dedicated', 'inline'] },
+    { key: 'copilotFoundry.commandPath', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Command Path', control: 'string', description: 'Path or command name for the Copilot CLI executable.' },
+    { key: 'copilotFoundry.approvalMode', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Approval Mode', control: 'enum', description: 'Approval posture used by the Copilot CLI harness.', options: ['allow-all', 'allow-tools-only', 'interactive'] },
+    { key: 'copilotFoundry.maxAutopilotContinues', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Max Autopilot Continues', control: 'number', description: 'Maximum number of autopilot continuation turns per Copilot CLI invocation.' },
+    { key: 'copilotFoundry.auth.mode', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Auth Mode', control: 'enum', description: 'How the provider resolves Azure credentials.', options: ['az-bearer', 'env-api-key', 'vscode-secret'] },
+    { key: 'copilotFoundry.auth.tenantId', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Auth Tenant Id', control: 'string', description: 'Azure tenant identifier used for bearer-token auth.' },
+    { key: 'copilotFoundry.auth.subscriptionId', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Auth Subscription Id', control: 'string', description: 'Azure subscription identifier used for readiness diagnostics.' },
+    { key: 'copilotFoundry.auth.apiKeyEnvVar', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Auth API Key Env Var', control: 'string', description: 'Environment variable name used when the API key is sourced externally.' },
+    { key: 'copilotFoundry.auth.secretStorageKey', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Auth SecretStorage Key', control: 'string', description: 'SecretStorage key used when the API key is sourced from VS Code secrets.' },
+    { key: 'copilotFoundry.azure.resourceGroup', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Azure Resource Group', control: 'string', description: 'Azure resource group name used for operator clarity and diagnostics.' },
+    { key: 'copilotFoundry.azure.resourceName', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Azure Resource Name', control: 'string', description: 'Azure OpenAI resource name used to derive the Copilot Foundry base URL.' },
+    { key: 'copilotFoundry.azure.baseUrlOverride', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Azure Base URL Override', control: 'string', description: 'Optional override for the derived Azure OpenAI base URL.' },
+    { key: 'copilotFoundry.model.deployment', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Model Deployment', control: 'string', description: 'Azure deployment name and Copilot model identifier.' },
+    { key: 'copilotFoundry.model.wireApi', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Wire API', control: 'string', description: 'Wire protocol selected for the Copilot Foundry harness.' },
+    { key: 'azureFoundry.commandPath', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Command Path', control: 'string', description: 'Path or command name for the Azure AI Foundry CLI executable.' },
+    { key: 'azureFoundry.endpointUrl', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Endpoint URL', control: 'string', description: 'Azure AI Foundry endpoint URL.' },
+    { key: 'azureFoundry.modelDeployment', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Model Deployment', control: 'string', description: 'Azure AI Foundry model deployment name.' },
+    { key: 'azureFoundry.apiVersion', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'API Version', control: 'string', description: 'Azure OpenAI API version used by Azure AI Foundry.' },
+    { key: 'azureFoundry.auth.mode', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth Mode', control: 'enum', description: 'How the Azure AI Foundry provider resolves Azure credentials.', options: ['az-bearer', 'env-api-key', 'vscode-secret'] },
+    { key: 'azureFoundry.auth.tenantId', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth Tenant Id', control: 'string', description: 'Azure tenant identifier used for bearer-token auth.' },
+    { key: 'azureFoundry.auth.subscriptionId', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth Subscription Id', control: 'string', description: 'Azure subscription identifier used for readiness diagnostics.' },
+    { key: 'azureFoundry.auth.apiKeyEnvVar', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth API Key Env Var', control: 'string', description: 'Environment variable name used when the API key is sourced externally.' },
+    { key: 'azureFoundry.auth.secretStorageKey', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth SecretStorage Key', control: 'string', description: 'SecretStorage key used when the API key is sourced from VS Code secrets.' }
 ];
 let cachedManifest = null;
 let cachedMetadata = null;
@@ -135,15 +157,13 @@ function getSettingsSurfaceMetadata() {
     const properties = manifestProperties();
     const entries = SETTINGS_SURFACE_REGISTRY.map((entry) => {
         const manifestProperty = properties[entry.manifestKey];
-        const defaultValue = entry.key === 'planningPass.enabled' || entry.key === 'planningPass.mode'
+        const defaultValue = entry.key.includes('.')
             ? getDefaultValueFromConfig(entry.key)
             : manifestProperty?.default ?? getDefaultValueFromConfig(entry.key);
-        const options = entry.key === 'planningPass.mode'
-            ? ['dedicated', 'inline']
-            : manifestProperty?.enum;
+        const options = entry.options ?? manifestProperty?.enum;
         return {
             ...entry,
-            description: manifestProperty?.description ?? '',
+            description: entry.description || manifestProperty?.description || '',
             defaultValue,
             ...(options ? { options } : {})
         };

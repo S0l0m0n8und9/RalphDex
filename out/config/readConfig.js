@@ -116,7 +116,76 @@ function readPromptBudgetOverrideMap(config, key) {
     }
     return normalized;
 }
-const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'azure-foundry'];
+function asRecord(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return null;
+    }
+    return value;
+}
+function readStringField(record, key, fallback) {
+    return typeof record[key] === 'string' && record[key].trim() ? record[key].trim() : fallback;
+}
+function readNumberField(record, key, fallback, minimum) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.max(minimum, Math.floor(value));
+    }
+    return fallback;
+}
+function readEnumField(record, key, allowed, fallback) {
+    const value = record[key];
+    return typeof value === 'string' && allowed.includes(value) ? value : fallback;
+}
+function readAzureAuthConfig(raw, fallback) {
+    const record = asRecord(raw);
+    if (!record) {
+        return fallback;
+    }
+    return {
+        mode: readEnumField(record, 'mode', ['az-bearer', 'env-api-key', 'vscode-secret'], fallback.mode),
+        tenantId: readStringField(record, 'tenantId', fallback.tenantId),
+        subscriptionId: readStringField(record, 'subscriptionId', fallback.subscriptionId),
+        apiKeyEnvVar: readStringField(record, 'apiKeyEnvVar', fallback.apiKeyEnvVar),
+        secretStorageKey: readStringField(record, 'secretStorageKey', fallback.secretStorageKey)
+    };
+}
+function readCopilotFoundryConfig(raw, fallback) {
+    const record = asRecord(raw);
+    if (!record) {
+        return fallback;
+    }
+    const azure = asRecord(record.azure);
+    const model = asRecord(record.model);
+    return {
+        commandPath: readStringField(record, 'commandPath', fallback.commandPath),
+        approvalMode: readEnumField(record, 'approvalMode', ['allow-all', 'allow-tools-only', 'interactive'], fallback.approvalMode),
+        maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1),
+        auth: readAzureAuthConfig(record.auth, fallback.auth),
+        azure: {
+            resourceGroup: readStringField(azure ?? {}, 'resourceGroup', fallback.azure.resourceGroup),
+            resourceName: readStringField(azure ?? {}, 'resourceName', fallback.azure.resourceName),
+            baseUrlOverride: readStringField(azure ?? {}, 'baseUrlOverride', fallback.azure.baseUrlOverride)
+        },
+        model: {
+            deployment: readStringField(model ?? {}, 'deployment', fallback.model.deployment),
+            wireApi: readStringField(model ?? {}, 'wireApi', fallback.model.wireApi)
+        }
+    };
+}
+function readAzureFoundryConfig(raw, fallback) {
+    const record = asRecord(raw);
+    if (!record) {
+        return fallback;
+    }
+    return {
+        commandPath: readStringField(record, 'commandPath', fallback.commandPath),
+        endpointUrl: readStringField(record, 'endpointUrl', fallback.endpointUrl),
+        modelDeployment: readStringField(record, 'modelDeployment', fallback.modelDeployment),
+        apiVersion: readStringField(record, 'apiVersion', fallback.apiVersion),
+        auth: readAzureAuthConfig(record.auth, fallback.auth)
+    };
+}
+const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'];
 const OPERATOR_PRESETS = {
     simple: {
         autonomyMode: 'supervised',
@@ -289,7 +358,7 @@ function readConfig(workspaceFolder) {
         ? rawOperatorMode
         : undefined;
     const preset = operatorMode !== undefined ? OPERATOR_PRESETS[operatorMode] : undefined;
-    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'azure-foundry'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'], defaults_1.DEFAULT_CONFIG.cliProvider);
     const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], preset?.autonomyMode ?? defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
@@ -312,11 +381,8 @@ function readConfig(workspaceFolder) {
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         copilotCommandPath: readString(config, 'copilotCommandPath', defaults_1.DEFAULT_CONFIG.copilotCommandPath),
-        azureFoundryCommandPath: readString(config, 'azureFoundryCommandPath', defaults_1.DEFAULT_CONFIG.azureFoundryCommandPath),
-        azureFoundryEndpointUrl: readString(config, 'azureFoundryEndpointUrl', defaults_1.DEFAULT_CONFIG.azureFoundryEndpointUrl),
-        azureFoundryApiKey: readString(config, 'azureFoundryApiKey', defaults_1.DEFAULT_CONFIG.azureFoundryApiKey),
-        azureFoundryModelDeployment: readString(config, 'azureFoundryModelDeployment', defaults_1.DEFAULT_CONFIG.azureFoundryModelDeployment),
-        azureFoundryApiVersion: readString(config, 'azureFoundryApiVersion', defaults_1.DEFAULT_CONFIG.azureFoundryApiVersion),
+        copilotFoundry: readCopilotFoundryConfig(config.get('copilotFoundry'), defaults_1.DEFAULT_CONFIG.copilotFoundry),
+        azureFoundry: readAzureFoundryConfig(config.get('azureFoundry'), defaults_1.DEFAULT_CONFIG.azureFoundry),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
         copilotMaxAutopilotContinues: readNumber(config, 'copilotMaxAutopilotContinues', defaults_1.DEFAULT_CONFIG.copilotMaxAutopilotContinues, 1),
         claudePermissionMode: readEnum(config, 'claudePermissionMode', ['dangerously-skip-permissions', 'default'], defaults_1.DEFAULT_CONFIG.claudePermissionMode),

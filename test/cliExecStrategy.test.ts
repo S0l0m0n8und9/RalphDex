@@ -313,6 +313,7 @@ test('CliExecCodexStrategy does not emit caching warning when promptCaching is a
 test('CliExecCodexStrategy uses executeDirectly instead of spawning a child process when available', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-strategy-'));
   let processRunnerCalled = false;
+  process.env.AZURE_OPENAI_API_KEY = 'strategy-test-key';
 
   setProcessRunnerOverride(async () => {
     processRunnerCalled = true;
@@ -325,10 +326,19 @@ test('CliExecCodexStrategy uses executeDirectly instead of spawning a child proc
   setHttpsClientOverride(async () => ({ responseBody: responseJson, statusCode: 200 }));
 
   try {
-    const strategy = new CliExecCodexStrategy(
-      createLogger(),
-      new AzureFoundryProvider({ endpointUrl: 'https://my-project.inference.ai.azure.com/models/my-deployment' })
-    );
+        const strategy = new CliExecCodexStrategy(
+          createLogger(),
+          new AzureFoundryProvider({
+            endpointUrl: 'https://my-project.inference.ai.azure.com/models/my-deployment',
+            auth: {
+              mode: 'env-api-key',
+              tenantId: '',
+              subscriptionId: '',
+              apiKeyEnvVar: 'AZURE_OPENAI_API_KEY',
+              secretStorageKey: ''
+            }
+          })
+      );
     const result = await strategy.runExec({
       ...request(),
       commandPath: 'azure-foundry',
@@ -340,10 +350,11 @@ test('CliExecCodexStrategy uses executeDirectly instead of spawning a child proc
 
     assert.equal(result.exitCode, 0);
     assert.equal(result.lastMessage, 'Strategy direct result.');
-    assert.equal(processRunnerCalled, false, 'child process should not have been spawned');
-    assert.deepEqual(result.args, []);
-  } finally {
-    setProcessRunnerOverride(null);
-    setHttpsClientOverride(null);
-  }
-});
+      assert.equal(processRunnerCalled, false, 'child process should not have been spawned');
+      assert.deepEqual(result.args, []);
+    } finally {
+      delete process.env.AZURE_OPENAI_API_KEY;
+      setProcessRunnerOverride(null);
+      setHttpsClientOverride(null);
+    }
+  });

@@ -7,6 +7,7 @@ import {
   readSettingsDiscoveryState,
   writeSettingsDiscoveryState
 } from './config/settingsSurface';
+import { configureAzureSecretStorage } from './codex/azureAuthResolver';
 import { Logger } from './services/logger';
 import { RalphDashboardPanel } from './ui/dashboardPanel';
 import { IterationBroadcaster } from './ui/iterationBroadcaster';
@@ -21,6 +22,7 @@ import { RalphStateManager } from './ralph/stateManager';
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
   context.subscriptions.push(logger);
+  configureAzureSecretStorage(('secrets' in context ? context.secrets : null) ?? null);
 
   // UI infrastructure
   const broadcaster = new IterationBroadcaster();

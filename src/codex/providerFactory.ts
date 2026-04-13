@@ -6,6 +6,7 @@ import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
 import { ClipboardCodexStrategy } from './clipboardStrategy';
 import { CopilotCliProvider } from './copilotCliProvider';
+import { CopilotFoundryCliProvider } from './copilotFoundryCliProvider';
 import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
@@ -33,12 +34,16 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
     });
   }
 
+  if (providerId === 'copilot-foundry') {
+    return new CopilotFoundryCliProvider(config.copilotFoundry);
+  }
+
   if (providerId === 'azure-foundry') {
     return new AzureFoundryProvider({
-      endpointUrl: config.azureFoundryEndpointUrl,
-      apiKey: config.azureFoundryApiKey,
-      modelDeployment: config.azureFoundryModelDeployment,
-      apiVersion: config.azureFoundryApiVersion,
+      endpointUrl: config.azureFoundry.endpointUrl,
+      auth: config.azureFoundry.auth,
+      modelDeployment: config.azureFoundry.modelDeployment,
+      apiVersion: config.azureFoundry.apiVersion,
       promptCaching: config.promptCaching
     });
   }

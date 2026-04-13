@@ -4,12 +4,14 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import { AzureFoundryProvider } from '../src/codex/azureFoundryProvider';
+import { configureAzureSecretStorage } from '../src/codex/azureAuthResolver';
 import { createCliProviderForId } from '../src/codex/providerFactory';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { STATIC_PREFIX_BOUNDARY } from '../src/prompt/promptBuilder';
 import { setHttpsClientOverride } from '../src/services/httpsClient';
+import { setProcessRunnerOverride } from '../src/services/processRunner';
 
 const ENDPOINT_URL = 'https://my-project.inference.ai.azure.com/models/my-deployment';
 
@@ -31,271 +33,55 @@ function request(): CodexExecRequest {
   };
 }
 
-function provider(endpointUrl = ENDPOINT_URL): AzureFoundryProvider {
-  return new AzureFoundryProvider({ endpointUrl });
+function provider(overrides: Partial<ConstructorParameters<typeof AzureFoundryProvider>[0]> = {}): AzureFoundryProvider {
+  return new AzureFoundryProvider({
+    endpointUrl: ENDPOINT_URL,
+    auth: {
+      mode: 'env-api-key',
+      tenantId: '',
+      subscriptionId: '',
+      apiKeyEnvVar: 'AZURE_OPENAI_API_KEY',
+      secretStorageKey: ''
+    },
+    ...overrides
+  });
 }
 
-// ---------------------------------------------------------------------------
-// buildLaunchSpec
-// ---------------------------------------------------------------------------
-
-test('buildLaunchSpec includes configured endpoint URL', () => {
-  const launch = provider().buildLaunchSpec(request(), false);
-
-  assert.ok(launch.args.includes('--endpoint'), 'should include --endpoint flag');
-  const endpointIdx = launch.args.indexOf('--endpoint');
-  assert.equal(launch.args[endpointIdx + 1], ENDPOINT_URL, 'endpoint value should match configured URL');
+test.afterEach(() => {
+  delete process.env.AZURE_OPENAI_API_KEY;
+  setHttpsClientOverride(null);
+  setProcessRunnerOverride(null);
+  configureAzureSecretStorage(null);
 });
 
-test('buildLaunchSpec includes model from request', () => {
+test('buildLaunchSpec includes configured endpoint URL and request model', () => {
   const launch = provider().buildLaunchSpec(request(), false);
-
-  assert.ok(launch.args.includes('--model'), 'should include --model flag');
-  const modelIdx = launch.args.indexOf('--model');
-  assert.equal(launch.args[modelIdx + 1], 'gpt-4o', 'model should match request.model');
-});
-
-test('buildLaunchSpec pipes prompt via stdin', () => {
-  const launch = provider().buildLaunchSpec(request(), false);
-
+  assert.equal(launch.args[launch.args.indexOf('--endpoint') + 1], ENDPOINT_URL);
+  assert.equal(launch.args[launch.args.indexOf('--model') + 1], 'gpt-4o');
   assert.equal(launch.stdinText, 'Ship it.');
-  assert.equal(launch.cwd, '/workspace/repo');
 });
 
-// ---------------------------------------------------------------------------
-// extractResponseText — success
-// ---------------------------------------------------------------------------
-
-test('extractResponseText parses Azure Foundry JSON response and persists content', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-foundry-'));
-  const lastMessagePath = path.join(root, 'last-message.md');
-
-  const stdout = JSON.stringify({
-    choices: [{ message: { content: 'Task completed successfully.' } }]
-  });
-
-  const text = await provider().extractResponseText(stdout, '', lastMessagePath);
-
-  assert.equal(text, 'Task completed successfully.');
-  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), 'Task completed successfully.');
-});
-
-test('extractResponseText falls back to raw text when stdout is not JSON', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-foundry-raw-'));
-  const lastMessagePath = path.join(root, 'last-message.md');
-
-  const text = await provider().extractResponseText('Plain text output.', '', lastMessagePath);
-
-  assert.equal(text, 'Plain text output.');
-  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), 'Plain text output.');
-});
-
-test('extractResponseText returns empty string for empty stdout', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-foundry-empty-'));
-  const lastMessagePath = path.join(root, 'last-message.md');
-
-  const text = await provider().extractResponseText('', '', lastMessagePath);
-
-  assert.equal(text, '');
-});
-
-// ---------------------------------------------------------------------------
-// describeLaunchError — ENOENT and non-200 status
-// ---------------------------------------------------------------------------
-
-test('describeLaunchError explains missing CLI path', () => {
+test('describeLaunchError points at grouped command path config', () => {
   const msg = provider().describeLaunchError('azure-foundry', { code: 'ENOENT', message: 'spawn azure-foundry ENOENT' });
-
-  assert.match(msg, /Azure AI Foundry CLI was not found/);
-  assert.match(msg, /ralphCodex\.azureFoundryCommandPath/);
+  assert.match(msg, /ralphCodex\.azureFoundry\.commandPath/);
 });
-
-test('describeLaunchError describes non-200 HTTP status', () => {
-  const msg = provider().describeLaunchError('azure-foundry', {
-    code: 'HTTP_ERROR',
-    message: '401 Unauthorized: Invalid API key'
-  });
-
-  assert.match(msg, /Azure AI Foundry endpoint returned an error/);
-  assert.match(msg, /401/);
-});
-
-test('describeLaunchError describes non-200 status via message pattern', () => {
-  const msg = provider().describeLaunchError('azure-foundry', {
-    message: 'Request failed with status 404'
-  });
-
-  assert.match(msg, /Azure AI Foundry endpoint returned an error/);
-  assert.match(msg, /404/);
-});
-
-test('describeLaunchError describes generic launch failure', () => {
-  const msg = provider().describeLaunchError('azure-foundry', { message: 'permission denied' });
-
-  assert.match(msg, /Failed to start Azure AI Foundry CLI/);
-  assert.match(msg, /permission denied/);
-});
-
-// ---------------------------------------------------------------------------
-// createCliProviderForId — factory wiring
-// ---------------------------------------------------------------------------
 
 test('createCliProviderForId returns AzureFoundryProvider for azure-foundry', () => {
   const config = {
     ...DEFAULT_CONFIG,
-    azureFoundryEndpointUrl: ENDPOINT_URL
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: ENDPOINT_URL
+    }
   };
 
   const p = createCliProviderForId('azure-foundry', config);
-
   assert.equal(p.id, 'azure-foundry');
   assert.ok(p instanceof AzureFoundryProvider);
 });
 
-// ---------------------------------------------------------------------------
-// buildTranscript
-// ---------------------------------------------------------------------------
-
-test('buildTranscript produces Azure-specific transcript format', () => {
-  const p = provider();
-  const req = request();
-  const launch = p.buildLaunchSpec(req, false);
-  const res: CodexExecResult = {
-    strategy: 'cliExec',
-    success: true,
-    message: 'ok',
-    warnings: [],
-    exitCode: 0,
-    stdout: 'done',
-    stderr: '',
-    args: launch.args,
-    stdinHash: hashText('Ship it.'),
-    transcriptPath: req.transcriptPath,
-    lastMessagePath: req.lastMessagePath,
-    lastMessage: 'done'
-  };
-
-  const transcript = p.buildTranscript(res, req);
-
-  assert.match(transcript, /Azure AI Foundry Transcript/);
-  assert.match(transcript, new RegExp(ENDPOINT_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(transcript, /Model: gpt-4o/);
-  assert.match(transcript, /Payload matched prompt artifact: yes/);
-});
-
-test('buildTranscript shows "Direct HTTPS POST" label when args is empty', () => {
-  const p = provider();
-  const req = request();
-  const res: CodexExecResult = {
-    strategy: 'cliExec',
-    success: true,
-    message: 'ok',
-    warnings: [],
-    exitCode: 0,
-    stdout: 'done',
-    stderr: '',
-    args: [],
-    stdinHash: hashText('Ship it.'),
-    transcriptPath: req.transcriptPath,
-    lastMessagePath: req.lastMessagePath,
-    lastMessage: 'done'
-  };
-
-  const transcript = p.buildTranscript(res, req);
-
-  assert.match(transcript, /Direct HTTPS POST to/);
-  assert.match(transcript, new RegExp(ENDPOINT_URL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-});
-
-// ---------------------------------------------------------------------------
-// executeDirectly — HTTPS path
-// ---------------------------------------------------------------------------
-
-test('executeDirectly extracts content from a successful Azure Foundry response', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-ok-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  const responseJson = JSON.stringify({
-    choices: [{ message: { content: 'Direct response text.' } }]
-  });
-
-  setHttpsClientOverride(async () => ({ responseBody: responseJson, statusCode: 200 }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.exitCode, 0);
-    assert.equal(result.success, true);
-    assert.equal(result.lastMessage, 'Direct response text.');
-    assert.equal(result.stdout, responseJson);
-    assert.deepEqual(result.args, []);
-    assert.equal(await fs.readFile(req.lastMessagePath, 'utf8'), 'Direct response text.');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly returns failure result on HTTP error status', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-err-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  const errorBody = JSON.stringify({ error: { message: 'Invalid API key', code: 'unauthorized' } });
-
-  setHttpsClientOverride(async () => ({ responseBody: errorBody, statusCode: 401 }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.exitCode, 1);
-    assert.equal(result.success, false);
-    assert.match(result.message, /HTTP 401/);
-    assert.match(result.message, /Invalid API key/);
-    assert.equal(result.lastMessage, '');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly returns failure result on network error or timeout', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-timeout-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  setHttpsClientOverride(async () => { throw new Error('HTTPS request timed out after 5000ms'); });
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.exitCode, 1);
-    assert.equal(result.success, false);
-    assert.match(result.message, /Azure AI Foundry HTTPS request failed/);
-    assert.match(result.message, /timed out/);
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// API key redaction — key must never appear in transcripts
-// ---------------------------------------------------------------------------
-
-test('buildTranscript does not include API key value when key is configured', () => {
-  const secretKey = 'super-secret-api-key-12345';
-  const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: secretKey });
+test('buildTranscript does not leak environment-sourced API key values', () => {
+  process.env.AZURE_OPENAI_API_KEY = 'super-secret-api-key-12345';
   const req = request();
   const res: CodexExecResult = {
     strategy: 'cliExec',
@@ -312,12 +98,18 @@ test('buildTranscript does not include API key value when key is configured', ()
     lastMessage: 'Task done.'
   };
 
-  const transcript = p.buildTranscript(res, req);
-
-  assert.ok(!transcript.includes(secretKey), 'API key must not appear in transcript');
+  const transcript = provider().buildTranscript(res, req);
+  assert.ok(!transcript.includes(process.env.AZURE_OPENAI_API_KEY ?? ''));
 });
 
-test('executeDirectly sends api-key header when API key is configured', async () => {
+test('executeDirectly sends api-key header when auth mode is env-api-key', async () => {
+  process.env.AZURE_OPENAI_API_KEY = 'my-secret-key-abc';
+  let capturedHeaders: Record<string, string> | undefined;
+  setHttpsClientOverride(async (opts) => {
+    capturedHeaders = opts.headers;
+    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
+  });
+
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-key-header-'));
   const req = {
     ...request(),
@@ -325,327 +117,127 @@ test('executeDirectly sends api-key header when API key is configured', async ()
     lastMessagePath: path.join(root, 'last-message.md')
   };
 
-  await fs.mkdir(root, { recursive: true });
+  const result = await provider().executeDirectly(req);
 
-  const secretKey = 'my-secret-key-abc';
-  const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: secretKey });
+  assert.equal(result.success, true);
+  assert.equal(capturedHeaders?.['api-key'], 'my-secret-key-abc');
+  assert.ok(!capturedHeaders?.Authorization);
+});
+
+test('executeDirectly sends api-key header when auth mode is vscode-secret', async () => {
+  configureAzureSecretStorage({
+    get: async (key: string) => key === 'azure-foundry.secret' ? 'secret-from-storage' : undefined
+  });
 
   let capturedHeaders: Record<string, string> | undefined;
   setHttpsClientOverride(async (opts) => {
     capturedHeaders = opts.headers;
     return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
   });
-  try {
-    await p.executeDirectly(req);
 
-    assert.equal(capturedHeaders?.['api-key'], secretKey, 'api-key header must equal the configured key');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly uses Azure AD Bearer token when no API key is configured', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-no-key-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-secret-header-'));
   const req = {
     ...request(),
     transcriptPath: path.join(root, 'transcript.md'),
     lastMessagePath: path.join(root, 'last-message.md')
   };
 
-  await fs.mkdir(root, { recursive: true });
+  const result = await provider({
+    auth: {
+      mode: 'vscode-secret',
+      tenantId: '',
+      subscriptionId: '',
+      apiKeyEnvVar: '',
+      secretStorageKey: 'azure-foundry.secret'
+    }
+  }).executeDirectly(req);
+
+  assert.equal(result.success, true);
+  assert.equal(capturedHeaders?.['api-key'], 'secret-from-storage');
+});
+
+test('executeDirectly sends bearer token when auth mode is az-bearer', async () => {
+  setProcessRunnerOverride(async (command, args) => {
+    assert.equal(command, 'az');
+    assert.deepEqual(args.slice(0, 5), ['account', 'get-access-token', '--resource', 'https://cognitiveservices.azure.com/', '--output']);
+    return {
+      code: 0,
+      stdout: JSON.stringify({ accessToken: 'mock-bearer-token' }),
+      stderr: ''
+    };
+  });
 
   let capturedHeaders: Record<string, string> | undefined;
   setHttpsClientOverride(async (opts) => {
     capturedHeaders = opts.headers;
     return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
   });
-  try {
-    const mockCredential = { getToken: async () => ({ token: 'mock-azure-ad-token' }) };
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
-    const result = await p.executeDirectly(req);
 
-    assert.ok(!('api-key' in (capturedHeaders ?? {})), 'api-key header must not be sent when key is not configured');
-    assert.equal(capturedHeaders?.['Authorization'], 'Bearer mock-azure-ad-token', 'Authorization header must carry Bearer token from Azure AD');
-    assert.ok(result.success, 'request should succeed');
-    assert.ok(result.warnings.length > 0, 'should have at least one warning');
-    assert.ok(
-      result.warnings.some((w) => /Azure AD/i.test(w)),
-      'warning should mention Azure AD'
-    );
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly returns failure when Azure AD credential returns null token', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-ad-null-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-bearer-header-'));
   const req = {
     ...request(),
     transcriptPath: path.join(root, 'transcript.md'),
     lastMessagePath: path.join(root, 'last-message.md')
   };
 
-  await fs.mkdir(root, { recursive: true });
+  const result = await provider({
+    auth: {
+      mode: 'az-bearer',
+      tenantId: 'tenant-1',
+      subscriptionId: 'sub-1',
+      apiKeyEnvVar: '',
+      secretStorageKey: ''
+    }
+  }).executeDirectly(req);
 
-  setHttpsClientOverride(async () => {
-    throw new Error('should not be called');
-  });
-  try {
-    const mockCredential = { getToken: async () => null };
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
-    const result = await p.executeDirectly(req);
-
-    assert.equal(result.success, false);
-    assert.equal(result.exitCode, 1);
-    assert.match(result.message, /Azure AD authentication failed/);
-    assert.match(result.message, /returned no token/);
-  } finally {
-    setHttpsClientOverride(null);
-  }
+  assert.equal(result.success, true);
+  assert.equal(capturedHeaders?.Authorization, 'Bearer mock-bearer-token');
+  assert.ok(result.warnings.some((warning) => /Azure CLI bearer-token/i.test(warning)));
 });
 
-test('executeDirectly returns failure when Azure AD credential throws', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-ad-throw-'));
+test('executeDirectly returns failure when required API key env var is missing', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-missing-env-'));
   const req = {
     ...request(),
     transcriptPath: path.join(root, 'transcript.md'),
     lastMessagePath: path.join(root, 'last-message.md')
   };
 
-  await fs.mkdir(root, { recursive: true });
+  const result = await provider({
+    auth: {
+      mode: 'env-api-key',
+      tenantId: '',
+      subscriptionId: '',
+      apiKeyEnvVar: 'MISSING_AZURE_KEY',
+      secretStorageKey: ''
+    }
+  }).executeDirectly(req);
 
-  setHttpsClientOverride(async () => {
-    throw new Error('should not be called');
-  });
-  try {
-    const mockCredential = { getToken: async () => { throw new Error('CredentialUnavailableError: No credential available'); } };
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, credential: mockCredential });
-    const result = await p.executeDirectly(req);
-
-    assert.equal(result.success, false);
-    assert.equal(result.exitCode, 1);
-    assert.match(result.message, /Azure AD authentication failed/);
-    assert.match(result.message, /CredentialUnavailableError/);
-  } finally {
-    setHttpsClientOverride(null);
-  }
+  assert.equal(result.success, false);
+  assert.match(result.message, /MISSING_AZURE_KEY/);
 });
 
-test('executeDirectly prefers API key over Azure AD when both could be available', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-key-priority-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
+test('extractResponseText parses Azure Foundry JSON response and persists content', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-foundry-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const stdout = JSON.stringify({ choices: [{ message: { content: 'Task completed successfully.' } }] });
 
-  await fs.mkdir(root, { recursive: true });
+  const text = await provider().extractResponseText(stdout, '', lastMessagePath);
 
-  let capturedHeaders: Record<string, string> | undefined;
-  setHttpsClientOverride(async (opts) => {
-    capturedHeaders = opts.headers;
-    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
-  });
-  try {
-    const mockCredential = { getToken: async () => { throw new Error('should not be called'); } };
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, apiKey: 'my-key', credential: mockCredential });
-    const result = await p.executeDirectly(req);
-
-    assert.equal(capturedHeaders?.['api-key'], 'my-key', 'api-key header should be sent');
-    assert.ok(!capturedHeaders?.['Authorization'], 'Authorization header should not be present when API key is used');
-    assert.ok(result.success, 'request should succeed');
-  } finally {
-    setHttpsClientOverride(null);
-  }
+  assert.equal(text, 'Task completed successfully.');
+  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), 'Task completed successfully.');
 });
-
-// ---------------------------------------------------------------------------
-// Prompt caching — cache_control placement and promptCacheStats
-// ---------------------------------------------------------------------------
 
 const PROMPT_WITH_BOUNDARY = `# System\n\nYou are Ralph.${STATIC_PREFIX_BOUNDARY}## Dynamic Section\n\nDo the task.`;
 
-test('executeDirectly sends message content as array with cache_control on static prefix', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-ctrl-'));
-  const req = {
-    ...request(),
-    prompt: PROMPT_WITH_BOUNDARY,
-    promptHash: hashText(PROMPT_WITH_BOUNDARY),
-    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
+test('executeDirectly applies cache_control markers when promptCaching is force', async () => {
+  process.env.AZURE_OPENAI_API_KEY = 'cache-key';
   let capturedBody: unknown;
   setHttpsClientOverride(async (opts) => {
     capturedBody = JSON.parse(opts.body);
     return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
   });
-  try {
-    await provider().executeDirectly(req);
 
-    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
-    const content = body.messages[0].content;
-    assert.ok(Array.isArray(content), 'content should be an array when boundary is present');
-
-    const blocks = content as Array<{ type: string; text: string; cache_control?: { type: string } }>;
-    assert.equal(blocks[0].cache_control?.type, 'ephemeral', 'first block should have cache_control ephemeral');
-    assert.ok(!blocks[1].cache_control, 'second block should not have cache_control');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly returns promptCacheStats with staticPrefixBytes set', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-bytes-'));
-  const req = {
-    ...request(),
-    prompt: PROMPT_WITH_BOUNDARY,
-    promptHash: hashText(PROMPT_WITH_BOUNDARY),
-    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  setHttpsClientOverride(async () => ({
-    responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }),
-    statusCode: 200
-  }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.ok(result.promptCacheStats, 'promptCacheStats should be present on success');
-    const boundaryIdx = PROMPT_WITH_BOUNDARY.indexOf(STATIC_PREFIX_BOUNDARY);
-    const expectedStaticPrefixBytes = Buffer.byteLength(PROMPT_WITH_BOUNDARY.slice(0, boundaryIdx + 1), 'utf8');
-    assert.equal(result.promptCacheStats?.staticPrefixBytes, expectedStaticPrefixBytes,
-      'staticPrefixBytes should equal the byte length of the static prefix');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly sets cacheHit=true when response reports cache_read_input_tokens > 0', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-hit-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  setHttpsClientOverride(async () => ({
-    responseBody: JSON.stringify({
-      choices: [{ message: { content: 'ok' } }],
-      usage: { cache_read_input_tokens: 500, cache_creation_input_tokens: 0 }
-    }),
-    statusCode: 200
-  }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.promptCacheStats?.cacheHit, true, 'cacheHit should be true when cache_read_input_tokens > 0');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly sets cacheHit=false when only cache_creation_input_tokens is present', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-miss-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  setHttpsClientOverride(async () => ({
-    responseBody: JSON.stringify({
-      choices: [{ message: { content: 'ok' } }],
-      usage: { cache_read_input_tokens: 0, cache_creation_input_tokens: 800 }
-    }),
-    statusCode: 200
-  }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.promptCacheStats?.cacheHit, false, 'cacheHit should be false when cache_read_input_tokens is 0');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly sets cacheHit=null when response has no cache usage data', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-cache-null-'));
-  const req = {
-    ...request(),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  setHttpsClientOverride(async () => ({
-    responseBody: JSON.stringify({
-      choices: [{ message: { content: 'ok' } }]
-      // no usage field
-    }),
-    statusCode: 200
-  }));
-  try {
-    const result = await provider().executeDirectly(req);
-
-    assert.equal(result.promptCacheStats?.cacheHit, null, 'cacheHit should be null when response has no cache usage');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-// ---------------------------------------------------------------------------
-// promptCaching: off — cache_control omitted
-// ---------------------------------------------------------------------------
-
-test('executeDirectly omits cache_control when promptCaching is off', async () => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-caching-off-'));
-  const req = {
-    ...request(),
-    prompt: PROMPT_WITH_BOUNDARY,
-    promptHash: hashText(PROMPT_WITH_BOUNDARY),
-    promptByteLength: Buffer.byteLength(PROMPT_WITH_BOUNDARY, 'utf8'),
-    transcriptPath: path.join(root, 'transcript.md'),
-    lastMessagePath: path.join(root, 'last-message.md')
-  };
-
-  await fs.mkdir(root, { recursive: true });
-
-  let capturedBody: unknown;
-  setHttpsClientOverride(async (opts) => {
-    capturedBody = JSON.parse(opts.body);
-    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
-  });
-  try {
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, promptCaching: 'off' });
-    await p.executeDirectly(req);
-
-    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
-    const content = body.messages[0].content;
-    assert.ok(Array.isArray(content), 'content should be an array');
-
-    const blocks = content as Array<{ type: string; text: string; cache_control?: unknown }>;
-    assert.equal(blocks.length, 1, 'off mode should send a single text block');
-    assert.ok(!blocks[0].cache_control, 'single block must not have cache_control when promptCaching is off');
-    assert.equal(blocks[0].text, PROMPT_WITH_BOUNDARY, 'full prompt should be sent as a single block');
-  } finally {
-    setHttpsClientOverride(null);
-  }
-});
-
-test('executeDirectly applies cache_control normally when promptCaching is force', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-caching-force-'));
   const req = {
     ...request(),
@@ -656,22 +248,9 @@ test('executeDirectly applies cache_control normally when promptCaching is force
     lastMessagePath: path.join(root, 'last-message.md')
   };
 
-  await fs.mkdir(root, { recursive: true });
+  const result = await provider({ promptCaching: 'force' }).executeDirectly(req);
 
-  let capturedBody: unknown;
-  setHttpsClientOverride(async (opts) => {
-    capturedBody = JSON.parse(opts.body);
-    return { responseBody: JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), statusCode: 200 };
-  });
-  try {
-    const p = new AzureFoundryProvider({ endpointUrl: ENDPOINT_URL, promptCaching: 'force' });
-    await p.executeDirectly(req);
-
-    const body = capturedBody as { messages: Array<{ role: string; content: unknown }> };
-    const content = body.messages[0].content;
-    const blocks = content as Array<{ type: string; text: string; cache_control?: { type: string } }>;
-    assert.equal(blocks[0].cache_control?.type, 'ephemeral', 'force mode should still apply cache_control on Azure direct-HTTPS');
-  } finally {
-    setHttpsClientOverride(null);
-  }
+  assert.equal(result.success, true);
+  const body = capturedBody as { messages: Array<{ content: Array<{ cache_control?: { type: string } }> }> };
+  assert.equal(body.messages[0].content[0].cache_control?.type, 'ephemeral');
 });

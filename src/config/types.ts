@@ -1,6 +1,6 @@
 import { RalphAgentRole } from '../ralph/types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'azure-foundry';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
 
@@ -97,16 +97,47 @@ export interface RalphHooksConfig {
   onFailure?: string;
 }
 
+export type AzureAuthMode = 'az-bearer' | 'env-api-key' | 'vscode-secret';
+
+export interface AzureAuthConfig {
+  mode: AzureAuthMode;
+  tenantId: string;
+  subscriptionId: string;
+  apiKeyEnvVar: string;
+  secretStorageKey: string;
+}
+
+export interface CopilotFoundryConfig {
+  commandPath: string;
+  approvalMode: CopilotApprovalMode;
+  maxAutopilotContinues: number;
+  auth: AzureAuthConfig;
+  azure: {
+    resourceGroup: string;
+    resourceName: string;
+    baseUrlOverride: string;
+  };
+  model: {
+    deployment: string;
+    wireApi: string;
+  };
+}
+
+export interface AzureFoundryConfig {
+  commandPath: string;
+  endpointUrl: string;
+  modelDeployment: string;
+  apiVersion: string;
+  auth: AzureAuthConfig;
+}
+
 export interface RalphCodexConfig {
   cliProvider: CliProviderId;
   codexCommandPath: string;
   claudeCommandPath: string;
   copilotCommandPath: string;
-  azureFoundryCommandPath: string;
-  azureFoundryEndpointUrl: string;
-  azureFoundryApiKey: string;
-  azureFoundryModelDeployment: string;
-  azureFoundryApiVersion: string;
+  copilotFoundry: CopilotFoundryConfig;
+  azureFoundry: AzureFoundryConfig;
   claudeMaxTurns: number;
   copilotMaxAutopilotContinues: number;
   claudePermissionMode: ClaudePermissionMode;

@@ -110,6 +110,83 @@ test('readConfig supports Copilot provider defaults and overrides', () => {
   assert.equal(config.newChatCommandId, 'github.copilot.cli.newSession');
 });
 
+test('readConfig supports copilot-foundry and grouped Azure provider config', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'copilot-foundry',
+    copilotFoundry: {
+      commandPath: 'copilot-foundry',
+      approvalMode: 'interactive',
+      maxAutopilotContinues: 123,
+      auth: {
+        mode: 'env-api-key',
+        tenantId: 'tenant-1',
+        subscriptionId: 'subscription-1',
+        apiKeyEnvVar: 'COPILOT_FOUNDRY_API_KEY',
+        secretStorageKey: 'copilot-foundry.secret'
+      },
+      azure: {
+        resourceGroup: 'rg-1',
+        resourceName: 'resource-1',
+        baseUrlOverride: 'https://override.example'
+      },
+      model: {
+        deployment: 'gpt-5.4',
+        wireApi: 'responses'
+      }
+    },
+    azureFoundry: {
+      commandPath: 'azure-foundry-custom',
+      endpointUrl: 'https://foundry.example',
+      modelDeployment: 'gpt-4.1',
+      apiVersion: '2025-01-01',
+      auth: {
+        mode: 'vscode-secret',
+        tenantId: 'tenant-2',
+        subscriptionId: 'subscription-2',
+        apiKeyEnvVar: 'AZURE_FOUNDRY_API_KEY',
+        secretStorageKey: 'azure-foundry.secret'
+      }
+    }
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.cliProvider, 'copilot-foundry');
+  assert.equal(config.copilotFoundry.commandPath, 'copilot-foundry');
+  assert.equal(config.copilotFoundry.approvalMode, 'interactive');
+  assert.equal(config.copilotFoundry.maxAutopilotContinues, 123);
+  assert.equal(config.copilotFoundry.auth.mode, 'env-api-key');
+  assert.equal(config.copilotFoundry.auth.apiKeyEnvVar, 'COPILOT_FOUNDRY_API_KEY');
+  assert.equal(config.copilotFoundry.azure.resourceName, 'resource-1');
+  assert.equal(config.copilotFoundry.model.deployment, 'gpt-5.4');
+
+  assert.equal(config.azureFoundry.commandPath, 'azure-foundry-custom');
+  assert.equal(config.azureFoundry.endpointUrl, 'https://foundry.example');
+  assert.equal(config.azureFoundry.modelDeployment, 'gpt-4.1');
+  assert.equal(config.azureFoundry.apiVersion, '2025-01-01');
+  assert.equal(config.azureFoundry.auth.mode, 'vscode-secret');
+  assert.equal(config.azureFoundry.auth.secretStorageKey, 'azure-foundry.secret');
+  assert.equal('azureFoundryApiKey' in config, false);
+});
+
+test('readConfig returns grouped provider defaults when no settings are configured', () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.copilotFoundry.commandPath, 'copilot');
+  assert.equal(config.copilotFoundry.approvalMode, 'allow-all');
+  assert.equal(config.copilotFoundry.maxAutopilotContinues, 200);
+  assert.equal(config.copilotFoundry.auth.mode, 'az-bearer');
+  assert.equal(config.copilotFoundry.model.wireApi, 'responses');
+  assert.equal(config.azureFoundry.commandPath, 'azure-foundry');
+  assert.equal(config.azureFoundry.apiVersion, '2024-12-01-preview');
+  assert.equal(config.azureFoundry.auth.mode, 'az-bearer');
+  assert.equal('azureFoundryApiKey' in config, false);
+});
+
 test('readConfig defaults agentRole to implementer when absent', () => {
   const harness = vscodeTestHarness();
   harness.reset();

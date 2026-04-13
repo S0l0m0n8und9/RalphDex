@@ -7,7 +7,7 @@ A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps y
 **Key capabilities:**
 
 - **File-backed state** — PRD, progress log, and task graph survive across sessions without relying on chat history
-- **Multiple CLI backends** — `codex exec`, Claude CLI (`claude -p`), and GitHub Copilot CLI
+- **Multiple CLI backends** — `codex exec`, Claude CLI (`claude -p`), GitHub Copilot CLI, Copilot CLI with Azure OpenAI BYOK (`copilot-foundry`), and Azure direct HTTPS (`azure-foundry`)
 - **Deterministic loop control** — preflight checks, multi-verifier passes, explicit stop reasons, and bounded remediation
 - **Full provenance** — every iteration writes prompt evidence, git snapshots, and a verifiable trust chain to disk
 - **IDE handoff** — clipboard plus configurable VS Code command delivery for chat-first workflows
@@ -15,7 +15,7 @@ A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps y
 The extension has two execution paths:
 
 - prepare a prompt for AI-IDE handoff through clipboard plus configurable VS Code command IDs
-- run deterministic CLI iterations through the configured provider (`codex`, `claude`, or `copilot`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+- run deterministic CLI iterations through the configured provider (`codex`, `claude`, `copilot`, `copilot-foundry`, or `azure-foundry`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
 
 ## Who This Is For
 
@@ -126,6 +126,8 @@ See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/
 - `Ralphdex: Approve Human Review`
 - `Ralphdex: Open Latest Pipeline Run`
 - `Ralphdex: Resume Pipeline`
+- `Ralphdex: Set Provider Secret`
+- `Ralphdex: Clear Provider Secret`
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 
@@ -137,10 +139,18 @@ All settings are under the `ralphCodex.*` namespace in VS Code settings (`Ctrl+,
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, or `copilot` |
+| `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, `copilot`, `copilot-foundry`, or `azure-foundry` |
 | `ralphCodex.codexCommandPath` | `"codex"` | Codex CLI executable path or name; on Windows, bare command names also resolve `codex.cmd`/`codex.bat` wrappers |
 | `ralphCodex.claudeCommandPath` | `"claude"` | Claude CLI executable path or name |
 | `ralphCodex.copilotCommandPath` | `"copilot"` | Copilot CLI executable path or name |
+
+Azure-backed providers use grouped settings and secure auth references instead of literal keys in `settings.json`:
+
+- `copilot-foundry` runs GitHub Copilot CLI against Azure OpenAI BYOK while preserving Copilot's tool and harness behavior.
+- `azure-foundry` uses RalphDex's direct HTTPS Azure path.
+- Supported auth sources for both are `az-bearer`, `env-api-key`, and `vscode-secret`.
+- Literal API keys in `ralphCodex.*` settings are not supported.
+- Use `Ralphdex: Set Provider Secret` and `Ralphdex: Clear Provider Secret` for `vscode-secret` flows.
 
 **Agent identity**
 

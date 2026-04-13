@@ -544,7 +544,7 @@ function getCurrentCliProvider(settingsSurface) {
         .flatMap((section) => section.entries)
         .find((entry) => entry.key === 'cliProvider');
     const providerValue = providerEntry?.value;
-    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'azure-foundry'
+    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry'
         ? providerValue
         : 'codex';
 }
@@ -554,6 +554,8 @@ function getProviderTestLabel(provider) {
             return 'Test Claude Connection';
         case 'copilot':
             return 'Test GitHub Copilot Connection';
+        case 'copilot-foundry':
+            return 'Test Copilot Foundry Connection';
         case 'azure-foundry':
             return 'Test Azure AI Foundry Connection';
         default:

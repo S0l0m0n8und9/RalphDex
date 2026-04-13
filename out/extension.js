@@ -39,6 +39,7 @@ const vscode = __importStar(require("vscode"));
 const registerCommands_1 = require("./commands/registerCommands");
 const readConfig_1 = require("./config/readConfig");
 const settingsSurface_1 = require("./config/settingsSurface");
+const azureAuthResolver_1 = require("./codex/azureAuthResolver");
 const logger_1 = require("./services/logger");
 const dashboardPanel_1 = require("./ui/dashboardPanel");
 const iterationBroadcaster_1 = require("./ui/iterationBroadcaster");
@@ -52,6 +53,7 @@ const stateManager_1 = require("./ralph/stateManager");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
+    (0, azureAuthResolver_1.configureAzureSecretStorage)(('secrets' in context ? context.secrets : null) ?? null);
     // UI infrastructure
     const broadcaster = new iterationBroadcaster_1.IterationBroadcaster();
     context.subscriptions.push(broadcaster);

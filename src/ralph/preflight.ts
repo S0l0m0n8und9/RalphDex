@@ -36,27 +36,6 @@ const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
 
 const DEFAULT_STALE_LOCK_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
 
-/**
- * Synchronous probe for `@azure/identity` availability. Returns `true` when
- * the module can be resolved from the extension's `node_modules`, meaning
- * `DefaultAzureCredential` will be importable at execution time.
- *
- * Exported for test substitution via `setAzureIdentityResolvableOverride`.
- */
-let azureIdentityResolvableOverride: boolean | null = null;
-export function setAzureIdentityResolvableOverride(value: boolean | null): void {
-  azureIdentityResolvableOverride = value;
-}
-function isAzureIdentityResolvable(): boolean {
-  if (azureIdentityResolvableOverride !== null) { return azureIdentityResolvableOverride; }
-  try {
-    require.resolve('@azure/identity');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 function createDiagnostic(
   category: RalphPreflightCategory,
   severity: RalphPreflightDiagnostic['severity'],
@@ -311,40 +290,127 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
   }
 
   if (input.config.cliProvider === 'azure-foundry') {
-    if (!input.config.azureFoundryEndpointUrl) {
-      diagnostics.push(createDiagnostic(
-        'codexAdapter',
-        'error',
-        'azure_foundry_endpoint_missing',
-        'cliProvider is set to azure-foundry but ralphCodex.azureFoundryEndpointUrl is not configured.'
-      ));
-    } else if (!input.config.azureFoundryApiKey) {
-      if (isAzureIdentityResolvable()) {
-        diagnostics.push(createDiagnostic(
-          'codexAdapter',
-          'warning',
-          'azure_foundry_auth_azure_ad',
-          'No API key configured for azure-foundry. Azure AD authentication (DefaultAzureCredential) will be used. Ensure Azure credentials are available in the environment (e.g. az login, managed identity, or environment variables).'
-        ));
-      } else {
-        diagnostics.push(createDiagnostic(
-          'codexAdapter',
-          'error',
-          'azure_foundry_no_auth_available',
-          'No API key configured for azure-foundry and @azure/identity is not installed. Neither API-key nor Azure AD authentication is available. Configure ralphCodex.azureFoundryApiKey or install @azure/identity for DefaultAzureCredential support.'
-        ));
-      }
-    } else {
-      diagnostics.push(createDiagnostic(
-        'codexAdapter',
-        'info',
-        'azure_foundry_auth_api_key_active',
-        'Azure AI Foundry API key auth path is active.'
-      ));
-    }
+    diagnostics.push(...collectAzureFoundryReadinessDiagnostics(input.config));
+  }
+
+  if (input.config.cliProvider === 'copilot-foundry') {
+    diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(input.config));
   }
 
   return diagnostics;
+}
+
+function collectAzureFoundryReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
+  const diagnostics: RalphPreflightDiagnostic[] = [];
+  if (!config.azureFoundry.endpointUrl.trim()) {
+    diagnostics.push(createDiagnostic(
+      'codexAdapter',
+      'error',
+      'azure_foundry_endpoint_missing',
+      'cliProvider is set to azure-foundry but ralphCodex.azureFoundry.endpointUrl is not configured.'
+    ));
+  }
+
+  diagnostics.push(...collectAzureAuthReadinessDiagnostics(
+    'azure-foundry',
+    config.azureFoundry.auth,
+    {
+      envPrefix: 'ralphCodex.azureFoundry.auth',
+      bearerInfoCode: 'azure_foundry_auth_az_bearer',
+      bearerInfoMessage: 'Azure AI Foundry will resolve a bearer token from Azure CLI at runtime. Ensure `az login` succeeds for the selected tenant and subscription before execution.',
+      apiKeyInfoCode: 'azure_foundry_auth_api_key_active'
+    }
+  ));
+
+  return diagnostics;
+}
+
+function collectCopilotFoundryReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
+  const diagnostics: RalphPreflightDiagnostic[] = [];
+  if (!config.copilotFoundry.azure.baseUrlOverride.trim() && !config.copilotFoundry.azure.resourceName.trim()) {
+    diagnostics.push(createDiagnostic(
+      'codexAdapter',
+      'error',
+      'copilot_foundry_base_url_missing',
+      'cliProvider is set to copilot-foundry but neither ralphCodex.copilotFoundry.azure.resourceName nor ralphCodex.copilotFoundry.azure.baseUrlOverride is configured.'
+    ));
+  }
+
+  if (!config.copilotFoundry.model.deployment.trim()) {
+    diagnostics.push(createDiagnostic(
+      'codexAdapter',
+      'error',
+      'copilot_foundry_model_missing',
+      'cliProvider is set to copilot-foundry but ralphCodex.copilotFoundry.model.deployment is not configured.'
+    ));
+  }
+
+  diagnostics.push(...collectAzureAuthReadinessDiagnostics(
+    'copilot-foundry',
+    config.copilotFoundry.auth,
+    {
+      envPrefix: 'ralphCodex.copilotFoundry.auth',
+      bearerInfoCode: 'copilot_foundry_auth_az_bearer',
+      bearerInfoMessage: 'Copilot Foundry will resolve a bearer token from Azure CLI at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
+      apiKeyInfoCode: 'copilot_foundry_auth_api_key_active'
+    }
+  ));
+
+  return diagnostics;
+}
+
+function collectAzureAuthReadinessDiagnostics(
+  providerId: 'azure-foundry' | 'copilot-foundry',
+  auth: RalphCodexConfig['azureFoundry']['auth'],
+  options: {
+    envPrefix: string;
+    bearerInfoCode: string;
+    bearerInfoMessage: string;
+    apiKeyInfoCode: string;
+  }
+): RalphPreflightDiagnostic[] {
+  if (auth.mode === 'env-api-key') {
+    if (!auth.apiKeyEnvVar.trim()) {
+      return [createDiagnostic(
+        'codexAdapter',
+        'error',
+        `${providerId.replace(/-/g, '_')}_api_key_env_missing`,
+        `${providerId} auth mode is env-api-key but ${options.envPrefix}.apiKeyEnvVar is not configured.`
+      )];
+    }
+
+    return [createDiagnostic(
+      'codexAdapter',
+      'info',
+      options.apiKeyInfoCode,
+      `${providerId} will resolve its API key from environment variable ${auth.apiKeyEnvVar.trim()} at runtime.`
+    )];
+  }
+
+  if (auth.mode === 'vscode-secret') {
+    if (!auth.secretStorageKey.trim()) {
+      return [createDiagnostic(
+        'codexAdapter',
+        'error',
+        `${providerId.replace(/-/g, '_')}_secret_storage_key_missing`,
+        `${providerId} auth mode is vscode-secret but ${options.envPrefix}.secretStorageKey is not configured.`
+      )];
+    }
+
+    return [createDiagnostic(
+      'codexAdapter',
+      'info',
+      options.apiKeyInfoCode,
+      `${providerId} will resolve its API key from VS Code secret key ${auth.secretStorageKey.trim()} at runtime.`
+    )];
+  }
+
+  return [createDiagnostic(
+    'codexAdapter',
+    'info',
+    options.bearerInfoCode,
+    options.bearerInfoMessage
+  )];
 }
 
 function claimMatchesSignal(

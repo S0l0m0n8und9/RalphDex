@@ -47,6 +47,8 @@
         "ralphCodex.codexCommandPath",
         "ralphCodex.claudeCommandPath",
         "ralphCodex.copilotCommandPath",
+        "ralphCodex.copilotFoundry",
+        "ralphCodex.azureFoundry",
         "ralphCodex.preferredHandoffMode",
         "ralphCodex.agentId",
         "ralphCodex.agentRole",
@@ -135,6 +137,8 @@
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
+    "onCommand:ralphCodex.setProviderSecret",
+    "onCommand:ralphCodex.clearProviderSecret",
     "onCommand:ralphCodex.showSidebar",
     "onCommand:ralphCodex.showTasks",
     "onCommand:ralphCodex.showDashboard"
@@ -282,13 +286,21 @@
         "command": "ralphCodex.requeueDeadLetterTask",
         "title": "Ralphdex: Requeue Dead-Letter Task"
       },
-      {
-        "command": "ralphCodex.showSidebar",
-        "title": "Ralphdex: Show Sidebar"
-      },
-      {
-        "command": "ralphCodex.showTasks",
-        "title": "Ralphdex: Show Tasks"
+        {
+          "command": "ralphCodex.showSidebar",
+          "title": "Ralphdex: Show Sidebar"
+        },
+        {
+          "command": "ralphCodex.setProviderSecret",
+          "title": "Ralphdex: Set Provider Secret"
+        },
+        {
+          "command": "ralphCodex.clearProviderSecret",
+          "title": "Ralphdex: Clear Provider Secret"
+        },
+        {
+          "command": "ralphCodex.showTasks",
+          "title": "Ralphdex: Show Tasks"
       }
     ],
     "viewsContainers": {
@@ -330,10 +342,11 @@
             "codex",
             "claude",
             "copilot",
+            "copilot-foundry",
             "azure-foundry"
           ],
           "default": "claude",
-          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, and 'azure-foundry' uses Azure AI Foundry."
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, 'copilot-foundry' uses the Copilot CLI with Azure OpenAI BYOK, and 'azure-foundry' uses Azure AI Foundry."
         },
         "ralphCodex.codexCommandPath": {
           "type": "string",
@@ -350,30 +363,225 @@
           "default": "copilot",
           "description": "Path or command name for the GitHub Copilot CLI executable."
         },
-        "ralphCodex.azureFoundryCommandPath": {
-          "type": "string",
-          "default": "azure-foundry",
-          "description": "Path or command name for the Azure AI Foundry CLI executable."
+        "ralphCodex.copilotFoundry": {
+          "type": "object",
+          "default": {
+            "commandPath": "copilot",
+            "approvalMode": "allow-all",
+            "maxAutopilotContinues": 200,
+            "auth": {
+              "mode": "az-bearer",
+              "tenantId": "",
+              "subscriptionId": "",
+              "apiKeyEnvVar": "",
+              "secretStorageKey": ""
+            },
+            "azure": {
+              "resourceGroup": "",
+              "resourceName": "",
+              "baseUrlOverride": ""
+            },
+            "model": {
+              "deployment": "",
+              "wireApi": "responses"
+            }
+          },
+          "description": "Grouped Copilot CLI + Azure OpenAI BYOK settings. Secrets are resolved externally and are not stored in settings.",
+          "properties": {
+            "commandPath": {
+              "type": "string",
+              "default": "copilot",
+              "description": "Path or command name for the Copilot CLI executable."
+            },
+            "approvalMode": {
+              "type": "string",
+              "enum": [
+                "allow-all",
+                "allow-tools-only",
+                "interactive"
+              ],
+              "default": "allow-all",
+              "description": "Approval posture used by the Copilot CLI harness."
+            },
+            "maxAutopilotContinues": {
+              "type": "number",
+              "default": 200,
+              "minimum": 1,
+              "maximum": 500,
+              "description": "Maximum number of autopilot continuation turns per Copilot CLI invocation."
+            },
+            "auth": {
+              "type": "object",
+              "default": {
+                "mode": "az-bearer",
+                "tenantId": "",
+                "subscriptionId": "",
+                "apiKeyEnvVar": "",
+                "secretStorageKey": ""
+              },
+              "description": "Azure auth source metadata. Secrets are resolved externally, not stored in settings.",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "az-bearer",
+                    "env-api-key",
+                    "vscode-secret"
+                  ],
+                  "default": "az-bearer",
+                  "description": "How the provider resolves Azure credentials."
+                },
+                "tenantId": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure tenant identifier used for bearer-token auth."
+                },
+                "subscriptionId": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure subscription identifier used for readiness diagnostics."
+                },
+                "apiKeyEnvVar": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Environment variable name used when the API key is sourced externally."
+                },
+                "secretStorageKey": {
+                  "type": "string",
+                  "default": "",
+                  "description": "SecretStorage key used when the API key is sourced from VS Code secrets."
+                }
+              }
+            },
+            "azure": {
+              "type": "object",
+              "default": {
+                "resourceGroup": "",
+                "resourceName": "",
+                "baseUrlOverride": ""
+              },
+              "description": "Azure OpenAI resource metadata used to derive the Copilot Foundry base URL.",
+              "properties": {
+                "resourceGroup": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure resource group name used for operator clarity and diagnostics."
+                },
+                "resourceName": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure OpenAI resource name used to derive the base URL."
+                },
+                "baseUrlOverride": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Optional override for the derived Azure OpenAI base URL."
+                }
+              }
+            },
+            "model": {
+              "type": "object",
+              "default": {
+                "deployment": "",
+                "wireApi": "responses"
+              },
+              "description": "Azure deployment and wire-protocol settings used by the Copilot Foundry harness.",
+              "properties": {
+                "deployment": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure deployment name and Copilot model identifier."
+                },
+                "wireApi": {
+                  "type": "string",
+                  "default": "responses",
+                  "description": "Wire protocol selected for the Copilot Foundry harness."
+                }
+              }
+            }
+          }
         },
-        "ralphCodex.azureFoundryEndpointUrl": {
-          "type": "string",
-          "default": "",
-          "description": "Azure AI Foundry endpoint URL (e.g. https://<resource>.openai.azure.com/)."
-        },
-        "ralphCodex.azureFoundryApiKey": {
-          "type": "string",
-          "default": "",
-          "description": "API key for Azure AI Foundry. Leave empty to use Azure AD authentication instead."
-        },
-        "ralphCodex.azureFoundryModelDeployment": {
-          "type": "string",
-          "default": "",
-          "description": "Azure AI Foundry model deployment name (e.g. gpt-4o)."
-        },
-        "ralphCodex.azureFoundryApiVersion": {
-          "type": "string",
-          "default": "2024-12-01-preview",
-          "description": "Azure OpenAI API version to use with Azure AI Foundry."
+        "ralphCodex.azureFoundry": {
+          "type": "object",
+          "default": {
+            "commandPath": "azure-foundry",
+            "endpointUrl": "",
+            "modelDeployment": "",
+            "apiVersion": "2024-12-01-preview",
+            "auth": {
+              "mode": "az-bearer",
+              "tenantId": "",
+              "subscriptionId": "",
+              "apiKeyEnvVar": "",
+              "secretStorageKey": ""
+            }
+          },
+          "description": "Grouped Azure AI Foundry direct-provider settings. Secrets are resolved externally and are not stored in settings.",
+          "properties": {
+            "commandPath": {
+              "type": "string",
+              "default": "azure-foundry",
+              "description": "Path or command name for the Azure AI Foundry CLI executable."
+            },
+            "endpointUrl": {
+              "type": "string",
+              "default": "",
+              "description": "Azure AI Foundry endpoint URL (e.g. https://<resource>.openai.azure.com/)."
+            },
+            "modelDeployment": {
+              "type": "string",
+              "default": "",
+              "description": "Azure AI Foundry model deployment name (e.g. gpt-4o)."
+            },
+            "apiVersion": {
+              "type": "string",
+              "default": "2024-12-01-preview",
+              "description": "Azure OpenAI API version to use with Azure AI Foundry."
+            },
+            "auth": {
+              "type": "object",
+              "default": {
+                "mode": "az-bearer",
+                "tenantId": "",
+                "subscriptionId": "",
+                "apiKeyEnvVar": "",
+                "secretStorageKey": ""
+              },
+              "description": "Azure auth source metadata. Secrets are resolved externally, not stored in settings.",
+              "properties": {
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "az-bearer",
+                    "env-api-key",
+                    "vscode-secret"
+                  ],
+                  "default": "az-bearer",
+                  "description": "How the provider resolves Azure credentials."
+                },
+                "tenantId": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure tenant identifier used for bearer-token auth."
+                },
+                "subscriptionId": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure subscription identifier used for readiness diagnostics."
+                },
+                "apiKeyEnvVar": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Environment variable name used when the API key is sourced externally."
+                },
+                "secretStorageKey": {
+                  "type": "string",
+                  "default": "",
+                  "description": "SecretStorage key used when the API key is sourced from VS Code secrets."
+                }
+              }
+            }
+          }
         },
         "ralphCodex.claudeMaxTurns": {
           "type": "number",

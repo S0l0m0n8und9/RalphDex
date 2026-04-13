@@ -539,25 +539,48 @@ The operator presets select memory strategies automatically: `simple` uses `verb
 
 ## Azure AI Foundry Provider
 
-> **Maturity: beta** — the direct-HTTPS provider with DefaultAzureCredential is functional but requires operator-managed Azure identity configuration.
+> **Maturity: beta** — both Azure-backed providers are functional, but operators still need to supply Azure resource metadata and a secure auth source.
 
-Set `ralphCodex.cliProvider` to `azure-foundry` to use the Azure AI Foundry direct-HTTPS provider instead of a local CLI tool.
+RalphDex now supports two Azure-backed execution paths:
+
+- `copilot-foundry` — runs GitHub Copilot CLI with Azure OpenAI BYOK env shaping
+- `azure-foundry` — uses RalphDex's direct HTTPS Azure provider
 
 ### Required configuration
 
+For `azure-foundry`:
+
 | Setting | Purpose |
 |---|---|
-| `ralphCodex.azureFoundryEndpointUrl` | Azure OpenAI endpoint (e.g. `https://<resource>.openai.azure.com/`) |
-| `ralphCodex.azureFoundryModelDeployment` | Deployment name (e.g. `gpt-4o`) |
+| `ralphCodex.azureFoundry.endpointUrl` | Azure inference endpoint URL |
+| `ralphCodex.azureFoundry.modelDeployment` | Azure deployment name |
+
+For `copilot-foundry`:
+
+| Setting | Purpose |
+|---|---|
+| `ralphCodex.copilotFoundry.azure.resourceName` or `ralphCodex.copilotFoundry.azure.baseUrlOverride` | Azure host identity for Copilot BYOK |
+| `ralphCodex.copilotFoundry.model.deployment` | Azure deployment name sent to Copilot as the wire model |
 
 ### Authentication
 
-Ralph supports two authentication paths:
+Both Azure-backed providers support the same secure auth sources:
 
-1. **API key** — set `ralphCodex.azureFoundryApiKey`. Simplest path; no additional dependencies.
-2. **Azure AD (DefaultAzureCredential)** — leave `azureFoundryApiKey` empty and install `@azure/identity` as a workspace dependency. Ralph lazily loads `DefaultAzureCredential` and acquires a bearer token. Ensure credentials are available in the environment (e.g. `az login`, managed identity, or environment variables).
+1. `az-bearer` — Ralph acquires a bearer token from Azure CLI at runtime. Ensure `az login` succeeds for the selected tenant and subscription before execution.
+2. `env-api-key` — Ralph resolves the API key from a named environment variable such as `AZURE_OPENAI_API_KEY`.
+3. `vscode-secret` — Ralph resolves the API key from VS Code SecretStorage using a configured secret key name.
 
-Preflight reports a warning when no API key is set and `@azure/identity` is installed (Azure AD path) and an error when neither authentication method is available.
+Literal API keys in `settings.json` are not supported.
+
+Use `Ralphdex: Set Provider Secret` and `Ralphdex: Clear Provider Secret` when you want to manage `vscode-secret` values without touching workspace settings.
+
+For `copilot-foundry`, Ralph passes the resolved auth source into Copilot CLI using the CLI's BYOK environment contract. On this machine, `copilot help providers` reports support for:
+
+- `COPILOT_PROVIDER_TYPE=azure`
+- `COPILOT_PROVIDER_BASE_URL=https://<resource>.openai.azure.com`
+- `COPILOT_PROVIDER_BEARER_TOKEN` or `COPILOT_PROVIDER_API_KEY`
+- `COPILOT_PROVIDER_WIRE_API=responses` for GPT-5-class models
+- `COPILOT_PROVIDER_MODEL_ID` plus `COPILOT_PROVIDER_WIRE_MODEL` when the Azure deployment name differs from the base model id
 
 ### Prompt caching
 

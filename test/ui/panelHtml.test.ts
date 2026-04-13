@@ -366,7 +366,10 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
     cliProvider: 'copilot',
     memoryStrategy: 'summary',
     planningPass: { enabled: true, mode: 'dedicated' },
-    azureFoundryEndpointUrl: 'https://foundry.example'
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: 'https://foundry.example'
+    }
   }, {
     newSettingKeys: ['planningPass.enabled']
   });
@@ -379,7 +382,7 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
   assert.ok(html.includes('Azure Foundry'));
   assert.ok(html.includes('data-setting="operatorMode"'));
   assert.ok(html.includes('data-setting="planningPass.enabled"'));
-  assert.ok(html.includes('data-setting="azureFoundryEndpointUrl"'));
+  assert.ok(html.includes('data-setting="azureFoundry.endpointUrl"'));
   assert.ok(html.includes('https://foundry.example'));
   assert.ok(html.includes('Default: false'));
   assert.ok(html.includes('settings-badge'));

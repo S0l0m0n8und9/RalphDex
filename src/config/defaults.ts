@@ -5,11 +5,40 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   codexCommandPath: 'codex',
   claudeCommandPath: 'claude',
   copilotCommandPath: 'copilot',
-  azureFoundryCommandPath: 'azure-foundry',
-  azureFoundryEndpointUrl: '',
-  azureFoundryApiKey: '',
-  azureFoundryModelDeployment: '',
-  azureFoundryApiVersion: '2024-12-01-preview',
+  copilotFoundry: {
+    commandPath: 'copilot',
+    approvalMode: 'allow-all',
+    maxAutopilotContinues: 200,
+    auth: {
+      mode: 'az-bearer',
+      tenantId: '',
+      subscriptionId: '',
+      apiKeyEnvVar: '',
+      secretStorageKey: ''
+    },
+    azure: {
+      resourceGroup: '',
+      resourceName: '',
+      baseUrlOverride: ''
+    },
+    model: {
+      deployment: '',
+      wireApi: 'responses'
+    }
+  } satisfies RalphCodexConfig['copilotFoundry'],
+  azureFoundry: {
+    commandPath: 'azure-foundry',
+    endpointUrl: '',
+    modelDeployment: '',
+    apiVersion: '2024-12-01-preview',
+    auth: {
+      mode: 'az-bearer',
+      tenantId: '',
+      subscriptionId: '',
+      apiKeyEnvVar: '',
+      secretStorageKey: ''
+    }
+  } satisfies RalphCodexConfig['azureFoundry'],
   claudeMaxTurns: 50,
   copilotMaxAutopilotContinues: 200,
   claudePermissionMode: 'dangerously-skip-permissions',

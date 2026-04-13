@@ -1,6 +1,6 @@
 import { CodexExecRequest, CodexExecResult } from './types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'azure-foundry';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry';
 
 export interface CliLaunchSpec {
   args: string[];
@@ -8,11 +8,14 @@ export interface CliLaunchSpec {
   stdinText?: string;
   /** When true the command is executed inside a shell (required for .bat/.cmd on Windows). */
   shell?: boolean;
+  /** Optional environment overrides for the launched process. */
+  env?: NodeJS.ProcessEnv;
 }
 
 export interface CliProvider {
   readonly id: CliProviderId;
   buildLaunchSpec(request: CodexExecRequest, skipGitCheck: boolean): CliLaunchSpec;
+  prepareLaunchSpec?(request: CodexExecRequest, skipGitCheck: boolean): Promise<CliLaunchSpec>;
   extractResponseText(stdout: string, stderr: string, lastMessagePath: string): Promise<string>;
   isIgnorableStderrLine(line: string): boolean;
   summarizeResult(input: { exitCode: number; stderr: string; lastMessage: string }): string;
