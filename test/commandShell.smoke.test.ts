@@ -400,10 +400,13 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   assert.equal(tasksJson.tasks.length, 2);
   assert.equal(tasksJson.tasks[0].id, 'T1');
   assert.equal(tasksJson.tasks[0].status, 'todo');
+  assert.match(tasksJson.tasks[0].notes, /Read the current content of \.ralph\/prd\.md/);
   assert.ok(Array.isArray(tasksJson.tasks[0].acceptance), 'T1 should have acceptance criteria');
   assert.equal(tasksJson.tasks[1].id, 'T2');
   assert.equal(tasksJson.tasks[1].status, 'todo');
   assert.deepEqual(tasksJson.tasks[1].dependsOn, ['T1']);
+  assert.match(tasksJson.tasks[1].notes, /create 10 actionable tasks/i);
+  assert.ok(Array.isArray(tasksJson.tasks[1].acceptance), 'T2 should keep acceptance criteria');
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
   assert.deepEqual(harness.state.shownDocuments, [
     path.join(rootPath, '.ralph', 'prd.md'),
@@ -1981,6 +1984,9 @@ test('New Project scaffolds a project directory and switches workspace settings'
   const tasksJson = JSON.parse(await fs.readFile(path.join(projectDir, 'tasks.json'), 'utf8'));
   assert.equal(tasksJson.version, 2);
   assert.ok(tasksJson.tasks.length >= 1, 'Expected at least one auto-generated starter task');
+  assert.match(tasksJson.tasks[0].notes, /Read the current content of \.ralph\/prd\.md/);
+  assert.ok(Array.isArray(tasksJson.tasks[0].acceptance), 'Expected bootstrap task acceptance to survive project creation');
+  assert.deepEqual(tasksJson.tasks[1].dependsOn, ['T1']);
 
   // progress.md is empty
   assert.equal(await fs.readFile(path.join(projectDir, 'progress.md'), 'utf8'), '');
@@ -1997,6 +2003,78 @@ test('New Project scaffolds a project directory and switches workspace settings'
   ]);
 
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /auth-refactor.*created and active/);
+});
+
+test('Add Task appends heading-derived tasks without stripping existing rich task structure', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
+    '# Product / project brief',
+    '',
+    '## Overview',
+    'Keep the extension safe.',
+    '',
+    '## Expand guardrail coverage',
+    'Capture missing producer-path regressions.',
+    '',
+    '## Tighten command-level persistence checks',
+    'Verify every producer keeps the supported task shape.'
+  ].join('\n'), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Inspect guardrails',
+        status: 'blocked',
+        notes: 'Existing rich task should survive append.',
+        validation: 'npm run validate',
+        blocker: 'Waiting on fixture review',
+        priority: 'high',
+        mode: 'documentation',
+        tier: 'complex',
+        acceptance: ['Original task remains intact'],
+        constraints: ['Do not rewrite existing tasks'],
+        context: ['src/commands/registerCommands.ts']
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.addTask');
+
+  const tasksJson = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    version: number;
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+
+  assert.equal(tasksJson.version, 2);
+  assert.equal(tasksJson.mutationCount, 1);
+  assert.deepEqual(tasksJson.tasks[0], {
+    id: 'T1',
+    title: 'Inspect guardrails',
+    status: 'blocked',
+    notes: 'Existing rich task should survive append.',
+    validation: 'npm run validate',
+    blocker: 'Waiting on fixture review',
+    priority: 'high',
+    mode: 'documentation',
+    tier: 'complex',
+    acceptance: ['Original task remains intact'],
+    constraints: ['Do not rewrite existing tasks'],
+    context: ['src/commands/registerCommands.ts']
+  });
+  assert.deepEqual(tasksJson.tasks.slice(1), [
+    { id: 'T2', title: 'Overview', status: 'todo' },
+    { id: 'T3', title: 'Expand guardrail coverage', status: 'todo' },
+    { id: 'T4', title: 'Tighten command-level persistence checks', status: 'todo' }
+  ]);
+  assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'tasks.json')]);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Added 3 task\(s\) from PRD/);
 });
 
 test('New Project aborts with a warning when the project slug already exists', async () => {

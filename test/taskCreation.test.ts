@@ -93,6 +93,52 @@ test('appendNormalizedTasksToFile appends tasks through the shared normalization
   assert.equal(parsed.mutationCount, 1);
 });
 
+test('appendNormalizedTasksToFile preserves the full supported task shape in serialized tasks.json output', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-create-rich-'));
+  const tasksPath = path.join(tempDir, 'tasks.json');
+  await fs.writeFile(tasksPath, `${JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Existing task', status: 'todo' }]
+  }, null, 2)}\n`, 'utf8');
+
+  await appendNormalizedTasksToFile(tasksPath, [
+    {
+      id: ' T2 ',
+      title: ' Rich append task ',
+      status: 'blocked',
+      rationale: 'Append should preserve the producer payload.',
+      validation: 'npm run validate',
+      blocker: 'Waiting on shared fixture',
+      priority: 'high',
+      mode: 'documentation',
+      tier: 'complex',
+      acceptance: ['Task is persisted with all supported fields'],
+      constraints: ['Do not rewrite sibling tasks'],
+      context: ['src/ralph/taskCreation.ts']
+    }
+  ]);
+
+  const parsed = JSON.parse(await fs.readFile(tasksPath, 'utf8')) as {
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+  assert.deepEqual(parsed.tasks[1], {
+    id: 'T2',
+    title: 'Rich append task',
+    status: 'blocked',
+    notes: 'Append should preserve the producer payload.',
+    validation: 'npm run validate',
+    blocker: 'Waiting on shared fixture',
+    priority: 'high',
+    mode: 'documentation',
+    tier: 'complex',
+    acceptance: ['Task is persisted with all supported fields'],
+    constraints: ['Do not rewrite sibling tasks'],
+    context: ['src/ralph/taskCreation.ts']
+  });
+  assert.equal(parsed.mutationCount, 1);
+});
+
 test('replaceTasksFileWithNormalizedTasks rewrites the file using the shared normalization pipeline', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-replace-'));
   const tasksPath = path.join(tempDir, 'tasks.json');
@@ -120,6 +166,78 @@ test('replaceTasksFileWithNormalizedTasks rewrites the file using the shared nor
       title: 'Replacement task',
       status: 'todo',
       validation: 'npm run validate'
+    }
+  ]);
+  assert.equal(parsed.mutationCount, 1);
+});
+
+test('replaceTasksFileWithNormalizedTasks preserves the full supported task shape in serialized tasks.json output', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-replace-rich-'));
+  const tasksPath = path.join(tempDir, 'tasks.json');
+  await fs.writeFile(tasksPath, `${JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Old task', status: 'todo' }]
+  }, null, 2)}\n`, 'utf8');
+
+  await replaceTasksFileWithNormalizedTasks(tasksPath, [
+    {
+      id: 'T0',
+      title: 'Replacement parent',
+      status: 'todo'
+    },
+    {
+      id: 'Tbase',
+      title: 'Replacement dependency',
+      status: 'todo'
+    },
+    {
+      id: ' T5 ',
+      title: ' Replacement rich task ',
+      status: 'todo',
+      parentId: 'T0',
+      dependencies: ['Tbase'],
+      notes: 'Replacement keeps the normalized producer shape.',
+      suggestedValidationCommand: 'npm run validate',
+      blocker: 'Needs final review',
+      priority: 'normal',
+      mode: 'documentation',
+      tier: 'complex',
+      acceptance_criteria: ['Replacement writes rich tasks.json output'],
+      constraints: ['Preserve normalized field names'],
+      files: ['src/commands/prdWizardPersistence.ts']
+    }
+  ]);
+
+  const parsed = JSON.parse(await fs.readFile(tasksPath, 'utf8')) as {
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+  assert.deepEqual(parsed.tasks, [
+    {
+      id: 'T0',
+      title: 'Replacement parent',
+      status: 'todo'
+    },
+    {
+      id: 'Tbase',
+      title: 'Replacement dependency',
+      status: 'todo'
+    },
+    {
+      id: 'T5',
+      title: 'Replacement rich task',
+      status: 'todo',
+      parentId: 'T0',
+      dependsOn: ['Tbase'],
+      notes: 'Replacement keeps the normalized producer shape.',
+      validation: 'npm run validate',
+      blocker: 'Needs final review',
+      priority: 'normal',
+      mode: 'documentation',
+      tier: 'complex',
+      acceptance: ['Replacement writes rich tasks.json output'],
+      constraints: ['Preserve normalized field names'],
+      context: ['src/commands/prdWizardPersistence.ts']
     }
   ]);
   assert.equal(parsed.mutationCount, 1);

@@ -3323,13 +3323,13 @@
     {
       "id": "T119.5",
       "title": "Add regression coverage proving every task producer preserves complete task structure",
-      "status": "todo",
+      "status": "done",
       "parentId": "T119",
       "dependsOn": [
         "T119.3",
         "T119.4"
       ],
-      "notes": "Lock in the invariant with focused tests per producer and shared helper tests. Cover preservation of acceptance, constraints, context, validation, and tier, plus expected absence behavior when a source legitimately omits a field.",
+      "notes": "Added regression coverage for shared task persistence, PRD wizard persistence, remediation child-task persistence, Initialize Workspace, New Project, and Add Task producer paths; validated the repo with npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "Unit tests cover the shared task-normalization helper on rich and sparse inputs",
@@ -3357,5 +3357,5 @@
       ]
     }
   ],
-  "mutationCount": 111
+  "mutationCount": 112
 }

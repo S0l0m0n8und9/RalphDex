@@ -96,6 +96,67 @@ test('applyTaskDecompositionProposalArtifact writes tasks.json through the share
   assert.deepEqual(result.taskFile.tasks[1]?.dependsOn, ['T0', 'T1.1', 'T1.2']);
 });
 
+test('applyTaskDecompositionProposalArtifact preserves rich child-task fields from remediation proposals', async () => {
+  const rootPath = await makeTempRoot();
+  const taskFilePath = path.join(rootPath, 'tasks.json');
+  await fs.writeFile(taskFilePath, JSON.stringify({
+    version: 2,
+    tasks: [
+      {
+        id: 'T0',
+        title: 'Foundation',
+        status: 'done'
+      },
+      {
+        id: 'T1',
+        title: 'Inspect guardrails',
+        status: 'todo',
+        dependsOn: ['T0'],
+        mode: 'documentation',
+        tier: 'complex',
+        validation: 'npm run validate'
+      }
+    ]
+  }, null, 2), 'utf8');
+
+  await applyTaskDecompositionProposalArtifact(taskFilePath, remediationArtifact({
+    suggestedChildTasks: [
+      {
+        id: 'T1.1',
+        title: 'Reproduce the blocker',
+        parentId: 'T1',
+        dependsOn: [{ taskId: 'T0', reason: 'inherits_parent_dependency' }],
+        validation: null,
+        rationale: 'First bounded step.',
+        acceptance: ['Capture a deterministic repro'],
+        constraints: ['Use the existing fixture harness'],
+        context: ['test/taskDecomposition.test.ts'],
+        tier: 'medium'
+      }
+    ]
+  }));
+
+  const persisted = JSON.parse(await fs.readFile(taskFilePath, 'utf8')) as {
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+  assert.equal(persisted.mutationCount, 1);
+  assert.deepEqual(persisted.tasks.find((task) => task.id === 'T1.1'), {
+    id: 'T1.1',
+    title: 'Reproduce the blocker',
+    status: 'todo',
+    parentId: 'T1',
+    dependsOn: ['T0'],
+    notes: 'First bounded step.',
+    validation: 'npm run validate',
+    mode: 'documentation',
+    tier: 'medium',
+    acceptance: ['Capture a deterministic repro'],
+    constraints: ['Use the existing fixture harness'],
+    context: ['test/taskDecomposition.test.ts']
+  });
+});
+
 test('deriveChildAcceptance returns fallback when parent has no acceptance', () => {
   const acceptance = deriveChildAcceptance('Review output agent', []);
   assert.deepEqual(acceptance, ['Review output agent is complete and passes validation']);

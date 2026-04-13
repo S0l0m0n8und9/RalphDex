@@ -107,6 +107,89 @@ test('writePrdWizardDraft writes files, applies selected settings, and reports s
   ]);
 });
 
+test('writePrdWizardDraft preserves rich reviewed task fields when rewriting tasks.json', async () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+  const rootPath = await makeTempRoot();
+  const ralphDir = path.join(rootPath, '.ralph');
+  const draft: PrdWizardDraftBundle = {
+    prdText: '# Product / project brief\n\nShip the wizard.\n',
+    tasks: [
+      {
+        id: 'T0',
+        title: 'Foundation parent',
+        status: 'todo'
+      },
+      {
+        id: 'Tbase',
+        title: 'Shared dependency',
+        status: 'todo'
+      },
+      {
+        id: 'T1',
+        title: 'Implement the wizard write flow',
+        status: 'blocked',
+        parentId: 'T0',
+        dependsOn: ['Tbase'],
+        notes: 'Preserve all supported reviewed fields.',
+        validation: 'npm run validate',
+        blocker: 'Waiting on fixture review',
+        priority: 'high',
+        mode: 'documentation',
+        tier: 'complex',
+        acceptance: ['writePrdWizardDraft persists the full task shape'],
+        constraints: ['Do not drop reviewed fields during replace'],
+        context: ['src/commands/prdWizardPersistence.ts']
+      }
+    ],
+    recommendedSkills: [],
+    configSelections: []
+  };
+
+  await writePrdWizardDraft(workspaceFolder(rootPath), draft, {
+    prdPath: path.join(ralphDir, 'prd.md'),
+    tasksPath: path.join(ralphDir, 'tasks.json'),
+    recommendedSkillsPath: path.join(ralphDir, 'recommended-skills.json')
+  });
+
+  const persistedTasks = JSON.parse(await fs.readFile(path.join(ralphDir, 'tasks.json'), 'utf8')) as {
+    version: number;
+    mutationCount?: number;
+    tasks: Array<Record<string, unknown>>;
+  };
+
+  assert.equal(persistedTasks.version, 2);
+  assert.equal(persistedTasks.mutationCount, 1);
+  assert.deepEqual(persistedTasks.tasks, [
+    {
+      id: 'T0',
+      title: 'Foundation parent',
+      status: 'todo'
+    },
+    {
+      id: 'Tbase',
+      title: 'Shared dependency',
+      status: 'todo'
+    },
+    {
+      id: 'T1',
+      title: 'Implement the wizard write flow',
+      status: 'blocked',
+      parentId: 'T0',
+      dependsOn: ['Tbase'],
+      notes: 'Preserve all supported reviewed fields.',
+      validation: 'npm run validate',
+      blocker: 'Waiting on fixture review',
+      priority: 'high',
+      mode: 'documentation',
+      tier: 'complex',
+      acceptance: ['writePrdWizardDraft persists the full task shape'],
+      constraints: ['Do not drop reviewed fields during replace'],
+      context: ['src/commands/prdWizardPersistence.ts']
+    }
+  ]);
+});
+
 test('writePrdWizardDraft rewrites recommended-skills.json to match an empty operator selection', async () => {
   const harness = vscodeTestHarness();
   harness.reset();
