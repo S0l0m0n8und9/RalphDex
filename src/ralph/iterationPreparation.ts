@@ -36,7 +36,8 @@ import {
   listSelectableTasks,
   markTaskInProgress,
   RalphTaskClaimDetails,
-  selectNextTask
+  selectNextTask,
+  selectNextTaskForRole
 } from './taskFile';
 import { readTaskPlan } from './planningPass';
 import {
@@ -328,8 +329,21 @@ export async function prepareIterationContext(
       task: selectNextTask(taskFile),
       claim: null
     };
-  const selectedTask = claimedSelection.task;
-  const selectedTaskClaim = claimedSelection.claim;
+  const recoveredSelection = promptTarget === 'cliExec' && claimedSelection.task === null
+    ? await recoverUnexpectedUnclaimedSelection({
+      rootPath,
+      config,
+      taskFile,
+      taskFilePath: snapshot.paths.taskFilePath,
+      claimFilePath: snapshot.paths.claimFilePath,
+      provenanceId,
+      agentId: config.agentId,
+      focusTaskId: input.focusTaskId
+    })
+    : null;
+  const effectiveSelection = recoveredSelection?.task ? recoveredSelection : claimedSelection;
+  const selectedTask = effectiveSelection.task;
+  const selectedTaskClaim = effectiveSelection.claim;
   // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
   // the todo→in_progress bookkeeping change is not counted as durable agent progress.
   const beforeCoreState = promptTarget === 'cliExec'
@@ -640,28 +654,9 @@ async function selectClaimedTask(
   agentId: string,
   focusTaskId?: string
 ): Promise<{ task: RalphTask | null; claim: RalphTaskClaimDetails | null }> {
-  const selectable = listSelectableTasks(taskFile);
-  // When a focusTaskId is provided, sort so that task comes first.
-  const candidates = focusTaskId
-    ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
-    : selectable;
-
-  // In dedicated planning mode, implementer agents only claim tasks that already
-  // have a task-plan.json written by a dedicated planner agent.
-  const requirePlan = config.planningPass?.enabled
-    && config.planningPass.mode === 'dedicated'
-    && (config.agentRole === 'implementer' || config.agentRole === 'build');
-
   const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
-
+  const candidates = await listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId);
   for (const candidate of candidates) {
-    if (requirePlan) {
-      const plan = await readTaskPlan(artifactsDir, candidate.id);
-      if (!plan) {
-        continue; // Wait for a planner agent to produce the task-plan.json
-      }
-    }
-
     const claimBranches = config.scmStrategy === 'branch-per-task'
       ? await prepareTaskBranchWorkspace(rootPath, candidate)
       : null;
@@ -689,6 +684,90 @@ async function selectClaimedTask(
   return {
     task: null,
     claim: null
+  };
+}
+
+async function listClaimSelectionCandidates(
+  taskFile: RalphTaskFile,
+  config: RalphCodexConfig,
+  artifactsDir: string,
+  focusTaskId?: string
+): Promise<RalphTask[]> {
+  const requirePlan = config.planningPass?.enabled
+    && config.planningPass.mode === 'dedicated'
+    && (config.agentRole === 'implementer' || config.agentRole === 'build');
+  const roleAwarePreferred = await selectNextTaskForRole(taskFile, config.agentRole, artifactsDir, { requirePlan });
+  const selectable = listSelectableTasks(taskFile);
+  const candidates = focusTaskId
+    ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
+    : selectable;
+
+  if (!roleAwarePreferred) {
+    return [];
+  }
+
+  const roleAwareCandidateIds = new Set<string>([roleAwarePreferred.id]);
+  if (!requirePlan && config.agentRole !== 'planner' && config.agentRole !== 'reviewer') {
+    for (const candidate of candidates) {
+      roleAwareCandidateIds.add(candidate.id);
+    }
+  }
+
+  return candidates.filter((candidate) => roleAwareCandidateIds.has(candidate.id));
+}
+
+interface RecoverUnexpectedUnclaimedSelectionInput {
+  rootPath: string;
+  config: RalphCodexConfig;
+  taskFile: RalphTaskFile;
+  taskFilePath: string;
+  claimFilePath: string;
+  provenanceId: string;
+  agentId: string;
+  focusTaskId?: string;
+}
+
+export async function recoverUnexpectedUnclaimedSelection(
+  input: RecoverUnexpectedUnclaimedSelectionInput
+): Promise<{ task: RalphTask | null; claim: RalphTaskClaimDetails | null; recovered: boolean }> {
+  const artifactsDir = path.join(input.rootPath, input.config.artifactRetentionPath || '.ralph/artifacts');
+  const candidates = await listClaimSelectionCandidates(input.taskFile, input.config, artifactsDir, input.focusTaskId);
+  const recoveryCandidate = candidates[0] ?? null;
+  if (!recoveryCandidate) {
+    return { task: null, claim: null, recovered: false };
+  }
+
+  const claimGraph = await inspectTaskClaimGraph(input.claimFilePath);
+  const claimEntry = claimGraph.tasks.find((entry) => entry.taskId === recoveryCandidate.id);
+  if (claimEntry?.canonicalClaim?.claim.status === 'active') {
+    return { task: null, claim: null, recovered: false };
+  }
+
+  const claimBranches = input.config.scmStrategy === 'branch-per-task'
+    ? await prepareTaskBranchWorkspace(input.rootPath, recoveryCandidate)
+    : null;
+  const claimResult = await acquireClaim(
+    input.claimFilePath,
+    recoveryCandidate.id,
+    input.agentId,
+    input.provenanceId,
+    {
+      ...(claimBranches ?? {}),
+      ttlMs: input.config.claimTtlHours * 60 * 60 * 1000
+    }
+  );
+  if (claimResult.outcome !== 'acquired' && claimResult.outcome !== 'already_held') {
+    return { task: null, claim: null, recovered: false };
+  }
+
+  if (recoveryCandidate.status === 'todo') {
+    await markTaskInProgress(input.taskFilePath, recoveryCandidate.id);
+  }
+
+  return {
+    task: recoveryCandidate,
+    claim: claimResult.claim ?? claimResult.canonicalClaim,
+    recovered: true
   };
 }
 

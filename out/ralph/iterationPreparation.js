@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prepareIterationContext = prepareIterationContext;
+exports.recoverUnexpectedUnclaimedSelection = recoverUnexpectedUnclaimedSelection;
 exports.readLastSummarizationMode = readLastSummarizationMode;
 exports.maybeSummariseHistory = maybeSummariseHistory;
 const fs = __importStar(require("fs/promises"));
@@ -203,8 +204,21 @@ async function prepareIterationContext(input) {
             task: (0, taskFile_1.selectNextTask)(taskFile),
             claim: null
         };
-    const selectedTask = claimedSelection.task;
-    const selectedTaskClaim = claimedSelection.claim;
+    const recoveredSelection = promptTarget === 'cliExec' && claimedSelection.task === null
+        ? await recoverUnexpectedUnclaimedSelection({
+            rootPath,
+            config,
+            taskFile,
+            taskFilePath: snapshot.paths.taskFilePath,
+            claimFilePath: snapshot.paths.claimFilePath,
+            provenanceId,
+            agentId: config.agentId,
+            focusTaskId: input.focusTaskId
+        })
+        : null;
+    const effectiveSelection = recoveredSelection?.task ? recoveredSelection : claimedSelection;
+    const selectedTask = effectiveSelection.task;
+    const selectedTaskClaim = effectiveSelection.claim;
     // Re-capture after selectClaimedTask may have marked the selected task in_progress so that
     // the todo→in_progress bookkeeping change is not counted as durable agent progress.
     const beforeCoreState = promptTarget === 'cliExec'
@@ -490,24 +504,9 @@ async function prepareIterationContext(input) {
     return preparedContext;
 }
 async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId, focusTaskId) {
-    const selectable = (0, taskFile_1.listSelectableTasks)(taskFile);
-    // When a focusTaskId is provided, sort so that task comes first.
-    const candidates = focusTaskId
-        ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
-        : selectable;
-    // In dedicated planning mode, implementer agents only claim tasks that already
-    // have a task-plan.json written by a dedicated planner agent.
-    const requirePlan = config.planningPass?.enabled
-        && config.planningPass.mode === 'dedicated'
-        && (config.agentRole === 'implementer' || config.agentRole === 'build');
     const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
+    const candidates = await listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId);
     for (const candidate of candidates) {
-        if (requirePlan) {
-            const plan = await (0, planningPass_1.readTaskPlan)(artifactsDir, candidate.id);
-            if (!plan) {
-                continue; // Wait for a planner agent to produce the task-plan.json
-            }
-        }
         const claimBranches = config.scmStrategy === 'branch-per-task'
             ? await prepareTaskBranchWorkspace(rootPath, candidate)
             : null;
@@ -528,6 +527,57 @@ async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claim
     return {
         task: null,
         claim: null
+    };
+}
+async function listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId) {
+    const requirePlan = config.planningPass?.enabled
+        && config.planningPass.mode === 'dedicated'
+        && (config.agentRole === 'implementer' || config.agentRole === 'build');
+    const roleAwarePreferred = await (0, taskFile_1.selectNextTaskForRole)(taskFile, config.agentRole, artifactsDir, { requirePlan });
+    const selectable = (0, taskFile_1.listSelectableTasks)(taskFile);
+    const candidates = focusTaskId
+        ? [...selectable].sort((a, b) => (a.id === focusTaskId ? -1 : b.id === focusTaskId ? 1 : 0))
+        : selectable;
+    if (!roleAwarePreferred) {
+        return [];
+    }
+    const roleAwareCandidateIds = new Set([roleAwarePreferred.id]);
+    if (!requirePlan && config.agentRole !== 'planner' && config.agentRole !== 'reviewer') {
+        for (const candidate of candidates) {
+            roleAwareCandidateIds.add(candidate.id);
+        }
+    }
+    return candidates.filter((candidate) => roleAwareCandidateIds.has(candidate.id));
+}
+async function recoverUnexpectedUnclaimedSelection(input) {
+    const artifactsDir = path.join(input.rootPath, input.config.artifactRetentionPath || '.ralph/artifacts');
+    const candidates = await listClaimSelectionCandidates(input.taskFile, input.config, artifactsDir, input.focusTaskId);
+    const recoveryCandidate = candidates[0] ?? null;
+    if (!recoveryCandidate) {
+        return { task: null, claim: null, recovered: false };
+    }
+    const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(input.claimFilePath);
+    const claimEntry = claimGraph.tasks.find((entry) => entry.taskId === recoveryCandidate.id);
+    if (claimEntry?.canonicalClaim?.claim.status === 'active') {
+        return { task: null, claim: null, recovered: false };
+    }
+    const claimBranches = input.config.scmStrategy === 'branch-per-task'
+        ? await prepareTaskBranchWorkspace(input.rootPath, recoveryCandidate)
+        : null;
+    const claimResult = await (0, taskFile_1.acquireClaim)(input.claimFilePath, recoveryCandidate.id, input.agentId, input.provenanceId, {
+        ...(claimBranches ?? {}),
+        ttlMs: input.config.claimTtlHours * 60 * 60 * 1000
+    });
+    if (claimResult.outcome !== 'acquired' && claimResult.outcome !== 'already_held') {
+        return { task: null, claim: null, recovered: false };
+    }
+    if (recoveryCandidate.status === 'todo') {
+        await (0, taskFile_1.markTaskInProgress)(input.taskFilePath, recoveryCandidate.id);
+    }
+    return {
+        task: recoveryCandidate,
+        claim: claimResult.claim ?? claimResult.canonicalClaim,
+        recovered: true
     };
 }
 async function prepareTaskBranchWorkspace(rootPath, task) {
