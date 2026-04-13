@@ -691,10 +691,39 @@ function buildFailureFeedSection(state) {
       <div><strong>Recovery attempts</strong> ${entry.recoveryAttemptCount ?? 0} · <strong>Human review</strong> ${entry.humanReviewRecommended ? 'recommended' : 'not requested'}</div>
       ${entry.remediationSummary ? `<div><strong>Remediation</strong> ${(0, htmlHelpers_1.esc)(entry.remediationSummary)}</div>` : ''}
       <div class="inline-actions">
-        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">View</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.applyLatestTaskDecompositionProposal"><span class="btn-label">Recover</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">View Diagnosis</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Auto-Recover</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.skipTask"><span class="btn-label">Skip Task</span><span class="btn-spinner"></span></button>
       </div>
     </div>`).join('\n')}
+  </div>`;
+}
+function buildDiagnosisSection(state) {
+    const diagnosis = state.dashboardSnapshot?.diagnosis ?? null;
+    if (!diagnosis) {
+        return `<div class="dashboard-summary-card">
+      <div class="card-title">Focused Diagnosis</div>
+      <div class="empty">No focused diagnosis is available for the selected task.</div>
+    </div>`;
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">Focused Diagnosis</div>
+    <div class="failure-meta">
+      <div><strong>${(0, htmlHelpers_1.esc)(diagnosis.taskId)}</strong> · ${(0, htmlHelpers_1.esc)(diagnosis.taskTitle)}</div>
+      <div><strong>Category</strong> ${(0, htmlHelpers_1.esc)(diagnosis.category)} · <strong>Confidence</strong> ${(0, htmlHelpers_1.esc)(diagnosis.confidence)}</div>
+      <div><strong>Cause</strong> ${(0, htmlHelpers_1.esc)(diagnosis.summary)}</div>
+      <div><strong>Suggested action</strong> ${(0, htmlHelpers_1.esc)(diagnosis.suggestedAction)}</div>
+      <div><strong>Recovery attempts</strong> ${diagnosis.recoveryAttemptCount ?? 0}</div>
+      ${diagnosis.remediationSummary ? `<div><strong>Remediation</strong> ${(0, htmlHelpers_1.esc)(diagnosis.remediationSummary)}</div>` : ''}
+      ${diagnosis.retryPromptAddendum ? `<div><strong>Retry addendum</strong> ${(0, htmlHelpers_1.esc)(diagnosis.retryPromptAddendum)}</div>` : ''}
+      <div><strong>failure-analysis.json</strong> ${(0, htmlHelpers_1.esc)(diagnosis.failureAnalysisPath ?? 'none')}</div>
+      <div><strong>recovery-state.json</strong> ${(0, htmlHelpers_1.esc)(diagnosis.recoveryStatePath ?? 'none')}</div>
+      <div class="inline-actions">
+        <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">Open Focused View</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Auto-Recover</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.skipTask"><span class="btn-label">Skip Task</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
   </div>`;
 }
 function buildAgentGridSection(state) {
@@ -937,6 +966,7 @@ function buildDiagnosticsTab(state) {
     return `<div class="diagnostics-grid">
     ${buildPipelineSection(state)}
     ${buildTaskBoardSection(state)}
+    ${buildDiagnosisSection(state)}
     ${buildFailureFeedSection(state)}
     ${buildAgentGridSection(state)}
     ${buildDeadLetterSection(state)}

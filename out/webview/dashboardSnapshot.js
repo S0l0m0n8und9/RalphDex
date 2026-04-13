@@ -34,6 +34,7 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         pipeline: buildPipelineStrip(snapshot),
         taskBoard: buildTaskBoard(snapshot),
         agentGrid: buildAgentGrid(agentSummaries),
+        diagnosis: buildDiagnosis(snapshot),
         failureFeed: buildFailureFeed(snapshot),
         deadLetter: buildDeadLetter(snapshot),
         quickActions: buildQuickActions(snapshot),
@@ -126,6 +127,24 @@ function buildFailureFeed(snapshot) {
     entriesWithTimestamps.sort((left, right) => compareIsoTimestampsDesc(left.createdAt, right.createdAt));
     return {
         entries: entriesWithTimestamps.slice(0, 5).map(({ createdAt: _createdAt, ...entry }) => entry),
+    };
+}
+function buildDiagnosis(snapshot) {
+    if (!snapshot.selectedTask || !snapshot.latestFailureAnalysis) {
+        return null;
+    }
+    return {
+        taskId: snapshot.selectedTask.id,
+        taskTitle: snapshot.selectedTask.title,
+        category: snapshot.latestFailureAnalysis.rootCauseCategory,
+        confidence: snapshot.latestFailureAnalysis.confidence,
+        summary: snapshot.latestFailureAnalysis.summary,
+        suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
+        retryPromptAddendum: snapshot.latestFailureAnalysis.retryPromptAddendum ?? null,
+        recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
+        remediationSummary: snapshot.latestRemediation?.summary ?? null,
+        failureAnalysisPath: snapshot.latestFailureAnalysisPath ?? null,
+        recoveryStatePath: snapshot.recoveryStatePath ?? null,
     };
 }
 function buildDeadLetter(snapshot) {

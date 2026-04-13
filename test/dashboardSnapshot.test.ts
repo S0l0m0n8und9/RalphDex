@@ -35,6 +35,8 @@ function minimalSnapshot(
       | 'lastFailureCategory'
       | 'recoveryAttemptCount'
       | 'latestFailureAnalysis'
+      | 'latestFailureAnalysisPath'
+      | 'recoveryStatePath'
       | 'latestProvenanceBundle'
     >
   > = {}
@@ -51,6 +53,8 @@ function minimalSnapshot(
     lastFailureCategory: undefined,
     recoveryAttemptCount: undefined,
     latestFailureAnalysis: null,
+    latestFailureAnalysisPath: null,
+    recoveryStatePath: null,
     latestProvenanceBundle: null,
     ...overrides,
   } as unknown as RalphStatusSnapshot;
@@ -219,6 +223,14 @@ test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, fail
   assert.strictEqual(result.taskBoard.selectedTaskTitle, 'Webview UI Phase 2.1');
   assert.strictEqual(result.taskBoard.nextIteration, 42);
 
+  // Focused diagnosis
+  assert.ok(result.diagnosis !== null);
+  assert.strictEqual(result.diagnosis!.taskId, 'T108');
+  assert.strictEqual(result.diagnosis!.taskTitle, 'Webview UI Phase 2.1');
+  assert.strictEqual(result.diagnosis!.confidence, 'high');
+  assert.strictEqual(result.diagnosis!.recoveryAttemptCount, 2);
+  assert.strictEqual(result.diagnosis!.suggestedAction, 'Align the emitted payload to the validator schema.');
+
   // Failure feed
   assert.strictEqual(result.failureFeed.entries.length, 1);
   assert.strictEqual(result.failureFeed.entries[0].category, 'validation_mismatch');
@@ -372,6 +384,8 @@ test('buildDashboardSnapshot: failure feed includes recent selected-task and dea
       title: 'Surface dashboard sections',
       status: 'in_progress',
     } as RalphStatusSnapshot['selectedTask'],
+    latestFailureAnalysisPath: '.ralph/artifacts/T110/failure-analysis.json' as unknown as RalphStatusSnapshot['latestFailureAnalysisPath'],
+    recoveryStatePath: '.ralph/artifacts/T110/recovery-state.json' as unknown as RalphStatusSnapshot['recoveryStatePath'],
     latestFailureAnalysis: selectedTaskAnalysis,
     latestRemediation: {
       trigger: 'repeated_no_progress',
@@ -403,6 +417,8 @@ test('buildDashboardSnapshot: failure feed includes recent selected-task and dea
   assert.equal(result.failureFeed.entries[1].recoveryAttemptCount, 4);
   assert.equal(result.failureFeed.entries[1].remediationSummary, null);
   assert.equal(result.failureFeed.entries[1].humanReviewRecommended, false);
+  assert.equal(result.diagnosis?.failureAnalysisPath, '.ralph/artifacts/T110/failure-analysis.json');
+  assert.equal(result.diagnosis?.recoveryStatePath, '.ralph/artifacts/T110/recovery-state.json');
 });
 
 // ---------------------------------------------------------------------------

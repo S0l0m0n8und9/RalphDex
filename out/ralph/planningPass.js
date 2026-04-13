@@ -33,12 +33,36 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isDedicatedPlanningFallbackSingleAgent = isDedicatedPlanningFallbackSingleAgent;
+exports.shouldRequireTaskPlanForSelection = shouldRequireTaskPlanForSelection;
+exports.shouldRunInlinePlanningPassForConfig = shouldRunInlinePlanningPassForConfig;
 exports.parsePlanningResponse = parsePlanningResponse;
 exports.writeTaskPlan = writeTaskPlan;
 exports.readTaskPlan = readTaskPlan;
 exports.formatTaskPlanContext = formatTaskPlanContext;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+function isImplementerLikeRole(agentRole) {
+    return agentRole === 'implementer' || agentRole === 'build';
+}
+function isDedicatedPlanningFallbackSingleAgent(config) {
+    return config.planningPass.enabled
+        && config.planningPass.mode === 'dedicated'
+        && isImplementerLikeRole(config.agentRole)
+        && config.agentCount <= 1;
+}
+function shouldRequireTaskPlanForSelection(config) {
+    return config.planningPass.enabled
+        && config.planningPass.mode === 'dedicated'
+        && isImplementerLikeRole(config.agentRole)
+        && !isDedicatedPlanningFallbackSingleAgent(config);
+}
+function shouldRunInlinePlanningPassForConfig(config) {
+    if (!config.planningPass.enabled || !isImplementerLikeRole(config.agentRole)) {
+        return false;
+    }
+    return config.planningPass.mode === 'inline' || isDedicatedPlanningFallbackSingleAgent(config);
+}
 /**
  * Extracts a TaskPlanArtifact from a planning-prompt response.
  *

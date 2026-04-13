@@ -61,6 +61,10 @@ const prdWizardPersistence_1 = require("./prdWizardPersistence");
 const taskCreation_1 = require("../ralph/taskCreation");
 const preflight_1 = require("../ralph/preflight");
 const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
+const statusSnapshot_2 = require("./statusSnapshot");
+const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
+const taskDecomposition_1 = require("../ralph/taskDecomposition");
+const failureDiagnosisPanel_1 = require("../ui/failureDiagnosisPanel");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -95,6 +99,9 @@ async function showWarnings(warnings) {
 async function openTextFile(target) {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
     await vscode.window.showTextDocument(document, { preview: false });
+}
+function buildSkipTaskBlocker(diagnosis) {
+    return `Skipped after diagnosis (${diagnosis.category}): ${diagnosis.suggestedAction}`;
 }
 function summarizeProviderDiagnostics(messages) {
     return messages.join(' ');
@@ -379,6 +386,26 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
+    async function loadFocusedDiagnosis(workspaceFolder) {
+        const status = await (0, statusSnapshot_2.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
+        return (0, dashboardSnapshot_1.buildDashboardSnapshot)(status).diagnosis;
+    }
+    async function showFailureDiagnosisNotification(workspaceFolder) {
+        const diagnosis = await loadFocusedDiagnosis(workspaceFolder);
+        if (!diagnosis) {
+            return;
+        }
+        const choice = await vscode.window.showInformationMessage(`Failure diagnosis ready for ${diagnosis.taskId}: ${diagnosis.summary}`, 'View Diagnosis', 'Auto-Recover', 'Skip Task');
+        if (choice === 'View Diagnosis') {
+            await vscode.commands.executeCommand('ralphCodex.openFailureDiagnosis', diagnosis.taskId);
+        }
+        else if (choice === 'Auto-Recover') {
+            await vscode.commands.executeCommand('ralphCodex.autoRecoverTask', diagnosis.taskId);
+        }
+        else if (choice === 'Skip Task') {
+            await vscode.commands.executeCommand('ralphCodex.skipTask', diagnosis.taskId);
+        }
+    }
     /**
      * Execute the post-scaffold pipeline phases starting at `startPhase`.
      * Writes a phase checkpoint to the artifact after each sub-phase completes
@@ -822,6 +849,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 ? `Ralph CLI iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph CLI iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+            await showFailureDiagnosisNotification(workspaceFolder);
         }
     });
     registerCommand(context, logger, {
@@ -994,6 +1022,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     }
                     broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
                     void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
+                    await showFailureDiagnosisNotification(workspaceFolder);
                     return;
                 }
             }
@@ -1013,6 +1042,64 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             void vscode.window.showInformationMessage(lastRun
                 ? `Ralph CLI loop completed ${config.ralphIterationCap} iteration(s). Last outcome: ${lastRun.result.completionClassification}.`
                 : 'Ralph CLI loop completed with no iterations.');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openFailureDiagnosis',
+        label: 'Ralphdex: Open Failure Diagnosis',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const diagnosis = await loadFocusedDiagnosis(workspaceFolder);
+            if (!diagnosis) {
+                void vscode.window.showWarningMessage('No failure diagnosis is available for the selected task.');
+                return;
+            }
+            if (!panelManager) {
+                throw new Error('Failure diagnosis panel manager is unavailable.');
+            }
+            failureDiagnosisPanel_1.FailureDiagnosisPanel.createOrReveal(panelManager, diagnosis);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.autoRecoverTask',
+        label: 'Ralphdex: Auto-Recover Task',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const diagnosis = await loadFocusedDiagnosis(workspaceFolder);
+            if (!diagnosis) {
+                void vscode.window.showWarningMessage('No failure diagnosis is available for the selected task.');
+                return;
+            }
+            if (diagnosis.category === 'task_ambiguity') {
+                await vscode.commands.executeCommand('ralphCodex.applyLatestTaskDecompositionProposal');
+                return;
+            }
+            await vscode.commands.executeCommand('ralphCodex.runRalphIteration');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.skipTask',
+        label: 'Ralphdex: Skip Task',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const diagnosis = await loadFocusedDiagnosis(workspaceFolder);
+            if (!diagnosis) {
+                void vscode.window.showWarningMessage('No failure diagnosis is available for the selected task.');
+                return;
+            }
+            const confirmed = await vscode.window.showWarningMessage(`Mark ${diagnosis.taskId} (${diagnosis.taskTitle}) blocked and skip it for now?`, { modal: true }, 'Skip Task');
+            if (confirmed !== 'Skip Task') {
+                return;
+            }
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+            await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+            await (0, taskDecomposition_1.autoApplyMarkBlockedRemediation)({
+                taskFilePath: inspection.paths.taskFilePath,
+                taskId: diagnosis.taskId,
+                blocker: buildSkipTaskBlocker(diagnosis)
+            });
+            void vscode.window.showInformationMessage(`Task ${diagnosis.taskId} marked blocked so the loop can move past it.`);
         }
     });
     registerCommand(context, logger, {

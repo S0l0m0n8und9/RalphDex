@@ -118,6 +118,9 @@
     "onCommand:ralphCodex.runMultiAgentLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.showMultiAgentStatus",
+    "onCommand:ralphCodex.openFailureDiagnosis",
+    "onCommand:ralphCodex.autoRecoverTask",
+    "onCommand:ralphCodex.skipTask",
     "onCommand:ralphCodex.openLatestRalphSummary",
     "onCommand:ralphCodex.openLatestProvenanceBundle",
     "onCommand:ralphCodex.openLatestPromptEvidence",
@@ -205,6 +208,18 @@
       {
         "command": "ralphCodex.showMultiAgentStatus",
         "title": "Ralphdex: Show Multi-Agent Status"
+      },
+      {
+        "command": "ralphCodex.openFailureDiagnosis",
+        "title": "Ralphdex: Open Failure Diagnosis"
+      },
+      {
+        "command": "ralphCodex.autoRecoverTask",
+        "title": "Ralphdex: Auto-Recover Task"
+      },
+      {
+        "command": "ralphCodex.skipTask",
+        "title": "Ralphdex: Skip Task"
       },
       {
         "command": "ralphCodex.openLatestRalphSummary",

@@ -139,7 +139,7 @@ class RalphIterationEngine {
     async maybeRunInlinePlanningPass(workspaceFolder, configOverrides) {
         try {
             const config = { ...(0, readConfig_1.readConfig)(workspaceFolder), ...(configOverrides ?? {}) };
-            if (!config.planningPass.enabled || config.planningPass.mode !== 'inline') {
+            if (!(0, planningPass_1.shouldRunInlinePlanningPassForConfig)(config)) {
                 return;
             }
             const rootPath = workspaceFolder.uri.fsPath;

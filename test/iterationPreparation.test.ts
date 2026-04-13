@@ -73,6 +73,7 @@ test('recoverUnexpectedUnclaimedSelection does not bypass dedicated planning wai
     rootPath,
     config: {
       ...DEFAULT_CONFIG,
+      agentCount: 2,
       agentRole: 'implementer',
       planningPass: { enabled: true, mode: 'dedicated' }
     },
@@ -85,6 +86,35 @@ test('recoverUnexpectedUnclaimedSelection does not bypass dedicated planning wai
 
   assert.equal(recovered.recovered, false);
   await assert.rejects(fs.readFile(claimFilePath, 'utf8'), /ENOENT/);
+});
+
+test('recoverUnexpectedUnclaimedSelection falls back when dedicated planning has no planner capacity', async () => {
+  const rootPath = await makeTempRoot();
+  const { taskFilePath, claimFilePath } = await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Fallback to inline planning', status: 'todo' }]
+  });
+
+  const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  const recovered = await recoverUnexpectedUnclaimedSelection({
+    rootPath,
+    config: {
+      ...DEFAULT_CONFIG,
+      agentCount: 1,
+      agentRole: 'implementer',
+      planningPass: { enabled: true, mode: 'dedicated' }
+    },
+    taskFile,
+    taskFilePath,
+    claimFilePath,
+    provenanceId: 'run-i002b-cli-20260414T000000Z',
+    agentId: 'default'
+  });
+
+  const persistedTaskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.task?.id, 'T1');
+  assert.equal(persistedTaskFile.tasks.find((task) => task.id === 'T1')?.status, 'in_progress');
 });
 
 test('recoverUnexpectedUnclaimedSelection does not steal an actively claimed task', async () => {

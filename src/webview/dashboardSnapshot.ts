@@ -88,6 +88,20 @@ export interface FailureFeedSection {
   entries: FailureFeedEntry[];
 }
 
+export interface DiagnosisSection {
+  taskId: string;
+  taskTitle: string;
+  category: FailureCategoryId;
+  confidence: 'high' | 'medium' | 'low';
+  summary: string;
+  suggestedAction: string;
+  retryPromptAddendum: string | null;
+  recoveryAttemptCount: number | null;
+  remediationSummary: string | null;
+  failureAnalysisPath: string | null;
+  recoveryStatePath: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Dead-letter
 // ---------------------------------------------------------------------------
@@ -139,6 +153,7 @@ export interface DashboardSnapshot {
   pipeline: PipelineStrip | null;
   taskBoard: TaskBoardSection;
   agentGrid: AgentGridSection;
+  diagnosis: DiagnosisSection | null;
   failureFeed: FailureFeedSection;
   deadLetter: DeadLetterSection;
   quickActions: QuickActionsSection;
@@ -170,6 +185,7 @@ export function buildDashboardSnapshot(
     pipeline: buildPipelineStrip(snapshot),
     taskBoard: buildTaskBoard(snapshot),
     agentGrid: buildAgentGrid(agentSummaries),
+    diagnosis: buildDiagnosis(snapshot),
     failureFeed: buildFailureFeed(snapshot),
     deadLetter: buildDeadLetter(snapshot),
     quickActions: buildQuickActions(snapshot),
@@ -271,6 +287,26 @@ function buildFailureFeed(snapshot: RalphStatusSnapshot): FailureFeedSection {
 
   return {
     entries: entriesWithTimestamps.slice(0, 5).map(({ createdAt: _createdAt, ...entry }) => entry),
+  };
+}
+
+function buildDiagnosis(snapshot: RalphStatusSnapshot): DiagnosisSection | null {
+  if (!snapshot.selectedTask || !snapshot.latestFailureAnalysis) {
+    return null;
+  }
+
+  return {
+    taskId: snapshot.selectedTask.id,
+    taskTitle: snapshot.selectedTask.title,
+    category: snapshot.latestFailureAnalysis.rootCauseCategory,
+    confidence: snapshot.latestFailureAnalysis.confidence,
+    summary: snapshot.latestFailureAnalysis.summary,
+    suggestedAction: snapshot.latestFailureAnalysis.suggestedAction,
+    retryPromptAddendum: snapshot.latestFailureAnalysis.retryPromptAddendum ?? null,
+    recoveryAttemptCount: snapshot.recoveryAttemptCount ?? null,
+    remediationSummary: snapshot.latestRemediation?.summary ?? null,
+    failureAnalysisPath: snapshot.latestFailureAnalysisPath ?? null,
+    recoveryStatePath: snapshot.recoveryStatePath ?? null,
   };
 }
 

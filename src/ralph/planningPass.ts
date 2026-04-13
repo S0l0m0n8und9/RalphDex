@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { RalphCodexConfig } from '../config/types';
 
 export interface TaskPlanArtifact {
   reasoning: string;
@@ -7,6 +8,38 @@ export interface TaskPlanArtifact {
   steps: string[];
   risks: string[];
   suggestedValidationCommand?: string;
+}
+
+function isImplementerLikeRole(agentRole: RalphCodexConfig['agentRole']): boolean {
+  return agentRole === 'implementer' || agentRole === 'build';
+}
+
+export function isDedicatedPlanningFallbackSingleAgent(
+  config: Pick<RalphCodexConfig, 'agentCount' | 'agentRole' | 'planningPass'>
+): boolean {
+  return config.planningPass.enabled
+    && config.planningPass.mode === 'dedicated'
+    && isImplementerLikeRole(config.agentRole)
+    && config.agentCount <= 1;
+}
+
+export function shouldRequireTaskPlanForSelection(
+  config: Pick<RalphCodexConfig, 'agentCount' | 'agentRole' | 'planningPass'>
+): boolean {
+  return config.planningPass.enabled
+    && config.planningPass.mode === 'dedicated'
+    && isImplementerLikeRole(config.agentRole)
+    && !isDedicatedPlanningFallbackSingleAgent(config);
+}
+
+export function shouldRunInlinePlanningPassForConfig(
+  config: Pick<RalphCodexConfig, 'agentCount' | 'agentRole' | 'planningPass'>
+): boolean {
+  if (!config.planningPass.enabled || !isImplementerLikeRole(config.agentRole)) {
+    return false;
+  }
+
+  return config.planningPass.mode === 'inline' || isDedicatedPlanningFallbackSingleAgent(config);
 }
 
 /**

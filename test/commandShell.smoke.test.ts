@@ -257,6 +257,9 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.showMultiAgentStatus'));
   assert.ok(commands.includes('ralphCodex.showDashboard'));
   assert.ok(commands.includes('ralphCodex.refreshDashboard'));
+  assert.ok(commands.includes('ralphCodex.openFailureDiagnosis'));
+  assert.ok(commands.includes('ralphCodex.autoRecoverTask'));
+  assert.ok(commands.includes('ralphCodex.skipTask'));
   assert.ok(commands.includes('ralphCodex.openLatestRalphSummary'));
   assert.ok(commands.includes('ralphCodex.openLatestProvenanceBundle'));
   assert.ok(commands.includes('ralphCodex.openLatestPromptEvidence'));

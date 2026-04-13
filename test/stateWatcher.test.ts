@@ -18,7 +18,7 @@ test('state watcher watches durable task, claim, dead-letter, and task-artifact 
   });
 
   assert.ok(patterns.includes('{tasks.json,state.json,claims.json,dead-letter.json}'));
-  assert.ok(patterns.includes('artifacts/**/{task-plan.json,failure-analysis.json}'));
+  assert.ok(patterns.includes('artifacts/**/{task-plan.json,failure-analysis.json,recovery-state.json}'));
 
   watcher.dispose();
 });

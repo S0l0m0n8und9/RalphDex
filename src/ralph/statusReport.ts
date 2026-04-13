@@ -120,6 +120,10 @@ export interface RalphStatusSnapshot {
   recoveryAttemptCount?: number | null;
   /** Latest parsed failure-analysis.json for the currently selected task, or null when none recorded. */
   latestFailureAnalysis?: FailureAnalysis | null;
+  /** Path to failure-analysis.json for the currently selected task, or null when none recorded. */
+  latestFailureAnalysisPath?: string | null;
+  /** Path to recovery-state.json for the currently selected task, or null when none recorded. */
+  recoveryStatePath?: string | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {

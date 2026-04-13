@@ -39,7 +39,7 @@ import {
   selectNextTask,
   selectNextTaskForRole
 } from './taskFile';
-import { readTaskPlan } from './planningPass';
+import { readTaskPlan, shouldRequireTaskPlanForSelection } from './planningPass';
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
@@ -693,9 +693,7 @@ async function listClaimSelectionCandidates(
   artifactsDir: string,
   focusTaskId?: string
 ): Promise<RalphTask[]> {
-  const requirePlan = config.planningPass?.enabled
-    && config.planningPass.mode === 'dedicated'
-    && (config.agentRole === 'implementer' || config.agentRole === 'build');
+  const requirePlan = shouldRequireTaskPlanForSelection(config);
   const roleAwarePreferred = await selectNextTaskForRole(taskFile, config.agentRole, artifactsDir, { requirePlan });
   const selectable = listSelectableTasks(taskFile);
   const candidates = focusTaskId

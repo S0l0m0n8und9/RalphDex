@@ -6,7 +6,7 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "copilot-foundry",
+		"ralphCodex.cliProvider": "codex",
 		"ralphCodex.model": "gpt-5.4",
 		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
@@ -50,8 +50,11 @@
 			}
 		},
 		"ralphCodex.planningPass": {
-			"mode": "dedicated"
+			"mode": "inline"
 		},
-		"ralphCodex.operatorMode": "hardcore"
+		"ralphCodex.operatorMode": "hardcore",
+		"ralphCodex.prdPath": ".ralph/projects/newprojval/prd.md",
+		"ralphCodex.ralphTaskFilePath": ".ralph/projects/newprojval/tasks.json",
+		"ralphCodex.progressPath": ".ralph/projects/newprojval/progress.md"
 	}
 }

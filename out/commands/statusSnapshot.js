@@ -393,20 +393,26 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     let lastFailureCategory = null;
     let recoveryAttemptCount = null;
     let latestFailureAnalysis = null;
+    let latestFailureAnalysisPath = null;
+    let recoveryStatePath = null;
     if (selectedTask) {
+        const selectedFailureAnalysisPath = (0, failureDiagnostics_1.getFailureAnalysisPath)(inspection.paths.artifactDir, selectedTask.id);
+        const selectedRecoveryStatePath = (0, recoveryOrchestrator_1.getRecoveryStatePath)(inspection.paths.artifactDir, selectedTask.id);
         const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
-            fs.readFile((0, failureDiagnostics_1.getFailureAnalysisPath)(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
-            fs.readFile((0, recoveryOrchestrator_1.getRecoveryStatePath)(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null)
+            fs.readFile(selectedFailureAnalysisPath, 'utf8').catch(() => null),
+            fs.readFile(selectedRecoveryStatePath, 'utf8').catch(() => null)
         ]);
         if (failureAnalysisRaw) {
             const parsed = (0, failureDiagnostics_1.parseFailureDiagnosticResponse)(failureAnalysisRaw);
             latestFailureAnalysis = parsed;
             lastFailureCategory = parsed?.rootCauseCategory ?? null;
+            latestFailureAnalysisPath = selectedFailureAnalysisPath;
         }
         if (recoveryStateRaw) {
             try {
                 const parsed = JSON.parse(recoveryStateRaw);
                 recoveryAttemptCount = typeof parsed.attemptCount === 'number' ? parsed.attemptCount : null;
+                recoveryStatePath = selectedRecoveryStatePath;
             }
             catch {
                 // malformed JSON — leave null
@@ -490,7 +496,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         deadLetterEntries,
         lastFailureCategory,
         recoveryAttemptCount,
-        latestFailureAnalysis
+        latestFailureAnalysis,
+        latestFailureAnalysisPath,
+        recoveryStatePath
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

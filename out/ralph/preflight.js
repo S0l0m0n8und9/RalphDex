@@ -47,6 +47,7 @@ const fs_1 = require("../util/fs");
 const artifactStore_1 = require("./artifactStore");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
+const planningPass_1 = require("./planningPass");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
     claimGraph: 'Claim graph',
@@ -619,6 +620,9 @@ function buildPreflightReport(input) {
         diagnostics.push(createDiagnostic('agentHealth', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
     diagnostics.push(createDiagnostic('agentHealth', 'info', 'configured_agent_count', `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`));
+    if ((0, planningPass_1.isDedicatedPlanningFallbackSingleAgent)(input.config)) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'dedicated_planning_fallback_single_agent', 'Planning pass is set to dedicated, but this run has no planner capacity in single-agent mode. Ralph will fall back to inline planning for implementer task selection and execution.'));
+    }
     if (!input.workspaceTrusted) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'workspace_untrusted', 'Workspace is not trusted; only read-only Ralph status inspection is supported.'));
     }

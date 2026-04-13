@@ -329,6 +329,44 @@ test('buildPreflightReport does not emit no_actionable_task when an unselected t
   assert.equal(report.diagnostics.some((diagnostic) => diagnostic.code === 'no_actionable_task'), false);
 });
 
+test('buildPreflightReport warns when dedicated planning falls back in single-agent mode', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Needs planning', status: 'todo' }
+    ]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      agentCount: 1,
+      agentRole: 'implementer',
+      planningPass: { enabled: true, mode: 'dedicated' }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'dedicated_planning_fallback_single_agent'));
+  assert.match(
+    report.diagnostics.find((diagnostic) => diagnostic.code === 'dedicated_planning_fallback_single_agent')?.message ?? '',
+    /fall back to inline planning/i
+  );
+});
+
 test('inspectPreflightArtifactReadiness reports stale latest surfaces and missing latest-pointer targets', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');

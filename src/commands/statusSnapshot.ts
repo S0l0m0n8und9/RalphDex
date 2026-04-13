@@ -404,20 +404,26 @@ export async function collectStatusSnapshot(
   let lastFailureCategory: FailureCategoryId | null = null;
   let recoveryAttemptCount: number | null = null;
   let latestFailureAnalysis: FailureAnalysis | null = null;
+  let latestFailureAnalysisPath: string | null = null;
+  let recoveryStatePath: string | null = null;
   if (selectedTask) {
+    const selectedFailureAnalysisPath = getFailureAnalysisPath(inspection.paths.artifactDir, selectedTask.id);
+    const selectedRecoveryStatePath = getRecoveryStatePath(inspection.paths.artifactDir, selectedTask.id);
     const [failureAnalysisRaw, recoveryStateRaw] = await Promise.all([
-      fs.readFile(getFailureAnalysisPath(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null),
-      fs.readFile(getRecoveryStatePath(inspection.paths.artifactDir, selectedTask.id), 'utf8').catch(() => null)
+      fs.readFile(selectedFailureAnalysisPath, 'utf8').catch(() => null),
+      fs.readFile(selectedRecoveryStatePath, 'utf8').catch(() => null)
     ]);
     if (failureAnalysisRaw) {
       const parsed = parseFailureDiagnosticResponse(failureAnalysisRaw);
       latestFailureAnalysis = parsed;
       lastFailureCategory = parsed?.rootCauseCategory ?? null;
+      latestFailureAnalysisPath = selectedFailureAnalysisPath;
     }
     if (recoveryStateRaw) {
       try {
         const parsed = JSON.parse(recoveryStateRaw) as { attemptCount?: unknown };
         recoveryAttemptCount = typeof parsed.attemptCount === 'number' ? parsed.attemptCount : null;
+        recoveryStatePath = selectedRecoveryStatePath;
       } catch {
         // malformed JSON — leave null
       }
@@ -504,6 +510,8 @@ export async function collectStatusSnapshot(
     deadLetterEntries,
     lastFailureCategory,
     recoveryAttemptCount,
-    latestFailureAnalysis
+    latestFailureAnalysis,
+    latestFailureAnalysisPath,
+    recoveryStatePath
   };
 }

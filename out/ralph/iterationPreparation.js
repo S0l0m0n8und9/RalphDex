@@ -530,9 +530,7 @@ async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claim
     };
 }
 async function listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId) {
-    const requirePlan = config.planningPass?.enabled
-        && config.planningPass.mode === 'dedicated'
-        && (config.agentRole === 'implementer' || config.agentRole === 'build');
+    const requirePlan = (0, planningPass_1.shouldRequireTaskPlanForSelection)(config);
     const roleAwarePreferred = await (0, taskFile_1.selectNextTaskForRole)(taskFile, config.agentRole, artifactsDir, { requirePlan });
     const selectable = (0, taskFile_1.listSelectableTasks)(taskFile);
     const candidates = focusTaskId

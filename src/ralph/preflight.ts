@@ -24,6 +24,7 @@ import {
   RalphValidationCommandReadiness
 } from './types';
 import { DEFAULT_CLAIM_TTL_MS, selectNextTask } from './taskFile';
+import { isDedicatedPlanningFallbackSingleAgent } from './planningPass';
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
@@ -946,6 +947,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     'configured_agent_count',
     `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`
   ));
+
+  if (isDedicatedPlanningFallbackSingleAgent(input.config)) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      'warning',
+      'dedicated_planning_fallback_single_agent',
+      'Planning pass is set to dedicated, but this run has no planner capacity in single-agent mode. Ralph will fall back to inline planning for implementer task selection and execution.'
+    ));
+  }
 
   if (!input.workspaceTrusted) {
     diagnostics.push(createDiagnostic(

@@ -75,6 +75,19 @@ function populatedDashboardSnapshot(): DashboardSnapshot {
         humanReviewRecommended: true
       }]
     },
+    diagnosis: {
+      taskId: 'T110',
+      taskTitle: 'Surface dashboard sections',
+      category: 'validation_mismatch',
+      confidence: 'high',
+      summary: 'Verifier contract mismatch.',
+      suggestedAction: 'Align emitted dashboard payload.',
+      retryPromptAddendum: 'Re-run with the durable dashboard snapshot shape locked.',
+      recoveryAttemptCount: 2,
+      remediationSummary: 'Validation mismatch — adjusted prompt',
+      failureAnalysisPath: '.ralph/artifacts/T110/failure-analysis.json',
+      recoveryStatePath: '.ralph/artifacts/T110/recovery-state.json'
+    },
     deadLetter: {
       entries: [{
         schemaVersion: 1,
@@ -249,6 +262,7 @@ test('buildPanelDashboardHtml renders empty dashboard summary sections when no d
   assert.ok(html.includes('Pipeline'));
   assert.ok(html.includes('No pipeline run artifact recorded yet.'));
   assert.ok(html.includes('Task board unavailable until Ralph status is loaded.'));
+  assert.ok(html.includes('No focused diagnosis is available for the selected task.'));
   assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
   assert.ok(html.includes('No durable agent identity records found yet.'));
   assert.ok(html.includes('No tasks are parked in dead-letter.'));
@@ -293,6 +307,11 @@ test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-lett
   assert.ok(html.includes('Recover failed task'));
   assert.ok(html.includes('validation_mismatch'));
   assert.ok(html.includes('Confidence</strong> high'));
+  assert.ok(html.includes('Focused Diagnosis'));
+  assert.ok(html.includes('Re-run with the durable dashboard snapshot shape locked.'));
+  assert.ok(html.includes('ralphCodex.openFailureDiagnosis'));
+  assert.ok(html.includes('ralphCodex.autoRecoverTask'));
+  assert.ok(html.includes('ralphCodex.skipTask'));
   assert.ok(html.includes('agent-alpha'));
   assert.ok(html.includes('First Seen</strong> 2026-01-01T00:00:00Z'));
   assert.ok(html.includes('stuck 3'));

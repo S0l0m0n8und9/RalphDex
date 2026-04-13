@@ -37,7 +37,12 @@ import {
   selectNextTask,
   selectNextTaskForRole,
 } from './taskFile';
-import { parsePlanningResponse, readTaskPlan, writeTaskPlan } from './planningPass';
+import {
+  parsePlanningResponse,
+  readTaskPlan,
+  shouldRunInlinePlanningPassForConfig,
+  writeTaskPlan
+} from './planningPass';
 import {
   buildFailureDiagnosticPrompt,
   classifyTransientFailure,
@@ -205,7 +210,7 @@ export class RalphIterationEngine {
   ): Promise<void> {
     try {
       const config = { ...readConfig(workspaceFolder), ...(configOverrides ?? {}) };
-      if (!config.planningPass.enabled || config.planningPass.mode !== 'inline') {
+      if (!shouldRunInlinePlanningPassForConfig(config)) {
         return;
       }
 

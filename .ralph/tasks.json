@@ -3434,7 +3434,7 @@
     {
       "id": "T120.4",
       "title": "Add failure-detail notifications and a focused diagnosis view for recovery actions",
-      "status": "todo",
+      "status": "in_progress",
       "parentId": "T120",
       "dependsOn": [
         "T103",

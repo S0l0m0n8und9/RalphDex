@@ -55,7 +55,7 @@ class RalphStateWatcher {
         this.workspaceRoot = workspaceRoot;
         this.ralphDir = path.join(workspaceRoot, '.ralph');
         const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json}');
-        const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json}');
+        const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json,recovery-state.json}');
         for (const pattern of [statePattern, artifactPattern]) {
             const watcher = vscode.workspace.createFileSystemWatcher(pattern);
             watcher.onDidChange(() => this.scheduleRefresh());
