@@ -3535,7 +3535,50 @@
         "The release workflow, README references, and docs validator expectations agree on the current Ralphdex release path",
         "`npm run check:docs` covers the new guardrails"
       ]
+    },
+    {
+      "id": "T127",
+      "title": "Advance prd.md to record all 15-item delivery horizon as satisfied and define the next post-launch horizon",
+      "status": "done",
+      "notes": "prd.md updated: 15-item horizon marked satisfied 2026-04-14 with compact summary; new next-horizon section added with three concrete items (v0.2.0 release prep, shim self-hosting validation, model tiering calibration); npm run check:docs passes",
+      "validation": "npm run check:docs",
+      "tier": "medium",
+      "acceptance": [
+        "prd.md contains a dated milestone record marking all 15 items as satisfied as of 2026-04-14",
+        "prd.md defines a new next delivery horizon with at least three concrete items",
+        "npm run check:docs passes"
+      ]
+    },
+    {
+      "id": "T128",
+      "title": "Prepare v0.2.0 release: CHANGELOG entry and package.json version bump",
+      "status": "todo",
+      "dependsOn": [
+        "T127"
+      ],
+      "notes": "CHANGELOG.md has one entry (v0.1.0 dated 2026-04-03). Since then, 200+ tasks have shipped adding multi-agent loops, pipeline automation, webview UI, Azure Foundry provider, model tiering, operator presets, PRD wizard, intelligent failure recovery, developer-loop shim, and VS Code Marketplace readiness. A v0.2.0 entry should document these for Marketplace release notes.",
+      "validation": "npm run package",
+      "tier": "simple",
+      "acceptance": [
+        "CHANGELOG.md has a v0.2.0 entry at the top listing all major feature groups shipped since v0.1.0",
+        "package.json version is bumped to 0.2.0",
+        "npm run package succeeds with 0 blocking vsce warnings",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T129",
+      "title": "Model tiering calibration: score the 267 completed tasks and document findings in docs/model-tiering.md",
+      "status": "todo",
+      "notes": "The complexity scorer (complexityScorer.ts) is enabled by default but was never calibrated against the actual completed task history. The PRD explicitly requires calibrating thresholds against real workload data. With 267 done tasks available in tasks.json, this is now actionable.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "scripts/calibrate-tiering.js (or equivalent) runs cleanly and prints tier distribution for all done tasks",
+        "docs/model-tiering.md has a Calibration section with: tier counts, representative task examples per tier, and threshold assessment",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 128
+  "mutationCount": 129
 }

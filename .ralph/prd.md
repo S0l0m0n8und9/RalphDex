@@ -65,9 +65,23 @@ The claim/lock/agentId infrastructure drives concurrent loops. A multi-agent lau
 
 `Run Pipeline` (`ralphCodex.runPipeline`) accepts a PRD fragment, decomposes it into tasks, runs the agent loop, opens a review-agent pass, and submits a PR from a single operator invocation. Durable pipeline-run provenance links PRD input → task graph snapshot → iteration history → PR URL. `Show Status` surfaces the latest pipeline run. `Open Latest Pipeline Run` (`ralphCodex.openLatestPipelineRun`) opens the run artifact directly. Configurable human-review gates (`ralphCodex.approveHumanReview`, controlled by `ralphCodex.pipelineHumanGates`) pause the pipeline and resume on operator approval.
 
-### Next delivery horizon
+### Next delivery horizon — satisfied 2026-04-14
 
-With the three-pillar horizon satisfied, the following capabilities are the concrete next targets, listed in priority order.
+All 15 items of the delivery horizon defined after the three-pillar milestone are now shipped as of 2026-04-14. Key deliveries:
+
+**0–3. Marketplace readiness, developer-loop shim, pipeline resilience, and e2e smoke test** (completed)
+
+The extension is publishable to the VS Code Marketplace with complete metadata, README, CHANGELOG, LICENSE, and release workflow documentation. A Node.js shim boots the core iteration engine without a VS Code host, enabling self-hosted development. Pipeline runs survive transient failures and resume from the last known-good phase via durable `pipeline-run.json`. `test:e2e-pipeline` validates the full phase chain in a temp workspace.
+
+**4–9. Model tiering, AI PRD generation, recommended skills, prompt caching, Azure Foundry provider, and static task tier** (completed)
+
+Complexity scoring uses reliable signals (`validation` field, child count, blocker note) calibrated against real workload history. Claude-backed PRD generation and `Ralphdex: Construct Recommended Skills` are wired. Prompt prefix stabilisation enables cache reuse across iterations. `azureFoundryProvider.ts` routes iterations through Azure-hosted models via HTTPS. Optional `tier` field on task nodes overrides runtime scoring and is surfaced in `Show Status`.
+
+**10–14. Agent memory, operator presets, PRD improvements, dynamic planning, and failure recovery** (completed)
+
+Configurable `memoryStrategy` (`verbatim`, `sliding-window`, `summary`) with provider-aware summarisation routing. Operator mode presets (`simple`, `multi-agent`, `hardcore`) reduce configuration friction. PRD generation enhancements include task count cap, `suggestedValidationCommand` pre-population, worked examples, and `Ralphdex: Regenerate PRD`. Role-based crew configuration, pre-execution planning pass, and role-specific prompt templates ship in item 13. Structured failure taxonomy, recovery orchestrator with per-category playbooks, dead-letter queue, and failure chain detection close item 14.
+
+The full specification for each item, plus items 15–19 added to this horizon during execution, is preserved below for reference.
 
 **0. VS Code Marketplace readiness** *(highest priority — unlocks all downstream value)*
 
@@ -504,6 +518,53 @@ Acceptance criteria:
 - No contradictions remain between manifest descriptions, docs, and implementation behavior for reviewed features.
 - Operator-facing docs explicitly identify calibrated vs non-calibrated defaults.
 - `npm run check:docs` fails on future contradiction patterns introduced in this phase.
+
+### Next delivery horizon
+
+With the 15-item delivery horizon satisfied, the following capabilities are the concrete next targets.
+
+**1. v0.2.0 release preparation**
+
+Publish the first numbered Marketplace release. Concrete work:
+
+- Bump `package.json` version to `0.2.0`.
+- Add a `CHANGELOG.md` entry recording the 15-item horizon delivered in this release.
+- Tag the release commit and run `vsce publish` against the VS Code Marketplace.
+- Validate that the published extension installs cleanly from the Marketplace.
+
+Acceptance criteria:
+- `package.json` version is `0.2.0`.
+- `CHANGELOG.md` has a `## [0.2.0]` entry with a dated summary of the 15-item delivery horizon.
+- `vsce publish --dry-run` passes with no blocking warnings.
+- `npm run validate` passes.
+
+**2. Developer-loop shim self-hosting validation**
+
+Verify that the Node.js shim built in the prior horizon can drive a real Ralph iteration loop outside VS Code. Concrete work:
+
+- Run at least one complete iteration using the shim against this repository's own `.ralph/` workspace.
+- Confirm completion reports reconcile correctly and task state advances as expected.
+- Document any shim limitations, environment prerequisites, or behavioural differences from the VS Code host path.
+- Record findings in `docs/shim-validation.md` so future contributors understand the validated self-hosting path.
+
+Acceptance criteria:
+- At least one iteration completes end-to-end via the shim with a reconciled task state update.
+- `docs/shim-validation.md` exists and documents the validated invocation, prerequisites, and any known gaps.
+- `npm run validate` passes.
+
+**3. Model tiering calibration**
+
+Score the completed task history and verify tier assignments match intuition before enabling tiering by default. Concrete work:
+
+- Run the complexity scorer against the 267 completed tasks and record the tier distribution (`simple`, `medium`, `complex`).
+- Identify obvious misfires — tasks scored in the wrong tier — and document the root cause (weak signal, missing `validation` field, misleading title).
+- Document findings in `docs/model-tiering.md`: score distribution, tier boundaries, calibration methodology, recommended threshold adjustments, and expected cost savings at each tier.
+- Enable tiering by default (`modelTiering.enabled: true`) with calibrated thresholds once findings are validated.
+
+Acceptance criteria:
+- `docs/model-tiering.md` exists with a scored distribution table and documented methodology.
+- Calibration findings are used to update `complexityScorer.ts` thresholds if any boundary adjustments are warranted.
+- `npm run validate` passes.
 
 ### Continued multi-agent evolution horizon (post-foundation)
 
