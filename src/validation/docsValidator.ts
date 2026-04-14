@@ -31,6 +31,7 @@ interface ParsedMarkdown {
 interface DocRule {
   requiredHeadings: string[];
   requiredFragments?: string[];
+  forbiddenFragments?: string[];
   maxNonEmptyLines?: number;
 }
 
@@ -286,6 +287,22 @@ const DOC_RULES: Record<string, DocRule> = {
       'recovery-state.json',
       'dead-letter.json',
       'diagnosticCost'
+    ]
+  },
+  'docs/release-workflow.md': {
+    requiredHeadings: [
+      'Prerequisites',
+      'Steps',
+      'Rollback',
+      'Environment variable reference'
+    ],
+    requiredFragments: [
+      'npm run validate',
+      'npm run package',
+      'npm run publish:dry-run'
+    ],
+    forbiddenFragments: [
+      'ralph-codex-vscode-starter'
     ]
   }
 };
@@ -923,6 +940,16 @@ function validateDocRule(input: {
         code: 'missing_fragment',
         filePath: input.relativePath,
         message: `Missing required text fragment "${fragment}".`
+      });
+    }
+  }
+
+  for (const fragment of input.rule.forbiddenFragments ?? []) {
+    if (input.text.includes(fragment)) {
+      input.issues.push({
+        code: 'forbidden_fragment',
+        filePath: input.relativePath,
+        message: `Found forbidden text "${fragment}" — this path is obsolete and must not appear in this document.`
       });
     }
   }

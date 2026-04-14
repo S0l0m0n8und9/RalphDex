@@ -3524,11 +3524,11 @@
     {
       "id": "T126",
       "title": "Add deterministic guards so Marketplace-release docs and validation commands cannot drift again",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T125"
       ],
-      "notes": "Recent inspection found stale `ralph-codex-vscode-starter` paths in `docs/release-workflow.md`. After the README and dry-run workflow are corrected, add focused docs validation or regression coverage so future repo-root or release-surface drift fails fast.",
+      "notes": "Added forbiddenFragments to DocRule, added docs/release-workflow.md to DOC_RULES with required headings/fragments and forbidden stale path, updated seed, added regression test for forbidden_fragment guard.",
       "validation": "npm run check:docs",
       "acceptance": [
         "Docs or regression checks fail if release-workflow commands point at the obsolete nested repo path or omit the supported dry-run validation step",
@@ -3537,5 +3537,5 @@
       ]
     }
   ],
-  "mutationCount": 127
+  "mutationCount": 128
 }

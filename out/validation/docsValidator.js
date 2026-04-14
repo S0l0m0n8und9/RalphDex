@@ -287,6 +287,22 @@ const DOC_RULES = {
             'dead-letter.json',
             'diagnosticCost'
         ]
+    },
+    'docs/release-workflow.md': {
+        requiredHeadings: [
+            'Prerequisites',
+            'Steps',
+            'Rollback',
+            'Environment variable reference'
+        ],
+        requiredFragments: [
+            'npm run validate',
+            'npm run package',
+            'npm run publish:dry-run'
+        ],
+        forbiddenFragments: [
+            'ralph-codex-vscode-starter'
+        ]
     }
 };
 async function validateRepositoryDocs(rootDir) {
@@ -338,6 +354,11 @@ async function validateRepositoryDocs(rootDir) {
         issues
     });
     await validateVerifierDocumentationAlignment({
+        repoRoot,
+        markdownCache,
+        issues
+    });
+    await validateReleaseWorkflowAlignment({
         repoRoot,
         markdownCache,
         issues
@@ -736,6 +757,61 @@ async function validateVerifierDocumentationAlignment(input) {
         });
     }
 }
+async function validateReleaseWorkflowAlignment(input) {
+    const packageJsonPath = path.join(input.repoRoot, 'package.json');
+    const releaseWorkflow = input.markdownCache.get('docs/release-workflow.md');
+    if (!(await (0, fs_1.pathExists)(packageJsonPath)) || !releaseWorkflow) {
+        return;
+    }
+    let packageJson;
+    try {
+        packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+    }
+    catch {
+        return;
+    }
+    const scripts = resolveJsonPath(packageJson, ['scripts']);
+    const publishDryRunScript = typeof scripts?.['publish:dry-run'] === 'string'
+        ? scripts['publish:dry-run']
+        : undefined;
+    if (publishDryRunScript === undefined) {
+        input.issues.push({
+            code: 'missing_package_script',
+            filePath: 'package.json',
+            message: 'Missing required package script "publish:dry-run" for Marketplace release validation.'
+        });
+    }
+    else {
+        const requiredScriptFragments = [
+            'vsce publish',
+            '--dry-run',
+            '--no-dependencies'
+        ];
+        for (const fragment of requiredScriptFragments) {
+            if (!publishDryRunScript.includes(fragment)) {
+                input.issues.push({
+                    code: 'invalid_package_script',
+                    filePath: 'package.json',
+                    message: `Package script "publish:dry-run" must include ${fragment}.`
+                });
+            }
+        }
+    }
+    const requiredDocFragments = [
+        '`npm run publish:dry-run`',
+        'vsce publish --dry-run --no-dependencies',
+        'without shipping'
+    ];
+    for (const fragment of requiredDocFragments) {
+        if (!releaseWorkflow.text.includes(fragment)) {
+            input.issues.push({
+                code: 'missing_release_validation_path',
+                filePath: 'docs/release-workflow.md',
+                message: `Release workflow must document the Marketplace dry-run validation path including ${fragment}.`
+            });
+        }
+    }
+}
 function validateDocRule(input) {
     const availableHeadings = new Set(input.parsed.headings.map((heading) => heading.text));
     for (const heading of input.rule.requiredHeadings) {
@@ -753,6 +829,15 @@ function validateDocRule(input) {
                 code: 'missing_fragment',
                 filePath: input.relativePath,
                 message: `Missing required text fragment "${fragment}".`
+            });
+        }
+    }
+    for (const fragment of input.rule.forbiddenFragments ?? []) {
+        if (input.text.includes(fragment)) {
+            input.issues.push({
+                code: 'forbidden_fragment',
+                filePath: input.relativePath,
+                message: `Found forbidden text "${fragment}" — this path is obsolete and must not appear in this document.`
             });
         }
     }

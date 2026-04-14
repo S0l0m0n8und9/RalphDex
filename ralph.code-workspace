@@ -6,8 +6,8 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "codex",
-		"ralphCodex.model": "gpt-5.4",
+		"ralphCodex.cliProvider": "claude",
+		"ralphCodex.model": "claude-sonnet-4-6",
 		"ralphCodex.promptBudgetProfile": "codex",
 		"ralphCodex.modelTiering": {
 			"enabled": false,

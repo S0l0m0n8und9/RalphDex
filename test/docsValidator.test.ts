@@ -166,41 +166,6 @@ Validation entry points:
 - [docs/failure-recovery.md](${absolute('docs/failure-recovery.md')}): failure recovery
 `);
 
-  await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
-
-This document covers the steps to publish a new version to the VS Code Marketplace.
-
-## Steps
-
-### 1. Bump the version
-
-Edit \`package.json\` and increment the version field following semver.
-
-### 2. Update CHANGELOG.md
-
-Add a new section at the top of \`CHANGELOG.md\`.
-
-### 3. Smoke-test the package locally
-
-Run \`npm run package\` to build and inspect the \`.vsix\`.
-
-### 4. Commit and tag
-
-\`\`\`bash
-git commit -m "chore(release): bump version to x.y.z"
-git tag vx.y.z
-git push origin main --tags
-\`\`\`
-
-### 5. Publish
-
-\`\`\`bash
-npx vsce publish --no-dependencies
-\`\`\`
-
-Run \`npm run publish:dry-run\` from the repo root before the real publish step so Marketplace validation exercises the same \`vsce publish\` path without shipping the release.
-`);
-
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
 
 See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
@@ -485,12 +450,27 @@ Stable reasoning effort overhead rules live here.
 
 Steps to publish a new version of the extension to the VS Code Marketplace.
 
+## Prerequisites
+
+- \`@vscode/vsce\` is installed as a dev dependency.
+
 ## Steps
 
-1. Bump the version in package.json.
-2. Run \`npm run package\`.
-3. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
-4. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
+1. Run \`npm run validate\` from the repo root.
+2. Bump the version in package.json.
+3. Run \`npm run package\`.
+4. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
+5. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
+
+## Rollback
+
+If a bad version ships, yank it from the Marketplace management page and publish a patch release.
+
+## Environment variable reference
+
+| Variable | Purpose |
+|----------|---------|
+| \`VSCE_PAT\` | Marketplace PAT for \`vsce publish\` |
 `);
 
   await writeFile(rootPath, 'docs/model-tiering.md', `# Model Tiering
@@ -803,4 +783,48 @@ test('validateRepositoryDocs keeps AGENTS.md on a small line budget', async () =
   const issues = await validateRepositoryDocs(rootPath);
 
   assert.equal(issues.some((issue) => issue.code === 'line_budget_exceeded' && issue.filePath === 'AGENTS.md'), true);
+});
+
+test('validateRepositoryDocs rejects stale nested-repo path in release-workflow', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
+
+## Prerequisites
+
+- \`@vscode/vsce\` is installed as a dev dependency.
+
+## Steps
+
+1. Run \`npm run validate\` from the repo root.
+2. Bump the version in package.json.
+3. Run \`npm run package\`.
+4. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
+
+\`\`\`bash
+cd ralph-codex-vscode-starter && npx vsce publish --no-dependencies
+\`\`\`
+
+## Rollback
+
+If a bad version ships, yank it from the Marketplace management page.
+
+## Environment variable reference
+
+| Variable | Purpose |
+|----------|---------|
+| \`VSCE_PAT\` | Marketplace PAT for \`vsce publish\` |
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'forbidden_fragment'
+        && issue.filePath === 'docs/release-workflow.md'
+        && issue.message.includes('ralph-codex-vscode-starter')
+    ),
+    true
+  );
 });
