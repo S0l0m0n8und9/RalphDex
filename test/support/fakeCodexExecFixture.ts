@@ -105,7 +105,7 @@ process.stdin.on('end', () => {
     message = buildMessage(
       {
         selectedTaskId,
-        requestedStatus: 'in_progress',
+        requestedStatus: 'done',
         progressNote: 'Added pipelineSmoke export to src/fixture.ts.',
         validationRan: 'node -e "process.exit(0)"'
       },

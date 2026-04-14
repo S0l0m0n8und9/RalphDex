@@ -73,6 +73,7 @@ test('writePipelineSmokeFakeCodexExecScript drives build, review, and scm prompt
   assert.equal(buildResult.code, 0);
   assert.match(await fs.readFile(path.join(rootPath, 'src', 'fixture.ts'), 'utf8'), /pipelineSmoke = true/);
   assert.match(await fs.readFile(buildLastMessagePath, 'utf8'), /"selectedTaskId": "Tpipe-001\.01"/);
+  assert.match(await fs.readFile(buildLastMessagePath, 'utf8'), /"requestedStatus": "done"/);
 
   const reviewLastMessagePath = path.join(rootPath, '.ralph', 'review-last-message.txt');
   const reviewResult = await runFakeCodex(

@@ -175,20 +175,65 @@ async function main() {
     activate(createExtensionContext(vscode));
     await vscode.commands.executeCommand('ralphCodex.runPipeline');
 
+    // --- Phase assertions ---
+
+    // Scaffold phase: pipeline artifact exists and has correct structure
     const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
     const pipelineFiles = (await fsp.readdir(pipelinesDir)).filter((entry) => entry.endsWith('.json')).sort();
     assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact.');
 
     const artifactPath = path.join(pipelinesDir, pipelineFiles[0]);
     const artifact = JSON.parse(await fsp.readFile(artifactPath, 'utf8'));
-    assert.equal(artifact.kind, 'pipelineRun');
-    assert.equal(artifact.status, 'complete');
-    assert.equal(artifact.phase, 'done');
-    assert.equal(artifact.prUrl, PIPELINE_SMOKE_PR_URL);
-    assert.ok(artifact.reviewTranscriptPath, 'Expected reviewTranscriptPath in the pipeline artifact.');
-    await fsp.access(artifact.reviewTranscriptPath);
+    assert.equal(artifact.kind, 'pipelineRun', 'Artifact kind must be pipelineRun.');
+    assert.equal(artifact.schemaVersion, 1, 'Artifact schema version must be 1.');
+    assert.ok(artifact.runId, 'Artifact must have a runId.');
+    assert.ok(artifact.rootTaskId, 'Scaffold must produce a rootTaskId.');
+    assert.ok(
+      Array.isArray(artifact.decomposedTaskIds) && artifact.decomposedTaskIds.length > 0,
+      'Scaffold must produce at least one decomposed child task.'
+    );
+    assert.ok(artifact.prdHash, 'Scaffold must record a prdHash.');
+    assert.ok(artifact.prdPath, 'Scaffold must record a prdPath.');
+    assert.ok(
+      path.resolve(artifact.prdPath).includes(path.join('.ralph', 'prd.md')),
+      `prdPath must reference .ralph/prd.md, got: ${artifact.prdPath}`
+    );
+
+    // Scaffold phase: task graph was written correctly
+    const taskFileRaw = JSON.parse(await fsp.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'));
+    const tasks = taskFileRaw.tasks || [];
+    const rootTask = tasks.find((t) => t.id === artifact.rootTaskId);
+    assert.ok(rootTask, `Root task ${artifact.rootTaskId} must exist in tasks.json.`);
+    for (const childId of artifact.decomposedTaskIds) {
+      const child = tasks.find((t) => t.id === childId);
+      assert.ok(child, `Child task ${childId} must exist in tasks.json.`);
+      assert.equal(child.parentId, artifact.rootTaskId, `Child ${childId} must have parentId pointing to root.`);
+    }
+
+    // Loop phase: implementation agent made the expected file change
     const fixtureSource = await fsp.readFile(path.join(rootPath, 'src', 'fixture.ts'), 'utf8');
-    assert.match(fixtureSource, /export const pipelineSmoke = true;/);
+    assert.match(fixtureSource, /export const pipelineSmoke = true;/, 'Loop phase must produce the fixture change.');
+
+    // Review phase: review transcript produced and accessible
+    assert.ok(artifact.reviewTranscriptPath, 'Review phase must produce a reviewTranscriptPath.');
+    await fsp.access(artifact.reviewTranscriptPath);
+
+    // SCM phase: PR URL extracted
+    assert.equal(artifact.prUrl, PIPELINE_SMOKE_PR_URL, 'SCM phase must extract the PR URL.');
+
+    // Final state: pipeline completed successfully
+    assert.equal(artifact.status, 'complete', 'Pipeline must reach status: complete.');
+    assert.equal(artifact.phase, 'done', 'Pipeline must reach phase: done.');
+    assert.ok(artifact.loopStartTime, 'Artifact must record loopStartTime.');
+    assert.ok(artifact.loopEndTime, 'Artifact must record loopEndTime.');
+    assert.ok(
+      !isNaN(Date.parse(artifact.loopStartTime)),
+      `loopStartTime must be a valid ISO date, got: ${artifact.loopStartTime}`
+    );
+    assert.ok(
+      !isNaN(Date.parse(artifact.loopEndTime)),
+      `loopEndTime must be a valid ISO date, got: ${artifact.loopEndTime}`
+    );
 
     shouldCleanup = keepWorkspace === false;
 
@@ -197,6 +242,9 @@ async function main() {
       commandPath: process.execPath,
       model,
       artifactPath,
+      runId: artifact.runId,
+      rootTaskId: artifact.rootTaskId,
+      decomposedTaskIds: artifact.decomposedTaskIds,
       prUrl: artifact.prUrl,
       infoMessage: harness.state.infoMessages.at(-1)?.message ?? null
     }, null, 2));
@@ -204,6 +252,28 @@ async function main() {
     shouldCleanup = false;
     const message = error instanceof Error ? error.stack ?? error.message : String(error);
     console.error(message);
+
+    // Dump available artifacts for debugging
+    try {
+      const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+      const files = await fsp.readdir(pipelinesDir).catch(() => []);
+      for (const f of files) {
+        if (f.endsWith('.json')) {
+          const raw = await fsp.readFile(path.join(pipelinesDir, f), 'utf8').catch(() => null);
+          if (raw) {
+            console.error(`\n--- Pipeline artifact: ${f} ---\n${raw}`);
+          }
+        }
+      }
+    } catch { /* best-effort */ }
+
+    try {
+      const tasksRaw = await fsp.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8').catch(() => null);
+      if (tasksRaw) {
+        console.error(`\n--- tasks.json ---\n${tasksRaw}`);
+      }
+    } catch { /* best-effort */ }
+
     process.exitCode = 1;
   } finally {
     if (shouldCleanup) {
