@@ -3467,11 +3467,11 @@
     {
       "id": "T122",
       "title": "Upgrade `test:e2e-pipeline` to execute the full pipeline phase chain in the temp workspace",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T121"
       ],
-      "notes": "Once deterministic review and SCM fixtures exist, update `scripts/run-e2e-pipeline-smoke.js` so scaffold, loop, review, and SCM phases all run through the real command flow. Preserve the current opt-in environment gate and preserved-workspace debugging behavior.",
+      "notes": "No additional code changes were required in this iteration. Verified the existing T122 implementation in the current workspace by running the Windows-safe E2E smoke command and the targeted verifier regression suite; both passed, confirming the full pipeline phase chain and portable env-prefix validation handling.",
       "validation": "RALPH_E2E=1 npm run test:e2e-pipeline",
       "acceptance": [
         "`scripts/run-e2e-pipeline-smoke.js` drives `ralphCodex.runPipeline` through scaffold, loop, review, and SCM without phase-specific in-process mocks",
@@ -3495,5 +3495,5 @@
       ]
     }
   ],
-  "mutationCount": 122
+  "mutationCount": 123
 }
