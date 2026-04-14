@@ -122,7 +122,9 @@ export class DashboardHost implements vscode.Disposable {
         classification: iter.completionClassification,
         stopReason: iter.stopReason,
         artifactDir: iter.artifactDir,
-        agentId: iter.agentId
+        agentId: iter.agentId,
+        selectedModel: iter.selectedModel,
+        effectiveTier: iter.effectiveTier
       }));
 
     this.latestState = {

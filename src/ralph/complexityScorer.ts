@@ -119,9 +119,9 @@ export function selectModelForTask(input: {
   iterationHistory: RalphIterationResult[];
   tiering: RalphModelTieringConfig;
   fallbackModel: string;
-}): { model: string; provider?: CliProviderId; score: ComplexityScore | null } {
+}): { model: string; provider?: CliProviderId; score: ComplexityScore | null; tier: string } {
   if (!input.tiering.enabled) {
-    return { model: input.fallbackModel, score: null };
+    return { model: input.fallbackModel, score: null, tier: 'default' };
   }
 
   if (input.task.tier) {
@@ -129,21 +129,25 @@ export function selectModelForTask(input: {
       : input.task.tier === 'complex' ? input.tiering.complex
       : input.tiering.medium;
     const score: ComplexityScore = { score: 0, signals: [{ name: 'explicit', contribution: 0 }] };
-    return { model: tierConfig.model, provider: tierConfig.provider, score };
+    return { model: tierConfig.model, provider: tierConfig.provider, score, tier: input.task.tier };
   }
 
   const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
 
   let tier: { model: string; provider?: CliProviderId };
+  let tierName: string;
   if (score.score < input.tiering.simpleThreshold) {
     tier = input.tiering.simple;
+    tierName = 'simple';
   } else if (score.score >= input.tiering.complexThreshold) {
     tier = input.tiering.complex;
+    tierName = 'complex';
   } else {
     tier = input.tiering.medium;
+    tierName = 'medium';
   }
 
-  return { model: tier.model, provider: tier.provider, score };
+  return { model: tier.model, provider: tier.provider, score, tier: tierName };
 }
 
 /** Resolved complexity tier with the source that determined it. */

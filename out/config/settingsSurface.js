@@ -51,8 +51,8 @@ const SECTION_METADATA = [
     },
     {
         id: 'provider',
-        title: 'Provider',
-        description: 'Primary CLI provider and the command or model settings that support it.'
+        title: 'Provider & Models',
+        description: 'Primary CLI provider, default model, and complexity-based model tiering.'
     },
     {
         id: 'memory',
@@ -80,11 +80,20 @@ const SETTINGS_SURFACE_REGISTRY = [
     { key: 'autonomyMode', manifestKey: 'ralphCodex.autonomyMode', sectionId: 'operator-mode', title: 'Autonomy Mode', control: 'enum', description: 'Shorthand for supervised or autonomous loop behaviour.' },
     { key: 'agentCount', manifestKey: 'ralphCodex.agentCount', sectionId: 'operator-mode', title: 'Agent Count', control: 'number', description: 'Number of concurrent Ralph agents configured for the workspace.' },
     { key: 'preferredHandoffMode', manifestKey: 'ralphCodex.preferredHandoffMode', sectionId: 'operator-mode', title: 'Preferred Handoff', control: 'enum', description: 'Preferred way to hand a generated prompt to Codex.' },
-    { key: 'cliProvider', manifestKey: 'ralphCodex.cliProvider', sectionId: 'provider', title: 'CLI Provider', control: 'enum', description: 'Primary provider used for scripted CLI iterations.' },
-    { key: 'model', manifestKey: 'ralphCodex.model', sectionId: 'provider', title: 'Model', control: 'string', description: 'Default model identifier passed to the active provider.' },
+    { key: 'cliProvider', manifestKey: 'ralphCodex.cliProvider', sectionId: 'provider', title: 'CLI Provider', control: 'enum', description: 'Primary language-model CLI backend for the agent loop.', options: ['claude', 'codex', 'copilot', 'copilot-foundry', 'azure-foundry'] },
+    { key: 'model', manifestKey: 'ralphCodex.model', sectionId: 'provider', title: 'Default Model', control: 'suggested-string', description: 'Fallback model used when model tiering is disabled.' },
     { key: 'codexCommandPath', manifestKey: 'ralphCodex.codexCommandPath', sectionId: 'provider', title: 'Codex Command Path', control: 'string', description: 'Path or command name for the Codex CLI executable.' },
     { key: 'claudeCommandPath', manifestKey: 'ralphCodex.claudeCommandPath', sectionId: 'provider', title: 'Claude Command Path', control: 'string', description: 'Path or command name for the Claude CLI executable.' },
     { key: 'copilotCommandPath', manifestKey: 'ralphCodex.copilotCommandPath', sectionId: 'provider', title: 'Copilot Command Path', control: 'string', description: 'Path or command name for the GitHub Copilot CLI executable.' },
+    { key: 'modelTiering.enabled', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Enable Model Tiering', control: 'boolean', description: 'Route tasks to different models dynamically based on task properties.' },
+    { key: 'modelTiering.simpleThreshold', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Tier Threshold: Simple', control: 'number', description: 'Score strictly below this threshold maps to Simple.' },
+    { key: 'modelTiering.complexThreshold', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Tier Threshold: Complex', control: 'number', description: 'Score at or above this threshold maps to Complex.' },
+    { key: 'modelTiering.simple.model', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Simple Tier: Model', control: 'suggested-string', description: 'Model identifier for the Simple tier.' },
+    { key: 'modelTiering.simple.provider', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Simple Tier: Provider', control: 'enum', description: 'Optional provider override for the Simple tier.', options: ['claude', 'codex', 'copilot', 'copilot-foundry', 'azure-foundry'] },
+    { key: 'modelTiering.medium.model', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Medium Tier: Model', control: 'suggested-string', description: 'Model identifier for the Medium tier.' },
+    { key: 'modelTiering.medium.provider', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Medium Tier: Provider', control: 'enum', description: 'Optional provider override for the Medium tier.', options: ['claude', 'codex', 'copilot', 'copilot-foundry', 'azure-foundry'] },
+    { key: 'modelTiering.complex.model', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Complex Tier: Model', control: 'suggested-string', description: 'Model identifier for the Complex tier.' },
+    { key: 'modelTiering.complex.provider', manifestKey: 'ralphCodex.modelTiering', sectionId: 'provider', title: 'Complex Tier: Provider', control: 'enum', description: 'Optional provider override for the Complex tier.', options: ['claude', 'codex', 'copilot', 'copilot-foundry', 'azure-foundry'] },
     { key: 'memoryStrategy', manifestKey: 'ralphCodex.memoryStrategy', sectionId: 'memory', title: 'Memory Strategy', control: 'enum', description: 'Controls how Ralph carries context between iterations.' },
     { key: 'memoryWindowSize', manifestKey: 'ralphCodex.memoryWindowSize', sectionId: 'memory', title: 'Memory Window Size', control: 'number', description: 'Number of recent iterations included in sliding-window memory.' },
     { key: 'memorySummaryThreshold', manifestKey: 'ralphCodex.memorySummaryThreshold', sectionId: 'memory', title: 'Memory Summary Threshold', control: 'number', description: 'Iteration count before summary mode starts condensing history.' },
@@ -114,6 +123,13 @@ const SETTINGS_SURFACE_REGISTRY = [
     { key: 'azureFoundry.auth.apiKeyEnvVar', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth API Key Env Var', control: 'string', description: 'Environment variable name used when the API key is sourced externally.' },
     { key: 'azureFoundry.auth.secretStorageKey', manifestKey: 'ralphCodex.azureFoundry', sectionId: 'azure-foundry', title: 'Auth SecretStorage Key', control: 'string', description: 'SecretStorage key used when the API key is sourced from VS Code secrets.' }
 ];
+const PROVIDER_MODELS = {
+    claude: ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022'],
+    codex: ['gpt-4o', 'gpt-4o-mini', 'o1', 'o3-mini'],
+    copilot: ['gpt-4o', 'gpt-4o-mini', 'o1', 'o3-mini', 'claude-3.5-sonnet'],
+    'copilot-foundry': [],
+    'azure-foundry': []
+};
 let cachedManifest = null;
 let cachedMetadata = null;
 function resolvePackageManifestPath() {
@@ -181,11 +197,26 @@ function buildSettingsSurfaceSnapshot(config, options) {
         sections: metadata.sections.map((section) => {
             const entries = metadata.entries
                 .filter((entry) => entry.sectionId === section.id)
-                .map((entry) => ({
-                ...entry,
-                value: getConfigValue(config, entry.key),
-                isNew: newSettingKeys.has(entry.key)
-            }));
+                .map((entry) => {
+                let options = entry.options;
+                if (entry.control === 'suggested-string') {
+                    let activeProvider = String(getConfigValue(config, 'cliProvider') ?? 'codex');
+                    if (entry.key.startsWith('modelTiering.')) {
+                        const tier = entry.key.split('.')[1];
+                        const overrideProvider = getConfigValue(config, `modelTiering.${tier}.provider`);
+                        if (overrideProvider) {
+                            activeProvider = String(overrideProvider);
+                        }
+                    }
+                    options = PROVIDER_MODELS[activeProvider] ?? [];
+                }
+                return {
+                    ...entry,
+                    value: getConfigValue(config, entry.key),
+                    isNew: newSettingKeys.has(entry.key),
+                    ...(options && options.length > 0 ? { options } : {})
+                };
+            });
             return {
                 ...section,
                 entries,

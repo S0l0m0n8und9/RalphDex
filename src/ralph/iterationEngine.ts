@@ -535,7 +535,7 @@ export class RalphIterationEngine {
 
     // Model tiering: select the appropriate model (and optional provider override)
     // based on task complexity.  Adopted from Ruflo's smart task-routing pattern.
-    const { model: selectedModel, provider: selectedProvider, score: complexityScore } = prepared.selectedTask
+    const { model: selectedModel, provider: selectedProvider, score: complexityScore, tier: effectiveTier } = prepared.selectedTask
       ? selectModelForTask({
           task: prepared.selectedTask,
           taskFile: prepared.beforeCoreState.taskFile,
@@ -543,7 +543,7 @@ export class RalphIterationEngine {
           tiering: prepared.config.modelTiering,
           fallbackModel: prepared.config.model
         })
-      : { model: prepared.config.model, provider: undefined as CliProviderId | undefined, score: null };
+      : { model: prepared.config.model, provider: undefined as CliProviderId | undefined, score: null, tier: 'default' };
 
     if (complexityScore !== null) {
       this.logger.info('Model tiering selected model for task.', {
@@ -1102,7 +1102,9 @@ export class RalphIterationEngine {
       remediation: null,
       completionReportStatus: completionReconciliation.artifact.status,
       reconciliationWarnings: completionReconciliation.warnings,
-      stopReason: null
+      stopReason: null,
+      selectedModel,
+      effectiveTier
     };
 
     let loopDecision = decideLoopContinuation({

@@ -629,6 +629,8 @@ export interface RalphIterationResult {
   completionReportStatus?: RalphCompletionReportStatus;
   reconciliationWarnings?: string[];
   stopReason: RalphStopReason | null;
+  selectedModel?: string;
+  effectiveTier?: string;
 }
 
 export interface RalphIntegrityFailure {

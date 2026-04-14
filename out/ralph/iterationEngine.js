@@ -394,7 +394,7 @@ class RalphIterationEngine {
             const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
             // Model tiering: select the appropriate model (and optional provider override)
             // based on task complexity.  Adopted from Ruflo's smart task-routing pattern.
-            const { model: selectedModel, provider: selectedProvider, score: complexityScore } = prepared.selectedTask
+            const { model: selectedModel, provider: selectedProvider, score: complexityScore, tier: effectiveTier } = prepared.selectedTask
                 ? (0, complexityScorer_1.selectModelForTask)({
                     task: prepared.selectedTask,
                     taskFile: prepared.beforeCoreState.taskFile,
@@ -402,7 +402,7 @@ class RalphIterationEngine {
                     tiering: prepared.config.modelTiering,
                     fallbackModel: prepared.config.model
                 })
-                : { model: prepared.config.model, provider: undefined, score: null };
+                : { model: prepared.config.model, provider: undefined, score: null, tier: 'default' };
             if (complexityScore !== null) {
                 this.logger.info('Model tiering selected model for task.', {
                     taskId: prepared.selectedTask?.id ?? null,
@@ -923,7 +923,9 @@ class RalphIterationEngine {
                 remediation: null,
                 completionReportStatus: completionReconciliation.artifact.status,
                 reconciliationWarnings: completionReconciliation.warnings,
-                stopReason: null
+                stopReason: null,
+                selectedModel,
+                effectiveTier
             };
             let loopDecision = (0, loopLogic_1.decideLoopContinuation)({
                 currentResult: result,

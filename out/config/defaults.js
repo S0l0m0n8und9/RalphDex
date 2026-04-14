@@ -105,7 +105,7 @@ exports.DEFAULT_CONFIG = {
     memorySummaryThreshold: 20,
     prdGenerationTemplate: '',
     planningPass: {
-        enabled: true,
+        enabled: false,
         mode: 'inline'
     },
     failureDiagnostics: 'auto',

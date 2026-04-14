@@ -93,27 +93,31 @@ function scoreTaskComplexity(task, taskFile, iterationHistory) {
  */
 function selectModelForTask(input) {
     if (!input.tiering.enabled) {
-        return { model: input.fallbackModel, score: null };
+        return { model: input.fallbackModel, score: null, tier: 'default' };
     }
     if (input.task.tier) {
         const tierConfig = input.task.tier === 'simple' ? input.tiering.simple
             : input.task.tier === 'complex' ? input.tiering.complex
                 : input.tiering.medium;
         const score = { score: 0, signals: [{ name: 'explicit', contribution: 0 }] };
-        return { model: tierConfig.model, provider: tierConfig.provider, score };
+        return { model: tierConfig.model, provider: tierConfig.provider, score, tier: input.task.tier };
     }
     const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
     let tier;
+    let tierName;
     if (score.score < input.tiering.simpleThreshold) {
         tier = input.tiering.simple;
+        tierName = 'simple';
     }
     else if (score.score >= input.tiering.complexThreshold) {
         tier = input.tiering.complex;
+        tierName = 'complex';
     }
     else {
         tier = input.tiering.medium;
+        tierName = 'medium';
     }
-    return { model: tier.model, provider: tier.provider, score };
+    return { model: tier.model, provider: tier.provider, score, tier: tierName };
 }
 /**
  * Derives the effective tier for a task without committing to a specific model.

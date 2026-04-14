@@ -122,10 +122,13 @@ export function buildIterationRow(iter: RalphDashboardIteration): string {
   const glyph = CLASSIFICATION_CHAR[iter.classification] ?? '?';
   const taskLabel = iter.taskId ?? '—';
   const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '';
+  const tierLabel = iter.effectiveTier && iter.effectiveTier !== 'default' 
+    ? `<span class="iter-tier" title="Model: ${esc(iter.selectedModel ?? 'Unknown')}">T: ${esc(iter.effectiveTier)}</span>` : '';
 
   return `<button type="button" class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}" title="Open iteration artifact">
     <span class="iter-num">#${iter.iteration}</span>
     ${agentLabel}
+    ${tierLabel}
     <span class="iter-task">${esc(taskLabel)}</span>
     <span class="iter-class">${iter.classification.replace(/_/g, ' ')}</span>
     <span class="iter-glyph">${glyph}</span>
@@ -371,6 +374,7 @@ export function buildBaseCss(): string {
 
 .iter-num { width: 28px; flex-shrink: 0; color: var(--ralph-dim); }
 .iter-agent { width: 72px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--ralph-amber); }
+.iter-tier { width: 65px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--ralph-green); text-align: right; margin-right: 8px; font-weight: 500; }
 .iter-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .iter-class { width: 100px; flex-shrink: 0; text-align: right; font-size: 10px; color: var(--ralph-dim); }
 .iter-glyph { width: 16px; flex-shrink: 0; text-align: center; }

@@ -131,7 +131,9 @@ class DashboardHost {
             classification: iter.completionClassification,
             stopReason: iter.stopReason,
             artifactDir: iter.artifactDir,
-            agentId: iter.agentId
+            agentId: iter.agentId,
+            selectedModel: iter.selectedModel,
+            effectiveTier: iter.effectiveTier
         }));
         this.latestState = {
             workspaceName: workspaceFolder?.name ?? 'unknown',

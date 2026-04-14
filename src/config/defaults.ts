@@ -104,7 +104,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   memorySummaryThreshold: 20,
   prdGenerationTemplate: '',
   planningPass: {
-    enabled: true,
+    enabled: false,
     mode: 'inline'
   } satisfies RalphPlanningPassConfig,
   failureDiagnostics: 'auto' satisfies FailureDiagnosticsMode,

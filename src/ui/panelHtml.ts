@@ -547,8 +547,22 @@ function textInput(key: string, value: string): string {
   return `<input type="text" data-setting="${esc(key)}" value="${esc(value)}">`;
 }
 
+function suggestedInput(key: string, value: string, options: readonly string[]): string {
+  const listId = `suggestions-${esc(key)}`;
+  const datalist = `<datalist id="${listId}">` + options.map((opt) => `<option value="${esc(opt)}"></option>`).join('') + `</datalist>`;
+  return `<input type="text" data-setting="${esc(key)}" value="${esc(value)}" list="${listId}">` + datalist;
+}
+
 function checkbox(key: string, value: boolean): string {
   return `<label class="setting-check"><input type="checkbox" data-setting="${esc(key)}"${value ? ' checked' : ''}></label>`;
+}
+
+function stringArrayCheckboxes(key: string, value: unknown, options: readonly string[]): string {
+  const values = Array.isArray(value) ? value : [];
+  return options.map((opt) => {
+    const isChecked = values.includes(opt);
+    return `<label class="setting-check" style="margin-right:8px; display:inline-flex;"><input type="checkbox" data-setting-multi="${esc(key)}" value="${esc(opt)}"${isChecked ? ' checked' : ''}> ${esc(opt)}</label>`;
+  }).join('');
 }
 
 function renderSettingControl(entry: NonNullable<RalphDashboardState['settingsSurface']>['sections'][number]['entries'][number]): string {
@@ -562,6 +576,14 @@ function renderSettingControl(entry: NonNullable<RalphDashboardState['settingsSu
 
   if (entry.control === 'enum') {
     return select(entry.key, String(entry.value ?? ''), entry.options ?? []);
+  }
+
+  if (entry.control === 'string-array') {
+    return stringArrayCheckboxes(entry.key, entry.value, entry.options ?? []);
+  }
+
+  if (entry.control === 'suggested-string') {
+    return suggestedInput(entry.key, String(entry.value ?? ''), entry.options ?? []);
   }
 
   return textInput(entry.key, String(entry.value ?? ''));

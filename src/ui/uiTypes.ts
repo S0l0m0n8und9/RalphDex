@@ -111,6 +111,8 @@ export interface RalphDashboardIteration {
   stopReason: RalphStopReason | null;
   artifactDir: string;
   agentId?: string;
+  selectedModel?: string;
+  effectiveTier?: string;
 }
 
 export interface RalphDashboardViewIntent {
