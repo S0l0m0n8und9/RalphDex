@@ -246,6 +246,14 @@ async function main() {
       rootTaskId: artifact.rootTaskId,
       decomposedTaskIds: artifact.decomposedTaskIds,
       prUrl: artifact.prUrl,
+      phaseCommands: harness.state.executedCommands
+        .map((entry) => entry.command)
+        .filter((command) => [
+          'ralphCodex.runPipeline',
+          'ralphCodex.runMultiAgentLoop',
+          'ralphCodex.runReviewAgent',
+          'ralphCodex.runScmAgent'
+        ].includes(command)),
       executedCommands: harness.state.executedCommands.map((entry) => entry.command),
       infoMessage: harness.state.infoMessages.at(-1)?.message ?? null
     }, null, 2));

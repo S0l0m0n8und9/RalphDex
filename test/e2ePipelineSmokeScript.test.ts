@@ -47,6 +47,12 @@ test('run-e2e-pipeline-smoke reports review and SCM command execution in the suc
   assert.equal(result.code, 0, `Expected the smoke script to succeed. stderr:\n${result.stderr}`);
 
   const summary = parseTrailingJson(result.stdout);
+  assert.deepEqual(summary.phaseCommands, [
+    'ralphCodex.runPipeline',
+    'ralphCodex.runMultiAgentLoop',
+    'ralphCodex.runReviewAgent',
+    'ralphCodex.runScmAgent'
+  ], 'Success summary must expose the delegated pipeline command chain.');
   const executedCommands = summary.executedCommands;
   assert.ok(Array.isArray(executedCommands), 'Success summary must include executedCommands.');
   assert.ok(

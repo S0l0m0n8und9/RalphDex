@@ -132,6 +132,8 @@ See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 
+For the opt-in full pipeline smoke, run `npm run test:e2e-pipeline` with `RALPH_E2E=1`. That path seeds a temp workspace, drives `Ralphdex: Run Pipeline` through the shipped scaffold, loop, review, and SCM commands with a deterministic fake Codex executable, and asserts the resulting pipeline artifact records a PR URL. Without `RALPH_E2E=1`, the script exits with a skip message so it stays out of the default validation gate.
+
 ## Configuration
 
 All settings are under the `ralphCodex.*` namespace in VS Code settings (`Ctrl+,` / `Cmd+,`).

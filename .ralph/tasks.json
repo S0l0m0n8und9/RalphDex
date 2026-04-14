@@ -3482,11 +3482,11 @@
     {
       "id": "T123",
       "title": "Align testing docs and regression expectations with the full end-to-end pipeline smoke contract",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T122"
       ],
-      "notes": "The current testing docs explicitly say the smoke uses one real loop invocation plus mocked review and SCM follow-up. Update the operator-facing docs and any focused tests so they describe the new full-phase smoke contract and its prerequisites accurately.",
+      "notes": "Aligned operator-facing testing docs with the full pipeline smoke contract, added a regression requiring the E2E smoke summary to expose the delegated phase-command chain, updated the smoke script to emit that evidence, and passed npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "`docs/testing.md`, README references, and any manifest-facing wording no longer describe the pipeline smoke as partially mocked once the full path is in place",
@@ -3495,5 +3495,5 @@
       ]
     }
   ],
-  "mutationCount": 123
+  "mutationCount": 124
 }
