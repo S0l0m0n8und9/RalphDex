@@ -3493,7 +3493,49 @@
         "Focused regression coverage protects the intended hermetic seams so future changes cannot silently reintroduce in-process phase patching",
         "`npm run validate` passes after the docs and test expectations are updated"
       ]
+    },
+    {
+      "id": "T124",
+      "title": "Close the remaining VS Code Marketplace readiness gaps in metadata, README, and release assets",
+      "status": "done",
+      "notes": "Closed the remaining Marketplace-readiness gaps by reviewing package metadata, adding Marketplace-grade install and post-install demo guidance to README, and correcting release-workflow commands to the current repo root with explicit Marketplace verification steps.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "Marketplace-facing metadata in `package.json` and the top-level docs are reviewed against the current shipped extension identity and no stale nested-repo paths remain",
+        "README contains a Marketplace-ready install/release section with the visual or demo guidance required by the PRD instead of relying only on local VSIX notes",
+        "Release-owned docs and changelog guidance reflect the current repo root and actual Ralphdex package/release flow"
+      ]
+    },
+    {
+      "id": "T125",
+      "title": "Add an explicit `vsce publish --dry-run` release-validation path and wire it into the documented Marketplace workflow",
+      "status": "todo",
+      "dependsOn": [
+        "T124"
+      ],
+      "notes": "The PRD calls for end-to-end Marketplace validation with `vsce publish --dry-run`, but the repo only exposes `npm run package` today. Add a supported dry-run command or script, make the release workflow use it, and keep the command safe for local operators without publishing side effects.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "A documented repository command or release step runs `vsce publish --dry-run` against the current package from the actual repo root",
+        "The dry-run path is clearly distinguished from real publish so operators can validate Marketplace readiness without shipping a release",
+        "Marketplace release docs reference the dry-run step as the authoritative final validation before publish"
+      ]
+    },
+    {
+      "id": "T126",
+      "title": "Add deterministic guards so Marketplace-release docs and validation commands cannot drift again",
+      "status": "todo",
+      "dependsOn": [
+        "T125"
+      ],
+      "notes": "Recent inspection found stale `ralph-codex-vscode-starter` paths in `docs/release-workflow.md`. After the README and dry-run workflow are corrected, add focused docs validation or regression coverage so future repo-root or release-surface drift fails fast.",
+      "validation": "npm run check:docs",
+      "acceptance": [
+        "Docs or regression checks fail if release-workflow commands point at the obsolete nested repo path or omit the supported dry-run validation step",
+        "The release workflow, README references, and docs validator expectations agree on the current Ralphdex release path",
+        "`npm run check:docs` covers the new guardrails"
+      ]
     }
   ],
-  "mutationCount": 124
+  "mutationCount": 126
 }

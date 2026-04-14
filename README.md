@@ -36,7 +36,27 @@ Alternatively, install from the command line:
 code --install-extension s0l0m0n8und9.ralphdex
 ```
 
-Or install a local `.vsix` build via `Extensions: Install from VSIX...` in the VS Code command palette. See [docs/release-workflow.md](docs/release-workflow.md) for how to build and publish a new `.vsix`.
+For a local package build, run `npm run package` from the repo root and install the generated `ralphdex-<version>.vsix` via `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`. See [docs/release-workflow.md](docs/release-workflow.md) for the supported package and Marketplace publish flow.
+
+### Post-Install Tour
+
+The Marketplace listing should match what you see after install:
+
+1. The Ralphdex activity-bar icon appears in VS Code.
+2. `Ralphdex: Show Status` opens the dashboard webview with the current task, pipeline, failure, and artifact snapshot.
+3. The Ralphdex sidebar exposes the Dashboard plus the Tasks tree for durable `.ralph/` state.
+4. `Ralphdex: Initialize Workspace` scaffolds `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` for a fresh repo.
+
+For a quick release-candidate demo pass, install the Marketplace build or local VSIX, run `Ralphdex: Show Status`, confirm the dashboard renders, then run `Ralphdex: Initialize Workspace` in a scratch folder and verify the `.ralph/` files are created.
+
+## Release Surface
+
+Ralphdex ships to the VS Code Marketplace under the extension identifier `s0l0m0n8und9.ralphdex`. The maintained release assets for operators are:
+
+- the Marketplace listing for install and update discovery
+- the repo-root `README.md` for install, first-run, and command guidance
+- [docs/release-workflow.md](docs/release-workflow.md) for version bump, packaging, and publish steps
+- [CHANGELOG.md](CHANGELOG.md) for operator-visible release notes
 
 ## CLI Shim
 
@@ -68,7 +88,7 @@ For a fresh workspace that does not have a `.ralph/` directory, start with `Ralp
 
 Newly generated Ralph tasks now share one normalization and persistence pipeline across bootstrap commands, PRD generation, wizard writes, decomposition, remediation, and pipeline scaffolding. In practice that means generated tasks should keep the richest producer-supplied shape Ralph knows at creation time, including fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and any derived dependency or mode metadata when those values are available. A generated task may still omit some optional fields when the upstream producer genuinely lacked that information or when the canonical contract leaves the field absent by design. See [docs/invariants.md#normalized-task-contract](docs/invariants.md#normalized-task-contract) for the authoritative field-presence rules.
 
-To build a distributable local package: `npm run package` then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension`.
+To build a distributable local package: `npm run package` from the repo root, then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`.
 
 ## Durable Files
 

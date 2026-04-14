@@ -14,11 +14,10 @@ This document covers the steps to publish a new version of Ralphdex to the VS Co
 ### 1. Validate the baseline
 
 ```bash
-cd ralph-codex-vscode-starter
 npm run validate
 ```
 
-All checks (compile, docs, ledger, prompt-budget, lint, tests) must pass before proceeding.
+Run this from the Ralphdex repo root. All checks (compile, docs, ledger, prompt-budget, lint, tests) must pass before proceeding.
 
 ### 2. Bump the version
 
@@ -32,7 +31,7 @@ Edit `package.json` and increment `version` following [semver](https://semver.or
 
 ### 3. Update CHANGELOG.md
 
-Add a new `## [x.y.z] — YYYY-MM-DD` section at the top of `CHANGELOG.md` describing what changed.
+Add a new `## [x.y.z] — YYYY-MM-DD` section at the top of `CHANGELOG.md` describing the operator-visible changes in the release. Keep the newest entry first.
 
 ### 4. Smoke-test the package locally
 
@@ -45,20 +44,21 @@ This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the gen
 ### 5. Commit and tag
 
 ```bash
-git add ralph-codex-vscode-starter/package.json ralph-codex-vscode-starter/CHANGELOG.md
+git add package.json CHANGELOG.md README.md docs/release-workflow.md
 git commit -m "chore(release): bump version to x.y.z"
 git tag v<x.y.z>
 git push origin main --tags
 ```
 
+If the release only changes version and changelog content, stage just those files. Include `README.md` or release docs when the Marketplace-facing install or publish guidance changed.
+
 ### 6. Publish
 
 ```bash
-cd ralph-codex-vscode-starter
 npx vsce publish --no-dependencies
 ```
 
-`vsce` will prompt for the PAT if `VSCE_PAT` is not set in the environment. Alternatively:
+Run this from the Ralphdex repo root. `vsce` will prompt for the PAT if `VSCE_PAT` is not set in the environment. Alternatively:
 
 ```bash
 VSCE_PAT=<token> npx vsce publish --no-dependencies
@@ -66,8 +66,17 @@ VSCE_PAT=<token> npx vsce publish --no-dependencies
 
 ### 7. Verify on the Marketplace
 
-Visit the publisher page to confirm the new version is live:  
+Visit the Marketplace listing and publisher page to confirm the new version is live and the README-rendered metadata look correct:
+
+<https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex>
+
 <https://marketplace.visualstudio.com/manage/publishers/s0l0m0n8und9>
+
+Confirm at minimum:
+
+- the version matches `package.json`
+- the README renders the install and post-install tour sections correctly
+- the icon, banner, and repo/support links resolve to the current Ralphdex project
 
 ## Rollback
 
