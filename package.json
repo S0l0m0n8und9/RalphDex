@@ -1069,7 +1069,8 @@
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
-    "package": "npm run check:runtime && vsce package --no-dependencies"
+    "package": "npm run check:runtime && vsce package --no-dependencies",
+    "publish:dry-run": "npm run check:runtime && vsce publish --dry-run --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",

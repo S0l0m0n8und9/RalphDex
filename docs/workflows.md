@@ -32,6 +32,8 @@ If you prefer a shell-driven local install, run `code --install-extension ./ralp
 
 This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
 
+For Marketplace release validation, use `npm run publish:dry-run` from the repo root after `npm run package`. That path exercises `vsce publish --dry-run --no-dependencies` without shipping a release; the full procedure lives in [docs/release-workflow.md](release-workflow.md).
+
 ## Initialize A Fresh Workspace
 
 1. Open a fresh clone in VS Code.

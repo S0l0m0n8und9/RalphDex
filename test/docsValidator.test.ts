@@ -19,6 +19,9 @@ async function seedValidRepository(rootPath: string): Promise<void> {
   const absolute = (relativePath: string) => path.join(rootPath, relativePath);
 
   await writeFile(rootPath, 'package.json', JSON.stringify({
+    scripts: {
+      'publish:dry-run': 'npm run check:runtime && vsce publish --dry-run --no-dependencies'
+    },
     contributes: {
       configuration: {
         properties: {
@@ -194,6 +197,8 @@ git push origin main --tags
 \`\`\`bash
 npx vsce publish --no-dependencies
 \`\`\`
+
+Run \`npm run publish:dry-run\` from the repo root before the real publish step so Marketplace validation exercises the same \`vsce publish\` path without shipping the release.
 `);
 
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
@@ -484,7 +489,8 @@ Steps to publish a new version of the extension to the VS Code Marketplace.
 
 1. Bump the version in package.json.
 2. Run \`npm run package\`.
-3. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
+3. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
+4. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
 `);
 
   await writeFile(rootPath, 'docs/model-tiering.md', `# Model Tiering
@@ -697,6 +703,92 @@ Stable prompt feedback rules live here.
         issue.code === 'missing_fragment'
         && issue.filePath === 'docs/verifier.md'
         && issue.message.includes('the next narrowed child should implement the smallest bounded fix')
+    ),
+    true
+  );
+});
+
+test('validateRepositoryDocs reports missing Marketplace dry-run release validation guidance', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'package.json', JSON.stringify({
+    contributes: {
+      configuration: {
+        properties: {
+          'ralphCodex.verifierModes': {
+            items: {
+              enum: ['validationCommand', 'gitDiff', 'taskState']
+            }
+          },
+          'ralphCodex.promptBudgetProfile': {
+            default: 'codex'
+          },
+          'ralphCodex.planningPass': {
+            default: {
+              enabled: false,
+              mode: 'inline'
+            }
+          },
+          'ralphCodex.memoryStrategy': {
+            default: 'verbatim'
+          },
+          'ralphCodex.memoryWindowSize': {
+            default: 10
+          },
+          'ralphCodex.memorySummaryThreshold': {
+            default: 20
+          },
+          'ralphCodex.agentCount': {
+            default: 1
+          },
+          'ralphCodex.pipelineHumanGates': {
+            default: false
+          }
+        }
+      }
+    }
+  }, null, 2));
+  await writeFile(rootPath, 'docs/release-workflow.md', `# Release Workflow
+
+This document covers the steps to publish a new version to the VS Code Marketplace.
+
+## Steps
+
+### 1. Bump the version
+
+Edit \`package.json\` and increment the version field following semver.
+
+### 2. Update CHANGELOG.md
+
+Add a new section at the top of \`CHANGELOG.md\`.
+
+### 3. Smoke-test the package locally
+
+Run \`npm run package\` to build and inspect the \`.vsix\`.
+
+### 4. Publish
+
+\`\`\`bash
+npx vsce publish --no-dependencies
+\`\`\`
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_release_validation_path'
+        && issue.filePath === 'docs/release-workflow.md'
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_package_script'
+        && issue.filePath === 'package.json'
+        && issue.message.includes('publish:dry-run')
     ),
     true
   );

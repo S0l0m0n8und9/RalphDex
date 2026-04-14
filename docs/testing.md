@@ -20,6 +20,7 @@ Related docs:
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
 - `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `check:prompt-budget`, `lint`, and `test`.
 - `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
+- `npm run publish:dry-run`: verify the Node runtime and run `vsce publish --dry-run --no-dependencies` so the Marketplace publish path is validated without shipping a release.
 
 ## What Is Covered
 
@@ -79,6 +80,7 @@ When changing those areas, rely on the authoritative commands above plus manual 
 
 - Packaging is supported on Node 20+.
 - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
+- The same runtime gate also protects `npm run publish:dry-run` before `vsce publish --dry-run --no-dependencies` is attempted.
 - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.
 - The packaged `.vsix` is intentionally allowlisted to compiled runtime files, prompt templates, the bundled license, and operator-facing docs so release builds do not ship `src/`, `test/`, `.ralph/`, or other development-only inputs.
 - `npm run package` proves the repo can emit a `.vsix`, but manual `.vsix` install still needs an operator check through `Extensions: Install from VSIX...` or `code --install-extension`.

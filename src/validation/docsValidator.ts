@@ -348,6 +348,11 @@ export async function validateRepositoryDocs(rootDir: string): Promise<DocsValid
     markdownCache,
     issues
   });
+  await validateReleaseWorkflowAlignment({
+    repoRoot,
+    markdownCache,
+    issues
+  });
   await validateConfigDefaults({ repoRoot, issues });
 
   return issues.sort((left, right) => {
@@ -827,6 +832,69 @@ async function validateVerifierDocumentationAlignment(input: {
       expectedValues: typeStopReasons,
       issues: input.issues
     });
+  }
+}
+
+async function validateReleaseWorkflowAlignment(input: {
+  repoRoot: string;
+  markdownCache: Map<string, { text: string; parsed: ParsedMarkdown }>;
+  issues: DocsValidationIssue[];
+}): Promise<void> {
+  const packageJsonPath = path.join(input.repoRoot, 'package.json');
+  const releaseWorkflow = input.markdownCache.get('docs/release-workflow.md');
+
+  if (!(await pathExists(packageJsonPath)) || !releaseWorkflow) {
+    return;
+  }
+
+  let packageJson: unknown;
+  try {
+    packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  } catch {
+    return;
+  }
+
+  const scripts = resolveJsonPath(packageJson, ['scripts']);
+  const publishDryRunScript = typeof (scripts as Record<string, unknown> | undefined)?.['publish:dry-run'] === 'string'
+    ? (scripts as Record<string, string>)['publish:dry-run']
+    : undefined;
+
+  if (publishDryRunScript === undefined) {
+    input.issues.push({
+      code: 'missing_package_script',
+      filePath: 'package.json',
+      message: 'Missing required package script "publish:dry-run" for Marketplace release validation.'
+    });
+  } else {
+    const requiredScriptFragments = [
+      'vsce publish',
+      '--dry-run',
+      '--no-dependencies'
+    ];
+    for (const fragment of requiredScriptFragments) {
+      if (!publishDryRunScript.includes(fragment)) {
+        input.issues.push({
+          code: 'invalid_package_script',
+          filePath: 'package.json',
+          message: `Package script "publish:dry-run" must include ${fragment}.`
+        });
+      }
+    }
+  }
+
+  const requiredDocFragments = [
+    '`npm run publish:dry-run`',
+    'vsce publish --dry-run --no-dependencies',
+    'without shipping'
+  ];
+  for (const fragment of requiredDocFragments) {
+    if (!releaseWorkflow.text.includes(fragment)) {
+      input.issues.push({
+        code: 'missing_release_validation_path',
+        filePath: 'docs/release-workflow.md',
+        message: `Release workflow must document the Marketplace dry-run validation path including ${fragment}.`
+      });
+    }
   }
 }
 

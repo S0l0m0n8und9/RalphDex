@@ -41,7 +41,17 @@ npm run package
 
 This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the generated `.vsix` for 0 blocking warnings before continuing.
 
-### 5. Commit and tag
+### 5. Validate the Marketplace publish path without shipping
+
+```bash
+npm run publish:dry-run
+```
+
+Run this from the Ralphdex repo root after `npm run package` succeeds. The script runs `check:runtime` and then `vsce publish --dry-run --no-dependencies`, so it exercises the real Marketplace publish path without shipping the release.
+
+Treat this as the final authoritative validation step before the real publish command. A successful dry run proves the current package, metadata, and publisher credentials are acceptable to `vsce publish` without creating a Marketplace release.
+
+### 6. Commit and tag
 
 ```bash
 git add package.json CHANGELOG.md README.md docs/release-workflow.md
@@ -52,19 +62,19 @@ git push origin main --tags
 
 If the release only changes version and changelog content, stage just those files. Include `README.md` or release docs when the Marketplace-facing install or publish guidance changed.
 
-### 6. Publish
+### 7. Publish
 
 ```bash
 npx vsce publish --no-dependencies
 ```
 
-Run this from the Ralphdex repo root. `vsce` will prompt for the PAT if `VSCE_PAT` is not set in the environment. Alternatively:
+Run this from the Ralphdex repo root only after `npm run publish:dry-run` succeeds. `vsce` will prompt for the PAT if `VSCE_PAT` is not set in the environment. Alternatively:
 
 ```bash
 VSCE_PAT=<token> npx vsce publish --no-dependencies
 ```
 
-### 7. Verify on the Marketplace
+### 8. Verify on the Marketplace
 
 Visit the Marketplace listing and publisher page to confirm the new version is live and the README-rendered metadata look correct:
 
