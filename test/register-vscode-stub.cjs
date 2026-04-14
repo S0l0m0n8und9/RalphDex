@@ -360,10 +360,12 @@ global.__RALPH_VSCODE_STUB__ = {
 
 reset();
 
-try {
-  require('../out-test/test/support/processTestHarness.js').installProcessTestHarness();
-} catch {
-  // compile:tests emits the harness before the test runner loads this stub
+if (process.env.RALPH_DISABLE_PROCESS_TEST_HARNESS !== '1') {
+  try {
+    require('../out-test/test/support/processTestHarness.js').installProcessTestHarness();
+  } catch {
+    // compile:tests emits the harness before the test runner loads this stub
+  }
 }
 
 const originalLoad = Module._load;

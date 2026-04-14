@@ -8,10 +8,16 @@ const { spawnSync } = require('node:child_process');
 
 const projectRoot = path.join(__dirname, '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-const PR_URL = 'https://github.com/acme/ralph-e2e-smoke/pull/1';
 
 function runOrExit(command, args, options = {}) {
-  const result = spawnSync(command, args, {
+  const spawnInput = process.platform === 'win32'
+    ? {
+        command: 'cmd.exe',
+        args: ['/d', '/s', '/c', `${command} ${args.join(' ')}`]
+      }
+    : { command, args };
+
+  const result = spawnSync(spawnInput.command, spawnInput.args, {
     cwd: projectRoot,
     stdio: 'inherit',
     ...options
@@ -78,37 +84,6 @@ function createExtensionContext(vscode) {
   };
 }
 
-function progressReporter() {
-  return {
-    report() {}
-  };
-}
-
-function createMockRun(rootPath, mode, overrides = {}) {
-  return {
-    prepared: {
-      rootPath
-    },
-    result: {
-      iteration: 1,
-      executionStatus: 'succeeded',
-      verificationStatus: 'passed',
-      summary: 'E2E pipeline smoke mock iteration.',
-      completionClassification: 'complete',
-      stopReason: null,
-      artifactDir: path.join(rootPath, '.ralph', 'artifacts', `${mode}-mock`),
-      followUpAction: 'continue_next_task',
-      execution: { transcriptPath: undefined },
-      ...overrides
-    },
-    loopDecision: {
-      shouldContinue: false,
-      message: 'E2E pipeline smoke mock iteration complete.'
-    },
-    createdPaths: []
-  };
-}
-
 async function seedWorkspace(rootPath) {
   await fsp.mkdir(path.join(rootPath, 'src'), { recursive: true });
   await fsp.mkdir(path.join(rootPath, '.ralph', 'artifacts'), { recursive: true });
@@ -157,23 +132,26 @@ async function main() {
 
   runOrExit(npmCommand, ['run', 'compile:tests']);
 
+  process.env.RALPH_DISABLE_PROCESS_TEST_HARNESS = '1';
   require(path.join(projectRoot, 'test', 'register-vscode-stub.cjs'));
 
   const vscode = require('vscode');
   const { activate } = require(path.join(projectRoot, 'out-test', 'src', 'extension.js'));
-  const { RalphIterationEngine } = require(path.join(projectRoot, 'out-test', 'src', 'ralph', 'iterationEngine.js'));
   const { vscodeTestHarness } = require(path.join(projectRoot, 'out-test', 'test', 'support', 'vscodeTestHarness.js'));
+  const {
+    PIPELINE_SMOKE_PR_URL,
+    writePipelineSmokeFakeCodexExecScript
+  } = require(path.join(projectRoot, 'out-test', 'test', 'support', 'fakeCodexExecFixture.js'));
   const { DEFAULT_CONFIG } = require(path.join(projectRoot, 'out-test', 'src', 'config', 'defaults.js'));
   const rootPath = await fsp.mkdtemp(path.join(os.tmpdir(), 'ralph-e2e-pipeline-'));
   const keepWorkspace = process.env.RALPH_E2E_KEEP_WORKSPACE === '1';
-  const commandPath = process.env.RALPH_E2E_PIPELINE_COMMAND || 'codex';
   const model = process.env.RALPH_E2E_PIPELINE_MODEL || DEFAULT_CONFIG.model;
   let shouldCleanup = keepWorkspace;
-  let realInvocationCount = 0;
 
   try {
     await seedWorkspace(rootPath);
     initGitRepo(rootPath);
+    await writePipelineSmokeFakeCodexExecScript(rootPath);
 
     const harness = vscodeTestHarness();
     harness.reset();
@@ -181,7 +159,7 @@ async function main() {
       ...DEFAULT_CONFIG,
       cliProvider: 'codex',
       preferredHandoffMode: 'cliExec',
-      codexCommandPath: commandPath,
+      codexCommandPath: process.execPath,
       verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
       gitCheckpointMode: 'snapshotAndDiff',
       approvalMode: 'never',
@@ -194,61 +172,8 @@ async function main() {
       model
     });
     harness.setWorkspaceFolders([workspaceFolder(vscode, rootPath)]);
-
-    const originalRunCliIteration = RalphIterationEngine.prototype.runCliIteration;
-    RalphIterationEngine.prototype.runCliIteration = async function patchedRunCliIteration(workspaceFolderArg, mode, progress, options) {
-      const agentRole = options?.configOverrides?.agentRole;
-
-      if (!agentRole && mode === 'loop') {
-        realInvocationCount += 1;
-        return originalRunCliIteration.call(this, workspaceFolderArg, mode, progress, options);
-      }
-
-      if (agentRole === 'review') {
-        const artifactDir = path.join(rootPath, '.ralph', 'artifacts', 'review-001');
-        const transcriptPath = path.join(artifactDir, 'transcript.jsonl');
-        await fsp.mkdir(artifactDir, { recursive: true });
-        await fsp.writeFile(transcriptPath, '{"type":"review","message":"mock review"}\n', 'utf8');
-        return createMockRun(rootPath, mode, {
-          artifactDir,
-          execution: { transcriptPath }
-        });
-      }
-
-      if (agentRole === 'scm') {
-        const artifactDir = path.join(rootPath, '.ralph', 'artifacts', 'scm-001');
-        await fsp.mkdir(artifactDir, { recursive: true });
-        await fsp.writeFile(
-          path.join(artifactDir, 'completion-report.json'),
-          JSON.stringify({
-            schemaVersion: 1,
-            kind: 'completionReport',
-            status: 'parsed',
-            selectedTaskId: 'Tpipe-scm',
-            warnings: [],
-            report: {
-              requestedStatus: 'done',
-              progressNote: `PR submitted at ${PR_URL}.`
-            }
-          }, null, 2),
-          'utf8'
-        );
-        return createMockRun(rootPath, mode, {
-          artifactDir
-        });
-      }
-
-      return originalRunCliIteration.call(this, workspaceFolderArg, mode, progress ?? progressReporter(), options);
-    };
-
-    try {
-      activate(createExtensionContext(vscode));
-      await vscode.commands.executeCommand('ralphCodex.runPipeline');
-    } finally {
-      RalphIterationEngine.prototype.runCliIteration = originalRunCliIteration;
-    }
-
-    assert.ok(realInvocationCount >= 1, 'Expected at least one real CLI loop invocation.');
+    activate(createExtensionContext(vscode));
+    await vscode.commands.executeCommand('ralphCodex.runPipeline');
 
     const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
     const pipelineFiles = (await fsp.readdir(pipelinesDir)).filter((entry) => entry.endsWith('.json')).sort();
@@ -259,15 +184,18 @@ async function main() {
     assert.equal(artifact.kind, 'pipelineRun');
     assert.equal(artifact.status, 'complete');
     assert.equal(artifact.phase, 'done');
-    assert.equal(artifact.prUrl, PR_URL);
+    assert.equal(artifact.prUrl, PIPELINE_SMOKE_PR_URL);
+    assert.ok(artifact.reviewTranscriptPath, 'Expected reviewTranscriptPath in the pipeline artifact.');
+    await fsp.access(artifact.reviewTranscriptPath);
+    const fixtureSource = await fsp.readFile(path.join(rootPath, 'src', 'fixture.ts'), 'utf8');
+    assert.match(fixtureSource, /export const pipelineSmoke = true;/);
 
     shouldCleanup = keepWorkspace === false;
 
     console.log(JSON.stringify({
       rootPath,
-      commandPath,
+      commandPath: process.execPath,
       model,
-      realInvocationCount,
       artifactPath,
       prUrl: artifact.prUrl,
       infoMessage: harness.state.infoMessages.at(-1)?.message ?? null

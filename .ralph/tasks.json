@@ -3451,7 +3451,49 @@
         "Auto-Recover and Skip Task route through existing recovery or task-state commands and preserve durable evidence",
         "Regression coverage proves notifications persist useful state in the dashboard or failure feed even when the toast is dismissed"
       ]
+    },
+    {
+      "id": "T121",
+      "title": "Add deterministic fixture hooks so the pipeline E2E smoke can drive review and SCM phases without in-process iteration mocks",
+      "status": "done",
+      "notes": "Replaced the pipeline E2E smoke's runCliIteration monkey-patch with deterministic fake Codex executable hooks that drive build, review, and SCM through the normal provider path, added regression coverage for the fixture, and updated testing docs. Validation passed via the focused fixture test, the opt-in pipeline smoke, and npm run validate.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "The pipeline smoke path no longer monkey-patches `RalphIterationEngine.prototype.runCliIteration` to skip review or SCM phases",
+        "The temp-workspace fixture can complete review and SCM follow-up through supported test seams such as deterministic fake CLI or SCM helpers instead of in-process phase short-circuiting",
+        "The smoke remains hermetic and opt-in, with no requirement for live GitHub credentials or network PR submission"
+      ]
+    },
+    {
+      "id": "T122",
+      "title": "Upgrade `test:e2e-pipeline` to execute the full pipeline phase chain in the temp workspace",
+      "status": "todo",
+      "dependsOn": [
+        "T121"
+      ],
+      "notes": "Once deterministic review and SCM fixtures exist, update `scripts/run-e2e-pipeline-smoke.js` so scaffold, loop, review, and SCM phases all run through the real command flow. Preserve the current opt-in environment gate and preserved-workspace debugging behavior.",
+      "validation": "RALPH_E2E=1 npm run test:e2e-pipeline",
+      "acceptance": [
+        "`scripts/run-e2e-pipeline-smoke.js` drives `ralphCodex.runPipeline` through scaffold, loop, review, and SCM without phase-specific in-process mocks",
+        "The smoke still asserts the resulting pipeline artifact reaches `status: complete`, `phase: done`, and records a PR URL artifact",
+        "Failure output still preserves the temp workspace path and enough artifact detail for debugging when the smoke fails"
+      ]
+    },
+    {
+      "id": "T123",
+      "title": "Align testing docs and regression expectations with the full end-to-end pipeline smoke contract",
+      "status": "todo",
+      "dependsOn": [
+        "T122"
+      ],
+      "notes": "The current testing docs explicitly say the smoke uses one real loop invocation plus mocked review and SCM follow-up. Update the operator-facing docs and any focused tests so they describe the new full-phase smoke contract and its prerequisites accurately.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "`docs/testing.md`, README references, and any manifest-facing wording no longer describe the pipeline smoke as partially mocked once the full path is in place",
+        "Focused regression coverage protects the intended hermetic seams so future changes cannot silently reintroduce in-process phase patching",
+        "`npm run validate` passes after the docs and test expectations are updated"
+      ]
     }
   ],
-  "mutationCount": 120
+  "mutationCount": 122
 }
