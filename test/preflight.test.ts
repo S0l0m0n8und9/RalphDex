@@ -123,7 +123,7 @@ test('buildPreflightReport distinguishes selected validation commands from confi
 
   assert.equal(report.ready, true);
   assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'validation_command_executable_not_confirmed'));
-  assert.match(report.summary, /Validation pytest\. Executable not confirmed\./);
+  assert.match(report.summary, /Validation pytest\. Executable token not confirmed\./);
 });
 
 test('buildPreflightReport surfaces contested, stale, and mismatched claims in claim-graph diagnostics', async () => {

@@ -378,7 +378,7 @@ function registerCommand(context, logger, spec) {
             if (spec.requiresTrustedWorkspace ?? true) {
                 (0, workspaceSupport_1.requireTrustedWorkspace)(spec.label);
             }
-            await vscode.window.withProgress({
+            return await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: spec.label,
                 cancellable: spec.cancellable ?? false
@@ -458,35 +458,27 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         if (loopStatus === 'complete' && startPhase !== 'scm') {
             progress.report({ message: `Pipeline ${current.runId}: running review agent` });
             try {
-                const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                    reachedIterationCap: false,
-                    configOverrides: {
-                        agentRole: 'review',
-                        agentId: buildReviewAgentId(config.agentId)
-                    }
-                });
-                reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
+                const reviewRun = await vscode.commands.executeCommand('ralphCodex.runReviewAgent');
+                reviewTranscriptPath = reviewRun?.transcriptPath;
                 await checkpoint({
                     phase: 'review',
                     ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
                 });
-                if (reviewRun.result.executionStatus !== 'failed') {
-                    if (config.pipelineHumanGates) {
-                        const handoffPath = await (0, pipeline_1.writePipelinePendingHandoff)(paths.handoffDir, {
-                            schemaVersion: 1,
-                            kind: 'pipelinePendingHandoff',
-                            runId: current.runId,
-                            artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
-                            ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
-                            createdAt: new Date().toISOString()
-                        });
-                        await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
-                        logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
-                        void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`);
-                        return;
-                    }
-                    runScm = true;
+                if (config.pipelineHumanGates) {
+                    const handoffPath = await (0, pipeline_1.writePipelinePendingHandoff)(paths.handoffDir, {
+                        schemaVersion: 1,
+                        kind: 'pipelinePendingHandoff',
+                        runId: current.runId,
+                        artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
+                        ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
+                        createdAt: new Date().toISOString()
+                    });
+                    await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
+                    logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
+                    void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`);
+                    return;
                 }
+                runScm = true;
             }
             catch (error) {
                 logger.error('Pipeline review/SCM phase failed.', error);
@@ -497,16 +489,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         if (runScm) {
             progress.report({ message: `Pipeline ${current.runId}: running SCM agent` });
             try {
-                const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                    reachedIterationCap: false,
-                    configOverrides: {
-                        agentRole: 'scm',
-                        agentId: buildScmAgentId(config.agentId)
-                    }
-                });
-                const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
-                const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
-                prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
+                const scmRun = await vscode.commands.executeCommand('ralphCodex.runScmAgent');
+                prUrl = scmRun?.prUrl;
             }
             catch (error) {
                 logger.error('Pipeline SCM phase failed.', error);
@@ -905,6 +889,10 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 ? `Ralph review iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph review iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+            return {
+                artifactDir: run.result.artifactDir,
+                transcriptPath: run.result.execution.transcriptPath
+            };
         }
     });
     registerCommand(context, logger, {
@@ -950,6 +938,12 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 ? `Ralph SCM iteration ${run.result.iteration} was skipped. ${run.loopDecision.message}`
                 : `Ralph SCM iteration ${run.result.iteration} completed. ${run.result.summary}`;
             void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+            const completionReportPath = path.join(run.result.artifactDir, 'completion-report.json');
+            const completionArtifact = await (0, statusSnapshot_1.readJsonArtifact)(completionReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
+            return {
+                artifactDir: run.result.artifactDir,
+                prUrl: (0, pipeline_1.extractPrUrl)(completionArtifact?.report?.progressNote)
+            };
         }
     });
     registerCommand(context, logger, {

@@ -73,7 +73,10 @@ interface RegisteredCommandSpec {
   label: string;
   requiresTrustedWorkspace?: boolean;
   cancellable?: boolean;
-  handler: (progress: vscode.Progress<{ message?: string; increment?: number }>, token: vscode.CancellationToken) => Promise<void>;
+  handler: (
+    progress: vscode.Progress<{ message?: string; increment?: number }>,
+    token: vscode.CancellationToken
+  ) => Promise<unknown>;
 }
 
 function createdPathSummary(rootPath: string, createdPaths: string[]): string | null {
@@ -467,6 +470,16 @@ function iterationFailureMessage(result: { iteration: number; execution: { trans
   return `codex exec failed on iteration ${result.iteration}. See ${result.execution.transcriptPath ?? 'the Ralph artifacts'} and the Ralphdex output channel.`;
 }
 
+interface ReviewAgentCommandResult {
+  artifactDir: string;
+  transcriptPath?: string;
+}
+
+interface ScmAgentCommandResult {
+  artifactDir: string;
+  prUrl?: string;
+}
+
 function registerCommand(
   context: vscode.ExtensionContext,
   logger: Logger,
@@ -483,7 +496,7 @@ function registerCommand(
         requireTrustedWorkspace(spec.label);
       }
 
-      await vscode.window.withProgress(
+      return await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: spec.label,
@@ -594,38 +607,30 @@ export function registerCommands(
     if (loopStatus === 'complete' && startPhase !== 'scm') {
       progress.report({ message: `Pipeline ${current.runId}: running review agent` });
       try {
-        const reviewRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-          reachedIterationCap: false,
-          configOverrides: {
-            agentRole: 'review',
-            agentId: buildReviewAgentId(config.agentId)
-          }
-        });
-        reviewTranscriptPath = reviewRun.result.execution.transcriptPath;
+        const reviewRun = await vscode.commands.executeCommand('ralphCodex.runReviewAgent') as ReviewAgentCommandResult | undefined;
+        reviewTranscriptPath = reviewRun?.transcriptPath;
         await checkpoint({
           phase: 'review',
           ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
         });
 
-        if (reviewRun.result.executionStatus !== 'failed') {
-          if (config.pipelineHumanGates) {
-            const handoffPath = await writePipelinePendingHandoff(paths.handoffDir, {
-              schemaVersion: 1,
-              kind: 'pipelinePendingHandoff',
-              runId: current.runId,
-              artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
-              ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
-              createdAt: new Date().toISOString()
-            });
-            await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
-            logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
-            void vscode.window.showInformationMessage(
-              `Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`
-            );
-            return;
-          }
-          runScm = true;
+        if (config.pipelineHumanGates) {
+          const handoffPath = await writePipelinePendingHandoff(paths.handoffDir, {
+            schemaVersion: 1,
+            kind: 'pipelinePendingHandoff',
+            runId: current.runId,
+            artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
+            ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
+            createdAt: new Date().toISOString()
+          });
+          await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
+          logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
+          void vscode.window.showInformationMessage(
+            `Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`
+          );
+          return;
         }
+        runScm = true;
       } catch (error) {
         logger.error('Pipeline review/SCM phase failed.', error);
       }
@@ -636,16 +641,8 @@ export function registerCommands(
     if (runScm) {
       progress.report({ message: `Pipeline ${current.runId}: running SCM agent` });
       try {
-        const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-          reachedIterationCap: false,
-          configOverrides: {
-            agentRole: 'scm',
-            agentId: buildScmAgentId(config.agentId)
-          }
-        });
-        const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
-        const scmReport = await readJsonArtifact(scmReportPath).then(normalizeCompletionReportArtifact);
-        prUrl = extractPrUrl(scmReport?.report?.progressNote);
+        const scmRun = await vscode.commands.executeCommand('ralphCodex.runScmAgent') as ScmAgentCommandResult | undefined;
+        prUrl = scmRun?.prUrl;
       } catch (error) {
         logger.error('Pipeline SCM phase failed.', error);
       }
@@ -1142,6 +1139,11 @@ export function registerCommands(
         : `Ralph review iteration ${run.result.iteration} completed. ${run.result.summary}`;
 
       void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+
+      return {
+        artifactDir: run.result.artifactDir,
+        transcriptPath: run.result.execution.transcriptPath
+      } satisfies ReviewAgentCommandResult;
     }
   });
 
@@ -1195,6 +1197,13 @@ export function registerCommands(
         : `Ralph SCM iteration ${run.result.iteration} completed. ${run.result.summary}`;
 
       void vscode.window.showInformationMessage(note ? `${baseMessage} ${note}` : baseMessage);
+
+      const completionReportPath = path.join(run.result.artifactDir, 'completion-report.json');
+      const completionArtifact = await readJsonArtifact(completionReportPath).then(normalizeCompletionReportArtifact);
+      return {
+        artifactDir: run.result.artifactDir,
+        prUrl: extractPrUrl(completionArtifact?.report?.progressNote)
+      } satisfies ScmAgentCommandResult;
     }
   });
 

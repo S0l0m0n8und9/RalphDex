@@ -1040,14 +1040,14 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
         'validationVerifier',
         'info',
         'validation_command_executable_confirmed',
-        `Validation command executable was confirmed before execution: ${input.validationCommandReadiness.executable ?? input.validationCommand}.`
+        `Validation command executable token was confirmed before execution: ${input.validationCommandReadiness.executable ?? input.validationCommand}.`
       ));
     } else if (input.validationCommandReadiness.status === 'executableNotConfirmed') {
       diagnostics.push(createDiagnostic(
         'validationVerifier',
         'warning',
         'validation_command_executable_not_confirmed',
-        `Validation command was selected but its executable could not be confirmed before execution: ${input.validationCommandReadiness.executable ?? input.validationCommand}.`
+        `Validation command was selected but its executable token could not be confirmed before execution: ${input.validationCommandReadiness.executable ?? input.validationCommand}.`
       ));
     } else {
       diagnostics.push(createDiagnostic(
@@ -1093,9 +1093,9 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     ? [
       `Validation ${input.validationCommand}.`,
       input.validationCommandReadiness.status === 'executableConfirmed'
-        ? 'Executable confirmed.'
+        ? 'Executable token confirmed.'
         : input.validationCommandReadiness.status === 'executableNotConfirmed'
-          ? 'Executable not confirmed.'
+          ? 'Executable token not confirmed.'
           : input.validationCommandReadiness.status === 'selected'
             ? 'Executable not checked.'
             : 'No validation command selected.'

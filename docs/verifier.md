@@ -18,6 +18,8 @@ Configured through `ralphCodex.verifierModes`:
 
 Preflight must report verifier readiness separately from verifier results. A selected validation command is not the same as an executable confirmed before execution.
 
+Leading `KEY=value` prefixes on validation commands are treated as portable env overrides by the verifier. Ralph strips those prefixes from the command text, passes them through the spawned process environment, and then probes readiness against the remaining executable command. This avoids relying on POSIX-only inline assignment syntax when the host shell is Windows.
+
 For normal CLI task execution, the model does not directly edit `.ralph/tasks.json` or `.ralph/progress.md`. Instead it ends with a structured completion-report JSON block, and Ralph reconciles the selected-task status, blocker, and at most one sanitized progress bullet locally after verification.
 
 For nested workspaces, verifier cwd follows the iteration root policy: `.ralph` still lives at the workspace root, validation-command and git/file-change verifiers run from the selected inspection root, and task-state verification still compares durable Ralph files under `.ralph`. When `inspectionRootOverride` is configured, the override becomes the verifier cwd if it resolves to a directory inside the workspace; otherwise Ralph records the invalid override and falls back to automatic root selection.

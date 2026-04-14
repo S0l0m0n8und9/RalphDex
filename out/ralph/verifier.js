@@ -150,6 +150,25 @@ function extractExecutableToken(command) {
     }
     return null;
 }
+function parseLeadingEnvAssignments(command) {
+    const tokens = tokenizeShellCommand(command);
+    const envEntries = {};
+    let commandStartIndex = 0;
+    for (const token of tokens) {
+        const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(token);
+        if (!match) {
+            break;
+        }
+        envEntries[match[1]] = match[2];
+        commandStartIndex += 1;
+    }
+    const executableCommand = tokens.slice(commandStartIndex).join(' ').trim();
+    return {
+        rawCommand: command,
+        executableCommand,
+        env: Object.keys(envEntries).length > 0 ? envEntries : undefined
+    };
+}
 function usesExplicitExecutablePath(executable) {
     return path.isAbsolute(executable) || executable.includes(path.sep) || executable.includes('/');
 }
@@ -265,17 +284,19 @@ async function inspectValidationCommandReadiness(input) {
             executable: null
         };
     }
-    const executable = extractExecutableToken(input.command);
+    const parsedCommand = parseLeadingEnvAssignments(input.command);
+    const commandForReadiness = parsedCommand.executableCommand || input.command;
+    const executable = extractExecutableToken(commandForReadiness);
     if (!executable) {
         return {
-            command: input.command,
+            command: commandForReadiness,
             status: 'selected',
             executable: null
         };
     }
     if (usesExplicitExecutablePath(executable)) {
         return {
-            command: input.command,
+            command: commandForReadiness,
             status: await isExecutable(executable) ? 'executableConfirmed' : 'executableNotConfirmed',
             executable
         };
@@ -290,14 +311,14 @@ async function inspectValidationCommandReadiness(input) {
             .find((line) => line.length > 0)
             ?? executable;
         return {
-            command: input.command,
+            command: commandForReadiness,
             status: lookup.code === 0 ? 'executableConfirmed' : 'executableNotConfirmed',
             executable: resolvedExecutable
         };
     }
     catch {
         return {
-            command: input.command,
+            command: commandForReadiness,
             status: 'executableNotConfirmed',
             executable
         };
@@ -320,11 +341,14 @@ async function runValidationCommandVerifier(input) {
         };
     }
     const DEFAULT_VALIDATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    const parsedCommand = parseLeadingEnvAssignments(input.command);
+    const commandToRun = parsedCommand.executableCommand || input.command;
     let run;
     try {
-        run = await (0, processRunner_1.runProcess)(input.command, [], {
+        run = await (0, processRunner_1.runProcess)(commandToRun, [], {
             cwd: input.rootPath,
             shell: true,
+            env: parsedCommand.env,
             timeoutMs: DEFAULT_VALIDATION_TIMEOUT_MS
         });
     }
@@ -345,7 +369,7 @@ async function runValidationCommandVerifier(input) {
                 summary: timeoutSummary,
                 warnings: [],
                 errors: [timeoutSummary],
-                command: input.command,
+                command: commandToRun,
                 artifactPath: summaryPath,
                 failureSignature: `timeout:${input.command}`,
                 metadata: {
@@ -396,7 +420,7 @@ async function runValidationCommandVerifier(input) {
             : `Validation command failed with exit code ${run.code}: ${input.command}`,
         warnings: [],
         errors: run.code === 0 ? [] : [`Validation command exited with ${run.code}.`],
-        command: input.command,
+        command: commandToRun,
         artifactPath: summaryPath,
         failureSignature,
         metadata: {

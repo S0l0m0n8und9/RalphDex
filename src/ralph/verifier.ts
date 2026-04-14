@@ -40,6 +40,12 @@ export interface ValidationCommandVerification {
   exitCode: number | null;
 }
 
+interface ParsedValidationCommand {
+  rawCommand: string;
+  executableCommand: string;
+  env: NodeJS.ProcessEnv | undefined;
+}
+
 export interface ValidationCommandReadinessInspection {
   command: string | null;
   status: 'missing' | 'selected' | 'executableConfirmed' | 'executableNotConfirmed';
@@ -174,6 +180,29 @@ function extractExecutableToken(command: string): string | null {
   }
 
   return null;
+}
+
+function parseLeadingEnvAssignments(command: string): ParsedValidationCommand {
+  const tokens = tokenizeShellCommand(command);
+  const envEntries: Record<string, string> = {};
+  let commandStartIndex = 0;
+
+  for (const token of tokens) {
+    const match = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(token);
+    if (!match) {
+      break;
+    }
+
+    envEntries[match[1]] = match[2];
+    commandStartIndex += 1;
+  }
+
+  const executableCommand = tokens.slice(commandStartIndex).join(' ').trim();
+  return {
+    rawCommand: command,
+    executableCommand,
+    env: Object.keys(envEntries).length > 0 ? envEntries : undefined
+  };
 }
 
 function usesExplicitExecutablePath(executable: string): boolean {
@@ -322,10 +351,12 @@ export async function inspectValidationCommandReadiness(input: {
     };
   }
 
-  const executable = extractExecutableToken(input.command);
+  const parsedCommand = parseLeadingEnvAssignments(input.command);
+  const commandForReadiness = parsedCommand.executableCommand || input.command;
+  const executable = extractExecutableToken(commandForReadiness);
   if (!executable) {
     return {
-      command: input.command,
+      command: commandForReadiness,
       status: 'selected',
       executable: null
     };
@@ -333,7 +364,7 @@ export async function inspectValidationCommandReadiness(input: {
 
   if (usesExplicitExecutablePath(executable)) {
     return {
-      command: input.command,
+      command: commandForReadiness,
       status: await isExecutable(executable) ? 'executableConfirmed' : 'executableNotConfirmed',
       executable
     };
@@ -350,13 +381,13 @@ export async function inspectValidationCommandReadiness(input: {
       ?? executable;
 
     return {
-      command: input.command,
+      command: commandForReadiness,
       status: lookup.code === 0 ? 'executableConfirmed' : 'executableNotConfirmed',
       executable: resolvedExecutable
     };
   } catch {
     return {
-      command: input.command,
+      command: commandForReadiness,
       status: 'executableNotConfirmed',
       executable
     };
@@ -387,12 +418,15 @@ export async function runValidationCommandVerifier(input: {
   }
 
   const DEFAULT_VALIDATION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+  const parsedCommand = parseLeadingEnvAssignments(input.command);
+  const commandToRun = parsedCommand.executableCommand || input.command;
 
   let run: { code: number; stdout: string; stderr: string };
   try {
-    run = await runProcess(input.command, [], {
+    run = await runProcess(commandToRun, [], {
       cwd: input.rootPath,
       shell: true,
+      env: parsedCommand.env,
       timeoutMs: DEFAULT_VALIDATION_TIMEOUT_MS
     });
   } catch (err) {
@@ -412,7 +446,7 @@ export async function runValidationCommandVerifier(input: {
         summary: timeoutSummary,
         warnings: [],
         errors: [timeoutSummary],
-        command: input.command,
+        command: commandToRun,
         artifactPath: summaryPath,
         failureSignature: `timeout:${input.command}`,
         metadata: {
@@ -466,7 +500,7 @@ export async function runValidationCommandVerifier(input: {
       : `Validation command failed with exit code ${run.code}: ${input.command}`,
     warnings: [],
     errors: run.code === 0 ? [] : [`Validation command exited with ${run.code}.`],
-    command: input.command,
+    command: commandToRun,
     artifactPath: summaryPath,
     failureSignature,
     metadata: {

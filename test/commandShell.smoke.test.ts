@@ -2158,6 +2158,16 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
     }
   );
 
+  const executedCommands = harness.state.executedCommands.map((entry) => entry.command);
+  assert.ok(
+    executedCommands.includes('ralphCodex.runReviewAgent'),
+    'runPipeline must invoke the review phase through the review command.'
+  );
+  assert.ok(
+    executedCommands.includes('ralphCodex.runScmAgent'),
+    'runPipeline must invoke the SCM phase through the SCM command.'
+  );
+
   // Expect: 1 loop iteration (multi-agent), then review, then SCM
   const loopInvocations = invocations.filter((inv) => inv.mode === 'loop');
   const reviewInvocation = invocations.find((inv) => inv.agentRole === 'review');

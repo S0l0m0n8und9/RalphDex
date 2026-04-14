@@ -3467,7 +3467,7 @@
     {
       "id": "T122",
       "title": "Upgrade `test:e2e-pipeline` to execute the full pipeline phase chain in the temp workspace",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T121"
       ],

@@ -591,11 +591,11 @@ async function fakeShellCommand(command: string, cwd: string): Promise<ProcessRu
     return { code: 0, stdout: '', stderr: '' };
   }
 
-  if (/^node(?:\.exe)?\s+-e\s+"process\.exit\(0\)"$/i.test(trimmed)) {
+  if (/^node(?:\.exe)?\s+-e\s+(?:"process\.exit\(0\)"|process\.exit\(0\))$/i.test(trimmed)) {
     return { code: 0, stdout: '', stderr: '' };
   }
 
-  if (/^node(?:\.exe)?\s+-e\s+"process\.exit\(1\)"$/i.test(trimmed)) {
+  if (/^node(?:\.exe)?\s+-e\s+(?:"process\.exit\(1\)"|process\.exit\(1\))$/i.test(trimmed)) {
     return { code: 1, stdout: '', stderr: '' };
   }
 

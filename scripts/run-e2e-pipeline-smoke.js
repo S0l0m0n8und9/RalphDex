@@ -246,6 +246,7 @@ async function main() {
       rootTaskId: artifact.rootTaskId,
       decomposedTaskIds: artifact.decomposedTaskIds,
       prUrl: artifact.prUrl,
+      executedCommands: harness.state.executedCommands.map((entry) => entry.command),
       infoMessage: harness.state.infoMessages.at(-1)?.message ?? null
     }, null, 2));
   } catch (error) {

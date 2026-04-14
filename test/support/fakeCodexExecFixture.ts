@@ -9,6 +9,7 @@ export async function writePipelineSmokeFakeCodexExecScript(rootPath: string): P
 const path = require('path');
 
 const PR_URL = ${JSON.stringify(PIPELINE_SMOKE_PR_URL)};
+const OMIT_SCM_PR_URL = process.env.RALPH_E2E_PIPELINE_FAKE_SCM_NO_PR === '1';
 
 function parseSelectedTaskId(prompt) {
   const match = prompt.match(/^- Selected task id: (.+)$/m);
@@ -89,7 +90,9 @@ process.stdin.on('end', () => {
       {
         selectedTaskId,
         requestedStatus: 'done',
-        progressNote: 'Opened PR at ' + PR_URL + '.'
+        progressNote: OMIT_SCM_PR_URL
+          ? 'SCM fixture completed without emitting a PR URL.'
+          : 'Opened PR at ' + PR_URL + '.'
       },
       [
         'Changed files.',
