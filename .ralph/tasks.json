@@ -3569,8 +3569,8 @@
     {
       "id": "T129",
       "title": "Model tiering calibration: score the 267 completed tasks and document findings in docs/model-tiering.md",
-      "status": "todo",
-      "notes": "The complexity scorer (complexityScorer.ts) is enabled by default but was never calibrated against the actual completed task history. The PRD explicitly requires calibrating thresholds against real workload data. With 267 done tasks available in tasks.json, this is now actionable.",
+      "status": "done",
+      "notes": "Created scripts/calibrate-tiering.js (scores all 269 done tasks), appended ## Calibration section to docs/model-tiering.md with tier counts, histogram, representative examples, and threshold assessment",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3580,5 +3580,5 @@
       ]
     }
   ],
-  "mutationCount": 130
+  "mutationCount": 131
 }

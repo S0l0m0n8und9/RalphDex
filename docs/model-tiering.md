@@ -94,3 +94,63 @@ To monitor cache efficiency in Azure Monitor:
 4. Compare `cache_read_input_tokens` vs `cache_creation_input_tokens` across iterations to calculate the cache-hit rate and token savings.
 
 A healthy long-running loop shows `cache_read_input_tokens` growing relative to `cache_creation_input_tokens` as the stable prompt prefix stabilises across iterations. If `cache_read_input_tokens` is consistently zero, check that: (a) `ralphCodex.promptCaching` is not `off`, (b) the active provider is an Anthropic-compatible Azure AI Foundry deployment, and (c) the static prefix exceeds the provider's minimum cacheable size threshold.
+
+## Calibration
+
+Corpus date: 2026-04-14. Scored 269 done tasks from `.ralph/tasks.json` using default thresholds (`simpleThreshold=2`, `complexThreshold=6`). Script: `node scripts/calibrate-tiering.js`.
+
+> **Methodology note:** `trailing_complex_classifications` scores 0 for all tasks because iteration history is not persisted in `tasks.json`. All scores are lower-bound estimates — tasks that failed repeatedly at runtime would have scored higher, shifting the medium/complex boundary upward.
+
+### Tier Counts
+
+| Tier | Count | Percentage |
+|---|---|---|
+| simple | 15 | 5.6% |
+| medium | 252 | 93.7% |
+| complex | 2 | 0.7% |
+
+### Score Histogram
+
+| Score | Tier | Count |
+|---|---|---|
+| 0 | simple | 9 |
+| 1 | simple | 6 |
+| 2 | medium | 138 |
+| 3 | medium | 87 |
+| 4 | medium | 17 |
+| 5 | medium | 10 |
+| 6 | complex | 2 |
+
+### Representative Task Examples
+
+**Simple tier** (score 0–1, 15 tasks):
+
+| Task | Score | Dominant signals |
+|---|---|---|
+| T9: Defer broad multi-agent orchestration… | 1 | `child_task_count(+1)` |
+| T21.6.2: Human-approval boundaries | 1 | `has_validation_field(+2)`, `title_word_count(-1)` |
+| T24.1.2.1: Claim acquisition | 1 | `has_validation_field(+2)`, `title_word_count(-1)` |
+
+**Medium tier** (score 2–5, 252 tasks):
+
+| Task | Score | Dominant signals |
+|---|---|---|
+| T8: Align nested inspection-root and execution-root semantics… | 5 | `has_validation_field(+2)`, `child_task_count(+3)` |
+| T12: Protect latest-linked artifacts… | 5 | `has_validation_field(+2)`, `child_task_count(+3)` |
+| T21: Add a bounded task-remediation pass… | 5 | `has_validation_field(+2)`, `child_task_count(+3)` |
+
+**Complex tier** (score ≥ 6, 2 tasks):
+
+| Task | Score | Dominant signals |
+|---|---|---|
+| T22: Add token-budgeted prompt and context generation… | 6 | `has_validation_field(+2)`, `child_task_count(+3)`, `title_word_count(+1)` |
+| T120: Complete the remaining full webview UI contract… | 6 | `has_validation_field(+2)`, `child_task_count(+3)`, `title_word_count(+1)` |
+
+### Threshold Assessment
+
+The distribution is heavily medium-skewed (93.7%), with only 5.6% simple and 0.7% complex. Two structural factors drive this:
+
+1. **`has_validation_field` is near-universal.** 233 of 269 done tasks (87%) declare an explicit validation command. At +2 points this single signal pushes almost every task past the `simpleThreshold=2` boundary into medium, leaving the simple tier nearly unused in practice.
+2. **`trailing_complex_classifications` is absent.** Because iteration history is not stored in `tasks.json`, no task accumulates the +1–+4 that would push it to complex. At runtime, repeatedly-failing tasks would score higher and more tasks would reach the `complexThreshold=6` boundary.
+
+**Implication:** The current `simpleThreshold=2` is too low when nearly all tasks declare a validation field. Raising `simpleThreshold` to 3 would classify tasks with only a validation field as simple (score=2), directing them to Haiku. Consider this adjustment if cost reduction on validation-only tasks is a priority. The `complexThreshold=6` appears well-placed: reaching it requires at minimum three coincident signals (e.g., validation + children + long title), reserving Opus for genuinely broad tasks. No immediate change to `complexThreshold` is warranted.
