@@ -3552,11 +3552,11 @@
     {
       "id": "T128",
       "title": "Prepare v0.2.0 release: CHANGELOG entry and package.json version bump",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T127"
       ],
-      "notes": "CHANGELOG.md has one entry (v0.1.0 dated 2026-04-03). Since then, 200+ tasks have shipped adding multi-agent loops, pipeline automation, webview UI, Azure Foundry provider, model tiering, operator presets, PRD wizard, intelligent failure recovery, developer-loop shim, and VS Code Marketplace readiness. A v0.2.0 entry should document these for Marketplace release notes.",
+      "notes": "Fixed vsce packaging: restored .vscodeignore blocklist, removed broken files array from package.json (negation entry !out/shim/** caused minimatch to re-include all ignored files), updated packageManifest test. npm run package produces clean 241-file VSIX; npm run validate passes 885/885.",
       "validation": "npm run package",
       "tier": "simple",
       "acceptance": [
@@ -3580,5 +3580,5 @@
       ]
     }
   ],
-  "mutationCount": 129
+  "mutationCount": 130
 }

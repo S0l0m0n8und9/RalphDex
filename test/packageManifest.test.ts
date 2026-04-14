@@ -21,7 +21,6 @@ type PackageManifest = {
 };
 
 const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
-const vscodeIgnorePath = path.join(__dirname, '..', '..', '.vscodeignore');
 
 async function readPackageManifest(): Promise<PackageManifest> {
   const raw = await fs.readFile(packageJsonPath, 'utf8');
@@ -210,9 +209,12 @@ test('package manifest activity bar entry includes placeholder navigation views'
 });
 
 test('package manifest excludes the shim entry point from the VSIX payload', async () => {
-  const manifest = await readPackageManifest();
-  const vscodeIgnore = await fs.readFile(vscodeIgnorePath, 'utf8');
-
-  assert.ok(manifest.files?.includes('!out/shim/**'), 'package.json must exclude out/shim/** from packaged files');
-  assert.match(vscodeIgnore, /^out\/shim\/\*\*$/m, '.vscodeignore must exclude out/shim/**');
+  // vsce does not support combining "files" in package.json with .vscodeignore.
+  // The .vscodeignore blocklist strategy is used here; out/shim/** is excluded explicitly.
+  const vscodeignorePath = path.join(__dirname, '..', '..', '.vscodeignore');
+  const vscodeignoreContent = await fs.readFile(vscodeignorePath, 'utf8');
+  assert.ok(
+    vscodeignoreContent.split(/\r?\n/).some(line => line.trim() === 'out/shim/**'),
+    '.vscodeignore must exclude out/shim/** from packaged files'
+  );
 });

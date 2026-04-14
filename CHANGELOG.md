@@ -2,6 +2,42 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [0.2.0] — 2026-04-14
+
+### Added
+
+- **Azure Foundry provider** — direct HTTPS execution bypassing child-process spawn; API key and Azure AD (DefaultAzureCredential) authentication with preflight validation; missing config settings wired through `package.json` contributions.
+- **Copilot Foundry CLI provider** — provider-agnostic Copilot CLI path with configurable `maxAutopilotContinues`.
+- **Model tiering** — enabled by default; structural task signals replace title-word-count heuristic in `complexityScorer.ts`; operator documentation included.
+- **Prompt caching** — static prefix stabilised in `promptBuilder.ts`; `cache_control` breakpoints added for direct-API providers.
+- **Intelligent failure recovery** (5 phases) — `FailureCategoryId` taxonomy and diagnostic-pass artifact; recovery orchestrator with playbook dispatch; dead-letter queue and requeue command; failure-chain detection and systemic alert; observability, configuration, and documentation.
+- **Webview UI** (full contract across 4 phases) — `WebviewPanelManager`, `MessageBridge`, activity bar, and shared styles; durable status snapshots backing the dashboard; cost-ticker observability from provenance and execution artifacts; pipeline, agent, task, and failure sections; `showDashboard` command; tabbed dashboard layout; settings panel with inline config testing and new-setting discovery; structured task view over durable tasks, plans, and dead-letter state; failure-detail notifications and focused diagnosis panel.
+- **PRD Creation Wizard** — skeleton; intake steps for project-type, objective, and constraints; editable generate step with regenerate support; task review cards with full operator editing; configuration selection and confirm-time application.
+- **Shared task-creation pipeline** — canonical normalised-task contract and field-presence rules; shared task-normalization and augmentation pipeline routing all task producers (PRD generation, wizard, decomposition, remediation, Add Task, Initialize Workspace).
+- **Developer-loop shim** — `IVSCodeHost` abstraction layer; stdout-backed host and `.ralph-config.json` config reader; shim entry point verified end-to-end against a minimal workspace.
+- **Recommended skills** — surfaced in Show Status output and the webview dashboard; `Construct Recommended Skills` command added.
+- **Provider-agnostic memory summarization** (`T115`).
+- **Full end-to-end pipeline smoke test** — real temp-workspace execution covering all pipeline phases; deterministic fixture hooks for review and SCM phases.
+- **VS Code Marketplace readiness** — icon, keywords, gallery banner, `README` installation and configuration sections, `vsce publish --dry-run` validation path, deterministic doc-rule guards preventing drift.
+- **Documentation and operator-trust reconciliation** — `docs/release-workflow.md`, `docs/boundaries.md`, `docs/multi-agent-readiness.md`, and aligned operator docs.
+
+### Changed
+
+- Brand renamed from "Ralph Codex" to **Ralphdex** across all user-visible surfaces.
+- Repo layout flattened — extension source moved to root.
+- Configuration migrated to `.vscode/settings.json`; `readConfig.ts` simplified; scoped `config.inspect` used throughout.
+- `complexityScorer.ts` signal set replaced with structural task signals (title word-count removed).
+- `WebviewConfigSync` serialises config updates with resource-specific support.
+- Task dependency checks streamlined; parent/child status handling hardened (done parent auto-reset to in_progress on decomposition).
+- Reconciliation now accepts `done` when validation passes but `gitDiff` has no changes.
+
+### Fixed
+
+- `parentId` auto-corrected for todo tasks under done parents.
+- Last assistant message correctly extracted from Copilot CLI JSONL output.
+- `createCliProvider` exported from `providerFactory.ts` for reuse in `projectGenerator.ts`.
+- Model tiering `enabled:true` wired so tiering activates without flat-flag inspection.
+
 ## [0.1.0] — 2026-04-03
 
 ### Added

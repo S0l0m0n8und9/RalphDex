@@ -2,7 +2,7 @@
   "name": "ralphdex",
   "displayName": "Ralphdex",
   "description": "VS Code extension for file-backed Ralphdex prompts, IDE handoff, and CLI exec loops.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "s0l0m0n8und9",
   "icon": "media/ralph-icon.png",
   "homepage": "https://github.com/S0l0m0n8und9/RalphDex#readme",
@@ -32,18 +32,6 @@
     "url": "https://github.com/S0l0m0n8und9/RalphDex.git"
   },
   "license": "MIT",
-  "files": [
-    "out/**",
-    "!out/shim/**",
-    "media/**",
-    "prompt-templates/**",
-    "docs/**",
-    "AGENTS.md",
-    "CHANGELOG.md",
-    "README.md",
-    "LICENSE",
-    "package.json"
-  ],
   "engines": {
     "vscode": "^1.95.0",
     "node": ">=20"
@@ -1069,8 +1057,8 @@
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",
-    "package": "npm run check:runtime && vsce package --no-dependencies",
-    "publish:dry-run": "npm run check:runtime && vsce publish --dry-run --no-dependencies"
+    "package": "npm run check:runtime && vsce package --no-dependencies --allow-unused-files-pattern",
+    "publish:dry-run": "npm run check:runtime && vsce publish --dry-run --no-dependencies --allow-unused-files-pattern"
   },
   "devDependencies": {
     "@types/node": "^22.19.15",

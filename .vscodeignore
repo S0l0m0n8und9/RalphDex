@@ -1,1 +1,28 @@
+# Source TypeScript files — compiled output is in out/**
+src/**
+
+# Test infrastructure
+test/**
+out-test/**
+
+# Developer-loop shim — not needed in the extension
 out/shim/**
+
+# Build and tooling scripts
+scripts/**
+tsconfig.json
+tsconfig.test.json
+tsconfig.tsbuildinfo
+
+# Ralph workspace state — project-specific, not part of extension
+.ralph/**
+
+# Context and editor tooling files
+.claude/**
+.vscode/**
+
+# Project metadata not for distribution
+ralph.code-workspace
+CLAUDE.md
+.gitignore
+.codex
