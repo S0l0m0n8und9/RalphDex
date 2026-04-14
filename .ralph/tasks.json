@@ -3578,7 +3578,52 @@
         "docs/model-tiering.md has a Calibration section with: tier counts, representative task examples per tier, and threshold assessment",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T130",
+      "title": "Developer-loop shim self-hosting validation: run a complete iteration via the Node.js shim and document findings",
+      "status": "in_progress",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "At least one Ralph iteration completes end-to-end via the Node.js shim (src/shim/main.ts) against this repository's own .ralph/ workspace, with a reconciled task state update",
+        "docs/shim-validation.md exists and documents the validated invocation command, prerequisites (e.g. CODEX_PROVIDER, .ralph-config.json), and any known behavioural gaps versus the VS Code host path",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T131",
+      "title": "Advance prd.md to record the post-launch horizon as fully satisfied and confirm the continued multi-agent evolution horizon as the active next target",
+      "status": "todo",
+      "dependsOn": [
+        "T130"
+      ],
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "prd.md contains a dated milestone record confirming all three post-launch horizon items (v0.2.0 release, shim self-hosting validation, model tiering calibration) are satisfied as of 2026-04-14",
+        "prd.md identifies the 'Continued multi-agent evolution horizon' section as the active next development target",
+        "npm run check:docs passes"
+      ]
+    },
+    {
+      "id": "T132",
+      "title": "Item 20 Phase 1: define orchestration graph/state schema types and scaffold orchestrationSupervisor.ts",
+      "status": "todo",
+      "dependsOn": [
+        "T131"
+      ],
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "OrchestrationGraph and OrchestrationState types added to src/ralph/types.ts with required fields: graph.json (nodeKind union, edges, evidence references) and state.json (cursor, per-node outcomes, timestamps)",
+        "src/ralph/orchestrationSupervisor.ts exists with a single-transition-per-write advanceState function that validates evidence references and rejects transitions without evidence as invalid",
+        "Orchestration artifact paths (.ralph/orchestration/<runId>/graph.json and state.json) are defined in artifactStore.ts",
+        "Unit tests cover: valid transition with evidence, rejected transition without evidence, and run-interrupted-and-resumed-from-state-json",
+        "AGENTS.md lists orchestrationSupervisor.ts in Code Owners and docs/architecture.md references the new orchestration layer",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 131
+  "mutationCount": 132
 }
