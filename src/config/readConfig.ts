@@ -249,7 +249,7 @@ function readAzureFoundryConfig(raw: unknown, fallback: AzureFoundryConfig): Azu
   };
 }
 
-const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'];
+const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'];
 
 interface OperatorPreset {
   autonomyMode: RalphAutonomyMode;
@@ -487,7 +487,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
-    ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'],
+    ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'],
     DEFAULT_CONFIG.cliProvider
   );
   const autonomyMode = readEnum<RalphAutonomyMode>(
@@ -531,6 +531,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     codexCommandPath: readString(config, 'codexCommandPath', DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
     claudeCommandPath: readString(config, 'claudeCommandPath', DEFAULT_CONFIG.claudeCommandPath),
     copilotCommandPath: readString(config, 'copilotCommandPath', DEFAULT_CONFIG.copilotCommandPath),
+    geminiCommandPath: readString(config, 'geminiCommandPath', DEFAULT_CONFIG.geminiCommandPath),
     copilotFoundry: readCopilotFoundryConfig(config.get<unknown>('copilotFoundry'), DEFAULT_CONFIG.copilotFoundry),
     azureFoundry: readAzureFoundryConfig(config.get<unknown>('azureFoundry'), DEFAULT_CONFIG.azureFoundry),
     claudeMaxTurns: readNumber(config, 'claudeMaxTurns', DEFAULT_CONFIG.claudeMaxTurns, 1),

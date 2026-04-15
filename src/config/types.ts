@@ -1,6 +1,6 @@
 import { RalphAgentRole } from '../ralph/types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry' | 'gemini';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
 
@@ -11,6 +11,7 @@ export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-ac
 export type CodexReasoningEffort = 'medium' | 'high';
 
 export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
+export type GeminiPermissionMode = 'yolo' | 'default';
 export type CopilotApprovalMode = 'allow-all' | 'allow-tools-only' | 'interactive';
 
 export type RalphVerifierMode = 'validationCommand' | 'gitDiff' | 'taskState';
@@ -136,6 +137,7 @@ export interface RalphCodexConfig {
   codexCommandPath: string;
   claudeCommandPath: string;
   copilotCommandPath: string;
+  geminiCommandPath: string;
   copilotFoundry: CopilotFoundryConfig;
   azureFoundry: AzureFoundryConfig;
   claudeMaxTurns: number;

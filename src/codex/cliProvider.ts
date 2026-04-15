@@ -1,6 +1,6 @@
 import { CodexExecRequest, CodexExecResult } from './types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry' | 'gemini';
 
 export interface CliLaunchSpec {
   args: string[];

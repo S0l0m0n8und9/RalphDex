@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   codexCommandPath: 'codex',
   claudeCommandPath: 'claude',
   copilotCommandPath: 'copilot',
+  geminiCommandPath: 'gemini',
   copilotFoundry: {
     commandPath: 'copilot',
     approvalMode: 'allow-all',

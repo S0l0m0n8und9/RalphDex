@@ -6,6 +6,7 @@ exports.DEFAULT_CONFIG = {
     codexCommandPath: 'codex',
     claudeCommandPath: 'claude',
     copilotCommandPath: 'copilot',
+    geminiCommandPath: 'gemini',
     copilotFoundry: {
         commandPath: 'copilot',
         approvalMode: 'allow-all',

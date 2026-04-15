@@ -5,6 +5,7 @@ exports.createCliProvider = createCliProvider;
 exports.createCliProviderForId = createCliProviderForId;
 const azureFoundryProvider_1 = require("./azureFoundryProvider");
 const claudeCliProvider_1 = require("./claudeCliProvider");
+const geminiCliProvider_1 = require("./geminiCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
 const copilotCliProvider_1 = require("./copilotCliProvider");
@@ -23,6 +24,12 @@ function createCliProviderForId(providerId, config) {
         return new claudeCliProvider_1.ClaudeCliProvider({
             maxTurns: config.claudeMaxTurns,
             permissionMode: config.claudePermissionMode
+        });
+    }
+    if (providerId === 'gemini') {
+        return new geminiCliProvider_1.GeminiCliProvider({
+            maxTurns: config.claudeMaxTurns,
+            permissionMode: 'yolo'
         });
     }
     if (providerId === 'copilot') {

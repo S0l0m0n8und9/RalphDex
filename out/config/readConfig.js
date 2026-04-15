@@ -185,7 +185,7 @@ function readAzureFoundryConfig(raw, fallback) {
         auth: readAzureAuthConfig(record.auth, fallback.auth)
     };
 }
-const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'];
+const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'];
 const OPERATOR_PRESETS = {
     simple: {
         autonomyMode: 'supervised',
@@ -358,7 +358,7 @@ function readConfig(workspaceFolder) {
         ? rawOperatorMode
         : undefined;
     const preset = operatorMode !== undefined ? OPERATOR_PRESETS[operatorMode] : undefined;
-    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'], defaults_1.DEFAULT_CONFIG.cliProvider);
     const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], preset?.autonomyMode ?? defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
@@ -381,6 +381,7 @@ function readConfig(workspaceFolder) {
         codexCommandPath: readString(config, 'codexCommandPath', defaults_1.DEFAULT_CONFIG.codexCommandPath, ['codexExecutable']),
         claudeCommandPath: readString(config, 'claudeCommandPath', defaults_1.DEFAULT_CONFIG.claudeCommandPath),
         copilotCommandPath: readString(config, 'copilotCommandPath', defaults_1.DEFAULT_CONFIG.copilotCommandPath),
+        geminiCommandPath: readString(config, 'geminiCommandPath', defaults_1.DEFAULT_CONFIG.geminiCommandPath),
         copilotFoundry: readCopilotFoundryConfig(config.get('copilotFoundry'), defaults_1.DEFAULT_CONFIG.copilotFoundry),
         azureFoundry: readAzureFoundryConfig(config.get('azureFoundry'), defaults_1.DEFAULT_CONFIG.azureFoundry),
         claudeMaxTurns: readNumber(config, 'claudeMaxTurns', defaults_1.DEFAULT_CONFIG.claudeMaxTurns, 1),
