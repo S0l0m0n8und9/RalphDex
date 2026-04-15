@@ -29,10 +29,7 @@ export class GeminiCliProvider implements CliProvider {
       '-p', '-',
       '--model', request.model,
       '--output-format', 'stream-json',
-      '--max-turns', String(this.options.maxTurns),
-      '--verbose',
-      '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
-      '--no-session-persistence'
+      '--allowed-tools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS'
     ];
 
     if (this.options.permissionMode === 'yolo') {
@@ -185,7 +182,7 @@ export class GeminiCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const result = await runProcess('gemini', ['-p', '-', '--no-session-persistence'], {
+    const result = await runProcess('gemini', ['-p', '-'], {
       cwd,
       stdinText: prompt
     });

@@ -48,10 +48,7 @@ class GeminiCliProvider {
             '-p', '-',
             '--model', request.model,
             '--output-format', 'stream-json',
-            '--max-turns', String(this.options.maxTurns),
-            '--verbose',
-            '--allowedTools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS',
-            '--no-session-persistence'
+            '--allowed-tools', 'Read,Write,Edit,MultiEdit,Bash,Glob,Grep,LS'
         ];
         if (this.options.permissionMode === 'yolo') {
             args.push('--yolo');
@@ -188,7 +185,7 @@ class GeminiCliProvider {
         ].join('\n');
     }
     async summarizeText(prompt, cwd) {
-        const result = await (0, processRunner_1.runProcess)('gemini', ['-p', '-', '--no-session-persistence'], {
+        const result = await (0, processRunner_1.runProcess)('gemini', ['-p', '-'], {
             cwd,
             stdinText: prompt
         });
