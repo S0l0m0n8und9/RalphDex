@@ -1,14 +1,14 @@
 import { CliProviderId, RalphCodexConfig } from './types';
 
 export function getCliCommandPath(
-  config: Pick<RalphCodexConfig, 'cliProvider' | 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'copilotFoundry' | 'azureFoundry'>
+  config: Pick<RalphCodexConfig, 'cliProvider' | 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'geminiCommandPath' | 'copilotFoundry' | 'azureFoundry'>
 ): string {
   return getCliCommandPathForProvider(config.cliProvider, config);
 }
 
 export function getCliCommandPathForProvider(
   provider: CliProviderId,
-  config: Pick<RalphCodexConfig, 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'copilotFoundry' | 'azureFoundry'>
+  config: Pick<RalphCodexConfig, 'codexCommandPath' | 'claudeCommandPath' | 'copilotCommandPath' | 'geminiCommandPath' | 'copilotFoundry' | 'azureFoundry'>
 ): string {
   switch (provider) {
     case 'claude':
@@ -19,6 +19,8 @@ export function getCliCommandPathForProvider(
       return config.copilotFoundry.commandPath;
     case 'azure-foundry':
       return config.azureFoundry.commandPath;
+    case 'gemini':
+      return config.geminiCommandPath;
     default:
       return config.codexCommandPath;
   }
@@ -34,6 +36,8 @@ export function getCliProviderLabel(provider: CliProviderId): string {
       return 'Copilot Foundry';
     case 'azure-foundry':
       return 'Azure AI Foundry';
+    case 'gemini':
+      return 'Google Gemini';
     default:
       return 'Codex';
   }
@@ -45,6 +49,8 @@ export function getDefaultOpenSidebarCommandId(provider: CliProviderId): string 
       return 'claude.openSidebar';
     case 'copilot':
     case 'copilot-foundry':
+      return 'none';
+    case 'gemini':
       return 'none';
     default:
       return 'chatgpt.openSidebar';
@@ -58,6 +64,8 @@ export function getDefaultNewChatCommandId(provider: CliProviderId): string {
     case 'copilot':
     case 'copilot-foundry':
       return 'github.copilot.cli.newSession';
+    case 'gemini':
+      return 'none';
     default:
       return 'chatgpt.newChat';
   }

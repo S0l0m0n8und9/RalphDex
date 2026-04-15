@@ -48,6 +48,7 @@
         "ralphCodex.codexCommandPath",
         "ralphCodex.claudeCommandPath",
         "ralphCodex.copilotCommandPath",
+        "ralphCodex.geminiCommandPath",
         "ralphCodex.copilotFoundry",
         "ralphCodex.azureFoundry",
         "ralphCodex.preferredHandoffMode",
@@ -359,10 +360,11 @@
             "claude",
             "copilot",
             "copilot-foundry",
-            "azure-foundry"
+            "azure-foundry",
+            "gemini"
           ],
           "default": "claude",
-          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, 'copilot-foundry' uses the Copilot CLI with Azure OpenAI BYOK, and 'azure-foundry' uses Azure AI Foundry."
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, 'copilot-foundry' uses the Copilot CLI with Azure OpenAI BYOK, 'azure-foundry' uses Azure AI Foundry, and 'gemini' uses the Google Gemini CLI."
         },
         "ralphCodex.codexCommandPath": {
           "type": "string",
@@ -378,6 +380,11 @@
           "type": "string",
           "default": "copilot",
           "description": "Path or command name for the GitHub Copilot CLI executable."
+        },
+        "ralphCodex.geminiCommandPath": {
+          "type": "string",
+          "default": "gemini",
+          "description": "Path or command name for the Google Gemini CLI executable. Requires GEMINI_API_KEY to be set in the environment."
         },
         "ralphCodex.copilotFoundry": {
           "type": "object",

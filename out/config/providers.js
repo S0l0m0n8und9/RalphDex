@@ -18,6 +18,8 @@ function getCliCommandPathForProvider(provider, config) {
             return config.copilotFoundry.commandPath;
         case 'azure-foundry':
             return config.azureFoundry.commandPath;
+        case 'gemini':
+            return config.geminiCommandPath;
         default:
             return config.codexCommandPath;
     }
@@ -32,6 +34,8 @@ function getCliProviderLabel(provider) {
             return 'Copilot Foundry';
         case 'azure-foundry':
             return 'Azure AI Foundry';
+        case 'gemini':
+            return 'Google Gemini';
         default:
             return 'Codex';
     }
@@ -42,6 +46,8 @@ function getDefaultOpenSidebarCommandId(provider) {
             return 'claude.openSidebar';
         case 'copilot':
         case 'copilot-foundry':
+            return 'none';
+        case 'gemini':
             return 'none';
         default:
             return 'chatgpt.openSidebar';
@@ -54,6 +60,8 @@ function getDefaultNewChatCommandId(provider) {
         case 'copilot':
         case 'copilot-foundry':
             return 'github.copilot.cli.newSession';
+        case 'gemini':
+            return 'none';
         default:
             return 'chatgpt.newChat';
     }

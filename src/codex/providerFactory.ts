@@ -2,6 +2,7 @@ import { CliProviderId, CodexHandoffMode, RalphCodexConfig } from '../config/typ
 import { Logger } from '../services/logger';
 import { AzureFoundryProvider } from './azureFoundryProvider';
 import { ClaudeCliProvider } from './claudeCliProvider';
+import { GeminiCliProvider } from './geminiCliProvider';
 import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
 import { ClipboardCodexStrategy } from './clipboardStrategy';
@@ -24,6 +25,13 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
     return new ClaudeCliProvider({
       maxTurns: config.claudeMaxTurns,
       permissionMode: config.claudePermissionMode
+    });
+  }
+
+  if (providerId === 'gemini') {
+    return new GeminiCliProvider({
+      maxTurns: config.claudeMaxTurns,
+      permissionMode: 'yolo'
     });
   }
 
