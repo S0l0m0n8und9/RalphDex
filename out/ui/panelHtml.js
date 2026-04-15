@@ -282,6 +282,21 @@ details[open] > .completed-toggle::before {
   border-color: var(--ralph-amber);
 }
 
+.setting-control.invalid select,
+.setting-control.invalid input {
+  border-color: var(--ralph-red);
+}
+
+span.setting-label.error-text {
+  color: var(--ralph-red);
+}
+
+div.error-text {
+  color: var(--ralph-red);
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
 .setting-control input[type="checkbox"] {
   accent-color: var(--ralph-amber);
   margin-right: 4px;
@@ -562,7 +577,7 @@ function getCurrentCliProvider(settingsSurface) {
         .flatMap((section) => section.entries)
         .find((entry) => entry.key === 'cliProvider');
     const providerValue = providerEntry?.value;
-    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry'
+    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
         ? providerValue
         : 'codex';
 }
@@ -576,6 +591,8 @@ function getProviderTestLabel(provider) {
             return 'Test Copilot Foundry Connection';
         case 'azure-foundry':
             return 'Test Azure AI Foundry Connection';
+        case 'gemini':
+            return 'Test Gemini Connection';
         default:
             return 'Test Codex Connection';
     }
@@ -586,8 +603,15 @@ function buildSettingsSection(state) {
         return '<div class="empty">Config not loaded — reload window</div>';
     }
     const currentProvider = getCurrentCliProvider(settingsSurface);
-    return settingsSurface.sections.map((section, index) => `
-    <details class="settings-section" data-section="settings-${(0, htmlHelpers_1.esc)(section.id)}"${index === 0 ? ' open' : ''}>
+    const allEntries = settingsSurface.sections.flatMap(s => s.entries);
+    const getValue = (key) => allEntries.find((e) => e.key === key)?.value;
+    const simpleThreshold = Number(getValue('modelTiering.simpleThreshold') ?? 0);
+    const complexThreshold = Number(getValue('modelTiering.complexThreshold') ?? 0);
+    const isTieringInvalid = simpleThreshold >= complexThreshold;
+    const coreSections = settingsSurface.sections.filter(s => s.id === 'operator-mode' || s.id === 'provider');
+    const advancedSections = settingsSurface.sections.filter(s => s.id !== 'operator-mode' && s.id !== 'provider');
+    const renderSection = (section, isOpen = false) => `
+    <details class="settings-section" data-section="settings-${(0, htmlHelpers_1.esc)(section.id)}"${isOpen ? ' open' : ''}>
       <summary class="settings-section-toggle">
         <span class="settings-section-head">
           <span>${(0, htmlHelpers_1.esc)(section.title)}</span>
@@ -601,19 +625,46 @@ function buildSettingsSection(state) {
             <button class="btn" data-command="ralphCodex.testCurrentProviderConnection"><span class="btn-label">${(0, htmlHelpers_1.esc)(getProviderTestLabel(currentProvider))}</span><span class="btn-spinner"></span></button>
           </div>
         ` : ''}
-        ${section.entries.map((entry) => `
+        ${section.entries.map((entry) => {
+        let errorMsg = '';
+        let isEntryInvalid = false;
+        if (entry.key.includes('CommandPath') && typeof entry.value === 'string' && entry.value.trim() === '') {
+            errorMsg = 'Command path cannot be empty.';
+            isEntryInvalid = true;
+        }
+        if ((entry.key === 'modelTiering.simpleThreshold' || entry.key === 'modelTiering.complexThreshold') && isTieringInvalid) {
+            errorMsg = 'Simple threshold must be strictly less than complex threshold.';
+            isEntryInvalid = true;
+        }
+        return `
           <div class="setting-row" data-setting-entry="${(0, htmlHelpers_1.esc)(entry.key)}">
-            <span class="setting-label">${(0, htmlHelpers_1.esc)(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>
-            <div class="setting-control">${renderSettingControl(entry)}</div>
+            <span class="setting-label${isEntryInvalid ? ' error-text' : ''}">${(0, htmlHelpers_1.esc)(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>
+            <div class="setting-control${isEntryInvalid ? ' invalid' : ''}">${renderSettingControl(entry)}</div>
             <div class="settings-entry-meta">
+              ${errorMsg ? `<div class="error-text">⚠ ${(0, htmlHelpers_1.esc)(errorMsg)}</div>` : ''}
               <div>${(0, htmlHelpers_1.esc)(entry.description)}</div>
               <div>Default: ${(0, htmlHelpers_1.esc)(String(entry.defaultValue ?? ''))}</div>
             </div>
           </div>
-        `).join('\n')}
+        `;
+    }).join('\n')}
       </div>
     </details>
-  `).join('\n');
+  `;
+    const coreHtml = coreSections.map((section, index) => renderSection(section, index === 0)).join('\n');
+    const hasAdvancedNew = advancedSections.some(s => s.hasNewSettings);
+    const advancedHtml = advancedSections.length > 0 ? `
+    <details class="settings-advanced-group">
+      <summary class="settings-advanced-toggle">
+        Advanced Configuration
+        ${hasAdvancedNew ? '<span class="settings-badge" style="margin-left: 8px;">NEW</span>' : ''}
+      </summary>
+      <div style="margin-top: 8px; margin-left: 8px; border-left: 1px solid var(--ralph-border); padding-left: 12px;">
+        ${advancedSections.map(s => renderSection(s, false)).join('\n')}
+      </div>
+    </details>
+  ` : '';
+    return coreHtml + '\n' + advancedHtml;
 }
 function formatUtc(value) {
     if (!value) {
@@ -921,7 +972,9 @@ function buildOverviewTab(state) {
             ${currentTask.validation ? `<div><strong>Validation</strong> ${(0, htmlHelpers_1.esc)(currentTask.validation)}</div>` : ''}
             <div><strong>Next Step</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker ? 'Resolve blocker before starting another loop.' : currentTask.validation ? `Validate with ${currentTask.validation}.` : 'Start the next iteration when ready.')}</div>
           </div>`
-        : '<div class="empty">No tasks yet — run Initialize Workspace.</div>'}
+        : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
+            ? '<div class="empty">Loading workspace data...</div>'
+            : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
     </div>
 
     <div class="card">
@@ -961,7 +1014,9 @@ function buildWorkTab(state) {
           </div>`
         : activeTasks.length > 0
             ? activeTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')
-            : '<div class="empty">No tasks yet — run Initialize Workspace</div>'}
+            : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
+                ? '<div class="empty">Loading workspace data...</div>'
+                : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
       ${!allDone && doneTasks.length > 0
         ? `<details data-section="completed-tasks">
             <summary class="completed-toggle">Completed (${doneTasks.length})</summary>

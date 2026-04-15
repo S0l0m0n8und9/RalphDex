@@ -298,6 +298,21 @@ details[open] > .completed-toggle::before {
   border-color: var(--ralph-amber);
 }
 
+.setting-control.invalid select,
+.setting-control.invalid input {
+  border-color: var(--ralph-red);
+}
+
+span.setting-label.error-text {
+  color: var(--ralph-red);
+}
+
+div.error-text {
+  color: var(--ralph-red);
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
 .setting-control input[type="checkbox"] {
   accent-color: var(--ralph-amber);
   margin-right: 4px;
@@ -594,7 +609,7 @@ function getCurrentCliProvider(settingsSurface: NonNullable<RalphDashboardState[
     .flatMap((section) => section.entries)
     .find((entry) => entry.key === 'cliProvider');
   const providerValue = providerEntry?.value;
-  return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry'
+  return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
       ? providerValue
       : 'codex';
 }
@@ -609,6 +624,8 @@ function getProviderTestLabel(provider: CliProviderId): string {
       return 'Test Copilot Foundry Connection';
     case 'azure-foundry':
       return 'Test Azure AI Foundry Connection';
+    case 'gemini':
+      return 'Test Gemini Connection';
     default:
       return 'Test Codex Connection';
   }
@@ -621,9 +638,19 @@ function buildSettingsSection(state: RalphDashboardState): string {
   }
 
   const currentProvider = getCurrentCliProvider(settingsSurface);
+  
+  const allEntries = settingsSurface.sections.flatMap(s => s.entries);
+  const getValue = (key: string) => allEntries.find((e) => e.key === key)?.value;
+  
+  const simpleThreshold = Number(getValue('modelTiering.simpleThreshold') ?? 0);
+  const complexThreshold = Number(getValue('modelTiering.complexThreshold') ?? 0);
+  const isTieringInvalid = simpleThreshold >= complexThreshold;
 
-  return settingsSurface.sections.map((section, index) => `
-    <details class="settings-section" data-section="settings-${esc(section.id)}"${index === 0 ? ' open' : ''}>
+  const coreSections = settingsSurface.sections.filter(s => s.id === 'operator-mode' || s.id === 'provider');
+  const advancedSections = settingsSurface.sections.filter(s => s.id !== 'operator-mode' && s.id !== 'provider');
+
+  const renderSection = (section: typeof settingsSurface.sections[number], isOpen = false) => `
+    <details class="settings-section" data-section="settings-${esc(section.id)}"${isOpen ? ' open' : ''}>
       <summary class="settings-section-toggle">
         <span class="settings-section-head">
           <span>${esc(section.title)}</span>
@@ -637,19 +664,50 @@ function buildSettingsSection(state: RalphDashboardState): string {
             <button class="btn" data-command="ralphCodex.testCurrentProviderConnection"><span class="btn-label">${esc(getProviderTestLabel(currentProvider))}</span><span class="btn-spinner"></span></button>
           </div>
         ` : ''}
-        ${section.entries.map((entry) => `
+        ${section.entries.map((entry) => {
+          let errorMsg = '';
+          let isEntryInvalid = false;
+          
+          if (entry.key.includes('CommandPath') && typeof entry.value === 'string' && entry.value.trim() === '') {
+            errorMsg = 'Command path cannot be empty.';
+            isEntryInvalid = true;
+          }
+          if ((entry.key === 'modelTiering.simpleThreshold' || entry.key === 'modelTiering.complexThreshold') && isTieringInvalid) {
+            errorMsg = 'Simple threshold must be strictly less than complex threshold.';
+            isEntryInvalid = true;
+          }
+
+          return `
           <div class="setting-row" data-setting-entry="${esc(entry.key)}">
-            <span class="setting-label">${esc(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>
-            <div class="setting-control">${renderSettingControl(entry)}</div>
+            <span class="setting-label${isEntryInvalid ? ' error-text' : ''}">${esc(entry.title)}${entry.isNew ? ' <span class="settings-badge">NEW</span>' : ''}</span>
+            <div class="setting-control${isEntryInvalid ? ' invalid' : ''}">${renderSettingControl(entry)}</div>
             <div class="settings-entry-meta">
+              ${errorMsg ? `<div class="error-text">⚠ ${esc(errorMsg)}</div>` : ''}
               <div>${esc(entry.description)}</div>
               <div>Default: ${esc(String(entry.defaultValue ?? ''))}</div>
             </div>
           </div>
-        `).join('\n')}
+        `}).join('\n')}
       </div>
     </details>
-  `).join('\n');
+  `;
+
+  const coreHtml = coreSections.map((section, index) => renderSection(section, index === 0)).join('\n');
+  
+  const hasAdvancedNew = advancedSections.some(s => s.hasNewSettings);
+  const advancedHtml = advancedSections.length > 0 ? `
+    <details class="settings-advanced-group">
+      <summary class="settings-advanced-toggle">
+        Advanced Configuration
+        ${hasAdvancedNew ? '<span class="settings-badge" style="margin-left: 8px;">NEW</span>' : ''}
+      </summary>
+      <div style="margin-top: 8px; margin-left: 8px; border-left: 1px solid var(--ralph-border); padding-left: 12px;">
+        ${advancedSections.map(s => renderSection(s, false)).join('\n')}
+      </div>
+    </details>
+  ` : '';
+
+  return coreHtml + '\n' + advancedHtml;
 }
 
 function formatUtc(value: string | null): string {
@@ -988,7 +1046,9 @@ function buildOverviewTab(state: RalphDashboardState): string {
             ${currentTask.validation ? `<div><strong>Validation</strong> ${esc(currentTask.validation)}</div>` : ''}
             <div><strong>Next Step</strong> ${esc(currentTask.blocker ? 'Resolve blocker before starting another loop.' : currentTask.validation ? `Validate with ${currentTask.validation}.` : 'Start the next iteration when ready.')}</div>
           </div>`
-        : '<div class="empty">No tasks yet — run Initialize Workspace.</div>'}
+        : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
+            ? '<div class="empty">Loading workspace data...</div>'
+            : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
     </div>
 
     <div class="card">
@@ -1030,7 +1090,9 @@ function buildWorkTab(state: RalphDashboardState): string {
           </div>`
         : activeTasks.length > 0
           ? activeTasks.map((task) => buildTaskRow(task, state.loopState === 'running')).join('\n')
-          : '<div class="empty">No tasks yet — run Initialize Workspace</div>'}
+          : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
+              ? '<div class="empty">Loading workspace data...</div>'
+              : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
       ${!allDone && doneTasks.length > 0
         ? `<details data-section="completed-tasks">
             <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
