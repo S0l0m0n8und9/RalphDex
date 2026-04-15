@@ -6,11 +6,11 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "copilot",
+		"ralphCodex.cliProvider": "claude",
 		"ralphCodex.model": "claude-sonnet-4.6",
 		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
-			"enabled": false,
+			"enabled": true,
 			"simple": {
 				"model": "claude-haiku-4-5",
 				"provider": "claude"

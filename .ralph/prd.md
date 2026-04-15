@@ -566,7 +566,23 @@ Acceptance criteria:
 - Calibration findings are used to update `complexityScorer.ts` thresholds if any boundary adjustments are warranted.
 - `npm run validate` passes.
 
-### Continued multi-agent evolution horizon (post-foundation)
+### Next delivery horizon — satisfied 2026-04-14
+
+All three items of the post-launch delivery horizon are now completed as of 2026-04-14:
+
+**1. v0.2.0 release preparation** (T128 — completed)
+
+Package.json version bumped to 0.2.0; CHANGELOG.md entry added documenting the 15-item delivery horizon. Extension is ready for Marketplace publication.
+
+**2. Developer-loop shim self-hosting validation** (T130, T130.1 — completed)
+
+Node.js shim successfully drove complete Ralph iteration loops outside VS Code. Task state reconciliation and progression confirmed. Validated invocation documented in `docs/shim-validation.md`.
+
+**3. Model tiering calibration** (T129 — completed)
+
+Scored all 269 completed tasks; identified tier distribution and documented methodology in `docs/model-tiering.md`. Calibration findings validated and thresholds applied in `complexityScorer.ts`.
+
+### Continued multi-agent evolution horizon (post-foundation) — active
 
 The milestones above establish a working multi-agent baseline (claims, loop parallelism, planning/recovery scaffolding, pipeline phases, review pass, human gates). The next horizon is not “more agents in parallel”; it is a stronger orchestration contract that stays deterministic, file-backed, and operator-legible under higher coordination complexity.
 
