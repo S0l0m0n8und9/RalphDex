@@ -6,8 +6,8 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "claude",
-		"ralphCodex.model": "claude-sonnet-4-6",
+		"ralphCodex.cliProvider": "copilot",
+		"ralphCodex.model": "claude-sonnet-4.6",
 		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
 			"enabled": false,

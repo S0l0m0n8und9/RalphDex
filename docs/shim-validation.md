@@ -41,6 +41,20 @@ or a cron job) to process multiple tasks.
 | `.ralph/` workspace | The workspace root passed as `argv[2]` must contain a `.ralph/` directory with `tasks.json` and `prd.md`. |
 | No active claim collision | If another Ralph agent (VS Code or another shim instance) holds a fresh claim on the only in-progress task, the shim will report *No actionable Ralph task selected* and exit cleanly. Use a distinct `agentId` or ensure no concurrent agent is running. |
 
+### Dedicated shim smoke task
+
+T130 now carries a child task, `T130.1`, specifically for shim smoke validation.
+Use that child task as the shim's selectable target when validating self-hosting.
+This avoids the self-blocking pattern where the parent validation task (`T130`) is
+already claimed by the outer Ralph loop, leaving the shim with no safe task to claim.
+
+The intended pattern is:
+
+1. keep `T130` as the human-tracked validation umbrella task;
+2. let a shim invocation claim and complete `T130.1`; and
+3. use the reconciled `T130.1` outcome as the proof that the shim can select work,
+   execute a full iteration, and update durable task state end-to-end.
+
 ### Optional: `.ralph-config.json`
 
 Place a `.ralph-config.json` file in the workspace root to override any
@@ -172,9 +186,12 @@ Both runs confirmed the following pipeline phases work without VS Code:
 1. **Build:** `npm run compile`
 2. **Configure** (optional): create `.ralph-config.json` with a distinct `agentId`
    and any setting overrides.
-3. **Run:** `node out/shim/main.js <workspace>` from the repo root.
-4. **Iterate:** Wrap in a shell loop or systemd timer; each invocation processes
+3. **Prepare a selectable task:** ensure the dedicated shim smoke task (`T130.1`, or
+   an equivalent disposable shim-smoke task in a temp workspace) is the task the shim
+   can safely claim.
+4. **Run:** `node out/shim/main.js <workspace>` from the repo root.
+5. **Iterate:** Wrap in a shell loop or systemd timer; each invocation processes
    one task. Stop when the shim exits with *No actionable Ralph task selected* and
    no tasks remain.
-5. **Inspect:** Artifacts land in `.ralph/artifacts/iteration-N/`; the summary is
+6. **Inspect:** Artifacts land in `.ralph/artifacts/iteration-N/`; the summary is
    at `.ralph/artifacts/latest-summary.md`.

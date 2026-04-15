@@ -40,7 +40,8 @@ async function seedShimWorkspace(workspaceRoot: string, codexCommandPath: string
     codexCommandPath,
     approvalMode: 'never',
     sandboxMode: 'workspace-write',
-    verifierModes: ['validationCommand', 'gitDiff', 'taskState']
+    verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+    modelTiering: { enabled: false }
   }, null, 2)}\n`, 'utf8');
 }
 

@@ -143,7 +143,7 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
   assert.equal(activeTasks.length, 2);
   assert.equal(activeTasks[1]?.label, 'T1');
   assert.match(String(activeTasks[1]?.description ?? ''), /todo/);
-  assert.match(String(activeTasks[1]?.description ?? ''), /tier: medium/);
+  assert.match(String(activeTasks[1]?.description ?? ''), /tier: simple/);
   assert.match(String(activeTasks[1]?.description ?? ''), /depends: T0/);
   assert.match(String(activeTasks[1]?.description ?? ''), /claim: builder-1/);
 

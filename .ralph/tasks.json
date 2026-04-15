@@ -3582,12 +3582,27 @@
     {
       "id": "T130",
       "title": "Developer-loop shim self-hosting validation: run a complete iteration via the Node.js shim and document findings",
-      "status": "in_progress",
+      "status": "done",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
         "At least one Ralph iteration completes end-to-end via the Node.js shim (src/shim/main.ts) against this repository's own .ralph/ workspace, with a reconciled task state update",
+        "The validation uses a dedicated shim-selectable smoke task so the shim can exercise claim acquisition and reconciliation without colliding with the parent validation task",
         "docs/shim-validation.md exists and documents the validated invocation command, prerequisites (e.g. CODEX_PROVIDER, .ralph-config.json), and any known behavioural gaps versus the VS Code host path",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T130.1",
+      "title": "Add a dedicated shim smoke-validation task that the Node.js shim can select without colliding with T130",
+      "status": "done",
+      "parentId": "T130",
+      "validation": "npm run validate",
+      "tier": "simple",
+      "acceptance": [
+        "tasks.json contains a dedicated child task for shim validation with deterministic, low-risk completion criteria",
+        "The shim smoke task can be selected independently of the parent validation task so a headless shim run can acquire a claim and reconcile task state without competing for T130 itself",
+        "docs/shim-validation.md explains how the shim smoke task is used during self-hosting validation",
         "npm run validate passes"
       ]
     },
@@ -3596,7 +3611,8 @@
       "title": "Advance prd.md to record the post-launch horizon as fully satisfied and confirm the continued multi-agent evolution horizon as the active next target",
       "status": "todo",
       "dependsOn": [
-        "T130"
+        "T130",
+        "T130.1"
       ],
       "validation": "npm run check:docs",
       "tier": "simple",

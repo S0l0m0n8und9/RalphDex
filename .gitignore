@@ -9,6 +9,9 @@ out-test/
 .ralph/logs/
 .vscode/settings.json
 
+# Operator-local shim configuration (not committed; document in docs/shim-validation.md)
+.ralph-config.json
+
 # OS / editor artifacts
 .DS_Store
 Thumbs.db
