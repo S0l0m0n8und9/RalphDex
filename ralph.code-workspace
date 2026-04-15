@@ -6,11 +6,11 @@
 	],
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
-		"ralphCodex.cliProvider": "gemini",
-		"ralphCodex.model": "auto",
+		"ralphCodex.cliProvider": "claude",
+		"ralphCodex.model": "claude-sonnet-4-6",
 		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
-			"enabled": false,
+			"enabled": true,
 			"simple": {
 				"model": "claude-haiku-4-5",
 				"provider": "claude"
@@ -56,6 +56,8 @@
 		"ralphCodex.operatorMode": "hardcore",
 		"ralphCodex.prdPath": ".ralph/prd.md",
 		"ralphCodex.ralphTaskFilePath": ".ralph/tasks.json",
-		"ralphCodex.progressPath": ".ralph/progress.md"
+		"ralphCodex.progressPath": ".ralph/progress.md",
+		"ralphCodex.autonomyMode": "supervised",
+		"ralphCodex.memoryStrategy": "summary"
 	}
 }

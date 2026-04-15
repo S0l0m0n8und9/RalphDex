@@ -3663,11 +3663,11 @@
     {
       "id": "T134",
       "title": "Item 20 Phase 3: pipeline integration and Show Status orchestration display",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T133"
       ],
-      "notes": "Completes Item 20 by (a) embedding orchestration graph pointers into pipeline run artifacts so provenance links PRD → task graph → orchestration graph, and (b) surfacing current orchestration state in Show Status output so operators can see the active node, prior outcomes, and pending branch nodes without reading raw JSON.",
+      "notes": "All acceptance criteria confirmed satisfied: orchestrationGraphPath in pipeline artifact (pipeline.ts:219), orchestration snapshot collection in statusSnapshot.ts (lines 404-448), Orchestration section rendering in statusReport.ts (lines 526-543), three regression tests in statusReport.test.ts (lines 1346-1390). npm run validate passes 903/903 tests.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3698,5 +3698,5 @@
       ]
     }
   ],
-  "mutationCount": 138
+  "mutationCount": 139
 }
