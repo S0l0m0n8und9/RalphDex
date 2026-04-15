@@ -838,3 +838,48 @@ export interface OrchestrationNodeSpan {
   /** Optional classification of why this node stopped (e.g. 'completed', 'failed', 'blocked'). */
   stopClassification?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Handoff contract (PRD item 21, Phase 1)
+// ---------------------------------------------------------------------------
+
+export type RalphHandoffStatus =
+  | 'proposed'
+  | 'accepted'
+  | 'rejected'
+  | 'expired'
+  | 'superseded'
+  | 'contested';
+
+export interface RalphHandoffHistoryEntry {
+  at: string;
+  from: RalphHandoffStatus;
+  to: RalphHandoffStatus;
+  reason: string;
+}
+
+/**
+ * Durable handoff contract for role-to-role delegation.
+ *
+ * A handoff record turns implicit prompt carryover into evidence-backed state.
+ * Each handoff is persisted to `.ralph/handoffs/<handoffId>.json` with atomic
+ * write semantics so interrupted sessions can resume without hidden runtime
+ * memory.
+ */
+export interface RalphHandoff {
+  handoffId: string;
+  fromAgentId: string;
+  toRole: RalphAgentRole;
+  taskId: string;
+  objective: string;
+  constraints: string[];
+  acceptedEvidence: OrchestrationEvidenceRef[];
+  expectedOutputContract: string;
+  stopConditions: string[];
+  createdAt: string;
+  expiresAt: string;
+  provenanceLinks: string[];
+  status: RalphHandoffStatus;
+  /** Append-only status transition history. */
+  history: RalphHandoffHistoryEntry[];
+}

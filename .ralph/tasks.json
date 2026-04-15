@@ -3681,7 +3681,7 @@
     {
       "id": "T135",
       "title": "Item 21 Phase 1: explicit handoff contract schema and durable lifecycle",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T134"
       ],

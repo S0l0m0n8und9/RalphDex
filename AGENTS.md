@@ -49,6 +49,7 @@ Ralphdex is a VS Code extension that:
 - `src/codex/claudeCliProvider.ts`: claude -p execution strategy and transcript builder
 - `src/ralph/pipeline.ts`: end-to-end pipeline orchestration — PRD-fragment intake, task decomposition, agent loop, review-agent pass, SCM/PR submission, human-review gate coordination, and pipeline-run provenance artifact
 - `src/ralph/orchestrationSupervisor.ts`: durable graph-backed orchestration — graph/state schema, single-transition-per-write advanceState, evidence-gated transitions, and orchestration artifact persistence
+- `src/ralph/handoffManager.ts`: durable handoff contract lifecycle — propose/accept/reject/expire state machine, role-gated acceptance, contested-status detection, and atomic file-backed persistence under `.ralph/handoffs/`
 - `src/webview/`: reusable webview infrastructure — WebviewPanelManager (named-panel lifecycle), MessageBridge (typed extension↔webview messaging), and shared stylesheet
 
 ## Command And Validation Entry Points

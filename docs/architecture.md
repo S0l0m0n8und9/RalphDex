@@ -34,6 +34,7 @@ Related docs:
 - `src/ralph/artifactStore.ts`: per-iteration artifacts, run-level provenance bundles, latest pointers, and retention cleanup, including newest-first generated-artifact retention that can add older protected references without displacing the retained window
 - `src/ralph/pipeline.ts`: end-to-end pipeline orchestration — PRD-fragment intake, task decomposition, agent loop, review-agent pass, SCM/PR submission, human-review gate coordination, and pipeline-run provenance artifact
 - `src/ralph/orchestrationSupervisor.ts`: durable graph-backed orchestration — graph/state schema types, single-transition-per-write `advanceState`, evidence-gated transition guards, and orchestration artifact persistence under `.ralph/orchestration/<runId>/`
+- `src/ralph/handoffManager.ts`: durable handoff contract lifecycle — propose/accept/reject/expire state machine with role-gated acceptance, contested-status detection for concurrent accepts, expiry evaluation, and atomic file-backed persistence under `.ralph/handoffs/<handoffId>.json`
 - `src/services/`: logging, process execution, HTTPS client, Codex CLI support inspection, and shallow workspace scanning
 
 ## End-To-End Flow
