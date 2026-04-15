@@ -3718,10 +3718,11 @@
     {
       "id": "T137",
       "title": "Item 21 Phase 3: handoff reconciliation checks in reconciliation.ts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T136"
       ],
+      "notes": "Added handoff scope check to reconcileCompletionReport: scanAcceptedHandoffs helper, needsHumanReview field on CompletionReportArtifact, warning emitted when accepted handoff taskId mismatches completion report selectedTaskId, 4 unit tests added",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3770,5 +3771,5 @@
       ]
     }
   ],
-  "mutationCount": 141
+  "mutationCount": 142
 }

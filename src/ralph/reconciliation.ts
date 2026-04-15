@@ -1,8 +1,10 @@
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
 import { writeWatchdogDiagnosticArtifact } from './artifactStore';
 import { readTaskPlan } from './planningPass';
+import { resolveHandoffDir } from './handoffManager';
 import {
   autoCompleteSatisfiedAncestors,
   bumpMutationCount,
@@ -18,6 +20,7 @@ import {
 import { applySuggestedChildTasksToFile } from './taskCreation';
 import {
   RalphCompletionClassification,
+  RalphHandoff,
   RalphIterationResult,
   RalphTask,
   RalphTaskFile,
@@ -110,6 +113,15 @@ export async function reconcileCompletionReport(
       claimContested: false,
       warnings
     };
+  }
+
+  const acceptedHandoffs = await scanAcceptedHandoffs(resolveHandoffDir(input.prepared.paths.ralphDir));
+  let handoffScopeViolation = false;
+  if (acceptedHandoffs.some((h) => h.taskId !== parsed.report!.selectedTaskId)) {
+    warnings.push(
+      'Completion report task does not match accepted handoff scope; downgrading to review required'
+    );
+    handoffScopeViolation = true;
   }
 
   const requestedStatus = parsed.report.requestedStatus;
@@ -299,7 +311,8 @@ export async function reconcileCompletionReport(
     artifact: {
       ...artifactBase,
       status: 'applied',
-      warnings
+      warnings,
+      ...(handoffScopeViolation ? { needsHumanReview: true } : {})
     },
     selectedTask,
     progressChanged,
@@ -495,4 +508,30 @@ function buildWatchdogBlocker(action: RalphWatchdogAction): string {
 
 async function taskExists(taskFilePath: string, taskId: string): Promise<boolean> {
   return findTaskById(parseTaskFile(await fs.readFile(taskFilePath, 'utf8')), taskId) !== null;
+}
+
+async function scanAcceptedHandoffs(handoffsDir: string): Promise<RalphHandoff[]> {
+  let entries: string[];
+  try {
+    entries = await fs.readdir(handoffsDir);
+  } catch {
+    return [];
+  }
+
+  const results: RalphHandoff[] = [];
+  for (const entry of entries) {
+    if (!entry.endsWith('.json')) {
+      continue;
+    }
+    try {
+      const raw = await fs.readFile(path.join(handoffsDir, entry), 'utf8');
+      const parsed = JSON.parse(raw) as RalphHandoff;
+      if (parsed.status === 'accepted') {
+        results.push(parsed);
+      }
+    } catch {
+      // Skip malformed or unreadable files without crashing the loop.
+    }
+  }
+  return results;
 }

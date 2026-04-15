@@ -20,6 +20,8 @@ export interface CompletionReportArtifact {
   rawBlock: string | null;
   parseError: string | null;
   warnings: string[];
+  /** Set to true when an accepted handoff scope does not match the completion report task. */
+  needsHumanReview?: boolean;
 }
 
 export interface ParsedCompletionReport {

@@ -35,9 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reconcileCompletionReport = reconcileCompletionReport;
 const fs = __importStar(require("fs/promises"));
+const path = __importStar(require("path"));
 const completionReportParser_1 = require("./completionReportParser");
 const artifactStore_1 = require("./artifactStore");
 const planningPass_1 = require("./planningPass");
+const handoffManager_1 = require("./handoffManager");
 const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
 async function reconcileCompletionReport(input) {
@@ -98,6 +100,12 @@ async function reconcileCompletionReport(input) {
             claimContested: false,
             warnings
         };
+    }
+    const acceptedHandoffs = await scanAcceptedHandoffs((0, handoffManager_1.resolveHandoffDir)(input.prepared.paths.ralphDir));
+    let handoffScopeViolation = false;
+    if (acceptedHandoffs.some((h) => h.taskId !== parsed.report.selectedTaskId)) {
+        warnings.push('Completion report task does not match accepted handoff scope; downgrading to review required');
+        handoffScopeViolation = true;
     }
     const requestedStatus = parsed.report.requestedStatus;
     if (requestedStatus === 'done') {
@@ -254,7 +262,8 @@ async function reconcileCompletionReport(input) {
         artifact: {
             ...artifactBase,
             status: 'applied',
-            warnings
+            warnings,
+            ...(handoffScopeViolation ? { needsHumanReview: true } : {})
         },
         selectedTask,
         progressChanged,
@@ -393,5 +402,31 @@ function buildWatchdogBlocker(action) {
 }
 async function taskExists(taskFilePath, taskId) {
     return (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(taskFilePath, 'utf8')), taskId) !== null;
+}
+async function scanAcceptedHandoffs(handoffsDir) {
+    let entries;
+    try {
+        entries = await fs.readdir(handoffsDir);
+    }
+    catch {
+        return [];
+    }
+    const results = [];
+    for (const entry of entries) {
+        if (!entry.endsWith('.json')) {
+            continue;
+        }
+        try {
+            const raw = await fs.readFile(path.join(handoffsDir, entry), 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed.status === 'accepted') {
+                results.push(parsed);
+            }
+        }
+        catch {
+            // Skip malformed or unreadable files without crashing the loop.
+        }
+    }
+    return results;
 }
 //# sourceMappingURL=reconciliation.js.map
