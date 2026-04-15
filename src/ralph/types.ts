@@ -736,3 +736,78 @@ export interface RalphWorkspaceState {
   iterationHistory: RalphIterationResult[];
   updatedAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Orchestration graph + supervisor ledger (PRD item 20, Phase 1)
+// ---------------------------------------------------------------------------
+
+export type OrchestrationNodeKind =
+  | 'task_exec'
+  | 'review'
+  | 'verify_gate'
+  | 'human_gate'
+  | 'handoff'
+  | 'fanout'
+  | 'fanin'
+  | 'replan'
+  | 'scm_submit';
+
+export type OrchestrationEvidenceKind =
+  | 'verifier_outcome'
+  | 'claim_status'
+  | 'operator_action';
+
+export interface OrchestrationEvidenceRef {
+  kind: OrchestrationEvidenceKind;
+  /** Path or identifier pointing to the evidence artifact. */
+  ref: string;
+  /** Short human-readable summary of the evidence. */
+  summary: string;
+}
+
+export interface OrchestrationEdge {
+  from: string;
+  to: string;
+  /** Guards that must be satisfied to traverse this edge. Empty array is invalid. */
+  evidenceRequired: OrchestrationEvidenceRef[];
+}
+
+export interface OrchestrationNode {
+  id: string;
+  kind: OrchestrationNodeKind;
+  /** Human-readable label for display surfaces. */
+  label: string;
+  /** Optional agent role assigned to execute this node. */
+  assignedRole?: RalphAgentRole;
+  /** Optional pointer to a task ID in the task graph. */
+  taskId?: string;
+}
+
+export interface OrchestrationGraph {
+  schemaVersion: 1;
+  runId: string;
+  entryNodeId: string;
+  nodes: OrchestrationNode[];
+  edges: OrchestrationEdge[];
+  createdAt: string;
+}
+
+export type OrchestrationNodeOutcome = 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+
+export interface OrchestrationNodeState {
+  nodeId: string;
+  outcome: OrchestrationNodeOutcome;
+  /** Evidence collected when the node completed (or failed). Empty when pending/running. */
+  evidence: OrchestrationEvidenceRef[];
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface OrchestrationState {
+  schemaVersion: 1;
+  runId: string;
+  /** The node ID the supervisor will evaluate next. Null when the graph is complete or has no remaining transitions. */
+  cursor: string | null;
+  nodeStates: OrchestrationNodeState[];
+  updatedAt: string;
+}

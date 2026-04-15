@@ -36,7 +36,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = exports.PROTECTED_GENERATED_STATE_ROOT_REFERENCES = void 0;
+exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = exports.PROTECTED_GENERATED_STATE_ROOT_REFERENCES = exports.resolveOrchestrationPaths = void 0;
 exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
@@ -57,6 +57,10 @@ const artifactRetention_1 = require("./artifactRetention");
 // Re-export submodules for backward compatibility.
 __exportStar(require("./artifactRendering"), exports);
 __exportStar(require("./artifactRetention"), exports);
+// Re-export orchestration artifact path resolution so consumers can locate
+// orchestration graph/state files via the central artifact-store surface.
+var orchestrationSupervisor_1 = require("./orchestrationSupervisor");
+Object.defineProperty(exports, "resolveOrchestrationPaths", { enumerable: true, get: function () { return orchestrationSupervisor_1.resolveOrchestrationPaths; } });
 exports.PROTECTED_GENERATED_STATE_ROOT_REFERENCES = [
     'lastPromptPath',
     'lastRun.promptPath',

@@ -32,6 +32,13 @@ import type {
 export * from './artifactRendering';
 export * from './artifactRetention';
 
+// Re-export orchestration artifact path resolution so consumers can locate
+// orchestration graph/state files via the central artifact-store surface.
+export {
+  resolveOrchestrationPaths,
+  type OrchestrationArtifactPaths
+} from './orchestrationSupervisor';
+
 export interface RalphIterationArtifactPaths {
   directory: string;
   promptPath: string;
