@@ -3681,11 +3681,11 @@
     {
       "id": "T135",
       "title": "Item 21 Phase 1: explicit handoff contract schema and durable lifecycle",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T134"
       ],
-      "notes": "Introduces the foundational handoff contract type and persistence layer for Item 21. A durable handoff record turns role-to-role delegation from implicit prompt carryover into evidence-backed state. This phase covers the schema, file persistence, and lifecycle state machine only; preflight integration and reconciliation gating follow in Phase 2.",
+      "notes": "RalphHandoff interface, handoffManager.ts lifecycle (propose/accept/reject/expire/getStatus/isExpired), 24 unit tests, AGENTS.md code-owner entry, architecture.md update, docs validator budget bump. All 920 tests pass.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -3698,5 +3698,5 @@
       ]
     }
   ],
-  "mutationCount": 139
+  "mutationCount": 140
 }
