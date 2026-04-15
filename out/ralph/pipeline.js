@@ -53,6 +53,7 @@ const integrity_1 = require("./integrity");
 const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
 const taskNormalization_1 = require("./taskNormalization");
+const orchestrationSupervisor_1 = require("./orchestrationSupervisor");
 const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
 /**
  * Extract the first GitHub/GitLab PR URL from a progress note string.
@@ -182,6 +183,7 @@ async function scaffoldPipelineRun(input) {
     await addPipelineRootTask(input.taskFilePath, rootTask);
     await (0, taskCreation_1.applySuggestedChildTasksToFile)(input.taskFilePath, rootTaskId, childTasks);
     const loopStartTime = new Date().toISOString();
+    const orchestrationPaths = (0, orchestrationSupervisor_1.resolveOrchestrationPaths)(input.ralphDir, runId);
     const artifact = {
         schemaVersion: 1,
         kind: 'pipelineRun',
@@ -192,7 +194,8 @@ async function scaffoldPipelineRun(input) {
         decomposedTaskIds: childTaskIds,
         loopStartTime,
         status: 'running',
-        phase: 'scaffold'
+        phase: 'scaffold',
+        orchestrationGraphPath: orchestrationPaths.graphPath
     };
     const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
     return { artifact, artifactPath, rootTaskId, childTaskIds };

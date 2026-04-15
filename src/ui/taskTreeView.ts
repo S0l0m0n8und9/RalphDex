@@ -15,7 +15,7 @@ import type {
   RalphWorkspaceState
 } from '../ralph/types';
 
-type TaskGroupKind = 'active' | 'dead-letter';
+type TaskGroupKind = 'todo' | 'in_progress' | 'blocked' | 'done' | 'dead-letter';
 
 interface TaskTreeSnapshot {
   taskFile: RalphTaskFile | null;
@@ -43,7 +43,19 @@ class TaskGroupItem extends TaskTreeNode {
     public readonly groupKind: TaskGroupKind,
     count: number
   ) {
-    super(groupKind === 'active' ? 'Active Tasks' : 'Dead-Letter Queue', vscode.TreeItemCollapsibleState.Expanded);
+    let label = '';
+    let state = vscode.TreeItemCollapsibleState.Expanded;
+    switch (groupKind) {
+      case 'todo': label = 'To Do'; break;
+      case 'in_progress': label = 'In Progress'; break;
+      case 'blocked': label = 'Blocked'; break;
+      case 'done':
+        label = 'Done';
+        state = vscode.TreeItemCollapsibleState.Collapsed;
+        break;
+      case 'dead-letter': label = 'Dead-Letter Queue'; break;
+    }
+    super(label, state);
     this.description = String(count);
     this.contextValue = `ralph-task-group:${groupKind}`;
   }
@@ -150,19 +162,30 @@ export class RalphTaskTreeDataProvider implements vscode.TreeDataProvider<TaskTr
   public async getChildren(element?: TaskTreeNode): Promise<TaskTreeNode[]> {
     const snapshot = await this.loadSnapshot();
     if (!element) {
-      const activeCount = snapshot.taskFile
-        ? snapshot.taskFile.tasks.filter((task) => !snapshot.deadLetterEntries.has(task.id)).length
-        : 0;
+      const activeTasks = snapshot.taskFile
+        ? snapshot.taskFile.tasks.filter((task) => !snapshot.deadLetterEntries.has(task.id))
+        : [];
+      
+      const counts = { todo: 0, in_progress: 0, blocked: 0, done: 0 };
+      for (const t of activeTasks) {
+        if (t.status === 'todo' || t.status === 'in_progress' || t.status === 'blocked' || t.status === 'done') {
+          counts[t.status]++;
+        }
+      }
+
       return [
-        new TaskGroupItem('active', activeCount),
+        new TaskGroupItem('in_progress', counts.in_progress),
+        new TaskGroupItem('blocked', counts.blocked),
+        new TaskGroupItem('todo', counts.todo),
+        new TaskGroupItem('done', counts.done),
         new TaskGroupItem('dead-letter', snapshot.deadLetterOrder.length)
       ];
     }
 
     if (element instanceof TaskGroupItem) {
-      return element.groupKind === 'active'
-        ? this.buildActiveTaskRows(snapshot)
-        : this.buildDeadLetterRows(snapshot);
+      return element.groupKind === 'dead-letter'
+        ? this.buildDeadLetterRows(snapshot)
+        : this.buildStatusRows(snapshot, element.groupKind);
     }
 
     if (element instanceof TaskRowItem) {
@@ -203,16 +226,16 @@ export class RalphTaskTreeDataProvider implements vscode.TreeDataProvider<TaskTr
     };
   }
 
-  private buildActiveTaskRows(snapshot: TaskTreeSnapshot): TaskTreeNode[] {
+  private buildStatusRows(snapshot: TaskTreeSnapshot, status: 'todo' | 'in_progress' | 'blocked' | 'done'): TaskTreeNode[] {
     if (!snapshot.taskFile) {
       return [new MessageItem('No task file available.')];
     }
 
     const rows = snapshot.taskFile.tasks
-      .filter((task) => !snapshot.deadLetterEntries.has(task.id))
-      .map((task) => this.buildTaskRow(snapshot, task, 'active'));
+      .filter((task) => task.status === status && !snapshot.deadLetterEntries.has(task.id))
+      .map((task) => this.buildTaskRow(snapshot, task, status));
 
-    return rows.length > 0 ? rows : [new MessageItem('No active durable tasks.')];
+    return rows.length > 0 ? rows : [new MessageItem(`No ${status.replace('_', ' ')} tasks.`)];
   }
 
   private buildDeadLetterRows(snapshot: TaskTreeSnapshot): TaskTreeNode[] {

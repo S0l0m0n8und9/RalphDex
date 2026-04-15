@@ -31,6 +31,7 @@ import {
   normalizeValidationCommand
 } from '../ralph/verifier';
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
+import { readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
 import { getFailureAnalysisPath, parseFailureDiagnosticResponse, type FailureAnalysis } from '../ralph/failureDiagnostics';
@@ -399,6 +400,53 @@ export async function collectStatusSnapshot(
     readLatestPipelineArtifact(inspection.paths.artifactDir),
     readDeadLetterQueue(inspection.paths.deadLetterPath)
   ]);
+
+  let orchestration: RalphStatusSnapshot['orchestration'] = null;
+  if (latestPipelineEntry?.artifact) {
+    const runId = latestPipelineEntry.artifact.runId;
+    const orchestrationPaths = resolveOrchestrationPaths(inspection.paths.ralphDir, runId);
+    try {
+      const [graph, state] = await Promise.all([
+        readOrchestrationGraph(orchestrationPaths),
+        readOrchestrationState(orchestrationPaths)
+      ]);
+
+      const activeNode = graph.nodes.find((n) => n.id === state.cursor);
+      const completedNodes = state.nodeStates
+        .filter((ns) => ns.outcome === 'completed')
+        .map((ns) => {
+          const node = graph.nodes.find((n) => n.id === ns.nodeId);
+          return {
+            nodeId: ns.nodeId,
+            label: node?.label ?? ns.nodeId,
+            outcome: ns.outcome,
+            finishedAt: ns.finishedAt
+          };
+        });
+
+      const pendingBranchNodes = state.cursor
+        ? graph.edges
+          .filter((e) => e.from === state.cursor)
+          .map((e) => {
+            const node = graph.nodes.find((n) => n.id === e.to);
+            return {
+              nodeId: e.to,
+              label: node?.label ?? e.to
+            };
+          })
+        : [];
+
+      orchestration = {
+        activeNodeId: state.cursor,
+        activeNodeLabel: activeNode?.label ?? null,
+        completedNodes,
+        pendingBranchNodes
+      };
+    } catch {
+      // no orchestration state for this run, or malformed — leave as null
+    }
+  }
+
   const deadLetterEntries: DeadLetterEntry[] = deadLetterQueue.entries;
 
   let lastFailureCategory: FailureCategoryId | null = null;
@@ -512,6 +560,7 @@ export async function collectStatusSnapshot(
     recoveryAttemptCount,
     latestFailureAnalysis,
     latestFailureAnalysisPath,
-    recoveryStatePath
+    recoveryStatePath,
+    orchestration
   };
 }

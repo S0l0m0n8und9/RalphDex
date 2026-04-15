@@ -1581,7 +1581,8 @@ export function registerCommands(
       const { artifact, artifactPath, rootTaskId, childTaskIds } = await scaffoldPipelineRun({
         prdPath: paths.prdPath,
         taskFilePath: paths.taskFilePath,
-        artifactDir: paths.artifactDir
+        artifactDir: paths.artifactDir,
+        ralphDir: paths.ralphDir
       });
 
       logger.info('Pipeline scaffold created.', { runId: artifact.runId, rootTaskId, childTaskIds, artifactPath });

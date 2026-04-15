@@ -361,6 +361,21 @@ function buildStatusReport(snapshot) {
         `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
         `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
         '- Direct command: Ralphdex: Open Latest Pipeline Run',
+        ...(snapshot.orchestration
+            ? [
+                '',
+                '## Orchestration',
+                `- Active node: ${snapshot.orchestration.activeNodeId ?? 'none'}${snapshot.orchestration.activeNodeLabel ? ` (${snapshot.orchestration.activeNodeLabel})` : ''}`,
+                '- Completed nodes:',
+                ...(snapshot.orchestration.completedNodes.length > 0
+                    ? snapshot.orchestration.completedNodes.map((node) => `  - ${node.nodeId} (${node.label}): ${node.outcome}${node.finishedAt ? ` at ${node.finishedAt}` : ''}`)
+                    : ['  - none']),
+                '- Pending branch nodes:',
+                ...(snapshot.orchestration.pendingBranchNodes.length > 0
+                    ? snapshot.orchestration.pendingBranchNodes.map((node) => `  - ${node.nodeId} (${node.label})`)
+                    : ['  - none'])
+            ]
+            : []),
         ...(snapshot.recommendedSkills.length > 0
             ? [
                 '',

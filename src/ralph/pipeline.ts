@@ -10,6 +10,7 @@ import {
   applySuggestedChildTasksToFile
 } from './taskCreation';
 import { normalizeNewTask, type RalphNewTaskInput } from './taskNormalization';
+import { resolveOrchestrationPaths } from './orchestrationSupervisor';
 import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
 export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
@@ -37,6 +38,8 @@ export interface PipelineRunArtifact {
   reviewTranscriptPath?: string;
   /** PR URL extracted from the SCM agent completion report, if available. */
   prUrl?: string;
+  /** Path to the orchestration graph.json for this run. */
+  orchestrationGraphPath?: string;
 }
 
 const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
@@ -184,6 +187,7 @@ export async function scaffoldPipelineRun(input: {
   prdPath: string;
   taskFilePath: string;
   artifactDir: string;
+  ralphDir: string;
 }): Promise<{ artifact: PipelineRunArtifact; artifactPath: string; rootTaskId: string; childTaskIds: string[] }> {
   const prdText = await fs.readFile(input.prdPath, 'utf8');
   const prdHash = hashText(prdText);
@@ -199,6 +203,8 @@ export async function scaffoldPipelineRun(input: {
   await applySuggestedChildTasksToFile(input.taskFilePath, rootTaskId, childTasks);
 
   const loopStartTime = new Date().toISOString();
+  const orchestrationPaths = resolveOrchestrationPaths(input.ralphDir, runId);
+
   const artifact: PipelineRunArtifact = {
     schemaVersion: 1,
     kind: 'pipelineRun',
@@ -209,7 +215,8 @@ export async function scaffoldPipelineRun(input: {
     decomposedTaskIds: childTaskIds,
     loopStartTime,
     status: 'running',
-    phase: 'scaffold'
+    phase: 'scaffold',
+    orchestrationGraphPath: orchestrationPaths.graphPath
   };
 
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);

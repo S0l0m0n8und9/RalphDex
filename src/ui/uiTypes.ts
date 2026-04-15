@@ -40,6 +40,7 @@ export interface RalphAgentLaneState {
   agentId: string;
   phase: RalphIterationPhase | null;
   iteration: number | null;
+  message?: string;
 }
 
 export interface RalphPhaseEvent {
@@ -48,6 +49,7 @@ export interface RalphPhaseEvent {
   phase: RalphIterationPhase;
   timestamp: string;
   agentId?: string;
+  message?: string;
 }
 
 export interface RalphIterationStartEvent {
@@ -150,7 +152,7 @@ export interface RalphDashboardState {
 /** Messages sent from extension to webview. */
 export type RalphWebviewMessage =
   | { type: 'state'; state: RalphDashboardState }
-  | { type: 'phase'; phase: RalphIterationPhase; iteration: number; agentId?: string }
+  | { type: 'phase'; phase: RalphIterationPhase; iteration: number; agentId?: string; message?: string }
   | { type: 'command-ack'; command: string; status: 'started' | 'done' | 'error' };
 
 /** Messages sent from webview to extension. */

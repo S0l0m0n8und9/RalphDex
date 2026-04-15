@@ -140,11 +140,18 @@ export function buildAgentLanes(lanes: RalphAgentLaneState[]): string {
     return '';
   }
   if (lanes.length === 1) {
-    return buildPhaseTracker(lanes[0].phase, lanes[0].iteration);
+    const lane = lanes[0]!;
+    return `
+      ${buildPhaseTracker(lane.phase, lane.iteration)}
+      ${lane.message ? `<div class="agent-message">${esc(lane.message)}</div>` : ''}
+    `;
   }
   return lanes.map((lane) => `<div class="agent-lane" data-agent-id="${esc(lane.agentId)}">
-    <span class="agent-lane-id">${esc(lane.agentId)}</span>
-    ${buildPhaseTracker(lane.phase, lane.iteration)}
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span class="agent-lane-id">${esc(lane.agentId)}</span>
+      ${buildPhaseTracker(lane.phase, lane.iteration)}
+    </div>
+    ${lane.message ? `<div class="agent-message-block">${esc(lane.message)}</div>` : ''}
   </div>`).join('\n');
 }
 
@@ -170,30 +177,46 @@ export function buildDiagnostics(state: RalphDashboardState): string {
 export function buildBaseCss(): string {
   return `
 :root {
-  --ralph-amber: #e8a838;
-  --ralph-green: #5faa5f;
-  --ralph-orange: #cc7832;
-  --ralph-red: #bc4b4b;
+  --ralph-amber: #f59e0b;
+  --ralph-green: #10b981;
+  --ralph-orange: #f97316;
+  --ralph-red: #ef4444;
+  --ralph-cyan: #06b6d4;
   --ralph-dim: color-mix(in srgb, var(--vscode-foreground) 50%, transparent);
-  --ralph-font: "Berkeley Mono", "Cascadia Code", "Fira Code", var(--vscode-editor-font-family), monospace;
-  --ralph-border: var(--vscode-panel-border, #333);
+  --ralph-font: "Inter", "Outfit", "Berkeley Mono", "Cascadia Code", var(--vscode-editor-font-family), sans-serif;
+  --ralph-border: rgba(255, 255, 255, 0.08); /* glass border */
+  --glass-bg: rgba(30, 30, 35, 0.35); /* glass background */
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+body {
+  font-family: var(--ralph-font);
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+}
+
 .header {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--ralph-border);
-  padding: 8px 10px;
-  margin-bottom: 10px;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
   text-align: center;
-  box-shadow: inset 0 0 0 1px var(--ralph-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .header-title {
-  font-size: 13px;
-  font-weight: bold;
-  letter-spacing: 2px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 3px;
   text-transform: uppercase;
+  background: linear-gradient(135deg, var(--ralph-amber), var(--ralph-cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .header-state {
@@ -238,36 +261,37 @@ export function buildBaseCss(): string {
 /* Task list */
 .task-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
-  padding: 3px 4px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
   cursor: pointer;
-  border-left: 3px solid transparent;
-  border-radius: 2px;
-  transition: background 0.15s ease, border-color 0.15s ease;
-  background: transparent;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   color: inherit;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
   text-align: left;
 }
 
 .task-row:hover {
-  background: color-mix(in srgb, var(--vscode-foreground) 8%, transparent);
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-1px);
 }
 
 .task-row.current {
-  border-left-color: var(--ralph-amber);
+  background: rgba(245, 158, 11, 0.08); /* slight amber */
+  border-color: rgba(245, 158, 11, 0.3);
 }
 
-@keyframes pulse-border {
-  0%, 100% { border-left-color: var(--ralph-amber); }
-  50% { border-left-color: transparent; }
+@keyframes pulse-glass {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 8px 1px rgba(245, 158, 11, 0.3); }
 }
 
 .task-row.current.running {
-  animation: pulse-border 2s ease-in-out infinite;
+  animation: pulse-glass 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-color: var(--ralph-amber);
 }
 
 .task-row.done { color: var(--ralph-dim); }
@@ -327,20 +351,26 @@ export function buildBaseCss(): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 5px 8px;
+  gap: 6px;
+  padding: 6px 12px;
   font-family: var(--ralph-font);
   font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
   border: 1px solid var(--ralph-border);
-  background: transparent;
+  background: var(--glass-bg);
+  backdrop-filter: blur(4px);
   color: var(--vscode-foreground);
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .btn:hover {
-  background: color-mix(in srgb, var(--ralph-amber) 15%, transparent);
+  background: rgba(245, 158, 11, 0.15); /* amber tint */
   border-color: var(--ralph-amber);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
 }
 
 .btn:disabled {
@@ -395,6 +425,21 @@ export function buildBaseCss(): string {
   white-space: nowrap;
   vertical-align: middle;
   margin-right: 4px;
+}
+
+.agent-message, .agent-message-block {
+  font-size: 10px;
+  color: var(--ralph-dim);
+  font-family: var(--ralph-font);
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 2px solid var(--ralph-amber);
+  padding: 4px 8px;
+  margin-top: 4px;
+  border-radius: 0 4px 4px 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Phase tracker */

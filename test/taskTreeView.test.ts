@@ -132,22 +132,22 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
 
   const provider = new RalphTaskTreeDataProvider(workspaceFolder(rootPath));
   const rootItems = await provider.getChildren();
-  assert.equal(rootItems.length, 2);
+  assert.equal(rootItems.length, 5);
 
-  const activeGroup = rootItems.find((item: TreeItemLike) => item.label === 'Active Tasks');
+  const todoGroup = rootItems.find((item: TreeItemLike) => item.label === 'To Do');
   const deadLetterGroup = rootItems.find((item: TreeItemLike) => item.label === 'Dead-Letter Queue');
-  assert.ok(activeGroup);
+  assert.ok(todoGroup);
   assert.ok(deadLetterGroup);
 
-  const activeTasks = await provider.getChildren(activeGroup);
-  assert.equal(activeTasks.length, 2);
-  assert.equal(activeTasks[1]?.label, 'T1');
-  assert.match(String(activeTasks[1]?.description ?? ''), /todo/);
-  assert.match(String(activeTasks[1]?.description ?? ''), /tier: simple/);
-  assert.match(String(activeTasks[1]?.description ?? ''), /depends: T0/);
-  assert.match(String(activeTasks[1]?.description ?? ''), /claim: builder-1/);
+  const activeTasks = await provider.getChildren(todoGroup);
+  assert.equal(activeTasks.length, 1);
+  assert.equal(activeTasks[0]?.label, 'T1');
+  assert.match(String(activeTasks[0]?.description ?? ''), /todo/);
+  assert.match(String(activeTasks[0]?.description ?? ''), /tier: simple/);
+  assert.match(String(activeTasks[0]?.description ?? ''), /depends: T0/);
+  assert.match(String(activeTasks[0]?.description ?? ''), /claim: builder-1/);
 
-  const activeDetails = await provider.getChildren(activeTasks[1]);
+  const activeDetails = await provider.getChildren(activeTasks[0]);
   assert.ok(activeDetails.some((item: TreeItemLike) => item.label === 'Task plan'));
   assert.ok(activeDetails.some((item: TreeItemLike) => item.label === 'Diagnostic'));
   const staleClaimAction = activeDetails.find((item: TreeItemLike) => item.label === 'Resolve stale claim');

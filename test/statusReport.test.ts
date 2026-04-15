@@ -1338,3 +1338,53 @@ test('buildStatusReport renders hardcore preset settings and explicit overrides'
   assert.match(report, /autoApplyRemediation: decompose_task, mark_blocked \(preset\)/);
   assert.match(report, /modelTiering\.enabled: true \(explicit\)/);
 });
+
+// ---------------------------------------------------------------------------
+// Orchestration rendering
+// ---------------------------------------------------------------------------
+
+test('buildStatusReport renders Orchestration section when state is present', () => {
+  const report = buildStatusReport(snapshot({
+    orchestration: {
+      activeNodeId: 'node-2',
+      activeNodeLabel: 'Implementation Phase',
+      completedNodes: [
+        { nodeId: 'node-1', label: 'Scaffold Phase', outcome: 'completed', finishedAt: '2026-04-01T10:00:00Z' }
+      ],
+      pendingBranchNodes: [
+        { nodeId: 'node-3', label: 'Review Phase' }
+      ]
+    }
+  }));
+
+  assert.match(report, /## Orchestration/);
+  assert.match(report, /- Active node: node-2 \(Implementation Phase\)/);
+  assert.match(report, /- Completed nodes:/);
+  assert.match(report, /  - node-1 \(Scaffold Phase\): completed at 2026-04-01T10:00:00Z/);
+  assert.match(report, /- Pending branch nodes:/);
+  assert.match(report, /  - node-3 \(Review Phase\)/);
+});
+
+test('buildStatusReport handles empty completed or pending branch nodes in Orchestration section', () => {
+  const report = buildStatusReport(snapshot({
+    orchestration: {
+      activeNodeId: 'node-1',
+      activeNodeLabel: 'Initial Phase',
+      completedNodes: [],
+      pendingBranchNodes: []
+    }
+  }));
+
+  assert.match(report, /## Orchestration/);
+  assert.match(report, /- Active node: node-1 \(Initial Phase\)/);
+  assert.match(report, /- Completed nodes:\r?\n  - none/);
+  assert.match(report, /- Pending branch nodes:\r?\n  - none/);
+});
+
+test('buildStatusReport omits Orchestration section when state is null', () => {
+  const report = buildStatusReport(snapshot({
+    orchestration: null
+  }));
+
+  assert.doesNotMatch(report, /## Orchestration/);
+});

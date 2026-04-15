@@ -1259,7 +1259,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             const { artifact, artifactPath, rootTaskId, childTaskIds } = await (0, pipeline_1.scaffoldPipelineRun)({
                 prdPath: paths.prdPath,
                 taskFilePath: paths.taskFilePath,
-                artifactDir: paths.artifactDir
+                artifactDir: paths.artifactDir,
+                ralphDir: paths.ralphDir
             });
             logger.info('Pipeline scaffold created.', { runId: artifact.runId, rootTaskId, childTaskIds, artifactPath });
             await runPipelineFromPhase('loop', artifact, workspaceFolder, config, paths, progress);

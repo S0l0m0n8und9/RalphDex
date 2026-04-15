@@ -17,12 +17,13 @@ export class IterationBroadcaster implements vscode.Disposable {
   private readonly _onEvent = new vscode.EventEmitter<RalphBroadcastEvent>();
   public readonly onEvent: vscode.Event<RalphBroadcastEvent> = this._onEvent.event;
 
-  public emitPhase(iteration: number, phase: RalphIterationPhase, agentId?: string): void {
+  public emitPhase(iteration: number, phase: RalphIterationPhase, agentId?: string, message?: string): void {
     const event: RalphPhaseEvent = {
       type: 'phase',
       iteration,
       phase,
       agentId,
+      message,
       timestamp: new Date().toISOString()
     };
     this._onEvent.fire(event);

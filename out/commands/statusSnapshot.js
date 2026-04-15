@@ -56,6 +56,7 @@ const taskFile_1 = require("../ralph/taskFile");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
 const pipeline_1 = require("../ralph/pipeline");
+const orchestrationSupervisor_1 = require("../ralph/orchestrationSupervisor");
 const deadLetter_1 = require("../ralph/deadLetter");
 const failureDiagnostics_1 = require("../ralph/failureDiagnostics");
 const recoveryOrchestrator_1 = require("../ralph/recoveryOrchestrator");
@@ -389,6 +390,49 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         (0, pipeline_1.readLatestPipelineArtifact)(inspection.paths.artifactDir),
         (0, deadLetter_1.readDeadLetterQueue)(inspection.paths.deadLetterPath)
     ]);
+    let orchestration = null;
+    if (latestPipelineEntry?.artifact) {
+        const runId = latestPipelineEntry.artifact.runId;
+        const orchestrationPaths = (0, orchestrationSupervisor_1.resolveOrchestrationPaths)(inspection.paths.ralphDir, runId);
+        try {
+            const [graph, state] = await Promise.all([
+                (0, orchestrationSupervisor_1.readOrchestrationGraph)(orchestrationPaths),
+                (0, orchestrationSupervisor_1.readOrchestrationState)(orchestrationPaths)
+            ]);
+            const activeNode = graph.nodes.find((n) => n.id === state.cursor);
+            const completedNodes = state.nodeStates
+                .filter((ns) => ns.outcome === 'completed')
+                .map((ns) => {
+                const node = graph.nodes.find((n) => n.id === ns.nodeId);
+                return {
+                    nodeId: ns.nodeId,
+                    label: node?.label ?? ns.nodeId,
+                    outcome: ns.outcome,
+                    finishedAt: ns.finishedAt
+                };
+            });
+            const pendingBranchNodes = state.cursor
+                ? graph.edges
+                    .filter((e) => e.from === state.cursor)
+                    .map((e) => {
+                    const node = graph.nodes.find((n) => n.id === e.to);
+                    return {
+                        nodeId: e.to,
+                        label: node?.label ?? e.to
+                    };
+                })
+                : [];
+            orchestration = {
+                activeNodeId: state.cursor,
+                activeNodeLabel: activeNode?.label ?? null,
+                completedNodes,
+                pendingBranchNodes
+            };
+        }
+        catch {
+            // no orchestration state for this run, or malformed — leave as null
+        }
+    }
     const deadLetterEntries = deadLetterQueue.entries;
     let lastFailureCategory = null;
     let recoveryAttemptCount = null;
@@ -498,7 +542,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         recoveryAttemptCount,
         latestFailureAnalysis,
         latestFailureAnalysisPath,
-        recoveryStatePath
+        recoveryStatePath,
+        orchestration
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

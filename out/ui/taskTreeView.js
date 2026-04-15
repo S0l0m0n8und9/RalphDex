@@ -51,7 +51,27 @@ class TaskTreeNode extends vscode.TreeItem {
 class TaskGroupItem extends TaskTreeNode {
     groupKind;
     constructor(groupKind, count) {
-        super(groupKind === 'active' ? 'Active Tasks' : 'Dead-Letter Queue', vscode.TreeItemCollapsibleState.Expanded);
+        let label = '';
+        let state = vscode.TreeItemCollapsibleState.Expanded;
+        switch (groupKind) {
+            case 'todo':
+                label = 'To Do';
+                break;
+            case 'in_progress':
+                label = 'In Progress';
+                break;
+            case 'blocked':
+                label = 'Blocked';
+                break;
+            case 'done':
+                label = 'Done';
+                state = vscode.TreeItemCollapsibleState.Collapsed;
+                break;
+            case 'dead-letter':
+                label = 'Dead-Letter Queue';
+                break;
+        }
+        super(label, state);
         this.groupKind = groupKind;
         this.description = String(count);
         this.contextValue = `ralph-task-group:${groupKind}`;
@@ -133,18 +153,27 @@ class RalphTaskTreeDataProvider {
     async getChildren(element) {
         const snapshot = await this.loadSnapshot();
         if (!element) {
-            const activeCount = snapshot.taskFile
-                ? snapshot.taskFile.tasks.filter((task) => !snapshot.deadLetterEntries.has(task.id)).length
-                : 0;
+            const activeTasks = snapshot.taskFile
+                ? snapshot.taskFile.tasks.filter((task) => !snapshot.deadLetterEntries.has(task.id))
+                : [];
+            const counts = { todo: 0, in_progress: 0, blocked: 0, done: 0 };
+            for (const t of activeTasks) {
+                if (t.status === 'todo' || t.status === 'in_progress' || t.status === 'blocked' || t.status === 'done') {
+                    counts[t.status]++;
+                }
+            }
             return [
-                new TaskGroupItem('active', activeCount),
+                new TaskGroupItem('in_progress', counts.in_progress),
+                new TaskGroupItem('blocked', counts.blocked),
+                new TaskGroupItem('todo', counts.todo),
+                new TaskGroupItem('done', counts.done),
                 new TaskGroupItem('dead-letter', snapshot.deadLetterOrder.length)
             ];
         }
         if (element instanceof TaskGroupItem) {
-            return element.groupKind === 'active'
-                ? this.buildActiveTaskRows(snapshot)
-                : this.buildDeadLetterRows(snapshot);
+            return element.groupKind === 'dead-letter'
+                ? this.buildDeadLetterRows(snapshot)
+                : this.buildStatusRows(snapshot, element.groupKind);
         }
         if (element instanceof TaskRowItem) {
             return this.buildTaskDetailRows(snapshot, element);
@@ -179,14 +208,14 @@ class RalphTaskTreeDataProvider {
             artifactDir: paths.artifactDir
         };
     }
-    buildActiveTaskRows(snapshot) {
+    buildStatusRows(snapshot, status) {
         if (!snapshot.taskFile) {
             return [new MessageItem('No task file available.')];
         }
         const rows = snapshot.taskFile.tasks
-            .filter((task) => !snapshot.deadLetterEntries.has(task.id))
-            .map((task) => this.buildTaskRow(snapshot, task, 'active'));
-        return rows.length > 0 ? rows : [new MessageItem('No active durable tasks.')];
+            .filter((task) => task.status === status && !snapshot.deadLetterEntries.has(task.id))
+            .map((task) => this.buildTaskRow(snapshot, task, status));
+        return rows.length > 0 ? rows : [new MessageItem(`No ${status.replace('_', ' ')} tasks.`)];
     }
     buildDeadLetterRows(snapshot) {
         if (snapshot.deadLetterOrder.length === 0) {

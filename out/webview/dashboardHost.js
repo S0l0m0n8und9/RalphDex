@@ -231,16 +231,17 @@ class DashboardHost {
         return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
             agentId,
             phase: lane.phase,
-            iteration: lane.iteration
+            iteration: lane.iteration,
+            message: lane.message
         }));
     }
     handleBroadcast(event) {
         switch (event.type) {
             case 'phase': {
                 const laneKey = event.agentId ?? 'default';
-                this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
+                this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration, message: event.message });
                 this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
-                this.bridge.send({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
+                this.bridge.send({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId, message: event.message });
                 break;
             }
             case 'loop-start':

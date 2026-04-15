@@ -34,7 +34,7 @@ import type { DashboardSnapshotLoader } from './dashboardDataLoader';
  */
 export class DashboardHost implements vscode.Disposable {
   private latestState: RalphDashboardState;
-  private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number }>();
+  private agentLanesMap = new Map<string, { phase: RalphIterationPhase; iteration: number; message?: string }>();
   private lastRenderTime = 0;
   private readonly configSync = new WebviewConfigSync();
   private readonly bridge: MessageBridge<RalphWebviewMessage, RalphWebviewCommand>;
@@ -232,7 +232,8 @@ export class DashboardHost implements vscode.Disposable {
     return Array.from(this.agentLanesMap.entries()).map(([agentId, lane]) => ({
       agentId,
       phase: lane.phase,
-      iteration: lane.iteration
+      iteration: lane.iteration,
+      message: lane.message
     }));
   }
 
@@ -240,9 +241,9 @@ export class DashboardHost implements vscode.Disposable {
     switch (event.type) {
       case 'phase': {
         const laneKey = event.agentId ?? 'default';
-        this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration });
+        this.agentLanesMap.set(laneKey, { phase: event.phase, iteration: event.iteration, message: event.message });
         this.latestState = { ...this.latestState, agentLanes: this.getLanes() };
-        this.bridge.send({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId });
+        this.bridge.send({ type: 'phase', phase: event.phase, iteration: event.iteration, agentId: event.agentId, message: event.message });
         break;
       }
       case 'loop-start':

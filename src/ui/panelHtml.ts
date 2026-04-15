@@ -49,18 +49,25 @@ body {
 }
 
 .card {
+  background: var(--glass-bg);
   border: 1px solid var(--ralph-border);
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .card-title {
   font-size: 11px;
-  font-weight: bold;
-  letter-spacing: 1.5px;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--ralph-dim);
-  margin-bottom: 6px;
+  color: var(--ralph-amber);
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--ralph-border);
+  padding-bottom: 6px;
 }
 
 .dashboard-summary-grid {
@@ -70,9 +77,13 @@ body {
 }
 
 .dashboard-summary-card {
+  background: var(--glass-bg);
   border: 1px solid var(--ralph-border);
-  padding: 8px 10px;
+  border-radius: 8px;
+  padding: 16px;
   min-height: 120px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .dashboard-summary-card.full {
@@ -82,12 +93,16 @@ body {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .metric {
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--ralph-border);
-  padding: 6px 8px;
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
 }
 
 .metric-label {
@@ -224,10 +239,13 @@ details[open] > .completed-toggle::before {
 
 /* All-done summary card */
 .all-done-card {
+  background: rgba(16, 185, 129, 0.05); /* Greenish tint */
   border: 1px solid var(--ralph-green);
-  padding: 16px 20px;
+  border-radius: 8px;
+  padding: 24px 20px;
   text-align: center;
   color: var(--ralph-green);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.1);
 }
 
 .all-done-card .check {
@@ -284,18 +302,21 @@ details[open] > .completed-toggle::before {
 .setting-control input[type="text"],
 .setting-control input[type="number"] {
   width: 100%;
-  padding: 3px 6px;
+  padding: 6px 10px;
   font-family: var(--ralph-font);
   font-size: 11px;
-  background: var(--vscode-input-background, #1e1e1e);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--vscode-input-foreground, #ccc);
   border: 1px solid var(--ralph-border);
+  border-radius: 4px;
   outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .setting-control select:focus,
 .setting-control input:focus {
   border-color: var(--ralph-amber);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
 }
 
 .setting-control.invalid select,
@@ -427,19 +448,27 @@ details[open] > .settings-advanced-toggle::before { content: '▾ '; }
 }
 
 .snapshot-banner {
+  background: var(--glass-bg);
   border: 1px solid var(--ralph-border);
-  padding: 8px 10px;
+  border-radius: 6px;
+  padding: 12px 14px;
   font-size: 11px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .snapshot-banner.loading,
 .snapshot-banner.refreshing {
   border-color: var(--ralph-amber);
+  background: rgba(245, 158, 11, 0.05);
   color: var(--ralph-amber);
 }
 
 .snapshot-banner.error {
   border-color: var(--ralph-orange);
+  background: rgba(249, 115, 22, 0.05);
   color: var(--ralph-orange);
 }
 

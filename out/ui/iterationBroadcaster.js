@@ -42,12 +42,13 @@ const vscode = __importStar(require("vscode"));
 class IterationBroadcaster {
     _onEvent = new vscode.EventEmitter();
     onEvent = this._onEvent.event;
-    emitPhase(iteration, phase, agentId) {
+    emitPhase(iteration, phase, agentId, message) {
         const event = {
             type: 'phase',
             iteration,
             phase,
             agentId,
+            message,
             timestamp: new Date().toISOString()
         };
         this._onEvent.fire(event);

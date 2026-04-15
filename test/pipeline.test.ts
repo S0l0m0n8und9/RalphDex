@@ -178,7 +178,7 @@ test('scaffoldPipelineRun creates root + child tasks and writes artifact', async
     await fs.writeFile(prdPath, '# My PRD\n\n## Step 1\n\n## Step 2\n', 'utf8');
     await fs.writeFile(taskFilePath, JSON.stringify({ version: 2, tasks: [] }, null, 2) + '\n', 'utf8');
 
-    const result = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir });
+    const result = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir, ralphDir: path.dirname(artifactDir) });
 
     assert.ok(result.artifact.runId, 'runId should be set');
     assert.equal(result.childTaskIds.length, 2);
@@ -198,6 +198,8 @@ test('scaffoldPipelineRun creates root + child tasks and writes artifact', async
     const artifact = JSON.parse(artifactRaw);
     assert.equal(artifact.status, 'running');
     assert.ok(artifact.prdHash.startsWith('sha256:'));
+    assert.ok(artifact.orchestrationGraphPath.includes('orchestration'), 'orchestrationGraphPath should be set');
+    assert.ok(artifact.orchestrationGraphPath.includes(result.artifact.runId), 'orchestrationGraphPath should include runId');
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
@@ -282,7 +284,7 @@ test('scaffoldPipelineRun sets phase scaffold on the written artifact', async ()
     await fs.writeFile(prdPath, '# PRD\n\n## Step 1\n', 'utf8');
     await fs.writeFile(taskFilePath, JSON.stringify({ version: 2, tasks: [] }, null, 2) + '\n', 'utf8');
 
-    const result = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir });
+    const result = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir, ralphDir: path.dirname(artifactDir) });
 
     assert.equal(result.artifact.phase, 'scaffold');
 
