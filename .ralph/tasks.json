@@ -3626,10 +3626,11 @@
     {
       "id": "T132",
       "title": "Item 20 Phase 1: define orchestration graph/state schema types and scaffold orchestrationSupervisor.ts",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T131"
       ],
+      "notes": "All acceptance criteria verified: types in types.ts, orchestrationSupervisor.ts with evidence-gated advanceState, artifact paths in artifactStore.ts, comprehensive unit tests (896 pass), AGENTS.md and architecture.md updated. npm run validate passes cleanly.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -3642,5 +3643,5 @@
       ]
     }
   ],
-  "mutationCount": 133
+  "mutationCount": 134
 }
