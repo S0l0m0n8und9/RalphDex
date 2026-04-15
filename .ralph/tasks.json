@@ -3641,7 +3641,62 @@
         "AGENTS.md lists orchestrationSupervisor.ts in Code Owners and docs/architecture.md references the new orchestration layer",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T133",
+      "title": "Item 20 Phase 2: per-node span artifacts in orchestrationSupervisor.ts",
+      "status": "done",
+      "dependsOn": [
+        "T132"
+      ],
+      "notes": "OrchestrationNodeSpan interface, nodeSpanPath helper, writeNodeSpan/readNodeSpan helpers, and 4 unit tests added. All acceptance criteria satisfied.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "OrchestrationNodeSpan interface added to src/ralph/types.ts with fields: nodeId, runId, startedAt, finishedAt, agentId (optional), agentRole (optional), inputRefs (string[]), outputRefs (string[]), stopClassification (optional string)",
+        "writeNodeSpan(paths, nodeId, span) and readNodeSpan(paths, nodeId) helpers added to orchestrationSupervisor.ts; span files written to .ralph/orchestration/<runId>/node-<id>-span.json",
+        "resolveOrchestrationPaths return value extended to include a nodeSpanPath(nodeId) helper or equivalent path derivation",
+        "Unit tests cover: write/read round-trip for a span, correct file path, and graceful handling of missing span file",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T134",
+      "title": "Item 20 Phase 3: pipeline integration and Show Status orchestration display",
+      "status": "todo",
+      "dependsOn": [
+        "T133"
+      ],
+      "notes": "Completes Item 20 by (a) embedding orchestration graph pointers into pipeline run artifacts so provenance links PRD → task graph → orchestration graph, and (b) surfacing current orchestration state in Show Status output so operators can see the active node, prior outcomes, and pending branch nodes without reading raw JSON.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "pipeline.ts writes an orchestrationGraphPath field to .ralph/artifacts/pipelines/<runId>.json pointing to the orchestration graph.json for the run (use resolveOrchestrationPaths)",
+        "Show Status output includes an Orchestration section when .ralph/orchestration/ contains state for a recent run: active cursor node id + label, list of completed nodes with outcomes and timestamps, list of pending branch nodes reachable from the cursor",
+        "Orchestration section is omitted gracefully when no orchestration state exists (no crash, no error output)",
+        "Regression tests cover: status rendering with active orchestration state, status rendering with no orchestration state",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T135",
+      "title": "Item 21 Phase 1: explicit handoff contract schema and durable lifecycle",
+      "status": "todo",
+      "dependsOn": [
+        "T134"
+      ],
+      "notes": "Introduces the foundational handoff contract type and persistence layer for Item 21. A durable handoff record turns role-to-role delegation from implicit prompt carryover into evidence-backed state. This phase covers the schema, file persistence, and lifecycle state machine only; preflight integration and reconciliation gating follow in Phase 2.",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "RalphHandoff interface added to src/ralph/types.ts with required fields: handoffId, fromAgentId, toRole (agentRole union), taskId, objective, constraints, acceptedEvidence (OrchestrationEvidenceRef[]), expectedOutputContract, stopConditions, createdAt, expiresAt (ISO string), provenanceLinks (string[]), status ('proposed' | 'accepted' | 'rejected' | 'expired' | 'superseded' | 'contested'), history (append-only { at, from, to, reason }[])",
+        "src/ralph/handoffManager.ts created with proposeHandoff, acceptHandoff, rejectHandoff, expireHandoff, and getHandoffStatus functions; persists to .ralph/handoffs/<handoffId>.json with atomic write",
+        "isHandoffExpired helper evaluates expiresAt against current time and transitions status to expired when past",
+        "Unit tests cover: propose → accept → complete lifecycle, propose → expire lifecycle, contested status on concurrent accept attempts, reject on out-of-role acceptance attempt",
+        "AGENTS.md Code Owners updated to list handoffManager.ts",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 134
+  "mutationCount": 138
 }

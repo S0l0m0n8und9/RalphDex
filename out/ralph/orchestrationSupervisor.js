@@ -41,6 +41,8 @@ exports.writeOrchestrationGraph = writeOrchestrationGraph;
 exports.writeOrchestrationState = writeOrchestrationState;
 exports.readOrchestrationGraph = readOrchestrationGraph;
 exports.readOrchestrationState = readOrchestrationState;
+exports.writeNodeSpan = writeNodeSpan;
+exports.readNodeSpan = readNodeSpan;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
@@ -49,7 +51,10 @@ function resolveOrchestrationPaths(ralphRoot, runId) {
     return {
         directory,
         graphPath: path.join(directory, 'graph.json'),
-        statePath: path.join(directory, 'state.json')
+        statePath: path.join(directory, 'state.json'),
+        nodeSpanPath(nodeId) {
+            return path.join(directory, `node-${nodeId}-span.json`);
+        }
     };
 }
 // ---------------------------------------------------------------------------
@@ -215,5 +220,32 @@ async function readOrchestrationGraph(paths) {
 async function readOrchestrationState(paths) {
     const raw = await fs.readFile(paths.statePath, 'utf8');
     return JSON.parse(raw);
+}
+// ---------------------------------------------------------------------------
+// Per-node span helpers
+// ---------------------------------------------------------------------------
+/**
+ * Persist a per-node execution span to
+ * `.ralph/orchestration/<runId>/node-<nodeId>-span.json`.
+ */
+async function writeNodeSpan(paths, nodeId, span) {
+    await fs.mkdir(paths.directory, { recursive: true });
+    await fs.writeFile(paths.nodeSpanPath(nodeId), (0, integrity_1.stableJson)(span), 'utf8');
+}
+/**
+ * Read a persisted node span. Returns `undefined` when the span file does not
+ * exist (node has not yet started or span was never written).
+ */
+async function readNodeSpan(paths, nodeId) {
+    try {
+        const raw = await fs.readFile(paths.nodeSpanPath(nodeId), 'utf8');
+        return JSON.parse(raw);
+    }
+    catch (err) {
+        if (err.code === 'ENOENT') {
+            return undefined;
+        }
+        throw err;
+    }
 }
 //# sourceMappingURL=orchestrationSupervisor.js.map
