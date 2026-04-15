@@ -814,3 +814,27 @@ export interface OrchestrationState {
   nodeStates: OrchestrationNodeState[];
   updatedAt: string;
 }
+
+/**
+ * Durable execution span for a single orchestration node.
+ * Persisted to `.ralph/orchestration/<runId>/node-<nodeId>-span.json`.
+ * Each span records timing, agent assignment, artifact references, and stop
+ * classification so every node execution is individually inspectable and
+ * resumable without reading the full state file.
+ */
+export interface OrchestrationNodeSpan {
+  nodeId: string;
+  runId: string;
+  startedAt: string;
+  finishedAt: string;
+  /** Optional agent identifier assigned to execute this node. */
+  agentId?: string;
+  /** Optional agent role (e.g. 'implementer', 'reviewer') for this node. */
+  agentRole?: string;
+  /** Paths or identifiers for artifacts consumed as input by this node. */
+  inputRefs: string[];
+  /** Paths or identifiers for artifacts produced as output by this node. */
+  outputRefs: string[];
+  /** Optional classification of why this node stopped (e.g. 'completed', 'failed', 'blocked'). */
+  stopClassification?: string;
+}

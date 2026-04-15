@@ -5,6 +5,7 @@ import type {
   OrchestrationEdge,
   OrchestrationEvidenceRef,
   OrchestrationGraph,
+  OrchestrationNodeSpan,
   OrchestrationNodeState,
   OrchestrationState
 } from './types';
@@ -17,6 +18,8 @@ export interface OrchestrationArtifactPaths {
   directory: string;
   graphPath: string;
   statePath: string;
+  /** Returns the file path for a per-node execution span artifact. */
+  nodeSpanPath(nodeId: string): string;
 }
 
 export function resolveOrchestrationPaths(ralphRoot: string, runId: string): OrchestrationArtifactPaths {
@@ -24,7 +27,10 @@ export function resolveOrchestrationPaths(ralphRoot: string, runId: string): Orc
   return {
     directory,
     graphPath: path.join(directory, 'graph.json'),
-    statePath: path.join(directory, 'state.json')
+    statePath: path.join(directory, 'state.json'),
+    nodeSpanPath(nodeId: string): string {
+      return path.join(directory, `node-${nodeId}-span.json`);
+    }
   };
 }
 
@@ -255,4 +261,40 @@ export async function readOrchestrationState(
 ): Promise<OrchestrationState> {
   const raw = await fs.readFile(paths.statePath, 'utf8');
   return JSON.parse(raw) as OrchestrationState;
+}
+
+// ---------------------------------------------------------------------------
+// Per-node span helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Persist a per-node execution span to
+ * `.ralph/orchestration/<runId>/node-<nodeId>-span.json`.
+ */
+export async function writeNodeSpan(
+  paths: OrchestrationArtifactPaths,
+  nodeId: string,
+  span: OrchestrationNodeSpan
+): Promise<void> {
+  await fs.mkdir(paths.directory, { recursive: true });
+  await fs.writeFile(paths.nodeSpanPath(nodeId), stableJson(span), 'utf8');
+}
+
+/**
+ * Read a persisted node span. Returns `undefined` when the span file does not
+ * exist (node has not yet started or span was never written).
+ */
+export async function readNodeSpan(
+  paths: OrchestrationArtifactPaths,
+  nodeId: string
+): Promise<OrchestrationNodeSpan | undefined> {
+  try {
+    const raw = await fs.readFile(paths.nodeSpanPath(nodeId), 'utf8');
+    return JSON.parse(raw) as OrchestrationNodeSpan;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return undefined;
+    }
+    throw err;
+  }
 }

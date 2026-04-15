@@ -7,15 +7,18 @@ import {
   advanceState,
   initializeState,
   OrchestrationTransitionError,
+  readNodeSpan,
   readOrchestrationGraph,
   readOrchestrationState,
   resolveOrchestrationPaths,
+  writeNodeSpan,
   writeOrchestrationGraph,
   writeOrchestrationState
 } from '../src/ralph/orchestrationSupervisor';
 import type {
   OrchestrationEvidenceRef,
   OrchestrationGraph,
+  OrchestrationNodeSpan,
   OrchestrationState
 } from '../src/ralph/types';
 
@@ -285,4 +288,79 @@ test('artifactStore re-exports resolveOrchestrationPaths', async () => {
   assert.equal(typeof reExported, 'function');
   const paths = reExported('/project/.ralph', 'run-xyz');
   assert.ok(paths.graphPath.endsWith('graph.json'));
+});
+
+// ---------------------------------------------------------------------------
+// nodeSpanPath — correct path derivation
+// ---------------------------------------------------------------------------
+
+test('nodeSpanPath returns node-<id>-span.json inside the run directory', () => {
+  const paths = resolveOrchestrationPaths('/project/.ralph', 'run-abc');
+  const spanPath = paths.nodeSpanPath('n1');
+  assert.ok(spanPath.includes(path.join('orchestration', 'run-abc')));
+  assert.ok(spanPath.endsWith(`node-n1-span.json`));
+});
+
+// ---------------------------------------------------------------------------
+// writeNodeSpan / readNodeSpan — round-trip
+// ---------------------------------------------------------------------------
+
+test('writeNodeSpan and readNodeSpan round-trip a span correctly', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  const paths = resolveOrchestrationPaths(ralphRoot, 'run-span-001');
+
+  const span: OrchestrationNodeSpan = {
+    nodeId: 'n1',
+    runId: 'run-span-001',
+    startedAt: '2026-01-01T00:00:00.000Z',
+    finishedAt: '2026-01-01T00:01:00.000Z',
+    agentId: 'agent-1',
+    agentRole: 'implementer',
+    inputRefs: ['.ralph/artifacts/iter-001/execution-plan.json'],
+    outputRefs: ['.ralph/artifacts/iter-001/verifier-summary.json'],
+    stopClassification: 'completed'
+  };
+
+  await writeNodeSpan(paths, 'n1', span);
+  const loaded = await readNodeSpan(paths, 'n1');
+
+  assert.ok(loaded !== undefined);
+  assert.equal(loaded!.nodeId, span.nodeId);
+  assert.equal(loaded!.runId, span.runId);
+  assert.equal(loaded!.startedAt, span.startedAt);
+  assert.equal(loaded!.finishedAt, span.finishedAt);
+  assert.equal(loaded!.agentId, span.agentId);
+  assert.equal(loaded!.agentRole, span.agentRole);
+  assert.deepEqual(loaded!.inputRefs, span.inputRefs);
+  assert.deepEqual(loaded!.outputRefs, span.outputRefs);
+  assert.equal(loaded!.stopClassification, span.stopClassification);
+});
+
+test('readNodeSpan returns undefined for a missing span file', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  const paths = resolveOrchestrationPaths(ralphRoot, 'run-no-span');
+
+  const result = await readNodeSpan(paths, 'nonexistent');
+  assert.equal(result, undefined);
+});
+
+test('writeNodeSpan creates the directory if absent', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  // Use a run ID that has never been used — no directory exists yet.
+  const paths = resolveOrchestrationPaths(ralphRoot, 'run-new-dir');
+
+  const span: OrchestrationNodeSpan = {
+    nodeId: 'nx',
+    runId: 'run-new-dir',
+    startedAt: '2026-02-01T00:00:00.000Z',
+    finishedAt: '2026-02-01T00:02:00.000Z',
+    inputRefs: [],
+    outputRefs: []
+  };
+
+  // Should not throw even though the directory does not exist.
+  await assert.doesNotReject(() => writeNodeSpan(paths, 'nx', span));
+  const loaded = await readNodeSpan(paths, 'nx');
+  assert.ok(loaded !== undefined);
+  assert.equal(loaded!.nodeId, 'nx');
 });
