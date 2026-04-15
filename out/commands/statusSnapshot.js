@@ -325,7 +325,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         command: validationCommand,
         rootPath: rootPolicy.verificationRootPath
     });
-    const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics] = await Promise.all([
         (0, preflight_1.inspectPreflightArtifactReadiness)({
             rootPath: workspaceFolder.uri.fsPath,
             artifactRootDir: inspection.paths.artifactDir,
@@ -341,8 +341,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             claimFilePath: inspection.paths.claimFilePath,
             artifactDir: inspection.paths.artifactDir,
             staleClaimTtlMs: config.watchdogStaleTtlMs
-        })
+        }),
+        (0, preflight_1.checkHandoffHealth)({ ralphRoot: inspection.paths.ralphDir })
     ]);
+    const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);
     const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
         readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),

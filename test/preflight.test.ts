@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
+import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 
 const fileStatus = {
@@ -1126,4 +1126,125 @@ test('buildPreflightReport does not emit fallback diagnostic when lastSummarizat
     !report.diagnostics.some((d) => d.code === 'memory_summarization_fallback'),
     'should not emit fallback diagnostic when no summarization occurred'
   );
+});
+
+// ---------------------------------------------------------------------------
+// checkHandoffHealth
+// ---------------------------------------------------------------------------
+
+test('checkHandoffHealth returns no diagnostics when handoffs directory does not exist', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-handoff-'));
+  const ralphRoot = path.join(rootPath, '.ralph');
+  await fs.mkdir(ralphRoot, { recursive: true });
+  // Intentionally do NOT create ralphRoot/handoffs/
+
+  const diagnostics = await checkHandoffHealth({ ralphRoot });
+
+  assert.deepEqual(diagnostics, []);
+});
+
+test('checkHandoffHealth emits warning for expired proposed handoff', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-handoff-'));
+  const ralphRoot = path.join(rootPath, '.ralph');
+  const handoffDir = path.join(ralphRoot, 'handoffs');
+  await fs.mkdir(handoffDir, { recursive: true });
+
+  const handoff = {
+    handoffId: 'handoff-001',
+    fromAgentId: 'agent-planner',
+    toRole: 'implementer',
+    taskId: 'T42',
+    objective: 'Implement the feature',
+    constraints: [],
+    acceptedEvidence: [],
+    expectedOutputContract: 'passing tests',
+    stopConditions: ['tests pass'],
+    createdAt: '2026-04-10T10:00:00.000Z',
+    expiresAt: '2026-04-10T11:00:00.000Z', // expired
+    provenanceLinks: [],
+    status: 'proposed',
+    history: []
+  };
+  await fs.writeFile(path.join(handoffDir, 'handoff-001.json'), JSON.stringify(handoff), 'utf8');
+
+  const now = new Date('2026-04-16T12:00:00.000Z'); // after expiresAt
+  const diagnostics = await checkHandoffHealth({ ralphRoot, now });
+
+  assert.equal(diagnostics.length, 1);
+  const diag = diagnostics[0]!;
+  assert.equal(diag.severity, 'warning');
+  assert.equal(diag.code, 'expired_handoff_unresolved');
+  assert.ok(diag.message.includes('handoff-001'), 'message should include handoffId');
+  assert.ok(diag.message.includes('T42'), 'message should include taskId');
+  assert.ok(diag.message.includes('agent-planner'), 'message should include fromAgentId');
+});
+
+test('checkHandoffHealth emits error for contested handoff with resolution instruction', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-handoff-'));
+  const ralphRoot = path.join(rootPath, '.ralph');
+  const handoffDir = path.join(ralphRoot, 'handoffs');
+  await fs.mkdir(handoffDir, { recursive: true });
+
+  const handoff = {
+    handoffId: 'handoff-002',
+    fromAgentId: 'agent-a',
+    toRole: 'reviewer',
+    taskId: 'T99',
+    objective: 'Review the work',
+    constraints: [],
+    acceptedEvidence: [],
+    expectedOutputContract: 'review report',
+    stopConditions: ['review done'],
+    createdAt: '2026-04-15T08:00:00.000Z',
+    expiresAt: '2026-04-16T08:00:00.000Z',
+    provenanceLinks: [],
+    status: 'contested',
+    history: []
+  };
+  await fs.writeFile(path.join(handoffDir, 'handoff-002.json'), JSON.stringify(handoff), 'utf8');
+
+  const now = new Date('2026-04-16T09:00:00.000Z');
+  const diagnostics = await checkHandoffHealth({ ralphRoot, now });
+
+  assert.equal(diagnostics.length, 1);
+  const diag = diagnostics[0]!;
+  assert.equal(diag.severity, 'error');
+  assert.equal(diag.code, 'contested_handoff');
+  assert.ok(diag.message.includes('handoff-002'), 'message should include handoffId');
+  assert.ok(diag.message.includes('T99'), 'message should include taskId');
+  assert.ok(diag.message.includes('agent-a'), 'message should include fromAgentId');
+  assert.ok(
+    diag.message.toLowerCase().includes('operator') || diag.message.toLowerCase().includes('watchdog'),
+    'message should include operator or watchdog resolution instruction'
+  );
+});
+
+test('checkHandoffHealth emits no diagnostic for accepted non-expired handoff', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-handoff-'));
+  const ralphRoot = path.join(rootPath, '.ralph');
+  const handoffDir = path.join(ralphRoot, 'handoffs');
+  await fs.mkdir(handoffDir, { recursive: true });
+
+  const handoff = {
+    handoffId: 'handoff-003',
+    fromAgentId: 'agent-b',
+    toRole: 'implementer',
+    taskId: 'T10',
+    objective: 'Implement feature',
+    constraints: [],
+    acceptedEvidence: [],
+    expectedOutputContract: 'working code',
+    stopConditions: ['done'],
+    createdAt: '2026-04-16T08:00:00.000Z',
+    expiresAt: '2026-04-17T08:00:00.000Z', // not expired yet
+    provenanceLinks: [],
+    status: 'accepted',
+    history: []
+  };
+  await fs.writeFile(path.join(handoffDir, 'handoff-003.json'), JSON.stringify(handoff), 'utf8');
+
+  const now = new Date('2026-04-16T09:00:00.000Z'); // before expiresAt
+  const diagnostics = await checkHandoffHealth({ ralphRoot, now });
+
+  assert.deepEqual(diagnostics, []);
 });

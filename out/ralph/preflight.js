@@ -37,6 +37,7 @@ exports.summarizeActiveClaimsByAgent = summarizeActiveClaimsByAgent;
 exports.collectProviderReadinessDiagnostics = collectProviderReadinessDiagnostics;
 exports.checkStaleState = checkStaleState;
 exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
+exports.checkHandoffHealth = checkHandoffHealth;
 exports.buildPreflightReport = buildPreflightReport;
 exports.renderPreflightReport = renderPreflightReport;
 exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
@@ -48,6 +49,7 @@ const artifactStore_1 = require("./artifactStore");
 const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const planningPass_1 = require("./planningPass");
+const handoffManager_1 = require("./handoffManager");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
     claimGraph: 'Claim graph',
@@ -577,6 +579,55 @@ async function inspectPreflightArtifactReadiness(input) {
             message: `Bundle retention currently keeps ${provenanceBundleRetention.protectedBundleIds.length} older protected run bundle${provenanceBundleRetention.protectedBundleIds.length === 1 ? '' : 's'} beyond the newest ${input.provenanceBundleRetentionCount}.`
         });
     }
+    return diagnostics;
+}
+/**
+ * Scan `.ralph/handoffs/*.json` for expired or contested handoffs and return
+ * Agent Health diagnostics.
+ *
+ * - `proposed` or `accepted` handoffs past their `expiresAt` → warning
+ * - `contested` handoffs → error (requires operator or watchdog resolution)
+ */
+async function checkHandoffHealth(input) {
+    const diagnostics = [];
+    const now = input.now ?? new Date();
+    const handoffDir = (0, handoffManager_1.resolveHandoffDir)(input.ralphRoot);
+    let entries;
+    try {
+        const dirEntries = await fs.readdir(handoffDir);
+        entries = dirEntries.filter((name) => name.endsWith('.json'));
+    }
+    catch {
+        // handoffs dir absent — no-op
+        return diagnostics;
+    }
+    await Promise.all(entries.map(async (name) => {
+        const filePath = path.join(handoffDir, name);
+        let handoff;
+        try {
+            const raw = await fs.readFile(filePath, 'utf8');
+            handoff = JSON.parse(raw);
+        }
+        catch {
+            return; // skip unreadable or malformed files
+        }
+        const { handoffId, fromAgentId, taskId, status } = handoff;
+        if (status === 'contested') {
+            diagnostics.push({
+                severity: 'error',
+                code: 'contested_handoff',
+                message: `Handoff ${handoffId} (task ${taskId}, from ${fromAgentId}) is contested. Operator or watchdog must resolve it before the loop can safely proceed.`
+            });
+            return;
+        }
+        if ((status === 'proposed' || status === 'accepted') && (0, handoffManager_1.isHandoffExpired)(handoff, now)) {
+            diagnostics.push({
+                severity: 'warning',
+                code: 'expired_handoff_unresolved',
+                message: `Handoff ${handoffId} (task ${taskId}, from ${fromAgentId}) expired at ${handoff.expiresAt} but is still in status "${status}". Resolve or remove it to keep the handoff log clean.`
+            });
+        }
+    }));
     return diagnostics;
 }
 function buildPreflightReport(input) {

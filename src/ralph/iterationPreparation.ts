@@ -43,6 +43,7 @@ import { readTaskPlan, shouldRequireTaskPlanForSelection } from './planningPass'
 import {
   buildBlockingPreflightMessage,
   buildPreflightReport,
+  checkHandoffHealth,
   checkStaleState,
   inspectPreflightArtifactReadiness,
   renderPreflightReport
@@ -388,7 +389,7 @@ export async function prepareIterationContext(
     newChatCommandId: config.newChatCommandId,
     availableCommands
   });
-  const [artifactReadinessDiagnostics, agentHealthDiagnostics, lastSummarizationMode] = await Promise.all([
+  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, lastSummarizationMode] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath,
       artifactRootDir: snapshot.paths.artifactDir,
@@ -406,8 +407,10 @@ export async function prepareIterationContext(
       staleClaimTtlMs: config.claimTtlHours * 60 * 60 * 1000,
       staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
     }),
+    checkHandoffHealth({ ralphRoot: snapshot.paths.ralphDir }),
     readLastSummarizationMode(snapshot.paths.memorySummaryPath)
   ]);
+  const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const preflightReport = buildPreflightReport({
     rootPath,
     workspaceTrusted: vscode.workspace.isTrusted,

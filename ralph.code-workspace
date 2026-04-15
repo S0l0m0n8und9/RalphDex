@@ -28,7 +28,7 @@
 		"ralphCodex.agentCount": 1,
 		"ralphCodex.scmStrategy": "commit-on-done",
 		"ralphCodex.scmPrOnParentDone": false,
-		"ralphCodex.autoReloadOnControlPlaneChange": false,
+		"ralphCodex.autoReloadOnControlPlaneChange": true,
 		"ralphCodex.autoReplenishBacklog": true,
 		"ralphCodex.reasoningEffort": "medium",
 		"ralphCodex.sandboxMode": "danger-full-access",

@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath } from '../config/providers';
 import { readConfig, resolveOperatorModeProvenance } from '../config/readConfig';
-import { buildPreflightReport, checkStaleState, inspectPreflightArtifactReadiness } from '../ralph/preflight';
+import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness } from '../ralph/preflight';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   resolveLatestStatusArtifacts,
@@ -333,7 +333,7 @@ export async function collectStatusSnapshot(
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
   });
-  const [artifactReadinessDiagnostics, agentHealthDiagnostics] = await Promise.all([
+  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath: workspaceFolder.uri.fsPath,
       artifactRootDir: inspection.paths.artifactDir,
@@ -349,8 +349,10 @@ export async function collectStatusSnapshot(
       claimFilePath: inspection.paths.claimFilePath,
       artifactDir: inspection.paths.artifactDir,
       staleClaimTtlMs: config.watchdogStaleTtlMs
-    })
+    }),
+    checkHandoffHealth({ ralphRoot: inspection.paths.ralphDir })
   ]);
+  const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
   const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
     readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),

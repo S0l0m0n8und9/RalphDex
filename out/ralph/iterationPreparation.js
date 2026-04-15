@@ -263,7 +263,7 @@ async function prepareIterationContext(input) {
         newChatCommandId: config.newChatCommandId,
         availableCommands
     });
-    const [artifactReadinessDiagnostics, agentHealthDiagnostics, lastSummarizationMode] = await Promise.all([
+    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, lastSummarizationMode] = await Promise.all([
         (0, preflight_1.inspectPreflightArtifactReadiness)({
             rootPath,
             artifactRootDir: snapshot.paths.artifactDir,
@@ -281,8 +281,10 @@ async function prepareIterationContext(input) {
             staleClaimTtlMs: config.claimTtlHours * 60 * 60 * 1000,
             staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
         }),
+        (0, preflight_1.checkHandoffHealth)({ ralphRoot: snapshot.paths.ralphDir }),
         readLastSummarizationMode(snapshot.paths.memorySummaryPath)
     ]);
+    const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath,
         workspaceTrusted: vscode.workspace.isTrusted,

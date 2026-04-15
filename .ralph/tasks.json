@@ -3696,7 +3696,79 @@
         "AGENTS.md Code Owners updated to list handoffManager.ts",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T136",
+      "title": "Item 21 Phase 2: stale/contested handoff detection in preflight Agent Health",
+      "status": "done",
+      "dependsOn": [
+        "T135"
+      ],
+      "notes": "checkHandoffHealth exported from preflight.ts: warns on expired proposed/accepted handoffs, errors on contested handoffs with operator/watchdog resolution instruction; wired into iterationPreparation and statusSnapshot; 4 unit tests added; npm run validate passes",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "preflight.ts reads .ralph/handoffs/*.json (via handoffManager helpers) and detects expired handoffs (status=proposed/accepted but expiresAt in the past) as warning-level Agent Health diagnostics",
+        "preflight.ts detects contested handoffs (status=contested) as error-level Agent Health diagnostics with explicit operator/watchdog resolution instruction",
+        "Show Status Agent Health section surfaces expired and contested handoffs with handoffId, taskId, and fromAgentId details",
+        "Unit tests cover: no handoff dir (no-op), expired proposed handoff (warning), contested handoff (error), accepted non-expired handoff (no diagnostic)",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T137",
+      "title": "Item 21 Phase 3: handoff reconciliation checks in reconciliation.ts",
+      "status": "todo",
+      "dependsOn": [
+        "T136"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "reconcileCompletionReport in reconciliation.ts checks for an accepted handoff in .ralph/handoffs/ whose taskId matches the completion report selectedTaskId",
+        "When an accepted handoff exists and the completion report selectedTaskId does not match the handoff taskId, a reconciliationWarning is emitted: \"Completion report task does not match accepted handoff scope; downgrading to review required\"",
+        "Out-of-scope completion is downgraded (requestedStatus remains but a needsHumanReview flag is set) and surfaced in iteration artifacts without crashing the loop",
+        "When no accepted handoff exists for the task, reconciliation proceeds unchanged (pass-through)",
+        "Unit tests cover: matching taskId accepted handoff (pass-through), non-matching taskId (warning + downgrade), no handoff file (pass-through), malformed handoff file (graceful skip)",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T138",
+      "title": "Item 21 Phase 4: latest-handoff artifacts and Show Status handoff section",
+      "status": "todo",
+      "dependsOn": [
+        "T137"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "handoffManager.ts writes latest-handoff.json (full handoff object) and latest-handoff-summary.md (one-line status summary) to .ralph/ after every status transition (propose/accept/reject/expire)",
+        "collectStatusSnapshot in statusSnapshot.ts reads latest-handoff.json and includes a latestHandoff field on the snapshot",
+        "buildStatusReport in statusReport.ts renders an Active Handoffs section when latestHandoff is present, showing: handoffId, fromAgentId → toRole, taskId, status, and expiresAt",
+        "Active Handoffs section is omitted gracefully when no latest-handoff.json exists",
+        "Regression tests cover: status report with active accepted handoff, status report with no handoff file, summary markdown content",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T139",
+      "title": "Item 22 Phase 1: role policy map schema and context envelope types",
+      "status": "todo",
+      "dependsOn": [
+        "T138"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "RolePolicy interface added to src/ralph/types.ts with fields: role (RalphAgentRole), allowedNodeKinds (OrchestrationNodeKind[]), allowedTaskStateMutations (string[]), requiredVerifierGates (string[]), humanGateRequired (boolean)",
+        "RolePolicyMap type defined as Record<RalphAgentRole, RolePolicy>; a DEFAULT_ROLE_POLICY_MAP constant defined in a new src/ralph/rolePolicy.ts with sensible defaults for planner/implementer/reviewer",
+        "ContextEnvelope interface added to src/ralph/types.ts with fields: iterationId, agentRole, exposedArtifacts (string[]), omittedArtifacts ({ path: string; reason: string }[]), policySource (\"preset\" | \"crew\" | \"explicit\")",
+        "contextEnvelopePath(artifactRootDir, iterationId) path helper added to artifactStore.ts or equivalent path module",
+        "Unit tests cover: DEFAULT_ROLE_POLICY_MAP round-trips to/from JSON cleanly, contextEnvelopePath returns expected path pattern, unknown role falls back to implementer defaults",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 140
+  "mutationCount": 141
 }

@@ -14,6 +14,7 @@ import {
 } from './artifactStore';
 import {
   DEFAULT_RALPH_AGENT_ID,
+  RalphHandoff,
   RalphPreflightCategory,
   RalphPreflightDiagnostic,
   RalphPreflightReport,
@@ -25,6 +26,7 @@ import {
 } from './types';
 import { DEFAULT_CLAIM_TTL_MS, selectNextTask } from './taskFile';
 import { isDedicatedPlanningFallbackSingleAgent } from './planningPass';
+import { isHandoffExpired, resolveHandoffDir } from './handoffManager';
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
@@ -847,6 +849,67 @@ export async function inspectPreflightArtifactReadiness(
       message: `Bundle retention currently keeps ${provenanceBundleRetention.protectedBundleIds.length} older protected run bundle${provenanceBundleRetention.protectedBundleIds.length === 1 ? '' : 's'} beyond the newest ${input.provenanceBundleRetentionCount}.`
     });
   }
+
+  return diagnostics;
+}
+
+export interface CheckHandoffHealthInput {
+  ralphRoot: string;
+  now?: Date;
+}
+
+/**
+ * Scan `.ralph/handoffs/*.json` for expired or contested handoffs and return
+ * Agent Health diagnostics.
+ *
+ * - `proposed` or `accepted` handoffs past their `expiresAt` → warning
+ * - `contested` handoffs → error (requires operator or watchdog resolution)
+ */
+export async function checkHandoffHealth(
+  input: CheckHandoffHealthInput
+): Promise<RalphPreflightExternalDiagnostic[]> {
+  const diagnostics: RalphPreflightExternalDiagnostic[] = [];
+  const now = input.now ?? new Date();
+  const handoffDir = resolveHandoffDir(input.ralphRoot);
+
+  let entries: string[];
+  try {
+    const dirEntries = await fs.readdir(handoffDir);
+    entries = dirEntries.filter((name) => name.endsWith('.json'));
+  } catch {
+    // handoffs dir absent — no-op
+    return diagnostics;
+  }
+
+  await Promise.all(entries.map(async (name) => {
+    const filePath = path.join(handoffDir, name);
+    let handoff: RalphHandoff;
+    try {
+      const raw = await fs.readFile(filePath, 'utf8');
+      handoff = JSON.parse(raw) as RalphHandoff;
+    } catch {
+      return; // skip unreadable or malformed files
+    }
+
+    const { handoffId, fromAgentId, taskId, status } = handoff;
+
+    if (status === 'contested') {
+      diagnostics.push({
+        severity: 'error',
+        code: 'contested_handoff',
+        message: `Handoff ${handoffId} (task ${taskId}, from ${fromAgentId}) is contested. Operator or watchdog must resolve it before the loop can safely proceed.`
+      });
+      return;
+    }
+
+    if ((status === 'proposed' || status === 'accepted') && isHandoffExpired(handoff, now)) {
+      diagnostics.push({
+        severity: 'warning',
+        code: 'expired_handoff_unresolved',
+        message: `Handoff ${handoffId} (task ${taskId}, from ${fromAgentId}) expired at ${handoff.expiresAt} but is still in status "${status}". Resolve or remove it to keep the handoff log clean.`
+      });
+    }
+  }));
 
   return diagnostics;
 }
