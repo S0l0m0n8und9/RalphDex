@@ -3,7 +3,7 @@ import test from 'node:test';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { buildStatusReport, EffectiveTierInfo, RalphStatusSnapshot } from '../src/ralph/statusReport';
 import { RalphTaskClaimGraphInspection } from '../src/ralph/taskFile';
-import { RalphPromptEvidence } from '../src/ralph/types';
+import { RalphHandoff, RalphPromptEvidence } from '../src/ralph/types';
 
 const workspaceScan: RalphStatusSnapshot['workspaceScan'] = {
   workspaceName: 'workspace',
@@ -1387,4 +1387,50 @@ test('buildStatusReport omits Orchestration section when state is null', () => {
   }));
 
   assert.doesNotMatch(report, /## Orchestration/);
+});
+
+// ---------------------------------------------------------------------------
+// Active Handoffs section (Phase 4)
+// ---------------------------------------------------------------------------
+
+const acceptedHandoff: RalphHandoff = {
+  handoffId: 'h-t138-001',
+  fromAgentId: 'agent-planner',
+  toRole: 'implementer',
+  taskId: 'T138',
+  objective: 'Implement the caching layer',
+  constraints: ['Do not modify the database schema'],
+  acceptedEvidence: [],
+  expectedOutputContract: 'Unit tests pass',
+  stopConditions: ['Validation passes'],
+  createdAt: '2026-04-16T10:00:00.000Z',
+  expiresAt: '2026-04-16T11:00:00.000Z',
+  provenanceLinks: [],
+  status: 'accepted',
+  history: [
+    { at: '2026-04-16T10:05:00.000Z', from: 'proposed', to: 'accepted', reason: 'Ready to work' }
+  ]
+};
+
+test('buildStatusReport renders Active Handoffs section when latestHandoff is present', () => {
+  const report = buildStatusReport(snapshot({ latestHandoff: acceptedHandoff }));
+
+  assert.match(report, /## Active Handoffs/);
+  assert.match(report, /- Handoff ID: h-t138-001/);
+  assert.match(report, /- From agent: agent-planner → implementer/);
+  assert.match(report, /- Task: T138/);
+  assert.match(report, /- Status: accepted/);
+  assert.match(report, /- Expires: 2026-04-16T11:00:00\.000Z/);
+});
+
+test('buildStatusReport omits Active Handoffs section when latestHandoff is null', () => {
+  const report = buildStatusReport(snapshot({ latestHandoff: null }));
+
+  assert.doesNotMatch(report, /## Active Handoffs/);
+});
+
+test('buildStatusReport omits Active Handoffs section when latestHandoff is absent', () => {
+  const report = buildStatusReport(snapshot());
+
+  assert.doesNotMatch(report, /## Active Handoffs/);
 });

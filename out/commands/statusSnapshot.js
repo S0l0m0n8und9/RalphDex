@@ -53,6 +53,7 @@ const rootPolicy_1 = require("../ralph/rootPolicy");
 const statusReport_1 = require("../ralph/statusReport");
 const complexityScorer_1 = require("../ralph/complexityScorer");
 const taskFile_1 = require("../ralph/taskFile");
+const handoffManager_1 = require("../ralph/handoffManager");
 const artifactStore_1 = require("../ralph/artifactStore");
 const verifier_1 = require("../ralph/verifier");
 const pipeline_1 = require("../ralph/pipeline");
@@ -436,6 +437,14 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         }
     }
     const deadLetterEntries = deadLetterQueue.entries;
+    let latestHandoff = null;
+    try {
+        const raw = await fs.readFile((0, handoffManager_1.resolveLatestHandoffPath)(inspection.paths.ralphDir), 'utf8');
+        latestHandoff = JSON.parse(raw);
+    }
+    catch {
+        // no latest-handoff.json yet — leave as null
+    }
     let lastFailureCategory = null;
     let recoveryAttemptCount = null;
     let latestFailureAnalysis = null;
@@ -545,7 +554,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestFailureAnalysis,
         latestFailureAnalysisPath,
         recoveryStatePath,
-        orchestration
+        orchestration,
+        latestHandoff
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

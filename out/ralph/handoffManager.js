@@ -36,6 +36,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.HandoffLifecycleError = void 0;
 exports.resolveHandoffDir = resolveHandoffDir;
 exports.resolveHandoffPath = resolveHandoffPath;
+exports.resolveLatestHandoffPath = resolveLatestHandoffPath;
+exports.resolveLatestHandoffSummaryPath = resolveLatestHandoffSummaryPath;
 exports.isHandoffExpired = isHandoffExpired;
 exports.proposeHandoff = proposeHandoff;
 exports.acceptHandoff = acceptHandoff;
@@ -53,6 +55,12 @@ function resolveHandoffDir(ralphRoot) {
 }
 function resolveHandoffPath(ralphRoot, handoffId) {
     return path.join(resolveHandoffDir(ralphRoot), `${handoffId}.json`);
+}
+function resolveLatestHandoffPath(ralphRoot) {
+    return path.join(ralphRoot, 'latest-handoff.json');
+}
+function resolveLatestHandoffSummaryPath(ralphRoot) {
+    return path.join(ralphRoot, 'latest-handoff-summary.md');
 }
 // ---------------------------------------------------------------------------
 // Error types
@@ -111,6 +119,7 @@ async function proposeHandoff(ralphRoot, input) {
     };
     await fs.mkdir(resolveHandoffDir(ralphRoot), { recursive: true });
     await fs.writeFile(filePath, (0, integrity_1.stableJson)(handoff), 'utf8');
+    await writeLatestHandoffArtifacts(ralphRoot, handoff);
     return handoff;
 }
 // ---------------------------------------------------------------------------
@@ -194,6 +203,13 @@ async function getHandoffStatus(ralphRoot, handoffId) {
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+async function writeLatestHandoffArtifacts(ralphRoot, handoff) {
+    const summary = `${handoff.handoffId} ${handoff.status} ${handoff.fromAgentId} → ${handoff.toRole} for ${handoff.taskId}, expires ${handoff.expiresAt}`;
+    await Promise.all([
+        fs.writeFile(resolveLatestHandoffPath(ralphRoot), (0, integrity_1.stableJson)(handoff), 'utf8'),
+        fs.writeFile(resolveLatestHandoffSummaryPath(ralphRoot), summary, 'utf8')
+    ]);
+}
 async function readHandoff(ralphRoot, handoffId) {
     const filePath = resolveHandoffPath(ralphRoot, handoffId);
     try {
@@ -219,6 +235,7 @@ async function transitionHandoff(ralphRoot, handoff, to, reason) {
     };
     const filePath = resolveHandoffPath(ralphRoot, handoff.handoffId);
     await fs.writeFile(filePath, (0, integrity_1.stableJson)(updated), 'utf8');
+    await writeLatestHandoffArtifacts(ralphRoot, updated);
     return updated;
 }
 //# sourceMappingURL=handoffManager.js.map

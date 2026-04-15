@@ -20,6 +20,14 @@ export function resolveHandoffPath(ralphRoot: string, handoffId: string): string
   return path.join(resolveHandoffDir(ralphRoot), `${handoffId}.json`);
 }
 
+export function resolveLatestHandoffPath(ralphRoot: string): string {
+  return path.join(ralphRoot, 'latest-handoff.json');
+}
+
+export function resolveLatestHandoffSummaryPath(ralphRoot: string): string {
+  return path.join(ralphRoot, 'latest-handoff-summary.md');
+}
+
 // ---------------------------------------------------------------------------
 // Error types
 // ---------------------------------------------------------------------------
@@ -108,6 +116,7 @@ export async function proposeHandoff(
 
   await fs.mkdir(resolveHandoffDir(ralphRoot), { recursive: true });
   await fs.writeFile(filePath, stableJson(handoff), 'utf8');
+  await writeLatestHandoffArtifacts(ralphRoot, handoff);
   return handoff;
 }
 
@@ -235,6 +244,14 @@ export async function getHandoffStatus(
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+async function writeLatestHandoffArtifacts(ralphRoot: string, handoff: RalphHandoff): Promise<void> {
+  const summary = `${handoff.handoffId} ${handoff.status} ${handoff.fromAgentId} → ${handoff.toRole} for ${handoff.taskId}, expires ${handoff.expiresAt}`;
+  await Promise.all([
+    fs.writeFile(resolveLatestHandoffPath(ralphRoot), stableJson(handoff), 'utf8'),
+    fs.writeFile(resolveLatestHandoffSummaryPath(ralphRoot), summary, 'utf8')
+  ]);
+}
+
 async function readHandoff(ralphRoot: string, handoffId: string): Promise<RalphHandoff> {
   const filePath = resolveHandoffPath(ralphRoot, handoffId);
   try {
@@ -268,5 +285,6 @@ async function transitionHandoff(
 
   const filePath = resolveHandoffPath(ralphRoot, handoff.handoffId);
   await fs.writeFile(filePath, stableJson(updated), 'utf8');
+  await writeLatestHandoffArtifacts(ralphRoot, updated);
   return updated;
 }

@@ -17,12 +17,14 @@ import type {
   FailureCategoryId,
   RalphCliInvocation,
   RalphExecutionPlan,
+  RalphHandoff,
   RalphPromptEvidence,
   RalphProvenanceBundle,
   RalphCompletionReport,
   RalphSuggestedChildTask,
   RalphTaskRemediationArtifact
 } from '../ralph/types';
+import { resolveLatestHandoffPath } from '../ralph/handoffManager';
 import { inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention } from '../ralph/artifactStore';
 import {
   captureGitStatus,
@@ -451,6 +453,14 @@ export async function collectStatusSnapshot(
 
   const deadLetterEntries: DeadLetterEntry[] = deadLetterQueue.entries;
 
+  let latestHandoff: RalphHandoff | null = null;
+  try {
+    const raw = await fs.readFile(resolveLatestHandoffPath(inspection.paths.ralphDir), 'utf8');
+    latestHandoff = JSON.parse(raw) as RalphHandoff;
+  } catch {
+    // no latest-handoff.json yet — leave as null
+  }
+
   let lastFailureCategory: FailureCategoryId | null = null;
   let recoveryAttemptCount: number | null = null;
   let latestFailureAnalysis: FailureAnalysis | null = null;
@@ -563,6 +573,7 @@ export async function collectStatusSnapshot(
     latestFailureAnalysis,
     latestFailureAnalysisPath,
     recoveryStatePath,
-    orchestration
+    orchestration,
+    latestHandoff
   };
 }

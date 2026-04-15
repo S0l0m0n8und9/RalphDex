@@ -22,6 +22,7 @@ import {
   FailureCategoryId,
   RalphCliInvocation,
   RalphExecutionPlan,
+  RalphHandoff,
   RalphPromptEvidence,
   RalphPreflightReport,
   RalphProvenanceBundle,
@@ -131,6 +132,8 @@ export interface RalphStatusSnapshot {
     completedNodes: Array<{ nodeId: string; label: string; outcome: string; finishedAt: string | null }>;
     pendingBranchNodes: Array<{ nodeId: string; label: string }>;
   } | null;
+  /** Latest handoff from latest-handoff.json, or null/absent when no handoffs have been written. */
+  latestHandoff?: RalphHandoff | null;
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -547,6 +550,17 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
         '',
         '## Recommended Skills',
         ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
+      ]
+      : []),
+    ...(snapshot.latestHandoff
+      ? [
+        '',
+        '## Active Handoffs',
+        `- Handoff ID: ${snapshot.latestHandoff.handoffId}`,
+        `- From agent: ${snapshot.latestHandoff.fromAgentId} → ${snapshot.latestHandoff.toRole}`,
+        `- Task: ${snapshot.latestHandoff.taskId}`,
+        `- Status: ${snapshot.latestHandoff.status}`,
+        `- Expires: ${snapshot.latestHandoff.expiresAt}`
       ]
       : []),
     '',

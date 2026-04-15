@@ -13,6 +13,8 @@ import {
   rejectHandoff,
   resolveHandoffDir,
   resolveHandoffPath,
+  resolveLatestHandoffPath,
+  resolveLatestHandoffSummaryPath,
   type ProposeHandoffInput
 } from '../src/ralph/handoffManager';
 import type { RalphHandoff } from '../src/ralph/types';
@@ -295,4 +297,47 @@ test('getHandoffStatus throws for non-existent handoff', async () => {
       return true;
     }
   );
+});
+
+// ---------------------------------------------------------------------------
+// latest-handoff artifacts (Phase 4)
+// ---------------------------------------------------------------------------
+
+test('proposeHandoff writes latest-handoff.json to ralphRoot', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  const handoff = await proposeHandoff(ralphRoot, makeProposalInput());
+
+  const latestPath = resolveLatestHandoffPath(ralphRoot);
+  const raw = await fs.readFile(latestPath, 'utf8');
+  const latest = JSON.parse(raw) as RalphHandoff;
+
+  assert.equal(latest.handoffId, handoff.handoffId);
+  assert.equal(latest.status, 'proposed');
+});
+
+test('proposeHandoff writes latest-handoff-summary.md to ralphRoot', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  await proposeHandoff(ralphRoot, makeProposalInput());
+
+  const summaryPath = resolveLatestHandoffSummaryPath(ralphRoot);
+  const summary = await fs.readFile(summaryPath, 'utf8');
+
+  assert.match(summary, /h-001/);
+  assert.match(summary, /proposed/);
+  assert.match(summary, /agent-planner/);
+  assert.match(summary, /implementer/);
+  assert.match(summary, /T100/);
+});
+
+test('acceptHandoff updates latest-handoff.json with accepted status', async () => {
+  const ralphRoot = await makeTempRalphRoot();
+  await proposeHandoff(ralphRoot, makeProposalInput());
+  await acceptHandoff(ralphRoot, 'h-001', 'agent-impl', 'implementer', 'Ready');
+
+  const latestPath = resolveLatestHandoffPath(ralphRoot);
+  const raw = await fs.readFile(latestPath, 'utf8');
+  const latest = JSON.parse(raw) as RalphHandoff;
+
+  assert.equal(latest.status, 'accepted');
+  assert.equal(latest.handoffId, 'h-001');
 });

@@ -383,6 +383,17 @@ function buildStatusReport(snapshot) {
                 ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
             ]
             : []),
+        ...(snapshot.latestHandoff
+            ? [
+                '',
+                '## Active Handoffs',
+                `- Handoff ID: ${snapshot.latestHandoff.handoffId}`,
+                `- From agent: ${snapshot.latestHandoff.fromAgentId} → ${snapshot.latestHandoff.toRole}`,
+                `- Task: ${snapshot.latestHandoff.taskId}`,
+                `- Status: ${snapshot.latestHandoff.status}`,
+                `- Expires: ${snapshot.latestHandoff.expiresAt}`
+            ]
+            : []),
         '',
         '## Latest Iteration',
         `- Last task: ${lastTaskLabel}`,
