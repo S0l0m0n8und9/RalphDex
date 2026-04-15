@@ -41,6 +41,7 @@ exports.resolveOrchestrationPaths = resolveOrchestrationPaths;
 exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
+exports.contextEnvelopePath = contextEnvelopePath;
 exports.resolvePreflightArtifactPaths = resolvePreflightArtifactPaths;
 exports.ensureIterationArtifactDirectory = ensureIterationArtifactDirectory;
 exports.writePromptArtifacts = writePromptArtifacts;
@@ -195,6 +196,15 @@ function resolveLatestArtifactPaths(artifactRootDir) {
         latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
         latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
     };
+}
+/**
+ * Returns the path where a context envelope for `iterationId` should be written.
+ *
+ * `iterationId` is used as-is (no zero-padding) because callers supply a raw
+ * string identifier rather than a numeric iteration counter.
+ */
+function contextEnvelopePath(artifactRootDir, iterationId) {
+    return path.join(artifactRootDir, `iteration-${iterationId}`, 'context-envelope.json');
 }
 function resolvePreflightArtifactPaths(artifactRootDir, iteration) {
     const directory = path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);

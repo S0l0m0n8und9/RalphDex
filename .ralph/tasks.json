@@ -3756,10 +3756,11 @@
     {
       "id": "T139",
       "title": "Item 22 Phase 1: role policy map schema and context envelope types",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T138"
       ],
+      "notes": "Added RolePolicy/RolePolicyMap/ContextEnvelope to types.ts, created rolePolicy.ts with DEFAULT_ROLE_POLICY_MAP (all 7 roles) and getEffectivePolicy, added contextEnvelopePath to artifactStore.ts, 10 new unit tests all pass",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3772,5 +3773,5 @@
       ]
     }
   ],
-  "mutationCount": 143
+  "mutationCount": 144
 }

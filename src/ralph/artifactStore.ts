@@ -284,6 +284,16 @@ export function resolveLatestArtifactPaths(artifactRootDir: string): RalphLatest
   };
 }
 
+/**
+ * Returns the path where a context envelope for `iterationId` should be written.
+ *
+ * `iterationId` is used as-is (no zero-padding) because callers supply a raw
+ * string identifier rather than a numeric iteration counter.
+ */
+export function contextEnvelopePath(artifactRootDir: string, iterationId: string): string {
+  return path.join(artifactRootDir, `iteration-${iterationId}`, 'context-envelope.json');
+}
+
 export function resolvePreflightArtifactPaths(artifactRootDir: string, iteration: number): RalphPreflightArtifactPaths {
   const directory = path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);
 

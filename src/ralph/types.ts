@@ -883,3 +883,47 @@ export interface RalphHandoff {
   /** Append-only status transition history. */
   history: RalphHandoffHistoryEntry[];
 }
+
+// ---------------------------------------------------------------------------
+// Role policy map (PRD item 22, Phase 1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Capabilities and constraints for a single agent role within the orchestration
+ * control plane. Governs which node kinds the role may execute, which task
+ * state transitions it may request, and whether a human gate is required before
+ * execution proceeds.
+ */
+export interface RolePolicy {
+  role: RalphAgentRole;
+  /** Node kinds this role is permitted to produce. */
+  allowedNodeKinds: OrchestrationNodeKind[];
+  /** Allowed task-state mutation strings (e.g. 'todo→in_progress'). */
+  allowedTaskStateMutations: string[];
+  /** Verifier gate identifiers that must pass before the role's output is accepted. */
+  requiredVerifierGates: string[];
+  /** When true, a human_gate node is required before the role's output is committed. */
+  humanGateRequired: boolean;
+}
+
+/** Complete policy map covering every {@link RalphAgentRole}. */
+export type RolePolicyMap = Record<RalphAgentRole, RolePolicy>;
+
+// ---------------------------------------------------------------------------
+// Context envelope (PRD item 22, Phase 1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Snapshot of which artifacts were exposed or withheld from a specific agent
+ * role during an iteration, together with the source of the applied policy.
+ */
+export interface ContextEnvelope {
+  iterationId: string;
+  agentRole: RalphAgentRole;
+  /** Paths of artifacts included in the context window for this iteration. */
+  exposedArtifacts: string[];
+  /** Artifacts withheld, with a machine-readable reason for each omission. */
+  omittedArtifacts: { path: string; reason: string }[];
+  /** How the active policy was determined. */
+  policySource: 'preset' | 'crew' | 'explicit';
+}
