@@ -396,7 +396,9 @@ export async function reconcileBranchPerTaskScm(input: {
       : selectedTask.id;
 
     let resolved = false;
-    if (conflictPaths.length > 0 && input.conflictResolver) {
+    if (conflictPaths.length > 0
+      && input.conflictResolver
+      && mergeTargetTaskId !== selectedTask.id) {
       try {
         const resolverResult = await input.conflictResolver({
           rootPath: input.prepared.rootPath,

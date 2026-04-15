@@ -124,7 +124,14 @@ export async function reconcileCompletionReport(
     // deliverables (markdown, text) are not verifiable by code-centric commands.
     const validationGatePassed = input.validationCommandStatus === 'passed';
     const docMode = isDocumentationMode(input.selectedTask);
-    if (!validationGatePassed && input.verificationStatus !== 'passed' && !docMode) {
+    const taskStateOnlyGate = input.prepared.config.verifierModes.includes('taskState')
+      && !input.prepared.config.verifierModes.includes('validationCommand')
+      && !input.prepared.config.verifierModes.includes('gitDiff')
+      && input.prepared.config.gitCheckpointMode !== 'snapshotAndDiff';
+    if (!validationGatePassed
+      && input.verificationStatus !== 'passed'
+      && !docMode
+      && !taskStateOnlyGate) {
       warnings.push(`Completion report requested done, but verification status was ${input.verificationStatus}.`);
     }
     if (parsed.report.needsHumanReview) {

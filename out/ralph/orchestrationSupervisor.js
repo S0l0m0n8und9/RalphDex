@@ -71,6 +71,16 @@ function findEdge(graph, from, to) {
 function findNodeState(state, nodeId) {
     return state.nodeStates.find(ns => ns.nodeId === nodeId);
 }
+function validateEvidenceRefs(evidence, context) {
+    for (const [index, entry] of evidence.entries()) {
+        if (entry.ref.trim().length === 0) {
+            throw new OrchestrationTransitionError(`${context} contains an invalid evidence reference at index ${index}: ref must be non-empty.`);
+        }
+        if (entry.summary.trim().length === 0) {
+            throw new OrchestrationTransitionError(`${context} contains an invalid evidence reference at index ${index}: summary must be non-empty.`);
+        }
+    }
+}
 // ---------------------------------------------------------------------------
 // State initialisation from a graph definition
 // ---------------------------------------------------------------------------
@@ -108,6 +118,9 @@ function initializeState(graph) {
  * (see {@link writeOrchestrationState}).
  */
 function advanceState(graph, state, targetNodeId, evidence) {
+    if (graph.runId !== state.runId) {
+        throw new OrchestrationTransitionError(`Graph/state run mismatch: graph run "${graph.runId}" does not match state run "${state.runId}".`);
+    }
     if (state.cursor === null) {
         throw new OrchestrationTransitionError('Cannot advance: orchestration graph has no active cursor (graph is complete or was never started).');
     }
@@ -120,6 +133,8 @@ function advanceState(graph, state, targetNodeId, evidence) {
         throw new OrchestrationTransitionError(`Transition from "${state.cursor}" to "${targetNodeId}" rejected: no evidence provided. ` +
             'Every graph transition must cite verifier outcomes, claim status, or explicit operator action.');
     }
+    validateEvidenceRefs(edge.evidenceRequired, `Transition from "${state.cursor}" to "${targetNodeId}" requirement`);
+    validateEvidenceRefs(evidence, `Transition from "${state.cursor}" to "${targetNodeId}" evidence`);
     // Verify that every required evidence kind on the edge is satisfied.
     const providedKinds = new Set(evidence.map(e => e.kind));
     const missingKinds = edge.evidenceRequired
@@ -130,6 +145,14 @@ function advanceState(graph, state, targetNodeId, evidence) {
             `missing required evidence kinds: ${missingKinds.join(', ')}.`);
     }
     const now = new Date().toISOString();
+    const sourceNodeState = findNodeState(state, state.cursor);
+    if (!sourceNodeState) {
+        throw new OrchestrationTransitionError(`State is missing the current cursor node "${state.cursor}".`);
+    }
+    const targetNodeState = findNodeState(state, targetNodeId);
+    if (!targetNodeState) {
+        throw new OrchestrationTransitionError(`State is missing the target node "${targetNodeId}".`);
+    }
     // Complete the cursor node.
     const updatedNodeStates = state.nodeStates.map(ns => {
         if (ns.nodeId === state.cursor) {
@@ -137,6 +160,7 @@ function advanceState(graph, state, targetNodeId, evidence) {
                 ...ns,
                 outcome: 'completed',
                 evidence,
+                startedAt: ns.startedAt ?? now,
                 finishedAt: now
             };
         }

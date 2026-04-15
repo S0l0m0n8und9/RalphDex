@@ -51,6 +51,24 @@ function findNodeState(state: OrchestrationState, nodeId: string): Orchestration
   return state.nodeStates.find(ns => ns.nodeId === nodeId);
 }
 
+function validateEvidenceRefs(
+  evidence: OrchestrationEvidenceRef[],
+  context: string
+): void {
+  for (const [index, entry] of evidence.entries()) {
+    if (entry.ref.trim().length === 0) {
+      throw new OrchestrationTransitionError(
+        `${context} contains an invalid evidence reference at index ${index}: ref must be non-empty.`
+      );
+    }
+    if (entry.summary.trim().length === 0) {
+      throw new OrchestrationTransitionError(
+        `${context} contains an invalid evidence reference at index ${index}: summary must be non-empty.`
+      );
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // State initialisation from a graph definition
 // ---------------------------------------------------------------------------
@@ -96,6 +114,11 @@ export function advanceState(
   targetNodeId: string,
   evidence: OrchestrationEvidenceRef[]
 ): OrchestrationState {
+  if (graph.runId !== state.runId) {
+    throw new OrchestrationTransitionError(
+      `Graph/state run mismatch: graph run "${graph.runId}" does not match state run "${state.runId}".`
+    );
+  }
   if (state.cursor === null) {
     throw new OrchestrationTransitionError(
       'Cannot advance: orchestration graph has no active cursor (graph is complete or was never started).'
@@ -117,6 +140,15 @@ export function advanceState(
     );
   }
 
+  validateEvidenceRefs(
+    edge.evidenceRequired,
+    `Transition from "${state.cursor}" to "${targetNodeId}" requirement`
+  );
+  validateEvidenceRefs(
+    evidence,
+    `Transition from "${state.cursor}" to "${targetNodeId}" evidence`
+  );
+
   // Verify that every required evidence kind on the edge is satisfied.
   const providedKinds = new Set(evidence.map(e => e.kind));
   const missingKinds = edge.evidenceRequired
@@ -130,6 +162,18 @@ export function advanceState(
   }
 
   const now = new Date().toISOString();
+  const sourceNodeState = findNodeState(state, state.cursor);
+  if (!sourceNodeState) {
+    throw new OrchestrationTransitionError(
+      `State is missing the current cursor node "${state.cursor}".`
+    );
+  }
+  const targetNodeState = findNodeState(state, targetNodeId);
+  if (!targetNodeState) {
+    throw new OrchestrationTransitionError(
+      `State is missing the target node "${targetNodeId}".`
+    );
+  }
 
   // Complete the cursor node.
   const updatedNodeStates: OrchestrationNodeState[] = state.nodeStates.map(ns => {
@@ -138,6 +182,7 @@ export function advanceState(
         ...ns,
         outcome: 'completed' as const,
         evidence,
+        startedAt: ns.startedAt ?? now,
         finishedAt: now
       };
     }

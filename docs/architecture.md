@@ -59,6 +59,8 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 `src/ralph/iterationEngine.ts` is within the target line budget (≤1100 lines). Stream-formatting helpers live in `src/ralph/cliOutputFormatter.ts`, auto-remediation helpers live in `src/ralph/taskDecomposition.ts`, and review-agent policy lives in `src/ralph/reviewPolicy.ts`.
 
+`src/ralph/orchestrationSupervisor.ts` adds a separate durable orchestration layer under `.ralph/orchestration/<runId>/`. `graph.json` stores the bounded node/edge DSL and required evidence references for each transition, while `state.json` stores the current cursor plus per-node outcomes and timestamps so interrupted runs can resume without hidden runtime memory.
+
 ## Runtime Constraints
 
 - The workspace scanner is intentionally shallow: workspace root selection is limited to the workspace root plus immediate child directories, and content inspection is limited to deterministic top-level markers plus CI file reads.

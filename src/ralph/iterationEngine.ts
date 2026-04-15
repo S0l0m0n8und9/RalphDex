@@ -903,27 +903,33 @@ export class RalphIterationEngine {
       const taskFileAfterCompletion = parseTaskFile(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
 
       let conflictResolver: ScmConflictResolver | undefined;
-      if (prepared.config.autoScmOnConflict) {
-        const retryLimit = prepared.config.scmConflictRetryLimit;
-        const capturedWorkspaceFolder = workspaceFolder;
-        const capturedProgress = progress;
-        conflictResolver = async (ctx) => {
-          for (let attempt = 0; attempt < retryLimit; attempt++) {
-            const scmRun = await this.runCliIteration(
-              capturedWorkspaceFolder,
-              'singleExec',
-              capturedProgress,
-              {
-                reachedIterationCap: false,
-                configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` }
+        if (prepared.config.autoScmOnConflict) {
+          const retryLimit = prepared.config.scmConflictRetryLimit;
+          const capturedWorkspaceFolder = workspaceFolder;
+          const capturedProgress = progress;
+          conflictResolver = async (ctx) => {
+            for (let attempt = 0; attempt < retryLimit; attempt++) {
+              const scmRun = await this.runCliIteration(
+                capturedWorkspaceFolder,
+                'singleExec',
+                capturedProgress,
+                {
+                  reachedIterationCap: false,
+                  configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` },
+                  focusTaskId: ctx.taskId
+                }
+              );
+              if (scmRun.result.executionStatus === 'failed') break;
+              const resolverHandledConflict = scmRun.result.selectedTaskId === ctx.taskId
+                && scmRun.result.completionReportStatus === 'applied';
+              if (!resolverHandledConflict) {
+                continue;
               }
-            );
-            if (scmRun.result.executionStatus === 'failed') break;
-            const remaining = await listGitConflictPaths(ctx.rootPath);
-            if (remaining.length === 0) return { resolved: true };
-          }
-          return { resolved: false };
-        };
+              const remaining = await listGitConflictPaths(ctx.rootPath);
+              if (remaining.length === 0) return { resolved: true };
+            }
+            return { resolved: false };
+          };
       }
 
       const branchScm = await reconcileBranchPerTaskScm({

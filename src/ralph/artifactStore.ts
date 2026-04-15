@@ -2,6 +2,10 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { stableJson } from './integrity';
 import {
+  resolveOrchestrationPaths as resolveSupervisorOrchestrationPaths,
+  type OrchestrationArtifactPaths as SupervisorOrchestrationArtifactPaths
+} from './orchestrationSupervisor';
+import {
   renderPreflightSummary,
   renderIterationSummary,
   renderIntegrityFailureSummary,
@@ -32,12 +36,13 @@ import type {
 export * from './artifactRendering';
 export * from './artifactRetention';
 
-// Re-export orchestration artifact path resolution so consumers can locate
-// orchestration graph/state files via the central artifact-store surface.
-export {
-  resolveOrchestrationPaths,
-  type OrchestrationArtifactPaths
-} from './orchestrationSupervisor';
+// Define orchestration graph/state path resolution on the artifact-store surface
+// so callers can discover every durable Ralph artifact from one module.
+export type OrchestrationArtifactPaths = SupervisorOrchestrationArtifactPaths;
+
+export function resolveOrchestrationPaths(ralphRoot: string, runId: string): OrchestrationArtifactPaths {
+  return resolveSupervisorOrchestrationPaths(ralphRoot, runId);
+}
 
 export interface RalphIterationArtifactPaths {
   directory: string;

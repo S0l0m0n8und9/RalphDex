@@ -160,6 +160,10 @@ async function main() {
       cliProvider: 'codex',
       preferredHandoffMode: 'cliExec',
       codexCommandPath: process.execPath,
+      modelTiering: {
+        ...DEFAULT_CONFIG.modelTiering,
+        enabled: false
+      },
       verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
       gitCheckpointMode: 'snapshotAndDiff',
       approvalMode: 'never',

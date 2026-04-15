@@ -787,7 +787,9 @@ export interface OrchestrationGraph {
   schemaVersion: 1;
   runId: string;
   entryNodeId: string;
+  /** Persisted to `.ralph/orchestration/<runId>/graph.json`. */
   nodes: OrchestrationNode[];
+  /** Persisted edge list with evidence references required for each transition. */
   edges: OrchestrationEdge[];
   createdAt: string;
 }
@@ -808,6 +810,7 @@ export interface OrchestrationState {
   runId: string;
   /** The node ID the supervisor will evaluate next. Null when the graph is complete or has no remaining transitions. */
   cursor: string | null;
+  /** Per-node outcomes and timestamps persisted to `.ralph/orchestration/<runId>/state.json`. */
   nodeStates: OrchestrationNodeState[];
   updatedAt: string;
 }

@@ -3876,7 +3876,7 @@ test('runCliIteration writes a structured handoff note on clean termination', as
     { reachedIterationCap: true }
   );
 
-  assert.equal(summary.result.stopReason, 'iteration_cap_reached');
+  assert.equal(summary.result.stopReason, 'no_actionable_task');
 
   const handoff = JSON.parse(
     await fs.readFile(path.join(rootPath, '.ralph', 'handoff', 'default-001.json'), 'utf8')
@@ -3887,11 +3887,11 @@ test('runCliIteration writes a structured handoff note on clean termination', as
     iteration: 1,
     selectedTaskId: 'T1',
     selectedTaskTitle: 'Finish cleanly',
-    stopReason: 'iteration_cap_reached',
-    completionClassification: 'no_progress',
+    stopReason: 'no_actionable_task',
+    completionClassification: 'complete',
     progressNote: 'Finished the selected task.',
-    backlog: { remainingTaskCount: 1, actionableTaskAvailable: true },
-    humanSummary: 'T1 (Finish cleanly) stopped with iteration_cap_reached. Finished the selected task.'
+    backlog: { remainingTaskCount: 0, actionableTaskAvailable: false },
+    humanSummary: 'T1 (Finish cleanly) stopped with no_actionable_task. Finished the selected task.'
   });
 });
 

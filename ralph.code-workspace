@@ -7,7 +7,7 @@
 	"settings": {
 		"ralphCodex.claudeMaxTurns": 125,
 		"ralphCodex.cliProvider": "copilot",
-		"ralphCodex.model": "gpt5.4",
+		"ralphCodex.model": "gpt-5.4",
 		"ralphCodex.promptBudgetProfile": "claude",
 		"ralphCodex.modelTiering": {
 			"enabled": false,

@@ -741,10 +741,16 @@ class RalphIterationEngine {
                         for (let attempt = 0; attempt < retryLimit; attempt++) {
                             const scmRun = await this.runCliIteration(capturedWorkspaceFolder, 'singleExec', capturedProgress, {
                                 reachedIterationCap: false,
-                                configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` }
+                                configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` },
+                                focusTaskId: ctx.taskId
                             });
                             if (scmRun.result.executionStatus === 'failed')
                                 break;
+                            const resolverHandledConflict = scmRun.result.selectedTaskId === ctx.taskId
+                                && scmRun.result.completionReportStatus === 'applied';
+                            if (!resolverHandledConflict) {
+                                continue;
+                            }
                             const remaining = await (0, iterationScm_1.listGitConflictPaths)(ctx.rootPath);
                             if (remaining.length === 0)
                                 return { resolved: true };

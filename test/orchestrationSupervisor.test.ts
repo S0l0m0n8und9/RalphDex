@@ -37,12 +37,20 @@ function makeSimpleGraph(overrides: Partial<OrchestrationGraph> = {}): Orchestra
       {
         from: 'n1',
         to: 'n2',
-        evidenceRequired: [{ kind: 'verifier_outcome', ref: '', summary: 'verifier must pass' }]
+        evidenceRequired: [{
+          kind: 'verifier_outcome',
+          ref: '.ralph/artifacts/iteration-001/verifier-summary.json',
+          summary: 'verifier must pass'
+        }]
       },
       {
         from: 'n2',
         to: 'n3',
-        evidenceRequired: [{ kind: 'verifier_outcome', ref: '', summary: 'gate must pass' }]
+        evidenceRequired: [{
+          kind: 'verifier_outcome',
+          ref: '.ralph/artifacts/iteration-002/verifier-summary.json',
+          summary: 'gate must pass'
+        }]
       }
     ],
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -160,6 +168,20 @@ test('advanceState rejects transition with missing required evidence kind', () =
     (err: unknown) => {
       assert.ok(err instanceof OrchestrationTransitionError);
       assert.match(err.message, /missing required evidence kinds/);
+      return true;
+    }
+  );
+});
+
+test('advanceState rejects transition with blank evidence ref', () => {
+  const graph = makeSimpleGraph();
+  const state = initializeState(graph);
+
+  assert.throws(
+    () => advanceState(graph, state, 'n2', [{ kind: 'verifier_outcome', ref: '   ', summary: 'Validation passed' }]),
+    (err: unknown) => {
+      assert.ok(err instanceof OrchestrationTransitionError);
+      assert.match(err.message, /invalid evidence reference/);
       return true;
     }
   );
