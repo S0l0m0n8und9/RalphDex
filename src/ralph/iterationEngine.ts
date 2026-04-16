@@ -1143,6 +1143,15 @@ export class RalphIterationEngine {
       result.stopReason = 'claim_contested';
       result.followUpAction = 'stop';
       result.remediation = null;
+    } else if (completionReconciliation.artifact.rejectionReason === 'policy_violation') {
+      loopDecision = {
+        shouldContinue: false,
+        stopReason: 'policy_violation',
+        message: 'Completion report requested a disallowed role mutation; downgraded to blocked.'
+      };
+      result.stopReason = 'policy_violation';
+      result.followUpAction = 'stop';
+      result.remediation = null;
     } else if (!loopDecision.shouldContinue) {
       result.stopReason = loopDecision.stopReason;
       result.followUpAction = 'stop';

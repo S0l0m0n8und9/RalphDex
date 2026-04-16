@@ -3795,10 +3795,11 @@
     {
       "id": "T141",
       "title": "Item 22 Phase 3: policy enforcement in reconciliation and execution paths",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T140"
       ],
+      "notes": "Policy enforcement gate added to reconcileCompletionReport and iterationEngine; policy_violation added to RalphStopReason; docs/verifier.md updated; 6 regression tests added; all 955 tests pass.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3882,5 +3883,5 @@
       ]
     }
   ],
-  "mutationCount": 149
+  "mutationCount": 150
 }

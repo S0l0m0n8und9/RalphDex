@@ -294,3 +294,4 @@
 - Validation gate confirmed clean: 949/949 tests pass, all four acceptance-criteria tests present and green. No code changes required — implementation was complete at prior session end.
 - writeContextEnvelope helper and contextEnvelopeWriter.ts fully implemented and tested; iterationPreparation.ts writes envelope after prompt construction; 949 tests pass
 - All acceptance criteria confirmed: role-based section exclusions in promptBuilder.ts, writeContextEnvelope persists context-envelope.json artifact, four required unit tests present and green. npm run validate passes 949/949.
+- Policy enforcement gate added to reconcileCompletionReport and iterationEngine; policy_violation added to RalphStopReason; docs/verifier.md updated; 6 regression tests added; all 955 tests pass.

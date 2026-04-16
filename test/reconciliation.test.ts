@@ -197,3 +197,197 @@ test('reconcileCompletionReport gracefully skips malformed handoff files without
   assert.equal(result.artifact.needsHumanReview, undefined);
   assert.equal(result.artifact.status, 'applied');
 });
+
+// ---------------------------------------------------------------------------
+// Policy enforcement tests
+// ---------------------------------------------------------------------------
+
+test('reconcileCompletionReport rejects planner requesting done (no allowed mutations)', async () => {
+  const ws = await makeTestWorkspace();
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'done',
+    progressNote: 'Plan complete'
+  });
+  const lastMessage = `Done.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    prepared: {
+      ...makeInput(ws).prepared,
+      config: {
+        ...makeInput(ws).prepared.config,
+        agentRole: 'planner'
+      }
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  assert.equal(result.artifact.status, 'rejected');
+  assert.equal(result.artifact.rejectionReason, 'policy_violation');
+  assert.equal(result.artifact.needsHumanReview, true);
+  assert.ok(
+    result.warnings.some((w) => w.includes('policy_violation') || w.includes('Policy violation')),
+    `Expected policy_violation warning; got: ${JSON.stringify(result.warnings)}`
+  );
+  assert.equal(result.taskFileChanged, false);
+});
+
+test('reconcileCompletionReport rejects reviewer requesting in_progress→done directly', async () => {
+  const ws = await makeTestWorkspace();
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'done',
+    progressNote: 'Review approved'
+  });
+  const lastMessage = `Done.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    prepared: {
+      ...makeInput(ws).prepared,
+      config: {
+        ...makeInput(ws).prepared.config,
+        agentRole: 'reviewer'
+      }
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  assert.equal(result.artifact.status, 'rejected');
+  assert.equal(result.artifact.rejectionReason, 'policy_violation');
+  assert.equal(result.artifact.needsHumanReview, true);
+  assert.equal(result.taskFileChanged, false);
+});
+
+test('reconcileCompletionReport rejects watchdog requesting any task-state mutation', async () => {
+  const ws = await makeTestWorkspace();
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'blocked',
+    blocker: 'stale claim detected'
+  });
+  const lastMessage = `Blocked.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    prepared: {
+      ...makeInput(ws).prepared,
+      config: {
+        ...makeInput(ws).prepared.config,
+        agentRole: 'watchdog'
+      }
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  assert.equal(result.artifact.status, 'rejected');
+  assert.equal(result.artifact.rejectionReason, 'policy_violation');
+  assert.equal(result.artifact.needsHumanReview, true);
+  assert.equal(result.taskFileChanged, false);
+});
+
+test('reconcileCompletionReport allows implementer in_progress→done mutation', async () => {
+  const ws = await makeTestWorkspace();
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'done',
+    validationRan: 'npm run validate - passed'
+  });
+  const lastMessage = `Done.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    verificationStatus: 'passed',
+    validationCommandStatus: 'passed',
+    prepared: {
+      ...makeInput(ws).prepared,
+      config: {
+        ...makeInput(ws).prepared.config,
+        agentRole: 'implementer'
+      }
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  assert.notEqual(result.artifact.rejectionReason, 'policy_violation');
+  assert.equal(result.artifact.status, 'applied');
+});
+
+test('reconcileCompletionReport allows in_progress→in_progress heartbeat for any role', async () => {
+  const ws = await makeTestWorkspace();
+  // Task status is 'in_progress' (set in makeTestWorkspace); report also requests 'in_progress'
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'in_progress',
+    progressNote: 'Still working'
+  });
+  const lastMessage = `Progress.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  for (const agentRole of ['planner', 'reviewer', 'watchdog'] as const) {
+    const input: ReconcileCompletionReportInput = {
+      ...makeInput(ws),
+      lastMessage,
+      prepared: {
+        ...makeInput(ws).prepared,
+        config: {
+          ...makeInput(ws).prepared.config,
+          agentRole
+        }
+      } as unknown as ReconcileCompletionReportInput['prepared']
+    };
+
+    const result = await reconcileCompletionReport(input);
+
+    assert.notEqual(
+      result.artifact.rejectionReason, 'policy_violation',
+      `in_progress→in_progress heartbeat must not be blocked for role '${agentRole}'`
+    );
+  }
+});
+
+test('reconcileCompletionReport rejects reviewer proposing suggestedChildTasks (source-edit blocked)', async () => {
+  const ws = await makeTestWorkspace();
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'in_progress',
+    progressNote: 'Suggesting decomposition',
+    suggestedChildTasks: [
+      {
+        id: 'T101',
+        title: 'Child task',
+        parentId: TASK_ID,
+        dependsOn: [],
+        validation: null,
+        rationale: 'Split the work'
+      }
+    ]
+  });
+  const lastMessage = `In progress.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    prepared: {
+      ...makeInput(ws).prepared,
+      config: {
+        ...makeInput(ws).prepared.config,
+        agentRole: 'reviewer'
+      }
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  assert.equal(result.artifact.status, 'rejected');
+  assert.equal(result.artifact.rejectionReason, 'policy_violation');
+  assert.equal(result.artifact.needsHumanReview, true);
+});

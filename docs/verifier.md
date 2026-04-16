@@ -82,6 +82,7 @@ The loop may stop for:
 - `control_plane_reload_required`
 - `iteration_cap_reached`
 - `claim_contested`
+- `policy_violation`
 - `repeated_no_progress`
 - `repeated_identical_failure`
 - `human_review_needed`

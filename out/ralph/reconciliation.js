@@ -42,6 +42,7 @@ const planningPass_1 = require("./planningPass");
 const handoffManager_1 = require("./handoffManager");
 const taskFile_1 = require("./taskFile");
 const taskCreation_1 = require("./taskCreation");
+const rolePolicy_1 = require("./rolePolicy");
 async function reconcileCompletionReport(input) {
     const parsed = (0, completionReportParser_1.parseCompletionReport)(input.lastMessage);
     const artifactBase = {
@@ -100,6 +101,46 @@ async function reconcileCompletionReport(input) {
             claimContested: false,
             warnings
         };
+    }
+    // Policy enforcement: check requested mutation and proposed actions against
+    // the role's allowedTaskStateMutations / allowedNodeKinds before doing any
+    // I/O (handoff scan or task-file write).
+    {
+        const policy = (0, rolePolicy_1.getEffectivePolicy)(input.prepared.config.agentRole ?? 'implementer');
+        const reqStatus = parsed.report.requestedStatus;
+        // Claim acquisition promotes todo→in_progress as a side effect and returns
+        // the original task object (status still 'todo').  Use in_progress as the
+        // effective from-status so mutation comparisons are correct.
+        const effectiveFromStatus = input.selectedTask.status === 'todo' ? 'in_progress' : input.selectedTask.status;
+        // requestedStatus === 'in_progress' is a heartbeat (no-op self-assignment).
+        // The structural todo→in_progress transition is handled by claim acquisition,
+        // so any role may emit a progress-only report without being policy-gated.
+        const isHeartbeat = reqStatus === 'in_progress';
+        const mutation = `${effectiveFromStatus}\u2192${reqStatus}`;
+        const mutationAllowed = isHeartbeat || policy.allowedTaskStateMutations.includes(mutation);
+        const childTasksProposed = (parsed.report.suggestedChildTasks?.length ?? 0) > 0;
+        const sourceEditAllowed = policy.allowedNodeKinds.includes('task_exec');
+        if (!mutationAllowed || (childTasksProposed && !sourceEditAllowed)) {
+            const disallowedAction = !mutationAllowed
+                ? `task-state mutation ${mutation}`
+                : `suggestedChildTasks (source-edit proposal) by role '${input.prepared.config.agentRole ?? 'implementer'}'`;
+            const policyWarning = `Policy violation (source: preset): disallowed ${disallowedAction} for role '${input.prepared.config.agentRole ?? 'implementer'}'.`;
+            warnings.push(policyWarning);
+            return {
+                artifact: {
+                    ...artifactBase,
+                    status: 'rejected',
+                    rejectionReason: 'policy_violation',
+                    warnings,
+                    needsHumanReview: true
+                },
+                selectedTask: input.selectedTask,
+                progressChanged: false,
+                taskFileChanged: false,
+                claimContested: false,
+                warnings
+            };
+        }
     }
     const acceptedHandoffs = await scanAcceptedHandoffs((0, handoffManager_1.resolveHandoffDir)(input.prepared.paths.ralphDir));
     let handoffScopeViolation = false;
