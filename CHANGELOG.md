@@ -2,6 +2,17 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [0.3.0] — 2026-04-16
+
+### Added
+
+- **Orchestration graph execution engine** — durable, file-backed multi-agent task graph with explicit handoff lifecycle; `OrchestrationSupervisor` node supervises graph execution across distributed agent boundaries with structured state transitions.
+- **Handoff contracts** — typed inter-agent message envelopes with role-policy enforcement; explicit message versioning and sender/receiver role binding; `HandoffEnvelope` contract enforced at graph edges.
+- **Role-based context isolation topology** — agent roles (implementer, planner, reviewer, build, watchdog, scm) with context-aware visibility policies; role-specific prompt sections and isolated state snapshots per role.
+- **Fan-out / fan-in parallelism with gate semantics** — parallel child-task execution with fan-in synchronization gates; gate status exposed in dashboards and JSON status snapshots; role policies control gate advancement.
+- **Bounded adaptive re-planning node** — orchestration re-planner responds to repeated failures with decision artifacts; re-plan cap prevents runaway loops; `replanDecisionPath` artifacts track plan mutations.
+- **Human choke points for high-risk mutations** (Phase 5) — three gated policy categories (`scope_expansion`, `dependency_rewiring`, `contested_fan_in_scm`) in `orchestrationSupervisor.ts`, configurable via `pipelineHumanGates` setting; gate artifacts written to `.ralph/artifacts/` and cleared via `approveHumanReview` command.
+
 ## [0.2.0] — 2026-04-14
 
 ### Added

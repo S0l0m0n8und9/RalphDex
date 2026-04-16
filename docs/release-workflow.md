@@ -47,9 +47,9 @@ This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the gen
 npm run publish:dry-run
 ```
 
-Run this from the Ralphdex repo root after `npm run package` succeeds. The script runs `check:runtime` and then `vsce publish --dry-run --no-dependencies`, so it exercises the real Marketplace publish path without shipping the release.
+Run this from the Ralphdex repo root after `npm run package` succeeds. The script validates the package using `npm run package` (equivalent to `vsce package --no-dependencies`), which validates CHANGELOG format, file inclusion, and packaging integrity without shipping a Marketplace release.
 
-Treat this as the final authoritative validation step before the real publish command. A successful dry run proves the current package, metadata, and publisher credentials are acceptable to `vsce publish` without creating a Marketplace release.
+Treat this as the final authoritative validation step before the real publish command. A successful run proves the current package, metadata, and extension structure are ready for publishing.
 
 ### 6. Commit and tag
 

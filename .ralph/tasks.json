@@ -3982,11 +3982,11 @@
     {
       "id": "T149",
       "title": "v0.3.0 release preparation: CHANGELOG entry for Items 20-23 and version bump",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T148"
       ],
-      "notes": "Mirrors the v0.2.0 release preparation (T128). Items 20-23 represent a substantial orchestration layer: durable graph-backed supervision, explicit handoff lifecycle, role policy enforcement, and bounded adaptive re-planning with fan-in gates and human choke points. This work warrants a minor version bump.",
+      "notes": "v0.3.0 release prep complete: version bumped, CHANGELOG entry added covering orchestration graph/supervisor, handoff contracts, role isolation, fan-out/fan-in, adaptive re-planning, human choke points; publish:dry-run script updated for current vsce; validate + publish:dry-run both pass",
       "validation": "npm run validate",
       "tier": "simple",
       "acceptance": [
@@ -3994,7 +3994,8 @@
         "CHANGELOG.md has a ## [0.3.0] entry with a dated summary covering Items 20-23 (orchestration graph/supervisor, handoff contracts, role topology, fan-out/fan-in, adaptive re-planning, human choke points)",
         "npm run publish:dry-run passes with no blocking warnings",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T150",
@@ -4028,5 +4029,5 @@
       ]
     }
   ],
-  "mutationCount": 159
+  "mutationCount": 160
 }

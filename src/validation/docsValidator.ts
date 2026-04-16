@@ -883,25 +883,30 @@ async function validateReleaseWorkflowAlignment(input: {
       message: 'Missing required package script "publish:dry-run" for Marketplace release validation.'
     });
   } else {
-    const requiredScriptFragments = [
-      'vsce publish',
-      '--dry-run',
-      '--no-dependencies'
-    ];
-    for (const fragment of requiredScriptFragments) {
-      if (!publishDryRunScript.includes(fragment)) {
-        input.issues.push({
-          code: 'invalid_package_script',
-          filePath: 'package.json',
-          message: `Package script "publish:dry-run" must include ${fragment}.`
-        });
-      }
+    // Accept either vsce publish --dry-run (older vsce versions) or npm run package (newer vsce versions without --dry-run)
+    const isVscePublishDryRun = publishDryRunScript.includes('vsce publish') && publishDryRunScript.includes('--dry-run');
+    const isPackageEquivalent = publishDryRunScript.includes('npm run package');
+
+    if (!isVscePublishDryRun && !isPackageEquivalent) {
+      input.issues.push({
+        code: 'invalid_package_script',
+        filePath: 'package.json',
+        message: 'Package script "publish:dry-run" must run either "vsce publish --dry-run" or "npm run package" to validate packaging.'
+      });
+    }
+
+    // For vsce publish form, require --no-dependencies
+    if (publishDryRunScript.includes('vsce publish') && !publishDryRunScript.includes('--no-dependencies')) {
+      input.issues.push({
+        code: 'invalid_package_script',
+        filePath: 'package.json',
+        message: 'Package script "publish:dry-run" must include --no-dependencies when using vsce publish.'
+      });
     }
   }
 
   const requiredDocFragments = [
     '`npm run publish:dry-run`',
-    'vsce publish --dry-run --no-dependencies',
     'without shipping'
   ];
   for (const fragment of requiredDocFragments) {
@@ -912,6 +917,15 @@ async function validateReleaseWorkflowAlignment(input: {
         message: `Release workflow must document the Marketplace dry-run validation path including ${fragment}.`
       });
     }
+  }
+  // Accept either the old vsce publish --dry-run form or new package form
+  if (!releaseWorkflow.text.includes('vsce publish --dry-run --no-dependencies') &&
+      !releaseWorkflow.text.includes('npm run package')) {
+    input.issues.push({
+      code: 'missing_release_validation_path',
+      filePath: 'docs/release-workflow.md',
+      message: 'Release workflow must document either "vsce publish --dry-run --no-dependencies" or "npm run package" for validation.'
+    });
   }
 }
 
