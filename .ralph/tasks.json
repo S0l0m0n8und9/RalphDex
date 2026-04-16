@@ -3865,13 +3865,13 @@
     {
       "id": "T140.2",
       "title": "Context-envelope artifact persistence",
-      "status": "todo",
+      "status": "done",
       "parentId": "T140",
       "dependsOn": [
         "T139",
         "T140.1"
       ],
-      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T140.1.",
+      "notes": "writeContextEnvelope helper and contextEnvelopeWriter.ts fully implemented and tested; iterationPreparation.ts writes envelope after prompt construction; 949 tests pass",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3881,5 +3881,5 @@
       ]
     }
   ],
-  "mutationCount": 147
+  "mutationCount": 148
 }
