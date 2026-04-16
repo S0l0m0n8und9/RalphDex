@@ -42,6 +42,7 @@ exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
 exports.contextEnvelopePath = contextEnvelopePath;
+exports.planGraphPath = planGraphPath;
 exports.resolvePreflightArtifactPaths = resolvePreflightArtifactPaths;
 exports.ensureIterationArtifactDirectory = ensureIterationArtifactDirectory;
 exports.writePromptArtifacts = writePromptArtifacts;
@@ -205,6 +206,14 @@ function resolveLatestArtifactPaths(artifactRootDir) {
  */
 function contextEnvelopePath(artifactRootDir, iterationId) {
     return path.join(artifactRootDir, `iteration-${iterationId}`, 'context-envelope.json');
+}
+/**
+ * Returns the path where a plan graph for `parentTaskId` should be persisted.
+ *
+ * Layout: `<artifactRootDir>/<parentTaskId>/plan-graph.json`.
+ */
+function planGraphPath(artifactRootDir, parentTaskId) {
+    return path.join(artifactRootDir, parentTaskId, 'plan-graph.json');
 }
 function resolvePreflightArtifactPaths(artifactRootDir, iteration) {
     const directory = path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);

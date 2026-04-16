@@ -65,6 +65,8 @@ export interface RalphTask {
   constraints?: string[];
   /** leave-absent. Pointers to relevant files or modules so the agent knows where to look first. */
   context?: string[];
+  /** leave-absent. Write-risk labels for fan-out wave safety validation. Tasks sharing a label cannot run in the same wave. */
+  writeRiskLabels?: string[];
   /** preserve-source. Parser-injected diagnostic location. Not persisted to disk; stripped during serialization. */
   source?: RalphTaskSourceLocation;
 }
@@ -927,4 +929,24 @@ export interface ContextEnvelope {
   omittedArtifacts: { path: string; reason: string }[];
   /** How the active policy was determined. */
   policySource: 'preset' | 'crew' | 'explicit';
+}
+
+// ---------------------------------------------------------------------------
+// Plan graph (PRD item 23)
+// ---------------------------------------------------------------------------
+
+export type ExecutionWaveStatus = 'pending' | 'launched' | 'completed' | 'blocked';
+
+export interface ExecutionWave {
+  waveIndex: number;
+  memberTaskIds: string[];
+  launchGuards: string[];
+  fanInCriteria: string[];
+  status: ExecutionWaveStatus;
+}
+
+export interface PlanGraph {
+  parentTaskId: string;
+  waves: ExecutionWave[];
+  createdAt: string;
 }

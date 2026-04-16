@@ -296,3 +296,4 @@
 - All acceptance criteria confirmed: role-based section exclusions in promptBuilder.ts, writeContextEnvelope persists context-envelope.json artifact, four required unit tests present and green. npm run validate passes 949/949.
 - Policy enforcement gate added to reconcileCompletionReport and iterationEngine; policy_violation added to RalphStopReason; docs/verifier.md updated; 6 regression tests added; all 955 tests pass.
 - Role-policy diagnostics added to preflight (role_policy_effective info diagnostic) and Show Status (## Role Policy section); collectStatusSnapshot reads policySource from context-envelope artifact; 2 new regression tests added; all 957 tests pass
+- Added PlanGraph/ExecutionWave types, writeRiskLabels field on RalphTask, planGraphPath helper, writePlanGraph/readPlanGraph/validateWaveSafety in planGraph.ts, and 11 unit tests covering all acceptance criteria scenarios. 968/968 tests pass.

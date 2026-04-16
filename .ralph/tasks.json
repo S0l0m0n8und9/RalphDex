@@ -3831,10 +3831,11 @@
     {
       "id": "T143",
       "title": "Item 23 Phase 1: plan-graph artifact schema and fan-out wave safety rules",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T142"
       ],
+      "notes": "Added PlanGraph/ExecutionWave types, writeRiskLabels field on RalphTask, planGraphPath helper, writePlanGraph/readPlanGraph/validateWaveSafety in planGraph.ts, and 11 unit tests covering all acceptance criteria scenarios. 968/968 tests pass.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -3884,5 +3885,5 @@
       ]
     }
   ],
-  "mutationCount": 151
+  "mutationCount": 152
 }

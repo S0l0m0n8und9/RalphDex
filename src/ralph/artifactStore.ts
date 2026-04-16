@@ -294,6 +294,15 @@ export function contextEnvelopePath(artifactRootDir: string, iterationId: string
   return path.join(artifactRootDir, `iteration-${iterationId}`, 'context-envelope.json');
 }
 
+/**
+ * Returns the path where a plan graph for `parentTaskId` should be persisted.
+ *
+ * Layout: `<artifactRootDir>/<parentTaskId>/plan-graph.json`.
+ */
+export function planGraphPath(artifactRootDir: string, parentTaskId: string): string {
+  return path.join(artifactRootDir, parentTaskId, 'plan-graph.json');
+}
+
 export function resolvePreflightArtifactPaths(artifactRootDir: string, iteration: number): RalphPreflightArtifactPaths {
   const directory = path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);
 
