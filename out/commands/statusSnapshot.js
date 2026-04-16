@@ -65,6 +65,8 @@ const codexCliSupport_1 = require("../services/codexCliSupport");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
 const workspaceScanner_1 = require("../services/workspaceScanner");
+const rolePolicy_1 = require("../ralph/rolePolicy");
+const artifactStore_2 = require("../ralph/artifactStore");
 async function readJsonArtifact(target) {
     if (!target) {
         return null;
@@ -358,6 +360,23 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         ?? latestProvenanceBundle?.provenanceId
         ?? inspection.state.lastIteration?.provenanceId
         ?? null;
+    // Derive rolePolicySource from the most recent context-envelope artifact (iteration - 1).
+    let rolePolicySource = 'preset';
+    const prevIteration = inspection.state.nextIteration - 1;
+    if (prevIteration >= 1) {
+        const envelopePath = (0, artifactStore_2.contextEnvelopePath)(inspection.paths.artifactDir, String(prevIteration).padStart(3, '0'));
+        try {
+            const raw = await fs.readFile(envelopePath, 'utf8');
+            const parsed = JSON.parse(raw);
+            if (parsed.policySource === 'crew' || parsed.policySource === 'explicit') {
+                rolePolicySource = parsed.policySource;
+            }
+        }
+        catch {
+            // file absent or unreadable — default 'preset' stands
+        }
+    }
+    const effectiveRolePolicy = (0, rolePolicy_1.getEffectivePolicy)(config.agentRole);
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath: workspaceFolder.uri.fsPath,
         workspaceTrusted: vscode.workspace.isTrusted,
@@ -375,7 +394,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         codexCliSupport,
         ideCommandSupport,
         artifactReadinessDiagnostics,
-        agentHealthDiagnostics
+        agentHealthDiagnostics,
+        rolePolicySource
     });
     const recommendedSkills = await readRecommendedSkills(path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json'));
     const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry, deadLetterQueue] = await Promise.all([
@@ -555,7 +575,9 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestFailureAnalysisPath,
         recoveryStatePath,
         orchestration,
-        latestHandoff
+        latestHandoff,
+        effectiveRolePolicy,
+        rolePolicySource
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

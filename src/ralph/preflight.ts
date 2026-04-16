@@ -27,6 +27,7 @@ import {
 import { DEFAULT_CLAIM_TTL_MS, selectNextTask } from './taskFile';
 import { isDedicatedPlanningFallbackSingleAgent } from './planningPass';
 import { isHandoffExpired, resolveHandoffDir } from './handoffManager';
+import { getEffectivePolicy } from './rolePolicy';
 
 const CATEGORY_LABELS: Record<RalphPreflightCategory, string> = {
   taskGraph: 'Task graph',
@@ -182,6 +183,8 @@ export interface RalphPreflightInput {
   sessionHandoff?: RalphPromptSessionHandoff | null;
   /** Summarization mode from the most recent iteration; used to emit an info diagnostic when fallback is active. */
   lastSummarizationMode?: RalphSummarizationMode | null;
+  /** How the active role policy was determined (preset | crew | explicit). Defaults to 'preset' when absent. */
+  rolePolicySource?: 'preset' | 'crew' | 'explicit';
 }
 
 export interface RalphProviderReadinessInput {
@@ -1009,6 +1012,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     'info',
     'configured_agent_count',
     `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`
+  ));
+
+  const effectivePolicy = getEffectivePolicy(input.config.agentRole);
+  const policySource = input.rolePolicySource ?? 'preset';
+  diagnostics.push(createDiagnostic(
+    'agentHealth',
+    'info',
+    'role_policy_effective',
+    `Role policy effective: role=${effectivePolicy.role} source=${policySource} allowedNodeKinds=[${effectivePolicy.allowedNodeKinds.join(',')}] allowedTaskStateMutations=[${effectivePolicy.allowedTaskStateMutations.join(',')}] humanGateRequired=${effectivePolicy.humanGateRequired}`
   ));
 
   if (isDedicatedPlanningFallbackSingleAgent(input.config)) {

@@ -6,6 +6,7 @@ import { pathExists } from '../util/fs';
 import { EffectiveTierInfo } from './complexityScorer';
 import { deriveRootPolicy } from './rootPolicy';
 import { PipelineRunArtifact } from './pipeline';
+import type { RolePolicy } from './types';
 import {
   RalphGeneratedArtifactRetentionSummary,
   RalphLatestArtifactRepairSummary,
@@ -125,6 +126,10 @@ export interface RalphStatusSnapshot {
   latestFailureAnalysisPath?: string | null;
   /** Path to recovery-state.json for the currently selected task, or null when none recorded. */
   recoveryStatePath?: string | null;
+  /** Effective role policy for the configured agentRole. */
+  effectiveRolePolicy: RolePolicy;
+  /** How the active role policy was determined (preset | crew | explicit). */
+  rolePolicySource: 'preset' | 'crew' | 'explicit';
   /** Orchestration state for the latest pipeline run. */
   orchestration?: {
     activeNodeId: string | null;
@@ -436,6 +441,12 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Task file error: ${snapshot.taskFileError ?? 'none'}`,
     `- Task-ledger drift: ${taskLedgerDriftSummary(snapshot)}`,
     `- Claim state: ${claimGraphSummary(snapshot)}`,
+    '',
+    '## Role Policy',
+    `- Active role: ${snapshot.effectiveRolePolicy.role}`,
+    `- Policy source: ${snapshot.rolePolicySource}`,
+    `- Allowed mutations: ${snapshot.effectiveRolePolicy.allowedTaskStateMutations.join(', ') || 'none'}`,
+    `- Human gate required: ${snapshot.effectiveRolePolicy.humanGateRequired ? 'yes' : 'no'}`,
     '',
     '## Preflight',
     `- Ready: ${snapshot.preflightReport.ready ? 'yes' : 'no'}`,

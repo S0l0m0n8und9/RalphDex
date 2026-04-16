@@ -44,6 +44,9 @@ import { pathExists } from '../util/fs';
 import { validateRecord } from '../util/validate';
 import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
+import { getEffectivePolicy } from '../ralph/rolePolicy';
+import { contextEnvelopePath } from '../ralph/artifactStore';
+import type { ContextEnvelope } from '../ralph/types';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
   if (!target) {
@@ -367,6 +370,27 @@ export async function collectStatusSnapshot(
     ?? latestProvenanceBundle?.provenanceId
     ?? inspection.state.lastIteration?.provenanceId
     ?? null;
+
+  // Derive rolePolicySource from the most recent context-envelope artifact (iteration - 1).
+  let rolePolicySource: 'preset' | 'crew' | 'explicit' = 'preset';
+  const prevIteration = inspection.state.nextIteration - 1;
+  if (prevIteration >= 1) {
+    const envelopePath = contextEnvelopePath(
+      inspection.paths.artifactDir,
+      String(prevIteration).padStart(3, '0')
+    );
+    try {
+      const raw = await fs.readFile(envelopePath, 'utf8');
+      const parsed = JSON.parse(raw) as Partial<ContextEnvelope>;
+      if (parsed.policySource === 'crew' || parsed.policySource === 'explicit') {
+        rolePolicySource = parsed.policySource;
+      }
+    } catch {
+      // file absent or unreadable — default 'preset' stands
+    }
+  }
+  const effectiveRolePolicy = getEffectivePolicy(config.agentRole);
+
   const preflightReport = buildPreflightReport({
     rootPath: workspaceFolder.uri.fsPath,
     workspaceTrusted: vscode.workspace.isTrusted,
@@ -384,7 +408,8 @@ export async function collectStatusSnapshot(
     codexCliSupport,
     ideCommandSupport,
     artifactReadinessDiagnostics,
-    agentHealthDiagnostics
+    agentHealthDiagnostics,
+    rolePolicySource
   });
   const recommendedSkills = await readRecommendedSkills(
     path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json')
@@ -574,6 +599,8 @@ export async function collectStatusSnapshot(
     latestFailureAnalysisPath,
     recoveryStatePath,
     orchestration,
-    latestHandoff
+    latestHandoff,
+    effectiveRolePolicy,
+    rolePolicySource
   };
 }

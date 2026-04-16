@@ -50,6 +50,7 @@ const types_1 = require("./types");
 const taskFile_1 = require("./taskFile");
 const planningPass_1 = require("./planningPass");
 const handoffManager_1 = require("./handoffManager");
+const rolePolicy_1 = require("./rolePolicy");
 const CATEGORY_LABELS = {
     taskGraph: 'Task graph',
     claimGraph: 'Claim graph',
@@ -671,6 +672,9 @@ function buildPreflightReport(input) {
         diagnostics.push(createDiagnostic('agentHealth', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
     diagnostics.push(createDiagnostic('agentHealth', 'info', 'configured_agent_count', `Configured parallelism: ralphCodex.agentCount = ${input.config.agentCount}${input.config.agentCount > 1 ? ` (${input.config.agentCount} concurrent agent instances expected)` : ' (single-agent mode)'}.`));
+    const effectivePolicy = (0, rolePolicy_1.getEffectivePolicy)(input.config.agentRole);
+    const policySource = input.rolePolicySource ?? 'preset';
+    diagnostics.push(createDiagnostic('agentHealth', 'info', 'role_policy_effective', `Role policy effective: role=${effectivePolicy.role} source=${policySource} allowedNodeKinds=[${effectivePolicy.allowedNodeKinds.join(',')}] allowedTaskStateMutations=[${effectivePolicy.allowedTaskStateMutations.join(',')}] humanGateRequired=${effectivePolicy.humanGateRequired}`));
     if ((0, planningPass_1.isDedicatedPlanningFallbackSingleAgent)(input.config)) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'dedicated_planning_fallback_single_agent', 'Planning pass is set to dedicated, but this run has no planner capacity in single-agent mode. Ralph will fall back to inline planning for implementer task selection and execution.'));
     }

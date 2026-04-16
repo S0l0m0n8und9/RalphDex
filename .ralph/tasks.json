@@ -3813,10 +3813,11 @@
     {
       "id": "T142",
       "title": "Item 22 Phase 4: role-policy diagnostics in preflight and Show Status",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T141"
       ],
+      "notes": "Role-policy diagnostics added to preflight (role_policy_effective info diagnostic) and Show Status (## Role Policy section); collectStatusSnapshot reads policySource from context-envelope artifact; 2 new regression tests added; all 957 tests pass",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3883,5 +3884,5 @@
       ]
     }
   ],
-  "mutationCount": 150
+  "mutationCount": 151
 }

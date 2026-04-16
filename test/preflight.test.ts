@@ -790,11 +790,69 @@ test('buildPreflightReport routes agentHealthDiagnostics into the agentHealth ca
   });
 
   const agentHealthDiags = report.diagnostics.filter((d) => d.category === 'agentHealth');
-  assert.equal(agentHealthDiags.length, 3);
+  assert.equal(agentHealthDiags.length, 4);
   assert.ok(agentHealthDiags.some((d) => d.code === 'stale_state_lock'));
   assert.ok(agentHealthDiags.some((d) => d.code === 'stale_active_claim_agent_offline'));
   assert.ok(agentHealthDiags.some((d) => d.code === 'configured_agent_count'));
-  assert.match(report.summary, /Agent Health: 2 warnings, 1 info/);
+  assert.ok(agentHealthDiags.some((d) => d.code === 'role_policy_effective'));
+  assert.match(report.summary, /Agent Health: 2 warnings, 2 info/);
+});
+
+test('buildPreflightReport emits role_policy_effective info diagnostic for implementer role with preset source', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: { ...DEFAULT_CONFIG, agentRole: 'implementer' },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus
+  });
+
+  const policyDiag = report.diagnostics.find((d) => d.category === 'agentHealth' && d.code === 'role_policy_effective');
+  assert.ok(policyDiag, 'role_policy_effective diagnostic should be present');
+  assert.equal(policyDiag!.severity, 'info');
+  assert.match(policyDiag!.message, /role=implementer/);
+  assert.match(policyDiag!.message, /source=preset/);
+  assert.match(policyDiag!.message, /humanGateRequired=false/);
+});
+
+test('buildPreflightReport role_policy_effective diagnostic reports humanGateRequired=true for reviewer role', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Task one', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: { ...DEFAULT_CONFIG, agentRole: 'reviewer' },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { status: 'missing', command: null, executable: null },
+    fileStatus,
+    rolePolicySource: 'crew'
+  });
+
+  const policyDiag = report.diagnostics.find((d) => d.category === 'agentHealth' && d.code === 'role_policy_effective');
+  assert.ok(policyDiag, 'role_policy_effective diagnostic should be present');
+  assert.equal(policyDiag!.severity, 'info');
+  assert.match(policyDiag!.message, /role=reviewer/);
+  assert.match(policyDiag!.message, /source=crew/);
+  assert.match(policyDiag!.message, /humanGateRequired=true/);
 });
 
 test('buildPreflightReport uses GitHub Copilot labels and config keys for Copilot CLI support', () => {

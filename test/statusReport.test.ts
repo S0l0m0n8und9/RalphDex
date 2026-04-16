@@ -567,6 +567,14 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     planningPassEnabledSource: 'manifest-default',
     promptBudgetProfile: 'codex',
     promptBudgetProfileSource: 'manifest-default',
+    effectiveRolePolicy: {
+      role: 'implementer',
+      allowedNodeKinds: ['task_exec'],
+      allowedTaskStateMutations: ['todo→in_progress', 'in_progress→done', 'in_progress→blocked'],
+      requiredVerifierGates: ['validationCommand'],
+      humanGateRequired: false
+    },
+    rolePolicySource: 'preset' as const,
     ...overrides,
     recommendedSkills: overrides.recommendedSkills ?? []
   };
