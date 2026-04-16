@@ -29,6 +29,8 @@
 ## Ralph Runtime Context
 {{runtime_context}}
 
+{{task_plan_context}}
+
 ## Task Focus
 {{task_context}}
 

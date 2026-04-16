@@ -37,6 +37,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.STATIC_PREFIX_BOUNDARY = void 0;
+exports.buildRoleBasedSectionExclusions = buildRoleBasedSectionExclusions;
 exports.resolvePromptTemplateDirectory = resolvePromptTemplateDirectory;
 exports.decidePromptKind = decidePromptKind;
 exports.choosePromptKind = choosePromptKind;
@@ -210,6 +211,143 @@ function isBacklogExhausted(context) {
 function effectiveAgentRole(config) {
     return config.agentRole ?? 'build';
 }
+function roleContextProfile(agentRole) {
+    switch (agentRole) {
+        case 'planner':
+            return 'planner';
+        case 'review':
+        case 'reviewer':
+        case 'watchdog':
+            return 'reviewer';
+        case 'scm':
+            return 'scm';
+        default:
+            return 'implementer';
+    }
+}
+function buildRoleBasedSectionExclusions(agentRole) {
+    switch (agentRole) {
+        case 'planner':
+            return new Set([
+                'objectiveContext',
+                'repoContext',
+                'runtimeContext',
+                'taskPlanContext',
+                'progressContext',
+                'priorIterationContext'
+            ]);
+        case 'review':
+        case 'reviewer':
+        case 'watchdog':
+            return new Set([
+                'objectiveContext',
+                'repoContext',
+                'runtimeContext',
+                'taskPlanContext',
+                'progressContext',
+                'priorIterationContext'
+            ]);
+        case 'scm':
+            return new Set([
+                'objectiveContext',
+                'repoContext',
+                'runtimeContext',
+                'taskPlanContext',
+                'progressContext',
+                'priorIterationContext'
+            ]);
+        default:
+            return new Set();
+    }
+}
+function formatListOrNone(values) {
+    return values.length > 0 ? compactList(values, 6) : 'none';
+}
+function collectTaskLocalCodeContext(selectedTask, _state) {
+    if (!selectedTask) {
+        return [];
+    }
+    return Array.from(new Set(selectedTask.context ?? []));
+}
+function buildPlannerTaskContext(input, baseLines, remainingChildren) {
+    const { selectedTask, taskFile } = input;
+    if (!selectedTask) {
+        return baseLines;
+    }
+    return [
+        ...baseLines,
+        `- Selected task id: ${selectedTask.id}`,
+        `- Title: ${selectedTask.title}`,
+        `- Status: ${selectedTask.status}`,
+        `- Parent task: ${selectedTask.parentId ?? 'none'}`,
+        `- Dependencies: ${taskDependencySummary(taskFile, selectedTask)}`,
+        `- Direct children: ${childTaskSummary(taskFile, selectedTask)}`,
+        `- Remaining descendants: ${remainingChildren.length > 0 ? compactList(remainingChildren, 4) : 'none'}`,
+        `- Acceptance criteria: ${selectedTask.acceptance ? selectedTask.acceptance.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+        `- Constraints: ${selectedTask.constraints ? selectedTask.constraints.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`
+    ];
+}
+function buildImplementerTaskContext(input, baseLines, remainingChildren) {
+    const { selectedTask } = input;
+    if (!selectedTask) {
+        return baseLines;
+    }
+    const taskLocalCodeContext = collectTaskLocalCodeContext(selectedTask, input.state);
+    return [
+        ...baseLines,
+        `- Selected task id: ${selectedTask.id}`,
+        `- Title: ${selectedTask.title}`,
+        `- Status: ${selectedTask.status}`,
+        `- Parent task: ${selectedTask.parentId ?? 'none'}`,
+        `- Dependencies: ${taskDependencySummary(input.taskFile, selectedTask)}`,
+        `- Direct children: ${childTaskSummary(input.taskFile, selectedTask)}`,
+        `- Remaining descendants: ${remainingChildren.length > 0 ? compactList(remainingChildren, 4) : 'none'}`,
+        `- Task validation hint: ${input.taskValidationHint ?? selectedTask.validation ?? 'none'}`,
+        `- Effective validation command: ${input.effectiveValidationCommand ?? input.validationCommand ?? 'none detected'}`,
+        `- Validation command normalized from: ${input.normalizedValidationCommandFrom ?? 'none'}`,
+        `- Notes: ${selectedTask.notes ?? 'none'}`,
+        `- Blocker: ${selectedTask.blocker ?? 'none'}`,
+        `- Acceptance criteria: ${selectedTask.acceptance ? selectedTask.acceptance.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+        `- Constraints: ${selectedTask.constraints ? selectedTask.constraints.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+        `- Relevant files: ${selectedTask.context ? selectedTask.context.join(', ') : 'none'}`,
+        ...(taskLocalCodeContext.length > 0
+            ? [`- Task-local code context: ${formatListOrNone(taskLocalCodeContext)}`]
+            : [])
+    ];
+}
+function buildReviewerTaskContext(input, _baseLines) {
+    const { selectedTask } = input;
+    if (!selectedTask) {
+        return _baseLines;
+    }
+    const prior = input.state.lastIteration;
+    const relevantChangedFiles = prior?.diffSummary?.relevantChangedFiles ?? [];
+    const verifierStatuses = prior?.verification.verifiers.map((verifier) => `${verifier.verifier}=${verifier.status}`) ?? [];
+    return [
+        `- Selected task id: ${selectedTask.id}`,
+        `- Title: ${selectedTask.title}`,
+        `- Status: ${selectedTask.status}`,
+        `- Acceptance criteria: ${selectedTask.acceptance ? selectedTask.acceptance.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
+        `- Review diff summary: ${prior?.diffSummary?.summary ?? 'none'}`,
+        `- Review relevant changed files: ${formatListOrNone(relevantChangedFiles)}`,
+        `- Prior verifier statuses: ${formatListOrNone(verifierStatuses)}`,
+        `- Prior validation failure signature: ${formatOptional(prior?.verification.validationFailureSignature)}`
+    ];
+}
+function buildScmTaskContext(input, _baseLines) {
+    const { selectedTask, selectedTaskClaim } = input;
+    if (!selectedTask) {
+        return _baseLines;
+    }
+    return [
+        `- Selected task id: ${selectedTask.id}`,
+        `- Title: ${selectedTask.title}`,
+        `- Base branch: ${selectedTaskClaim?.claim.baseBranch ?? 'none'}`,
+        `- Integration branch: ${selectedTaskClaim?.claim.integrationBranch ?? 'none'}`,
+        `- Feature branch: ${selectedTaskClaim?.claim.featureBranch ?? 'none'}`,
+        `- Merge / PR metadata only: use branch and conflict state, not implementation context.`
+    ];
+}
 function buildStrategyContext(target, kind, agentRole, taskLedgerDriftMessages = []) {
     if (agentRole === 'planner') {
         return [
@@ -373,7 +511,8 @@ function buildRuntimeContext(state, paths, iteration, target, detail) {
     }
     return lines;
 }
-function buildTaskContext(kind, taskFile, taskCounts, selectedTask, preflightReport, taskValidationHint, effectiveValidationCommand, normalizedValidationCommandFrom, validationCommand) {
+function buildTaskContext(input) {
+    const { kind, taskFile, taskCounts, selectedTask, preflightReport } = input;
     const nextActionable = (0, taskFile_1.selectNextTask)(taskFile);
     const taskGraphErrors = preflightReport.diagnostics.filter((diagnostic) => (diagnostic.category === 'taskGraph' && diagnostic.severity === 'error'));
     const taskLedgerDriftMessages = taskGraphErrors
@@ -399,7 +538,7 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, preflightRep
             '- Preserve done-task history and keep the task file at version 2 with explicit `id`, `title`, `status`, and optional `acceptance` (string[]), `parentId`, `dependsOn`, `notes`, and `validation`.',
             '- Do not duplicate already-completed work or mark speculative tasks done.',
             '- Leave at least one actionable `todo` or `in_progress` task when the repo state supports it.',
-            `- Validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none selected for backlog replenishment'}`
+            `- Validation command: ${input.effectiveValidationCommand ?? input.validationCommand ?? 'none selected for backlog replenishment'}`
         ];
     }
     if (!selectedTask) {
@@ -419,24 +558,16 @@ function buildTaskContext(kind, taskFile, taskCounts, selectedTask, preflightRep
     }
     const remainingChildren = (0, taskFile_1.remainingSubtasks)(taskFile, selectedTask.id)
         .map((task) => `${task.id} (${task.status})`);
-    return [
-        ...baseLines,
-        `- Selected task id: ${selectedTask.id}`,
-        `- Title: ${selectedTask.title}`,
-        `- Status: ${selectedTask.status}`,
-        `- Parent task: ${selectedTask.parentId ?? 'none'}`,
-        `- Dependencies: ${taskDependencySummary(taskFile, selectedTask)}`,
-        `- Direct children: ${childTaskSummary(taskFile, selectedTask)}`,
-        `- Remaining descendants: ${remainingChildren.length > 0 ? compactList(remainingChildren, 4) : 'none'}`,
-        `- Task validation hint: ${taskValidationHint ?? selectedTask.validation ?? 'none'}`,
-        `- Effective validation command: ${effectiveValidationCommand ?? validationCommand ?? 'none detected'}`,
-        `- Validation command normalized from: ${normalizedValidationCommandFrom ?? 'none'}`,
-        `- Notes: ${selectedTask.notes ?? 'none'}`,
-        `- Blocker: ${selectedTask.blocker ?? 'none'}`,
-        `- Acceptance criteria: ${selectedTask.acceptance ? selectedTask.acceptance.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
-        `- Constraints: ${selectedTask.constraints ? selectedTask.constraints.map((item, index) => `(${index + 1}) ${item}`).join(' ') : 'none'}`,
-        `- Relevant files: ${selectedTask.context ? selectedTask.context.join(', ') : 'none'}`
-    ];
+    switch (roleContextProfile(input.agentRole)) {
+        case 'planner':
+            return buildPlannerTaskContext(input, baseLines, remainingChildren);
+        case 'reviewer':
+            return buildReviewerTaskContext(input, baseLines);
+        case 'scm':
+            return buildScmTaskContext(input, baseLines);
+        default:
+            return buildImplementerTaskContext(input, baseLines, remainingChildren);
+    }
 }
 function buildSlidingWindowContext(state, windowSize, budget, sessionHandoff) {
     const handoffLines = sessionHandoff
@@ -837,6 +968,61 @@ function buildFinalResponseContract(target, kind, agentRole, taskMode) {
         '- The next concrete IDE or terminal step.'
     ];
 }
+function addContextArtifact(exposed, omitted, pathValue, shouldExpose, reason) {
+    if (!pathValue) {
+        return;
+    }
+    if (shouldExpose) {
+        exposed.add(pathValue);
+        return;
+    }
+    omitted.push({ path: pathValue, reason });
+}
+function buildContextEnvelopeDraft(input) {
+    const profile = roleContextProfile(input.agentRole);
+    const roleBasedSectionExclusions = buildRoleBasedSectionExclusions(input.agentRole);
+    const exposed = new Set();
+    const omitted = [];
+    const sectionVisible = (section) => !input.omittedSections.has(section);
+    const sectionOmissionReason = (section, budgetReason, roleReason) => roleBasedSectionExclusions.has(section) ? roleReason : budgetReason;
+    const taskPlanSectionVisible = input.templateText.includes('{{task_plan_context}}') && sectionVisible('taskPlanContext');
+    const taskPlanPath = input.selectedTask
+        ? toRelativePath(input.paths.rootPath, path.join(input.paths.artifactDir, input.selectedTask.id, 'task-plan.json'))
+        : null;
+    const taskLocalCodeContext = collectTaskLocalCodeContext(input.selectedTask, input.state);
+    addContextArtifact(exposed, omitted, toRelativePath(input.paths.rootPath, input.paths.prdPath), sectionVisible('objectiveContext'), sectionOmissionReason('objectiveContext', 'prompt_budget_omitted_objective_context', `${profile}_role_omits_objective_context`));
+    addContextArtifact(exposed, omitted, toRelativePath(input.paths.rootPath, input.paths.taskFilePath), sectionVisible('taskContext'), 'prompt_budget_omitted_task_context');
+    addContextArtifact(exposed, omitted, toRelativePath(input.paths.rootPath, input.paths.progressPath), sectionVisible('progressContext'), 'prompt_budget_omitted_progress_context');
+    addContextArtifact(exposed, omitted, toRelativePath(input.paths.rootPath, input.paths.stateFilePath), sectionVisible('runtimeContext') || sectionVisible('priorIterationContext'), sectionVisible('runtimeContext') || sectionVisible('priorIterationContext')
+        ? 'prompt_budget_omitted_runtime_and_prior_context'
+        : (roleBasedSectionExclusions.has('runtimeContext') && roleBasedSectionExclusions.has('priorIterationContext')
+            ? `${profile}_role_omits_runtime_and_prior_context`
+            : 'prompt_budget_omitted_runtime_and_prior_context'));
+    addContextArtifact(exposed, omitted, 'prompt-section://task-graph', profile === 'planner' && sectionVisible('taskContext'), profile === 'planner' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_task_graph_context`);
+    addContextArtifact(exposed, omitted, 'prompt-section://task-constraints', profile === 'planner' && sectionVisible('taskContext'), profile === 'planner' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_task_constraints`);
+    addContextArtifact(exposed, omitted, 'prompt-section://task-local-code-context', profile === 'implementer' && sectionVisible('taskContext'), profile === 'implementer' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_code_context`);
+    for (const filePath of taskLocalCodeContext) {
+        addContextArtifact(exposed, omitted, filePath, profile === 'implementer' && sectionVisible('taskContext'), profile === 'implementer' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_code_context`);
+    }
+    addContextArtifact(exposed, omitted, 'prompt-section://task-plan', profile === 'implementer' && Boolean(input.taskPlanArtifact) && taskPlanSectionVisible, input.taskPlanArtifact
+        ? (profile === 'implementer' ? 'prompt_budget_or_template_omitted_task_plan' : `${profile}_role_omits_task_plan`)
+        : 'task_plan_artifact_not_found');
+    addContextArtifact(exposed, omitted, taskPlanPath, profile === 'implementer' && Boolean(input.taskPlanArtifact) && taskPlanSectionVisible, input.taskPlanArtifact
+        ? (profile === 'implementer' ? 'prompt_budget_or_template_omitted_task_plan' : `${profile}_role_omits_task_plan`)
+        : 'task_plan_artifact_not_found');
+    addContextArtifact(exposed, omitted, 'prompt-section://diff-summary', profile === 'reviewer' && sectionVisible('taskContext'), profile === 'reviewer' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_diff_context`);
+    addContextArtifact(exposed, omitted, 'prompt-section://verifier-outputs', profile === 'reviewer' && sectionVisible('taskContext'), profile === 'reviewer' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_verifier_outputs`);
+    addContextArtifact(exposed, omitted, 'prompt-section://task-graph-write-sections', false, profile === 'reviewer'
+        ? 'reviewer_role_omits_task_graph_write_sections'
+        : `${profile}_role_omits_task_graph_write_sections`);
+    addContextArtifact(exposed, omitted, 'prompt-section://merge-metadata', profile === 'scm' && sectionVisible('taskContext'), profile === 'scm' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_merge_metadata`);
+    addContextArtifact(exposed, omitted, toRelativePath(input.paths.rootPath, input.paths.claimFilePath), profile === 'scm' && sectionVisible('taskContext'), profile === 'scm' ? 'prompt_budget_omitted_task_context' : `${profile}_role_omits_merge_metadata`);
+    return {
+        agentRole: input.agentRole,
+        exposedArtifacts: Array.from(exposed).sort(),
+        omittedArtifacts: omitted.sort((left, right) => left.path.localeCompare(right.path))
+    };
+}
 function renderTemplate(template, values) {
     const missing = new Set();
     const rendered = template.replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (_match, key) => {
@@ -1020,7 +1206,20 @@ async function buildPrompt(input) {
         repoContext: buildRepoContext(input.summary, input.kind, input.target, input.selectedTask, budgetPolicy.repoDetail),
         runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target, budgetPolicy.runtimeDetail),
         taskPlanContext: taskPlanContextLines,
-        taskContext: buildTaskContext(input.kind, input.taskFile, input.taskCounts, input.selectedTask, input.preflightReport, input.taskValidationHint, input.effectiveValidationCommand, input.normalizedValidationCommandFrom, input.validationCommand),
+        taskContext: buildTaskContext({
+            kind: input.kind,
+            agentRole,
+            taskFile: input.taskFile,
+            taskCounts: input.taskCounts,
+            selectedTask: input.selectedTask,
+            selectedTaskClaim: input.selectedTaskClaim ?? null,
+            preflightReport: input.preflightReport,
+            taskValidationHint: input.taskValidationHint,
+            effectiveValidationCommand: input.effectiveValidationCommand,
+            normalizedValidationCommandFrom: input.normalizedValidationCommandFrom,
+            validationCommand: input.validationCommand,
+            state: input.state
+        }),
         progressContext: clipText(input.progressText, budgetPolicy.progressLines, budgetPolicy.progressChars, true)
             .split('\n')
             .map((line) => line.trimEnd())
@@ -1028,11 +1227,27 @@ async function buildPrompt(input) {
         priorIterationContext
     };
     const sectionBodies = { ...staticSectionBodies, ...dynamicSectionBodies };
-    const omittedSections = new Set();
+    const roleBasedSectionExclusions = buildRoleBasedSectionExclusions(agentRole);
+    const omittedSections = new Set(roleBasedSectionExclusions);
+    const budgetTrimmedSections = new Set();
     const placeholderFor = (name) => {
         if (!omittedSections.has(name)) {
             const value = sectionBodies[name];
             return Array.isArray(value) ? value.join('\n') : value;
+        }
+        if (roleBasedSectionExclusions.has(name)) {
+            switch (name) {
+                case 'repoContext':
+                    return '- Omitted by active role policy to keep this prompt scoped to task-local evidence.';
+                case 'taskPlanContext':
+                    return '- Omitted by active role policy because this role should rely on its own scoped task context.';
+                case 'progressContext':
+                    return '- Omitted by active role policy to avoid broad progress history in this role-specific prompt.';
+                case 'priorIterationContext':
+                    return '- Omitted by active role policy after the current task evidence was summarized in scoped context.';
+                default:
+                    return '- Omitted by active role policy.';
+            }
         }
         switch (name) {
             case 'repoContext':
@@ -1070,12 +1285,25 @@ async function buildPrompt(input) {
         if (estimatedTokens <= budgetPolicy.targetTokens) {
             break;
         }
+        if (omittedSections.has(sectionName)) {
+            continue;
+        }
         omittedSections.add(sectionName);
+        budgetTrimmedSections.add(sectionName);
         prompt = renderPrompt();
         estimatedTokens = (0, promptBudget_1.estimateTokenCount)(prompt);
     }
     const withinTarget = estimatedTokens <= budgetPolicy.targetTokens;
     const budgetDeltaTokens = estimatedTokens - budgetPolicy.targetTokens;
+    const contextEnvelope = buildContextEnvelopeDraft({
+        agentRole,
+        paths: input.paths,
+        state: input.state,
+        selectedTask: input.selectedTask,
+        taskPlanArtifact: input.taskPlanArtifact ?? null,
+        omittedSections,
+        templateText
+    });
     const evidence = {
         schemaVersion: 1,
         iteration: input.iteration,
@@ -1092,7 +1320,7 @@ async function buildPrompt(input) {
         memoryObservability,
         promptBudget: {
             policyName: budgetPolicy.name,
-            budgetMode: omittedSections.size > 0 ? 'trimmed' : 'within_budget',
+            budgetMode: budgetTrimmedSections.size > 0 ? 'trimmed' : 'within_budget',
             targetTokens: budgetPolicy.targetTokens,
             minimumContextBias: budgetPolicy.minimumContextBias,
             estimatedTokens,
@@ -1126,7 +1354,8 @@ async function buildPrompt(input) {
     return {
         prompt,
         templatePath,
-        evidence
+        evidence,
+        contextEnvelope
     };
 }
 //# sourceMappingURL=promptBuilder.js.map

@@ -121,6 +121,7 @@ class RalphIterationEngine {
             progress,
             includeVerifierContext: false,
             configOverrides: options?.configOverrides,
+            rolePolicySource: options?.rolePolicySource,
             stateManager: this.stateManager,
             logger: this.logger,
             cliProvider: this.strategies.getActiveCliProvider(),
@@ -353,6 +354,7 @@ class RalphIterationEngine {
             progress,
             includeVerifierContext: true,
             configOverrides: options.configOverrides,
+            rolePolicySource: options.rolePolicySource,
             focusTaskId: options.focusTaskId,
             stateManager: this.stateManager,
             logger: this.logger,
@@ -742,6 +744,7 @@ class RalphIterationEngine {
                             const scmRun = await this.runCliIteration(capturedWorkspaceFolder, 'singleExec', capturedProgress, {
                                 reachedIterationCap: false,
                                 configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` },
+                                rolePolicySource: 'explicit',
                                 focusTaskId: ctx.taskId
                             });
                             if (scmRun.result.executionStatus === 'failed')

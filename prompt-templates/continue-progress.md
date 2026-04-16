@@ -31,6 +31,8 @@ Assume some useful work already landed in the repository. Build on that durable 
 ## Ralph Runtime Context
 {{runtime_context}}
 
+{{task_plan_context}}
+
 ## Task Focus
 {{task_context}}
 

@@ -1107,7 +1107,8 @@ export function registerCommands(
         configOverrides: {
           agentRole: 'review',
           agentId: buildReviewAgentId(config.agentId)
-        }
+        },
+        rolePolicySource: 'explicit'
       });
 
       if (run.result.executionStatus === 'failed') {
@@ -1157,7 +1158,8 @@ export function registerCommands(
         configOverrides: {
           agentRole: 'watchdog',
           agentId: 'watchdog'
-        }
+        },
+        rolePolicySource: 'explicit'
       });
 
       if (run.result.executionStatus === 'failed') {
@@ -1184,7 +1186,8 @@ export function registerCommands(
         configOverrides: {
           agentRole: 'scm',
           agentId: buildScmAgentId(config.agentId)
-        }
+        },
+        rolePolicySource: 'explicit'
       });
 
       if (run.result.executionStatus === 'failed') {
@@ -1269,6 +1272,7 @@ export function registerCommands(
             await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
               reachedIterationCap: false,
               configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+              rolePolicySource: 'explicit',
               focusTaskId: lastRun.autoReviewContext.parentTaskId
             });
           } catch (reviewError) {
@@ -1297,7 +1301,8 @@ export function registerCommands(
             try {
               await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
-                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                rolePolicySource: 'explicit'
               });
             } catch (watchdogError) {
               logger.warn('Auto-watchdog after stall failed.', { error: toErrorMessage(watchdogError) });
@@ -1318,7 +1323,8 @@ export function registerCommands(
         try {
           await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
             reachedIterationCap: false,
-            configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) }
+            configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+            rolePolicySource: 'explicit'
           });
         } catch (reviewError) {
           logger.warn('Auto-review on loop complete failed.', { error: toErrorMessage(reviewError) });
@@ -1476,6 +1482,7 @@ export function registerCommands(
           lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
             reachedIterationCap: index + 1 >= config.ralphIterationCap,
             configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
+            rolePolicySource: crewMember ? 'crew' : 'preset',
             broadcaster
           });
 
@@ -1495,6 +1502,7 @@ export function registerCommands(
               await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                 reachedIterationCap: false,
                 configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
+                rolePolicySource: 'explicit',
                 focusTaskId: lastRun.autoReviewContext.parentTaskId
               });
             } catch (reviewError) {
@@ -1517,7 +1525,8 @@ export function registerCommands(
               try {
                 await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                   reachedIterationCap: false,
-                  configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                  configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                  rolePolicySource: 'explicit'
                 });
               } catch (watchdogError) {
                 logger.warn('Multi-agent auto-watchdog after stall failed.', { agentId, error: toErrorMessage(watchdogError) });
@@ -1686,7 +1695,8 @@ export function registerCommands(
           configOverrides: {
             agentRole: 'scm',
             agentId: buildScmAgentId(config.agentId)
-          }
+          },
+          rolePolicySource: 'explicit'
         });
         const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
         const scmReport = await readJsonArtifact(scmReportPath).then(normalizeCompletionReportArtifact);

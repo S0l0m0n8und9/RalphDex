@@ -31,6 +31,8 @@ Focus first on the concrete failure or no-progress signal carried forward from t
 ## Ralph Runtime Context
 {{runtime_context}}
 
+{{task_plan_context}}
+
 ## Task Focus
 {{task_context}}
 

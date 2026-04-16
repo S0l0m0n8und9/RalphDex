@@ -3771,7 +3771,115 @@
         "Unit tests cover: DEFAULT_ROLE_POLICY_MAP round-trips to/from JSON cleanly, contextEnvelopePath returns expected path pattern, unknown role falls back to implementer defaults",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T140",
+      "title": "Item 22 Phase 2: role-specific context selectors in promptBuilder.ts and context-envelope artifact persistence",
+      "status": "in_progress",
+      "dependsOn": [
+        "T139",
+        "T140.1",
+        "T140.2"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "promptBuilder.ts applies role-specific context selection: planners receive task graph + constraints only; implementers receive task-local code context + task plan (from task-plan.json when present); reviewers/verifiers receive diff + acceptance criteria + verifier outputs; SCM agents receive only merge/PR metadata",
+        "A writeContextEnvelope helper (in iterationPreparation.ts or a new contextEnvelopeWriter.ts) writes context-envelope.json to the iteration artifact directory via contextEnvelopePath, recording exposedArtifacts, omittedArtifacts with per-artifact reasons, and policySource (preset | crew | explicit)",
+        "The context-envelope artifact is written after prompt construction and before CLI handoff so the envelope reflects the actual prompt content",
+        "Unit tests cover: implementer envelope includes code context sections, planner envelope omits code context, reviewer envelope omits task-graph write sections, envelope policySource defaults to 'preset'",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T141",
+      "title": "Item 22 Phase 3: policy enforcement in reconciliation and execution paths",
+      "status": "todo",
+      "dependsOn": [
+        "T140"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "reconcileCompletionReport in reconciliation.ts checks the completion report's requestedStatus and any suggested actions against getEffectivePolicy(agentRole) allowedTaskStateMutations and allowedNodeKinds",
+        "When a completion report requests a disallowed mutation (e.g. reviewer requesting in_progress→done directly), the request is downgraded: requestedStatus is overridden to 'blocked', a policy_violation reconciliationWarning is added with the disallowed action and effective policy source, and needsHumanReview is set to true",
+        "Policy violation stop classification is persisted in the iteration result artifact (stopReason: 'policy_violation') so the loop classifies the outcome deterministically rather than as no_progress",
+        "Regression tests cover: at least one blocked disallowed action per role class (planner blocked from done mutation, reviewer blocked from source-edit mutation, watchdog blocked from task state mutation)",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T142",
+      "title": "Item 22 Phase 4: role-policy diagnostics in preflight and Show Status",
+      "status": "todo",
+      "dependsOn": [
+        "T141"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "preflight.ts emits an Agent Health info diagnostic reporting the effective policy source (preset | crew | explicit) and the active role's allowedNodeKinds and allowedTaskStateMutations for the current agent",
+        "buildStatusReport in statusReport.ts includes a Role Policy section (or extends the existing Agent Health section) showing: active role, policy source, allowed mutations summary, whether humanGateRequired is set",
+        "collectStatusSnapshot reads the effective policy from getEffectivePolicy(agentRole) and includes it in the snapshot",
+        "Regression tests cover: preflight diagnostic present for known role, Show Status role-policy section renders for implementer and reviewer, policy source label switches between preset/crew/explicit based on config",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T143",
+      "title": "Item 23 Phase 1: plan-graph artifact schema and fan-out wave safety rules",
+      "status": "todo",
+      "dependsOn": [
+        "T142"
+      ],
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "PlanGraph and ExecutionWave types added to src/ralph/types.ts: PlanGraph has parentTaskId, waves (ExecutionWave[]), createdAt; ExecutionWave has waveIndex, memberTaskIds, launchGuards (string[]), fanInCriteria (string[]), status ('pending' | 'launched' | 'completed' | 'blocked')",
+        "planGraphPath(artifactRootDir, parentTaskId) helper added to artifactStore.ts returning .ralph/artifacts/<parentTaskId>/plan-graph.json",
+        "writePlanGraph and readPlanGraph helpers created in a new src/ralph/planGraph.ts module",
+        "Fan-out safety rules implemented in planGraph.ts: validateWaveSafety(wave, allTasks) returns errors when any member task has unresolved dependency edges or shares a write-risk label with another member in the same wave; violations block wave launch with explicit error messages",
+        "Unit tests cover: valid wave with independent tasks passes, wave with shared dependency fails, wave with write-risk conflict fails, read/write plan-graph round-trip",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T140.1",
+      "title": "Item 22 Phase 2: role-specific context selectors in promptBuilder.ts",
+      "status": "done",
+      "parentId": "T140",
+      "dependsOn": [
+        "T139"
+      ],
+      "notes": "Validation gate confirmed clean: 949/949 tests pass, all four acceptance-criteria tests present and green. No code changes required — implementation was complete at prior session end.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "promptBuilder.ts applies role-specific context selection: planners receive task graph + constraints only; implementers receive task-local code context + task plan (from task-plan.json when present); reviewers/verifiers receive diff + acceptance criteria + verifier outputs; SCM agents receive only merge/PR metadata",
+        "A writeContextEnvelope helper (in iterationPreparation.ts or a new contextEnvelopeWriter.ts) writes context-envelope.json to the iteration artifact directory via contextEnvelopePath, recording exposedArtifacts, omittedArtifacts with per-artifact reasons, and policySource (preset | crew | explicit)",
+        "The context-envelope artifact is written after prompt construction and before CLI handoff so the envelope reflects the actual prompt content",
+        "Unit tests cover: implementer envelope includes code context sections, planner envelope omits code context, reviewer envelope omits task-graph write sections, envelope policySource defaults to 'preset'",
+        "Item 22 Phase 2: role-specific context selectors in promptBuilder.ts is complete and passes validation"
+      ]
+    },
+    {
+      "id": "T140.2",
+      "title": "Context-envelope artifact persistence",
+      "status": "todo",
+      "parentId": "T140",
+      "dependsOn": [
+        "T139",
+        "T140.1"
+      ],
+      "notes": "Keep the proposal one level deep by sequencing the next bounded step after T140.1.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "A writeContextEnvelope helper (in iterationPreparation.ts or a new contextEnvelopeWriter.ts) writes context-envelope.json to the iteration artifact directory via contextEnvelopePath, recording exposedArtifacts, omittedArtifacts with per-artifact reasons, and policySource (preset | crew | explicit)",
+        "The context-envelope artifact is written after prompt construction and before CLI handoff so the envelope reflects the actual prompt content",
+        "Context-envelope artifact persistence is complete and passes validation"
+      ]
     }
   ],
-  "mutationCount": 144
+  "mutationCount": 147
 }

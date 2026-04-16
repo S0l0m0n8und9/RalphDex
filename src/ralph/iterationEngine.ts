@@ -180,6 +180,7 @@ export class RalphIterationEngine {
     progress: vscode.Progress<{ message?: string; increment?: number }>,
     options?: {
       configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>;
+      rolePolicySource?: 'preset' | 'crew' | 'explicit';
     }
   ): Promise<PreparedPrompt> {
     const prepared = await prepareIterationContext({
@@ -187,6 +188,7 @@ export class RalphIterationEngine {
       progress,
       includeVerifierContext: false,
       configOverrides: options?.configOverrides,
+      rolePolicySource: options?.rolePolicySource,
       stateManager: this.stateManager,
       logger: this.logger,
       cliProvider: this.strategies.getActiveCliProvider(),
@@ -469,6 +471,7 @@ export class RalphIterationEngine {
     options: {
       reachedIterationCap: boolean;
       configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>;
+      rolePolicySource?: 'preset' | 'crew' | 'explicit';
       broadcaster?: IterationBroadcaster;
       /** When set, task selection will prefer this task ID (used to direct review agents to a specific parent task). */
       focusTaskId?: string;
@@ -489,6 +492,7 @@ export class RalphIterationEngine {
       progress,
       includeVerifierContext: true,
       configOverrides: options.configOverrides,
+      rolePolicySource: options.rolePolicySource,
       focusTaskId: options.focusTaskId,
       stateManager: this.stateManager,
       logger: this.logger,
@@ -916,6 +920,7 @@ export class RalphIterationEngine {
                 {
                   reachedIterationCap: false,
                   configOverrides: { agentRole: 'scm', agentId: `scm-conflict-${ctx.taskId}` },
+                  rolePolicySource: 'explicit',
                   focusTaskId: ctx.taskId
                 }
               );

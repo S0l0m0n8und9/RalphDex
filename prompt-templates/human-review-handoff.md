@@ -31,6 +31,8 @@ Treat the prior blocker as real until the repository proves otherwise. Keep the 
 ## Ralph Runtime Context
 {{runtime_context}}
 
+{{task_plan_context}}
+
 ## Task Focus
 {{task_context}}
 

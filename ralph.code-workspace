@@ -47,7 +47,8 @@
 			},
 			"model": {
 				"deployment": "gpt-5.4"
-			}
+			},
+			"commandPath": "copilot"
 		},
 		"ralphCodex.planningPass": {
 			"mode": "inline",

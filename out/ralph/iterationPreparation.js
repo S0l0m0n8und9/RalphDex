@@ -48,6 +48,7 @@ const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
+const contextEnvelopeWriter_1 = require("./contextEnvelopeWriter");
 const taskFile_1 = require("./taskFile");
 const planningPass_1 = require("./planningPass");
 const preflight_1 = require("./preflight");
@@ -382,6 +383,7 @@ async function prepareIterationContext(input) {
         validationCommand: effectiveValidationCommand,
         preflightReport,
         sessionHandoff,
+        selectedTaskClaim,
         taskPlanArtifact,
         config
     });
@@ -403,6 +405,12 @@ async function prepareIterationContext(input) {
         artifactRootDir: snapshot.paths.artifactDir,
         prompt,
         promptEvidence
+    });
+    await (0, contextEnvelopeWriter_1.writeContextEnvelope)({
+        artifactRootDir: snapshot.paths.artifactDir,
+        iteration,
+        contextEnvelope: promptRender.contextEnvelope,
+        policySource: input.rolePolicySource ?? 'preset'
     });
     const executionPlan = {
         schemaVersion: 1,

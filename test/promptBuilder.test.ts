@@ -2392,6 +2392,278 @@ test('buildPrompt routes reviewer role to review.md template', async () => {
   assert.doesNotMatch(render.prompt, /Implement the smallest coherent improvement/);
 });
 
+test('buildPrompt context envelope exposes implementer code context and task plan artifacts', async () => {
+  const render = await buildPrompt({
+    kind: 'fix-failure',
+    target: 'cliExec',
+    iteration: 7,
+    selectionReason: 'T1 is the selected implementer task.',
+    objectiveText: '# Project\n\nImplement task context filtering.\n',
+    progressText: '# Progress\n\n- Task plan ready.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        diffSummary: {
+          available: true,
+          gitAvailable: true,
+          summary: 'Detected 1 relevant changed file.',
+          changedFileCount: 1,
+          relevantChangedFileCount: 1,
+          changedFiles: ['src/ralph/contextEnvelopeWriter.ts'],
+          relevantChangedFiles: ['src/ralph/contextEnvelopeWriter.ts'],
+          statusTransitions: []
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Implement role-aware context', status: 'todo', context: ['src/prompt/promptBuilder.ts'] }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Implement role-aware context',
+      status: 'todo',
+      context: ['src/prompt/promptBuilder.ts']
+    },
+    taskValidationHint: 'npm run validate',
+    effectiveValidationCommand: 'npm run validate',
+    normalizedValidationCommandFrom: null,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    taskPlanArtifact: {
+      reasoning: 'Role-aware prompts need deterministic context boundaries.',
+      approach: 'Filter prompt context by agent role and persist an envelope artifact.',
+      steps: ['Update promptBuilder.ts', 'Persist context-envelope.json'],
+      risks: ['Budget trimming can hide task plan context if not recorded separately.']
+    },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'implementer'
+    }
+  });
+
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('prompt-section://task-local-code-context'));
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('prompt-section://task-plan'));
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('.ralph/artifacts/T1/task-plan.json'));
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('src/prompt/promptBuilder.ts'));
+});
+
+test('buildPrompt context envelope omits planner code context', async () => {
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 8,
+    selectionReason: 'T1 is the selected planning task.',
+    objectiveText: '# Project\n\nPlan role-aware prompts.\n',
+    progressText: '# Progress\n\n- Planning pending.\n',
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Plan role-aware context', status: 'todo', context: ['src/prompt/promptBuilder.ts'] }]
+    },
+    selectedTask: {
+      id: 'T1',
+      title: 'Plan role-aware context',
+      status: 'todo',
+      context: ['src/prompt/promptBuilder.ts']
+    },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'planner'
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.budgetMode, 'within_budget');
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('objectiveContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('repoContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('runtimeContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('priorIterationContext'));
+  assert.doesNotMatch(render.prompt, /Workspace name: demo/);
+  assert.doesNotMatch(render.prompt, /Plan role-aware prompts/);
+  assert.doesNotMatch(render.prompt, /Current iteration: 2/);
+  assert.doesNotMatch(render.prompt, /Planning pending\./);
+  assert.doesNotMatch(render.prompt, /src\/prompt\/promptBuilder\.ts/);
+  assert.ok(
+    render.contextEnvelope.omittedArtifacts.some((artifact) => (
+      artifact.path === 'prompt-section://task-local-code-context'
+        && artifact.reason === 'planner_role_omits_code_context'
+    ))
+  );
+  assert.ok(
+    render.contextEnvelope.omittedArtifacts.some((artifact) => (
+      artifact.path === 'src/prompt/promptBuilder.ts'
+        && artifact.reason === 'planner_role_omits_code_context'
+    ))
+  );
+});
+
+test('buildPrompt reviewer envelope exposes diff and verifier context while omitting task-graph write sections', async () => {
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 9,
+    selectionReason: 'T1 done task selected for review.',
+    objectiveText: '# Project\n\nReview completed work.\n',
+    progressText: '# Progress\n\n- T1 complete.\n',
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 1 },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        verification: {
+          taskValidationHint: 'npm run validate',
+          effectiveValidationCommand: 'npm run validate',
+          normalizedValidationCommandFrom: null,
+          primaryCommand: 'npm run validate',
+          validationFailureSignature: null,
+          verifiers: [
+            { verifier: 'validationCommand', status: 'passed', summary: 'Validation passed.', warnings: [], errors: [] },
+            { verifier: 'gitDiff', status: 'passed', summary: 'Relevant file changes detected.', warnings: [], errors: [] }
+          ]
+        },
+        diffSummary: {
+          available: true,
+          gitAvailable: true,
+          summary: 'Detected 2 relevant changed files.',
+          changedFileCount: 2,
+          relevantChangedFileCount: 2,
+          changedFiles: ['src/prompt/promptBuilder.ts', 'src/ralph/contextEnvelopeWriter.ts'],
+          relevantChangedFiles: ['src/prompt/promptBuilder.ts', 'src/ralph/contextEnvelopeWriter.ts'],
+          statusTransitions: []
+        }
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Implement auth', status: 'done', acceptance: ['Validation passes', 'Diff is reviewed'] }]
+    },
+    selectedTask: { id: 'T1', title: 'Implement auth', status: 'done', acceptance: ['Validation passes', 'Diff is reviewed'] },
+    taskValidationHint: 'npm run validate',
+    effectiveValidationCommand: 'npm run validate',
+    normalizedValidationCommandFrom: null,
+    validationCommand: 'npm run validate',
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'reviewer'
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.budgetMode, 'within_budget');
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('objectiveContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('repoContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('runtimeContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('priorIterationContext'));
+  assert.doesNotMatch(render.prompt, /Review completed work\./);
+  assert.doesNotMatch(render.prompt, /Current iteration: 2/);
+  assert.doesNotMatch(render.prompt, /Backlog counts:/);
+  assert.doesNotMatch(render.prompt, /Workspace name: demo/);
+  assert.match(render.prompt, /Review diff summary: Detected 2 relevant changed files\./);
+  assert.match(render.prompt, /Prior verifier statuses: validationCommand=passed, gitDiff=passed/);
+  assert.doesNotMatch(render.prompt, /T1 complete\./);
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('prompt-section://diff-summary'));
+  assert.ok(render.contextEnvelope.exposedArtifacts.includes('prompt-section://verifier-outputs'));
+  assert.ok(
+    render.contextEnvelope.omittedArtifacts.some((artifact) => (
+      artifact.path === 'prompt-section://task-graph-write-sections'
+        && artifact.reason === 'reviewer_role_omits_task_graph_write_sections'
+    ))
+  );
+});
+
+test('buildPrompt scm role keeps merge metadata while omitting broad repo history sections', async () => {
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 10,
+    selectionReason: 'T1 is ready for SCM handoff.',
+    objectiveText: '# Project\n\nShip the completed task.\n',
+    progressText: '# Progress\n\n- Ready to merge T1.\n',
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 1 },
+    summary,
+    state: workspaceState({
+      lastIteration: baseIterationResult({
+        summary: 'Implementation complete and awaiting branch integration.'
+      })
+    }),
+    paths,
+    taskFile: {
+      version: 2,
+      tasks: [{ id: 'T1', title: 'Ship auth', status: 'done' }]
+    },
+    selectedTask: { id: 'T1', title: 'Ship auth', status: 'done' },
+    selectedTaskClaim: {
+      stale: false,
+      claim: {
+        taskId: 'T1',
+        agentId: 'agent-scm',
+        claimedAt: '2026-04-15T21:00:00.000Z',
+        provenanceId: 'prov-scm',
+        status: 'active',
+        featureBranch: 'feature/t1',
+        integrationBranch: 'integration/t1',
+        baseBranch: 'main'
+      }
+    },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'scm'
+    }
+  });
+
+  assert.equal(render.evidence.promptBudget?.budgetMode, 'within_budget');
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('objectiveContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('repoContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('runtimeContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
+  assert.ok(render.evidence.promptBudget?.omittedSections.includes('priorIterationContext'));
+  assert.match(render.prompt, /Base branch: main/);
+  assert.match(render.prompt, /Integration branch: integration\/t1/);
+  assert.match(render.prompt, /Feature branch: feature\/t1/);
+  assert.doesNotMatch(render.prompt, /Ship the completed task\./);
+  assert.doesNotMatch(render.prompt, /Current iteration: 2/);
+  assert.doesNotMatch(render.prompt, /Backlog counts:/);
+  assert.doesNotMatch(render.prompt, /Workspace name: demo/);
+  assert.doesNotMatch(render.prompt, /Ready to merge T1\./);
+  assert.ok(
+    render.contextEnvelope.omittedArtifacts.some((artifact) => (
+      artifact.path === '.ralph/prd.md'
+        && artifact.reason === 'scm_role_omits_objective_context'
+    ))
+  );
+  assert.ok(
+    render.contextEnvelope.omittedArtifacts.some((artifact) => (
+      artifact.path === '.ralph/state.json'
+        && artifact.reason === 'scm_role_omits_runtime_and_prior_context'
+    ))
+  );
+});
+
 test('buildPrompt routes implementer role to standard iteration template', async () => {
   const templateDir = await createTemplateDir();
 

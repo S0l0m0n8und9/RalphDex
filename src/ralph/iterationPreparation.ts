@@ -13,7 +13,9 @@ import { inspectCliSupport, inspectIdeCommandSupport } from '../services/codexCl
 import { RalphStateManager } from './stateManager';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
+import { writeContextEnvelope } from './contextEnvelopeWriter';
 import {
+  ContextEnvelope,
   RalphExecutionPlan,
   RalphPersistedPreflightReport,
   RalphPreflightReport,
@@ -129,6 +131,7 @@ export interface PrepareIterationContextInput {
   progress: vscode.Progress<{ message?: string; increment?: number }>;
   includeVerifierContext: boolean;
   configOverrides?: Partial<Pick<RalphCodexConfig, 'agentId' | 'agentRole'>>;
+  rolePolicySource?: ContextEnvelope['policySource'];
   /** When set, task selection prefers this task ID (e.g. directing a review agent to a just-completed parent). */
   focusTaskId?: string;
   stateManager: RalphStateManager;
@@ -513,10 +516,11 @@ export async function prepareIterationContext(
     normalizedValidationCommandFrom,
     validationCommand: effectiveValidationCommand,
     preflightReport,
-    sessionHandoff,
-    taskPlanArtifact,
-    config
-  });
+      sessionHandoff,
+      selectedTaskClaim,
+      taskPlanArtifact,
+      config
+    });
   const prompt = promptRender.prompt;
   const promptEvidence: RalphPromptEvidence = {
     ...promptRender.evidence,
@@ -541,6 +545,12 @@ export async function prepareIterationContext(
     artifactRootDir: snapshot.paths.artifactDir,
     prompt,
     promptEvidence
+  });
+  await writeContextEnvelope({
+    artifactRootDir: snapshot.paths.artifactDir,
+    iteration,
+    contextEnvelope: promptRender.contextEnvelope,
+    policySource: input.rolePolicySource ?? 'preset'
   });
   const executionPlan: RalphExecutionPlan = {
     schemaVersion: 1,

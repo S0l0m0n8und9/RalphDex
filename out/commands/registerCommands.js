@@ -865,7 +865,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 configOverrides: {
                     agentRole: 'review',
                     agentId: buildReviewAgentId(config.agentId)
-                }
+                },
+                rolePolicySource: 'explicit'
             });
             if (run.result.executionStatus === 'failed') {
                 throw new Error(iterationFailureMessage(run.result));
@@ -905,7 +906,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 configOverrides: {
                     agentRole: 'watchdog',
                     agentId: 'watchdog'
-                }
+                },
+                rolePolicySource: 'explicit'
             });
             if (run.result.executionStatus === 'failed') {
                 throw new Error(iterationFailureMessage(run.result));
@@ -928,7 +930,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 configOverrides: {
                     agentRole: 'scm',
                     agentId: buildScmAgentId(config.agentId)
-                }
+                },
+                rolePolicySource: 'explicit'
             });
             if (run.result.executionStatus === 'failed') {
                 throw new Error(iterationFailureMessage(run.result));
@@ -1001,6 +1004,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                         await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                             reachedIterationCap: false,
                             configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+                            rolePolicySource: 'explicit',
                             focusTaskId: lastRun.autoReviewContext.parentTaskId
                         });
                     }
@@ -1026,7 +1030,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                         try {
                             await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                                 reachedIterationCap: false,
-                                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                                rolePolicySource: 'explicit'
                             });
                         }
                         catch (watchdogError) {
@@ -1044,7 +1049,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 try {
                     await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                         reachedIterationCap: false,
-                        configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) }
+                        configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+                        rolePolicySource: 'explicit'
                     });
                 }
                 catch (reviewError) {
@@ -1175,6 +1181,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
                         reachedIterationCap: index + 1 >= config.ralphIterationCap,
                         configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
+                        rolePolicySource: crewMember ? 'crew' : 'preset',
                         broadcaster
                     });
                     broadcaster?.emitIterationEnd({
@@ -1191,6 +1198,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                             await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                                 reachedIterationCap: false,
                                 configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
+                                rolePolicySource: 'explicit',
                                 focusTaskId: lastRun.autoReviewContext.parentTaskId
                             });
                         }
@@ -1210,7 +1218,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                             try {
                                 await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                                     reachedIterationCap: false,
-                                    configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' }
+                                    configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                                    rolePolicySource: 'explicit'
                                 });
                             }
                             catch (watchdogError) {
@@ -1351,7 +1360,8 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     configOverrides: {
                         agentRole: 'scm',
                         agentId: buildScmAgentId(config.agentId)
-                    }
+                    },
+                    rolePolicySource: 'explicit'
                 });
                 const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
                 const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
