@@ -43,6 +43,8 @@ exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
 exports.contextEnvelopePath = contextEnvelopePath;
 exports.planGraphPath = planGraphPath;
+exports.replanDecisionPath = replanDecisionPath;
+exports.writeReplanDecisionArtifact = writeReplanDecisionArtifact;
 exports.resolvePreflightArtifactPaths = resolvePreflightArtifactPaths;
 exports.ensureIterationArtifactDirectory = ensureIterationArtifactDirectory;
 exports.writePromptArtifacts = writePromptArtifacts;
@@ -214,6 +216,31 @@ function contextEnvelopePath(artifactRootDir, iterationId) {
  */
 function planGraphPath(artifactRootDir, parentTaskId) {
     return path.join(artifactRootDir, parentTaskId, 'plan-graph.json');
+}
+/**
+ * Returns the path where replan decision artifact `replanIndex` for `parentTaskId`
+ * should be persisted.
+ *
+ * Layout: `<artifactRootDir>/<parentTaskId>/replan-<replanIndex>.json`.
+ *
+ * This path lives inside the `<parentTaskId>/` directory, which is NOT matched
+ * by `parseIterationDirectoryName` in artifactRetention.ts — so these files are
+ * already excluded from generated-artifact retention cleanup without any special
+ * guard needed.
+ */
+function replanDecisionPath(artifactRootDir, parentTaskId, replanIndex) {
+    return path.join(artifactRootDir, parentTaskId, `replan-${replanIndex}.json`);
+}
+/**
+ * Write a replan decision artifact to the parent-task directory.
+ *
+ * Creates the directory if needed, then writes stable JSON.
+ */
+async function writeReplanDecisionArtifact(artifactRootDir, artifact) {
+    const artifactPath = replanDecisionPath(artifactRootDir, artifact.parentTaskId, artifact.replanIndex);
+    await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+    await fs.writeFile(artifactPath, (0, integrity_1.stableJson)(artifact), 'utf8');
+    return artifactPath;
 }
 function resolvePreflightArtifactPaths(artifactRootDir, iteration) {
     const directory = path.join(artifactRootDir, `iteration-${String(iteration).padStart(3, '0')}`);

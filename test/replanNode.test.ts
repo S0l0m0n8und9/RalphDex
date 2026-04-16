@@ -8,8 +8,9 @@ import {
   executeReplanNode,
   truncateWavesToChildLimit
 } from '../src/ralph/orchestrationSupervisor';
+import { replanDecisionPath, writeReplanDecisionArtifact } from '../src/ralph/artifactStore';
 import { writePlanGraph, readPlanGraph } from '../src/ralph/planGraph';
-import type { ExecutionWave, PlanGraph, RalphTask } from '../src/ralph/types';
+import type { ExecutionWave, PlanGraph, RalphTask, ReplanDecisionArtifact } from '../src/ralph/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -296,4 +297,151 @@ test('truncateWavesToChildLimit drops waves beyond the limit', () => {
   assert.equal(result.length, 2);
   assert.deepEqual(result[0].memberTaskIds, ['a', 'b']);
   assert.deepEqual(result[1].memberTaskIds, ['c']);
+});
+
+// ---------------------------------------------------------------------------
+// replanDecisionPath — path helper
+// ---------------------------------------------------------------------------
+
+test('replanDecisionPath returns correct path for parentTaskId and replanIndex', () => {
+  const artifactRootDir = '/workspace/.ralph/artifacts';
+  const parentTaskId = 'T100';
+  const replanIndex = 1;
+
+  const result = replanDecisionPath(artifactRootDir, parentTaskId, replanIndex);
+
+  assert.equal(result, path.join(artifactRootDir, parentTaskId, 'replan-1.json'));
+});
+
+test('replanDecisionPath is consistent with planGraphPath directory layout', () => {
+  const artifactRootDir = '/workspace/.ralph/artifacts';
+  const parentTaskId = 'T-abc-123';
+
+  const replanPath = replanDecisionPath(artifactRootDir, parentTaskId, 3);
+  const expectedDir = path.join(artifactRootDir, parentTaskId);
+
+  assert.equal(path.dirname(replanPath), expectedDir);
+  assert.equal(path.basename(replanPath), 'replan-3.json');
+});
+
+// ---------------------------------------------------------------------------
+// writeReplanDecisionArtifact — writes correct file content
+// ---------------------------------------------------------------------------
+
+test('writeReplanDecisionArtifact writes artifact at correct path with all required fields', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-replan-artifact-'));
+  const artifact: ReplanDecisionArtifact = {
+    schemaVersion: 1,
+    kind: 'replanDecision',
+    parentTaskId: 'T500',
+    replanIndex: 1,
+    triggerEvidenceClass: ['systemic_failure_alert'],
+    triggerDetails: 'systemic-failure-alert.json artifact is present.',
+    rejectedAlternatives: [],
+    chosenMutation: '2 wave(s) written with 4 total child task(s).',
+    taskGraphDiff: {
+      addedTaskIds: ['c3', 'c4'],
+      removedTaskIds: ['c1', 'c2'],
+      modifiedTaskIds: []
+    },
+    createdAt: '2026-04-16T10:00:00.000Z'
+  };
+
+  const writtenPath = await writeReplanDecisionArtifact(tmpDir, artifact);
+
+  assert.equal(writtenPath, replanDecisionPath(tmpDir, 'T500', 1));
+
+  const raw = await fs.readFile(writtenPath, 'utf8');
+  const parsed = JSON.parse(raw) as ReplanDecisionArtifact;
+
+  assert.equal(parsed.schemaVersion, 1);
+  assert.equal(parsed.kind, 'replanDecision');
+  assert.equal(parsed.parentTaskId, 'T500');
+  assert.equal(parsed.replanIndex, 1);
+  assert.deepEqual(parsed.triggerEvidenceClass, ['systemic_failure_alert']);
+  assert.equal(parsed.triggerDetails, 'systemic-failure-alert.json artifact is present.');
+  assert.deepEqual(parsed.taskGraphDiff.addedTaskIds, ['c3', 'c4']);
+  assert.deepEqual(parsed.taskGraphDiff.removedTaskIds, ['c1', 'c2']);
+  assert.deepEqual(parsed.taskGraphDiff.modifiedTaskIds, []);
+  assert.equal(parsed.createdAt, '2026-04-16T10:00:00.000Z');
+});
+
+// ---------------------------------------------------------------------------
+// executeReplanNode — writes decision artifact on replan_applied
+// ---------------------------------------------------------------------------
+
+test('executeReplanNode writes decision artifact at correct path when artifactRootDir is provided', async () => {
+  const tmpDir = await makeTempDir();
+  const parentId = 'T400';
+  const graphFilePath = path.join(tmpDir, parentId, 'plan-graph.json');
+
+  const originalWave = makeWave(0, ['c1', 'c2', 'c3']);
+  const graph = makeGraph(parentId, [originalWave]);
+  await writePlanGraph(graphFilePath, graph);
+
+  const artifactsDir = path.join(tmpDir, 'artifacts');
+  await fs.mkdir(artifactsDir, { recursive: true });
+  await fs.writeFile(path.join(artifactsDir, 'systemic-failure-alert.json'), '{}', 'utf8');
+
+  const proposedWaves = [makeWave(1, ['c4', 'c5'])];
+  const allTasks: RalphTask[] = [
+    makeTask({ id: 'c1', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'c2', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'c3', status: 'done', lastVerifierResult: 'passed' })
+  ];
+
+  const result = await executeReplanNode({
+    planGraphFilePath: graphFilePath,
+    allTasks,
+    artifactsDir,
+    maxReplansPerParent: 2,
+    maxGeneratedChildren: 8,
+    proposedWaves,
+    artifactRootDir: tmpDir,
+    parentTaskId: parentId
+  });
+
+  assert.equal(result.outcome, 'replan_applied');
+  assert.ok(result.decisionArtifactPath !== null);
+  assert.equal(result.decisionArtifactPath, replanDecisionPath(tmpDir, parentId, 1));
+
+  // Verify artifact content.
+  const raw = await fs.readFile(result.decisionArtifactPath, 'utf8');
+  const artifact = JSON.parse(raw) as ReplanDecisionArtifact;
+
+  assert.equal(artifact.schemaVersion, 1);
+  assert.equal(artifact.kind, 'replanDecision');
+  assert.equal(artifact.parentTaskId, parentId);
+  assert.equal(artifact.replanIndex, 1);
+  assert.ok(artifact.triggerEvidenceClass.includes('systemic_failure_alert'));
+  assert.ok(artifact.triggerDetails.length > 0);
+  assert.deepEqual(artifact.taskGraphDiff.addedTaskIds, ['c4', 'c5']);
+  assert.deepEqual(artifact.taskGraphDiff.removedTaskIds, ['c1', 'c2', 'c3']);
+  assert.ok(artifact.createdAt.length > 0);
+});
+
+test('executeReplanNode does not write artifact when artifactRootDir is absent', async () => {
+  const tmpDir = await makeTempDir();
+  const parentId = 'T450';
+  const graphFilePath = path.join(tmpDir, parentId, 'plan-graph.json');
+
+  const graph = makeGraph(parentId, [makeWave(0, ['c1'])]);
+  await writePlanGraph(graphFilePath, graph);
+
+  const artifactsDir = path.join(tmpDir, 'artifacts');
+  await fs.mkdir(artifactsDir, { recursive: true });
+  await fs.writeFile(path.join(artifactsDir, 'systemic-failure-alert.json'), '{}', 'utf8');
+
+  const result = await executeReplanNode({
+    planGraphFilePath: graphFilePath,
+    allTasks: [makeTask({ id: 'c1', status: 'done', lastVerifierResult: 'passed' })],
+    artifactsDir,
+    maxReplansPerParent: 2,
+    maxGeneratedChildren: 8,
+    proposedWaves: [makeWave(1, ['c2'])]
+    // No artifactRootDir or parentTaskId.
+  });
+
+  assert.equal(result.outcome, 'replan_applied');
+  assert.equal(result.decisionArtifactPath, null);
 });

@@ -457,6 +457,38 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         }
     }
     const deadLetterEntries = deadLetterQueue.entries;
+    // Read replan decision artifacts for the latest pipeline run's root task.
+    const replanArtifacts = [];
+    const rootTaskId = latestPipelineEntry?.artifact.rootTaskId;
+    if (rootTaskId) {
+        const rootTaskArtifactDir = path.join(inspection.paths.artifactDir, rootTaskId);
+        const replanFilePattern = /^replan-(\d+)\.json$/;
+        try {
+            const dirEntries = await fs.readdir(rootTaskArtifactDir, { withFileTypes: true });
+            const replanFiles = dirEntries
+                .filter((e) => e.isFile() && replanFilePattern.test(e.name))
+                .sort((a, b) => {
+                const aIndex = Number.parseInt(replanFilePattern.exec(a.name)[1], 10);
+                const bIndex = Number.parseInt(replanFilePattern.exec(b.name)[1], 10);
+                return aIndex - bIndex;
+            });
+            for (const entry of replanFiles) {
+                try {
+                    const raw = await fs.readFile(path.join(rootTaskArtifactDir, entry.name), 'utf8');
+                    const parsed = JSON.parse(raw);
+                    if (parsed.kind === 'replanDecision') {
+                        replanArtifacts.push(parsed);
+                    }
+                }
+                catch {
+                    // malformed or unreadable — skip
+                }
+            }
+        }
+        catch {
+            // directory absent or unreadable — leave empty
+        }
+    }
     let latestHandoff = null;
     try {
         const raw = await fs.readFile((0, handoffManager_1.resolveLatestHandoffPath)(inspection.paths.ralphDir), 'utf8');
@@ -577,7 +609,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         orchestration,
         latestHandoff,
         effectiveRolePolicy,
-        rolePolicySource
+        rolePolicySource,
+        replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

@@ -31,7 +31,8 @@ import {
   RalphTask,
   RalphTaskRemediation,
   RalphTaskCounts,
-  RalphWorkspaceState
+  RalphWorkspaceState,
+  ReplanDecisionArtifact
 } from './types';
 import { GitStatusSnapshot } from './verifier';
 
@@ -139,6 +140,11 @@ export interface RalphStatusSnapshot {
   } | null;
   /** Latest handoff from latest-handoff.json, or null/absent when no handoffs have been written. */
   latestHandoff?: RalphHandoff | null;
+  /**
+   * Replan decision artifacts for the latest pipeline run's root task, ordered by replanIndex
+   * ascending. Absent or empty when no replans have been recorded.
+   */
+  replanArtifacts?: ReplanDecisionArtifact[];
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {
@@ -554,6 +560,17 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
             `  - ${node.nodeId} (${node.label})`
           )
           : ['  - none'])
+      ]
+      : []),
+    ...(snapshot.replanArtifacts && snapshot.replanArtifacts.length > 0
+      ? [
+        '',
+        '## Re-planning',
+        `- Parent task: ${snapshot.replanArtifacts[0].parentTaskId}`,
+        `- Replan count: ${snapshot.replanArtifacts.length}`,
+        ...snapshot.replanArtifacts.map((artifact) =>
+          `- Replan ${artifact.replanIndex}: triggers [${artifact.triggerEvidenceClass.join(', ')}] | ${artifact.triggerDetails}`
+        )
       ]
       : []),
     ...(snapshot.recommendedSkills.length > 0

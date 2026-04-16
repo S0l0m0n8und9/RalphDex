@@ -22,7 +22,8 @@ import type {
   RalphProvenanceBundle,
   RalphCompletionReport,
   RalphSuggestedChildTask,
-  RalphTaskRemediationArtifact
+  RalphTaskRemediationArtifact,
+  ReplanDecisionArtifact
 } from '../ralph/types';
 import { resolveLatestHandoffPath } from '../ralph/handoffManager';
 import { inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention } from '../ralph/artifactStore';
@@ -478,6 +479,37 @@ export async function collectStatusSnapshot(
 
   const deadLetterEntries: DeadLetterEntry[] = deadLetterQueue.entries;
 
+  // Read replan decision artifacts for the latest pipeline run's root task.
+  const replanArtifacts: ReplanDecisionArtifact[] = [];
+  const rootTaskId = latestPipelineEntry?.artifact.rootTaskId;
+  if (rootTaskId) {
+    const rootTaskArtifactDir = path.join(inspection.paths.artifactDir, rootTaskId);
+    const replanFilePattern = /^replan-(\d+)\.json$/;
+    try {
+      const dirEntries = await fs.readdir(rootTaskArtifactDir, { withFileTypes: true });
+      const replanFiles = dirEntries
+        .filter((e) => e.isFile() && replanFilePattern.test(e.name))
+        .sort((a, b) => {
+          const aIndex = Number.parseInt(replanFilePattern.exec(a.name)![1], 10);
+          const bIndex = Number.parseInt(replanFilePattern.exec(b.name)![1], 10);
+          return aIndex - bIndex;
+        });
+      for (const entry of replanFiles) {
+        try {
+          const raw = await fs.readFile(path.join(rootTaskArtifactDir, entry.name), 'utf8');
+          const parsed = JSON.parse(raw) as ReplanDecisionArtifact;
+          if (parsed.kind === 'replanDecision') {
+            replanArtifacts.push(parsed);
+          }
+        } catch {
+          // malformed or unreadable — skip
+        }
+      }
+    } catch {
+      // directory absent or unreadable — leave empty
+    }
+  }
+
   let latestHandoff: RalphHandoff | null = null;
   try {
     const raw = await fs.readFile(resolveLatestHandoffPath(inspection.paths.ralphDir), 'utf8');
@@ -601,6 +633,7 @@ export async function collectStatusSnapshot(
     orchestration,
     latestHandoff,
     effectiveRolePolicy,
-    rolePolicySource
+    rolePolicySource,
+    replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined
   };
 }

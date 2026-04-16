@@ -967,3 +967,36 @@ export interface PlanGraph {
   /** Number of adaptive re-plan passes executed for this parent. Defaults to 0. */
   replanCount?: number;
 }
+
+// ---------------------------------------------------------------------------
+// Re-plan decision artifact
+// ---------------------------------------------------------------------------
+
+export type ReplanTriggerKind =
+  | 'consecutive_verifier_mismatches'
+  | 'systemic_failure_alert'
+  | 'unresolved_merge_conflict';
+
+/**
+ * Durable record of one adaptive re-plan decision written alongside plan-graph.json.
+ *
+ * Written to `<artifactRootDir>/<parentTaskId>/replan-<replanIndex>.json` whenever
+ * executeReplanNode applies new waves. Survives generated-artifact retention cleanup
+ * because it lives in a `<parentTaskId>/` directory, not an `iteration-NNN/` directory.
+ */
+export interface ReplanDecisionArtifact {
+  schemaVersion: 1;
+  kind: 'replanDecision';
+  parentTaskId: string;
+  replanIndex: number;
+  triggerEvidenceClass: ReplanTriggerKind[];
+  triggerDetails: string;
+  rejectedAlternatives: string[];
+  chosenMutation: string;
+  taskGraphDiff: {
+    addedTaskIds: string[];
+    removedTaskIds: string[];
+    modifiedTaskIds: string[];
+  };
+  createdAt: string;
+}

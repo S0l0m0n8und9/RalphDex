@@ -3928,10 +3928,11 @@
     {
       "id": "T146",
       "title": "Item 23 Phase 4: re-plan decision artifacts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T145"
       ],
+      "notes": "All Phase 4 acceptance criteria verified: replanDecisionPath, writeReplanDecisionArtifact, retention guard, orchestrationSupervisor artifact write on replan_applied, RalphStatusSnapshot.replanArtifacts, buildStatusReport Re-planning section, statusSnapshot collection, and unit tests all in place. 994/994 tests pass.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3941,7 +3942,8 @@
         "Show Status includes a Re-planning section when any replan artifact exists for the latest pipeline run: shows parent task, trigger evidence, replan count vs cap, and outcome",
         "Unit tests cover: artifact written at correct path, artifact content includes all required fields, Show Status renders re-planning section when artifact present",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T147",
@@ -3962,5 +3964,5 @@
       ]
     }
   ],
-  "mutationCount": 155
+  "mutationCount": 156
 }

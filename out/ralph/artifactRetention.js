@@ -509,6 +509,11 @@ async function collectGeneratedArtifactRetentionInspection(input) {
     const handoffEntries = input.handoffDir
         ? await fs.readdir(input.handoffDir, { withFileTypes: true }).catch(() => [])
         : [];
+    // Retention scanning is limited to iteration-NNN directories by parseIterationDirectoryName.
+    // Directories that do not match iteration-NNN (e.g. <parentTaskId>/ directories that hold
+    // plan-graph.json and replan-N.json artifacts, as well as 'runs', 'watchdog', and
+    // 'orchestration') are never included in iterationDirectories and are therefore already
+    // excluded from deletion — no additional guard is required for those paths.
     const iterationDirectories = artifactEntries
         .filter((entry) => entry.isDirectory())
         .map((entry) => parseIterationDirectoryName(entry.name))
@@ -627,6 +632,12 @@ async function cleanupGeneratedArtifacts(input) {
     const deletedIterationDirectories = [];
     for (const entry of inspection.iterationDirectories.slice(input.retentionCount)) {
         if (retainedIterationDirectories.has(entry.name)) {
+            continue;
+        }
+        // Safety guard: only delete directories that match the iteration-NNN pattern.
+        // Non-iteration directories (e.g. parentTaskId/, runs/, watchdog/, orchestration/)
+        // are never present in iterationDirectories, but this check makes the invariant explicit.
+        if (!parseIterationDirectoryName(entry.name)) {
             continue;
         }
         await fs.rm(path.join(input.artifactRootDir, entry.name), { recursive: true, force: true });

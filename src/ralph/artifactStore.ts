@@ -29,7 +29,8 @@ import type {
   RalphProvenanceTrustLevel,
   RalphTaskRemediationArtifact,
   RalphVerificationResult,
-  RalphWatchdogAction
+  RalphWatchdogAction,
+  ReplanDecisionArtifact
 } from './types';
 
 // Re-export submodules for backward compatibility.
@@ -301,6 +302,40 @@ export function contextEnvelopePath(artifactRootDir: string, iterationId: string
  */
 export function planGraphPath(artifactRootDir: string, parentTaskId: string): string {
   return path.join(artifactRootDir, parentTaskId, 'plan-graph.json');
+}
+
+/**
+ * Returns the path where replan decision artifact `replanIndex` for `parentTaskId`
+ * should be persisted.
+ *
+ * Layout: `<artifactRootDir>/<parentTaskId>/replan-<replanIndex>.json`.
+ *
+ * This path lives inside the `<parentTaskId>/` directory, which is NOT matched
+ * by `parseIterationDirectoryName` in artifactRetention.ts — so these files are
+ * already excluded from generated-artifact retention cleanup without any special
+ * guard needed.
+ */
+export function replanDecisionPath(
+  artifactRootDir: string,
+  parentTaskId: string,
+  replanIndex: number
+): string {
+  return path.join(artifactRootDir, parentTaskId, `replan-${replanIndex}.json`);
+}
+
+/**
+ * Write a replan decision artifact to the parent-task directory.
+ *
+ * Creates the directory if needed, then writes stable JSON.
+ */
+export async function writeReplanDecisionArtifact(
+  artifactRootDir: string,
+  artifact: ReplanDecisionArtifact
+): Promise<string> {
+  const artifactPath = replanDecisionPath(artifactRootDir, artifact.parentTaskId, artifact.replanIndex);
+  await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+  await fs.writeFile(artifactPath, stableJson(artifact), 'utf8');
+  return artifactPath;
 }
 
 export function resolvePreflightArtifactPaths(artifactRootDir: string, iteration: number): RalphPreflightArtifactPaths {

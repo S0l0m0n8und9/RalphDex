@@ -1442,3 +1442,80 @@ test('buildStatusReport omits Active Handoffs section when latestHandoff is abse
 
   assert.doesNotMatch(report, /## Active Handoffs/);
 });
+
+// ---------------------------------------------------------------------------
+// Re-planning section
+// ---------------------------------------------------------------------------
+
+test('buildStatusReport renders Re-planning section when replanArtifacts are present', () => {
+  const report = buildStatusReport(snapshot({
+    replanArtifacts: [
+      {
+        schemaVersion: 1,
+        kind: 'replanDecision',
+        parentTaskId: 'T100',
+        replanIndex: 1,
+        triggerEvidenceClass: ['systemic_failure_alert'],
+        triggerDetails: 'systemic-failure-alert.json artifact is present for this run.',
+        rejectedAlternatives: [],
+        chosenMutation: '2 wave(s) written with 3 total child task(s).',
+        taskGraphDiff: { addedTaskIds: ['c4', 'c5', 'c6'], removedTaskIds: ['c1', 'c2', 'c3'], modifiedTaskIds: [] },
+        createdAt: '2026-04-16T10:00:00.000Z'
+      }
+    ]
+  }));
+
+  assert.match(report, /## Re-planning/);
+  assert.match(report, /- Parent task: T100/);
+  assert.match(report, /- Replan count: 1/);
+  assert.match(report, /- Replan 1: triggers \[systemic_failure_alert\] \| systemic-failure-alert\.json artifact is present/);
+});
+
+test('buildStatusReport renders multiple replan entries in ascending order', () => {
+  const report = buildStatusReport(snapshot({
+    replanArtifacts: [
+      {
+        schemaVersion: 1,
+        kind: 'replanDecision',
+        parentTaskId: 'T200',
+        replanIndex: 1,
+        triggerEvidenceClass: ['consecutive_verifier_mismatches'],
+        triggerDetails: '3 children have failed verifier results.',
+        rejectedAlternatives: [],
+        chosenMutation: '1 wave(s) written.',
+        taskGraphDiff: { addedTaskIds: [], removedTaskIds: [], modifiedTaskIds: [] },
+        createdAt: '2026-04-16T09:00:00.000Z'
+      },
+      {
+        schemaVersion: 1,
+        kind: 'replanDecision',
+        parentTaskId: 'T200',
+        replanIndex: 2,
+        triggerEvidenceClass: ['unresolved_merge_conflict'],
+        triggerDetails: 'Fan-in reported merge conflicts.',
+        rejectedAlternatives: [],
+        chosenMutation: '1 wave(s) written.',
+        taskGraphDiff: { addedTaskIds: [], removedTaskIds: [], modifiedTaskIds: [] },
+        createdAt: '2026-04-16T10:00:00.000Z'
+      }
+    ]
+  }));
+
+  assert.match(report, /## Re-planning/);
+  assert.match(report, /- Parent task: T200/);
+  assert.match(report, /- Replan count: 2/);
+  assert.match(report, /- Replan 1: triggers \[consecutive_verifier_mismatches\]/);
+  assert.match(report, /- Replan 2: triggers \[unresolved_merge_conflict\]/);
+});
+
+test('buildStatusReport omits Re-planning section when replanArtifacts is absent', () => {
+  const report = buildStatusReport(snapshot());
+
+  assert.doesNotMatch(report, /## Re-planning/);
+});
+
+test('buildStatusReport omits Re-planning section when replanArtifacts is empty', () => {
+  const report = buildStatusReport(snapshot({ replanArtifacts: [] }));
+
+  assert.doesNotMatch(report, /## Re-planning/);
+});

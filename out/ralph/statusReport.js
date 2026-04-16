@@ -382,6 +382,15 @@ function buildStatusReport(snapshot) {
                     : ['  - none'])
             ]
             : []),
+        ...(snapshot.replanArtifacts && snapshot.replanArtifacts.length > 0
+            ? [
+                '',
+                '## Re-planning',
+                `- Parent task: ${snapshot.replanArtifacts[0].parentTaskId}`,
+                `- Replan count: ${snapshot.replanArtifacts.length}`,
+                ...snapshot.replanArtifacts.map((artifact) => `- Replan ${artifact.replanIndex}: triggers [${artifact.triggerEvidenceClass.join(', ')}] | ${artifact.triggerDetails}`)
+            ]
+            : []),
         ...(snapshot.recommendedSkills.length > 0
             ? [
                 '',

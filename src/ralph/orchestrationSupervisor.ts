@@ -11,7 +11,9 @@ import type {
   OrchestrationNodeState,
   OrchestrationState,
   PlanGraph,
-  RalphTask
+  RalphTask,
+  ReplanDecisionArtifact,
+  ReplanTriggerKind
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -307,10 +309,7 @@ export async function readNodeSpan(
 // Replan node — bounded adaptive re-planning
 // ---------------------------------------------------------------------------
 
-export type ReplanTriggerKind =
-  | 'consecutive_verifier_mismatches'
-  | 'systemic_failure_alert'
-  | 'unresolved_merge_conflict';
+export type { ReplanTriggerKind };
 
 export interface ReplanTrigger {
   kind: ReplanTriggerKind;
@@ -329,6 +328,8 @@ export interface ReplanResult {
   needsHumanReview: boolean;
   summary: string;
   updatedGraph: PlanGraph | null;
+  /** Path to the written replan decision artifact, or null when no artifact was written. */
+  decisionArtifactPath: string | null;
 }
 
 /**
@@ -406,6 +407,14 @@ export interface ExecuteReplanNodeInput {
   maxGeneratedChildren: number;
   /** Pre-parsed proposed waves from the planning pass caller. Empty when no proposal is available. */
   proposedWaves: ExecutionWave[];
+  /**
+   * Root directory for artifact storage. When provided alongside parentTaskId, a
+   * replan decision artifact is written at
+   * `<artifactRootDir>/<parentTaskId>/replan-<replanIndex>.json`.
+   */
+  artifactRootDir?: string;
+  /** Parent task ID used to locate the replan decision artifact directory. */
+  parentTaskId?: string;
 }
 
 /**
@@ -431,7 +440,9 @@ export async function executeReplanNode(
     artifactsDir,
     maxReplansPerParent,
     maxGeneratedChildren,
-    proposedWaves
+    proposedWaves,
+    artifactRootDir,
+    parentTaskId
   } = input;
 
   // Read the current plan graph.
@@ -443,7 +454,8 @@ export async function executeReplanNode(
       replanCount: 0,
       needsHumanReview: false,
       summary: 'No plan graph found; replan node is a no-op.',
-      updatedGraph: null
+      updatedGraph: null,
+      decisionArtifactPath: null
     };
   }
 
@@ -470,7 +482,8 @@ export async function executeReplanNode(
       replanCount: graph.replanCount ?? 0,
       needsHumanReview: false,
       summary: 'No replan triggers detected; graph unchanged.',
-      updatedGraph: null
+      updatedGraph: null,
+      decisionArtifactPath: null
     };
   }
 
@@ -483,9 +496,13 @@ export async function executeReplanNode(
       replanCount: currentCount,
       needsHumanReview: true,
       summary: `Replan cap exhausted (${currentCount}/${maxReplansPerParent}). Escalating to human review.`,
-      updatedGraph: null
+      updatedGraph: null,
+      decisionArtifactPath: null
     };
   }
+
+  // Capture old wave member IDs before mutation so we can compute a taskGraphDiff.
+  const oldMemberIds = new Set(graph.waves.flatMap(w => w.memberTaskIds));
 
   // Apply proposed waves (truncate to maxGeneratedChildren total member tasks).
   const truncatedWaves = truncateWavesToChildLimit(proposedWaves, maxGeneratedChildren);
@@ -499,15 +516,50 @@ export async function executeReplanNode(
 
   await writePlanGraph(planGraphFilePath, updatedGraph);
 
+  // Compute task graph diff (old member IDs vs new).
+  const newMemberIds = new Set(updatedGraph.waves.flatMap(w => w.memberTaskIds));
+  const addedTaskIds = [...newMemberIds].filter(id => !oldMemberIds.has(id));
+  const removedTaskIds = [...oldMemberIds].filter(id => !newMemberIds.has(id));
+
   const triggerSummary = triggers.map(t => t.kind).join(', ');
+  const chosenMutation = `${truncatedWaves.length} wave(s) written with ` +
+    `${truncatedWaves.reduce((n, w) => n + w.memberTaskIds.length, 0)} total child task(s).`;
+
+  // Write replan decision artifact if artifact root and parent task ID are provided.
+  let decisionArtifactPath: string | null = null;
+  if (artifactRootDir && parentTaskId) {
+    const artifactDir = path.join(artifactRootDir, parentTaskId);
+    await fs.mkdir(artifactDir, { recursive: true });
+    const artifactFileName = `replan-${nextCount}.json`;
+    const artifactPath = path.join(artifactDir, artifactFileName);
+    const artifact: ReplanDecisionArtifact = {
+      schemaVersion: 1,
+      kind: 'replanDecision',
+      parentTaskId,
+      replanIndex: nextCount,
+      triggerEvidenceClass: triggers.map(t => t.kind),
+      triggerDetails: triggers.map(t => t.summary).join(' '),
+      rejectedAlternatives: [],
+      chosenMutation,
+      taskGraphDiff: {
+        addedTaskIds,
+        removedTaskIds,
+        modifiedTaskIds: []
+      },
+      createdAt: new Date().toISOString()
+    };
+    await fs.writeFile(artifactPath, stableJson(artifact), 'utf8');
+    decisionArtifactPath = artifactPath;
+  }
+
   return {
     outcome: 'replan_applied',
     triggers,
     replanCount: nextCount,
     needsHumanReview: false,
-    summary: `Replan ${nextCount}/${maxReplansPerParent} applied. Triggers: ${triggerSummary}. ` +
-      `${truncatedWaves.length} wave(s) written with ${truncatedWaves.reduce((n, w) => n + w.memberTaskIds.length, 0)} total child task(s).`,
-    updatedGraph
+    summary: `Replan ${nextCount}/${maxReplansPerParent} applied. Triggers: ${triggerSummary}. ${chosenMutation}`,
+    updatedGraph,
+    decisionArtifactPath
   };
 }
 
