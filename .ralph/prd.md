@@ -582,11 +582,27 @@ Node.js shim successfully drove complete Ralph iteration loops outside VS Code. 
 
 Scored all 269 completed tasks; identified tier distribution and documented methodology in `docs/model-tiering.md`. Calibration findings validated and thresholds applied in `complexityScorer.ts`.
 
-### Continued multi-agent evolution horizon (post-foundation) — active
+### Continued multi-agent evolution horizon (post-foundation) — satisfied 2026-04-16
 
-The milestones above establish a working multi-agent baseline (claims, loop parallelism, planning/recovery scaffolding, pipeline phases, review pass, human gates). The next horizon is not “more agents in parallel”; it is a stronger orchestration contract that stays deterministic, file-backed, and operator-legible under higher coordination complexity.
+All four items of the multi-agent evolution horizon are now completed as of 2026-04-16:
 
-The phases below intentionally borrow proven ideas from CrewAI (role-specialized crews + flows), AutoGen (GraphFlow + handoffs), LangGraph (explicit state graph orchestration), and Swarm-style lightweight delegation — but only where those ideas fit Ralphdex’s durable artifact and verifier-first trust model.
+**20. Durable orchestration graph + supervisor ledger** (T132–T133 — completed)
+
+Planning graph and supervisor ledger with deterministic node transitions, durable state artifacts, per-node span tracking, and graph resumption implemented.
+
+**21. Explicit handoff contract + contested/stale handoff lifecycle** (T134–T135 — completed)
+
+Handoff lifecycle with propose/accept/expire/contested states; reconciliation scope checking; and contested/stale detection integrated into preflight diagnostics.
+
+**22. Role topology + least-context execution envelopes** (T136–T137 — completed)
+
+Role policy map with allowlists and per-role context envelopes; role-specific context selection in prompt builders; and deterministic policy enforcement in execution paths.
+
+**23. Adaptive re-planning + deterministic fan-out/fan-in reconciliation** (T138–T147 — completed)
+
+Fan-in gate execution in plan graphs, bounded adaptive re-planning node with trigger classification and cap enforcement, and human choke points for high-risk mutations (scope expansion, dependency rewiring, contested fan-in SCM actions).
+
+The detailed specifications for each item are preserved below for reference.
 
 **20. Durable orchestration graph + supervisor ledger**
 
@@ -702,6 +718,64 @@ Acceptance criteria:
 **99. Operator CLI — deferred, out of scope (future fork)**
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
+
+### Next delivery horizon
+
+With the four-item multi-agent evolution horizon satisfied, the following capabilities are the concrete next targets.
+
+**1. v0.3.0 release preparation**
+
+Publish the second numbered Marketplace release documenting the multi-agent evolution. Concrete work:
+
+- Bump `package.json` version to `0.3.0`.
+- Add a `CHANGELOG.md` entry recording the four-item multi-agent evolution horizon (Items 20–23) delivered in this release, including orchestration graph execution, handoff contracts, role-based context isolation, and adaptive re-planning with human gates.
+- Tag the release commit and run `vsce publish` against the VS Code Marketplace.
+- Validate that the published extension installs cleanly from the Marketplace and that prior stable releases remain available.
+
+Acceptance criteria:
+- `package.json` version is `0.3.0`.
+- `CHANGELOG.md` has a `## [0.3.0]` entry dated 2026-04-16 documenting Items 20–23.
+- `vsce publish --dry-run` passes with no blocking warnings.
+- `npm run validate` passes.
+
+**2. Orchestration integration smoke test**
+
+Validate that orchestration graph execution, handoff lifecycle, role policies, fan-in gates, and adaptive re-planning work correctly end-to-end in a real Ralph iteration loop. Concrete work:
+
+- Add `test:orchestration-smoke` test script that sets up a minimal multi-task workspace with fan-out dependencies, runs a complete iteration loop via the cliExec strategy, and asserts:
+  - Orchestration graph transitions persisted correctly.
+  - Child-task waves executed within expected concurrency bounds.
+  - Fan-in gate collected all child outcomes and validated merge criteria.
+  - If adaptive re-planning was triggered, decision artifacts exist and replan cap was enforced.
+  - Handoff lifecycle transitions (proposed → accepted → completed) are auditable in artifacts.
+  - Role-based claim acquisition respected allowlists (planner claims plan tasks, implementer claims implementation).
+- Document any discovered behavioral gaps or integration issues in `docs/orchestration-smoke-test.md`.
+
+Acceptance criteria:
+- `test:orchestration-smoke` script runs end-to-end without CLI/provider errors.
+- All orchestration artifacts (graph.json, state.json, node spans, handoff records, replan decisions) are present in the expected locations.
+- Completion report parsing and task-state reconciliation succeed for multi-child fan-in outcomes.
+- `npm run validate` passes.
+
+**3. Dashboard orchestration panel**
+
+Add webview UI surface to visualize orchestration graph state, node execution timelines, fan-in gate status, and re-plan decision history (extends item 15 phases). Concrete work:
+
+- Add `ralphCodex.showOrchestrationPanel` command opening a persistent webview panel displaying:
+  - **Graph visualization**: DAG render of current orchestration graph with node colors indicating status (pending / in_progress / done / blocked / waiting_fan_in).
+  - **Node timeline**: horizontal timeline showing each node's start time, duration, assigned agent role/id, and outcome indicator.
+  - **Fan-in gates**: expandable cards per fan-in node showing child-task IDs, outcome aggregates (passed / conflicted), merge decision, and validation results.
+  - **Re-plan history**: list of all replan decisions for the current run with trigger evidence, rejected alternatives, chosen mutation, and task-graph diffs.
+  - **Quick actions**: buttons to view node artifacts, open task detail, inspect handoff records, and export graph as DOT/SVG for external visualization.
+- Integrate panel updates into the iteration-completion event pathway so the graph view updates in real-time as orchestration progresses.
+- Link to existing `ralphCodex.showDashboard` so operators can navigate between status overview and orchestration detail.
+
+Acceptance criteria:
+- `ralphCodex.showOrchestrationPanel` command opens and renders without errors.
+- Graph visualization correctly displays node states and fan-in join logic.
+- Node timeline and fan-in gate sections correctly aggregate and display persisted artifacts.
+- Panel updates on each iteration-completion event with refreshed graph state.
+- `npm run validate` passes.
 
 ### Design principles and scope boundaries
 

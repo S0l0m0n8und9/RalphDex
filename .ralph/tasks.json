@@ -3964,7 +3964,69 @@
         "npm run validate passes"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T148",
+      "title": "Advance prd.md to record the Continued multi-agent evolution horizon (Items 20-23) as complete and define the next delivery horizon",
+      "status": "done",
+      "notes": "prd.md marked Continued multi-agent evolution horizon (Items 20-23) complete with 2026-04-16 date and summary; appended Next delivery horizon section with v0.3.0 release, orchestration smoke test, and dashboard panel targets",
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "prd.md marks the Continued multi-agent evolution horizon section as satisfied with a date (2026-04-16) and a compact summary covering Items 20-23",
+        "prd.md defines a new next delivery horizon section with at least three concrete targets: (1) v0.3.0 release preparation, (2) orchestration integration smoke test, (3) dashboard orchestration panel",
+        "npm run check:docs passes"
+      ],
+      "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T149",
+      "title": "v0.3.0 release preparation: CHANGELOG entry for Items 20-23 and version bump",
+      "status": "todo",
+      "dependsOn": [
+        "T148"
+      ],
+      "notes": "Mirrors the v0.2.0 release preparation (T128). Items 20-23 represent a substantial orchestration layer: durable graph-backed supervision, explicit handoff lifecycle, role policy enforcement, and bounded adaptive re-planning with fan-in gates and human choke points. This work warrants a minor version bump.",
+      "validation": "npm run validate",
+      "tier": "simple",
+      "acceptance": [
+        "package.json version is 0.3.0",
+        "CHANGELOG.md has a ## [0.3.0] entry with a dated summary covering Items 20-23 (orchestration graph/supervisor, handoff contracts, role topology, fan-out/fan-in, adaptive re-planning, human choke points)",
+        "npm run publish:dry-run passes with no blocking warnings",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T150",
+      "title": "Orchestration integration smoke test: exercise graph + handoffs + role policies + fan-in/fan-out end-to-end",
+      "status": "todo",
+      "notes": "Items 20-23 shipped the orchestration primitives individually but they have never been exercised together in a single coherent flow. This smoke test is the integration proof-of-concept that validates the full stack: orchestrationSupervisor + planGraph fan-in + handoffManager + rolePolicy enforcement + human choke points. Pattern mirrors test:e2e-pipeline.",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "An opt-in test:e2e-orchestration npm script (guarded behind RALPH_E2E_ORCHESTRATION=1) seeds a temp workspace, initializes an orchestration graph with at least one fanout/fanin wave, advances the graph through a stub agent execution, and asserts that (a) graph state.json is persisted, (b) parent task does not complete until fan-in gates are satisfied, (c) node span artifacts are written",
+        "Smoke test exercises at least one handoff lifecycle (propose->accept->complete) and asserts the handoff record transitions correctly",
+        "Smoke test exercises role policy enforcement: a reviewer-role agent attempt to emit a disallowed action produces a policy_violation stop reason",
+        "Human choke point gate artifact is written when scope_expansion threshold is crossed in the stub execution",
+        "docs/testing.md documents the new opt-in script alongside test:e2e-pipeline",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T151",
+      "title": "Dashboard orchestration panel: surface orchestration graph state, node spans, re-plan history, and fan-in gate status",
+      "status": "todo",
+      "notes": "The orchestration graph, span artifacts, re-plan decisions, and human gate artifacts were all introduced in Items 20-23 but are currently only accessible by reading raw JSON files. This task surfaces them in the existing dashboard WebviewPanelManager/MessageBridge stack, making orchestration state inspectable without leaving VS Code.",
+      "tier": "medium",
+      "acceptance": [
+        "The Ralphdex dashboard includes an Orchestration tab (or expandable section) that renders: current graph node, prior node outcomes (from node span artifacts), pending branch nodes, and fan-in gate open/closed/failed status",
+        "Re-plan artifacts (from replanDecisionPath) are listed with trigger evidence summary and resulting task-graph diff so operators can audit why a replan was triggered",
+        "Human gate artifacts (scope_expansion, dependency_rewiring, contested_fan_in_scm) appear in the orchestration panel with Approve/Reject actions wired through ralphCodex.approveHumanReview",
+        "Panel refreshes on filesystem changes to the orchestration state artifacts (state.json, span files, human-gate files) so it stays live during an active run",
+        "At least 5 regression tests cover the new orchestration panel rendering for empty state, active graph, and human-gate-pending states",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 157
+  "mutationCount": 159
 }
