@@ -110,6 +110,8 @@ exports.DEFAULT_CONFIG = {
         mode: 'inline'
     },
     failureDiagnostics: 'auto',
-    maxRecoveryAttempts: 3
+    maxRecoveryAttempts: 3,
+    maxReplansPerParent: 2,
+    maxGeneratedChildren: 8
 };
 //# sourceMappingURL=defaults.js.map

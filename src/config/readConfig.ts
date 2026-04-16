@@ -740,6 +740,8 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
       ['auto', 'off'],
       DEFAULT_CONFIG.failureDiagnostics
     ),
-    maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', DEFAULT_CONFIG.maxRecoveryAttempts, 1)
+    maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', DEFAULT_CONFIG.maxRecoveryAttempts, 1),
+    maxReplansPerParent: readNumber(config, 'maxReplansPerParent', DEFAULT_CONFIG.maxReplansPerParent, 1),
+    maxGeneratedChildren: readNumber(config, 'maxGeneratedChildren', DEFAULT_CONFIG.maxGeneratedChildren, 1)
   };
 }

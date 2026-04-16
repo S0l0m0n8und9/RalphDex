@@ -463,7 +463,9 @@ function readConfig(workspaceFolder) {
         prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate),
         planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass),
         failureDiagnostics: readEnum(config, 'failureDiagnostics', ['auto', 'off'], defaults_1.DEFAULT_CONFIG.failureDiagnostics),
-        maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', defaults_1.DEFAULT_CONFIG.maxRecoveryAttempts, 1)
+        maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', defaults_1.DEFAULT_CONFIG.maxRecoveryAttempts, 1),
+        maxReplansPerParent: readNumber(config, 'maxReplansPerParent', defaults_1.DEFAULT_CONFIG.maxReplansPerParent, 1),
+        maxGeneratedChildren: readNumber(config, 'maxGeneratedChildren', defaults_1.DEFAULT_CONFIG.maxGeneratedChildren, 1)
     };
 }
 //# sourceMappingURL=readConfig.js.map

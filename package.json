@@ -1044,6 +1044,18 @@
           "default": 3,
           "minimum": 1,
           "description": "Maximum number of recovery attempts Ralph will make after a classified failure before giving up and marking the task blocked."
+        },
+        "ralphCodex.maxReplansPerParent": {
+          "type": "number",
+          "default": 2,
+          "minimum": 1,
+          "description": "Maximum number of adaptive re-plan attempts per parent task before the replan node fails with replan_cap_exhausted and escalates to human review."
+        },
+        "ralphCodex.maxGeneratedChildren": {
+          "type": "number",
+          "default": 8,
+          "minimum": 1,
+          "description": "Maximum number of child tasks a single re-plan pass may generate. Waves exceeding this limit are truncated."
         }
       }
     }

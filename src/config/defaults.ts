@@ -109,5 +109,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
     mode: 'inline'
   } satisfies RalphPlanningPassConfig,
   failureDiagnostics: 'auto' satisfies FailureDiagnosticsMode,
-  maxRecoveryAttempts: 3
+  maxRecoveryAttempts: 3,
+  maxReplansPerParent: 2,
+  maxGeneratedChildren: 8
 };

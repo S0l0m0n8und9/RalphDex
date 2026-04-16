@@ -964,4 +964,6 @@ export interface PlanGraph {
   waves: ExecutionWave[];
   createdAt: string;
   fanInRecord?: FanInRecord;
+  /** Number of adaptive re-plan passes executed for this parent. Defaults to 0. */
+  replanCount?: number;
 }

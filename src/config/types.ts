@@ -201,4 +201,6 @@ export interface RalphCodexConfig {
   planningPass: RalphPlanningPassConfig;
   failureDiagnostics: FailureDiagnosticsMode;
   maxRecoveryAttempts: number;
+  maxReplansPerParent: number;
+  maxGeneratedChildren: number;
 }

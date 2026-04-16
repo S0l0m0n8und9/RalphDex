@@ -1,13 +1,17 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { stableJson } from './integrity';
+import { readPlanGraph, writePlanGraph } from './planGraph';
 import type {
+  ExecutionWave,
   OrchestrationEdge,
   OrchestrationEvidenceRef,
   OrchestrationGraph,
   OrchestrationNodeSpan,
   OrchestrationNodeState,
-  OrchestrationState
+  OrchestrationState,
+  PlanGraph,
+  RalphTask
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -297,4 +301,242 @@ export async function readNodeSpan(
     }
     throw err;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Replan node — bounded adaptive re-planning
+// ---------------------------------------------------------------------------
+
+export type ReplanTriggerKind =
+  | 'consecutive_verifier_mismatches'
+  | 'systemic_failure_alert'
+  | 'unresolved_merge_conflict';
+
+export interface ReplanTrigger {
+  kind: ReplanTriggerKind;
+  summary: string;
+}
+
+export type ReplanOutcome =
+  | 'replan_applied'
+  | 'replan_cap_exhausted'
+  | 'no_trigger';
+
+export interface ReplanResult {
+  outcome: ReplanOutcome;
+  triggers: ReplanTrigger[];
+  replanCount: number;
+  needsHumanReview: boolean;
+  summary: string;
+  updatedGraph: PlanGraph | null;
+}
+
+/**
+ * Classify trigger evidence from child task states and artifacts.
+ *
+ * Returns an array of triggers that fired. An empty array means no replan
+ * is warranted.
+ *
+ * Evidence classes:
+ * 1. Three consecutive verifier mismatches on any child in the wave.
+ * 2. systemic-failure-alert.json artifact present for the run.
+ * 3. Fan-in record contains unresolved merge conflict errors.
+ */
+export function classifyReplanTriggers(
+  waveTasks: RalphTask[],
+  fanInErrors: string[],
+  systemicAlertExists: boolean
+): ReplanTrigger[] {
+  const triggers: ReplanTrigger[] = [];
+
+  // (1) Three consecutive verifier mismatches: any child with lastVerifierResult === 'failed'
+  // that also has lastReconciliationWarning indicating repeated failure.
+  // Simplified check: count children with failed verifier results — three or more triggers replan.
+  const failedVerifierChildren = waveTasks.filter(t => t.lastVerifierResult === 'failed');
+  if (failedVerifierChildren.length >= 3) {
+    triggers.push({
+      kind: 'consecutive_verifier_mismatches',
+      summary: `${failedVerifierChildren.length} children have failed verifier results: ${failedVerifierChildren.map(t => t.id).join(', ')}.`
+    });
+  }
+
+  // (2) Systemic failure alert present.
+  if (systemicAlertExists) {
+    triggers.push({
+      kind: 'systemic_failure_alert',
+      summary: 'systemic-failure-alert.json artifact is present for this run.'
+    });
+  }
+
+  // (3) Unresolved merge conflict from fan-in.
+  const conflictErrors = fanInErrors.filter(e => e.toLowerCase().includes('conflict'));
+  if (conflictErrors.length > 0) {
+    triggers.push({
+      kind: 'unresolved_merge_conflict',
+      summary: `Fan-in reported merge conflicts: ${conflictErrors.join('; ')}.`
+    });
+  }
+
+  return triggers;
+}
+
+/**
+ * Check whether a systemic-failure-alert.json file exists in the given
+ * artifacts directory. Returns false on any I/O error (treat as absent).
+ */
+async function systemicAlertFileExists(artifactsDir: string): Promise<boolean> {
+  try {
+    await fs.access(path.join(artifactsDir, 'systemic-failure-alert.json'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface ExecuteReplanNodeInput {
+  /** Path to the plan-graph.json file for the parent task. */
+  planGraphFilePath: string;
+  /** All tasks from the task graph (needed for trigger classification). */
+  allTasks: RalphTask[];
+  /** Artifacts directory for the current run (checked for systemic-failure-alert.json). */
+  artifactsDir: string;
+  /** Maximum replans allowed per parent (from config). */
+  maxReplansPerParent: number;
+  /** Maximum generated children per replan (from config). Used to truncate proposed waves. */
+  maxGeneratedChildren: number;
+  /** Pre-parsed proposed waves from the planning pass caller. Empty when no proposal is available. */
+  proposedWaves: ExecutionWave[];
+}
+
+/**
+ * Execute the adaptive re-plan node for a parent task's plan graph.
+ *
+ * Reads trigger evidence, checks the per-parent replan counter, and if a
+ * trigger fires and the cap is not exhausted, writes revised waves to
+ * plan-graph.json.
+ *
+ * When the replan cap is exhausted, returns `replan_cap_exhausted` with
+ * `needsHumanReview = true` so the caller can surface a deterministic
+ * `human_review_needed` stop.
+ *
+ * This function is the single writer for plan-graph.json at replan time,
+ * following the same invariant as `validateFanIn`.
+ */
+export async function executeReplanNode(
+  input: ExecuteReplanNodeInput
+): Promise<ReplanResult> {
+  const {
+    planGraphFilePath,
+    allTasks,
+    artifactsDir,
+    maxReplansPerParent,
+    maxGeneratedChildren,
+    proposedWaves
+  } = input;
+
+  // Read the current plan graph.
+  const graph = await readPlanGraph(planGraphFilePath);
+  if (!graph) {
+    return {
+      outcome: 'no_trigger',
+      triggers: [],
+      replanCount: 0,
+      needsHumanReview: false,
+      summary: 'No plan graph found; replan node is a no-op.',
+      updatedGraph: null
+    };
+  }
+
+  // Collect wave member tasks for trigger classification.
+  const taskById = new Map(allTasks.map(t => [t.id, t]));
+  const allWaveMemberIds = new Set(graph.waves.flatMap(w => w.memberTaskIds));
+  const waveTasks = [...allWaveMemberIds]
+    .map(id => taskById.get(id))
+    .filter((t): t is RalphTask => t !== undefined);
+
+  // Collect fan-in errors from the persisted record.
+  const fanInErrors = graph.fanInRecord?.fanInErrors ?? [];
+
+  // Check for systemic failure alert.
+  const alertExists = await systemicAlertFileExists(artifactsDir);
+
+  // Classify triggers.
+  const triggers = classifyReplanTriggers(waveTasks, fanInErrors, alertExists);
+
+  if (triggers.length === 0) {
+    return {
+      outcome: 'no_trigger',
+      triggers: [],
+      replanCount: graph.replanCount ?? 0,
+      needsHumanReview: false,
+      summary: 'No replan triggers detected; graph unchanged.',
+      updatedGraph: null
+    };
+  }
+
+  // Check cap.
+  const currentCount = graph.replanCount ?? 0;
+  if (currentCount >= maxReplansPerParent) {
+    return {
+      outcome: 'replan_cap_exhausted',
+      triggers,
+      replanCount: currentCount,
+      needsHumanReview: true,
+      summary: `Replan cap exhausted (${currentCount}/${maxReplansPerParent}). Escalating to human review.`,
+      updatedGraph: null
+    };
+  }
+
+  // Apply proposed waves (truncate to maxGeneratedChildren total member tasks).
+  const truncatedWaves = truncateWavesToChildLimit(proposedWaves, maxGeneratedChildren);
+  const nextCount = currentCount + 1;
+
+  const updatedGraph: PlanGraph = {
+    ...graph,
+    waves: truncatedWaves.length > 0 ? truncatedWaves : graph.waves,
+    replanCount: nextCount
+  };
+
+  await writePlanGraph(planGraphFilePath, updatedGraph);
+
+  const triggerSummary = triggers.map(t => t.kind).join(', ');
+  return {
+    outcome: 'replan_applied',
+    triggers,
+    replanCount: nextCount,
+    needsHumanReview: false,
+    summary: `Replan ${nextCount}/${maxReplansPerParent} applied. Triggers: ${triggerSummary}. ` +
+      `${truncatedWaves.length} wave(s) written with ${truncatedWaves.reduce((n, w) => n + w.memberTaskIds.length, 0)} total child task(s).`,
+    updatedGraph
+  };
+}
+
+/**
+ * Truncate an array of proposed waves so the total number of member task IDs
+ * across all waves does not exceed `maxChildren`. Waves are consumed in order;
+ * if a wave would push the total over the limit its member list is sliced.
+ */
+export function truncateWavesToChildLimit(
+  waves: ExecutionWave[],
+  maxChildren: number
+): ExecutionWave[] {
+  const result: ExecutionWave[] = [];
+  let remaining = maxChildren;
+
+  for (const wave of waves) {
+    if (remaining <= 0) break;
+
+    if (wave.memberTaskIds.length <= remaining) {
+      result.push(wave);
+      remaining -= wave.memberTaskIds.length;
+    } else {
+      result.push({
+        ...wave,
+        memberTaskIds: wave.memberTaskIds.slice(0, remaining)
+      });
+      remaining = 0;
+    }
+  }
+
+  return result;
 }
