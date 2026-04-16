@@ -59,6 +59,11 @@
 		"ralphCodex.ralphTaskFilePath": ".ralph/tasks.json",
 		"ralphCodex.progressPath": ".ralph/progress.md",
 		"ralphCodex.autonomyMode": "supervised",
-		"ralphCodex.memoryStrategy": "summary"
+		"ralphCodex.memoryStrategy": "summary",
+		"ralphCodex.azureFoundry": {
+			"auth": {
+				"mode": "az-bearer"
+			}
+		}
 	}
 }

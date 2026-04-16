@@ -3887,10 +3887,11 @@
     {
       "id": "T144",
       "title": "Item 23 Phase 2: fan-in gate execution in planGraph.ts and reconciliation",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T143"
       ],
+      "notes": "All acceptance criteria verified: validateFanIn helper, merge-conflict and validation-aggregate checks, FanInRecord persistence, reconciliation integration with parent-revert logic, and 4 unit tests all in place. 972/972 tests pass.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -3959,5 +3960,5 @@
       ]
     }
   ],
-  "mutationCount": 153
+  "mutationCount": 154
 }
