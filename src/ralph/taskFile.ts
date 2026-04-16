@@ -137,6 +137,13 @@ function normalizeTaskTier(value: unknown): RalphTask['tier'] | undefined {
   return undefined;
 }
 
+function normalizeVerifierResult(value: unknown): RalphTask['lastVerifierResult'] | undefined {
+  if (value === 'passed' || value === 'failed' || value === 'skipped') {
+    return value;
+  }
+  return undefined;
+}
+
 /**
  * Coerces an optional string-array field: keeps only string entries, trims each,
  * filters out empties, and returns `undefined` when the result array is empty.
@@ -471,6 +478,9 @@ export function normalizeTask(candidate: unknown, source?: RalphTaskSourceLocati
     acceptance: normalizeOptionalStringArray(record, 'acceptance'),
     constraints: normalizeOptionalStringArray(record, 'constraints'),
     context: normalizeOptionalStringArray(record, 'context'),
+    writeRiskLabels: normalizeOptionalStringArray(record, 'writeRiskLabels'),
+    lastVerifierResult: normalizeVerifierResult(record.lastVerifierResult),
+    lastReconciliationWarning: normalizeOptionalString(record, 'lastReconciliationWarning'),
     source
   };
 }

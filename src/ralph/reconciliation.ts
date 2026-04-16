@@ -2,7 +2,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Logger } from '../services/logger';
 import { CompletionReportArtifact, parseCompletionReport } from './completionReportParser';
-import { writeWatchdogDiagnosticArtifact } from './artifactStore';
+import { writeWatchdogDiagnosticArtifact, planGraphPath } from './artifactStore';
+import { readPlanGraph, validateFanIn } from './planGraph';
 import { readTaskPlan } from './planningPass';
 import { resolveHandoffDir } from './handoffManager';
 import {
@@ -281,10 +282,28 @@ export async function reconcileCompletionReport(
             nextTask.validation = suggestedValidationFromPlan;
           }
 
+          // Persist verifier result so fan-in gates can aggregate child outcomes.
+          const verifierResult: RalphTask['lastVerifierResult'] =
+            input.verificationStatus === 'passed' ? 'passed'
+              : input.verificationStatus === 'skipped' ? 'skipped'
+                : input.verificationStatus ? 'failed'
+                  : undefined;
+          if (verifierResult) {
+            nextTask.lastVerifierResult = verifierResult;
+          }
+
+          // Capture conflict warnings so fan-in can detect unresolved merge conflicts.
+          const conflictWarning = warnings.find(w => w.toLowerCase().includes('conflict'));
+          if (conflictWarning) {
+            nextTask.lastReconciliationWarning = conflictWarning;
+          }
+
           taskFileChanged = nextTask.status !== task.status
             || nextTask.notes !== task.notes
             || nextTask.blocker !== task.blocker
-            || nextTask.validation !== task.validation;
+            || nextTask.validation !== task.validation
+            || nextTask.lastVerifierResult !== task.lastVerifierResult
+            || nextTask.lastReconciliationWarning !== task.lastReconciliationWarning;
 
           return nextTask;
         })
@@ -340,6 +359,39 @@ export async function reconcileCompletionReport(
     .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
   for (const diagnostic of driftDiagnostics) {
     warnings.push(`Ledger drift after reconciliation: ${diagnostic.message}`);
+  }
+
+  // Fan-in gate: when a child task completes and its parent has a plan-graph,
+  // evaluate whether all children in the wave are done and conflict-free.
+  // If fan-in fails, revert the parent's auto-completion so it stays in_progress.
+  if (requestedStatus === 'done' && input.selectedTask.parentId) {
+    const graphPath = planGraphPath(input.prepared.paths.artifactDir, input.selectedTask.parentId);
+    const graph = await readPlanGraph(graphPath);
+    if (graph) {
+      const fanIn = await validateFanIn(graphPath, graph, postReconciliationTaskFile.tasks);
+      if (!fanIn.passed) {
+        // Revert parent auto-completion: acquire the lock and set parent back to in_progress.
+        const parentTask = findTaskById(postReconciliationTaskFile, input.selectedTask.parentId);
+        if (parentTask?.status === 'done') {
+          await withTaskFileLock(input.taskFilePath, undefined, async () => {
+            const current = parseTaskFile(await fs.readFile(input.taskFilePath, 'utf8'));
+            const reverted = bumpMutationCount({
+              ...current,
+              tasks: current.tasks.map(t =>
+                t.id === input.selectedTask!.parentId && t.status === 'done'
+                  ? { ...t, status: 'in_progress' as const }
+                  : t
+              )
+            });
+            await fs.writeFile(input.taskFilePath, stringifyTaskFile(reverted), 'utf8');
+          });
+          taskFileChanged = true;
+        }
+        for (const err of fanIn.errors) {
+          warnings.push(`Fan-in gate failed for parent '${input.selectedTask.parentId}': ${err}`);
+        }
+      }
+    }
   }
 
   if (warnings.length > 0) {

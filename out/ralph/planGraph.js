@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.writePlanGraph = writePlanGraph;
 exports.readPlanGraph = readPlanGraph;
 exports.validateWaveSafety = validateWaveSafety;
+exports.validateFanIn = validateFanIn;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const integrity_1 = require("./integrity");
@@ -126,5 +127,89 @@ function validateWaveSafety(wave, allTasks) {
         }
     }
     return errors;
+}
+/**
+ * Evaluate whether all child tasks in the plan graph's wave have completed
+ * successfully, with no merge conflicts or validation failures.
+ *
+ * Writes the {@link FanInRecord} back to `plan-graph.json` as a side effect
+ * so the outcome is durable and inspectable.
+ *
+ * Must be called **outside** the tasks.json lock because it writes to a
+ * separate file (`plan-graph.json`) with no concurrent writers at this phase.
+ */
+async function validateFanIn(planGraphFilePath, graph, allTasks) {
+    const errors = [];
+    const taskById = new Map(allTasks.map(t => [t.id, t]));
+    // Find the wave whose memberTaskIds correspond to the parent's children.
+    // Use the last wave (highest waveIndex) that has members, which represents
+    // the final fan-in point before the parent can complete.
+    const wave = [...graph.waves]
+        .sort((a, b) => b.waveIndex - a.waveIndex)
+        .find(w => w.memberTaskIds.length > 0);
+    if (!wave) {
+        errors.push('No wave with member tasks found in plan graph.');
+        const record = {
+            waveIndex: -1,
+            memberOutcomes: {},
+            fanInResult: 'failed',
+            fanInErrors: errors,
+            evaluatedAt: new Date().toISOString()
+        };
+        await writePlanGraph(planGraphFilePath, { ...graph, fanInRecord: record });
+        return { passed: false, errors };
+    }
+    const memberOutcomes = {};
+    for (const memberId of wave.memberTaskIds) {
+        const task = taskById.get(memberId);
+        if (!task) {
+            errors.push(`Member task '${memberId}' not found in task graph.`);
+            memberOutcomes[memberId] = 'failed';
+            continue;
+        }
+        if (task.status === 'done') {
+            // Check for validation failure on the child.
+            if (task.lastVerifierResult === 'failed') {
+                memberOutcomes[memberId] = 'failed';
+            }
+            else {
+                memberOutcomes[memberId] = 'done';
+            }
+        }
+        else if (task.status === 'blocked') {
+            memberOutcomes[memberId] = 'blocked';
+        }
+        else {
+            // in_progress or todo — not yet complete.
+            memberOutcomes[memberId] = 'blocked';
+        }
+        // Check for unresolved merge conflicts.
+        if (task.lastReconciliationWarning?.toLowerCase().includes('conflict')) {
+            errors.push(`Unresolved merge conflict on child '${memberId}': ${task.lastReconciliationWarning}`);
+        }
+        // Check for validation aggregate failure.
+        if (task.lastVerifierResult === 'failed') {
+            errors.push(`Validation failed on child '${memberId}'.`);
+        }
+    }
+    // All members must be 'done' for the fan-in to pass.
+    const allDone = Object.values(memberOutcomes).every(o => o === 'done');
+    if (!allDone) {
+        const incomplete = Object.entries(memberOutcomes)
+            .filter(([, o]) => o !== 'done')
+            .map(([id, o]) => `'${id}' (${o})`)
+            .join(', ');
+        errors.push(`Not all member tasks are done: ${incomplete}.`);
+    }
+    const passed = errors.length === 0;
+    const record = {
+        waveIndex: wave.waveIndex,
+        memberOutcomes,
+        fanInResult: passed ? 'passed' : 'failed',
+        fanInErrors: errors,
+        evaluatedAt: new Date().toISOString()
+    };
+    await writePlanGraph(planGraphFilePath, { ...graph, fanInRecord: record });
+    return { passed, errors };
 }
 //# sourceMappingURL=planGraph.js.map

@@ -3883,7 +3883,81 @@
         "The context-envelope artifact is written after prompt construction and before CLI handoff so the envelope reflects the actual prompt content",
         "Context-envelope artifact persistence is complete and passes validation"
       ]
+    },
+    {
+      "id": "T144",
+      "title": "Item 23 Phase 2: fan-in gate execution in planGraph.ts and reconciliation",
+      "status": "in_progress",
+      "dependsOn": [
+        "T143"
+      ],
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "validateFanIn(planGraph, allTasks, allClaims) helper added to planGraph.ts: collects child-task outcomes from tasks.json, checks all member tasks in the wave are done, returns errors when any member is still in_progress/todo/blocked",
+        "Fan-in gate checks merge conflict summary: if any child has a reconciliationWarning containing 'conflict', the fan-in fails with an explicit 'unresolved_merge_conflict' error",
+        "Fan-in gate checks validation aggregate: if any child task has a lastVerifierResult of 'failed', the fan-in fails with 'validation_aggregate_failed' error",
+        "Parent task acceptance-criteria re-evaluation is persisted in plan-graph.json when fan-in runs: waveIndex, memberOutcomes (done/blocked/failed per child), fanInResult ('passed' | 'failed'), fanInErrors (string[]), evaluatedAt timestamp",
+        "reconciliation.ts calls validateFanIn before allowing parent task to transition to done when a plan-graph.json exists for that parent; blocks parent completion when fan-in fails",
+        "Unit tests cover: all children done + no conflicts → fan-in passes; one child blocked → fan-in fails; merge conflict warning present → fan-in fails; validation failure on child → fan-in fails",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T145",
+      "title": "Item 23 Phase 3: bounded adaptive re-planning node in orchestrationSupervisor",
+      "status": "todo",
+      "dependsOn": [
+        "T144"
+      ],
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "'replan' added to OrchestrationNodeKind union in types.ts",
+        "orchestrationSupervisor.ts handles 'replan' node kind: reads trigger evidence (verifier mismatch, systemic failure alert, unresolved merge conflict), invokes the planning pass machinery (planningPass inline mode) to propose new child tasks, writes updated plan-graph.json with revised waves",
+        "Replan is capped per parent: ralphCodex.maxReplansPerParent (number, default 2) and ralphCodex.maxGeneratedChildren (number, default 8) config settings added to types.ts, defaults.ts, readConfig.ts, and package.json; replan node fails with 'replan_cap_exhausted' when limit reached",
+        "replan_cap_exhausted triggers needsHumanReview=true and a deterministic operator escalation stop (human_review_needed) so the loop pauses rather than looping infinitely",
+        "Evidence classes that trigger replan: (1) three consecutive verifier mismatches on any child in the wave, (2) systemic-failure-alert.json artifact present for the run, (3) validateFanIn returns unresolved_merge_conflict after reviewer pass",
+        "Unit tests cover: replan node advances graph state, cap exhaustion produces escalation, evidence-class triggers fire correctly, non-trigger evidence does not produce replan node",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T146",
+      "title": "Item 23 Phase 4: re-plan decision artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T145"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "replanDecisionPath(artifactRootDir, parentTaskId, replanIndex) helper added to artifactStore.ts returning .ralph/artifacts/<parentTaskId>/replan-<index>.json",
+        "orchestrationSupervisor.ts writes a replan decision artifact on every successful replan: triggerEvidenceClass, triggerDetails (summary of the triggering evidence), rejectedAlternatives (string[]), chosenMutation (description of the new task-graph change), taskGraphDiff (added/removed/modified task ids), replanIndex, createdAt",
+        "Re-plan artifacts are protected from generated-artifact cleanup (artifactStore.ts retention logic preserves replan-*.json entries referenced from plan-graph.json)",
+        "Show Status includes a Re-planning section when any replan artifact exists for the latest pipeline run: shows parent task, trigger evidence, replan count vs cap, and outcome",
+        "Unit tests cover: artifact written at correct path, artifact content includes all required fields, Show Status renders re-planning section when artifact present",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T147",
+      "title": "Item 23 Phase 5: human choke points for high-risk mutations",
+      "status": "todo",
+      "dependsOn": [
+        "T145"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Three human choke points implemented in orchestrationSupervisor.ts and/or reconciliation.ts, each gated behind pipelineHumanGates config (existing setting): (1) scope expansion gate — if replan adds more than ralphCodex.maxGeneratedChildren/2 new tasks, emit needsHumanReview=true before applying the mutation; (2) dependency rewiring gate — if replan modifies dependsOn edges that cross parent task boundaries (child of task A gains a dependency on a child of task B), emit needsHumanReview=true; (3) SCM actions after contested fan-in — if fan-in had unresolved conflicts and a subsequent node attempts scm_submit, emit needsHumanReview=true",
+        "When pipelineHumanGates is false, all three choke points are bypassed and mutations apply immediately (existing gate bypass behavior preserved)",
+        "Each choke point emits a deterministic gate artifact to .ralph/artifacts/<parentTaskId>/human-gate-<type>.json with: gateType, triggerReason, affectedTaskIds, requiredApprovalCommand, createdAt",
+        "approveHumanReview command (existing ralphCodex.approveHumanReview) clears any pending gate artifact and allows the supervisor to resume",
+        "Unit tests cover: scope expansion above threshold triggers gate when pipelineHumanGates=true, same mutation bypasses gate when pipelineHumanGates=false, dependency rewiring across parent boundaries triggers gate, contested fan-in followed by scm_submit triggers gate",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 152
+  "mutationCount": 153
 }

@@ -67,6 +67,10 @@ export interface RalphTask {
   context?: string[];
   /** leave-absent. Write-risk labels for fan-out wave safety validation. Tasks sharing a label cannot run in the same wave. */
   writeRiskLabels?: string[];
+  /** leave-absent. Last verifier outcome recorded during reconciliation. */
+  lastVerifierResult?: 'passed' | 'failed' | 'skipped';
+  /** leave-absent. Last reconciliation warning snippet when a conflict was detected. */
+  lastReconciliationWarning?: string;
   /** preserve-source. Parser-injected diagnostic location. Not persisted to disk; stripped during serialization. */
   source?: RalphTaskSourceLocation;
 }
@@ -945,8 +949,19 @@ export interface ExecutionWave {
   status: ExecutionWaveStatus;
 }
 
+export type FanInMemberOutcome = 'done' | 'blocked' | 'failed';
+
+export interface FanInRecord {
+  waveIndex: number;
+  memberOutcomes: Record<string, FanInMemberOutcome>;
+  fanInResult: 'passed' | 'failed';
+  fanInErrors: string[];
+  evaluatedAt: string;
+}
+
 export interface PlanGraph {
   parentTaskId: string;
   waves: ExecutionWave[];
   createdAt: string;
+  fanInRecord?: FanInRecord;
 }

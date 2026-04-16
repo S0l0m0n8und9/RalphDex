@@ -145,6 +145,12 @@ function normalizeTaskTier(value) {
     }
     return undefined;
 }
+function normalizeVerifierResult(value) {
+    if (value === 'passed' || value === 'failed' || value === 'skipped') {
+        return value;
+    }
+    return undefined;
+}
 /**
  * Coerces an optional string-array field: keeps only string entries, trims each,
  * filters out empties, and returns `undefined` when the result array is empty.
@@ -426,6 +432,9 @@ function normalizeTask(candidate, source) {
         acceptance: normalizeOptionalStringArray(record, 'acceptance'),
         constraints: normalizeOptionalStringArray(record, 'constraints'),
         context: normalizeOptionalStringArray(record, 'context'),
+        writeRiskLabels: normalizeOptionalStringArray(record, 'writeRiskLabels'),
+        lastVerifierResult: normalizeVerifierResult(record.lastVerifierResult),
+        lastReconciliationWarning: normalizeOptionalString(record, 'lastReconciliationWarning'),
         source
     };
 }

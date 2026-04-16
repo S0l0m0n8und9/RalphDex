@@ -6,6 +6,7 @@ import test from 'node:test';
 import { planGraphPath } from '../src/ralph/artifactStore';
 import {
   readPlanGraph,
+  validateFanIn,
   validateWaveSafety,
   writePlanGraph
 } from '../src/ralph/planGraph';
@@ -207,4 +208,119 @@ test('validateWaveSafety reports both dependency and write-risk violations', () 
   const hasWriteError = errors.some(e => e.includes('Write-risk conflict'));
   assert.ok(hasDepError, 'expected an unresolved dependency error');
   assert.ok(hasWriteError, 'expected a write-risk conflict error');
+});
+
+// ---------------------------------------------------------------------------
+// validateFanIn — all children done, no conflicts → passes
+// ---------------------------------------------------------------------------
+
+test('validateFanIn passes when all children are done with passing verification', async () => {
+  const tmpDir = await makeTempDir();
+  const filePath = path.join(tmpDir, 'T50', 'plan-graph.json');
+  const graph: PlanGraph = {
+    parentTaskId: 'T50',
+    waves: [makeWave({ waveIndex: 0, memberTaskIds: ['T51', 'T52'] })],
+    createdAt: '2026-04-16T00:00:00.000Z'
+  };
+  await writePlanGraph(filePath, graph);
+
+  const tasks: RalphTask[] = [
+    makeTask({ id: 'T51', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'T52', status: 'done', lastVerifierResult: 'passed' })
+  ];
+
+  const result = await validateFanIn(filePath, graph, tasks);
+  assert.equal(result.passed, true);
+  assert.deepEqual(result.errors, []);
+
+  // Verify the fan-in record was persisted.
+  const persisted = await readPlanGraph(filePath);
+  assert.ok(persisted?.fanInRecord);
+  assert.equal(persisted!.fanInRecord!.fanInResult, 'passed');
+  assert.equal(persisted!.fanInRecord!.waveIndex, 0);
+  assert.deepEqual(persisted!.fanInRecord!.memberOutcomes, { T51: 'done', T52: 'done' });
+});
+
+// ---------------------------------------------------------------------------
+// validateFanIn — one child blocked → fails
+// ---------------------------------------------------------------------------
+
+test('validateFanIn fails when a child is blocked', async () => {
+  const tmpDir = await makeTempDir();
+  const filePath = path.join(tmpDir, 'T50', 'plan-graph.json');
+  const graph: PlanGraph = {
+    parentTaskId: 'T50',
+    waves: [makeWave({ waveIndex: 0, memberTaskIds: ['T51', 'T52'] })],
+    createdAt: '2026-04-16T00:00:00.000Z'
+  };
+  await writePlanGraph(filePath, graph);
+
+  const tasks: RalphTask[] = [
+    makeTask({ id: 'T51', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'T52', status: 'blocked' })
+  ];
+
+  const result = await validateFanIn(filePath, graph, tasks);
+  assert.equal(result.passed, false);
+  assert.ok(result.errors.some(e => e.includes('Not all member tasks are done')));
+  assert.ok(result.errors.some(e => e.includes('T52')));
+
+  const persisted = await readPlanGraph(filePath);
+  assert.equal(persisted!.fanInRecord!.fanInResult, 'failed');
+  assert.equal(persisted!.fanInRecord!.memberOutcomes['T52'], 'blocked');
+});
+
+// ---------------------------------------------------------------------------
+// validateFanIn — merge conflict warning → fails
+// ---------------------------------------------------------------------------
+
+test('validateFanIn fails when a child has a merge conflict warning', async () => {
+  const tmpDir = await makeTempDir();
+  const filePath = path.join(tmpDir, 'T50', 'plan-graph.json');
+  const graph: PlanGraph = {
+    parentTaskId: 'T50',
+    waves: [makeWave({ waveIndex: 0, memberTaskIds: ['T51', 'T52'] })],
+    createdAt: '2026-04-16T00:00:00.000Z'
+  };
+  await writePlanGraph(filePath, graph);
+
+  const tasks: RalphTask[] = [
+    makeTask({ id: 'T51', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'T52', status: 'done', lastVerifierResult: 'passed', lastReconciliationWarning: 'Merge conflict detected in src/foo.ts' })
+  ];
+
+  const result = await validateFanIn(filePath, graph, tasks);
+  assert.equal(result.passed, false);
+  assert.ok(result.errors.some(e => e.includes('conflict') || e.includes('Merge conflict')));
+
+  const persisted = await readPlanGraph(filePath);
+  assert.equal(persisted!.fanInRecord!.fanInResult, 'failed');
+});
+
+// ---------------------------------------------------------------------------
+// validateFanIn — validation failure on child → fails
+// ---------------------------------------------------------------------------
+
+test('validateFanIn fails when a child has a failed verifier result', async () => {
+  const tmpDir = await makeTempDir();
+  const filePath = path.join(tmpDir, 'T50', 'plan-graph.json');
+  const graph: PlanGraph = {
+    parentTaskId: 'T50',
+    waves: [makeWave({ waveIndex: 0, memberTaskIds: ['T51', 'T52'] })],
+    createdAt: '2026-04-16T00:00:00.000Z'
+  };
+  await writePlanGraph(filePath, graph);
+
+  const tasks: RalphTask[] = [
+    makeTask({ id: 'T51', status: 'done', lastVerifierResult: 'passed' }),
+    makeTask({ id: 'T52', status: 'done', lastVerifierResult: 'failed' })
+  ];
+
+  const result = await validateFanIn(filePath, graph, tasks);
+  assert.equal(result.passed, false);
+  assert.ok(result.errors.some(e => e.includes('Validation failed') && e.includes('T52')));
+
+  const persisted = await readPlanGraph(filePath);
+  assert.equal(persisted!.fanInRecord!.fanInResult, 'failed');
+  assert.equal(persisted!.fanInRecord!.memberOutcomes['T52'], 'failed');
 });
