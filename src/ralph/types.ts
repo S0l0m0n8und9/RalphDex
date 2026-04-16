@@ -969,6 +969,25 @@ export interface PlanGraph {
 }
 
 // ---------------------------------------------------------------------------
+// Human gate artifacts
+// ---------------------------------------------------------------------------
+
+export type HumanGateType = 'scope_expansion' | 'dependency_rewiring' | 'contested_fan_in_scm';
+
+/**
+ * Written to `<artifactRootDir>/<parentTaskId>/human-gate-<type>.json` whenever
+ * a human choke point fires. The `approveHumanReview` command deletes this file
+ * to signal approval and allow the supervisor to resume.
+ */
+export interface HumanGateArtifact {
+  gateType: HumanGateType;
+  triggerReason: string;
+  affectedTaskIds: string[];
+  requiredApprovalCommand: 'ralphCodex.approveHumanReview';
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
 // Re-plan decision artifact
 // ---------------------------------------------------------------------------
 

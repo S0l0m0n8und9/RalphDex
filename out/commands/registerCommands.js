@@ -64,6 +64,7 @@ const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
 const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
+const orchestrationSupervisor_1 = require("../ralph/orchestrationSupervisor");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -1394,6 +1395,19 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             }
             catch (error) {
                 logger.error('approveHumanReview: failed to remove pending handoff file.', error);
+            }
+            // Clear any pending human gate artifacts so the supervisor can resume.
+            const gateTypes = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
+            try {
+                const artifactSubDirs = await fs.readdir(paths.artifactDir).catch(() => []);
+                for (const subDir of artifactSubDirs) {
+                    for (const gateType of gateTypes) {
+                        await (0, orchestrationSupervisor_1.clearHumanGateArtifact)(paths.artifactDir, subDir, gateType);
+                    }
+                }
+            }
+            catch (error) {
+                logger.error('approveHumanReview: failed to clear human gate artifacts.', error);
             }
             logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
             const prSuffix = prUrl ? ` PR: ${prUrl}` : '';

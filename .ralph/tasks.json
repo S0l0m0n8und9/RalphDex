@@ -3948,10 +3948,11 @@
     {
       "id": "T147",
       "title": "Item 23 Phase 5: human choke points for high-risk mutations",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T145"
       ],
+      "notes": "Implemented three human choke points (scope_expansion, dependency_rewiring, contested_fan_in_scm) in orchestrationSupervisor.ts, each gated behind pipelineHumanGates config. Gate artifacts written to .ralph/artifacts/<parentTaskId>/human-gate-<type>.json. approveHumanReview command extended to clear gate artifacts. 17 unit tests added covering all acceptance criteria scenarios.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -3961,8 +3962,9 @@
         "approveHumanReview command (existing ralphCodex.approveHumanReview) clears any pending gate artifact and allows the supervisor to resume",
         "Unit tests cover: scope expansion above threshold triggers gate when pipelineHumanGates=true, same mutation bypasses gate when pipelineHumanGates=false, dependency rewiring across parent boundaries triggers gate, contested fan-in followed by scm_submit triggers gate",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 156
+  "mutationCount": 157
 }

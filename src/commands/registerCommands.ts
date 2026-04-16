@@ -67,6 +67,8 @@ import {
 import { collectStatusSnapshot } from './statusSnapshot';
 import { buildDashboardSnapshot, type DiagnosisSection } from '../webview/dashboardSnapshot';
 import { autoApplyMarkBlockedRemediation } from '../ralph/taskDecomposition';
+import { clearHumanGateArtifact } from '../ralph/orchestrationSupervisor';
+import type { HumanGateType } from '../ralph/types';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -1728,6 +1730,19 @@ export function registerCommands(
         await fs.unlink(selectedPath);
       } catch (error) {
         logger.error('approveHumanReview: failed to remove pending handoff file.', error);
+      }
+
+      // Clear any pending human gate artifacts so the supervisor can resume.
+      const gateTypes: HumanGateType[] = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
+      try {
+        const artifactSubDirs = await fs.readdir(paths.artifactDir).catch(() => [] as string[]);
+        for (const subDir of artifactSubDirs) {
+          for (const gateType of gateTypes) {
+            await clearHumanGateArtifact(paths.artifactDir, subDir, gateType);
+          }
+        }
+      } catch (error) {
+        logger.error('approveHumanReview: failed to clear human gate artifacts.', error);
       }
 
       logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
