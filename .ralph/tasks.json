@@ -3907,10 +3907,11 @@
     {
       "id": "T145",
       "title": "Item 23 Phase 3: bounded adaptive re-planning node in orchestrationSupervisor",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T144"
       ],
+      "notes": "Implemented bounded adaptive re-planning node: executeReplanNode with trigger classification, cap enforcement, wave truncation, config wiring, and 13 unit tests. 985/985 tests pass.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -3921,7 +3922,8 @@
         "Evidence classes that trigger replan: (1) three consecutive verifier mismatches on any child in the wave, (2) systemic-failure-alert.json artifact present for the run, (3) validateFanIn returns unresolved_merge_conflict after reviewer pass",
         "Unit tests cover: replan node advances graph state, cap exhaustion produces escalation, evidence-class triggers fire correctly, non-trigger evidence does not produce replan node",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T146",
@@ -3960,5 +3962,5 @@
       ]
     }
   ],
-  "mutationCount": 154
+  "mutationCount": 155
 }
