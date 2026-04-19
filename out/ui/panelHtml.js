@@ -1409,6 +1409,8 @@ function buildDashboardSidebar(state) {
       <div class="dashboard-sidebar-actions">
         <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.showMultiAgentStatus"><span class="btn-label">Agent Status</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       </div>
@@ -1489,7 +1491,7 @@ function buildOverviewTab(state) {
               </div>`
         : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
             ? '<div class="empty">Loading workspace data...</div>'
-            : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
+            : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePrd"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
         </div>
 
         <div class="card">
@@ -1525,7 +1527,7 @@ function buildWorkTab(state) {
             ? activeTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
-                : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
+                : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePrd"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
         ${!allDone && doneTasks.length > 0
         ? `<details data-section="completed-tasks">
               <summary class="completed-toggle">Completed (${doneTasks.length})</summary>

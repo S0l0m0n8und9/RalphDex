@@ -352,6 +352,15 @@ test('buildPanelDashboardHtml quick actions expose latest artifact and settings 
   assert.ok(html.includes('workbench.action.openSettings'));
 });
 
+test('buildPanelDashboardHtml rail preserves live operator shortcuts', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-rail');
+
+  assert.ok(html.includes('ralphCodex.showRalphStatus'));
+  assert.ok(html.includes('ralphCodex.showMultiAgentStatus'));
+  assert.ok(html.includes('ralphCodex.showTasks'));
+  assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
+});
+
 test('buildPanelDashboardHtml renders a live hero summary from durable state', () => {
   const html = buildPanelDashboardHtml(defaultState({
     loopState: 'running',
@@ -512,4 +521,11 @@ test('buildPanelDashboardHtml uses the dashboard view intent to open the setting
 test('buildPanelDashboardHtml hides settings inputs when settingsSurface is null', () => {
   const html = buildPanelDashboardHtml(defaultState({ settingsSurface: null }), 'n13');
   assert.ok(!html.includes('data-setting="operatorMode"'));
+});
+
+test('buildPanelDashboardHtml empty states use the registered regeneratePrd command id', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'n14');
+
+  assert.ok(!html.includes('ralphCodex.regeneratePRD'));
+  assert.ok(html.includes('ralphCodex.regeneratePrd'));
 });

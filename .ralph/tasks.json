@@ -4122,11 +4122,11 @@
     {
       "id": "T157",
       "title": "Wire refreshed sidebar and dashboard detail surfaces to live commands, task seeding, and durable state",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T156"
       ],
-      "notes": "Carry the UXrefresh integration through the production sidebar, task-detail affordances, task seeding entry points, and other dashboard subsections so the shipped UI matches the prototype direction without losing real-data bindings or operator workflows.",
+      "notes": "Wired the refreshed sidebar and panel rail to registered live commands, corrected stale regeneratePrd command ids in empty states, added focused UI regression tests, and passed npm run validate.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -4134,7 +4134,8 @@
         "Task, pipeline, orchestration, diagnostics, and settings affordances exposed by the refreshed UI are wired to live extension commands or snapshot-backed state rather than demo placeholders",
         "Core operator workflows remain available after the refresh, including status inspection, task seeding, orchestration visibility, diagnostics access, and settings navigation",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T158",
@@ -4173,5 +4174,5 @@
       ]
     }
   ],
-  "mutationCount": 171
+  "mutationCount": 172
 }
