@@ -4050,11 +4050,11 @@
     {
       "id": "T153",
       "title": "Command-palette epic seeding flow: prompt for a feature request and append generated tasks through the shared pipeline",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T152"
       ],
-      "notes": "Extend the shipped manual Add Task surface with an AI-backed path for backlog seeding from a fresh epic or feature request. Keep the operator workflow deterministic: one request in, reviewed tasks appended, no corrupt partial state when generation or parsing fails.",
+      "notes": "Added a dedicated command-palette seeding command that shares the existing provider-backed seeding flow with ralphCodex.addTask, hardened appendNormalizedTasksToFile to reject duplicate ids under the task-file lock before writing, updated docs/package metadata, and added regression coverage for success, provider failure, malformed response, and persistence-time id collision cases.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4063,7 +4063,8 @@
         "On success, the operator sees a concise summary including how many tasks were created and where the artifact/task file were written; on provider/parse/schema failure, the operator gets a deterministic error with no partial task-file mutation",
         "Regression coverage proves success, provider failure, malformed response, and id-collision scenarios for the command path",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T154",
@@ -4100,7 +4101,45 @@
         "The documentation makes explicit that seeded tasks remain flat version-2 task objects and still pass through the shared normalization/persistence boundary",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "Tpipe-20260419T194905Z-ad3d",
+      "title": "Pipeline run pipeline-20260419T194905Z-ad3d",
+      "status": "in_progress",
+      "dependsOn": [
+        "Tpipe-20260419T194905Z-ad3d.01",
+        "Tpipe-20260419T194905Z-ad3d.02",
+        "Tpipe-20260419T194905Z-ad3d.03"
+      ],
+      "notes": "Auto-generated pipeline root. Created by ralphCodex.runPipeline at 2026-04-19T19:49:05.135Z."
+    },
+    {
+      "id": "Tpipe-20260419T194905Z-ad3d.01",
+      "title": "Objective",
+      "status": "todo",
+      "parentId": "Tpipe-20260419T194905Z-ad3d",
+      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
+    },
+    {
+      "id": "Tpipe-20260419T194905Z-ad3d.02",
+      "title": "Product direction",
+      "status": "todo",
+      "parentId": "Tpipe-20260419T194905Z-ad3d",
+      "dependsOn": [
+        "Tpipe-20260419T194905Z-ad3d.01"
+      ],
+      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
+    },
+    {
+      "id": "Tpipe-20260419T194905Z-ad3d.03",
+      "title": "Core outcomes",
+      "status": "todo",
+      "parentId": "Tpipe-20260419T194905Z-ad3d",
+      "dependsOn": [
+        "Tpipe-20260419T194905Z-ad3d.02"
+      ],
+      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
     }
   ],
-  "mutationCount": 164
+  "mutationCount": 167
 }

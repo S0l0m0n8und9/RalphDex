@@ -101,6 +101,50 @@ async function openTextFile(target) {
     const document = await vscode.workspace.openTextDocument(vscode.Uri.file(target));
     await vscode.window.showTextDocument(document, { preview: false });
 }
+async function runSeedTasksFromFeatureRequestCommand(workspaceFolder, logger, options) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+    const tasksPath = paths.taskFilePath;
+    if (!(await (0, fs_1.pathExists)(tasksPath))) {
+        void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.');
+        return;
+    }
+    const raw = await fs.readFile(tasksPath, 'utf8');
+    const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+    const requestText = await vscode.window.showInputBox({
+        title: options.inputTitle,
+        prompt: options.inputPrompt,
+        placeHolder: options.inputPlaceholder
+    });
+    if (!requestText?.trim()) {
+        return;
+    }
+    try {
+        const seeded = await (0, taskSeeder_1.seedTasksFromRequest)({
+            requestText,
+            config,
+            cwd: workspaceFolder.uri.fsPath,
+            artifactRootDir: paths.artifactDir,
+            existingTaskIds: taskFile.tasks.map((task) => task.id)
+        });
+        await (0, taskCreation_1.appendNormalizedTasksToFile)(tasksPath, seeded.tasks);
+        logger.info(`${options.logContext} succeeded.`, {
+            taskCount: seeded.tasks.length,
+            artifactPath: seeded.artifactPath,
+            warnings: seeded.warnings
+        });
+        await openTextFile(tasksPath);
+        void vscode.window.showInformationMessage(`${options.successMessagePrefix} ${seeded.tasks.length} ${options.successMessageTaskLabel}. ` +
+            `tasks.json: ${tasksPath}. Artifact: ${seeded.artifactPath}.`, 'Got it');
+    }
+    catch (error) {
+        const message = error instanceof taskSeeder_1.TaskSeedingError
+            ? error.message
+            : (0, error_1.toErrorMessage)(error);
+        logger.info(`${options.logContext} failed. Reason: ${message}`);
+        void vscode.window.showErrorMessage(`Task seeding failed: ${message}`);
+    }
+}
 async function readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger) {
     const status = await (0, statusSnapshot_2.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
     const artifactPath = status.latestFailureAnalysisPath;
@@ -570,49 +614,29 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         label: 'Ralphdex: Add Task',
         handler: async () => {
             const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            const tasksPath = paths.taskFilePath;
-            if (!(await (0, fs_1.pathExists)(tasksPath))) {
-                void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.');
-                return;
-            }
-            const raw = await fs.readFile(tasksPath, 'utf8');
-            const taskFile = (0, taskFile_1.parseTaskFile)(raw);
-            const requestText = await vscode.window.showInputBox({
-                title: 'Add Task',
-                prompt: 'High-level feature or epic request to seed into backlog tasks',
-                placeHolder: 'e.g. Add a provider-backed task seeding engine with durable evidence'
+            await runSeedTasksFromFeatureRequestCommand(workspaceFolder, logger, {
+                inputTitle: 'Add Task',
+                inputPrompt: 'High-level feature or epic request to seed into backlog tasks',
+                inputPlaceholder: 'e.g. Add a provider-backed task seeding engine with durable evidence',
+                successMessagePrefix: 'Added',
+                successMessageTaskLabel: 'seeded task(s)',
+                logContext: 'Task seeding via addTask command'
             });
-            if (!requestText?.trim()) {
-                return;
-            }
-            let seeded;
-            try {
-                seeded = await (0, taskSeeder_1.seedTasksFromRequest)({
-                    requestText,
-                    config,
-                    cwd: workspaceFolder.uri.fsPath,
-                    artifactRootDir: paths.artifactDir,
-                    existingTaskIds: taskFile.tasks.map((task) => task.id)
-                });
-            }
-            catch (error) {
-                const message = error instanceof taskSeeder_1.TaskSeedingError
-                    ? error.message
-                    : (0, error_1.toErrorMessage)(error);
-                logger.info(`Task seeding failed for addTask command. Reason: ${message}`);
-                void vscode.window.showErrorMessage(`Task seeding failed: ${message}`);
-                return;
-            }
-            await (0, taskCreation_1.appendNormalizedTasksToFile)(tasksPath, seeded.tasks);
-            logger.info('Generated seeded backlog tasks via addTask command.', {
-                taskCount: seeded.tasks.length,
-                artifactPath: seeded.artifactPath,
-                warnings: seeded.warnings
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.seedTasksFromFeatureRequest',
+        label: 'Ralphdex: Seed Tasks from Feature Request',
+        handler: async () => {
+            const workspaceFolder = await withWorkspaceFolder();
+            await runSeedTasksFromFeatureRequestCommand(workspaceFolder, logger, {
+                inputTitle: 'Seed Tasks from Feature Request',
+                inputPrompt: 'Describe the feature request or epic to seed into backlog tasks',
+                inputPlaceholder: 'e.g. Add a provider-backed task seeding engine with durable evidence',
+                successMessagePrefix: 'Seeded',
+                successMessageTaskLabel: 'backlog task(s)',
+                logContext: 'Task seeding via seedTasksFromFeatureRequest command'
             });
-            await openTextFile(tasksPath);
-            void vscode.window.showInformationMessage(`Added ${seeded.tasks.length} seeded task(s). Review tasks.json and the seeding artifact before running your loop.`, 'Got it');
         }
     });
     registerCommand(context, logger, {

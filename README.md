@@ -135,6 +135,7 @@ Current command surface:
 
 - `Ralphdex: Initialize Workspace`
 - `Ralphdex: Add Task`
+- `Ralphdex: Seed Tasks from Feature Request`
 - `Ralphdex: New Project Wizard`
 - `Ralphdex: New Project`
 - `Ralphdex: Switch Project`

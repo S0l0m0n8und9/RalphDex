@@ -139,6 +139,32 @@ test('appendNormalizedTasksToFile preserves the full supported task shape in ser
   assert.equal(parsed.mutationCount, 1);
 });
 
+test('appendNormalizedTasksToFile rejects duplicate ids discovered under the task-file lock without mutating tasks.json', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-create-collision-'));
+  const tasksPath = path.join(tempDir, 'tasks.json');
+  const initialText = `${JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Existing task', status: 'todo' },
+      { id: 'T2', title: 'Concurrent task', status: 'todo' }
+    ]
+  }, null, 2)}\n`;
+  await fs.writeFile(tasksPath, initialText, 'utf8');
+
+  await assert.rejects(
+    () => appendNormalizedTasksToFile(tasksPath, [
+      {
+        id: 'T2',
+        title: 'Colliding append task',
+        status: 'todo'
+      }
+    ]),
+    /Task id T2 must be unique/
+  );
+
+  assert.equal(await fs.readFile(tasksPath, 'utf8'), initialText);
+});
+
 test('replaceTasksFileWithNormalizedTasks rewrites the file using the shared normalization pipeline', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-replace-'));
   const tasksPath = path.join(tempDir, 'tasks.json');

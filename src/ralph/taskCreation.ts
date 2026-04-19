@@ -50,7 +50,9 @@ export async function appendNormalizedTasksToFile(
       ...taskFile,
       tasks: [...taskFile.tasks, ...normalizeTaskInputsForPersistence(newTasks)]
     });
-    await fs.writeFile(tasksPath, stringifyTaskFile(next), 'utf8');
+    const nextText = stringifyTaskFile(next);
+    parseTaskFile(nextText);
+    await fs.writeFile(tasksPath, nextText, 'utf8');
   });
 
   if (locked.outcome === 'lock_timeout') {

@@ -107,6 +107,7 @@
   "activationEvents": [
     "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.addTask",
+    "onCommand:ralphCodex.seedTasksFromFeatureRequest",
     "onCommand:ralphCodex.newProjectWizard",
     "onCommand:ralphCodex.newProject",
     "onCommand:ralphCodex.switchProject",
@@ -158,6 +159,10 @@
       {
         "command": "ralphCodex.addTask",
         "title": "Ralphdex: Add Task"
+      },
+      {
+        "command": "ralphCodex.seedTasksFromFeatureRequest",
+        "title": "Ralphdex: Seed Tasks from Feature Request"
       },
       {
         "command": "ralphCodex.newProjectWizard",

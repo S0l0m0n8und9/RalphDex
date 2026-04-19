@@ -71,7 +71,9 @@ async function appendNormalizedTasksToFile(tasksPath, newTasks) {
             ...taskFile,
             tasks: [...taskFile.tasks, ...normalizeTaskInputsForPersistence(newTasks)]
         });
-        await fs.writeFile(tasksPath, (0, taskFile_1.stringifyTaskFile)(next), 'utf8');
+        const nextText = (0, taskFile_1.stringifyTaskFile)(next);
+        (0, taskFile_1.parseTaskFile)(nextText);
+        await fs.writeFile(tasksPath, nextText, 'utf8');
     });
     if (locked.outcome === 'lock_timeout') {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);

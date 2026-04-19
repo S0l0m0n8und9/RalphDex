@@ -65,6 +65,10 @@ function workspaceFolder(rootPath: string): vscode.WorkspaceFolder {
   };
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-command-shell-'));
 }
@@ -2460,6 +2464,164 @@ test('Add Task seeds provider-generated backlog tasks and persists a seeding art
   assert.equal(seedingArtifact.warnings.length, 2);
   assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'tasks.json')]);
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Added 2 seeded task\(s\)/);
+});
+
+test('Seed Tasks from Feature Request seeds provider-generated backlog tasks and reports artifact and task file paths', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setInputBoxValue('Seed a feature request into deterministic backlog tasks.');
+
+  setProcessRunnerOverride((_command, _args, _options) => ({
+    code: 0,
+    stdout: JSON.stringify({
+      type: 'result',
+      result: [
+        '```json',
+        JSON.stringify({
+          tasks: [
+            {
+              id: 'T2',
+              title: 'Introduce a dedicated seeding command',
+              status: 'todo'
+            }
+          ]
+        }, null, 2),
+        '```'
+      ].join('\n'),
+      num_turns: 1
+    }),
+    stderr: ''
+  }));
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.seedTasksFromFeatureRequest');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+
+  const tasksPath = path.join(rootPath, '.ralph', 'tasks.json');
+  const seedingDir = path.join(rootPath, '.ralph', 'artifacts', 'task-seeding');
+  const seedingArtifacts = await fs.readdir(seedingDir);
+  assert.equal(seedingArtifacts.length, 1, 'Expected a single task-seeding artifact');
+  const artifactPath = path.join(seedingDir, seedingArtifacts[0]!);
+
+  assert.deepEqual(harness.state.shownDocuments, [tasksPath]);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Seeded 1 backlog task/);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', new RegExp(escapeRegExp(tasksPath)));
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', new RegExp(escapeRegExp(artifactPath)));
+});
+
+test('Seed Tasks from Feature Request reports provider failures without mutating tasks.json', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const tasksPath = path.join(rootPath, '.ralph', 'tasks.json');
+  const initialTasksText = await fs.readFile(tasksPath, 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setInputBoxValue('Seed tasks for a provider failure case.');
+
+  setProcessRunnerOverride((_command, _args, _options) => ({
+    code: 1,
+    stdout: '',
+    stderr: 'provider exited with failure'
+  }));
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.seedTasksFromFeatureRequest');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+
+  assert.equal(await fs.readFile(tasksPath, 'utf8'), initialTasksText);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.errorMessages.at(-1)?.message ?? '', /Task seeding failed:/);
+});
+
+test('Seed Tasks from Feature Request reports malformed task payloads without mutating tasks.json', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const tasksPath = path.join(rootPath, '.ralph', 'tasks.json');
+  const initialTasksText = await fs.readFile(tasksPath, 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setInputBoxValue('Seed tasks for a malformed-response case.');
+
+  setProcessRunnerOverride((_command, _args, _options) => ({
+    code: 0,
+    stdout: JSON.stringify({
+      type: 'result',
+      result: '```json\n{"tasks":[]}\n```',
+      num_turns: 1
+    }),
+    stderr: ''
+  }));
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.seedTasksFromFeatureRequest');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+
+  assert.equal(await fs.readFile(tasksPath, 'utf8'), initialTasksText);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.errorMessages.at(-1)?.message ?? '', /Task seeding failed:/);
+});
+
+test('Seed Tasks from Feature Request reports id collisions discovered at persistence time without mutating tasks.json', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const tasksPath = path.join(rootPath, '.ralph', 'tasks.json');
+  const concurrentTasksText = `${JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Inspect guardrails', status: 'todo' },
+      { id: 'T2', title: 'Concurrent writer task', status: 'todo' }
+    ]
+  }, null, 2)}\n`;
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setInputBoxValue('Seed tasks for a concurrent collision case.');
+
+  setProcessRunnerOverride(async (_command, _args, _options) => {
+    await fs.writeFile(tasksPath, concurrentTasksText, 'utf8');
+    return {
+      code: 0,
+      stdout: JSON.stringify({
+        type: 'result',
+        result: [
+          '```json',
+          JSON.stringify({
+            tasks: [
+              { id: 'T2', title: 'Command-generated task', status: 'todo' }
+            ]
+          }, null, 2),
+          '```'
+        ].join('\n'),
+        num_turns: 1
+      }),
+      stderr: ''
+    };
+  });
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.seedTasksFromFeatureRequest');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+
+  assert.equal(await fs.readFile(tasksPath, 'utf8'), concurrentTasksText);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.errorMessages.at(-1)?.message ?? '', /Task id T2 must be unique/);
 });
 
 test('New Project aborts with a warning when the project slug already exists', async () => {
