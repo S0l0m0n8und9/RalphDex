@@ -114,6 +114,16 @@ const DOC_RULES: Record<string, DocRule> = {
     ],
     maxNonEmptyLines: 105
   },
+  'README.md': {
+    requiredHeadings: [],
+    requiredFragments: [
+      'Ralphdex: Add Task',
+      'Ralphdex: Seed Tasks from Feature Request',
+      'Ralphdex: Regenerate PRD',
+      '.ralph/artifacts/task-seeding/',
+      'flat version-2 backlog tasks'
+    ]
+  },
   'docs/invariants.md': {
     requiredHeadings: [
       'Durable Workspace Model',
@@ -127,7 +137,9 @@ const DOC_RULES: Record<string, DocRule> = {
       'must remain true',
       'control plane',
       'artifact model',
-      'one selected task and one Codex execution at a time'
+      'one selected task and one Codex execution at a time',
+      '.ralph/artifacts/task-seeding/',
+      'flat top-level version-2 tasks'
     ]
   },
   'docs/provenance.md': {
@@ -198,6 +210,7 @@ const DOC_RULES: Record<string, DocRule> = {
       'Prepare A Prompt For IDE Use',
       'Run One CLI Iteration',
       'Run The Ralph Loop',
+      'Seed Flat Backlog Tasks',
       'Memory Strategy',
       'Azure AI Foundry Provider',
       'Inspect State',
@@ -210,7 +223,10 @@ const DOC_RULES: Record<string, DocRule> = {
       'build a distributable `.vsix`',
       'autonomyMode',
       'hard stops',
-      'blocked preflight'
+      'blocked preflight',
+      '.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json',
+      '`.ralph/tasks.json` unchanged',
+      'flat version-2 backlog tasks'
     ]
   },
   'docs/testing.md': {
@@ -226,7 +242,10 @@ const DOC_RULES: Record<string, DocRule> = {
       '`npm run package`',
       'manual `.vsix` install',
       'Node 20+',
-      'check:ledger'
+      'check:ledger',
+      '.ralph/artifacts/task-seeding/',
+      'test/taskSeeder.test.ts',
+      'test/commandShell.smoke.test.ts'
     ]
   },
   'docs/multi-agent-readiness.md': {

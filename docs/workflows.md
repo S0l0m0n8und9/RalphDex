@@ -444,6 +444,20 @@ For routine long-loop inspection, use these commands in order:
 
 These commands rely on the stable latest-pointer contract described in [docs/invariants.md](invariants.md).
 
+## Seed Flat Backlog Tasks
+
+Use `Ralphdex: Add Task`, `Ralphdex: Seed Tasks from Feature Request`, or the dashboard/sidebar seeding form when the PRD already describes the product direction and you want Ralph to append implementation-ready backlog tasks for one epic or feature request. All three surfaces route through the same provider-backed seeding helper and the same `appendNormalizedTasksToFile` persistence boundary.
+
+Use `Ralphdex: Regenerate PRD` instead when the product brief or PRD section structure is wrong and needs to be rewritten before task creation. The seeding workflow is narrower on purpose: it appends flat version-2 backlog tasks to `.ralph/tasks.json`; it does not rewrite `.ralph/prd.md`, create PRD sections, or invent parent/child task hierarchies.
+
+Operator-facing outputs for this path are deterministic:
+
+- every attempt writes a seeding artifact under `.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json`
+- successful runs append the seeded tasks to `.ralph/tasks.json` through the shared normalization pipeline and report the created-task count, `tasks.json` path, artifact path, and warnings
+- provider failures, malformed fenced JSON, or persistence-time duplicate-id rejection surface as command errors and leave `.ralph/tasks.json` unchanged
+
+The seeding artifact is the inspection surface for this workflow. It records the source request, provider launch metadata, seeded task drafts after ID remapping, and any warnings so operators can review what was generated without diffing the whole workspace.
+
 ## Multi-Agent Team
 
 Use concurrent Ralph operators only when each running loop instance has its own durable agent identity.

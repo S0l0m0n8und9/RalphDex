@@ -150,6 +150,8 @@ Validation entry points:
 
 1. Run \`npm run validate\`.
 
+Use \`Ralphdex: Add Task\` or \`Ralphdex: Seed Tasks from Feature Request\` when you want to append flat version-2 backlog tasks for one epic or feature request. Use \`Ralphdex: Regenerate PRD\` when the product brief itself needs to change first. Task-seeding evidence is written under \`.ralph/artifacts/task-seeding/\`.
+
 ## Document Map
 
 - [AGENTS.md](${absolute('AGENTS.md')}): repo map
@@ -199,6 +201,10 @@ The autonomyMode setting controls loop defaults, but hard stops still require th
 
 blocked preflight remains a hard stop even in autonomyMode.
 
+## Seed Flat Backlog Tasks
+
+Use this workflow to append flat version-2 backlog tasks for one feature request. Each run writes \`.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json\` and leaves \`.ralph/tasks.json\` unchanged on failure.
+
 ## Memory Strategy
 
 Memory strategy controls prior-iteration context.
@@ -232,6 +238,8 @@ Run [README.md](${absolute('README.md')}) for the overview and [docs/verifier.md
 
 Stable coverage lives here.
 
+\`test/taskSeeder.test.ts\` and \`test/commandShell.smoke.test.ts\` cover task seeding, including durable evidence under \`.ralph/artifacts/task-seeding/\`.
+
 ## Stub Smoke Vs Real Activation Smoke
 
 Stable activation notes live here.
@@ -262,6 +270,8 @@ See [Provenance](${absolute('docs/provenance.md')}).
 ## Task Graph Invariants
 
 Stable task graph rules live here.
+
+Task seeding writes evidence under \`.ralph/artifacts/task-seeding/\` but persists only flat top-level version-2 tasks.
 
 ## Preflight Invariants
 
@@ -683,6 +693,101 @@ Stable prompt feedback rules live here.
         issue.code === 'missing_fragment'
         && issue.filePath === 'docs/verifier.md'
         && issue.message.includes('the next narrowed child should implement the smallest bounded fix')
+    ),
+    true
+  );
+});
+
+test('validateRepositoryDocs reports missing task-seeding workflow contract guidance', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'README.md', `# Ralphdex
+
+## Quick Start
+
+1. Run \`npm run validate\`.
+
+## Document Map
+
+- [AGENTS.md](${path.join(rootPath, 'AGENTS.md')}): repo map
+- [docs/architecture.md](${path.join(rootPath, 'docs/architecture.md')}): architecture
+- [docs/workflows.md](${path.join(rootPath, 'docs/workflows.md')}): workflows
+- [docs/testing.md](${path.join(rootPath, 'docs/testing.md')}): testing
+- [docs/invariants.md](${path.join(rootPath, 'docs/invariants.md')}): invariants
+- [docs/provenance.md](${path.join(rootPath, 'docs/provenance.md')}): provenance
+- [docs/verifier.md](${path.join(rootPath, 'docs/verifier.md')}): verifier
+- [docs/boundaries.md](${path.join(rootPath, 'docs/boundaries.md')}): boundaries
+- [docs/multi-agent-readiness.md](${path.join(rootPath, 'docs/multi-agent-readiness.md')}): multi-agent readiness
+- [docs/prompt-calibration.md](${path.join(rootPath, 'docs/prompt-calibration.md')}): prompt calibration
+- [docs/release-workflow.md](${path.join(rootPath, 'docs/release-workflow.md')}): release workflow
+- [docs/failure-recovery.md](${path.join(rootPath, 'docs/failure-recovery.md')}): failure recovery
+`);
+  await writeFile(rootPath, 'docs/workflows.md', `# Workflows
+
+See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${path.join(rootPath, 'docs/provenance.md')}), [Verifier](${path.join(rootPath, 'docs/verifier.md')}), and [Boundaries](${path.join(rootPath, 'docs/boundaries.md')}).
+
+## Develop The Extension
+
+Run the extension locally.
+
+## Package And Install A .vsix
+
+Use this path to build a distributable \`.vsix\`, then install it through \`Extensions: Install from VSIX...\` or \`code --install-extension\`.
+
+## Prepare A Prompt For IDE Use
+
+Prepare the next prompt.
+
+## Run One CLI Iteration
+
+Run one iteration.
+
+## Run The Ralph Loop
+
+Run the loop.
+
+The autonomyMode setting controls loop defaults, but hard stops still require the operator.
+
+blocked preflight remains a hard stop even in autonomyMode.
+
+## Memory Strategy
+
+Memory strategy controls prior-iteration context.
+
+## Azure AI Foundry Provider
+
+Azure AI Foundry direct-HTTPS provider.
+
+## Inspect State
+
+Inspect persisted state.
+
+## Reset State
+
+Reset generated state.
+
+## Diagnostics
+
+Review runtime diagnostics.
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'README.md'
+        && issue.message.includes('.ralph/artifacts/task-seeding/')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_heading'
+        && issue.filePath === 'docs/workflows.md'
+        && issue.message.includes('Seed Flat Backlog Tasks')
     ),
     true
   );

@@ -88,6 +88,8 @@ For a fresh workspace that does not have a `.ralph/` directory, start with `Ralp
 
 Newly generated Ralph tasks now share one normalization and persistence pipeline across bootstrap commands, PRD generation, wizard writes, decomposition, remediation, and pipeline scaffolding. In practice that means generated tasks should keep the richest producer-supplied shape Ralph knows at creation time, including fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and any derived dependency or mode metadata when those values are available. A generated task may still omit some optional fields when the upstream producer genuinely lacked that information or when the canonical contract leaves the field absent by design. See [docs/invariants.md#normalized-task-contract](docs/invariants.md#normalized-task-contract) for the authoritative field-presence rules.
 
+Use `Ralphdex: Add Task`, `Ralphdex: Seed Tasks from Feature Request`, or the dashboard/sidebar seeding form when you already have a stable PRD and need Ralph to append flat backlog tasks for one epic or feature request. Use `Ralphdex: Regenerate PRD` when the product objective or PRD structure itself needs to be rewritten first. The seeding path appends only flat version-2 backlog tasks through the shared normalization boundary; it does not create PRD structure or parent/child task hierarchies. Each seeding attempt also writes a durable artifact under `.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json` so operators can inspect the request, provider launch metadata, generated task drafts, and warnings after the command returns.
+
 To build a distributable local package: `npm run package` from the repo root, then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`.
 
 ## Durable Files
@@ -125,6 +127,8 @@ The dashboard `Work` tab and the sidebar both expose a first-class task-seeding 
 3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
 4. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
 5. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
+
+Task-seeding artifacts are separate from iteration provenance. Successful and failed seeding attempts write durable evidence under `.ralph/artifacts/task-seeding/`, while the appended tasks themselves still persist only in `.ralph/tasks.json` through the shared version-2 task pipeline.
 
 See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/provenance.md](docs/provenance.md) for the trust model.
 

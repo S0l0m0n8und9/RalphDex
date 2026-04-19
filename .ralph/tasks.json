@@ -4088,12 +4088,12 @@
     {
       "id": "T155",
       "title": "Document and lock down epic task-seeding behavior, artifact expectations, and operator workflow",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T153",
         "T154"
       ],
-      "notes": "Close the loop by documenting how epic/feature seeding differs from PRD generation and PRD-derived Add Task, where evidence artifacts land, and what deterministic failure modes operators should expect.",
+      "notes": "Documented the epic/feature task-seeding workflow across README, workflows, invariants, and testing docs; added docs-validator enforcement plus regression coverage for the seeding command/artifact contract; verified with npm run validate.",
       "validation": "npm run validate",
       "tier": "simple",
       "acceptance": [
@@ -4101,7 +4101,8 @@
         "Any new artifact or command surface is covered by the docs validator or focused regression tests so the contract cannot silently drift",
         "The documentation makes explicit that seeded tasks remain flat version-2 task objects and still pass through the shared normalization/persistence boundary",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "Tpipe-20260419T194905Z-ad3d",
@@ -4142,5 +4143,5 @@
       "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
     }
   ],
-  "mutationCount": 168
+  "mutationCount": 169
 }
