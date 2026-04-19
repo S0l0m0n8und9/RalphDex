@@ -4140,12 +4140,12 @@
     {
       "id": "T158",
       "title": "Add regression coverage for the refreshed Ralphdex dashboard and sidebar rendering and routing contract",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T156",
         "T157"
       ],
-      "notes": "Lock the refresh behind targeted panel/sidebar regressions so future iterations cannot silently fall back to the old layout, static mock data, or broken command wiring.",
+      "notes": "Added regression coverage that locks the refreshed sidebar to live DashboardSnapshot content and updated the sidebar renderer to surface selected-task, failure, dead-letter, and agent signals without changing the typed command or seed-task routing contract.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4153,7 +4153,8 @@
         "Regression tests cover refreshed sidebar action routing and task-seeding affordances",
         "The test suite proves the refreshed host still uses typed message routing and durable snapshot data instead of prototype-only placeholders",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T159",
@@ -4174,5 +4175,5 @@
       ]
     }
   ],
-  "mutationCount": 172
+  "mutationCount": 173
 }

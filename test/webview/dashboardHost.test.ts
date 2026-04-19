@@ -141,6 +141,8 @@ test('DashboardHost: updateFromWatchedState triggers fullRender', () => {
 test('DashboardHost: inbound command triggers command-ack started then done', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();
+  const harness = vscodeTestHarness();
+  harness.reset();
 
   new DashboardHost(
     wv as unknown as import('vscode').Webview,
@@ -165,6 +167,11 @@ test('DashboardHost: inbound command triggers command-ack started then done', as
   // simply recorded in executedCommands), then a 'done' ack is sent.
   const doneAck = ackMessages.find((m) => m.status === 'done');
   assert.ok(doneAck, 'a done ack should be posted after command resolves');
+  assert.deepEqual(
+    harness.state.executedCommands.map((entry) => entry.command),
+    ['ralphCodex.startLoop'],
+    'typed command messages should route through vscode.commands.executeCommand'
+  );
 
   broadcaster.dispose();
 });
@@ -216,6 +223,51 @@ test('DashboardHost: inbound seed-tasks triggers typed result updates and snapsh
   assert.equal(resultMessages.at(-1)?.status, 'done');
   assert.equal(resultMessages.at(-1)?.createdTaskCount, 3);
   assert.ok(refreshCount >= 2, 'successful seed should trigger a fresh snapshot reload');
+
+  broadcaster.dispose();
+});
+
+test('DashboardHost: inbound sidebar seed-tasks failure returns typed source error and skips snapshot refresh', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  let refreshCount = 0;
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    makeSimpleRenderFn('p') as never,
+    async () => {
+      refreshCount += 1;
+      return { workspaceName: `snapshot-${refreshCount}` } as never;
+    },
+    null,
+    {
+      seedTasks: async () => {
+        throw new Error('seed failure');
+      }
+    }
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+
+  wv.posted.length = 0;
+  webviewSends(wv, { type: 'seed-tasks', requestText: 'Seed sidebar epic', source: 'sidebar' });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const resultMessages = wv.posted.filter((msg): msg is {
+    type: string;
+    status: string;
+    source: 'panel' | 'sidebar';
+    message?: string;
+  } => typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'seed-tasks-result');
+
+  assert.equal(resultMessages[0]?.status, 'started');
+  assert.equal(resultMessages.at(-1)?.status, 'error');
+  assert.equal(resultMessages.at(-1)?.source, 'sidebar');
+  assert.equal(resultMessages.at(-1)?.message, 'seed failure');
+  assert.equal(refreshCount, 1, 'failed seed should not trigger a follow-up snapshot refresh');
 
   broadcaster.dispose();
 });

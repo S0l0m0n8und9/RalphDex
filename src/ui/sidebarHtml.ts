@@ -111,12 +111,91 @@ body {
   border-color: var(--ralph-orange);
   color: var(--ralph-orange);
 }
+
+.snapshot-stack {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.snapshot-card {
+  padding: 8px;
+  border: 1px solid var(--ralph-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.snapshot-card-title {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ralph-dim);
+  margin-bottom: 4px;
+}
+
+.snapshot-card strong {
+  color: var(--vscode-foreground);
+}
+
+.snapshot-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.snapshot-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--ralph-border);
+  color: var(--ralph-dim);
+}
 `;
 }
 
 // ---------------------------------------------------------------------------
 // Sidebar HTML — lightweight launcher
 // ---------------------------------------------------------------------------
+
+function buildSidebarSnapshotSummary(state: RalphDashboardState): string {
+  const snapshot = state.dashboardSnapshot;
+  if (!snapshot) {
+    return '';
+  }
+
+  const taskBoard = snapshot.taskBoard;
+  const leadFailure = snapshot.failureFeed.entries[0] ?? null;
+  const deadLetter = snapshot.deadLetter.entries[0] ?? null;
+  const agent = snapshot.agentGrid.rows[0] ?? null;
+
+  return `<div class="snapshot-stack">
+    <div class="snapshot-card">
+      <div class="snapshot-card-title">Live Snapshot</div>
+      <div><strong>Selected ${esc(taskBoard.selectedTaskId ?? 'none')}</strong></div>
+      ${taskBoard.selectedTaskTitle ? `<div>${esc(taskBoard.selectedTaskTitle)}</div>` : ''}
+      <div class="snapshot-chip-row">
+        <span class="snapshot-chip">Blocked ${taskBoard.counts?.blocked ?? 0}</span>
+        <span class="snapshot-chip">Dead-Letter ${taskBoard.deadLetterCount}</span>
+        <span class="snapshot-chip">Next ${taskBoard.nextIteration}</span>
+      </div>
+    </div>
+    ${leadFailure ? `<div class="snapshot-card">
+      <div class="snapshot-card-title">Failure Feed</div>
+      <div><strong>${esc(leadFailure.category)}</strong></div>
+      <div>${esc(leadFailure.taskTitle)}</div>
+    </div>` : ''}
+    ${deadLetter ? `<div class="snapshot-card">
+      <div class="snapshot-card-title">Dead-Letter</div>
+      <div>${esc(deadLetter.taskTitle)}</div>
+    </div>` : ''}
+    ${agent ? `<div class="snapshot-card">
+      <div class="snapshot-card-title">Agent</div>
+      <div>${esc(agent.agentId)}</div>
+    </div>` : ''}
+  </div>`;
+}
 
 export function buildDashboardHtml(state: RalphDashboardState, nonce: string): string {
   const stateLabel = LOOP_STATE_LABEL[state.loopState];
@@ -157,6 +236,8 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   ${phaseIndicator}
 
   ${buildProgressBar(state.taskCounts)}
+
+  ${buildSidebarSnapshotSummary(state)}
 
   <div class="section-label">Agents</div>
   <hr class="section-rule">

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { buildDashboardHtml } from '../../src/ui/sidebarHtml';
 import type { RalphDashboardState } from '../../src/ui/uiTypes';
+import type { DashboardSnapshot } from '../../src/webview/dashboardSnapshot';
 
 function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashboardState {
   return {
@@ -23,6 +24,92 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
     ...overrides
+  };
+}
+
+function populatedDashboardSnapshot(): DashboardSnapshot {
+  return {
+    workspaceName: 'test-ws',
+    pipeline: {
+      runId: 'pipeline-001',
+      status: 'running',
+      phase: 'loop',
+      rootTaskId: 'Tpipe-1',
+      decomposedTaskCount: 3,
+      loopStartTime: '2026-01-01T00:00:00.000Z',
+      loopEndTime: null,
+      prUrl: null,
+      lastStopReason: 'repeated_no_progress'
+    },
+    taskBoard: {
+      counts: { todo: 2, in_progress: 1, blocked: 1, done: 4 },
+      deadLetterCount: 1,
+      selectedTaskId: 'T110',
+      selectedTaskTitle: 'Surface dashboard sections',
+      nextIteration: 9
+    },
+    agentGrid: {
+      rows: [{
+        agentId: 'agent-alpha',
+        firstSeenAt: '2026-01-01T00:00:00.000Z',
+        completedTaskCount: 4,
+        activeClaimTaskId: 'T110',
+        stuckScore: 3,
+        isStuck: true,
+        latestHandoffClassification: 'no_progress',
+        latestHandoffIteration: 8,
+        noProgressHeatmap: '[..XXX]'
+      }]
+    },
+    failureFeed: {
+      entries: [{
+        taskId: 'T110',
+        taskTitle: 'Surface dashboard sections',
+        category: 'validation_mismatch',
+        confidence: 'high',
+        summary: 'Verifier contract mismatch.',
+        suggestedAction: 'Align emitted dashboard payload.',
+        recoveryAttemptCount: 2,
+        remediationSummary: 'Validation mismatch - adjusted prompt',
+        humanReviewRecommended: true
+      }]
+    },
+    diagnosis: {
+      taskId: 'T110',
+      taskTitle: 'Surface dashboard sections',
+      category: 'validation_mismatch',
+      confidence: 'high',
+      summary: 'Verifier contract mismatch.',
+      suggestedAction: 'Align emitted dashboard payload.',
+      retryPromptAddendum: 'Re-run with the durable dashboard snapshot shape locked.',
+      recoveryAttemptCount: 2,
+      remediationSummary: 'Validation mismatch - adjusted prompt',
+      failureAnalysisPath: '.ralph/artifacts/T110/failure-analysis.json',
+      recoveryStatePath: '.ralph/artifacts/T110/recovery-state.json'
+    },
+    deadLetter: {
+      entries: [{
+        schemaVersion: 1,
+        kind: 'deadLetterEntry',
+        taskId: 'T99',
+        taskTitle: 'Recover failed task',
+        deadLetteredAt: '2026-01-01T00:00:00.000Z',
+        diagnosticHistory: [],
+        recoveryAttemptCount: 3
+      }]
+    },
+    quickActions: {
+      hasDeadLetterEntries: true,
+      hasBlockedTasks: true,
+      canAttemptLoop: true
+    },
+    cost: {
+      executionCostUsd: 0.0142,
+      diagnosticCostUsd: null,
+      promptCacheStats: { staticPrefixBytes: 8192, cacheHit: true },
+      hasAnyCostData: true
+    },
+    orchestration: null
   };
 }
 
@@ -119,4 +206,44 @@ test('buildDashboardHtml preserves live status, orchestration, task, and setting
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
   assert.ok(html.includes('workbench.action.openSettings'));
   assert.ok(html.includes('ralphCodex.openDashboard'));
+});
+
+test('buildDashboardHtml keeps refreshed sidebar routing bound to live commands and typed seed-task hooks', () => {
+  const html = buildDashboardHtml(defaultState({
+    taskSeeding: {
+      phase: 'submitting',
+      requestText: 'Seed the refreshed dashboard regression contract',
+      createdTaskCount: null,
+      message: 'Seeding tasks from sidebar request...',
+      artifactPath: null
+    }
+  }), 'sidebar-routing');
+
+  assert.ok(html.includes('data-command="ralphCodex.runRalphLoop"'));
+  assert.ok(html.includes('data-command="ralphCodex.runMultiAgentLoop"'));
+  assert.ok(html.includes('data-command="ralphCodex.runRalphIteration"'));
+  assert.ok(html.includes('data-command="ralphCodex.showRalphStatus"'));
+  assert.ok(html.includes('data-command="ralphCodex.showMultiAgentStatus"'));
+  assert.ok(html.includes('data-command="ralphCodex.openLatestPipelineRun"'));
+  assert.ok(html.includes('data-command="workbench.action.openSettings"'));
+  assert.ok(html.includes('data-command="ralphCodex.showTasks"'));
+  assert.ok(html.includes('data-command="ralphCodex.openDashboard"'));
+  assert.ok(html.includes('data-seed-request="sidebar"'));
+  assert.ok(html.includes('data-seed-submit="sidebar"'));
+  assert.ok(html.includes("vscode.postMessage({ type: 'seed-tasks', requestText: requestText, source: source })"));
+  assert.ok(html.includes("document.querySelectorAll('[data-seed-submit=\"' + msg.source + '\"]')"));
+});
+
+test('buildDashboardHtml surfaces live durable snapshot summary signals in the refreshed sidebar', () => {
+  const html = buildDashboardHtml(defaultState({
+    dashboardSnapshot: populatedDashboardSnapshot()
+  }), 'sidebar-snapshot');
+
+  assert.ok(html.includes('Selected T110'));
+  assert.ok(html.includes('Surface dashboard sections'));
+  assert.ok(html.includes('Blocked 1'));
+  assert.ok(html.includes('Dead-Letter 1'));
+  assert.ok(html.includes('validation_mismatch'));
+  assert.ok(html.includes('Recover failed task'));
+  assert.ok(html.includes('agent-alpha'));
 });

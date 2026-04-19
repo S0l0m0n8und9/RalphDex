@@ -343,6 +343,21 @@ test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-lett
   assert.ok(html.includes('Open Settings'));
 });
 
+test('buildPanelDashboardHtml prefers durable snapshot sections over empty-state placeholder copy when snapshot data exists', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-live');
+
+  assert.ok(html.includes('Surface dashboard sections'));
+  assert.ok(html.includes('Selected T110'));
+  assert.ok(html.includes('Dead-Letter'));
+  assert.ok(html.includes('Recover failed task'));
+  assert.ok(html.includes('agent-alpha'));
+  assert.ok(!html.includes('No pipeline run artifact recorded yet.'));
+  assert.ok(!html.includes('Task board unavailable until Ralph status is loaded.'));
+  assert.ok(!html.includes('No focused diagnosis is available for the selected task.'));
+  assert.ok(!html.includes('No durable agent identity records found yet.'));
+  assert.ok(!html.includes('No tasks are parked in dead-letter.'));
+});
+
 test('buildPanelDashboardHtml quick actions expose latest artifact and settings commands', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-actions');
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
