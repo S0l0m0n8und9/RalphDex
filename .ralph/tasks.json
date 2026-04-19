@@ -4244,7 +4244,138 @@
         "Docs validation or focused tests fail if future changes reintroduce stale Azure auth placeholder language for the reviewed surfaces",
         "npm run check:docs passes"
       ]
+    },
+    {
+      "id": "T164",
+      "title": "Align CSS design tokens and base component styles to UXrefresh prototype",
+      "status": "todo",
+      "notes": "Update buildBaseCss() in src/ui/htmlHelpers.ts to adopt the prototype's full token set: --accent (#f5b041), --ok (#5bd69c), --warn (#f5a14d), --bad (#eb5e5e), --cyan (#6fc3df), --surface, --surface-2, --border, --fg, --dim, --font-ui (Geist), --font-mono (Geist Mono). Add @import for Geist via the nonce-safe inline font stack fallback. Update Card, StatusPill, and Btn CSS equivalents in the base sheet. Preserve all existing --ralph-* aliases so existing callers don't break.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "buildBaseCss() emits all prototype color tokens",
+        "Existing --ralph-amber, --ralph-green etc. are remapped as aliases to the new tokens so no breakage",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/htmlHelpers.ts",
+        "UXrefresh/components/primitives.jsx",
+        "UXrefresh/Ralphdex Dashboard.html"
+      ]
+    },
+    {
+      "id": "T165",
+      "title": "Redesign sidebar HTML to match UXrefresh: mode switcher, tab nav, quick actions, current-task card",
+      "status": "todo",
+      "dependsOn": [
+        "T164"
+      ],
+      "notes": "Rewrite the body of buildDashboardHtml() in src/ui/sidebarHtml.ts. Add: (1) a mode-selector row (Simple/Standard/Advanced) stored in VS Code state via postMessage; (2) tab nav (Overview, Pipelines, Tasks, Diagnostics, Settings) whose visibility is mode-gated — Simple shows 3 tabs, Standard 5, Advanced 6, matching UXrefresh/components/sidebar.jsx; (3) quick-actions row replacing the flat btn-grid for common commands, showing keyboard shortcuts from UXrefresh QuickAction component; (4) current-task focus card at the bottom of the sidebar when a task is selected, showing task id in accent mono + title. Preserve all existing data-command and data-seed-submit wire-ups.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Sidebar renders mode-switcher with Simple/Standard/Advanced buttons",
+        "Tab nav items adjust by mode",
+        "Quick-actions section shows at minimum: Initialize, New Project, Add Task, Prepare Prompt, Show Dashboard",
+        "Current task card at bottom shows task id + title from state.taskSeeding or dashboardSnapshot",
+        "All existing data-command wire-ups remain functional",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/sidebarHtml.ts",
+        "src/ui/uiTypes.ts",
+        "UXrefresh/components/sidebar.jsx"
+      ]
+    },
+    {
+      "id": "T166",
+      "title": "Add hero health strip (Progress/Iteration/Attention/Cost cells) to dashboard Overview tab",
+      "status": "todo",
+      "dependsOn": [
+        "T164"
+      ],
+      "notes": "In src/ui/panelHtml.ts, add a buildHeroHealthStrip(state) function that renders a CSS grid strip of 4 HealthCell-style tiles modelled on UXrefresh/components/hero.jsx HealthCell: Progress (done/total + % bar in --ok), Iteration (current/cap + % bar in --accent), Attention (blocked + dead-letter count, amber/red tone if >0), Cost ($loop / $today from state if available — show 'n/a' if not in state). Inject the strip below the existing header row on the overview tab. No new state fields — derive everything from existing RalphDashboardState.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Overview tab shows 4 health cells in a horizontal strip",
+        "Progress cell includes an inline bar",
+        "Attention cell turns amber when blocked+dead-letter > 0",
+        "Renders without errors when counts are null",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/panelHtml.ts",
+        "src/ui/uiTypes.ts",
+        "UXrefresh/components/hero.jsx"
+      ]
+    },
+    {
+      "id": "T167",
+      "title": "Replace glyph phase tracker with pill-based design and add role-colored agent lane borders",
+      "status": "todo",
+      "dependsOn": [
+        "T164"
+      ],
+      "notes": "In src/ui/htmlHelpers.ts: (1) Rewrite buildPhaseTracker() to render pill spans matching UXrefresh PhaseTracker: done phases show ✓ + muted style; active phase has accent background + blinking dot animation (ralph-blink keyframe); future phases transparent. (2) Update buildAgentLanes() so each lane has a left border colored by role: implementer=amber, reviewer=green, watchdog=warn, scm=cyan — derive from agentId string matching those substrings. (3) Update .phase-step CSS in buildBaseCss() accordingly. Keep the inline PHASE_LABELS ordering unchanged.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Active phase renders with blinking dot and accent background",
+        "Done phases show ✓ prefix",
+        "Agent lane rows have 3px left border with role-derived color",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/htmlHelpers.ts",
+        "UXrefresh/components/hero.jsx",
+        "UXrefresh/components/panels.jsx"
+      ]
+    },
+    {
+      "id": "T168",
+      "title": "Upgrade iteration history rows to show classification color dots and cost column",
+      "status": "todo",
+      "dependsOn": [
+        "T164"
+      ],
+      "notes": "In src/ui/htmlHelpers.ts, update buildIterationRow() to: (1) prepend a 6px color dot before the classification text using the same classColor map as UXrefresh Timeline (complete=ok, partial_progress=accent, blocked=warn, failed=bad, needs_human_review=cyan, no_progress=dim); (2) add a cost column cell if iter.cost is present in the type (check uiTypes.ts — add optional cost?: number to RalphDashboardIteration if absent); (3) use grid layout matching prototype: #iter | agent | tier | task | classification | cost. Update .iter-* CSS in buildBaseCss() as needed.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "complete iterations show green dot",
+        "failed iterations show red dot",
+        "blocked/partial show correct colors",
+        "Cost column renders 'n/a' when undefined",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/htmlHelpers.ts",
+        "src/ui/uiTypes.ts",
+        "UXrefresh/components/panels.jsx"
+      ]
+    },
+    {
+      "id": "T169",
+      "title": "Add rich failure diagnosis card to dashboard overview when a failure entry is present",
+      "status": "todo",
+      "dependsOn": [
+        "T164"
+      ],
+      "notes": "In src/ui/panelHtml.ts, add a buildFailureDiagnosisCard(state) function. When state.dashboardSnapshot?.failureFeed.entries[0] exists, render a card matching UXrefresh FailurePanel: red-tinted border/background; header row with warn icon, 'Needs Attention · Failure Diagnosis' label, and confidence pill; task-id chip + title + attempt count + category; a 'What went wrong' summary block; a 'Suggested fix' amber-tinted block if entry.suggestedAction is present; action buttons: 'Open failure artifact' (data-command ralphCodex.openFailureArtifact), 'Requeue task', 'Skip task'. Inject card at top of overview tab, above the health strip. Show nothing if no failure entry.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "No failure entry → card absent, no layout shift",
+        "Failure present → card renders with red-tinted border",
+        "Summary and suggested-action blocks render when fields are populated",
+        "Action buttons fire correct data-command attributes",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/panelHtml.ts",
+        "src/ui/uiTypes.ts",
+        "UXrefresh/components/panels.jsx"
+      ]
     }
   ],
-  "mutationCount": 177
+  "mutationCount": 178
 }
