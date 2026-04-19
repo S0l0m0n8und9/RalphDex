@@ -21,6 +21,9 @@ import type { DeadLetterEntry } from './deadLetter';
 import type { FailureAnalysis } from './failureDiagnostics';
 import {
   FailureCategoryId,
+  FanInRecord,
+  HumanGateArtifact,
+  OrchestrationNodeSpan,
   RalphCliInvocation,
   RalphExecutionPlan,
   RalphHandoff,
@@ -145,6 +148,21 @@ export interface RalphStatusSnapshot {
    * ascending. Absent or empty when no replans have been recorded.
    */
   replanArtifacts?: ReplanDecisionArtifact[];
+  /**
+   * Human gate artifacts for the latest pipeline run's root task. Present for each gate type
+   * whose file exists on disk. Absent when no gates are currently blocking.
+   */
+  humanGateArtifacts?: HumanGateArtifact[];
+  /**
+   * Fan-in record from the plan graph for the latest pipeline run's root task.
+   * Absent when no plan graph has been written or the fan-in has not been evaluated yet.
+   */
+  fanInRecord?: FanInRecord | null;
+  /**
+   * Per-node execution spans from the latest orchestration run, keyed by nodeId.
+   * Absent when no orchestration run is active or span files have not been written.
+   */
+  nodeSpans?: OrchestrationNodeSpan[];
 }
 
 function relativeFromRoot(rootPath: string, target: string | null): string {

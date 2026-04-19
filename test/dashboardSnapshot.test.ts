@@ -9,7 +9,7 @@ import type { AgentStatusSummary, AgentHandoffSummary } from '../src/ralph/multi
 import type { DeadLetterEntry } from '../src/ralph/deadLetter';
 import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
 import type { PipelineRunArtifact } from '../src/ralph/pipeline';
-import type { RalphProvenanceBundle } from '../src/ralph/types';
+import type { FanInRecord, HumanGateArtifact, OrchestrationNodeSpan, RalphProvenanceBundle, ReplanDecisionArtifact } from '../src/ralph/types';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -38,6 +38,11 @@ function minimalSnapshot(
       | 'latestFailureAnalysisPath'
       | 'recoveryStatePath'
       | 'latestProvenanceBundle'
+      | 'orchestration'
+      | 'replanArtifacts'
+      | 'humanGateArtifacts'
+      | 'fanInRecord'
+      | 'nodeSpans'
     >
   > = {}
 ): RalphStatusSnapshot {
@@ -56,6 +61,11 @@ function minimalSnapshot(
     latestFailureAnalysisPath: null,
     recoveryStatePath: null,
     latestProvenanceBundle: null,
+    orchestration: undefined,
+    replanArtifacts: undefined,
+    humanGateArtifacts: undefined,
+    fanInRecord: undefined,
+    nodeSpans: undefined,
     ...overrides,
   } as unknown as RalphStatusSnapshot;
 }
@@ -508,4 +518,190 @@ test('buildDashboardSnapshot: cost section exposes only executionCostUsd when di
   assert.strictEqual(result.cost.executionCostUsd, 0.0055);
   assert.strictEqual(result.cost.diagnosticCostUsd, null);
   assert.strictEqual(result.cost.hasAnyCostData, true);
+});
+
+// ---------------------------------------------------------------------------
+// Orchestration panel
+// ---------------------------------------------------------------------------
+
+function makeOrchestrationState(overrides: Partial<RalphStatusSnapshot['orchestration']> = {}): NonNullable<RalphStatusSnapshot['orchestration']> {
+  return {
+    activeNodeId: 'node-exec-1',
+    activeNodeLabel: 'Execute Task T1',
+    completedNodes: [],
+    pendingBranchNodes: [],
+    ...overrides,
+  };
+}
+
+function makeReplanArtifact(replanIndex: number): ReplanDecisionArtifact {
+  return {
+    schemaVersion: 1,
+    kind: 'replanDecision',
+    parentTaskId: 'T1',
+    replanIndex,
+    triggerEvidenceClass: ['consecutive_verifier_mismatches'],
+    triggerDetails: `Replan ${replanIndex} triggered by verifier failures`,
+    rejectedAlternatives: [],
+    chosenMutation: '2 waves written',
+    taskGraphDiff: { addedTaskIds: ['T10', 'T11'], removedTaskIds: ['T9'], modifiedTaskIds: [] },
+    createdAt: `2026-01-0${replanIndex}T00:00:00.000Z`,
+  };
+}
+
+function makeHumanGateArtifact(gateType: HumanGateArtifact['gateType']): HumanGateArtifact {
+  return {
+    gateType,
+    triggerReason: `Gate triggered: ${gateType}`,
+    affectedTaskIds: ['T2', 'T3'],
+    requiredApprovalCommand: 'ralphCodex.approveHumanReview',
+    createdAt: '2026-01-01T12:00:00.000Z',
+  };
+}
+
+function makeFanInRecord(result: FanInRecord['fanInResult']): FanInRecord {
+  return {
+    waveIndex: 0,
+    memberOutcomes: { T2: 'done', T3: 'done' },
+    fanInResult: result,
+    fanInErrors: result === 'failed' ? ['Merge conflict in src/util.ts'] : [],
+    evaluatedAt: '2026-01-01T10:00:00.000Z',
+  };
+}
+
+function makeNodeSpan(nodeId: string, overrides: Partial<OrchestrationNodeSpan> = {}): OrchestrationNodeSpan {
+  return {
+    nodeId,
+    runId: 'run-001',
+    startedAt: '2026-01-01T09:00:00.000Z',
+    finishedAt: '2026-01-01T09:30:00.000Z',
+    inputRefs: [],
+    outputRefs: [],
+    agentRole: 'implementer',
+    stopClassification: 'completed',
+    ...overrides,
+  };
+}
+
+test('buildDashboardSnapshot: orchestration panel is null when no orchestration data', () => {
+  const snapshot = minimalSnapshot();
+  const result = buildDashboardSnapshot(snapshot);
+  assert.strictEqual(result.orchestration, null);
+});
+
+test('buildDashboardSnapshot: orchestration panel returns section when orchestration state present', () => {
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState({
+      activeNodeId: 'node-review',
+      activeNodeLabel: 'Review Agent',
+      completedNodes: [{ nodeId: 'node-exec-1', label: 'Execute T1', outcome: 'completed', finishedAt: '2026-01-01T09:00:00.000Z' }],
+      pendingBranchNodes: [{ nodeId: 'node-scm', label: 'SCM Submit' }],
+    }) as RalphStatusSnapshot['orchestration'],
+  });
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.activeNodeId, 'node-review');
+  assert.strictEqual(result.orchestration!.activeNodeLabel, 'Review Agent');
+  assert.strictEqual(result.orchestration!.completedNodes.length, 1);
+  assert.strictEqual(result.orchestration!.completedNodes[0].nodeId, 'node-exec-1');
+  assert.strictEqual(result.orchestration!.completedNodes[0].outcome, 'completed');
+  assert.strictEqual(result.orchestration!.pendingBranchNodes.length, 1);
+  assert.strictEqual(result.orchestration!.pendingBranchNodes[0].nodeId, 'node-scm');
+  assert.strictEqual(result.orchestration!.fanInStatus, 'absent');
+  assert.deepEqual(result.orchestration!.fanInErrors, []);
+});
+
+test('buildDashboardSnapshot: orchestration panel includes fan-in record when present', () => {
+  const fanInRecord = makeFanInRecord('passed');
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
+    fanInRecord,
+  } as Partial<RalphStatusSnapshot>);
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.fanInStatus, 'passed');
+  assert.deepEqual(result.orchestration!.fanInErrors, []);
+});
+
+test('buildDashboardSnapshot: orchestration panel surfaces fan-in failure and errors', () => {
+  const fanInRecord = makeFanInRecord('failed');
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
+    fanInRecord,
+  } as Partial<RalphStatusSnapshot>);
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.fanInStatus, 'failed');
+  assert.strictEqual(result.orchestration!.fanInErrors.length, 1);
+  assert.ok(result.orchestration!.fanInErrors[0].includes('Merge conflict'));
+});
+
+test('buildDashboardSnapshot: orchestration panel surfaces replan history', () => {
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
+    replanArtifacts: [makeReplanArtifact(1), makeReplanArtifact(2)],
+  } as Partial<RalphStatusSnapshot>);
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.replanHistory.length, 2);
+  assert.strictEqual(result.orchestration!.replanHistory[0].replanIndex, 1);
+  assert.deepEqual(result.orchestration!.replanHistory[0].triggerEvidenceClass, ['consecutive_verifier_mismatches']);
+  assert.strictEqual(result.orchestration!.replanHistory[0].taskGraphDiff.addedTaskIds.length, 2);
+  assert.strictEqual(result.orchestration!.replanHistory[1].replanIndex, 2);
+});
+
+test('buildDashboardSnapshot: orchestration panel surfaces human gate artifacts', () => {
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
+    humanGateArtifacts: [makeHumanGateArtifact('scope_expansion')],
+  } as Partial<RalphStatusSnapshot>);
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.humanGates.length, 1);
+  assert.strictEqual(result.orchestration!.humanGates[0].gateType, 'scope_expansion');
+  assert.ok(result.orchestration!.humanGates[0].triggerReason.includes('scope_expansion'));
+  assert.deepEqual(result.orchestration!.humanGates[0].affectedTaskIds, ['T2', 'T3']);
+});
+
+test('buildDashboardSnapshot: orchestration panel augments completed nodes with span data', () => {
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState({
+      completedNodes: [
+        { nodeId: 'node-exec-1', label: 'Execute T1', outcome: 'completed', finishedAt: '2026-01-01T09:30:00.000Z' },
+        { nodeId: 'node-review', label: 'Review', outcome: 'completed', finishedAt: '2026-01-01T10:00:00.000Z' },
+      ],
+    }) as RalphStatusSnapshot['orchestration'],
+    nodeSpans: [
+      makeNodeSpan('node-exec-1', { agentRole: 'implementer', stopClassification: 'completed' }),
+      makeNodeSpan('node-review', { agentRole: 'reviewer', stopClassification: 'completed' }),
+    ],
+  } as Partial<RalphStatusSnapshot>);
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  const execNode = result.orchestration!.completedNodes.find((n) => n.nodeId === 'node-exec-1');
+  assert.ok(execNode !== undefined);
+  assert.strictEqual(execNode!.agentRole, 'implementer');
+  assert.strictEqual(execNode!.stopClassification, 'completed');
+
+  const reviewNode = result.orchestration!.completedNodes.find((n) => n.nodeId === 'node-review');
+  assert.ok(reviewNode !== undefined);
+  assert.strictEqual(reviewNode!.agentRole, 'reviewer');
+});
+
+test('buildDashboardSnapshot: orchestration panel renders absent fan-in when no fanInRecord', () => {
+  const snapshot = minimalSnapshot({
+    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
+  });
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.ok(result.orchestration !== null);
+  assert.strictEqual(result.orchestration!.fanInStatus, 'absent');
+  assert.deepEqual(result.orchestration!.replanHistory, []);
+  assert.deepEqual(result.orchestration!.humanGates, []);
 });

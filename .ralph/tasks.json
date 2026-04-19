@@ -4017,8 +4017,9 @@
     {
       "id": "T151",
       "title": "Dashboard orchestration panel: surface orchestration graph state, node spans, re-plan history, and fan-in gate status",
-      "status": "todo",
-      "notes": "The orchestration graph, span artifacts, re-plan decisions, and human gate artifacts were all introduced in Items 20-23 but are currently only accessible by reading raw JSON files. This task surfaces them in the existing dashboard WebviewPanelManager/MessageBridge stack, making orchestration state inspectable without leaving VS Code.",
+      "status": "done",
+      "notes": "Dashboard Orchestration panel implemented: added OrchestrationPanelSection to dashboardSnapshot, extended collectStatusSnapshot to collect human gate artifacts/fanInRecord/nodeSpans, added stateWatcher for orchestration files, added Orchestration tab in panelHtml, 8 regression tests added. npm run validate passes (1021/1021 tests).",
+      "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
         "The Ralphdex dashboard includes an Orchestration tab (or expandable section) that renders: current graph node, prior node outcomes (from node span artifacts), pending branch nodes, and fan-in gate open/closed/failed status",
@@ -4027,8 +4028,9 @@
         "Panel refreshes on filesystem changes to the orchestration state artifacts (state.json, span files, human-gate files) so it stays live during an active run",
         "At least 5 regression tests cover the new orchestration panel rendering for empty state, active graph, and human-gate-pending states",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 161
+  "mutationCount": 162
 }

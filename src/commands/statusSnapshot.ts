@@ -26,7 +26,7 @@ import type {
   ReplanDecisionArtifact
 } from '../ralph/types';
 import { resolveLatestHandoffPath } from '../ralph/handoffManager';
-import { inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention } from '../ralph/artifactStore';
+import { contextEnvelopePath, inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention, planGraphPath } from '../ralph/artifactStore';
 import {
   captureGitStatus,
   chooseValidationCommand,
@@ -34,7 +34,8 @@ import {
   normalizeValidationCommand
 } from '../ralph/verifier';
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
-import { readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
+import { humanGateArtifactPath, readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
+import type { FanInRecord, HumanGateArtifact, HumanGateType, OrchestrationNodeSpan } from '../ralph/types';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
 import { getFailureAnalysisPath, parseFailureDiagnosticResponse, type FailureAnalysis } from '../ralph/failureDiagnostics';
@@ -46,7 +47,6 @@ import { validateRecord } from '../util/validate';
 import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
 import { getEffectivePolicy } from '../ralph/rolePolicy';
-import { contextEnvelopePath } from '../ralph/artifactStore';
 import type { ContextEnvelope } from '../ralph/types';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
@@ -510,6 +510,64 @@ export async function collectStatusSnapshot(
     }
   }
 
+  // Collect human gate artifacts for the latest pipeline root task.
+  const humanGateArtifacts: HumanGateArtifact[] = [];
+  if (rootTaskId) {
+    const gateTypes: HumanGateType[] = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
+    for (const gateType of gateTypes) {
+      const gatePath = humanGateArtifactPath(inspection.paths.artifactDir, rootTaskId, gateType);
+      try {
+        const raw = await fs.readFile(gatePath, 'utf8');
+        const parsed = JSON.parse(raw) as HumanGateArtifact;
+        if (parsed && parsed.gateType) {
+          humanGateArtifacts.push(parsed);
+        }
+      } catch {
+        // gate file absent — no gate of this type is currently blocking
+      }
+    }
+  }
+
+  // Extract fanInRecord from the plan graph for the latest pipeline root task.
+  let fanInRecord: FanInRecord | null = null;
+  if (rootTaskId) {
+    const graphPath = planGraphPath(inspection.paths.artifactDir, rootTaskId);
+    try {
+      const raw = await fs.readFile(graphPath, 'utf8');
+      const parsed = JSON.parse(raw) as { fanInRecord?: FanInRecord };
+      fanInRecord = parsed.fanInRecord ?? null;
+    } catch {
+      // plan graph absent or unreadable — leave null
+    }
+  }
+
+  // Collect per-node execution spans from the latest orchestration run.
+  const nodeSpans: OrchestrationNodeSpan[] = [];
+  if (latestPipelineEntry?.artifact?.runId) {
+    const runId = latestPipelineEntry.artifact.runId;
+    const orchDir = path.join(inspection.paths.ralphDir, 'orchestration', runId);
+    const spanPattern = /^node-.+-span\.json$/;
+    try {
+      const entries = await fs.readdir(orchDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isFile() || !spanPattern.test(entry.name)) {
+          continue;
+        }
+        try {
+          const raw = await fs.readFile(path.join(orchDir, entry.name), 'utf8');
+          const parsed = JSON.parse(raw) as OrchestrationNodeSpan;
+          if (parsed && parsed.nodeId) {
+            nodeSpans.push(parsed);
+          }
+        } catch {
+          // malformed span — skip
+        }
+      }
+    } catch {
+      // orchestration dir absent — leave empty
+    }
+  }
+
   let latestHandoff: RalphHandoff | null = null;
   try {
     const raw = await fs.readFile(resolveLatestHandoffPath(inspection.paths.ralphDir), 'utf8');
@@ -634,6 +692,9 @@ export async function collectStatusSnapshot(
     latestHandoff,
     effectiveRolePolicy,
     rolePolicySource,
-    replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined
+    replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined,
+    humanGateArtifacts: humanGateArtifacts.length > 0 ? humanGateArtifacts : undefined,
+    fanInRecord: fanInRecord ?? undefined,
+    nodeSpans: nodeSpans.length > 0 ? nodeSpans : undefined
   };
 }

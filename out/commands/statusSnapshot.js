@@ -66,7 +66,6 @@ const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const rolePolicy_1 = require("../ralph/rolePolicy");
-const artifactStore_2 = require("../ralph/artifactStore");
 async function readJsonArtifact(target) {
     if (!target) {
         return null;
@@ -364,7 +363,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     let rolePolicySource = 'preset';
     const prevIteration = inspection.state.nextIteration - 1;
     if (prevIteration >= 1) {
-        const envelopePath = (0, artifactStore_2.contextEnvelopePath)(inspection.paths.artifactDir, String(prevIteration).padStart(3, '0'));
+        const envelopePath = (0, artifactStore_1.contextEnvelopePath)(inspection.paths.artifactDir, String(prevIteration).padStart(3, '0'));
         try {
             const raw = await fs.readFile(envelopePath, 'utf8');
             const parsed = JSON.parse(raw);
@@ -489,6 +488,65 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
             // directory absent or unreadable — leave empty
         }
     }
+    // Collect human gate artifacts for the latest pipeline root task.
+    const humanGateArtifacts = [];
+    if (rootTaskId) {
+        const gateTypes = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
+        for (const gateType of gateTypes) {
+            const gatePath = (0, orchestrationSupervisor_1.humanGateArtifactPath)(inspection.paths.artifactDir, rootTaskId, gateType);
+            try {
+                const raw = await fs.readFile(gatePath, 'utf8');
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.gateType) {
+                    humanGateArtifacts.push(parsed);
+                }
+            }
+            catch {
+                // gate file absent — no gate of this type is currently blocking
+            }
+        }
+    }
+    // Extract fanInRecord from the plan graph for the latest pipeline root task.
+    let fanInRecord = null;
+    if (rootTaskId) {
+        const graphPath = (0, artifactStore_1.planGraphPath)(inspection.paths.artifactDir, rootTaskId);
+        try {
+            const raw = await fs.readFile(graphPath, 'utf8');
+            const parsed = JSON.parse(raw);
+            fanInRecord = parsed.fanInRecord ?? null;
+        }
+        catch {
+            // plan graph absent or unreadable — leave null
+        }
+    }
+    // Collect per-node execution spans from the latest orchestration run.
+    const nodeSpans = [];
+    if (latestPipelineEntry?.artifact?.runId) {
+        const runId = latestPipelineEntry.artifact.runId;
+        const orchDir = path.join(inspection.paths.ralphDir, 'orchestration', runId);
+        const spanPattern = /^node-.+-span\.json$/;
+        try {
+            const entries = await fs.readdir(orchDir, { withFileTypes: true });
+            for (const entry of entries) {
+                if (!entry.isFile() || !spanPattern.test(entry.name)) {
+                    continue;
+                }
+                try {
+                    const raw = await fs.readFile(path.join(orchDir, entry.name), 'utf8');
+                    const parsed = JSON.parse(raw);
+                    if (parsed && parsed.nodeId) {
+                        nodeSpans.push(parsed);
+                    }
+                }
+                catch {
+                    // malformed span — skip
+                }
+            }
+        }
+        catch {
+            // orchestration dir absent — leave empty
+        }
+    }
     let latestHandoff = null;
     try {
         const raw = await fs.readFile((0, handoffManager_1.resolveLatestHandoffPath)(inspection.paths.ralphDir), 'utf8');
@@ -610,7 +668,10 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestHandoff,
         effectiveRolePolicy,
         rolePolicySource,
-        replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined
+        replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined,
+        humanGateArtifacts: humanGateArtifacts.length > 0 ? humanGateArtifacts : undefined,
+        fanInRecord: fanInRecord ?? undefined,
+        nodeSpans: nodeSpans.length > 0 ? nodeSpans : undefined
     };
 }
 //# sourceMappingURL=statusSnapshot.js.map

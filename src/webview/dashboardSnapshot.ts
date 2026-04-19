@@ -132,6 +132,49 @@ export interface DashboardCostSection {
 }
 
 // ---------------------------------------------------------------------------
+// Orchestration panel
+// ---------------------------------------------------------------------------
+
+export interface OrchestrationNodeEntry {
+  nodeId: string;
+  label: string;
+  outcome: string;
+  finishedAt: string | null;
+  agentRole?: string;
+  stopClassification?: string;
+}
+
+export interface OrchestrationReplanEntry {
+  replanIndex: number;
+  triggerEvidenceClass: string[];
+  triggerDetails: string;
+  taskGraphDiff: {
+    addedTaskIds: string[];
+    removedTaskIds: string[];
+    modifiedTaskIds: string[];
+  };
+}
+
+export interface OrchestrationHumanGateEntry {
+  gateType: string;
+  triggerReason: string;
+  affectedTaskIds: string[];
+  createdAt: string;
+}
+
+export interface OrchestrationPanelSection {
+  activeNodeId: string | null;
+  activeNodeLabel: string | null;
+  completedNodes: OrchestrationNodeEntry[];
+  pendingBranchNodes: Array<{ nodeId: string; label: string }>;
+  /** 'passed' | 'failed' | 'absent' — absent when no plan graph / fan-in has run yet. */
+  fanInStatus: 'passed' | 'failed' | 'absent';
+  fanInErrors: string[];
+  replanHistory: OrchestrationReplanEntry[];
+  humanGates: OrchestrationHumanGateEntry[];
+}
+
+// ---------------------------------------------------------------------------
 // Quick-action inputs
 // ---------------------------------------------------------------------------
 
@@ -158,6 +201,7 @@ export interface DashboardSnapshot {
   deadLetter: DeadLetterSection;
   quickActions: QuickActionsSection;
   cost: DashboardCostSection;
+  orchestration: OrchestrationPanelSection | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +234,69 @@ export function buildDashboardSnapshot(
     deadLetter: buildDeadLetter(snapshot),
     quickActions: buildQuickActions(snapshot),
     cost: buildCostSection(snapshot),
+    orchestration: buildOrchestrationPanel(snapshot),
+  };
+}
+
+function buildOrchestrationPanel(snapshot: RalphStatusSnapshot): OrchestrationPanelSection | null {
+  const orch = snapshot.orchestration;
+  // Return null only when there is no orchestration data at all (no pipeline run / no graph).
+  if (!orch && !snapshot.replanArtifacts?.length && !snapshot.humanGateArtifacts?.length && snapshot.fanInRecord === undefined) {
+    return null;
+  }
+
+  // Build span lookup keyed by nodeId for augmenting completedNodes.
+  const spanByNodeId = new Map<string, { agentRole?: string; stopClassification?: string }>();
+  for (const span of snapshot.nodeSpans ?? []) {
+    spanByNodeId.set(span.nodeId, {
+      agentRole: span.agentRole,
+      stopClassification: span.stopClassification
+    });
+  }
+
+  const completedNodes: OrchestrationNodeEntry[] = (orch?.completedNodes ?? []).map((node) => {
+    const span = spanByNodeId.get(node.nodeId);
+    return {
+      nodeId: node.nodeId,
+      label: node.label,
+      outcome: node.outcome,
+      finishedAt: node.finishedAt,
+      agentRole: span?.agentRole,
+      stopClassification: span?.stopClassification
+    };
+  });
+
+  const fanInRecord = snapshot.fanInRecord;
+  let fanInStatus: OrchestrationPanelSection['fanInStatus'] = 'absent';
+  let fanInErrors: string[] = [];
+  if (fanInRecord) {
+    fanInStatus = fanInRecord.fanInResult === 'passed' ? 'passed' : 'failed';
+    fanInErrors = fanInRecord.fanInErrors ?? [];
+  }
+
+  const replanHistory: OrchestrationReplanEntry[] = (snapshot.replanArtifacts ?? []).map((artifact) => ({
+    replanIndex: artifact.replanIndex,
+    triggerEvidenceClass: artifact.triggerEvidenceClass,
+    triggerDetails: artifact.triggerDetails,
+    taskGraphDiff: artifact.taskGraphDiff
+  }));
+
+  const humanGates: OrchestrationHumanGateEntry[] = (snapshot.humanGateArtifacts ?? []).map((gate) => ({
+    gateType: gate.gateType,
+    triggerReason: gate.triggerReason,
+    affectedTaskIds: gate.affectedTaskIds,
+    createdAt: gate.createdAt
+  }));
+
+  return {
+    activeNodeId: orch?.activeNodeId ?? null,
+    activeNodeLabel: orch?.activeNodeLabel ?? null,
+    completedNodes,
+    pendingBranchNodes: orch?.pendingBranchNodes ?? [],
+    fanInStatus,
+    fanInErrors,
+    replanHistory,
+    humanGates
   };
 }
 
