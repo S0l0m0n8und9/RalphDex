@@ -4103,44 +4103,6 @@
         "npm run validate passes"
       ],
       "lastVerifierResult": "passed"
-    },
-    {
-      "id": "Tpipe-20260419T194905Z-ad3d",
-      "title": "Pipeline run pipeline-20260419T194905Z-ad3d",
-      "status": "in_progress",
-      "dependsOn": [
-        "Tpipe-20260419T194905Z-ad3d.01",
-        "Tpipe-20260419T194905Z-ad3d.02",
-        "Tpipe-20260419T194905Z-ad3d.03"
-      ],
-      "notes": "Auto-generated pipeline root. Created by ralphCodex.runPipeline at 2026-04-19T19:49:05.135Z."
-    },
-    {
-      "id": "Tpipe-20260419T194905Z-ad3d.01",
-      "title": "Objective",
-      "status": "todo",
-      "parentId": "Tpipe-20260419T194905Z-ad3d",
-      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
-    },
-    {
-      "id": "Tpipe-20260419T194905Z-ad3d.02",
-      "title": "Product direction",
-      "status": "todo",
-      "parentId": "Tpipe-20260419T194905Z-ad3d",
-      "dependsOn": [
-        "Tpipe-20260419T194905Z-ad3d.01"
-      ],
-      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
-    },
-    {
-      "id": "Tpipe-20260419T194905Z-ad3d.03",
-      "title": "Core outcomes",
-      "status": "todo",
-      "parentId": "Tpipe-20260419T194905Z-ad3d",
-      "dependsOn": [
-        "Tpipe-20260419T194905Z-ad3d.02"
-      ],
-      "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
     }
   ],
   "mutationCount": 169

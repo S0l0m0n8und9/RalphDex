@@ -719,80 +719,60 @@ Acceptance criteria:
 
 A standalone full-featured CLI for headless/CI operator use has been explicitly deferred. It is not a next target for the VS Code extension and must not be introduced as backlog work. Rationale: the extension already drives the `cliExec` strategy which shells out to the `claude` CLI — CI use is already achievable by installing the Claude CLI in the runner environment. A dedicated `ralph-cli` would require a parallel host, config system, and UX contract that would split maintenance effort with no gain for users who work inside VS Code. The developer-loop shim (item 1 above) covers the self-hosting use case without becoming a full product. If a full operator CLI becomes warranted, it will be a separate project fork, not an extension feature.
 
+### Next delivery horizon — satisfied 2026-04-20
+
+The four-item horizon defined after the multi-agent evolution milestone is now complete:
+
+**1. v0.3.0 release preparation** (T149 — completed)
+
+`package.json` is at `0.3.0`, the release changelog is present, Marketplace dry-run publishing was validated, and the release-preparation gate passed.
+
+**2. Orchestration integration smoke test** (T150 — completed)
+
+The orchestration smoke path now exercises graph persistence, handoffs, role policies, fan-in reconciliation, and human-gate behavior end-to-end.
+
+**3. Dashboard orchestration panel** (T151 — completed)
+
+The dashboard now exposes orchestration state, node spans, re-plan artifacts, and human-gate visibility directly from durable artifacts.
+
+**4. UI task seeding from epic/feature request** (T152–T155 — completed)
+
+Command-palette, dashboard, and sidebar seeding flows now share the deterministic task-creation path, persist seeding evidence, and keep task writes inside the normalized persistence boundary.
+
 ### Next delivery horizon
 
-With the four-item multi-agent evolution horizon satisfied, the following capabilities are the concrete next targets.
+With the release, orchestration smoke, dashboard orchestration surface, and UI task-seeding work complete, the following capabilities are the concrete next targets.
 
-**1. v0.3.0 release preparation**
+**1. Wire the `UXrefresh/` components into the live Ralphdex dashboard and sidebar surfaces**
 
-Publish the second numbered Marketplace release documenting the multi-agent evolution. Concrete work:
+This is the next actioned implementation item. If any task is already legitimately in progress when this horizon is executed, finish that in-flight work first; otherwise this becomes the immediate next backlog item. The goal is to take the prototype components and layout direction captured in `UXrefresh/` and integrate them into the real webview host, state flow, command bridge, and styling system without losing the existing durable-data contract. Concrete work:
 
-- Bump `package.json` version to `0.3.0`.
-- Add a `CHANGELOG.md` entry recording the four-item multi-agent evolution horizon (Items 20–23) delivered in this release, including orchestration graph execution, handoff contracts, role-based context isolation, and adaptive re-planning with human gates.
-- Tag the release commit and run `vsce publish` against the VS Code Marketplace.
-- Validate that the published extension installs cleanly from the Marketplace and that prior stable releases remain available.
-
-Acceptance criteria:
-- `package.json` version is `0.3.0`.
-- `CHANGELOG.md` has a `## [0.3.0]` entry dated 2026-04-16 documenting Items 20–23.
-- `vsce publish --dry-run` passes with no blocking warnings.
-- `npm run validate` passes.
-
-**2. Orchestration integration smoke test**
-
-Validate that orchestration graph execution, handoff lifecycle, role policies, fan-in gates, and adaptive re-planning work correctly end-to-end in a real Ralph iteration loop. Concrete work:
-
-- Add `test:orchestration-smoke` test script that sets up a minimal multi-task workspace with fan-out dependencies, runs a complete iteration loop via the cliExec strategy, and asserts:
-  - Orchestration graph transitions persisted correctly.
-  - Child-task waves executed within expected concurrency bounds.
-  - Fan-in gate collected all child outcomes and validated merge criteria.
-  - If adaptive re-planning was triggered, decision artifacts exist and replan cap was enforced.
-  - Handoff lifecycle transitions (proposed → accepted → completed) are auditable in artifacts.
-  - Role-based claim acquisition respected allowlists (planner claims plan tasks, implementer claims implementation).
-- Document any discovered behavioral gaps or integration issues in `docs/orchestration-smoke-test.md`.
+- Audit the prototype component set under `UXrefresh/components/` and map each piece to an existing production surface or a deliberate no-ship omission.
+- Replace or adapt the current dashboard/sidebar renderers so the production webview uses the refreshed information architecture, visual hierarchy, and interaction model from the `UXrefresh/` prototypes.
+- Preserve existing command routes, typed webview messaging, artifact-driven snapshot data, and workspace-trust guards while changing the presentation layer.
+- Make the refreshed UI work across the currently shipped dashboard tabs and sidebar surfaces, including task detail, pipelines, orchestration, diagnostics, settings, and task-seeding entry points where those concepts still belong.
+- Reconcile any prototype-only demo data or controls so the shipped UI reads from real `DashboardSnapshot` state instead of static mock data.
+- Update docs and tests alongside the implementation so the new surface contract is explicit and regression-covered.
 
 Acceptance criteria:
-- `test:orchestration-smoke` script runs end-to-end without CLI/provider errors.
-- All orchestration artifacts (graph.json, state.json, node spans, handoff records, replan decisions) are present in the expected locations.
-- Completion report parsing and task-state reconciliation succeed for multi-child fan-in outcomes.
+- The production dashboard/sidebar visibly reflect the `UXrefresh/` component direction rather than the pre-refresh layout.
+- `UXrefresh/` prototype pieces that are adopted are wired to live durable snapshot data and existing extension commands, not static demo state.
+- Existing operator workflows remain available after the refresh, including status inspection, task seeding, orchestration visibility, diagnostics access, and settings navigation.
+- Regression coverage proves the refreshed webview host still renders and routes core actions correctly.
 - `npm run validate` passes.
 
-**3. Dashboard orchestration panel**
+**2. Rationalize the `UXrefresh/` prototype bundle after integration**
 
-Add webview UI surface to visualize orchestration graph state, node execution timelines, fan-in gate status, and re-plan decision history (extends item 15 phases). Concrete work:
+Once the live UI is using the refreshed component set, clean up the remaining prototype footprint so the repository has one authoritative implementation path. Concrete work:
 
-- Add `ralphCodex.showOrchestrationPanel` command opening a persistent webview panel displaying:
-  - **Graph visualization**: DAG render of current orchestration graph with node colors indicating status (pending / in_progress / done / blocked / waiting_fan_in).
-  - **Node timeline**: horizontal timeline showing each node's start time, duration, assigned agent role/id, and outcome indicator.
-  - **Fan-in gates**: expandable cards per fan-in node showing child-task IDs, outcome aggregates (passed / conflicted), merge decision, and validation results.
-  - **Re-plan history**: list of all replan decisions for the current run with trigger evidence, rejected alternatives, chosen mutation, and task-graph diffs.
-  - **Quick actions**: buttons to view node artifacts, open task detail, inspect handoff records, and export graph as DOT/SVG for external visualization.
-- Integrate panel updates into the iteration-completion event pathway so the graph view updates in real-time as orchestration progresses.
-- Link to existing `ralphCodex.showDashboard` so operators can navigate between status overview and orchestration detail.
+- Remove, archive, or sharply narrow any prototype-only files that no longer serve as durable references.
+- Keep only the artifacts that are still useful as design references or test fixtures, and document that role explicitly.
+- Ensure the repo no longer presents two competing dashboard implementations with ambiguous ownership.
 
 Acceptance criteria:
-- `ralphCodex.showOrchestrationPanel` command opens and renders without errors.
-- Graph visualization correctly displays node states and fan-in join logic.
-- Node timeline and fan-in gate sections correctly aggregate and display persisted artifacts.
-- Panel updates on each iteration-completion event with refreshed graph state.
-- `npm run validate` passes.
-
-**4. UI task seeding from epic/feature request**
-
-Add a first-class UI workflow that lets an operator seed backlog tasks directly from an epic/feature-level request, without hand-editing `tasks.json`. Concrete work:
-
-- Add a command/UI entry point (for example from the sidebar and command palette) that prompts the operator to describe the desired epic or feature at a high level.
-- Route the request through the same deterministic task-creation pipeline used by other task producers, so generated tasks preserve schema invariants and normalized fields.
-- Produce structured task objects and append them to `.ralph/tasks.json` as valid task entries (IDs, status, dependency metadata, and optional rich fields when available).
-- Persist generation evidence as a durable artifact so operators can audit the source request and resulting seeded tasks.
-- Surface a clear success/failure summary in the UI, including how many tasks were created and where they were written.
-
-Acceptance criteria:
-- Operator can trigger the flow from a UI surface and submit an epic/feature request in one interaction path.
-- Generated output is persisted as valid task objects in `.ralph/tasks.json` (not freeform markdown).
-- Task writes pass through the shared normalization + persistence boundary and respect task-schema invariants.
-- Failure paths (provider error, parse failure, schema rejection) produce deterministic user-facing diagnostics with no partial corrupt writes.
-- `npm run validate` passes.
+- Prototype leftovers are either removed or clearly documented as non-production references.
+- Production ownership remains in `src/webview/` and related tests/docs.
+- `npm run check:docs` passes.
 
 ### Design principles and scope boundaries
 
