@@ -4103,7 +4103,75 @@
         "npm run validate passes"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T156",
+      "title": "Integrate the UXrefresh dashboard shell into the live Ralphdex webview using durable snapshot data",
+      "status": "done",
+      "notes": "Resumed the in-progress UXrefresh dashboard shell integration, verified the live renderer/test changes already in the workspace, and confirmed the task now clears the full repo validation gate. Focused panelHtml tests passed (24/24) and npm run validate passed end-to-end (1035/1035 tests).",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "The production dashboard webview visibly adopts the UXrefresh shell, hero, and section structure rather than the current pre-refresh layout",
+        "Overview/work/orchestration/diagnostics/settings entry points continue to render from live DashboardSnapshot data instead of static prototype data",
+        "Existing dashboard actions still route through the current typed webview message bridge and registered Ralphdex commands",
+        "npm run validate passes"
+      ],
+      "lastVerifierResult": "failed"
+    },
+    {
+      "id": "T157",
+      "title": "Wire refreshed sidebar and dashboard detail surfaces to live commands, task seeding, and durable state",
+      "status": "todo",
+      "dependsOn": [
+        "T156"
+      ],
+      "notes": "Carry the UXrefresh integration through the production sidebar, task-detail affordances, task seeding entry points, and other dashboard subsections so the shipped UI matches the prototype direction without losing real-data bindings or operator workflows.",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "The production sidebar reflects the refreshed UXrefresh direction while preserving Build/Review/Watch/SCM actions, loop controls, and task-seeding entry points",
+        "Task, pipeline, orchestration, diagnostics, and settings affordances exposed by the refreshed UI are wired to live extension commands or snapshot-backed state rather than demo placeholders",
+        "Core operator workflows remain available after the refresh, including status inspection, task seeding, orchestration visibility, diagnostics access, and settings navigation",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T158",
+      "title": "Add regression coverage for the refreshed Ralphdex dashboard and sidebar rendering and routing contract",
+      "status": "todo",
+      "dependsOn": [
+        "T156",
+        "T157"
+      ],
+      "notes": "Lock the refresh behind targeted panel/sidebar regressions so future iterations cannot silently fall back to the old layout, static mock data, or broken command wiring.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Regression tests cover the refreshed dashboard shell rendering against live snapshot-backed sections",
+        "Regression tests cover refreshed sidebar action routing and task-seeding affordances",
+        "The test suite proves the refreshed host still uses typed message routing and durable snapshot data instead of prototype-only placeholders",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T159",
+      "title": "Rationalize the UXrefresh prototype bundle and document the post-integration UI ownership boundary",
+      "status": "todo",
+      "dependsOn": [
+        "T157",
+        "T158"
+      ],
+      "notes": "After the refreshed UI is live, remove or narrow prototype-only UXrefresh files so the repository has one authoritative implementation path, and update docs to make the surviving reference artifacts and production ownership explicit.",
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "Prototype-only UXrefresh files that are no longer needed are removed, archived, or explicitly documented as non-production references",
+        "Docs make clear that production ownership for the shipped dashboard/sidebar lives under src/webview/ and related tests",
+        "The repository no longer presents two competing dashboard implementations without an explicit boundary",
+        "npm run check:docs passes"
+      ]
     }
   ],
-  "mutationCount": 169
+  "mutationCount": 171
 }

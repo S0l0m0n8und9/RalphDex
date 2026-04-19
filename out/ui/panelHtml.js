@@ -603,8 +603,263 @@ details[open] > .settings-advanced-toggle::before { content: '▾ '; }
   .work-grid,
   .dashboard-summary-grid,
   .metric-grid,
-  .settings-grid {
+    .settings-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-app {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.dashboard-sidebar {
+  display: grid;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.dashboard-sidebar-panel,
+.dashboard-main,
+.hero-card,
+.hero-health-cell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    var(--glass-bg);
+  border: 1px solid var(--ralph-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.dashboard-sidebar-panel {
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.dashboard-main {
+  border-radius: 16px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.dashboard-brand {
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-brand-kicker,
+.hero-kicker,
+.rail-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ralph-dim);
+}
+
+.dashboard-brand-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.dashboard-brand-meta {
+  color: var(--ralph-dim);
+  font-size: 11px;
+}
+
+.dashboard-main .tab-layout {
+  gap: 16px;
+}
+
+.dashboard-sidebar .tab-bar {
+  display: grid;
+  gap: 4px;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dashboard-sidebar .tab-button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+}
+
+.dashboard-sidebar .tab-button[aria-selected="true"] {
+  border-color: rgba(245, 158, 11, 0.28);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.dashboard-sidebar-actions,
+.rail-current-task,
+.hero-actions,
+.hero-phase {
+  display: grid;
+  gap: 8px;
+}
+
+.hero-card {
+  border-radius: 16px;
+  padding: 20px;
+  display: grid;
+  gap: 18px;
+}
+
+.hero-topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hero-headline {
+  display: grid;
+  gap: 8px;
+}
+
+.hero-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.hero-state-pill,
+.hero-inline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ralph-border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.hero-state-pill.running {
+  border-color: rgba(245, 158, 11, 0.35);
+  color: var(--ralph-amber);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.hero-state-pill.idle {
+  color: var(--ralph-dim);
+}
+
+.hero-state-pill.stopped {
+  border-color: rgba(249, 115, 22, 0.35);
+  color: var(--ralph-orange);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.hero-title {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+}
+
+.hero-summary {
+  color: var(--ralph-dim);
+  font-size: 13px;
+  max-width: 70ch;
+}
+
+.hero-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.hero-health-cell {
+  border-radius: 10px;
+  padding: 14px;
+  display: grid;
+  gap: 5px;
+}
+
+.hero-health-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--ralph-dim);
+}
+
+.hero-health-value {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.hero-health-sub {
+  font-size: 11px;
+  color: var(--ralph-dim);
+}
+
+.hero-health-track {
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.hero-health-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--ralph-amber);
+}
+
+.overview-shell,
+.work-shell,
+.diagnostics-shell,
+.orchestration-shell,
+.settings-shell {
+  display: grid;
+  gap: 14px;
+}
+
+.overview-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.overview-column {
+  display: grid;
+  gap: 14px;
+}
+
+.section-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.rail-command {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 980px) {
+  .dashboard-app,
+  .overview-body,
+  .hero-health-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    position: static;
+  }
+
+  .dashboard-main {
+    padding: 14px;
   }
 }
 `;
@@ -1047,6 +1302,129 @@ function buildTaskCollections(state) {
     const doneTasks = sorted.filter((task) => task.status === 'done');
     return { activeTasks, doneTasks, allDone: activeTasks.length === 0 && doneTasks.length > 0 };
 }
+function formatCostLabel(amount) {
+    return amount === null ? 'Unavailable' : `$${amount.toFixed(4)}`;
+}
+function buildHeroHealthCell(label, value, subtitle, fillPercent, fillColor = 'var(--ralph-amber)') {
+    return `<div class="hero-health-cell">
+    <div class="hero-health-label">${(0, htmlHelpers_1.esc)(label)}</div>
+    <div class="hero-health-value">${(0, htmlHelpers_1.esc)(value)}</div>
+    <div class="hero-health-sub">${(0, htmlHelpers_1.esc)(subtitle)}</div>
+    ${typeof fillPercent === 'number'
+        ? `<div class="hero-health-track"><div class="hero-health-fill" style="width:${Math.max(0, Math.min(100, fillPercent))}%; background:${fillColor};"></div></div>`
+        : ''}
+  </div>`;
+}
+function buildHeroCard(state) {
+    const snapshot = state.dashboardSnapshot;
+    const taskBoard = snapshot?.taskBoard ?? null;
+    const currentTask = state.tasks.find((task) => task.isCurrent)
+        ?? state.tasks[0]
+        ?? (taskBoard?.selectedTaskId
+            ? {
+                id: taskBoard.selectedTaskId,
+                title: taskBoard.selectedTaskTitle ?? 'Selected task',
+                status: 'todo',
+                isCurrent: true,
+                priority: 'normal',
+                childIds: [],
+                dependsOn: []
+            }
+            : null);
+    const agentLane = state.agentLanes[0] ?? null;
+    const counts = taskBoard?.counts ?? state.taskCounts;
+    const totalCount = counts ? counts.todo + counts.in_progress + counts.blocked + counts.done : 0;
+    const doneCount = counts?.done ?? 0;
+    const progressPercent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+    const blockedCount = counts?.blocked ?? 0;
+    const deadLetterCount = taskBoard?.deadLetterCount ?? snapshot?.deadLetter.entries.length ?? 0;
+    const attentionCount = blockedCount + deadLetterCount;
+    const iterationValue = `${taskBoard?.nextIteration ?? state.nextIteration}/${state.iterationCap}`;
+    const iterationPercent = state.iterationCap > 0
+        ? Math.round(((taskBoard?.nextIteration ?? state.nextIteration) / state.iterationCap) * 100)
+        : 0;
+    const stateClass = state.loopState;
+    const stateLabel = state.loopState === 'running'
+        ? 'Loop running'
+        : state.loopState === 'stopped'
+            ? 'Loop stopped'
+            : 'Loop idle';
+    const title = currentTask ? `${currentTask.id} · ${currentTask.title}` : 'No active task selected';
+    const summary = currentTask
+        ? state.loopState === 'running'
+            ? `${(0, htmlHelpers_1.esc)(state.workspaceName)} is executing ${(0, htmlHelpers_1.esc)(currentTask.id)} with the ${(0, htmlHelpers_1.esc)(state.agentRole)} role. Durable snapshot data remains live across overview, work, diagnostics, orchestration, and settings.`
+            : `${(0, htmlHelpers_1.esc)(state.workspaceName)} is ready for the next loop. Resume when you want Ralph to continue ${(0, htmlHelpers_1.esc)(currentTask.id)}.`
+        : 'No task is selected yet. Seed or regenerate work to populate the dashboard.';
+    const loopDisabled = state.loopState === 'running' ? ' disabled title="Loop already running"' : '';
+    return `<section class="hero-card">
+    <div class="hero-topline">
+      <div class="hero-headline">
+        <div class="hero-kicker">Now</div>
+        <div class="hero-status-row">
+          <span class="hero-state-pill ${stateClass}">${(0, htmlHelpers_1.esc)(stateLabel)}</span>
+          <span class="hero-inline-pill">${(0, htmlHelpers_1.esc)(state.workspaceName)}</span>
+          <span class="hero-inline-pill">${(0, htmlHelpers_1.esc)(state.agentRole)}</span>
+          ${taskBoard?.selectedTaskId ? `<span class="hero-inline-pill">Selected ${(0, htmlHelpers_1.esc)(taskBoard.selectedTaskId)}</span>` : ''}
+        </div>
+        <div class="hero-title">${(0, htmlHelpers_1.esc)(title)}</div>
+        <div class="hero-summary">${summary}</div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+    <div class="hero-phase">
+      ${(0, htmlHelpers_1.buildAgentLanes)(state.agentLanes)}
+    </div>
+    <div class="hero-health-grid">
+      ${buildHeroHealthCell('Progress', counts ? `${doneCount}/${totalCount}` : 'No tasks', counts ? `${progressPercent}% done` : 'No task data', progressPercent, 'var(--ralph-green)')}
+      ${buildHeroHealthCell('Iteration', iterationValue, `cap ${state.iterationCap}`, iterationPercent, 'var(--ralph-amber)')}
+      ${buildHeroHealthCell('Attention', `${attentionCount}`, `${blockedCount} blocked · ${deadLetterCount} dead-letter`)}
+      ${buildHeroHealthCell('Cost', formatCostLabel(snapshot?.cost.executionCostUsd ?? null), `diag ${formatCostLabel(snapshot?.cost.diagnosticCostUsd ?? null)}`)}
+    </div>
+  </section>`;
+}
+function buildDashboardSidebar(state) {
+    const currentTask = state.tasks.find((task) => task.isCurrent) ?? state.tasks[0] ?? null;
+    return `<aside class="dashboard-sidebar">
+    <div class="dashboard-sidebar-panel">
+      <div class="dashboard-brand">
+        <div class="dashboard-brand-kicker">Ralphdex</div>
+        <div class="dashboard-brand-title">${(0, htmlHelpers_1.esc)(state.workspaceName)}</div>
+        <div class="dashboard-brand-meta">${(0, htmlHelpers_1.esc)(htmlHelpers_1.LOOP_STATE_LABEL[state.loopState])} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
+      </div>
+    </div>
+
+    <div class="dashboard-sidebar-panel">
+      <div class="rail-section-label">Navigate</div>
+      <div class="tab-bar" role="tablist" aria-label="Dashboard sections">
+        ${DASHBOARD_TABS.map((tab, index) => `<button id="tab-button-${tab.id}" class="tab-button" type="button" role="tab" data-tab="${tab.id}" aria-selected="${index === 0 ? 'true' : 'false'}" aria-controls="tab-${tab.id}" tabindex="${index === 0 ? '0' : '-1'}">${tab.label}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="dashboard-sidebar-panel">
+      <div class="rail-section-label">Quick Actions</div>
+      <div class="dashboard-sidebar-actions">
+        <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
+      </div>
+    </div>
+
+    <div class="dashboard-sidebar-panel">
+      <div class="rail-section-label">Current Task</div>
+      <div class="rail-current-task">
+        ${currentTask
+        ? `<div><strong>${(0, htmlHelpers_1.esc)(currentTask.id)}</strong> · ${(0, htmlHelpers_1.esc)(currentTask.title)}</div>
+             <div class="dashboard-brand-meta">${(0, htmlHelpers_1.esc)(currentTask.status.replace(/_/g, ' '))}${currentTask.validation ? ` · ${(0, htmlHelpers_1.esc)(currentTask.validation)}` : ''}</div>`
+        : '<div class="dashboard-brand-meta">No task selected.</div>'}
+      </div>
+    </div>
+  </aside>`;
+}
 function buildOverviewTab(state) {
     const taskBoard = state.dashboardSnapshot?.taskBoard ?? null;
     const quick = state.dashboardSnapshot?.quickActions ?? null;
@@ -1056,64 +1434,75 @@ function buildOverviewTab(state) {
     const total = state.taskCounts
         ? state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done
         : 0;
-    return `<div class="overview-grid">
-    <div class="card">
-      <div class="card-title">Health</div>
-      <div class="metric-grid">
-        <div class="metric"><span class="metric-label">Loop State</span><span class="metric-value">${(0, htmlHelpers_1.esc)(htmlHelpers_1.LOOP_STATE_LABEL[state.loopState])}</span></div>
-        <div class="metric"><span class="metric-label">Role</span><span class="metric-value">${(0, htmlHelpers_1.esc)(state.agentRole)}</span></div>
-        <div class="metric"><span class="metric-label">Selected Task</span><span class="metric-value">${(0, htmlHelpers_1.esc)(taskBoard?.selectedTaskId ?? 'none')}</span></div>
-        <div class="metric"><span class="metric-label">Next Iteration</span><span class="metric-value">${taskBoard?.nextIteration ?? state.nextIteration}</span></div>
-        <div class="metric"><span class="metric-label">Preflight</span><span class="metric-value ${state.preflightReady ? 'ok' : 'warn'}">${state.preflightReady ? 'ready' : 'attention needed'}</span></div>
-        <div class="metric"><span class="metric-label">Progress</span><span class="metric-value">${state.taskCounts ? `${state.taskCounts.done}/${total}` : 'none'}</span></div>
-      </div>
-      <div style="margin-top:8px;">${(0, htmlHelpers_1.buildProgressBar)(taskBoard?.counts ?? state.taskCounts)}</div>
-    </div>
+    return `<div class="overview-shell">
+    ${buildHeroCard(state)}
+    <div class="overview-body">
+      <div class="overview-column">
+        <div class="card">
+          <div class="card-title">Health</div>
+          <div class="metric-grid">
+            <div class="metric"><span class="metric-label">Loop State</span><span class="metric-value">${(0, htmlHelpers_1.esc)(htmlHelpers_1.LOOP_STATE_LABEL[state.loopState])}</span></div>
+            <div class="metric"><span class="metric-label">Role</span><span class="metric-value">${(0, htmlHelpers_1.esc)(state.agentRole)}</span></div>
+            <div class="metric"><span class="metric-label">Selected Task</span><span class="metric-value">${(0, htmlHelpers_1.esc)(taskBoard?.selectedTaskId ?? 'none')}</span></div>
+            <div class="metric"><span class="metric-label">Next Iteration</span><span class="metric-value">${taskBoard?.nextIteration ?? state.nextIteration}</span></div>
+            <div class="metric"><span class="metric-label">Preflight</span><span class="metric-value ${state.preflightReady ? 'ok' : 'warn'}">${state.preflightReady ? 'ready' : 'attention needed'}</span></div>
+            <div class="metric"><span class="metric-label">Progress</span><span class="metric-value">${state.taskCounts ? `${state.taskCounts.done}/${total}` : 'none'}</span></div>
+          </div>
+          <div style="margin-top:8px;">${(0, htmlHelpers_1.buildProgressBar)(taskBoard?.counts ?? state.taskCounts)}</div>
+        </div>
 
-    <div class="card">
-      <div class="card-title">Attention</div>
-      <div class="attention-list">
-        ${failure ? `<div>Latest failure: ${(0, htmlHelpers_1.esc)(failure.taskId)} · ${(0, htmlHelpers_1.esc)(failure.category)}</div>` : ''}
-        ${quick?.hasBlockedTasks ? '<div>Blocked tasks need review before the next clean run.</div>' : ''}
-        ${quick?.hasDeadLetterEntries ? '<div>Dead-letter contains parked work that may need requeue.</div>' : ''}
-        ${!state.preflightReady ? `<div>${(0, htmlHelpers_1.esc)(state.preflightSummary)}</div>` : ''}
-        ${!failure && !quick?.hasBlockedTasks && !quick?.hasDeadLetterEntries && state.preflightReady ? '<div>No immediate interruptions.</div>' : ''}
-      </div>
-    </div>
+        <div class="card">
+          <div class="card-title">Attention</div>
+          <div class="attention-list">
+            ${failure ? `<div>Latest failure: ${(0, htmlHelpers_1.esc)(failure.taskId)} · ${(0, htmlHelpers_1.esc)(failure.category)}</div>` : ''}
+            ${quick?.hasBlockedTasks ? '<div>Blocked tasks need review before the next clean run.</div>' : ''}
+            ${quick?.hasDeadLetterEntries ? '<div>Dead-letter contains parked work that may need requeue.</div>' : ''}
+            ${!state.preflightReady ? `<div>${(0, htmlHelpers_1.esc)(state.preflightSummary)}</div>` : ''}
+            ${!failure && !quick?.hasBlockedTasks && !quick?.hasDeadLetterEntries && state.preflightReady ? '<div>No immediate interruptions.</div>' : ''}
+          </div>
+        </div>
 
-    <div class="card">
-      <div class="card-title">Current Work</div>
-      ${currentTask
+        ${buildPipelineSection(state)}
+
+        <div class="card">
+          <div class="card-title">Recent Activity</div>
+          <div class="history-list">
+            ${state.recentIterations.length > 0
+        ? state.recentIterations.slice(0, 5).map(htmlHelpers_1.buildIterationRow).join('\n')
+        : '<div class="empty">No iterations yet.</div>'}
+          </div>
+        </div>
+      </div>
+
+      <div class="overview-column">
+        ${buildTaskBoardSection(state)}
+        ${buildFailureFeedSection(state)}
+        <div class="card">
+          <div class="card-title">Current Work</div>
+          ${currentTask
         ? `<div class="task-summary-list">
-            <div><strong>${(0, htmlHelpers_1.esc)(currentTask.id)}</strong> · ${(0, htmlHelpers_1.esc)(currentTask.title)}</div>
-            <div><strong>Status</strong> ${(0, htmlHelpers_1.esc)(currentTask.status.replace(/_/g, ' '))}</div>
-            ${currentTask.blocker ? `<div><strong>Blocker</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker)}</div>` : ''}
-            ${currentTask.validation ? `<div><strong>Validation</strong> ${(0, htmlHelpers_1.esc)(currentTask.validation)}</div>` : ''}
-            <div><strong>Next Step</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker ? 'Resolve blocker before starting another loop.' : currentTask.validation ? `Validate with ${currentTask.validation}.` : 'Start the next iteration when ready.')}</div>
-          </div>`
+                <div><strong>${(0, htmlHelpers_1.esc)(currentTask.id)}</strong> · ${(0, htmlHelpers_1.esc)(currentTask.title)}</div>
+                <div><strong>Status</strong> ${(0, htmlHelpers_1.esc)(currentTask.status.replace(/_/g, ' '))}</div>
+                ${currentTask.blocker ? `<div><strong>Blocker</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker)}</div>` : ''}
+                ${currentTask.validation ? `<div><strong>Validation</strong> ${(0, htmlHelpers_1.esc)(currentTask.validation)}</div>` : ''}
+                <div><strong>Next Step</strong> ${(0, htmlHelpers_1.esc)(currentTask.blocker ? 'Resolve blocker before starting another loop.' : currentTask.validation ? `Validate with ${currentTask.validation}.` : 'Start the next iteration when ready.')}</div>
+              </div>`
         : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
             ? '<div class="empty">Loading workspace data...</div>'
             : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
-    </div>
+        </div>
 
-    <div class="card">
-      <div class="card-title">Recent Activity</div>
-      <div class="history-list">
-        ${state.recentIterations.length > 0
-        ? state.recentIterations.slice(0, 5).map(htmlHelpers_1.buildIterationRow).join('\n')
-        : '<div class="empty">No iterations yet.</div>'}
-      </div>
-    </div>
-
-    <div class="card span-2">
-      <div class="card-title">Common Actions</div>
-      <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
+        <div class="card">
+          <div class="card-title">Common Actions</div>
+          <div class="btn-grid">
+            <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
+          </div>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1123,59 +1512,63 @@ function buildWorkTab(state) {
     const total = state.taskCounts
         ? state.taskCounts.todo + state.taskCounts.in_progress + state.taskCounts.blocked + state.taskCounts.done
         : 0;
-    return `<div class="work-grid">
-    <div class="card">
-      <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${total}` : ''}</div>
-      ${allDone
+    return `<div class="work-shell">
+    <div class="work-grid">
+      <div class="card">
+        <div class="card-title">Tasks${state.taskCounts ? ` · ${state.taskCounts.done}/${total}` : ''}</div>
+        ${allDone
         ? `<div class="all-done-card">
-            <div class="check">✓</div>
-            <div class="label">All ${doneTasks.length} tasks completed</div>
-          </div>`
+              <div class="check">✓</div>
+              <div class="label">All ${doneTasks.length} tasks completed</div>
+            </div>`
         : activeTasks.length > 0
             ? activeTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
                 : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePRD"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
-      ${!allDone && doneTasks.length > 0
+        ${!allDone && doneTasks.length > 0
         ? `<details data-section="completed-tasks">
-            <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
-            ${doneTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')}
-          </details>`
+              <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
+              ${doneTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')}
+            </details>`
         : ''}
-    </div>
+      </div>
 
-    <div class="card">
-      <div class="card-title">History</div>
-      <div class="history-list">
-        ${state.recentIterations.length > 0
+      <div class="card">
+        <div class="card-title">History</div>
+        <div class="history-list">
+          ${state.recentIterations.length > 0
         ? state.recentIterations.map(htmlHelpers_1.buildIterationRow).join('\n')
         : '<div class="empty">No iterations yet</div>'}
+        </div>
       </div>
-    </div>
 
-    ${buildTaskSeedingCard(state)}
+      ${buildTaskSeedingCard(state)}
+    </div>
   </div>`;
 }
 function buildDiagnosticsTab(state) {
-    return `<div class="diagnostics-grid">
-    ${buildPipelineSection(state)}
-    ${buildTaskBoardSection(state)}
-    ${buildDiagnosisSection(state)}
-    ${buildFailureFeedSection(state)}
-    ${buildAgentGridSection(state)}
-    ${buildDeadLetterSection(state)}
-    ${buildCostTickerSection(state)}
-    <div class="card">
-      <div class="card-title">Preflight</div>
-      ${(0, htmlHelpers_1.buildDiagnostics)(state)}
-    </div>
-    <div class="card">
-      <div class="card-title">Agent Controls</div>
-      <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">Review Agent</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">Watchdog Agent</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">SCM Agent</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+    return `<div class="diagnostics-shell">
+    <div class="diagnostics-grid">
+      ${buildPipelineSection(state)}
+      ${buildTaskBoardSection(state)}
+      ${buildDiagnosisSection(state)}
+      ${buildFailureFeedSection(state)}
+      ${buildAgentGridSection(state)}
+      ${buildDeadLetterSection(state)}
+      ${buildCostTickerSection(state)}
+      <div class="card">
+        <div class="card-title">Preflight</div>
+        ${(0, htmlHelpers_1.buildDiagnostics)(state)}
+      </div>
+      <div class="card">
+        <div class="card-title">Agent Controls</div>
+        <div class="btn-grid">
+          <button class="btn" data-command="ralphCodex.runReviewAgent"><span class="btn-label">Review Agent</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runWatchdogAgent"><span class="btn-label">Watchdog Agent</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.runScmAgent"><span class="btn-label">SCM Agent</span><span class="btn-spinner"></span></button>
+          <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+        </div>
       </div>
     </div>
   </div>`;
@@ -1183,12 +1576,14 @@ function buildDiagnosticsTab(state) {
 function buildOrchestrationTab(state) {
     const orch = state.dashboardSnapshot?.orchestration ?? null;
     if (!orch) {
-        return `<div class="diagnostics-grid">
-      <div class="dashboard-summary-card full">
-        <div class="card-title">Orchestration</div>
-        <div class="empty">No orchestration data recorded for the latest pipeline run. Start a pipeline to populate this panel.</div>
-        <div class="inline-actions">
-          <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
+        return `<div class="orchestration-shell">
+      <div class="diagnostics-grid">
+        <div class="dashboard-summary-card full">
+          <div class="card-title">Orchestration</div>
+          <div class="empty">No orchestration data recorded for the latest pipeline run. Start a pipeline to populate this panel.</div>
+          <div class="inline-actions">
+            <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
+          </div>
         </div>
       </div>
     </div>`;
@@ -1230,30 +1625,32 @@ function buildOrchestrationTab(state) {
         </div>
       </div>`).join('\n')
         : '<div class="empty">No human gate artifacts blocking.</div>';
-    return `<div class="diagnostics-grid">
-    <div class="dashboard-summary-card full">
-      <div class="card-title">Graph State</div>
-      <div class="pipeline-meta">
-        <div><strong>Active node</strong> ${(0, htmlHelpers_1.esc)(orch.activeNodeId ?? 'none')}${orch.activeNodeLabel ? ` · ${(0, htmlHelpers_1.esc)(orch.activeNodeLabel)}` : ''}</div>
-        <div><strong>Fan-in</strong> <span class="metric-value ${fanInBadgeClass}">${(0, htmlHelpers_1.esc)(fanInLabel)}</span>${orch.fanInErrors.length > 0 ? ` · ${(0, htmlHelpers_1.esc)(orch.fanInErrors.join('; '))}` : ''}</div>
+    return `<div class="orchestration-shell">
+    <div class="diagnostics-grid">
+      <div class="dashboard-summary-card full">
+        <div class="card-title">Graph State</div>
+        <div class="pipeline-meta">
+          <div><strong>Active node</strong> ${(0, htmlHelpers_1.esc)(orch.activeNodeId ?? 'none')}${orch.activeNodeLabel ? ` · ${(0, htmlHelpers_1.esc)(orch.activeNodeLabel)}` : ''}</div>
+          <div><strong>Fan-in</strong> <span class="metric-value ${fanInBadgeClass}">${(0, htmlHelpers_1.esc)(fanInLabel)}</span>${orch.fanInErrors.length > 0 ? ` · ${(0, htmlHelpers_1.esc)(orch.fanInErrors.join('; '))}` : ''}</div>
+        </div>
+        <div class="card-title" style="margin-top:12px;">Pending Branches</div>
+        <div class="pill-row">${pendingNodesHtml}</div>
       </div>
-      <div class="card-title" style="margin-top:12px;">Pending Branches</div>
-      <div class="pill-row">${pendingNodesHtml}</div>
-    </div>
 
-    <div class="dashboard-summary-card">
-      <div class="card-title">Completed Nodes</div>
-      ${completedNodesHtml}
-    </div>
+      <div class="dashboard-summary-card">
+        <div class="card-title">Completed Nodes</div>
+        ${completedNodesHtml}
+      </div>
 
-    <div class="dashboard-summary-card">
-      <div class="card-title">Human Gates</div>
-      ${humanGatesHtml}
-    </div>
+      <div class="dashboard-summary-card">
+        <div class="card-title">Human Gates</div>
+        ${humanGatesHtml}
+      </div>
 
-    <div class="dashboard-summary-card">
-      <div class="card-title">Replan History</div>
-      ${replanHtml}
+      <div class="dashboard-summary-card">
+        <div class="card-title">Replan History</div>
+        ${replanHtml}
+      </div>
     </div>
   </div>`;
 }
@@ -1301,34 +1698,35 @@ function buildPanelDashboardHtml(state, nonce) {
 </head>
 <body>
   <div class="dashboard-shell">
-    <div class="header">
-      <div class="header-title">Ralphdex</div>
-      <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
-    </div>
+    <div class="dashboard-app">
+      ${buildDashboardSidebar(state)}
 
-    ${(0, htmlHelpers_1.buildAgentLanes)(state.agentLanes)}
-    ${buildSnapshotStatusBanner(state)}
+      <main class="dashboard-main">
+        <div class="header">
+          <div class="header-title">Ralphdex</div>
+          <div class="header-state">${(0, htmlHelpers_1.esc)(state.workspaceName)} · ${stateLabel} · ${(0, htmlHelpers_1.esc)(state.agentRole)}</div>
+        </div>
 
-    <div class="tab-layout">
-      <div class="tab-bar" role="tablist" aria-label="Dashboard sections">
-        ${DASHBOARD_TABS.map((tab, index) => `<button id="tab-button-${tab.id}" class="tab-button" type="button" role="tab" data-tab="${tab.id}" aria-selected="${index === 0 ? 'true' : 'false'}" aria-controls="tab-${tab.id}" tabindex="${index === 0 ? '0' : '-1'}">${tab.label}</button>`).join('')}
-      </div>
+        ${buildSnapshotStatusBanner(state)}
 
-      <div id="tab-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-overview">
-        ${buildOverviewTab(state)}
-      </div>
-      <div id="tab-work" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-work" hidden>
-        ${buildWorkTab(state)}
-      </div>
-      <div id="tab-diagnostics" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-diagnostics" hidden>
-        ${buildDiagnosticsTab(state)}
-      </div>
-      <div id="tab-orchestration" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-orchestration" hidden>
-        ${buildOrchestrationTab(state)}
-      </div>
-      <div id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-settings" hidden>
-        ${buildSettingsTab(state)}
-      </div>
+        <div class="tab-layout">
+          <div id="tab-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-overview">
+            ${buildOverviewTab(state)}
+          </div>
+          <div id="tab-work" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-work" hidden>
+            ${buildWorkTab(state)}
+          </div>
+          <div id="tab-diagnostics" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-diagnostics" hidden>
+            ${buildDiagnosticsTab(state)}
+          </div>
+          <div id="tab-orchestration" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-orchestration" hidden>
+            ${buildOrchestrationTab(state)}
+          </div>
+          <div id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-settings" hidden>
+            ${buildSettingsTab(state)}
+          </div>
+        </div>
+      </main>
     </div>
   </div>
 

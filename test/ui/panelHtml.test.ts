@@ -126,6 +126,8 @@ test('buildPanelDashboardHtml returns valid HTML with nonce-gated script and sty
 test('buildPanelDashboardHtml renders tabbed dashboard layout', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'n1');
   assert.ok(html.includes('tab-bar'));
+  assert.ok(html.includes('dashboard-sidebar'));
+  assert.ok(html.includes('dashboard-main'));
   assert.ok(html.includes('data-tab="overview"'));
   assert.ok(html.includes('data-tab="work"'));
   assert.ok(html.includes('data-tab="diagnostics"'));
@@ -348,6 +350,67 @@ test('buildPanelDashboardHtml quick actions expose latest artifact and settings 
   assert.ok(html.includes('ralphCodex.openLatestPromptEvidence'));
   assert.ok(html.includes('ralphCodex.openLatestCliTranscript'));
   assert.ok(html.includes('workbench.action.openSettings'));
+});
+
+test('buildPanelDashboardHtml renders a live hero summary from durable state', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    loopState: 'running',
+    agentRole: 'implementer',
+    nextIteration: 7,
+    iterationCap: 20,
+    tasks: [{
+      id: 'T156',
+      title: 'Integrate the UXrefresh dashboard shell',
+      status: 'in_progress',
+      isCurrent: true,
+      priority: 'high',
+      childIds: [],
+      dependsOn: []
+    }],
+    taskCounts: { todo: 3, in_progress: 1, blocked: 1, done: 9 },
+    dashboardSnapshot: populatedDashboardSnapshot()
+  }), 'hero');
+
+  assert.ok(html.includes('hero-card'));
+  assert.ok(html.includes('Now'));
+  assert.ok(html.includes('Integrate the UXrefresh dashboard shell'));
+  assert.ok(html.includes('Loop running'));
+  assert.ok(html.includes('Progress'));
+  assert.ok(html.includes('Iteration'));
+  assert.ok(html.includes('Attention'));
+  assert.ok(html.includes('Cost'));
+});
+
+test('buildPanelDashboardHtml applies refreshed section shells to work, diagnostics, and orchestration tabs', () => {
+  const dashboardSnapshot = populatedDashboardSnapshot();
+  dashboardSnapshot.orchestration = {
+    activeNodeId: 'node-review',
+    activeNodeLabel: 'Review Agent',
+    completedNodes: [],
+    pendingBranchNodes: [],
+    fanInStatus: 'passed',
+    fanInErrors: [],
+    replanHistory: [],
+    humanGates: []
+  };
+
+  const html = buildPanelDashboardHtml(defaultState({
+    taskCounts: { todo: 2, in_progress: 1, blocked: 0, done: 4 },
+    tasks: [{
+      id: 'T156',
+      title: 'Integrate the UXrefresh dashboard shell',
+      status: 'in_progress',
+      isCurrent: true,
+      priority: 'high',
+      childIds: [],
+      dependsOn: []
+    }],
+    dashboardSnapshot
+  }), 'section-shells');
+
+  assert.ok(html.includes('<div class="work-shell">'));
+  assert.ok(html.includes('<div class="diagnostics-shell">'));
+  assert.ok(html.includes('<div class="orchestration-shell">'));
 });
 
 test('buildPanelDashboardHtml renders multiple recent failure feed entries when present', () => {
