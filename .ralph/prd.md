@@ -739,40 +739,60 @@ The dashboard now exposes orchestration state, node spans, re-plan artifacts, an
 
 Command-palette, dashboard, and sidebar seeding flows now share the deterministic task-creation path, persist seeding evidence, and keep task writes inside the normalized persistence boundary.
 
+### UXrefresh integration horizon — satisfied 2026-04-20
+
+The post-orchestration UI follow-through is now complete. The refreshed dashboard/sidebar direction shipped into the live extension, and the repo no longer treats `UXrefresh/` as an in-progress second implementation path.
+
+**1. Live dashboard/sidebar integration landed** (T156–T158 — completed)
+
+The production dashboard and sidebar now render through the shared `src/webview/` host plus `src/ui/` adapters/renderers, carrying forward the refreshed information architecture without breaking the durable snapshot, typed message bridge, command routing, or workspace-trust boundaries.
+
+**2. Prototype bundle ownership was rationalized** (T159 — completed)
+
+`UXrefresh/` is now explicitly documented as a reference-only prototype bundle. The authoritative shipped ownership boundary is `src/webview/` + `src/ui/`, with regression coverage in `test/ui/` and `test/webview/`, and docs-validator checks that fail `npm run check:docs` if that boundary guidance drifts.
+
 ### Next delivery horizon
 
-With the release, orchestration smoke, dashboard orchestration surface, and UI task-seeding work complete, the following capabilities are the concrete next targets.
+With the UI ownership boundary settled and the prototype bundle demoted to reference-only status, the next delivery horizon should move to the remaining Azure-backed execution risk rather than additional dashboard redesign work.
 
-**1. Wire the `UXrefresh/` components into the live Ralphdex dashboard and sidebar surfaces**
+**1. Azure-backed provider/auth hardening across both execution paths**
 
-This is the next actioned implementation item. If any task is already legitimately in progress when this horizon is executed, finish that in-flight work first; otherwise this becomes the immediate next backlog item. The goal is to take the prototype components and layout direction captured in `UXrefresh/` and integrate them into the real webview host, state flow, command bridge, and styling system without losing the existing durable-data contract. Concrete work:
+The next immediate priority is to close the remaining gap between “functional” and “operator-safe” for both Azure-backed providers: RalphDex's direct `azure-foundry` HTTPS path and the `copilot-foundry` Azure BYOK path. Concrete work:
 
-- Audit the prototype component set under `UXrefresh/components/` and map each piece to an existing production surface or a deliberate no-ship omission.
-- Replace or adapt the current dashboard/sidebar renderers so the production webview uses the refreshed information architecture, visual hierarchy, and interaction model from the `UXrefresh/` prototypes.
-- Preserve existing command routes, typed webview messaging, artifact-driven snapshot data, and workspace-trust guards while changing the presentation layer.
-- Make the refreshed UI work across the currently shipped dashboard tabs and sidebar surfaces, including task detail, pipelines, orchestration, diagnostics, settings, and task-seeding entry points where those concepts still belong.
-- Reconcile any prototype-only demo data or controls so the shipped UI reads from real `DashboardSnapshot` state instead of static mock data.
-- Update docs and tests alongside the implementation so the new surface contract is explicit and regression-covered.
+- Harden the shared Azure auth contract around the supported secure sources (`az-bearer`, `env-api-key`, `vscode-secret`) so both providers fail deterministically, surface the same redacted readiness evidence, and avoid provider-specific ambiguity.
+- Upgrade readiness and connection diagnostics so missing Azure tenant/subscription/resource/deployment metadata is reported concretely for both providers before loop execution, not only after launch attempts fail.
+- Make the remaining operator-facing auth path gaps explicit in status, settings, and connection-test surfaces so Azure-backed runs can be configured without inspecting source code.
 
 Acceptance criteria:
-- The production dashboard/sidebar visibly reflect the `UXrefresh/` component direction rather than the pre-refresh layout.
-- `UXrefresh/` prototype pieces that are adopted are wired to live durable snapshot data and existing extension commands, not static demo state.
-- Existing operator workflows remain available after the refresh, including status inspection, task seeding, orchestration visibility, diagnostics access, and settings navigation.
-- Regression coverage proves the refreshed webview host still renders and routes core actions correctly.
-- `npm run validate` passes.
+- `azure-foundry` and `copilot-foundry` each have a documented, deterministic auth-readiness contract grounded in the shared resolver and preflight surfaces.
+- Missing or inconsistent Azure config is surfaced with provider-specific diagnostics before execution.
+- Operator-visible status/connection surfaces identify the active Azure-backed path, auth source metadata, and unresolved readiness gaps without exposing secrets.
 
-**2. Rationalize the `UXrefresh/` prototype bundle after integration**
+**2. Azure-backed operator workflow validation**
 
-Once the live UI is using the refreshed component set, clean up the remaining prototype footprint so the repository has one authoritative implementation path. Concrete work:
+The repo already documents both Azure-backed providers as beta and functional, but the remaining work is to prove the operational workflow end to end instead of relying on configuration shape alone. Concrete work:
 
-- Remove, archive, or sharply narrow any prototype-only files that no longer serve as durable references.
-- Keep only the artifacts that are still useful as design references or test fixtures, and document that role explicitly.
-- Ensure the repo no longer presents two competing dashboard implementations with ambiguous ownership.
+- Validate `Ralphdex: Test Current Provider Connection`, provider status output, and secure secret-management commands against both Azure-backed providers so the documented setup path matches the shipped behavior.
+- Tighten docs around the live configuration workflow for endpoint/resource metadata, deployment selection, Azure CLI login expectations, and SecretStorage usage.
+- Record the expected maturity boundary clearly: the shipped dashboard/sidebar are stable production surfaces, while Azure-backed execution remains the active hardening frontier.
 
 Acceptance criteria:
-- Prototype leftovers are either removed or clearly documented as non-production references.
-- Production ownership remains in `src/webview/` and related tests/docs.
-- `npm run check:docs` passes.
+- Docs and operator-facing commands describe the same Azure setup and readiness flow.
+- SecretStorage-backed and environment-backed auth paths are both represented in the documented operator workflow.
+- `npm run check:docs` passes with the updated Azure-backed guidance.
+
+**3. Azure-backed regression and verification depth**
+
+Once the auth/readiness workflow is deterministic, the next tranche is proving it with the same rigor as the rest of RalphDex's execution stack. Concrete work:
+
+- Expand regression coverage around Azure-backed preflight, connection testing, provider launch shaping, and failure messaging so auth or metadata drift is caught by the normal validation gate.
+- Add or tighten lightweight verification artifacts that show which Azure-backed path was exercised, what auth source type was selected, and whether prompt-caching or direct-HTTPS behavior was actually active where expected.
+- Keep the scope limited to provider/auth hardening and verification evidence; do not reopen the now-settled UI ownership work unless a concrete Azure workflow requires a surface change.
+
+Acceptance criteria:
+- Azure-backed provider/auth regressions are covered by targeted tests rather than manual inspection alone.
+- Provenance and validation surfaces make it clear which Azure-backed execution path ran and what readiness state applied.
+- `npm run validate` remains the authoritative gate for Azure-backed execution changes.
 
 ### Design principles and scope boundaries
 

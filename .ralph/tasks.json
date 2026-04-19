@@ -4174,7 +4174,76 @@
         "npm run check:docs passes"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T160",
+      "title": "Advance prd.md to record the UXrefresh integration horizon complete and define the next delivery horizon",
+      "status": "done",
+      "notes": "Updated .ralph/prd.md to mark the UXrefresh integration horizon complete, restate the shipped src/webview + src/ui ownership boundary with UXrefresh as reference-only, and define the next delivery horizon around azure-foundry/copilot-foundry auth hardening, readiness diagnostics, operator workflow validation, and Azure-backed regression depth.",
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "prd.md marks the UXrefresh integration horizon as satisfied with a compact summary covering T156-T159",
+        "prd.md defines a new next delivery horizon with concrete targets grounded in the remaining repo and product gaps rather than already-shipped UI work",
+        "The new horizon explicitly reflects the shipped dashboard/sidebar ownership boundary and the remaining Azure-backed provider/auth hardening work",
+        "npm run check:docs passes"
+      ],
+      "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T161",
+      "title": "Implement true keyless Azure bearer-token auth for azure-foundry and copilot-foundry via @azure/identity",
+      "status": "todo",
+      "dependsOn": [
+        "T160"
+      ],
+      "notes": "The current az-bearer path shells out to Azure CLI for token acquisition, while the PRD still calls for Managed Identity / DefaultAzureCredential keyless auth. Replace the Azure CLI dependency on the bearer path with a direct @azure/identity-based resolver that works in local Azure-authenticated environments and hosted Managed Identity environments without persisting credentials.",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "resolveAzureAuth uses @azure/identity for az-bearer token acquisition instead of shelling out to Azure CLI, while env-api-key and vscode-secret flows remain intact",
+        "The azure-foundry direct HTTPS provider and copilot-foundry env shaping both consume the new bearer-token resolver without leaking tokens into transcripts, artifacts, logs, or user-facing status messages",
+        "Bearer-token acquisition supports the configured tenant/subscription metadata where applicable and produces deterministic failure messages when credential resolution fails",
+        "Regression tests cover successful bearer-token resolution plus at least one failure path for the new keyless auth flow",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T162",
+      "title": "Strengthen Azure-backed provider auth-readiness diagnostics and command-surface verification",
+      "status": "todo",
+      "dependsOn": [
+        "T161"
+      ],
+      "notes": "Once bearer-token auth is truly keyless, preflight and the provider-test command should move beyond generic informational text and tell operators whether the configured auth path is actually executable. Keep the diagnostics thin, deterministic, and safe to run without disclosing secrets.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Preflight reports the active Azure auth path for azure-foundry and copilot-foundry and distinguishes misconfiguration from executable credential-readiness checks",
+        "Ralphdex: Test Current Provider Connection surfaces Azure auth-readiness failures clearly for keyless bearer-token mode as well as API-key modes",
+        "Warnings and status text remain redacted: they may identify the auth source or tenant/subscription metadata but never include raw bearer tokens or API key values",
+        "Regression coverage proves readiness and failure mapping for both azure-foundry and copilot-foundry auth modes",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T163",
+      "title": "Reconcile Azure auth and feature-maturity docs with the shipped runtime contract",
+      "status": "todo",
+      "dependsOn": [
+        "T161",
+        "T162"
+      ],
+      "notes": "The PRD, README, and workflow docs currently mix shipped Azure-backed provider behavior with older future-tense auth wording. Align the operator docs, maturity markers, and validator coverage so the documented trust model matches the runtime contract exactly.",
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "README.md, docs/workflows.md, and the relevant PRD sections describe the shipped Azure auth paths and their maturity without stale future-tense contradictions",
+        "Operator-facing docs make the distinction between calibrated/stable defaults and beta or experimental Azure/provider behaviors explicit where needed",
+        "Docs validation or focused tests fail if future changes reintroduce stale Azure auth placeholder language for the reviewed surfaces",
+        "npm run check:docs passes"
+      ]
     }
   ],
-  "mutationCount": 174
+  "mutationCount": 176
 }
