@@ -4,9 +4,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import { CopilotFoundryCliProvider } from '../src/codex/copilotFoundryCliProvider';
-import { configureAzureSecretStorage } from '../src/codex/azureAuthResolver';
+import {
+  configureAzureSecretStorage,
+  setAzureCredentialFactoryOverride
+} from '../src/codex/azureAuthResolver';
 import { hashText } from '../src/ralph/integrity';
-import { setProcessRunnerOverride } from '../src/services/processRunner';
 
 function provider() {
   return new CopilotFoundryCliProvider({
@@ -51,16 +53,21 @@ function request() {
 }
 
 test.afterEach(() => {
-  setProcessRunnerOverride(null);
   configureAzureSecretStorage(null);
+  setAzureCredentialFactoryOverride(null);
 });
 
 test('prepareLaunchSpec injects Azure Copilot BYOK environment variables', async () => {
-  setProcessRunnerOverride(async () => ({
-    code: 0,
-    stdout: JSON.stringify({ accessToken: 'bearer-token' }),
-    stderr: ''
-  }));
+  setAzureCredentialFactoryOverride((config) => {
+    assert.equal(config.tenantId, 'tenant-1');
+    assert.equal(config.subscriptionId, 'sub-1');
+    return {
+      credential: {
+        getToken: async () => ({ token: 'bearer-token' })
+      },
+      sourceLabel: 'DefaultAzureCredential'
+    };
+  });
 
   const launch = await provider().prepareLaunchSpec!(request(), false);
 

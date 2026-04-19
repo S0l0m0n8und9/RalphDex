@@ -1,12 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.configureAzureSecretStorage = configureAzureSecretStorage;
+exports.setAzureCredentialFactoryOverride = setAzureCredentialFactoryOverride;
 exports.resolveAzureAuth = resolveAzureAuth;
-const processRunner_1 = require("../services/processRunner");
-const AZURE_COGNITIVE_SERVICES_RESOURCE = 'https://cognitiveservices.azure.com/';
+const identity_1 = require("@azure/identity");
+const AZURE_COGNITIVE_SERVICES_SCOPE = 'https://cognitiveservices.azure.com/.default';
 let secretStorage = null;
+let azureCredentialFactoryOverride = null;
 function configureAzureSecretStorage(storage) {
     secretStorage = storage;
+}
+function setAzureCredentialFactoryOverride(factory) {
+    azureCredentialFactoryOverride = factory;
 }
 async function resolveAzureAuth(config) {
     switch (config.mode) {
@@ -63,30 +68,18 @@ async function resolveApiKeyFromSecretStorage(config) {
     };
 }
 async function resolveBearerToken(config) {
-    const args = ['account', 'get-access-token', '--resource', AZURE_COGNITIVE_SERVICES_RESOURCE, '--output', 'json'];
     const tenantId = config.tenantId.trim();
     const subscriptionId = config.subscriptionId.trim();
-    if (tenantId) {
-        args.push('--tenant', tenantId);
-    }
-    if (subscriptionId) {
-        args.push('--subscription', subscriptionId);
-    }
-    const result = await (0, processRunner_1.runProcess)('az', args, { cwd: process.cwd() });
-    if (result.code !== 0) {
-        const detail = result.stderr.trim() || result.stdout.trim() || 'unknown Azure CLI error';
-        throw new Error(`Azure CLI bearer-token acquisition failed: ${detail}`);
-    }
+    const { credential, sourceLabel } = createAzureCredentialFactory(config);
     let token;
     try {
-        const parsed = JSON.parse(result.stdout);
-        token = parsed.accessToken?.trim();
+        token = (await credential.getToken([AZURE_COGNITIVE_SERVICES_SCOPE]))?.token?.trim();
     }
-    catch {
-        throw new Error('Azure CLI bearer-token acquisition returned invalid JSON.');
+    catch (error) {
+        throw new Error(buildBearerFailureMessage(sourceLabel, tenantId, subscriptionId, error));
     }
     if (!token) {
-        throw new Error('Azure CLI bearer-token acquisition returned no accessToken.');
+        throw new Error(buildBearerFailureMessage(sourceLabel, tenantId, subscriptionId, 'credential returned an empty bearer token'));
     }
     return {
         mode: config.mode,
@@ -96,9 +89,54 @@ async function resolveBearerToken(config) {
         copilotEnv: {
             COPILOT_PROVIDER_BEARER_TOKEN: token
         },
-        redactedSource: subscriptionId
-            ? `Azure CLI bearer token for subscription ${subscriptionId}`
-            : 'Azure CLI bearer token'
+        redactedSource: formatBearerSourceLabel(sourceLabel, tenantId, subscriptionId)
     };
+}
+function createAzureCredentialFactory(config) {
+    if (azureCredentialFactoryOverride) {
+        return azureCredentialFactoryOverride(config);
+    }
+    const tenantId = config.tenantId.trim();
+    return {
+        credential: new identity_1.DefaultAzureCredential({
+            ...(tenantId ? { tenantId } : {})
+        }),
+        sourceLabel: 'DefaultAzureCredential'
+    };
+}
+function formatBearerSourceLabel(sourceLabel, tenantId, subscriptionId) {
+    const qualifiers = [];
+    if (tenantId) {
+        qualifiers.push(`tenant ${tenantId}`);
+    }
+    if (subscriptionId) {
+        qualifiers.push(`subscription ${subscriptionId}`);
+    }
+    return qualifiers.length > 0
+        ? `${sourceLabel} bearer token (${qualifiers.join(', ')})`
+        : `${sourceLabel} bearer token`;
+}
+function buildBearerFailureMessage(sourceLabel, tenantId, subscriptionId, error) {
+    const detail = sanitizeFailureDetail(error);
+    const qualifiers = [];
+    if (tenantId) {
+        qualifiers.push(`tenant ${tenantId}`);
+    }
+    if (subscriptionId) {
+        qualifiers.push(`subscription ${subscriptionId}`);
+    }
+    const context = qualifiers.length > 0 ? ` for ${qualifiers.join(', ')}` : '';
+    return `Azure bearer-token acquisition failed via ${sourceLabel}${context}: ${detail}`;
+}
+function sanitizeFailureDetail(error) {
+    const message = (error instanceof Error ? error.message : String(error)).trim();
+    if (!message) {
+        return 'credential resolution failed';
+    }
+    const firstLine = message.split(/\r?\n/u)[0]?.trim() ?? '';
+    const redactedLine = firstLine
+        .replace(/Bearer\s+[A-Za-z0-9._~-]+/gu, 'Bearer [redacted]')
+        .replace(/[A-Za-z0-9._%+-]*token[A-Za-z0-9._%+-]*/giu, '[redacted-token]');
+    return redactedLine || 'credential resolution failed';
 }
 //# sourceMappingURL=azureAuthResolver.js.map

@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { configureAzureSecretStorage, resolveAzureAuth } from '../src/codex/azureAuthResolver';
-import { setProcessRunnerOverride } from '../src/services/processRunner';
+import {
+  configureAzureSecretStorage,
+  resolveAzureAuth,
+  setAzureCredentialFactoryOverride
+} from '../src/codex/azureAuthResolver';
 
 test.afterEach(() => {
   delete process.env.AZURE_TEST_KEY;
   configureAzureSecretStorage(null);
-  setProcessRunnerOverride(null);
+  setAzureCredentialFactoryOverride(null);
 });
 
 test('resolveAzureAuth reads API key from configured environment variable', async () => {
@@ -41,15 +44,21 @@ test('resolveAzureAuth reads API key from VS Code secret storage', async () => {
   assert.equal(auth.headerValue, 'stored-secret');
 });
 
-test('resolveAzureAuth requests Azure CLI bearer token for az-bearer mode', async () => {
-  setProcessRunnerOverride(async (command, args) => {
-    assert.equal(command, 'az');
-    assert.ok(args.includes('--tenant'));
-    assert.ok(args.includes('--subscription'));
+test('resolveAzureAuth acquires a bearer token via the configured Azure credential factory', async () => {
+  let capturedScopes: string[] | undefined;
+  let capturedTenantId: string | undefined;
+  let capturedSubscriptionId: string | undefined;
+  setAzureCredentialFactoryOverride((config) => {
+    capturedTenantId = config.tenantId;
+    capturedSubscriptionId = config.subscriptionId;
     return {
-      code: 0,
-      stdout: JSON.stringify({ accessToken: 'cli-token' }),
-      stderr: ''
+      credential: {
+        getToken: async (scopes) => {
+          capturedScopes = Array.isArray(scopes) ? scopes : [scopes];
+          return { token: 'identity-token' };
+        }
+      },
+      sourceLabel: 'DefaultAzureCredential'
     };
   });
 
@@ -62,6 +71,40 @@ test('resolveAzureAuth requests Azure CLI bearer token for az-bearer mode', asyn
   });
 
   assert.equal(auth.headerName, 'Authorization');
-  assert.equal(auth.headerValue, 'Bearer cli-token');
-  assert.equal(auth.copilotEnv.COPILOT_PROVIDER_BEARER_TOKEN, 'cli-token');
+  assert.equal(auth.headerValue, 'Bearer identity-token');
+  assert.equal(auth.copilotEnv.COPILOT_PROVIDER_BEARER_TOKEN, 'identity-token');
+  assert.deepEqual(capturedScopes, ['https://cognitiveservices.azure.com/.default']);
+  assert.equal(capturedTenantId, 'tenant-1');
+  assert.equal(capturedSubscriptionId, 'sub-1');
+  assert.match(auth.redactedSource, /tenant tenant-1/i);
+  assert.match(auth.redactedSource, /subscription sub-1/i);
+  assert.ok(!auth.redactedSource.includes('identity-token'));
+});
+
+test('resolveAzureAuth normalizes Azure credential acquisition failures without leaking tokens', async () => {
+  setAzureCredentialFactoryOverride(() => ({
+    credential: {
+      getToken: async () => {
+        throw new Error('identity lookup failed for secret-token-value');
+      }
+    },
+    sourceLabel: 'DefaultAzureCredential'
+  }));
+
+  await assert.rejects(
+    resolveAzureAuth({
+      mode: 'az-bearer',
+      tenantId: 'tenant-1',
+      subscriptionId: '',
+      apiKeyEnvVar: '',
+      secretStorageKey: ''
+    }),
+    (error: unknown) => {
+      assert.ok(error instanceof Error);
+      assert.match(error.message, /Azure bearer-token acquisition failed via DefaultAzureCredential/i);
+      assert.match(error.message, /tenant tenant-1/i);
+      assert.doesNotMatch(error.message, /secret-token-value/);
+      return true;
+    }
+  );
 });

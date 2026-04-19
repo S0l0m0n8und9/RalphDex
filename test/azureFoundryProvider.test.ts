@@ -4,14 +4,16 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import { AzureFoundryProvider } from '../src/codex/azureFoundryProvider';
-import { configureAzureSecretStorage } from '../src/codex/azureAuthResolver';
+import {
+  configureAzureSecretStorage,
+  setAzureCredentialFactoryOverride
+} from '../src/codex/azureAuthResolver';
 import { createCliProviderForId } from '../src/codex/providerFactory';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { STATIC_PREFIX_BOUNDARY } from '../src/prompt/promptBuilder';
 import { setHttpsClientOverride } from '../src/services/httpsClient';
-import { setProcessRunnerOverride } from '../src/services/processRunner';
 
 const ENDPOINT_URL = 'https://my-project.inference.ai.azure.com/models/my-deployment';
 
@@ -50,8 +52,8 @@ function provider(overrides: Partial<ConstructorParameters<typeof AzureFoundryPr
 test.afterEach(() => {
   delete process.env.AZURE_OPENAI_API_KEY;
   setHttpsClientOverride(null);
-  setProcessRunnerOverride(null);
   configureAzureSecretStorage(null);
+  setAzureCredentialFactoryOverride(null);
 });
 
 test('buildLaunchSpec includes configured endpoint URL and request model', () => {
@@ -157,13 +159,17 @@ test('executeDirectly sends api-key header when auth mode is vscode-secret', asy
 });
 
 test('executeDirectly sends bearer token when auth mode is az-bearer', async () => {
-  setProcessRunnerOverride(async (command, args) => {
-    assert.equal(command, 'az');
-    assert.deepEqual(args.slice(0, 5), ['account', 'get-access-token', '--resource', 'https://cognitiveservices.azure.com/', '--output']);
+  setAzureCredentialFactoryOverride((config) => {
+    assert.equal(config.tenantId, 'tenant-1');
+    assert.equal(config.subscriptionId, 'sub-1');
     return {
-      code: 0,
-      stdout: JSON.stringify({ accessToken: 'mock-bearer-token' }),
-      stderr: ''
+      credential: {
+        getToken: async (scopes) => {
+          assert.deepEqual(Array.isArray(scopes) ? scopes : [scopes], ['https://cognitiveservices.azure.com/.default']);
+          return { token: 'mock-bearer-token' };
+        }
+      },
+      sourceLabel: 'DefaultAzureCredential'
     };
   });
 
@@ -192,7 +198,8 @@ test('executeDirectly sends bearer token when auth mode is az-bearer', async () 
 
   assert.equal(result.success, true);
   assert.equal(capturedHeaders?.Authorization, 'Bearer mock-bearer-token');
-  assert.ok(result.warnings.some((warning) => /Azure CLI bearer-token/i.test(warning)));
+  assert.ok(result.warnings.some((warning) => /Azure bearer-token authentication/i.test(warning)));
+  assert.ok(result.warnings.every((warning) => !warning.includes('mock-bearer-token')));
 });
 
 test('executeDirectly returns failure when required API key env var is missing', async () => {

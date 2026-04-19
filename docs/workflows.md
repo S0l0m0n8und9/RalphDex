@@ -585,7 +585,7 @@ For `copilot-foundry`:
 
 Both Azure-backed providers support the same secure auth sources:
 
-1. `az-bearer` — Ralph acquires a bearer token from Azure CLI at runtime. Ensure `az login` succeeds for the selected tenant and subscription before execution.
+1. `az-bearer` — Ralph acquires a bearer token via `@azure/identity` at runtime using `DefaultAzureCredential`, which supports local Azure-authenticated environments and hosted Managed Identity flows. `tenantId` is passed through when configured; `subscriptionId` remains diagnostic metadata.
 2. `env-api-key` — Ralph resolves the API key from a named environment variable such as `AZURE_OPENAI_API_KEY`.
 3. `vscode-secret` — Ralph resolves the API key from VS Code SecretStorage using a configured secret key name.
 

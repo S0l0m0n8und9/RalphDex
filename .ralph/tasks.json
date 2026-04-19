@@ -4193,11 +4193,11 @@
     {
       "id": "T161",
       "title": "Implement true keyless Azure bearer-token auth for azure-foundry and copilot-foundry via @azure/identity",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T160"
       ],
-      "notes": "The current az-bearer path shells out to Azure CLI for token acquisition, while the PRD still calls for Managed Identity / DefaultAzureCredential keyless auth. Replace the Azure CLI dependency on the bearer path with a direct @azure/identity-based resolver that works in local Azure-authenticated environments and hosted Managed Identity environments without persisting credentials.",
+      "notes": "Replaced az-bearer Azure CLI shell-out auth with @azure/identity DefaultAzureCredential-based bearer acquisition, updated Azure-backed provider/preflight messaging, added deterministic bearer success/failure regression tests, and passed npm run validate.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -4206,7 +4206,8 @@
         "Bearer-token acquisition supports the configured tenant/subscription metadata where applicable and produces deterministic failure messages when credential resolution fails",
         "Regression tests cover successful bearer-token resolution plus at least one failure path for the new keyless auth flow",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T162",
@@ -4245,5 +4246,5 @@
       ]
     }
   ],
-  "mutationCount": 176
+  "mutationCount": 177
 }

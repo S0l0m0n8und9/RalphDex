@@ -137,7 +137,7 @@ class AzureFoundryProvider {
             const auth = await (0, azureAuthResolver_1.resolveAzureAuth)(this.options.auth);
             headers[auth.headerName] = auth.headerValue;
             if (auth.kind === 'bearer') {
-                warnings.push(`Using Azure CLI bearer-token authentication (${auth.redactedSource}).`);
+                warnings.push(`Using Azure bearer-token authentication (${auth.redactedSource}).`);
             }
             else {
                 warnings.push(`Using secure Azure API key authentication via ${auth.redactedSource}.`);

@@ -327,7 +327,7 @@ function collectAzureFoundryReadinessDiagnostics(config: RalphCodexConfig): Ralp
     {
       envPrefix: 'ralphCodex.azureFoundry.auth',
       bearerInfoCode: 'azure_foundry_auth_az_bearer',
-      bearerInfoMessage: 'Azure AI Foundry will resolve a bearer token from Azure CLI at runtime. Ensure `az login` succeeds for the selected tenant and subscription before execution.',
+      bearerInfoMessage: 'Azure AI Foundry will resolve a bearer token via Azure Identity at runtime. Ensure the selected tenant is available to DefaultAzureCredential or Managed Identity before execution.',
       apiKeyInfoCode: 'azure_foundry_auth_api_key_active'
     }
   ));
@@ -361,7 +361,7 @@ function collectCopilotFoundryReadinessDiagnostics(config: RalphCodexConfig): Ra
     {
       envPrefix: 'ralphCodex.copilotFoundry.auth',
       bearerInfoCode: 'copilot_foundry_auth_az_bearer',
-      bearerInfoMessage: 'Copilot Foundry will resolve a bearer token from Azure CLI at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
+      bearerInfoMessage: 'Copilot Foundry will resolve a bearer token via Azure Identity at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
       apiKeyInfoCode: 'copilot_foundry_auth_api_key_active'
     }
   ));
