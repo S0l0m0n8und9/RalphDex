@@ -411,7 +411,7 @@ Use the inspection commands by question, not just by file name:
 - `Show Status`: "What is Ralph doing now, what did the last few iterations do, and did retention or latest-surface repair change anything?" Opens or focuses the dashboard with a fresh snapshot; raw text report also written to the output channel for audit.
 - `Open Latest Ralph Summary`: "What was the newest iteration outcome in human-readable form?"
 - `Open Latest Prompt Evidence`: "Which template, task context, and inspected root snapshot produced the current prompt?"
-- `Open Latest CLI Transcript`: "What did `codex exec` print, or what last message survived when the transcript is unavailable?"
+- `Open Latest CLI Transcript`: "What did the configured provider execution print, or what last message survived when the transcript is unavailable?"
 - `Open Latest Provenance Bundle` or `Reveal Latest Provenance Bundle Directory`: "Which persisted proof artifacts back the newest attempt end to end?"
 
 ## Inspect State

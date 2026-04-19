@@ -7,7 +7,7 @@ A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps y
 **Key capabilities:**
 
 - **File-backed state** — PRD, progress log, and task graph survive across sessions without relying on chat history
-- **Multiple CLI backends** — `codex exec`, Claude CLI (`claude -p`), GitHub Copilot CLI, Copilot CLI with Azure OpenAI BYOK (`copilot-foundry`), and Azure direct HTTPS (`azure-foundry`)
+- **Multiple CLI backends** — Codex CLI (`codex exec`), Claude CLI (`claude -p`), GitHub Copilot CLI, Copilot CLI with Azure OpenAI BYOK (`copilot-foundry`), Azure direct HTTPS (`azure-foundry`), and Google Gemini CLI (`gemini`)
 - **Deterministic loop control** — preflight checks, multi-verifier passes, explicit stop reasons, and bounded remediation
 - **Full provenance** — every iteration writes prompt evidence, git snapshots, and a verifiable trust chain to disk
 - **IDE handoff** — clipboard plus configurable VS Code command delivery for chat-first workflows
@@ -15,7 +15,7 @@ A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps y
 The extension has two execution paths:
 
 - prepare a prompt for AI-IDE handoff through clipboard plus configurable VS Code command IDs
-- run deterministic CLI iterations through the configured provider (`codex`, `claude`, `copilot`, `copilot-foundry`, or `azure-foundry`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
+- run deterministic CLI iterations through the configured provider (`codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, or `gemini`) with preflight checks, verifier passes, stable artifacts, and explicit stop reasons
 
 ## Who This Is For
 
