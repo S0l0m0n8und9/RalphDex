@@ -3,7 +3,7 @@ import type { IterationBroadcaster } from './iterationBroadcaster';
 import type { RalphWatchedState } from './stateWatcher';
 import type { RalphDashboardViewIntent } from './uiTypes';
 import { buildPanelDashboardHtml } from './panelHtml';
-import { DashboardHost } from '../webview/dashboardHost';
+import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHost';
 import type { WebviewPanelManager } from '../webview/WebviewPanelManager';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 
@@ -24,9 +24,10 @@ export class RalphDashboardPanel implements vscode.Disposable {
     panel: vscode.WebviewPanel,
     broadcaster: IterationBroadcaster,
     loadSnapshot?: DashboardSnapshotLoader,
-    initialViewIntent: RalphDashboardViewIntent | null = null
+    initialViewIntent: RalphDashboardViewIntent | null = null,
+    actions: DashboardHostActions = {}
   ) {
-    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot, initialViewIntent);
+    this.host = new DashboardHost(panel.webview, broadcaster, buildPanelDashboardHtml, loadSnapshot, initialViewIntent, actions);
     panel.onDidDispose(() => this.dispose());
   }
 
@@ -39,7 +40,8 @@ export class RalphDashboardPanel implements vscode.Disposable {
     manager: WebviewPanelManager,
     broadcaster: IterationBroadcaster,
     loadSnapshot?: DashboardSnapshotLoader,
-    viewIntent: RalphDashboardViewIntent | null = null
+    viewIntent: RalphDashboardViewIntent | null = null,
+    actions: DashboardHostActions = {}
   ): void {
     const panel = manager.createOrReveal('dashboard', {
       viewType: RalphDashboardPanel.viewType,
@@ -54,7 +56,7 @@ export class RalphDashboardPanel implements vscode.Disposable {
       return;
     }
 
-    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot, viewIntent);
+    RalphDashboardPanel.currentPanel = new RalphDashboardPanel(panel, broadcaster, loadSnapshot, viewIntent, actions);
   }
 
   public updateFromWatchedState(watched: RalphWatchedState): void {

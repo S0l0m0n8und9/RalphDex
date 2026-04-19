@@ -20,19 +20,21 @@ class RalphSidebarViewProvider {
     extensionUri;
     broadcaster;
     loadSnapshot;
+    actions;
     static viewType = 'ralphCodex.dashboard';
     host;
-    constructor(extensionUri, broadcaster, loadSnapshot) {
+    constructor(extensionUri, broadcaster, loadSnapshot, actions = {}) {
         this.extensionUri = extensionUri;
         this.broadcaster = broadcaster;
         this.loadSnapshot = loadSnapshot;
+        this.actions = actions;
     }
     resolveWebviewView(webviewView, _context, _token) {
         webviewView.webview.options = { enableScripts: true };
         // Dispose any previous host before creating a new one (VS Code may call
         // resolveWebviewView again if the view is hidden and re-shown).
         this.host?.dispose();
-        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, sidebarHtml_1.buildDashboardHtml, this.loadSnapshot);
+        this.host = new dashboardHost_1.DashboardHost(webviewView.webview, this.broadcaster, sidebarHtml_1.buildDashboardHtml, this.loadSnapshot, null, this.actions);
         webviewView.onDidDispose(() => {
             this.host?.dispose();
             this.host = undefined;
@@ -66,6 +68,7 @@ function defaultDashboardState() {
         settingsSurface: null,
         dashboardSnapshot: null,
         snapshotStatus: { phase: 'idle', errorMessage: null },
+        taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
         viewIntent: null
     };
 }

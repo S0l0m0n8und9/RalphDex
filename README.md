@@ -44,7 +44,7 @@ The Marketplace listing should match what you see after install:
 
 1. The Ralphdex activity-bar icon appears in VS Code.
 2. `Ralphdex: Show Status` opens the dashboard webview with the current task, pipeline, failure, and artifact snapshot.
-3. The Ralphdex sidebar exposes the Dashboard plus the Tasks tree for durable `.ralph/` state.
+3. The Ralphdex sidebar exposes the Dashboard plus the Tasks tree for durable `.ralph/` state, including a compact epic-to-task seeding form that uses the same backlog append pipeline as the command palette.
 4. `Ralphdex: Initialize Workspace` scaffolds `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` for a fresh repo.
 
 For a quick release-candidate demo pass, install the Marketplace build or local VSIX, run `Ralphdex: Show Status`, confirm the dashboard renders, then run `Ralphdex: Initialize Workspace` in a scratch folder and verify the `.ralph/` files are created.
@@ -120,6 +120,7 @@ Ralph separates durable source-of-truth files from generated runtime evidence:
 For day-to-day loop inspection:
 
 1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
+The dashboard `Work` tab and the sidebar both expose a first-class task-seeding form so operators can turn an epic or feature request into appended backlog tasks without leaving Ralphdex surfaces.
 2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
 3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
 4. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.

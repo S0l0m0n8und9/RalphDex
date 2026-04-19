@@ -9,7 +9,7 @@ import type { RalphWatchedState } from './stateWatcher';
 import type {
   RalphDashboardTask,
 } from './uiTypes';
-import { DashboardHost } from '../webview/dashboardHost';
+import { DashboardHost, type DashboardHostActions } from '../webview/dashboardHost';
 import type { DashboardSnapshotLoader } from '../webview/dashboardDataLoader';
 
 /**
@@ -28,7 +28,8 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly broadcaster: IterationBroadcaster,
-    private readonly loadSnapshot?: DashboardSnapshotLoader
+    private readonly loadSnapshot?: DashboardSnapshotLoader,
+    private readonly actions: DashboardHostActions = {}
   ) {}
 
   public resolveWebviewView(
@@ -41,7 +42,7 @@ export class RalphSidebarViewProvider implements vscode.WebviewViewProvider {
     // Dispose any previous host before creating a new one (VS Code may call
     // resolveWebviewView again if the view is hidden and re-shown).
     this.host?.dispose();
-    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml, this.loadSnapshot);
+    this.host = new DashboardHost(webviewView.webview, this.broadcaster, buildDashboardHtml, this.loadSnapshot, null, this.actions);
 
     webviewView.onDidDispose(() => {
       this.host?.dispose();
@@ -79,6 +80,7 @@ export function defaultDashboardState(): import('./uiTypes').RalphDashboardState
     settingsSurface: null,
     dashboardSnapshot: null,
     snapshotStatus: { phase: 'idle', errorMessage: null },
+    taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null
   };
 }

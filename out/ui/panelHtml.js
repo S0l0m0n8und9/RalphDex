@@ -457,6 +457,59 @@ details[open] > .settings-advanced-toggle::before { content: '▾ '; }
   color: var(--ralph-orange);
 }
 
+.seed-card textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--vscode-input-foreground, #ccc);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--ralph-border);
+  border-radius: 6px;
+}
+
+.seed-card textarea:focus {
+  outline: none;
+  border-color: var(--ralph-amber);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
+.seed-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.seed-result {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--ralph-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.seed-result.success {
+  border-color: var(--ralph-green);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.seed-result.error {
+  border-color: var(--ralph-orange);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.seed-result.submitting {
+  border-color: var(--ralph-amber);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.seed-result-meta {
+  color: var(--ralph-dim);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
 .tab-layout {
   display: grid;
   gap: 12px;
@@ -945,6 +998,42 @@ function buildSnapshotStatusBanner(state) {
     }
     return `<div class="snapshot-banner error">Dashboard snapshot unavailable. ${(0, htmlHelpers_1.esc)(status.errorMessage ?? 'unknown error')}</div>`;
 }
+function buildTaskSeedingResult(state) {
+    const seeding = state.taskSeeding;
+    if (seeding.phase === 'idle' || !seeding.message) {
+        return '';
+    }
+    const resultClass = seeding.phase === 'success'
+        ? 'success'
+        : seeding.phase === 'error'
+            ? 'error'
+            : 'submitting';
+    const followUp = seeding.phase === 'success'
+        ? `<div class="inline-actions">
+        <button class="btn" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.refreshDashboard"><span class="btn-label">Refresh Dashboard</span><span class="btn-spinner"></span></button>
+      </div>`
+        : '';
+    const meta = seeding.artifactPath
+        ? `<div class="seed-result-meta">Artifact: ${(0, htmlHelpers_1.esc)(seeding.artifactPath)}</div>`
+        : '';
+    return `<div class="seed-result ${resultClass}">
+    <div>${(0, htmlHelpers_1.esc)(seeding.message)}</div>
+    ${meta}
+    ${followUp}
+  </div>`;
+}
+function buildTaskSeedingCard(state) {
+    return `<div class="card seed-card">
+    <div class="card-title">Seed Tasks From Epic</div>
+    <div class="card-subtitle">Enter a high-level feature request and append generated backlog tasks through the shared seeding pipeline.</div>
+    <textarea data-seed-request="panel" placeholder="Describe the epic, goal, and constraints...">${(0, htmlHelpers_1.esc)(state.taskSeeding.requestText)}</textarea>
+    <div class="seed-card-actions">
+      <button class="btn" data-seed-submit="panel"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
+    </div>
+    ${buildTaskSeedingResult(state)}
+  </div>`;
+}
 function buildTaskCollections(state) {
     const statusOrder = { in_progress: 0, todo: 1, blocked: 2, done: 3 };
     const sorted = [...state.tasks].sort((a, b) => {
@@ -1063,6 +1152,8 @@ function buildWorkTab(state) {
         : '<div class="empty">No iterations yet</div>'}
       </div>
     </div>
+
+    ${buildTaskSeedingCard(state)}
   </div>`;
 }
 function buildDiagnosticsTab(state) {
@@ -1357,6 +1448,18 @@ function buildPanelDashboardHtml(state, nonce) {
         if (t) { clearTimeout(t); ackTimeouts.delete(el); }
       }
 
+      function runSeedTasks(el) {
+        var source = el.getAttribute('data-seed-submit');
+        if (!source || el.disabled) return;
+        var field = document.querySelector('[data-seed-request="' + source + '"]');
+        var requestText = field ? field.value : '';
+        el.classList.add('loading');
+        el.disabled = true;
+        vscode.postMessage({ type: 'seed-tasks', requestText: requestText, source: source });
+        var t = setTimeout(function() { resetButton(el); }, 15000);
+        ackTimeouts.set(el, t);
+      }
+
       function sendSettingUpdate(el) {
         if (!el || typeof el.getAttribute !== 'function') return false;
 
@@ -1446,6 +1549,9 @@ function buildPanelDashboardHtml(state, nonce) {
 
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); return; }
+
+        var seedBtn = e.target.closest('[data-seed-submit]');
+        if (seedBtn) { runSeedTasks(seedBtn); return; }
 
         var kvAdd = e.target.closest('[data-setting-kv-add]');
         if (kvAdd) {
@@ -1544,6 +1650,14 @@ function buildPanelDashboardHtml(state, nonce) {
         if (msg.type === 'command-ack') {
           var btns = document.querySelectorAll('[data-command="' + msg.command + '"]');
           btns.forEach(function(btn) {
+            if (msg.status === 'done' || msg.status === 'error') {
+              resetButton(btn);
+            }
+          });
+        }
+        if (msg.type === 'seed-tasks-result') {
+          var seedButtons = document.querySelectorAll('[data-seed-submit="' + msg.source + '"]');
+          seedButtons.forEach(function(btn) {
             if (msg.status === 'done' || msg.status === 'error') {
               resetButton(btn);
             }

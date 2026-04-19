@@ -23,6 +23,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     settingsSurface: null,
     dashboardSnapshot: null,
     snapshotStatus: { phase: 'idle', errorMessage: null },
+    taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
     ...overrides
   };
@@ -244,6 +245,25 @@ test('buildPanelDashboardHtml includes button spinner and command-ack handler', 
   assert.ok(html.includes('btn-spinner'));
   assert.ok(html.includes('command-ack'));
   assert.ok(html.includes('resetButton'));
+});
+
+test('buildPanelDashboardHtml renders task-seeding form and success follow-up affordances', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    taskSeeding: {
+      phase: 'success',
+      requestText: 'Seed a dashboard intake flow',
+      createdTaskCount: 2,
+      message: 'Seeded 2 task(s).',
+      artifactPath: '.ralph/artifacts/task-seeding/latest.json'
+    }
+  }), 'seed-panel');
+
+  assert.ok(html.includes('Seed Tasks From Epic'));
+  assert.ok(html.includes('data-seed-request'));
+  assert.ok(html.includes("type: 'seed-tasks'"));
+  assert.ok(html.includes('Seeded 2 task(s).'));
+  assert.ok(html.includes('ralphCodex.showTasks'));
+  assert.ok(html.includes('ralphCodex.refreshDashboard'));
 });
 
 test('buildPanelDashboardHtml eagerly persists plain setting inputs before commands run', () => {

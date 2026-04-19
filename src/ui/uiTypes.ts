@@ -130,6 +130,16 @@ export interface RalphDashboardSnapshotStatus {
   errorMessage: string | null;
 }
 
+export type RalphDashboardTaskSeedingPhase = 'idle' | 'submitting' | 'success' | 'error';
+
+export interface RalphDashboardTaskSeedingState {
+  phase: RalphDashboardTaskSeedingPhase;
+  requestText: string;
+  createdTaskCount: number | null;
+  message: string | null;
+  artifactPath: string | null;
+}
+
 export interface RalphDashboardState {
   workspaceName: string;
   loopState: RalphUiLoopState;
@@ -146,6 +156,7 @@ export interface RalphDashboardState {
   settingsSurface: SettingsSurfaceSnapshot | null;
   dashboardSnapshot: DashboardSnapshot | null;
   snapshotStatus: RalphDashboardSnapshotStatus;
+  taskSeeding: RalphDashboardTaskSeedingState;
   viewIntent: RalphDashboardViewIntent | null;
 }
 
@@ -153,11 +164,20 @@ export interface RalphDashboardState {
 export type RalphWebviewMessage =
   | { type: 'state'; state: RalphDashboardState }
   | { type: 'phase'; phase: RalphIterationPhase; iteration: number; agentId?: string; message?: string }
-  | { type: 'command-ack'; command: string; status: 'started' | 'done' | 'error' };
+  | { type: 'command-ack'; command: string; status: 'started' | 'done' | 'error' }
+  | {
+      type: 'seed-tasks-result';
+      status: 'started' | 'done' | 'error';
+      source: 'panel' | 'sidebar';
+      createdTaskCount?: number;
+      artifactPath?: string;
+      message?: string;
+    };
 
 /** Messages sent from webview to extension. */
 export type RalphWebviewCommand =
   | { type: 'command'; command: string }
   | { type: 'expand-task'; taskId: string }
   | { type: 'update-setting'; key: string; value: unknown }
-  | { type: 'open-iteration-artifact'; artifactDir: string };
+  | { type: 'open-iteration-artifact'; artifactDir: string }
+  | { type: 'seed-tasks'; requestText: string; source: 'panel' | 'sidebar' };

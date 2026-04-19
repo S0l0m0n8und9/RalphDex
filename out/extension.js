@@ -50,6 +50,7 @@ const taskTreeView_1 = require("./ui/taskTreeView");
 const WebviewPanelManager_1 = require("./webview/WebviewPanelManager");
 const dashboardDataLoader_1 = require("./webview/dashboardDataLoader");
 const stateManager_1 = require("./ralph/stateManager");
+const taskSeeding_1 = require("./commands/taskSeeding");
 function activate(context) {
     const logger = new logger_1.Logger(vscode.window.createOutputChannel('Ralphdex'));
     context.subscriptions.push(logger);
@@ -63,18 +64,30 @@ function activate(context) {
     context.subscriptions.push(panelManager);
     const dashboardStateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const dashboardSnapshotLoader = (0, dashboardDataLoader_1.createDashboardSnapshotLoader)(dashboardStateManager, logger);
-    const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster, dashboardSnapshotLoader);
+    const dashboardHostActions = {
+        seedTasks: async (requestText) => {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                throw new Error('Open a workspace folder before seeding tasks.');
+            }
+            return (0, taskSeeding_1.seedTasksFromFeatureRequest)(workspaceFolder, logger, {
+                requestText,
+                logContext: 'Task seeding via dashboard webview'
+            });
+        }
+    };
+    const sidebarProvider = new sidebarViewProvider_1.RalphSidebarViewProvider(context.extensionUri, broadcaster, dashboardSnapshotLoader, dashboardHostActions);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(sidebarViewProvider_1.RalphSidebarViewProvider.viewType, sidebarProvider));
     // Status bar quick-pick command
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.statusBarQuickPick', statusBarItem_1.showStatusBarQuickPick));
     // Primary dashboard command — opens the full dashboard in the editor area.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     }));
     // Legacy alias — keeps existing status bar items, sidebar buttons, and any
     // saved key bindings working without a breaking change.
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
-        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
+        dashboardPanel_1.RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     }));
     // Forces a fresh snapshot reload on the open panel, if any. Idempotent: no-op
     // when no panel is open. Show Status commands call this after revealing the

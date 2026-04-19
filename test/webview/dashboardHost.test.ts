@@ -169,6 +169,57 @@ test('DashboardHost: inbound command triggers command-ack started then done', as
   broadcaster.dispose();
 });
 
+test('DashboardHost: inbound seed-tasks triggers typed result updates and snapshot refresh', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+  const seedRequests: string[] = [];
+  let refreshCount = 0;
+
+  new DashboardHost(
+    wv as unknown as import('vscode').Webview,
+    broadcaster,
+    makeSimpleRenderFn('p') as never,
+    async () => {
+      refreshCount += 1;
+      return { workspaceName: `snapshot-${refreshCount}` } as never;
+    },
+    null,
+    {
+      seedTasks: async (requestText) => {
+        seedRequests.push(requestText);
+        return {
+          createdTaskCount: 3,
+          tasksPath: '/tmp/tasks.json',
+          artifactPath: '/tmp/task-seeding.json'
+        };
+      }
+    }
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+
+  wv.posted.length = 0;
+  webviewSends(wv, { type: 'seed-tasks', requestText: 'Seed dashboard epic', source: 'panel' });
+
+  await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.deepEqual(seedRequests, ['Seed dashboard epic']);
+
+  const resultMessages = wv.posted.filter((msg): msg is {
+    type: string;
+    status: string;
+    createdTaskCount?: number;
+  } => typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'seed-tasks-result');
+
+  assert.equal(resultMessages[0]?.status, 'started');
+  assert.equal(resultMessages.at(-1)?.status, 'done');
+  assert.equal(resultMessages.at(-1)?.createdTaskCount, 3);
+  assert.ok(refreshCount >= 2, 'successful seed should trigger a fresh snapshot reload');
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: refresh failure preserves last successful snapshot and reports error phase', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

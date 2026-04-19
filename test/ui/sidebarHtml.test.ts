@@ -20,6 +20,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     settingsSurface: null,
     dashboardSnapshot: null,
     snapshotStatus: { phase: 'idle', errorMessage: null },
+    taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
     ...overrides
   };
@@ -89,4 +90,22 @@ test('buildDashboardHtml includes command-ack message handler', () => {
   const html = buildDashboardHtml(defaultState(), 'n9');
   assert.ok(html.includes('command-ack'));
   assert.ok(html.includes('resetButton'));
+});
+
+test('buildDashboardHtml renders sidebar task-seeding affordance and latest result copy', () => {
+  const html = buildDashboardHtml(defaultState({
+    taskSeeding: {
+      phase: 'success',
+      requestText: 'Seed a sidebar epic',
+      createdTaskCount: 4,
+      message: 'Seeded 4 task(s).',
+      artifactPath: '.ralph/artifacts/task-seeding/sidebar.json'
+    }
+  }), 'seed-sidebar');
+
+  assert.ok(html.includes('Seed Tasks'));
+  assert.ok(html.includes('data-seed-request'));
+  assert.ok(html.includes("type: 'seed-tasks'"));
+  assert.ok(html.includes('Seeded 4 task(s).'));
+  assert.ok(html.includes('ralphCodex.showTasks'));
 });

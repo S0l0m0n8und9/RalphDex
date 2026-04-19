@@ -66,6 +66,45 @@ body {
   margin-bottom: 6px;
   text-align: center;
 }
+
+.seed-block {
+  margin-top: 10px;
+}
+
+.seed-block textarea {
+  width: 100%;
+  min-height: 76px;
+  resize: vertical;
+  padding: 8px;
+  font: inherit;
+  color: var(--vscode-input-foreground, #ccc);
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--ralph-border);
+  border-radius: 6px;
+}
+
+.seed-block textarea:focus {
+  outline: none;
+  border-color: var(--ralph-amber);
+}
+
+.seed-result {
+  margin-top: 8px;
+  font-size: 11px;
+  padding: 8px;
+  border: 1px solid var(--ralph-border);
+  border-radius: 6px;
+}
+
+.seed-result.success {
+  border-color: var(--ralph-green);
+  color: var(--ralph-green);
+}
+
+.seed-result.error {
+  border-color: var(--ralph-orange);
+  color: var(--ralph-orange);
+}
 `;
 }
 // ---------------------------------------------------------------------------
@@ -86,6 +125,9 @@ function buildDashboardHtml(state, nonce) {
             phaseIndicator = lines.map((l) => `<div class="phase-indicator">${l}</div>`).join('');
         }
     }
+    const seedResult = state.taskSeeding.phase !== 'idle' && state.taskSeeding.message
+        ? `<div class="seed-result ${state.taskSeeding.phase === 'success' ? 'success' : state.taskSeeding.phase === 'error' ? 'error' : ''}">${(0, htmlHelpers_1.esc)(state.taskSeeding.message)}</div>`
+        : '';
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -126,6 +168,17 @@ function buildDashboardHtml(state, nonce) {
     <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
   </div>
 
+  <div class="section-label">Seed Tasks</div>
+  <hr class="section-rule">
+  <div class="seed-block">
+    <textarea data-seed-request="sidebar" placeholder="Describe the epic...">${(0, htmlHelpers_1.esc)(state.taskSeeding.requestText)}</textarea>
+    <div class="btn-grid" style="margin-top: 8px;">
+      <button class="btn" data-seed-submit="sidebar"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
+    </div>
+    ${seedResult}
+  </div>
+
   <button class="open-dashboard" data-command="ralphCodex.openDashboard">Open Dashboard</button>
 
   <script nonce="${nonce}">
@@ -150,7 +203,21 @@ function buildDashboardHtml(state, nonce) {
         if (t) { clearTimeout(t); ackTimeouts.delete(el); }
       }
 
+      function runSeedTasks(el) {
+        var source = el.getAttribute('data-seed-submit');
+        if (!source || el.disabled) return;
+        var field = document.querySelector('[data-seed-request="' + source + '"]');
+        var requestText = field ? field.value : '';
+        el.classList.add('loading');
+        el.disabled = true;
+        vscode.postMessage({ type: 'seed-tasks', requestText: requestText, source: source });
+        var t = setTimeout(function() { resetButton(el); }, 15000);
+        ackTimeouts.set(el, t);
+      }
+
       document.addEventListener('click', function(e) {
+        var seedBtn = e.target.closest('[data-seed-submit]');
+        if (seedBtn) { runSeedTasks(seedBtn); return; }
         var btn = e.target.closest('[data-command]');
         if (btn) { runCommand(btn); }
       });
@@ -166,6 +233,14 @@ function buildDashboardHtml(state, nonce) {
         if (msg.type === 'command-ack') {
           var btns = document.querySelectorAll('[data-command="' + msg.command + '"]');
           btns.forEach(function(btn) {
+            if (msg.status === 'done' || msg.status === 'error') {
+              resetButton(btn);
+            }
+          });
+        }
+        if (msg.type === 'seed-tasks-result') {
+          var seedButtons = document.querySelectorAll('[data-seed-submit="' + msg.source + '"]');
+          seedButtons.forEach(function(btn) {
             if (msg.status === 'done' || msg.status === 'error') {
               resetButton(btn);
             }

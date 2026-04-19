@@ -25,6 +25,14 @@ import { MessageBridge } from './MessageBridge';
 import { WebviewConfigSync } from '../ui/webviewConfigSync';
 import type { DashboardSnapshotLoader } from './dashboardDataLoader';
 
+export interface DashboardHostActions {
+  seedTasks?: (requestText: string) => Promise<{
+    createdTaskCount: number;
+    tasksPath: string;
+    artifactPath: string;
+  }>;
+}
+
 /**
  * Shared dashboard controller used by both the editor-panel and the sidebar.
  *
@@ -47,7 +55,8 @@ export class DashboardHost implements vscode.Disposable {
     broadcaster: IterationBroadcaster,
     private readonly renderFn: (state: RalphDashboardState, nonce: string) => string,
     private readonly loadSnapshot?: DashboardSnapshotLoader,
-    initialViewIntent: RalphDashboardViewIntent | null = null
+    initialViewIntent: RalphDashboardViewIntent | null = null,
+    private readonly actions: DashboardHostActions = {}
   ) {
     this.latestState = defaultDashboardState();
     this.newSettingKeys = [...(initialViewIntent?.newSettingKeys ?? [])];
@@ -92,6 +101,9 @@ export class DashboardHost implements vscode.Disposable {
           // value; a full HTML replace would destroy focus and cursor position.
           // The updated latestState will be picked up by the next natural render.
         }
+      }
+      if (msg.type === 'seed-tasks') {
+        await this.handleSeedTasksMessage(msg.requestText, msg.source);
       }
     });
 
@@ -143,11 +155,101 @@ export class DashboardHost implements vscode.Disposable {
       settingsSurface: config ? snapshotConfig(config, { newSettingKeys: this.newSettingKeys }) : null,
       dashboardSnapshot: this.latestState.dashboardSnapshot,
       snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null },
+      taskSeeding: this.latestState.taskSeeding,
       viewIntent: this.latestState.viewIntent
     };
 
     this.fullRender();
     void this.refreshDashboardSnapshot();
+  }
+
+  private async handleSeedTasksMessage(requestText: string, source: 'panel' | 'sidebar'): Promise<void> {
+    const trimmedRequest = requestText.trim();
+    if (!trimmedRequest) {
+      const message = 'Enter an epic or feature request before seeding tasks.';
+      this.latestState = {
+        ...this.latestState,
+        taskSeeding: {
+          phase: 'error',
+          requestText,
+          createdTaskCount: null,
+          message,
+          artifactPath: null
+        }
+      };
+      this.bridge.send({ type: 'seed-tasks-result', status: 'error', source, message });
+      this.fullRender(true);
+      return;
+    }
+
+    if (!this.actions.seedTasks) {
+      const message = 'Task seeding is unavailable because the dashboard host has no seeding action configured.';
+      this.latestState = {
+        ...this.latestState,
+        taskSeeding: {
+          phase: 'error',
+          requestText: trimmedRequest,
+          createdTaskCount: null,
+          message,
+          artifactPath: null
+        }
+      };
+      this.bridge.send({ type: 'seed-tasks-result', status: 'error', source, message });
+      this.fullRender(true);
+      return;
+    }
+
+    this.latestState = {
+      ...this.latestState,
+      taskSeeding: {
+        phase: 'submitting',
+        requestText: trimmedRequest,
+        createdTaskCount: null,
+        message: `Seeding tasks from ${source === 'panel' ? 'dashboard' : 'sidebar'} request...`,
+        artifactPath: null
+      }
+    };
+    this.bridge.send({ type: 'seed-tasks-result', status: 'started', source, message: this.latestState.taskSeeding.message ?? undefined });
+    this.fullRender(true);
+
+    try {
+      const seeded = await this.actions.seedTasks(trimmedRequest);
+      const message = `Seeded ${seeded.createdTaskCount} task(s).`;
+      this.latestState = {
+        ...this.latestState,
+        taskSeeding: {
+          phase: 'success',
+          requestText: trimmedRequest,
+          createdTaskCount: seeded.createdTaskCount,
+          message,
+          artifactPath: seeded.artifactPath
+        }
+      };
+      this.bridge.send({
+        type: 'seed-tasks-result',
+        status: 'done',
+        source,
+        createdTaskCount: seeded.createdTaskCount,
+        artifactPath: seeded.artifactPath,
+        message
+      });
+      this.fullRender(true);
+      await this.refreshDashboardSnapshot();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.latestState = {
+        ...this.latestState,
+        taskSeeding: {
+          phase: 'error',
+          requestText: trimmedRequest,
+          createdTaskCount: null,
+          message,
+          artifactPath: null
+        }
+      };
+      this.bridge.send({ type: 'seed-tasks-result', status: 'error', source, message });
+      this.fullRender(true);
+    }
   }
 
   public applyViewIntent(intent: RalphDashboardViewIntent | null): void {

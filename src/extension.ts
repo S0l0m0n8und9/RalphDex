@@ -18,6 +18,7 @@ import { RalphTaskTreeDataProvider } from './ui/taskTreeView';
 import { WebviewPanelManager } from './webview/WebviewPanelManager';
 import { createDashboardSnapshotLoader } from './webview/dashboardDataLoader';
 import { RalphStateManager } from './ralph/stateManager';
+import { seedTasksFromFeatureRequest } from './commands/taskSeeding';
 
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
@@ -35,8 +36,21 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(panelManager);
   const dashboardStateManager = new RalphStateManager(context.workspaceState, logger);
   const dashboardSnapshotLoader = createDashboardSnapshotLoader(dashboardStateManager, logger);
+  const dashboardHostActions = {
+    seedTasks: async (requestText: string) => {
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      if (!workspaceFolder) {
+        throw new Error('Open a workspace folder before seeding tasks.');
+      }
 
-  const sidebarProvider = new RalphSidebarViewProvider(context.extensionUri, broadcaster, dashboardSnapshotLoader);
+      return seedTasksFromFeatureRequest(workspaceFolder, logger, {
+        requestText,
+        logContext: 'Task seeding via dashboard webview'
+      });
+    }
+  };
+
+  const sidebarProvider = new RalphSidebarViewProvider(context.extensionUri, broadcaster, dashboardSnapshotLoader, dashboardHostActions);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(RalphSidebarViewProvider.viewType, sidebarProvider)
   );
@@ -49,7 +63,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // Primary dashboard command — opens the full dashboard in the editor area.
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.showDashboard', (viewIntent) => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     })
   );
 
@@ -57,7 +71,7 @@ export function activate(context: vscode.ExtensionContext): void {
   // saved key bindings working without a breaking change.
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.openDashboard', (viewIntent) => {
-      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null);
+      RalphDashboardPanel.createOrReveal(panelManager, broadcaster, dashboardSnapshotLoader, viewIntent ?? null, dashboardHostActions);
     })
   );
 

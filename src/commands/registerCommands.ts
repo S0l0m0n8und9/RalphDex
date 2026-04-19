@@ -9,7 +9,6 @@ import { RalphIterationEngine } from '../ralph/iterationEngine';
 import { RalphStateManager } from '../ralph/stateManager';
 import {
   withTaskFileLock,
-  parseTaskFile,
   stringifyTaskFile,
   bumpMutationCount
 } from '../ralph/taskFile';
@@ -50,9 +49,12 @@ import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
-import { seedTasksFromRequest, TaskSeedingError } from '../ralph/taskSeeder';
 import { parseCrewRoster } from '../ralph/crewRoster';
 import type { CrewMember } from '../ralph/crewRoster';
+import {
+  seedTasksFromFeatureRequest,
+  TaskSeedingCommandError
+} from './taskSeeding';
 import {
   buildPrdWizardConfigSelections,
   writePrdWizardDraft
@@ -139,19 +141,6 @@ async function runSeedTasksFromFeatureRequestCommand(
     logContext: string;
   }
 ): Promise<void> {
-  const config = readConfig(workspaceFolder);
-  const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
-  const tasksPath = paths.taskFilePath;
-
-  if (!(await pathExists(tasksPath))) {
-    void vscode.window.showErrorMessage(
-      'No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.'
-    );
-    return;
-  }
-
-  const raw = await fs.readFile(tasksPath, 'utf8');
-  const taskFile = parseTaskFile(raw);
   const requestText = await vscode.window.showInputBox({
     title: options.inputTitle,
     prompt: options.inputPrompt,
@@ -163,32 +152,21 @@ async function runSeedTasksFromFeatureRequestCommand(
   }
 
   try {
-    const seeded = await seedTasksFromRequest({
+    const seeded = await seedTasksFromFeatureRequest(workspaceFolder, logger, {
       requestText,
-      config,
-      cwd: workspaceFolder.uri.fsPath,
-      artifactRootDir: paths.artifactDir,
-      existingTaskIds: taskFile.tasks.map((task) => task.id)
+      logContext: options.logContext
     });
 
-    await appendNormalizedTasksToFile(tasksPath, seeded.tasks);
-    logger.info(`${options.logContext} succeeded.`, {
-      taskCount: seeded.tasks.length,
-      artifactPath: seeded.artifactPath,
-      warnings: seeded.warnings
-    });
-
-    await openTextFile(tasksPath);
+    await openTextFile(seeded.tasksPath);
     void vscode.window.showInformationMessage(
-      `${options.successMessagePrefix} ${seeded.tasks.length} ${options.successMessageTaskLabel}. ` +
-      `tasks.json: ${tasksPath}. Artifact: ${seeded.artifactPath}.`,
+      `${options.successMessagePrefix} ${seeded.createdTaskCount} ${options.successMessageTaskLabel}. ` +
+      `tasks.json: ${seeded.tasksPath}. Artifact: ${seeded.artifactPath}.`,
       'Got it'
     );
   } catch (error) {
-    const message = error instanceof TaskSeedingError
+    const message = error instanceof TaskSeedingCommandError
       ? error.message
       : toErrorMessage(error);
-    logger.info(`${options.logContext} failed. Reason: ${message}`);
     void vscode.window.showErrorMessage(`Task seeding failed: ${message}`);
   }
 }

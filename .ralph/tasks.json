@@ -4069,11 +4069,11 @@
     {
       "id": "T154",
       "title": "Dashboard/sidebar task-seeding UI: first-class epic intake flow from Ralphdex surfaces",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T153"
       ],
-      "notes": "The next slice should make epic seeding discoverable without hand-editing tasks.json or relying on command-palette recall. Reuse the existing dashboard/sidebar webview infrastructure and MessageBridge patterns so the new UI remains thin and file-backed.",
+      "notes": "Verified the existing T154 implementation in the working tree: dashboard and sidebar task-seeding UI, typed DashboardHost seed message/result handling through the shared seeding helper, regression coverage, and docs updates are present. Ran npm run validate successfully.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -4082,7 +4082,8 @@
         "After a successful seed, the UI surfaces the created-task count and a clear follow-up path such as focusing the Tasks view or refreshing the dashboard/task snapshot so the new backlog is immediately inspectable",
         "At least one regression test covers the new UI bridge path and one covers the rendered affordance in the dashboard/sidebar surface",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T155",
@@ -4141,5 +4142,5 @@
       "notes": "Auto-derived from PRD section for pipeline run pipeline-20260419T194905Z-ad3d."
     }
   ],
-  "mutationCount": 167
+  "mutationCount": 168
 }
