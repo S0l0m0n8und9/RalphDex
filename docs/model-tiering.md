@@ -1,6 +1,6 @@
 # Model Tiering
 
-Ralph routes each task to a model tier based on a deterministic complexity score. Simple tasks use a cheaper, faster model; complex tasks use a more capable model. This keeps costs proportional to actual task difficulty.
+Ralph routes each task to a model tier based on a deterministic complexity score. Simple tasks use the configured simple-tier provider/model pair, while complex tasks use a more capable tier. This keeps capability allocation proportional to task difficulty.
 
 ## Enabling Model Tiering
 
@@ -64,7 +64,7 @@ Source of truth for shipped defaults is `package.json` (`contributes.configurati
 
 ## Expected Cost Savings
 
-Most tasks in a healthy backlog are simple or medium: a single, bounded objective with no prior failure history and no child tasks. At default thresholds, those tasks score below 2 and land in the simple tier (Haiku), which is significantly cheaper per token than Sonnet or Opus. Complex tasks that genuinely need Opus will have accumulated multiple signals (validation + children + trailing failures), keeping escalations rare and justified.
+Most tasks in a healthy backlog are simple or medium: a single, bounded objective with no prior failure history and no child tasks. At default thresholds, tasks that score below `simpleThreshold` route to the simple tier's configured target. Tasks that genuinely need the complex tier should accumulate multiple signals (validation + children + trailing failures), keeping escalations evidence-driven.
 
 Operators can inspect the selected tier and score for each iteration in the artifact provenance bundle (`verifier-summary.json`).
 
@@ -159,4 +159,4 @@ The distribution is heavily medium-skewed (93.7%), with only 5.6% simple and 0.7
 1. **`has_validation_field` is near-universal.** 233 of 269 done tasks (87%) declare an explicit validation command. At +2 points this single signal pushes almost every task past the `simpleThreshold=2` boundary into medium, leaving the simple tier nearly unused in practice.
 2. **`trailing_complex_classifications` is absent.** Because iteration history is not stored in `tasks.json`, no task accumulates the +1–+4 that would push it to complex. At runtime, repeatedly-failing tasks would score higher and more tasks would reach the `complexThreshold=6` boundary.
 
-**Implication:** The current `simpleThreshold=2` is too low when nearly all tasks declare a validation field. Raising `simpleThreshold` to 3 would classify tasks with only a validation field as simple (score=2), directing them to Haiku. Consider this adjustment if cost reduction on validation-only tasks is a priority. The `complexThreshold=6` appears well-placed: reaching it requires at minimum three coincident signals (e.g., validation + children + long title), reserving Opus for genuinely broad tasks. No immediate change to `complexThreshold` is warranted.
+**Implication:** The current `simpleThreshold=2` is strict when nearly all tasks declare a validation field. Raising `simpleThreshold` to 3 would classify validation-only tasks (score = 2) as simple-tier routes under the configured simple-tier provider/model pair. Consider this adjustment if you want broader simple-tier usage. The `complexThreshold=6` appears well-placed: reaching it requires at minimum three coincident signals (e.g., validation + children + long title), reserving the complex tier for genuinely broad tasks. No immediate change to `complexThreshold` is warranted.

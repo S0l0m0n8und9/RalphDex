@@ -932,6 +932,66 @@
           "maximum": 20,
           "description": "Number of concurrent Ralph agent instances configured for this workspace. Surfaced in preflight and Show Status so operators can verify the intended parallelism before starting a loop."
         },
+        "ralphCodex.hooks": {
+          "type": "object",
+          "default": {},
+          "properties": {
+            "beforeIteration": {
+              "type": "string",
+              "default": "",
+              "description": "Optional shell command hook that runs before each CLI iteration starts."
+            },
+            "afterIteration": {
+              "type": "string",
+              "default": "",
+              "description": "Optional shell command hook that runs after each CLI iteration completes."
+            },
+            "onTaskComplete": {
+              "type": "string",
+              "default": "",
+              "description": "Optional shell command hook that runs when a task is reconciled to done."
+            },
+            "onStop": {
+              "type": "string",
+              "default": "",
+              "description": "Optional shell command hook that runs when a loop run stops for any reason."
+            },
+            "onFailure": {
+              "type": "string",
+              "default": "",
+              "description": "Optional shell command hook that runs when an iteration reports executionStatus=failed."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Optional lifecycle hook commands. Each configured value is a shell command string executed at the named lifecycle point; hook failures are logged but do not stop the loop."
+        },
+        "ralphCodex.autoWatchdogOnStall": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run the watchdog agent after a loop stop caused by repeated no-progress or repeated identical failure classification."
+        },
+        "ralphCodex.autoReviewOnParentDone": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run the review agent after a parent task is completed."
+        },
+        "ralphCodex.autoReviewOnLoopComplete": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically run the review agent when a loop command completes with at least one iteration result."
+        },
+        "ralphCodex.autoScmOnConflict": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, branch-per-task conflict handling can auto-invoke the SCM conflict path and retry up to scmConflictRetryLimit."
+        },
+        "ralphCodex.scmConflictRetryLimit": {
+          "type": "number",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Maximum number of automatic SCM conflict retries attempted when autoScmOnConflict is enabled."
+        },
         "ralphCodex.pipelineHumanGates": {
           "type": "boolean",
           "default": false,

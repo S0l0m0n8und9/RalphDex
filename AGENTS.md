@@ -125,7 +125,7 @@ Example `.ralph/crew.json` with one planner and two implementers:
 
 ## Brief Codex Boundaries
 
-- IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`; do not invent direct composer injection or unsupported Codex IDE APIs.
-- Scripted automation is `codex exec`.
+- IDE handoff is clipboard plus `vscode.commands.executeCommand(...)`; do not invent direct composer injection or unsupported AI IDE APIs.
+- Scripted automation runs through the configured provider execution path (`codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, or `gemini`).
 - `preferredHandoffMode = cliExec` does not make `Open Codex IDE` run the CLI.
 - CLI runs can prove prepared-and-executed prompt integrity; IDE handoff only proves the prepared prompt bundle.
