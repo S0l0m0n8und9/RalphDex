@@ -777,6 +777,23 @@ Acceptance criteria:
 - Panel updates on each iteration-completion event with refreshed graph state.
 - `npm run validate` passes.
 
+**4. UI task seeding from epic/feature request**
+
+Add a first-class UI workflow that lets an operator seed backlog tasks directly from an epic/feature-level request, without hand-editing `tasks.json`. Concrete work:
+
+- Add a command/UI entry point (for example from the sidebar and command palette) that prompts the operator to describe the desired epic or feature at a high level.
+- Route the request through the same deterministic task-creation pipeline used by other task producers, so generated tasks preserve schema invariants and normalized fields.
+- Produce structured task objects and append them to `.ralph/tasks.json` as valid task entries (IDs, status, dependency metadata, and optional rich fields when available).
+- Persist generation evidence as a durable artifact so operators can audit the source request and resulting seeded tasks.
+- Surface a clear success/failure summary in the UI, including how many tasks were created and where they were written.
+
+Acceptance criteria:
+- Operator can trigger the flow from a UI surface and submit an epic/feature request in one interaction path.
+- Generated output is persisted as valid task objects in `.ralph/tasks.json` (not freeform markdown).
+- Task writes pass through the shared normalization + persistence boundary and respect task-schema invariants.
+- Failure paths (provider error, parse failure, schema rejection) produce deterministic user-facing diagnostics with no partial corrupt writes.
+- `npm run validate` passes.
+
 ### Design principles and scope boundaries
 
 **Brand name: Ralphdex.** All user-visible strings — command palette labels, display names, notifications, status messages, README, CHANGELOG, and Marketplace metadata — must use "Ralphdex" as the product name. References to "Ralph Codex", "ralph-codex", "Ralph codex", or similar variants must not appear in any surface the end user can see. Internal identifiers (command IDs such as `ralphCodex.*`, config keys, file/directory names like `.ralph/`) are exempt and may retain their current form to avoid breaking changes.

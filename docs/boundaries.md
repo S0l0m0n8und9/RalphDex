@@ -7,26 +7,26 @@ Related docs:
 - [Architecture](architecture.md) for module shape
 - [Provenance](provenance.md) for trust-chain details
 - [Verifier](verifier.md) for stop and review semantics
-- [Multi-Agent Readiness](multi-agent-readiness.md) for the explicit acceptance criteria that must be met before this boundary changes
+- [Multi-Agent Readiness](multi-agent-readiness.md) for the historical acceptance record that unlocked built-in multi-agent orchestration
 
 ## Codex Product Boundary
 
 Supported paths:
 
 - IDE handoff through clipboard plus `vscode.commands.executeCommand(...)`
-- scripted automation through `codex exec`
+- scripted automation through provider CLI/direct execution (`codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, `gemini`)
 
 Unsupported assumptions:
 
 - direct composer injection
-- private or invented Codex IDE APIs
+- private or invented AI IDE APIs
 - treating `preferredHandoffMode = cliExec` as if `Open Codex IDE` should run the CLI
 
 ## Trust Boundary
 
 Ralph proves different things on different paths:
 
-- CLI execution: prepared prompt, persisted plan, and stdin payload integrity up to the `codex exec` boundary
+- CLI/direct execution: prepared prompt, persisted plan, and launch payload integrity up to the provider execution boundary
 - IDE handoff: prepared prompt bundle only
 
 Ralph does not prove:
@@ -39,11 +39,19 @@ Ralph does not prove:
 
 Ralph is intentionally deterministic. It does not try to become a general autonomous planner.
 
-The current shipped control plane is a sequential iteration/loop runner. Multi-agent orchestration acceptance criteria (task ownership, write serialisation, and remediation isolation) were satisfied on 2026-03-17; see [docs/multi-agent-readiness.md](multi-agent-readiness.md) for the full record. Broad concurrent multi-agent orchestration remains an operator concern; Ralph does not coordinate multiple agents automatically.
+The current shipped control plane includes:
+
+- sequential single-iteration and loop commands
+- built-in multi-agent loop orchestration
+- pipeline orchestration with durable checkpoints, optional human-review gate, and resume support
+
+The 2026-03-17 readiness criteria for task ownership, write serialisation, and remediation isolation were satisfied before this multi-agent surface shipped; see [docs/multi-agent-readiness.md](multi-agent-readiness.md) for the acceptance record.
+
+The single-agent CLI iteration/loop runner still exists as a first-class command path, but it now sits alongside shipped multi-agent and pipeline orchestration commands.
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 
-Autonomy mode does not change the principal-agent model. The operator remains the principal, `autonomyMode` only changes a bounded set of loop defaults, and hard stops such as `needs_human_review`, `request_human_review`, initial PRD authorship, and blocking preflight diagnostics stay enforced regardless of mode.
+Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded`, `pipelineHumanGates`, and operator presets).
 
 It does not:
 
@@ -52,7 +60,7 @@ It does not:
 - replace deterministic stop logic with freeform intent inference
 - inject raw transcript dumps into future prompts
 - build a deep repo indexer or full-repo enumeration pass as part of prompt shaping
-- spawn or coordinate multiple Codex agents against the same workspace as part of the built-in loop
+- become an open-ended autonomous swarm without bounded roles, deterministic state transitions, and durable artifact evidence
 
 ## Repository Layout And Workspace State
 
@@ -82,7 +90,7 @@ Workspace boundaries:
 
 - untrusted workspaces support status inspection only
 - virtual workspaces are unsupported
-- the workspace must be a real local folder because Ralph reads and writes durable files and may launch the Codex CLI
+- the workspace must be a real local folder because Ralph reads and writes durable files and may launch provider CLIs or direct provider calls
 
 ## Git And Safety Boundary
 
@@ -102,7 +110,7 @@ The repo does not currently try to prove through automated tests:
 
 - live clipboard handoff behavior in a real host OS session
 - live VS Code command handoff behavior in a real Extension Development Host session
-- real `codex exec` execution against the Codex service
+- real provider-backed execution against live external services
 - heavy Extension Development Host UI automation
 
 Those areas require manual verification when changed.
