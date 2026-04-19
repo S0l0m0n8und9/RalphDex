@@ -1132,6 +1132,7 @@
     "test": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/*.js ./out-test/test/ui/*.js ./out-test/test/webview/*.js",
     "test:activation": "npm run compile:tests && node ./out-test/test/vscode/runActivationSmoke.js",
     "test:e2e-pipeline": "node ./scripts/run-e2e-pipeline-smoke.js",
+    "test:e2e-orchestration": "node ./scripts/run-e2e-orchestration-smoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",

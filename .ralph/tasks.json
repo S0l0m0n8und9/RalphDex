@@ -4000,8 +4000,8 @@
     {
       "id": "T150",
       "title": "Orchestration integration smoke test: exercise graph + handoffs + role policies + fan-in/fan-out end-to-end",
-      "status": "todo",
-      "notes": "Items 20-23 shipped the orchestration primitives individually but they have never been exercised together in a single coherent flow. This smoke test is the integration proof-of-concept that validates the full stack: orchestrationSupervisor + planGraph fan-in + handoffManager + rolePolicy enforcement + human choke points. Pattern mirrors test:e2e-pipeline.",
+      "status": "done",
+      "notes": "Added opt-in orchestration E2E smoke (scripts/run-e2e-orchestration-smoke.js) and test harness that exercise graph + fan-in + handoff + role policy + scope_expansion human gate; wired test:e2e-orchestration npm script and documented it in docs/testing.md.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -4011,7 +4011,8 @@
         "Human choke point gate artifact is written when scope_expansion threshold is crossed in the stub execution",
         "docs/testing.md documents the new opt-in script alongside test:e2e-pipeline",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T151",
@@ -4029,5 +4030,5 @@
       ]
     }
   ],
-  "mutationCount": 160
+  "mutationCount": 161
 }
