@@ -4030,7 +4030,77 @@
         "npm run validate passes"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T152",
+      "title": "Epic/feature task-seeding engine: generate structured backlog tasks from a high-level request and persist durable seeding evidence",
+      "status": "done",
+      "notes": "Added a dedicated task seeding engine with strict JSON parsing, durable task-seeding artifacts, shared provider execution reuse, and Add Task command integration through the shared task persistence boundary.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "A dedicated epic/feature seeding helper is added under src/ralph/ or src/commands/ that invokes the configured provider with a prompt tailored to backlog seeding rather than full PRD generation",
+        "The helper returns normalized RalphNewTaskInput-compatible drafts with explicit ids, titles, status='todo', and optional rich fields when the provider emits them; malformed or empty responses fail deterministically with a user-facing error instead of partial writes",
+        "The flow writes a durable seeding artifact under .ralph/artifacts/ capturing at minimum the source request text, parsed task drafts, provider/command metadata, and any warnings so operators can audit where the seeded tasks came from",
+        "The implementation reuses the shared normalization/persistence boundary in src/ralph/taskCreation.ts for final task writes rather than mutating tasks.json ad hoc",
+        "npm run validate passes"
+      ],
+      "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T153",
+      "title": "Command-palette epic seeding flow: prompt for a feature request and append generated tasks through the shared pipeline",
+      "status": "todo",
+      "dependsOn": [
+        "T152"
+      ],
+      "notes": "Extend the shipped manual Add Task surface with an AI-backed path for backlog seeding from a fresh epic or feature request. Keep the operator workflow deterministic: one request in, reviewed tasks appended, no corrupt partial state when generation or parsing fails.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "A new user-visible command is registered in package.json and src/commands/registerCommands.ts for epic/feature task seeding, with Ralphdex-branded messaging and workspace-trust guards aligned to existing command patterns",
+        "The command collects a high-level feature request from the operator, calls the T152 seeding helper, allocates collision-free task ids against the current tasks.json, and appends the resulting tasks through appendNormalizedTasksToFile or an equivalent shared persistence entry point",
+        "On success, the operator sees a concise summary including how many tasks were created and where the artifact/task file were written; on provider/parse/schema failure, the operator gets a deterministic error with no partial task-file mutation",
+        "Regression coverage proves success, provider failure, malformed response, and id-collision scenarios for the command path",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T154",
+      "title": "Dashboard/sidebar task-seeding UI: first-class epic intake flow from Ralphdex surfaces",
+      "status": "todo",
+      "dependsOn": [
+        "T153"
+      ],
+      "notes": "The next slice should make epic seeding discoverable without hand-editing tasks.json or relying on command-palette recall. Reuse the existing dashboard/sidebar webview infrastructure and MessageBridge patterns so the new UI remains thin and file-backed.",
+      "validation": "npm run validate",
+      "tier": "complex",
+      "acceptance": [
+        "The Ralphdex dashboard or sidebar exposes an explicit task-seeding UI affordance that lets the operator enter an epic/feature request and submit it from a Ralphdex surface in one interaction path",
+        "DashboardHost/Webview message handling is extended with a typed seeding action that routes to the T153 command or shared helper without bypassing existing workspace guards or persistence rules",
+        "After a successful seed, the UI surfaces the created-task count and a clear follow-up path such as focusing the Tasks view or refreshing the dashboard/task snapshot so the new backlog is immediately inspectable",
+        "At least one regression test covers the new UI bridge path and one covers the rendered affordance in the dashboard/sidebar surface",
+        "npm run validate passes"
+      ]
+    },
+    {
+      "id": "T155",
+      "title": "Document and lock down epic task-seeding behavior, artifact expectations, and operator workflow",
+      "status": "todo",
+      "dependsOn": [
+        "T153",
+        "T154"
+      ],
+      "notes": "Close the loop by documenting how epic/feature seeding differs from PRD generation and PRD-derived Add Task, where evidence artifacts land, and what deterministic failure modes operators should expect.",
+      "validation": "npm run validate",
+      "tier": "simple",
+      "acceptance": [
+        "README.md and the focused docs that own operator workflows describe the new epic/feature task-seeding path, when to use it versus PRD generation or PRD-derived Add Task, and where seeding artifacts are written",
+        "Any new artifact or command surface is covered by the docs validator or focused regression tests so the contract cannot silently drift",
+        "The documentation makes explicit that seeded tasks remain flat version-2 task objects and still pass through the shared normalization/persistence boundary",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 162
+  "mutationCount": 164
 }

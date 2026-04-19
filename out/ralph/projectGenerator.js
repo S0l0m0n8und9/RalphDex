@@ -35,9 +35,11 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectGenerationError = void 0;
 exports.parseGenerationResponse = parseGenerationResponse;
+exports.runPromptThroughConfiguredProvider = runPromptThroughConfiguredProvider;
 exports.generateProjectDraft = generateProjectDraft;
 const os = __importStar(require("os"));
 const path = __importStar(require("path"));
+const providers_1 = require("../config/providers");
 const providerFactory_1 = require("../codex/providerFactory");
 const processRunner_1 = require("../services/processRunner");
 class ProjectGenerationError extends Error {
@@ -178,45 +180,61 @@ For each task, supply a \`suggestedValidationCommand\`: the shell command an age
 \`\`\`
 
 Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
-function commandPathForConfig(config) {
-    if (config.cliProvider === 'claude') {
-        return config.claudeCommandPath;
-    }
-    if (config.cliProvider === 'copilot') {
-        return config.copilotCommandPath;
-    }
-    return config.codexCommandPath;
-}
-async function generateProjectDraft(objective, config, cwd) {
-    const commandPath = commandPathForConfig(config);
+function buildProviderPromptRequest(prompt, config, cwd, lastMessagePrefix) {
+    const commandPath = (0, providers_1.getCliCommandPath)(config);
     const provider = (0, providerFactory_1.createCliProvider)(config);
-    const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
-    const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
-    const prompt = template.replace('{OBJECTIVE}', safeObjective);
-    const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
-    const launchSpec = provider.buildLaunchSpec({
+    const lastMessagePath = path.join(os.tmpdir(), `${lastMessagePrefix}-${Date.now()}.last-message.txt`);
+    return {
+        provider,
         commandPath,
-        workspaceRoot: cwd,
-        executionRoot: cwd,
-        prompt,
-        promptPath: '',
-        promptHash: '',
-        promptByteLength: Buffer.byteLength(prompt, 'utf8'),
-        transcriptPath: '',
-        lastMessagePath,
-        model: config.model,
-        reasoningEffort: config.reasoningEffort,
-        sandboxMode: config.sandboxMode,
-        approvalMode: config.approvalMode
-    }, true);
+        request: {
+            commandPath,
+            workspaceRoot: cwd,
+            executionRoot: cwd,
+            prompt,
+            promptPath: '',
+            promptHash: '',
+            promptByteLength: Buffer.byteLength(prompt, 'utf8'),
+            transcriptPath: '',
+            lastMessagePath,
+            model: config.model,
+            reasoningEffort: config.reasoningEffort,
+            sandboxMode: config.sandboxMode,
+            approvalMode: config.approvalMode,
+            timeoutMs: config.cliExecutionTimeoutMs
+        }
+    };
+}
+async function runPromptThroughConfiguredProvider(prompt, config, cwd, lastMessagePrefix) {
+    const { provider, commandPath, request } = buildProviderPromptRequest(prompt, config, cwd, lastMessagePrefix);
+    const launchSpec = provider.prepareLaunchSpec
+        ? await provider.prepareLaunchSpec(request, true)
+        : provider.buildLaunchSpec(request, true);
     const result = await (0, processRunner_1.runProcess)(commandPath, launchSpec.args, {
         cwd: launchSpec.cwd,
-        stdinText: launchSpec.stdinText
+        stdinText: launchSpec.stdinText,
+        shell: launchSpec.shell,
+        env: launchSpec.env,
+        timeoutMs: request.timeoutMs
     });
     if (result.code !== 0) {
         throw new ProjectGenerationError(`CLI exited with code ${result.code}.`);
     }
-    const responseText = await provider.extractResponseText(result.stdout, result.stderr, lastMessagePath);
+    const responseText = await provider.extractResponseText(result.stdout, result.stderr, request.lastMessagePath);
+    return {
+        responseText,
+        providerId: provider.id,
+        commandPath,
+        launchArgs: launchSpec.args,
+        launchCwd: launchSpec.cwd,
+        launchShell: Boolean(launchSpec.shell)
+    };
+}
+async function generateProjectDraft(objective, config, cwd) {
+    const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
+    const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
+    const prompt = template.replace('{OBJECTIVE}', safeObjective);
+    const { responseText } = await runPromptThroughConfiguredProvider(prompt, config, cwd, 'ralph-gen');
     return parseGenerationResponse(responseText);
 }
 //# sourceMappingURL=projectGenerator.js.map

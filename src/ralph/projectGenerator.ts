@@ -1,7 +1,9 @@
 import * as os from 'os';
 import * as path from 'path';
+import { getCliCommandPath } from '../config/providers';
 import { RalphCodexConfig } from '../config/types';
 import { createCliProvider } from '../codex/providerFactory';
+import type { CodexExecRequest } from '../codex/types';
 import { runProcess } from '../services/processRunner';
 import type { RalphNewTaskInput } from './taskNormalization';
 
@@ -16,6 +18,15 @@ export interface RecommendedSkill {
   name: string;
   description: string;
   rationale: string;
+}
+
+export interface ProviderPromptExecution {
+  responseText: string;
+  providerId: string;
+  commandPath: string;
+  launchArgs: string[];
+  launchCwd: string;
+  launchShell: boolean;
 }
 
 export function parseGenerationResponse(responseText: string): {
@@ -171,10 +182,72 @@ For each task, supply a \`suggestedValidationCommand\`: the shell command an age
 
 Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
 
-function commandPathForConfig(config: RalphCodexConfig): string {
-  if (config.cliProvider === 'claude') { return config.claudeCommandPath; }
-  if (config.cliProvider === 'copilot') { return config.copilotCommandPath; }
-  return config.codexCommandPath;
+function buildProviderPromptRequest(
+  prompt: string,
+  config: RalphCodexConfig,
+  cwd: string,
+  lastMessagePrefix: string
+): { provider: ReturnType<typeof createCliProvider>; commandPath: string; request: CodexExecRequest } {
+  const commandPath = getCliCommandPath(config);
+  const provider = createCliProvider(config);
+  const lastMessagePath = path.join(os.tmpdir(), `${lastMessagePrefix}-${Date.now()}.last-message.txt`);
+
+  return {
+    provider,
+    commandPath,
+    request: {
+      commandPath,
+      workspaceRoot: cwd,
+      executionRoot: cwd,
+      prompt,
+      promptPath: '',
+      promptHash: '',
+      promptByteLength: Buffer.byteLength(prompt, 'utf8'),
+      transcriptPath: '',
+      lastMessagePath,
+      model: config.model,
+      reasoningEffort: config.reasoningEffort,
+      sandboxMode: config.sandboxMode,
+      approvalMode: config.approvalMode,
+      timeoutMs: config.cliExecutionTimeoutMs
+    }
+  };
+}
+
+export async function runPromptThroughConfiguredProvider(
+  prompt: string,
+  config: RalphCodexConfig,
+  cwd: string,
+  lastMessagePrefix: string
+): Promise<ProviderPromptExecution> {
+  const { provider, commandPath, request } = buildProviderPromptRequest(prompt, config, cwd, lastMessagePrefix);
+
+  const launchSpec = provider.prepareLaunchSpec
+    ? await provider.prepareLaunchSpec(request, true)
+    : provider.buildLaunchSpec(request, true);
+
+  const result = await runProcess(commandPath, launchSpec.args, {
+    cwd: launchSpec.cwd,
+    stdinText: launchSpec.stdinText,
+    shell: launchSpec.shell,
+    env: launchSpec.env,
+    timeoutMs: request.timeoutMs
+  });
+
+  if (result.code !== 0) {
+    throw new ProjectGenerationError(`CLI exited with code ${result.code}.`);
+  }
+
+  const responseText = await provider.extractResponseText(result.stdout, result.stderr, request.lastMessagePath);
+
+  return {
+    responseText,
+    providerId: provider.id,
+    commandPath,
+    launchArgs: launchSpec.args,
+    launchCwd: launchSpec.cwd,
+    launchShell: Boolean(launchSpec.shell)
+  };
 }
 
 export async function generateProjectDraft(
@@ -182,38 +255,9 @@ export async function generateProjectDraft(
   config: RalphCodexConfig,
   cwd: string
 ): Promise<{ prdText: string; tasks: RalphNewTaskInput[]; recommendedSkills: RecommendedSkill[]; taskCountWarning?: string }> {
-  const commandPath = commandPathForConfig(config);
-  const provider = createCliProvider(config);
   const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
   const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
   const prompt = template.replace('{OBJECTIVE}', safeObjective);
-  const lastMessagePath = path.join(os.tmpdir(), `ralph-gen-${Date.now()}.last-message.txt`);
-
-  const launchSpec = provider.buildLaunchSpec({
-    commandPath,
-    workspaceRoot: cwd,
-    executionRoot: cwd,
-    prompt,
-    promptPath: '',
-    promptHash: '',
-    promptByteLength: Buffer.byteLength(prompt, 'utf8'),
-    transcriptPath: '',
-    lastMessagePath,
-    model: config.model,
-    reasoningEffort: config.reasoningEffort,
-    sandboxMode: config.sandboxMode,
-    approvalMode: config.approvalMode
-  }, true);
-
-  const result = await runProcess(commandPath, launchSpec.args, {
-    cwd: launchSpec.cwd,
-    stdinText: launchSpec.stdinText
-  });
-
-  if (result.code !== 0) {
-    throw new ProjectGenerationError(`CLI exited with code ${result.code}.`);
-  }
-
-  const responseText = await provider.extractResponseText(result.stdout, result.stderr, lastMessagePath);
+  const { responseText } = await runPromptThroughConfiguredProvider(prompt, config, cwd, 'ralph-gen');
   return parseGenerationResponse(responseText);
 }

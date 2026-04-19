@@ -56,6 +56,7 @@ const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
+const taskSeeder_1 = require("../ralph/taskSeeder");
 const crewRoster_1 = require("../ralph/crewRoster");
 const prdWizardPersistence_1 = require("./prdWizardPersistence");
 const taskCreation_1 = require("../ralph/taskCreation");
@@ -148,19 +149,6 @@ async function initializeFreshWorkspace(rootPath) {
         progressPath,
         gitignorePath
     };
-}
-/**
- * Derive initial task drafts from PRD text.
- * Returns tasks whose titles come from the PRD's headings (or a placeholder).
- * IDs start at T<offset+1>.
- */
-function draftTasksFromPrd(prdText, idOffset = 0) {
-    const sections = (0, pipeline_1.parsePrdSections)(prdText);
-    return sections.map((title, i) => ({
-        id: `T${idOffset + i + 1}`,
-        title,
-        status: 'todo'
-    }));
 }
 /**
  * Return two self-bootstrapping seed tasks that guide Ralph through expanding
@@ -582,35 +570,49 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         label: 'Ralphdex: Add Task',
         handler: async () => {
             const workspaceFolder = await withWorkspaceFolder();
-            const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
-            const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            const tasksPath = paths.taskFilePath;
             if (!(await (0, fs_1.pathExists)(tasksPath))) {
                 void vscode.window.showErrorMessage('No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.');
                 return;
             }
             const raw = await fs.readFile(tasksPath, 'utf8');
             const taskFile = (0, taskFile_1.parseTaskFile)(raw);
-            const idOffset = taskFile.tasks.length;
-            const prdText = (await (0, fs_1.pathExists)(prdPath))
-                ? await fs.readFile(prdPath, 'utf8')
-                : '';
-            const drafts = draftTasksFromPrd(prdText, idOffset);
-            // Avoid collisions with existing IDs
-            const existingIds = new Set(taskFile.tasks.map((t) => t.id));
-            let counter = idOffset + 1;
-            const deduped = drafts.map((t) => {
-                while (existingIds.has(`T${counter}`)) {
-                    counter++;
-                }
-                const id = `T${counter}`;
-                existingIds.add(id);
-                counter++;
-                return { ...t, id };
+            const requestText = await vscode.window.showInputBox({
+                title: 'Add Task',
+                prompt: 'High-level feature or epic request to seed into backlog tasks',
+                placeHolder: 'e.g. Add a provider-backed task seeding engine with durable evidence'
             });
-            await (0, taskCreation_1.appendNormalizedTasksToFile)(tasksPath, deduped);
-            logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
+            if (!requestText?.trim()) {
+                return;
+            }
+            let seeded;
+            try {
+                seeded = await (0, taskSeeder_1.seedTasksFromRequest)({
+                    requestText,
+                    config,
+                    cwd: workspaceFolder.uri.fsPath,
+                    artifactRootDir: paths.artifactDir,
+                    existingTaskIds: taskFile.tasks.map((task) => task.id)
+                });
+            }
+            catch (error) {
+                const message = error instanceof taskSeeder_1.TaskSeedingError
+                    ? error.message
+                    : (0, error_1.toErrorMessage)(error);
+                logger.info(`Task seeding failed for addTask command. Reason: ${message}`);
+                void vscode.window.showErrorMessage(`Task seeding failed: ${message}`);
+                return;
+            }
+            await (0, taskCreation_1.appendNormalizedTasksToFile)(tasksPath, seeded.tasks);
+            logger.info('Generated seeded backlog tasks via addTask command.', {
+                taskCount: seeded.tasks.length,
+                artifactPath: seeded.artifactPath,
+                warnings: seeded.warnings
+            });
             await openTextFile(tasksPath);
-            void vscode.window.showInformationMessage(`Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`, 'Got it');
+            void vscode.window.showInformationMessage(`Added ${seeded.tasks.length} seeded task(s). Review tasks.json and the seeding artifact before running your loop.`, 'Got it');
         }
     });
     registerCommand(context, logger, {

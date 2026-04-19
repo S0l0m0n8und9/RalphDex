@@ -6,6 +6,7 @@ import test from 'node:test';
 import * as vscode from 'vscode';
 import { activate } from '../src/extension';
 import { RalphIterationEngine } from '../src/ralph/iterationEngine';
+import { setProcessRunnerOverride } from '../src/services/processRunner';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
 
 class MemoryMemento implements vscode.Memento {
@@ -2319,21 +2320,9 @@ test('New Project scaffolds a project directory and switches workspace settings'
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /auth-refactor.*created and active/);
 });
 
-test('Add Task appends heading-derived tasks without stripping existing rich task structure', async () => {
+test('Add Task seeds provider-generated backlog tasks and persists a seeding artifact without stripping existing rich task structure', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
-  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
-    '# Product / project brief',
-    '',
-    '## Overview',
-    'Keep the extension safe.',
-    '',
-    '## Expand guardrail coverage',
-    'Capture missing producer-path regressions.',
-    '',
-    '## Tighten command-level persistence checks',
-    'Verify every producer keeps the supported task shape.'
-  ].join('\n'), 'utf8');
   await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
     version: 2,
     tasks: [
@@ -2356,9 +2345,44 @@ test('Add Task appends heading-derived tasks without stripping existing rich tas
 
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setInputBoxValue('Seed backlog tasks for provider-backed task seeding.');
 
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.addTask');
+  setProcessRunnerOverride((_command, _args, _options) => ({
+    code: 0,
+    stdout: JSON.stringify({
+      type: 'result',
+      result: [
+        '```json',
+        JSON.stringify({
+          tasks: [
+            {
+              id: 'T1',
+              title: 'Build task seeding helper',
+              status: 'done',
+              suggestedValidationCommand: 'npm run validate',
+              context: ['src/ralph/taskSeeder.ts']
+            },
+            {
+              id: 'T2',
+              title: 'Wire Add Task through the seeding helper',
+              status: 'blocked',
+              dependsOn: ['T1']
+            }
+          ]
+        }, null, 2),
+        '```'
+      ].join('\n'),
+      num_turns: 1
+    }),
+    stderr: ''
+  }));
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.addTask');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
 
   const tasksJson = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
     version: number;
@@ -2383,12 +2407,59 @@ test('Add Task appends heading-derived tasks without stripping existing rich tas
     context: ['src/commands/registerCommands.ts']
   });
   assert.deepEqual(tasksJson.tasks.slice(1), [
-    { id: 'T2', title: 'Overview', status: 'todo' },
-    { id: 'T3', title: 'Expand guardrail coverage', status: 'todo' },
-    { id: 'T4', title: 'Tighten command-level persistence checks', status: 'todo' }
+    {
+      id: 'T2',
+      title: 'Build task seeding helper',
+      status: 'todo',
+      validation: 'npm run validate',
+      context: ['src/ralph/taskSeeder.ts']
+    },
+    {
+      id: 'T3',
+      title: 'Wire Add Task through the seeding helper',
+      status: 'todo',
+      dependsOn: ['T2']
+    }
   ]);
+
+  const seedingDir = path.join(rootPath, '.ralph', 'artifacts', 'task-seeding');
+  const seedingArtifacts = await fs.readdir(seedingDir);
+  assert.equal(seedingArtifacts.length, 1, 'Expected a single task-seeding artifact');
+
+  const seedingArtifact = JSON.parse(
+    await fs.readFile(path.join(seedingDir, seedingArtifacts[0]!), 'utf8')
+  ) as {
+    sourceRequest: string;
+    taskDrafts: Array<{
+      id: string;
+      title: string;
+      status?: string;
+      validation?: string;
+      dependsOn?: string[];
+      context?: string[];
+    }>;
+    warnings: string[];
+  };
+
+  assert.equal(seedingArtifact.sourceRequest, 'Seed backlog tasks for provider-backed task seeding.');
+  assert.deepEqual(seedingArtifact.taskDrafts, [
+    {
+      id: 'T2',
+      title: 'Build task seeding helper',
+      status: 'todo',
+      validation: 'npm run validate',
+      context: ['src/ralph/taskSeeder.ts']
+    },
+    {
+      id: 'T3',
+      title: 'Wire Add Task through the seeding helper',
+      status: 'todo',
+      dependsOn: ['T2']
+    }
+  ]);
+  assert.equal(seedingArtifact.warnings.length, 2);
   assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'tasks.json')]);
-  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Added 3 task\(s\) from PRD/);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Added 2 seeded task\(s\)/);
 });
 
 test('New Project aborts with a warning when the project slug already exists', async () => {

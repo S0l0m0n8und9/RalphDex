@@ -50,6 +50,7 @@ import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RecommendedSkill } from '../ralph/projectGenerator';
+import { seedTasksFromRequest, TaskSeedingError } from '../ralph/taskSeeder';
 import { parseCrewRoster } from '../ralph/crewRoster';
 import type { CrewMember } from '../ralph/crewRoster';
 import {
@@ -193,20 +194,6 @@ async function initializeFreshWorkspace(rootPath: string): Promise<{
   };
 }
 
-
-/**
- * Derive initial task drafts from PRD text.
- * Returns tasks whose titles come from the PRD's headings (or a placeholder).
- * IDs start at T<offset+1>.
- */
-function draftTasksFromPrd(prdText: string, idOffset = 0): RalphNewTaskInput[] {
-  const sections = parsePrdSections(prdText);
-  return sections.map((title, i) => ({
-    id: `T${idOffset + i + 1}`,
-    title,
-    status: 'todo' as const
-  }));
-}
 
 /**
  * Return two self-bootstrapping seed tasks that guide Ralph through expanding
@@ -755,8 +742,9 @@ export function registerCommands(
     label: 'Ralphdex: Add Task',
     handler: async () => {
       const workspaceFolder = await withWorkspaceFolder();
-      const tasksPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'tasks.json');
-      const prdPath = path.join(workspaceFolder.uri.fsPath, '.ralph', 'prd.md');
+      const config = readConfig(workspaceFolder);
+      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+      const tasksPath = paths.taskFilePath;
 
       if (!(await pathExists(tasksPath))) {
         void vscode.window.showErrorMessage(
@@ -767,33 +755,44 @@ export function registerCommands(
 
       const raw = await fs.readFile(tasksPath, 'utf8');
       const taskFile = parseTaskFile(raw);
-      const idOffset = taskFile.tasks.length;
-
-      const prdText = (await pathExists(prdPath))
-        ? await fs.readFile(prdPath, 'utf8')
-        : '';
-
-      const drafts = draftTasksFromPrd(prdText, idOffset);
-
-      // Avoid collisions with existing IDs
-      const existingIds = new Set(taskFile.tasks.map((t) => t.id));
-      let counter = idOffset + 1;
-      const deduped = drafts.map((t) => {
-        while (existingIds.has(`T${counter}`)) {
-          counter++;
-        }
-        const id = `T${counter}`;
-        existingIds.add(id);
-        counter++;
-        return { ...t, id };
+      const requestText = await vscode.window.showInputBox({
+        title: 'Add Task',
+        prompt: 'High-level feature or epic request to seed into backlog tasks',
+        placeHolder: 'e.g. Add a provider-backed task seeding engine with durable evidence'
       });
 
-      await appendNormalizedTasksToFile(tasksPath, deduped);
-      logger.info(`Generated ${deduped.length} task(s) from PRD via addTask command.`);
+      if (!requestText?.trim()) {
+        return;
+      }
+
+      let seeded;
+      try {
+        seeded = await seedTasksFromRequest({
+          requestText,
+          config,
+          cwd: workspaceFolder.uri.fsPath,
+          artifactRootDir: paths.artifactDir,
+          existingTaskIds: taskFile.tasks.map((task) => task.id)
+        });
+      } catch (error) {
+        const message = error instanceof TaskSeedingError
+          ? error.message
+          : toErrorMessage(error);
+        logger.info(`Task seeding failed for addTask command. Reason: ${message}`);
+        void vscode.window.showErrorMessage(`Task seeding failed: ${message}`);
+        return;
+      }
+
+      await appendNormalizedTasksToFile(tasksPath, seeded.tasks);
+      logger.info('Generated seeded backlog tasks via addTask command.', {
+        taskCount: seeded.tasks.length,
+        artifactPath: seeded.artifactPath,
+        warnings: seeded.warnings
+      });
 
       await openTextFile(tasksPath);
       void vscode.window.showInformationMessage(
-        `Added ${deduped.length} task(s) from PRD. Review and refine tasks.json before running your loop.`,
+        `Added ${seeded.tasks.length} seeded task(s). Review tasks.json and the seeding artifact before running your loop.`,
         'Got it'
       );
     }
