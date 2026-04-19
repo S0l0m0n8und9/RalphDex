@@ -4159,12 +4159,12 @@
     {
       "id": "T159",
       "title": "Rationalize the UXrefresh prototype bundle and document the post-integration UI ownership boundary",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T157",
         "T158"
       ],
-      "notes": "After the refreshed UI is live, remove or narrow prototype-only UXrefresh files so the repository has one authoritative implementation path, and update docs to make the surviving reference artifacts and production ownership explicit.",
+      "notes": "Documented the shipped dashboard/sidebar ownership boundary across README, architecture, testing, and UXrefresh docs; marked UXrefresh as a reference-only prototype bundle; and added docs-validator coverage so missing boundary guidance fails check:docs.",
       "validation": "npm run check:docs",
       "tier": "simple",
       "acceptance": [
@@ -4172,8 +4172,9 @@
         "Docs make clear that production ownership for the shipped dashboard/sidebar lives under src/webview/ and related tests",
         "The repository no longer presents two competing dashboard implementations without an explicit boundary",
         "npm run check:docs passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 173
+  "mutationCount": 174
 }

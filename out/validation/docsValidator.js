@@ -120,7 +120,22 @@ const DOC_RULES = {
             'Ralphdex: Seed Tasks from Feature Request',
             'Ralphdex: Regenerate PRD',
             '.ralph/artifacts/task-seeding/',
-            'flat version-2 backlog tasks'
+            'flat version-2 backlog tasks',
+            'UXrefresh/',
+            'reference-only prototype',
+            'src/webview/'
+        ]
+    },
+    'docs/architecture.md': {
+        requiredHeadings: [],
+        requiredFragments: [
+            'src/webview/',
+            'src/ui/panelHtml.ts',
+            'src/ui/sidebarHtml.ts',
+            'test/ui/',
+            'test/webview/',
+            'UXrefresh/',
+            'reference-only prototype'
         ]
     },
     'docs/invariants.md': {

@@ -37,6 +37,16 @@ Related docs:
 - `src/ralph/handoffManager.ts`: durable handoff contract lifecycle — propose/accept/reject/expire state machine with role-gated acceptance, contested-status detection for concurrent accepts, expiry evaluation, and atomic file-backed persistence under `.ralph/handoffs/<handoffId>.json`
 - `src/services/`: logging, process execution, HTTPS client, Codex CLI support inspection, and shallow workspace scanning
 
+## UI Ownership Boundary
+
+The shipped dashboard and sidebar do not have separate prototype and production implementations anymore. One production path owns the live UI:
+
+- `src/webview/` owns shared host lifecycle, durable snapshot assembly, typed message bridging, and reusable webview plumbing through files such as `dashboardHost.ts`, `dashboardSnapshot.ts`, `dashboardDataLoader.ts`, `MessageBridge.ts`, and `WebviewPanelManager.ts`.
+- `src/ui/panelHtml.ts` and `src/ui/sidebarHtml.ts` own the production HTML renderers, while `src/ui/dashboardPanel.ts` and `src/ui/sidebarViewProvider.ts` own the VS Code panel/sidebar adapters that mount those renderers on the shared `src/webview/` host.
+- `test/ui/` and `test/webview/` own the shipped regression coverage for those surfaces and their shared wiring.
+
+The top-level `UXrefresh/` directory is retained only as a reference-only prototype bundle from the redesign work. It is not loaded by the extension, not part of the production ownership boundary, and should only be consulted as historical design material when the shipped `src/webview/` + `src/ui/` implementation needs visual context.
+
 ## End-To-End Flow
 
 1. A trusted command resolves config and workspace paths through `RalphStateManager`.

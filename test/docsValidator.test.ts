@@ -152,6 +152,8 @@ Validation entry points:
 
 Use \`Ralphdex: Add Task\` or \`Ralphdex: Seed Tasks from Feature Request\` when you want to append flat version-2 backlog tasks for one epic or feature request. Use \`Ralphdex: Regenerate PRD\` when the product brief itself needs to change first. Task-seeding evidence is written under \`.ralph/artifacts/task-seeding/\`.
 
+The shipped dashboard and sidebar live under \`src/webview/\` and the production renderers in \`src/ui/\`. \`UXrefresh/\` is a reference-only prototype bundle and must not be treated as the live implementation path.
+
 ## Document Map
 
 - [AGENTS.md](${absolute('AGENTS.md')}): repo map
@@ -171,6 +173,10 @@ Use \`Ralphdex: Add Task\` or \`Ralphdex: Seed Tasks from Feature Request\` when
   await writeFile(rootPath, 'docs/architecture.md', `# Architecture
 
 See [Invariants](${absolute('docs/invariants.md')}), [Provenance](${absolute('docs/provenance.md')}), [Verifier](${absolute('docs/verifier.md')}), and [Boundaries](${absolute('docs/boundaries.md')}).
+
+The shipped dashboard/sidebar ownership boundary lives in \`src/webview/\` for shared host, snapshot, bridge, and panel lifecycle plumbing, and in \`src/ui/panelHtml.ts\` plus \`src/ui/sidebarHtml.ts\` for the production renderers. Regression coverage for that shipped surface lives under \`test/ui/\` and \`test/webview/\`.
+
+\`UXrefresh/\` is a reference-only prototype bundle. It is not the live dashboard implementation path.
 `);
 
   await writeFile(rootPath, 'docs/workflows.md', `# Workflows
@@ -788,6 +794,57 @@ Review runtime diagnostics.
         issue.code === 'missing_heading'
         && issue.filePath === 'docs/workflows.md'
         && issue.message.includes('Seed Flat Backlog Tasks')
+    ),
+    true
+  );
+});
+
+test('validateRepositoryDocs reports missing shipped UI ownership boundary guidance', async () => {
+  const rootPath = await makeTempRoot();
+  await seedValidRepository(rootPath);
+  await writeFile(rootPath, 'README.md', `# Ralphdex
+
+## Quick Start
+
+1. Run \`npm run validate\`.
+
+## Document Map
+
+- [AGENTS.md](${path.join(rootPath, 'AGENTS.md')}): repo map
+- [docs/architecture.md](${path.join(rootPath, 'docs/architecture.md')}): architecture
+- [docs/workflows.md](${path.join(rootPath, 'docs/workflows.md')}): workflows
+- [docs/testing.md](${path.join(rootPath, 'docs/testing.md')}): testing
+- [docs/invariants.md](${path.join(rootPath, 'docs/invariants.md')}): invariants
+- [docs/provenance.md](${path.join(rootPath, 'docs/provenance.md')}): provenance
+- [docs/verifier.md](${path.join(rootPath, 'docs/verifier.md')}): verifier
+- [docs/boundaries.md](${path.join(rootPath, 'docs/boundaries.md')}): boundaries
+- [docs/multi-agent-readiness.md](${path.join(rootPath, 'docs/multi-agent-readiness.md')}): multi-agent readiness
+- [docs/prompt-calibration.md](${path.join(rootPath, 'docs/prompt-calibration.md')}): prompt calibration
+- [docs/release-workflow.md](${path.join(rootPath, 'docs/release-workflow.md')}): release workflow
+- [docs/failure-recovery.md](${path.join(rootPath, 'docs/failure-recovery.md')}): failure recovery
+`);
+  await writeFile(rootPath, 'docs/architecture.md', `# Architecture
+
+See [Invariants](${path.join(rootPath, 'docs/invariants.md')}), [Provenance](${path.join(rootPath, 'docs/provenance.md')}), [Verifier](${path.join(rootPath, 'docs/verifier.md')}), and [Boundaries](${path.join(rootPath, 'docs/boundaries.md')}).
+`);
+
+  const issues = await validateRepositoryDocs(rootPath);
+
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'README.md'
+        && issue.message.includes('UXrefresh/')
+    ),
+    true
+  );
+  assert.equal(
+    issues.some(
+      (issue) =>
+        issue.code === 'missing_fragment'
+        && issue.filePath === 'docs/architecture.md'
+        && issue.message.includes('src/ui/panelHtml.ts')
     ),
     true
   );

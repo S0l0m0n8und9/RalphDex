@@ -90,6 +90,8 @@ Newly generated Ralph tasks now share one normalization and persistence pipeline
 
 Use `Ralphdex: Add Task`, `Ralphdex: Seed Tasks from Feature Request`, or the dashboard/sidebar seeding form when you already have a stable PRD and need Ralph to append flat backlog tasks for one epic or feature request. Use `Ralphdex: Regenerate PRD` when the product objective or PRD structure itself needs to be rewritten first. The seeding path appends only flat version-2 backlog tasks through the shared normalization boundary; it does not create PRD structure or parent/child task hierarchies. Each seeding attempt also writes a durable artifact under `.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json` so operators can inspect the request, provider launch metadata, generated task drafts, and warnings after the command returns.
 
+The shipped dashboard and sidebar have one production ownership path: shared webview infrastructure lives under `src/webview/`, while the production renderers and VS Code surface adapters live under `src/ui/` in `panelHtml.ts`, `sidebarHtml.ts`, `dashboardPanel.ts`, and `sidebarViewProvider.ts`. The top-level `UXrefresh/` bundle is retained only as a reference-only prototype from the redesign phase and must not be treated as the live implementation.
+
 To build a distributable local package: `npm run package` from the repo root, then install the generated VSIX through `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`.
 
 ## Durable Files
