@@ -2,7 +2,7 @@
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/s0l0m0n8und9.ralphdex?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps your objective, task graph, prompts, run artifacts, and provenance evidence on disk under `.ralph/` so any new Codex session can resume from inspectable state instead of chat history.
+A VS Code extension for durable, file-backed agentic coding loops. Ralph keeps your objective, task graph, prompts, run artifacts, and provenance evidence on disk under `.ralph/` so any new provider-backed session can resume from inspectable state instead of chat history.
 
 **Key capabilities:**
 
@@ -19,7 +19,7 @@ The extension has two execution paths:
 
 ## Who This Is For
 
-This project is for operators who want Codex work to survive across sessions as files instead of chat history, and for developers who want a VS Code extension that can prepare prompts, hand work off to Codex, and run deterministic `codex exec` loops with persisted evidence.
+This project is for operators who want file-backed AI delivery workflows that survive across sessions, and for developers who want a VS Code extension that can prepare prompts, hand work off to an IDE chat surface, and run deterministic CLI iterations with persisted evidence.
 
 ## Installation
 
@@ -36,7 +36,7 @@ Alternatively, install from the command line:
 code --install-extension s0l0m0n8und9.ralphdex
 ```
 
-For a local package build, run `npm run package` from the repo root and install the generated `ralphdex-<version>.vsix` via `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`. For Marketplace release validation without shipping, run `npm run publish:dry-run`. See [docs/release-workflow.md](docs/release-workflow.md) for the supported package and Marketplace publish flow.
+For a local package build, run `npm run package` from the repo root and install the generated `ralphdex-<version>.vsix` via `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`. `npm run publish:dry-run` currently aliases that same packaging check. See [docs/release-workflow.md](docs/release-workflow.md) for the full package and Marketplace publish flow, including explicit `vsce publish --dry-run` usage.
 
 ### Post-Install Tour
 
@@ -100,7 +100,8 @@ Ralph keeps its durable state in the workspace:
 - runtime state: `.ralph/state.json`
 - prompts: `.ralph/prompts/`
 - transcripts: `.ralph/runs/`
-- clean-stop session handoffs: `.ralph/handoff/`
+- clean-stop session handoff notes: `.ralph/handoff/`
+- role-to-role handoff contracts: `.ralph/handoffs/`
 - artifacts and latest pointers: `.ralph/artifacts/`
 - logs: `.ralph/logs/extension.log`
 
@@ -120,7 +121,7 @@ For day-to-day loop inspection:
 
 1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
 2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
-3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what Codex returned.
+3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
 4. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
 5. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 
@@ -128,12 +129,28 @@ See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/
 
 ## Commands
 
+Source of truth: `package.json` (`contributes.commands`) is authoritative for shipped command IDs and titles.
+
+Current command surface:
+
 - `Ralphdex: Initialize Workspace`
+- `Ralphdex: Add Task`
+- `Ralphdex: New Project Wizard`
+- `Ralphdex: New Project`
+- `Ralphdex: Switch Project`
 - `Ralphdex: Prepare Prompt`
 - `Ralphdex: Open Codex IDE`
 - `Ralphdex: Run CLI Iteration`
 - `Ralphdex: Run CLI Loop`
+- `Ralphdex: Run Multi-Agent Loop`
+- `Ralph: Run Review Agent`
+- `Ralph: Run Watchdog Agent`
+- `Ralph: Run SCM Agent`
 - `Ralphdex: Show Status`
+- `Ralphdex: Show Multi-Agent Status`
+- `Ralphdex: Open Failure Diagnosis`
+- `Ralphdex: Auto-Recover Task`
+- `Ralphdex: Skip Task`
 - `Ralphdex: Open Latest Ralph Summary`
 - `Ralphdex: Open Latest Provenance Bundle`
 - `Ralphdex: Open Latest Prompt Evidence`
@@ -143,10 +160,17 @@ See [docs/workflows.md](docs/workflows.md) for the full operator flow and [docs/
 - `Ralphdex: Reveal Latest Provenance Bundle Directory`
 - `Ralphdex: Cleanup Runtime Artifacts`
 - `Ralphdex: Reset Runtime State`
+- `Ralphdex: Show Dashboard`
+- `Ralphdex: Open Dashboard`
 - `Ralphdex: Run Pipeline`
 - `Ralphdex: Approve Human Review`
 - `Ralphdex: Open Latest Pipeline Run`
 - `Ralphdex: Resume Pipeline`
+- `Ralphdex: Construct Recommended Skills`
+- `Ralphdex: Regenerate PRD`
+- `Ralphdex: Requeue Dead-Letter Task`
+- `Ralphdex: Show Sidebar`
+- `Ralphdex: Show Tasks`
 - `Ralphdex: Set Provider Secret`
 - `Ralphdex: Clear Provider Secret`
 
@@ -158,11 +182,13 @@ For the opt-in full pipeline smoke, run `npm run test:e2e-pipeline` with `RALPH_
 
 All settings are under the `ralphCodex.*` namespace in VS Code settings (`Ctrl+,` / `Cmd+,`).
 
+This section lists **core settings** only. Source of truth for the full settings surface (including defaults and enum values) is `package.json` (`contributes.configuration.properties`).
+
 **Provider**
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, `copilot`, `copilot-foundry`, or `azure-foundry` |
+| `ralphCodex.cliProvider` | `"claude"` | CLI backend: `codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, or `gemini` |
 | `ralphCodex.codexCommandPath` | `"codex"` | Codex CLI executable path or name; on Windows, bare command names also resolve `codex.cmd`/`codex.bat` wrappers |
 | `ralphCodex.claudeCommandPath` | `"claude"` | Claude CLI executable path or name |
 | `ralphCodex.copilotCommandPath` | `"copilot"` | Copilot CLI executable path or name |
@@ -180,14 +206,14 @@ Azure-backed providers use grouped settings and secure auth references instead o
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.agentId` | `"default"` | Identity written into claims and artifacts; set uniquely per concurrent loop |
-| `ralphCodex.agentRole` | `"build"` | Role contract: `build`, `review`, `watchdog`, or `scm` |
+| `ralphCodex.agentRole` | `"implementer"` | Role contract for iteration selection/policy (`build`, `review`, `watchdog`, `scm`, `planner`, `implementer`, `reviewer`) |
 | `ralphCodex.agentCount` | `1` | Number of concurrent agent instances |
 
 **Loop behavior**
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.ralphIterationCap` | `5` | Maximum CLI iterations for the loop command |
+| `ralphCodex.ralphIterationCap` | `5` | Maximum CLI iterations for the loop command (operator presets can raise this) |
 | `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` |
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
 | `ralphCodex.autoReplenishBacklog` | `true` | Continue into backlog replenishment when no actionable task remains |
@@ -201,7 +227,7 @@ Azure-backed providers use grouped settings and secure auth references instead o
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.model` | `"claude-sonnet-4-6"` | Default model for CLI runs |
-| `ralphCodex.claudeMaxTurns` | `50` | Maximum agentic turns per Claude CLI invocation |
+| `ralphCodex.claudeMaxTurns` | `125` | Maximum agentic turns per Claude CLI invocation |
 | `ralphCodex.claudePermissionMode` | `"dangerously-skip-permissions"` | Claude CLI permission mode for unattended runs |
 | `ralphCodex.reasoningEffort` | `"medium"` | Reasoning effort for Codex CLI runs |
 | `ralphCodex.cliExecutionTimeoutMs` | `0` | CLI iteration timeout in ms; `0` disables the timeout |
@@ -227,9 +253,25 @@ Azure-backed providers use grouped settings and secure auth references instead o
 |---|---|---|
 | `ralphCodex.promptIncludeVerifierFeedback` | `true` | Include prior iteration and verifier feedback in the next prompt |
 | `ralphCodex.promptPriorContextBudget` | `8` | Maximum prior-iteration bullet lines carried into the next prompt |
-| `ralphCodex.promptBudgetProfile` | `"claude"` | Prompt-budget policy: `codex`, `claude`, or `custom` |
+| `ralphCodex.promptBudgetProfile` | `"codex"` | Prompt-budget policy: `codex`, `claude`, or `custom` |
 | `ralphCodex.promptTemplateDirectory` | `""` | Path to custom prompt templates; empty uses bundled templates |
 | `ralphCodex.clipboardAutoCopy` | `true` | Copy generated prompts to clipboard automatically |
+
+**Multi-agent and pipeline**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.pipelineHumanGates` | `false` | Pause pipeline after review-agent pass until `Approve Human Review` |
+| `ralphCodex.operatorMode` | _unset_ | Optional preset (`simple`, `multi-agent`, `hardcore`) that seeds multiple defaults |
+| `ralphCodex.memoryStrategy` | `"verbatim"` | Iteration memory strategy: `verbatim`, `sliding-window`, or `summary` |
+
+**Model tiering**
+
+| Setting | Default | Description |
+|---|---|---|
+| `ralphCodex.enableModelTiering` | `true` | Convenience toggle for `ralphCodex.modelTiering.enabled` |
+| `ralphCodex.modelTiering.simpleThreshold` | `2` | Score strictly below this threshold maps to the simple tier |
+| `ralphCodex.modelTiering.complexThreshold` | `6` | Score at or above this threshold maps to the complex tier |
 
 **Artifacts**
 
@@ -257,7 +299,7 @@ Azure-backed providers use grouped settings and secure auth references instead o
 - [docs/provenance.md](docs/provenance.md): plan/prompt/invocation/run trust chain
 - [docs/verifier.md](docs/verifier.md): verifier modes, classification rules, and stop semantics
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals and trust limits
-- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
+- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): historical record of the 2026-03-17 multi-agent readiness milestone
 - [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
 - [docs/release-workflow.md](docs/release-workflow.md): version bump, packaging, and VS Code Marketplace publish procedure
 - [docs/failure-recovery.md](docs/failure-recovery.md): failure category taxonomy, recovery playbooks, and diagnostic cost
@@ -267,5 +309,5 @@ Azure-backed providers use grouped settings and secure auth references instead o
 - Prompt templates live in `prompt-templates/` and are selected deterministically.
 - Set `ralphCodex.inspectionRootOverride` when an umbrella workspace contains multiple plausible child repos.
 - CLI runs default `ralphCodex.reasoningEffort` to `medium`. Raise it to `high` only as an explicit escalation for architecture or hard debugging work.
-- The shipped automation surface is a sequential single-agent loop; multi-agent orchestration is a planned milestone with explicit acceptance criteria in [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md).
+- Ralphdex ships both sequential CLI loops and built-in multi-agent/pipeline orchestration flows; see [docs/workflows.md](docs/workflows.md) for operator paths and [docs/boundaries.md](docs/boundaries.md) for explicit guardrails.
 - For manual prompt-budget recalibration, run `npm run prompt:calibrate -- <workspace-path>` and use [docs/prompt-calibration.md](docs/prompt-calibration.md) as the procedure.

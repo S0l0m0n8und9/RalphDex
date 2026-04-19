@@ -32,7 +32,7 @@ If you prefer a shell-driven local install, run `code --install-extension ./ralp
 
 This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
 
-For Marketplace release validation, use `npm run publish:dry-run` from the repo root after `npm run package`. That path exercises `vsce publish --dry-run --no-dependencies` without shipping a release; the full procedure lives in [docs/release-workflow.md](release-workflow.md).
+For Marketplace release validation, use `npm run publish:dry-run` from the repo root after `npm run package`. In the current script surface this command aliases `npm run package` (runtime check + `vsce package --no-dependencies`). Use `npx vsce publish --dry-run --no-dependencies` manually when you need an explicit publish-path dry run. The full release procedure lives in [docs/release-workflow.md](release-workflow.md).
 
 ## Initialize A Fresh Workspace
 
@@ -50,7 +50,7 @@ The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ral
 
 1. Run `Ralphdex: Prepare Prompt` if you only want the next prompt file.
 2. Run `Ralphdex: Open Codex IDE` if you also want clipboard handoff and best-effort sidebar/new-chat commands.
-3. Continue manually in the Codex IDE.
+3. Continue manually in the selected IDE chat surface.
 
 This path persists prepared-prompt evidence, not a full executed iteration result.
 
@@ -62,8 +62,8 @@ Handoff behavior on this path is intentionally explicit:
 
 - `Prepare Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.
 - `Open Codex IDE` is the provider-neutral AI handoff command. With `preferredHandoffMode = clipboard` it copies the prompt only and does not execute `openSidebarCommandId` or `newChatCommandId`.
-- `Open Codex IDE` with `preferredHandoffMode = ideCommand` copies the prompt and then best-effort runs the configured VS Code command IDs. If either command is missing or throws, Ralph warns and tells the operator to open Codex manually and paste the prepared prompt.
-- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real `codex exec` automation.
+- `Open Codex IDE` with `preferredHandoffMode = ideCommand` copies the prompt and then best-effort runs the configured VS Code command IDs. If either command is missing or throws, Ralph warns and tells the operator to open the chat surface manually and paste the prepared prompt.
+- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real provider execution automation.
 
 Artifacts written on this path include:
 
@@ -80,9 +80,9 @@ When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph als
 ## Run One CLI Iteration
 
 1. Run `Ralphdex: Run CLI Iteration`.
-2. Ralph emits a short preflight summary covering task graph, workspace/runtime, Codex adapter, and verifier readiness, including warnings when latest artifact surfaces are stale, retention cleanup roots overlap unsafely, or retention settings disable expected cleanup before a loop starts.
-3. If preflight is blocked, Ralph persists blocked-start evidence and stops before `codex exec`.
-4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs `codex exec`, verifies the outcome, reconciles the structured completion report, and persists the iteration result.
+2. Ralph emits a short preflight summary covering task graph, workspace/runtime, provider adapter, and verifier readiness, including warnings when latest artifact surfaces are stale, retention cleanup roots overlap unsafely, or retention settings disable expected cleanup before a loop starts.
+3. If preflight is blocked, Ralph persists blocked-start evidence and stops before provider launch.
+4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs the configured provider execution path, verifies the outcome, reconciles the structured completion report, and persists the iteration result.
 
 Operator-facing artifacts for this path include:
 
@@ -94,6 +94,8 @@ Operator-facing artifacts for this path include:
 - `.ralph/artifacts/latest-provenance-summary.md`
 
 When a CLI iteration stops cleanly instead of crashing, Ralph also writes a compact session handoff note under `.ralph/handoff/<agentId>-<iteration>.json`. This handoff file is the durable carry-forward surface for the next fresh session. It records the selected task, stop reason, completion classification, any progress note or blocker, the latest validation failure signature when one exists, and the remaining-task summary at the moment the loop stopped.
+
+This `.ralph/handoff/` location is for per-iteration session notes. Role-to-role handoff contracts used by orchestration lifecycle controls persist separately under `.ralph/handoffs/`.
 
 Clean handoff notes are written only for terminal stop reasons that preserve inspectable continuity instead of failure ambiguity:
 
@@ -121,7 +123,7 @@ The operator approval boundary is strict on purpose:
 - approval is still validated at write time, so stale, duplicate, or graph-invalid proposed children are rejected instead of being forced into the task graph
 - the approved write is narrow: Ralph appends the proposed child tasks and adds them as parent dependencies, but it does not reorder or rewrite unrelated tasks
 
-On execution failures, the structured iteration result and latest-result pointer should also carry the summarized `codex exec` message, while the transcript and `stderr.log` keep the full raw process output for inspection.
+On execution failures, the structured iteration result and latest-result pointer should also carry the summarized provider-launch message, while the transcript and `stderr.log` keep the full raw process output for inspection.
 
 For normal task execution, the prompt explicitly tells the model not to edit `.ralph/tasks.json` or `.ralph/progress.md` directly. Backlog replenishment is the exception: that prompt kind still updates the durable task file and progress log itself.
 
@@ -129,7 +131,7 @@ Use this path when you need repeatable execution plus deterministic result recor
 
 When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch placement for the selected task. Top-level tasks claim a dedicated `ralph/<taskId>` branch from the branch that was active when the claim was acquired. Child tasks claim both `ralph/integration/<parentId>` and `ralph/<taskId>`, record those branch names plus the original base branch in `.ralph/claims.json`, and run the task on the child feature branch. When the child task reconciles `done`, Ralph commits the remaining work on `ralph/<taskId>`, merges that feature branch into `ralph/integration/<parentId>`, and, if that completion also auto-completes the parent aggregate task, performs one atomic merge from `ralph/integration/<parentId>` back into the recorded base branch. If `ralphCodex.scmPrOnParentDone = true`, Ralph also pushes `ralph/integration/<parentId>` to `origin` and runs `gh pr create` with the parent title plus the completed child summaries, targeting the base branch recorded on the first child claim. Push or PR failures are surfaced in iteration warnings only; they do not roll back the completed task state. Ralph never auto-deletes either branch. If any of those merges conflict, Ralph leaves the conflicting branch checked out, reopens the affected task as `in_progress` with a merge-conflict blocker, releases the active claim, and records the conflict path in the iteration warnings instead of silently forcing the merge.
 
-If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralphdex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no `codex exec` process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
+If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralphdex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no provider process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
 
 After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run CLI Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
 

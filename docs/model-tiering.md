@@ -4,7 +4,9 @@ Ralph routes each task to a model tier based on a deterministic complexity score
 
 ## Enabling Model Tiering
 
-Model tiering is enabled by default (`ralphCodex.enableModelTiering: true`). Set it to `false` to fall back to the single model configured in `ralphCodex.model` for all tasks.
+Model tiering is enabled by default (`ralphCodex.modelTiering.enabled: true`). The legacy convenience flag `ralphCodex.enableModelTiering` is also supported and overrides the nested `enabled` field when explicitly set.
+
+Set tiering to `false` to fall back to the single model configured in `ralphCodex.model` for all tasks.
 
 ## Scoring Signals
 
@@ -22,11 +24,13 @@ The total score is the sum of all contributing signals.
 
 ## Tier Thresholds
 
-Scores map to tiers using two thresholds (the `ralphCodex.complexityTierThresholds` within `ralphCodex.modelTiering`):
+Scores map to tiers using two thresholds in `ralphCodex.modelTiering` (`simpleThreshold` and `complexThreshold`):
+
+Historical note: some older docs and settings discussions refer to these thresholds as `ralphCodex.complexityTierThresholds`; the active shipped surface is the nested `ralphCodex.modelTiering` object.
 
 | Score range | Tier | Default model |
 |---|---|---|
-| `score < simpleThreshold` (default: 2) | simple | `claude-haiku-4-5-20251001` |
+| `score < simpleThreshold` (default: 2) | simple | `provider: copilot`, `model: claude-opus-4-6` |
 | `simpleThreshold ≤ score < complexThreshold` | medium | `claude-sonnet-4-6` |
 | `score ≥ complexThreshold` (default: 6) | complex | `claude-opus-4-6` |
 
@@ -46,15 +50,17 @@ Each tier can specify a `model` string and an optional `provider` override:
 ```json
 "ralphCodex.modelTiering": {
   "enabled": true,
-  "simple":  { "model": "claude-haiku-4-5-20251001" },
-  "medium":  { "model": "claude-sonnet-4-6" },
-  "complex": { "model": "claude-opus-4-6" },
+  "simple":  { "provider": "copilot", "model": "claude-opus-4-6" },
+  "medium":  { "provider": "claude", "model": "claude-sonnet-4-6" },
+  "complex": { "provider": "claude", "model": "claude-opus-4-6" },
   "simpleThreshold": 2,
   "complexThreshold": 6
 }
 ```
 
 Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `provider` to route a specific tier through a different CLI provider (e.g. `"copilot"` for simple tasks, `"claude"` for complex).
+
+Source of truth for shipped defaults is `package.json` (`contributes.configuration.properties.ralphCodex.modelTiering`).
 
 ## Expected Cost Savings
 

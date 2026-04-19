@@ -41,15 +41,15 @@ npm run package
 
 This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the generated `.vsix` for 0 blocking warnings before continuing.
 
-### 5. Validate the Marketplace publish path without shipping
+### 5. Run the repo-level dry-run script
 
 ```bash
 npm run publish:dry-run
 ```
 
-Run this from the Ralphdex repo root after `npm run package` succeeds. The script validates the package using `npm run package` (equivalent to `vsce package --no-dependencies`), which validates CHANGELOG format, file inclusion, and packaging integrity without shipping a Marketplace release.
+Run this from the Ralphdex repo root after `npm run package` succeeds. In the current script surface, `publish:dry-run` aliases `npm run package` (equivalent to `vsce package --no-dependencies`), so it validates CHANGELOG format, file inclusion, and packaging integrity without shipping a Marketplace release.
 
-Treat this as the final authoritative validation step before the real publish command. A successful run proves the current package, metadata, and extension structure are ready for publishing.
+Treat this as a packaging-readiness check before the real publish command. If you need an explicit Marketplace publish-path dry run, run `npx vsce publish --dry-run --no-dependencies` manually.
 
 ### 6. Commit and tag
 

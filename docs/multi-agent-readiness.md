@@ -1,10 +1,10 @@
 # Multi-Agent Readiness
 
-This document records the acceptance criteria that must be satisfied before Ralph removes the current single-agent loop restriction. Each acceptance criterion stays durable and file-backed.
+This document records the acceptance criteria that were required to lift the historical single-agent deferral. The milestone was satisfied on **2026-03-17** and the criteria remain as the durable acceptance record.
 
 Related docs:
 
-- [Boundaries](boundaries.md) for the currently enforced single-agent boundary
+- [Boundaries](boundaries.md) for the current shipped orchestration and trust boundaries
 - [Invariants](invariants.md) for durable control-plane rules
 - [Testing](testing.md) for the authoritative validation gate
 
@@ -37,6 +37,4 @@ Acceptance criterion:
 
 ## Lifting The Deferral
 
-When all three acceptance criteria above are done and `npm run validate` passes, update `docs/boundaries.md` to remove the single-agent loop restriction and update this document to record the date the milestone was satisfied.
-
-Milestone satisfied date: 2026-03-17.
+Each acceptance criterion above is now satisfied, `npm run validate` passed at completion, and the single-agent deferral was lifted on **2026-03-17**.

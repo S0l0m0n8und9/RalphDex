@@ -5,8 +5,8 @@
 Ralphdex is a VS Code extension that:
 
 - builds Ralph prompts from durable workspace files
-- hands prepared prompts to Codex through clipboard plus configurable VS Code command IDs
-- runs controlled `codex exec` iterations with deterministic verification, provenance, and stop behavior
+- hands prepared prompts to AI IDE surfaces through clipboard plus configurable VS Code command IDs
+- runs controlled CLI iterations (`codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, `gemini`) with deterministic verification, provenance, and stop behavior
 
 ## Working Rules
 
@@ -24,8 +24,8 @@ Ralphdex is a VS Code extension that:
 - [docs/invariants.md](docs/invariants.md): control-plane, task-schema, and artifact-model invariants
 - [docs/provenance.md](docs/provenance.md): prompt/plan/invocation/run trust chain
 - [docs/verifier.md](docs/verifier.md): verifier modes, outcome classes, and stop implications
-- [docs/boundaries.md](docs/boundaries.md): explicit non-goals, trust limits, and Codex boundaries
-- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): acceptance criteria for lifting the single-agent deferral
+- [docs/boundaries.md](docs/boundaries.md): explicit non-goals, trust limits, and orchestration boundaries
+- [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): historical acceptance record for the multi-agent readiness milestone
 - [docs/prompt-calibration.md](docs/prompt-calibration.md): token target derivation, recalibration procedure, and reasoning effort overhead
 
 ## Code Owners For Behavior
