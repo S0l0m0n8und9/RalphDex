@@ -58,20 +58,22 @@ function renderFailureDiagnosisHtml(diagnosis) {
   <style nonce="${nonce}">
     :root {
       color-scheme: light dark;
-      --bg: #0f172a;
-      --panel: #111827;
-      --panel-alt: #172033;
-      --text: #e5eefc;
-      --muted: #9db0cc;
-      --accent: #7dd3fc;
-      --warn: #fbbf24;
-      --border: rgba(157, 176, 204, 0.22);
+      --bg: #1e1e22;
+      --panel: #1e1e22;
+      --panel-alt: #2a2a2e;
+      --text: var(--vscode-foreground, #cccccc);
+      --muted: color-mix(in srgb, var(--text) 55%, transparent);
+      --accent: #f5b041;
+      --ok: #5bd69c;
+      --warn: #f5a14d;
+      --bad: #eb5e5e;
+      --border: rgba(255, 255, 255, 0.08);
     }
     body {
       margin: 0;
       padding: 24px;
-      font-family: Consolas, 'Courier New', monospace;
-      background: radial-gradient(circle at top right, rgba(125, 211, 252, 0.18), transparent 32%), var(--bg);
+      font-family: var(--vscode-editor-font-family, Consolas, 'Courier New', monospace);
+      background: radial-gradient(circle at top right, rgba(245, 176, 65, 0.15), transparent 40%), var(--bg);
       color: var(--text);
     }
     .shell {
@@ -81,36 +83,40 @@ function renderFailureDiagnosisHtml(diagnosis) {
       gap: 16px;
     }
     .card {
-      background: linear-gradient(180deg, rgba(23, 32, 51, 0.95), rgba(15, 23, 42, 0.95));
+      background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 18px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.24);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     }
     .eyebrow {
       color: var(--accent);
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 700;
       margin-bottom: 8px;
     }
     h1 {
       margin: 0 0 10px;
-      font-size: 26px;
+      font-size: 24px;
       line-height: 1.2;
+      font-weight: 800;
     }
     .meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
     }
     .pill {
       border: 1px solid var(--border);
       border-radius: 999px;
-      padding: 6px 10px;
-      background: rgba(17, 24, 39, 0.7);
+      padding: 4px 12px;
+      background: var(--panel-alt);
+      color: var(--muted);
+      font-weight: 600;
     }
     .grid {
       display: grid;

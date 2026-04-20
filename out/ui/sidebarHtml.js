@@ -10,10 +10,10 @@ function buildSidebarCss() {
 ${(0, htmlHelpers_1.buildBaseCss)()}
 
 body {
-  font-family: var(--ralph-font);
+  font-family: var(--font-ui);
   font-size: 12px;
   line-height: 1.5;
-  color: var(--vscode-foreground);
+  color: var(--fg);
   background: var(--vscode-sideBar-background);
   padding: 8px;
   overflow-x: hidden;
@@ -22,49 +22,34 @@ body {
 .open-dashboard {
   display: block;
   width: 100%;
-  padding: 6px 8px;
+  padding: 8px 10px;
   margin-top: 8px;
-  font-family: var(--ralph-font);
+  font-family: var(--font-ui);
   font-size: 11px;
-  border: 1px solid var(--ralph-amber);
-  background: color-mix(in srgb, var(--ralph-amber) 10%, transparent);
-  color: var(--ralph-amber);
+  font-weight: 600;
+  border: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
   cursor: pointer;
   text-align: center;
   letter-spacing: 1px;
   text-transform: uppercase;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
+  border-radius: 8px;
 }
 
 .open-dashboard:hover {
-  background: color-mix(in srgb, var(--ralph-amber) 25%, transparent);
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+  transform: translateY(-1px);
 }
-
-/* Button spinner */
-.btn-spinner {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--ralph-dim);
-  border-top-color: var(--ralph-amber);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn .btn-spinner { display: none; }
-.btn.loading .btn-label { opacity: 0.5; }
-.btn.loading .btn-spinner { display: inline-block; }
 
 /* Phase indicator (compact) */
 .phase-indicator {
   font-size: 10px;
-  color: var(--ralph-amber);
+  color: var(--accent);
   margin-bottom: 6px;
   text-align: center;
+  font-weight: 600;
 }
 
 .seed-block {
@@ -79,31 +64,31 @@ body {
   font: inherit;
   color: var(--vscode-input-foreground, #ccc);
   background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--ralph-border);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .seed-block textarea:focus {
   outline: none;
-  border-color: var(--ralph-amber);
+  border-color: var(--accent);
 }
 
 .seed-result {
   margin-top: 8px;
   font-size: 11px;
   padding: 8px;
-  border: 1px solid var(--ralph-border);
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 .seed-result.success {
-  border-color: var(--ralph-green);
-  color: var(--ralph-green);
+  border-color: var(--ok);
+  color: var(--ok);
 }
 
 .seed-result.error {
-  border-color: var(--ralph-orange);
-  color: var(--ralph-orange);
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 .snapshot-stack {
@@ -112,39 +97,11 @@ body {
   margin: 10px 0;
 }
 
-.snapshot-card {
-  padding: 8px;
-  border: 1px solid var(--ralph-border);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.snapshot-card-title {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ralph-dim);
-  margin-bottom: 4px;
-}
-
-.snapshot-card strong {
-  color: var(--vscode-foreground);
-}
-
 .snapshot-chip-row {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
-}
-
-.snapshot-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 6px;
-  border-radius: 999px;
-  border: 1px solid var(--ralph-border);
-  color: var(--ralph-dim);
+  margin-top: 8px;
 }
 `;
 }
@@ -161,27 +118,27 @@ function buildSidebarSnapshotSummary(state) {
     const deadLetter = snapshot.deadLetter.entries[0] ?? null;
     const agent = snapshot.agentGrid.rows[0] ?? null;
     return `<div class="snapshot-stack">
-    <div class="snapshot-card">
-      <div class="snapshot-card-title">Live Snapshot</div>
+    <div class="card" style="padding: 10px; margin-bottom: 0;">
+      <div class="card-title" style="margin-bottom: 6px; border: none;">Live Snapshot</div>
       <div><strong>Selected ${(0, htmlHelpers_1.esc)(taskBoard.selectedTaskId ?? 'none')}</strong></div>
       ${taskBoard.selectedTaskTitle ? `<div>${(0, htmlHelpers_1.esc)(taskBoard.selectedTaskTitle)}</div>` : ''}
       <div class="snapshot-chip-row">
-        <span class="snapshot-chip">Blocked ${taskBoard.counts?.blocked ?? 0}</span>
-        <span class="snapshot-chip">Dead-Letter ${taskBoard.deadLetterCount}</span>
-        <span class="snapshot-chip">Next ${taskBoard.nextIteration}</span>
+        <span class="pill">Blocked ${taskBoard.counts?.blocked ?? 0}</span>
+        <span class="pill">Dead-Letter ${taskBoard.deadLetterCount}</span>
+        <span class="pill">Next ${taskBoard.nextIteration}</span>
       </div>
     </div>
-    ${leadFailure ? `<div class="snapshot-card">
-      <div class="snapshot-card-title">Failure Feed</div>
+    ${leadFailure ? `<div class="card" style="padding: 10px; margin-bottom: 0;">
+      <div class="card-title" style="margin-bottom: 6px; border: none;">Failure Feed</div>
       <div><strong>${(0, htmlHelpers_1.esc)(leadFailure.category)}</strong></div>
       <div>${(0, htmlHelpers_1.esc)(leadFailure.taskTitle)}</div>
     </div>` : ''}
-    ${deadLetter ? `<div class="snapshot-card">
-      <div class="snapshot-card-title">Dead-Letter</div>
+    ${deadLetter ? `<div class="card" style="padding: 10px; margin-bottom: 0;">
+      <div class="card-title" style="margin-bottom: 6px; border: none;">Dead-Letter</div>
       <div>${(0, htmlHelpers_1.esc)(deadLetter.taskTitle)}</div>
     </div>` : ''}
-    ${agent ? `<div class="snapshot-card">
-      <div class="snapshot-card-title">Agent</div>
+    ${agent ? `<div class="card" style="padding: 10px; margin-bottom: 0;">
+      <div class="card-title" style="margin-bottom: 6px; border: none;">Agent</div>
       <div>${(0, htmlHelpers_1.esc)(agent.agentId)}</div>
     </div>` : ''}
   </div>`;

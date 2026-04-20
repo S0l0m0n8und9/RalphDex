@@ -4214,6 +4214,7 @@
       "title": "Strengthen Azure-backed provider auth-readiness diagnostics and command-surface verification",
       "status": "todo",
       "dependsOn": [
+        "T164",
         "T161"
       ],
       "notes": "Once bearer-token auth is truly keyless, preflight and the provider-test command should move beyond generic informational text and tell operators whether the configured auth path is actually executable. Keep the diagnostics thin, deterministic, and safe to run without disclosing secrets.",
@@ -4248,7 +4249,7 @@
     {
       "id": "T164",
       "title": "Align CSS design tokens and base component styles to UXrefresh prototype",
-      "status": "todo",
+      "status": "done",
       "notes": "Update buildBaseCss() in src/ui/htmlHelpers.ts to adopt the prototype's full token set: --accent (#f5b041), --ok (#5bd69c), --warn (#f5a14d), --bad (#eb5e5e), --cyan (#6fc3df), --surface, --surface-2, --border, --fg, --dim, --font-ui (Geist), --font-mono (Geist Mono). Add @import for Geist via the nonce-safe inline font stack fallback. Update Card, StatusPill, and Btn CSS equivalents in the base sheet. Preserve all existing --ralph-* aliases so existing callers don't break.",
       "validation": "npm run validate",
       "tier": "medium",

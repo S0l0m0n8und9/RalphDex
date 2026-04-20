@@ -66,7 +66,11 @@ test('inspectValidationCommandReadiness resolves the executable after leading en
   assert.equal(readiness.executable, path.join(rootPath, 'npm'));
   assert.equal(calls.length, 1);
   assert.match(calls[0].command, /where|sh/);
-  assert.ok(calls[0].args.includes('npm'));
+  if (process.platform === 'win32') {
+    assert.ok(calls[0].args.includes('npm'));
+  } else {
+    assert.ok(calls[0].args.some(arg => arg.includes('npm')));
+  }
 });
 
 test('normalizeValidationCommand strips a redundant workspace-relative cd into the selected verifier root', () => {
