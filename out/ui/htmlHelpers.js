@@ -37,6 +37,24 @@ exports.CLASSIFICATION_CHAR = {
     failed: '✗',
     needs_human_review: '?'
 };
+const CLASSIFICATION_COLOR = {
+    complete: 'var(--ok)',
+    partial_progress: 'var(--accent)',
+    no_progress: 'var(--dim)',
+    blocked: 'var(--warn)',
+    failed: 'var(--bad)',
+    needs_human_review: 'var(--cyan)',
+};
+function getRoleBorderColor(agentId) {
+    const lower = agentId.toLowerCase();
+    if (lower.includes('reviewer'))
+        return 'var(--ok)';
+    if (lower.includes('watchdog'))
+        return 'var(--warn)';
+    if (lower.includes('scm'))
+        return 'var(--cyan)';
+    return 'var(--accent)';
+}
 exports.LOOP_STATE_LABEL = {
     idle: '● idle',
     running: '▸ running',
@@ -96,25 +114,33 @@ function buildPhaseTracker(currentPhase, currentIteration) {
     }
     const activeIdx = exports.PHASE_LABELS.indexOf(currentPhase);
     const steps = exports.PHASE_LABELS.map((label, i) => {
-        const cls = i < activeIdx ? 'done' : i === activeIdx ? 'active' : '';
-        return `<span class="phase-step ${cls}">${label}</span>`;
-    }).join(' ');
+        const isDone = i < activeIdx;
+        const isActive = i === activeIdx;
+        const cls = isDone ? 'done' : isActive ? 'active' : '';
+        const prefix = isDone
+            ? '<span class="phase-check">✓</span>'
+            : isActive
+                ? '<span class="phase-pulse"></span>'
+                : '';
+        const sep = i < exports.PHASE_LABELS.length - 1 ? '<span class="phase-sep" aria-hidden="true">—</span>' : '';
+        return `<span class="phase-step ${cls}">${prefix}${label}</span>${sep}`;
+    }).join('');
     return `<div class="section-label">Iteration ${currentIteration}</div>
     <div class="phase-tracker">${steps}</div>`;
 }
 function buildIterationRow(iter) {
-    const glyph = exports.CLASSIFICATION_CHAR[iter.classification] ?? '?';
     const taskLabel = iter.taskId ?? '—';
-    const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '';
-    const tierLabel = iter.effectiveTier && iter.effectiveTier !== 'default'
-        ? `<span class="iter-tier" title="Model: ${esc(iter.selectedModel ?? 'Unknown')}">T: ${esc(iter.effectiveTier)}</span>` : '';
+    const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '<span class="iter-agent">—</span>';
+    const dotColor = CLASSIFICATION_COLOR[iter.classification] ?? 'var(--dim)';
     return `<button type="button" class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}" title="Open iteration artifact">
     <span class="iter-num">#${iter.iteration}</span>
     ${agentLabel}
-    ${tierLabel}
     <span class="iter-task">${esc(taskLabel)}</span>
-    <span class="iter-class">${iter.classification.replace(/_/g, ' ')}</span>
-    <span class="iter-glyph">${glyph}</span>
+    <span class="iter-class">
+      <span class="iter-class-dot" style="background:${dotColor};"></span>
+      ${esc(iter.classification.replace(/_/g, ' '))}
+    </span>
+    <span class="iter-cost">—</span>
   </button>`;
 }
 function buildAgentLanes(lanes) {
@@ -128,13 +154,16 @@ function buildAgentLanes(lanes) {
       ${lane.message ? `<div class="agent-message">${esc(lane.message)}</div>` : ''}
     `;
     }
-    return lanes.map((lane) => `<div class="agent-lane" data-agent-id="${esc(lane.agentId)}">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <span class="agent-lane-id">${esc(lane.agentId)}</span>
-      ${buildPhaseTracker(lane.phase, lane.iteration)}
-    </div>
-    ${lane.message ? `<div class="agent-message-block">${esc(lane.message)}</div>` : ''}
-  </div>`).join('\n');
+    return lanes.map((lane) => {
+        const roleColor = getRoleBorderColor(lane.agentId);
+        return `<div class="agent-lane" data-agent-id="${esc(lane.agentId)}" style="border-left: 3px solid ${roleColor}; padding-left: 10px; margin-left: 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
+        <span class="agent-lane-id" style="color:${roleColor};">${esc(lane.agentId)}</span>
+        ${buildPhaseTracker(lane.phase, lane.iteration)}
+      </div>
+      ${lane.message ? `<div class="agent-message-block">${esc(lane.message)}</div>` : ''}
+    </div>`;
+    }).join('\n');
 }
 function buildDiagnostics(state) {
     if (state.preflightReady && state.diagnostics.length === 0) {
@@ -460,8 +489,7 @@ body {
 .iter-agent { width: 80px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--accent); font-weight: 600; }
 .iter-tier { width: 70px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; color: var(--ok); text-align: right; margin-right: 8px; font-weight: 600; font-family: var(--font-mono); }
 .iter-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.iter-class { width: 110px; flex-shrink: 0; text-align: right; font-size: 10px; color: var(--dim); font-weight: 500; }
-.iter-glyph { width: 20px; flex-shrink: 0; text-align: center; font-family: var(--font-mono); }
+.iter-class { display: inline-flex; align-items: center; gap: 5px; flex: 1; font-size: 10px; color: var(--dim); font-weight: 500; overflow: hidden; }
 
 .agent-lane {
   margin-bottom: 10px;
@@ -499,7 +527,8 @@ body {
 
 .phase-tracker {
   display: inline-flex;
-  gap: 4px;
+  align-items: center;
+  gap: 3px;
   font-size: 10px;
   margin-bottom: 4px;
   flex-wrap: wrap;
@@ -507,27 +536,76 @@ body {
 }
 
 .phase-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 3px 8px;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--dim);
   transition: all 0.2s ease;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  text-transform: lowercase;
 }
 
 .phase-step.active {
-  border-color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
   color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 600;
 }
 
 .phase-step.done {
-  border-color: var(--ok);
-  color: var(--ok);
-  background: color-mix(in srgb, var(--ok) 10%, var(--surface-2));
+  border-color: var(--border);
+  color: var(--fg);
+  background: var(--surface-2);
+}
+
+.phase-check {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+@keyframes ralph-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.phase-pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ralph-blink 1.1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.phase-sep {
+  color: var(--border);
+  font-size: 9px;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.iter-class-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.iter-cost {
+  width: 52px;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 10px;
+  color: var(--dim);
+  font-family: var(--font-mono);
 }
 
 .diag-ok { color: var(--ok); font-size: 11px; font-weight: 600; }

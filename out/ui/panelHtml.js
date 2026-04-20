@@ -132,6 +132,84 @@ body {
   gap: 8px;
 }
 
+/* Rich failure card */
+.rich-failure-card {
+  border-color: color-mix(in srgb, var(--bad) 40%, var(--border));
+  background: color-mix(in srgb, var(--bad) 4%, var(--glass-bg));
+  padding: 16px 18px;
+}
+
+.rich-failure-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--bad);
+  margin-bottom: 10px;
+}
+
+.rich-failure-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rich-failure-task-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+.rich-failure-task-title {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+}
+
+.rich-failure-meta {
+  font-size: 11px;
+  color: var(--dim);
+  width: 100%;
+}
+
+.rich-failure-block {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.rich-failure-block-suggested {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.rich-failure-block-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 600;
+  color: var(--dim);
+  margin-bottom: 4px;
+}
+
+.rich-failure-block-text {
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  color: var(--fg);
+}
+
 .agent-card {
   border: 1px solid var(--border);
   padding: 8px 10px;
@@ -1105,6 +1183,47 @@ function buildFailureFeedSection(state) {
     </div>`).join('\n')}
   </div>`;
 }
+function buildRichFailureCard(state) {
+    const entry = state.dashboardSnapshot?.failureFeed.entries[0] ?? null;
+    if (!entry) {
+        return '';
+    }
+    const confidenceClass = entry.confidence === 'high' ? 'bad' : entry.confidence === 'medium' ? 'warn' : 'dim';
+    return `<div class="card rich-failure-card">
+    <div class="rich-failure-eyebrow">
+      <span style="color:var(--bad); margin-right:6px;">⚠</span>
+      <span>Needs Attention · Failure Diagnosis</span>
+      <span class="pill ${confidenceClass}" style="margin-left: auto;">${(0, htmlHelpers_1.esc)(entry.confidence)} confidence</span>
+    </div>
+    <div class="rich-failure-header">
+      <span class="rich-failure-task-id">${(0, htmlHelpers_1.esc)(entry.taskId)}</span>
+      <span class="rich-failure-task-title">${(0, htmlHelpers_1.esc)(entry.taskTitle)}</span>
+      <span class="rich-failure-meta">
+        ${entry.recoveryAttemptCount ? `attempt ${entry.recoveryAttemptCount} · ` : ''}category <strong>${(0, htmlHelpers_1.esc)(entry.category.replace(/_/g, ' '))}</strong>
+      </span>
+    </div>
+    <div class="rich-failure-block">
+      <div class="rich-failure-block-label">What went wrong</div>
+      <p class="rich-failure-block-text">${(0, htmlHelpers_1.esc)(entry.summary)}</p>
+    </div>
+    <div class="rich-failure-block rich-failure-block-suggested">
+      <div class="rich-failure-block-label" style="color:var(--accent);">Suggested fix</div>
+      <p class="rich-failure-block-text">${(0, htmlHelpers_1.esc)(entry.suggestedAction)}</p>
+    </div>
+    ${entry.remediationSummary ? `<div class="rich-failure-block">
+      <div class="rich-failure-block-label">Remediation</div>
+      <p class="rich-failure-block-text">${(0, htmlHelpers_1.esc)(entry.remediationSummary)}</p>
+    </div>` : ''}
+    <div class="inline-actions" style="margin-top: 12px; flex-wrap: wrap;">
+      <button class="btn primary" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Auto-recover task</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">Open diagnosis</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.skipTask"><span class="btn-label">Skip task</span><span class="btn-spinner"></span></button>
+      ${entry.humanReviewRecommended
+        ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Dead-letter</span><span class="btn-spinner"></span></button>`
+        : ''}
+    </div>
+  </div>`;
+}
 function buildDiagnosisSection(state) {
     const diagnosis = state.dashboardSnapshot?.diagnosis ?? null;
     if (!diagnosis) {
@@ -1478,7 +1597,7 @@ function buildOverviewTab(state) {
 
       <div class="overview-column">
         ${buildTaskBoardSection(state)}
-        ${buildFailureFeedSection(state)}
+        ${buildRichFailureCard(state)}
         <div class="card">
           <div class="card-title">Current Work</div>
           ${currentTask
