@@ -8,7 +8,6 @@ out-test/
 .ralph/claims.json
 .ralph/logs/
 .vscode/settings.json
-UXrefresh/
 
 # Operator-local shim configuration (not committed; document in docs/shim-validation.md)
 .ralph-config.json

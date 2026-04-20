@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Ralphdex — Dashboard</title>
+<meta name="viewport" content="width=1440"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vsc-bg: #1a1a1f;
+    --vsc-titlebar: #141418;
+    --vsc-activity: #141418;
+    --vsc-tabs: #1a1a1f;
+    --vsc-fg: #e4e4e8;
+    --vsc-dim: #8a8a93;
+    --vsc-border: #2a2a32;
+
+    --surface: #1f1f26;
+    --surface-2: #15151a;
+    --sidebar: #17171c;
+    --border: #2a2a32;
+    --fg: #e4e4e8;
+    --fg-dim: #c5c5cc;
+    --dim: #8a8a93;
+    --accent: #f5b041;
+    --ok: #5bd69c;
+    --warn: #f5a14d;
+    --bad: #eb5e5e;
+    --cyan: #6fc3df;
+
+    --font-ui: 'Geist', -apple-system, system-ui, sans-serif;
+    --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  }
+  body[data-density="compact"] { --_pad: 10px; }
+  body[data-theme="light"] {
+    --vsc-bg:#f5f5f7; --vsc-titlebar:#e9e9ec; --vsc-activity:#e9e9ec; --vsc-tabs:#f0f0f2;
+    --vsc-fg:#18181c; --vsc-dim:#666672; --vsc-border:#d8d8dc;
+    --surface:#ffffff; --surface-2:#f5f5f7; --sidebar:#f0f0f2;
+    --border:#dcdce0; --fg:#18181c; --fg-dim:#42424a; --dim:#666672;
+  }
+  html, body { margin:0; padding:0; background:#0d0d11; font-family: var(--font-ui); color: var(--fg); }
+  body { padding: 24px; min-height: 100vh; }
+  * { box-sizing: border-box; }
+  code { font-family: var(--font-mono); }
+  button { font-family: inherit; }
+  @keyframes ralph-pulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+  @keyframes ralph-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .ralph-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+  .ralph-root ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .ralph-root ::-webkit-scrollbar-track { background: transparent; }
+
+  .frame-wrap { max-width: 1440px; margin: 0 auto; height: calc(100vh - 48px); min-height: 800px; }
+
+  /* reasoning preamble */
+  .reasoning {
+    max-width: 1440px; margin: 0 auto 24px;
+    padding: 18px 22px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+    color: #c9c9d1; font-size: 13px; line-height: 1.6;
+  }
+  .reasoning h1 { font-size: 15px; font-weight: 600; color: #f5f5f7; margin: 0 0 6px; letter-spacing: -0.2px; }
+  .reasoning h1 span { color: var(--accent); font-weight: 500; }
+  .reasoning p { margin: 6px 0; }
+  .reasoning ul { margin: 8px 0 0 18px; padding: 0; }
+  .reasoning li { margin-bottom: 4px; }
+  .reasoning kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 6px; background: rgba(255,255,255,0.08); border-radius: 3px; color: var(--accent); }
+
+  /* tweaks panel */
+  .tweaks-panel {
+    position: fixed; bottom: 20px; right: 20px; width: 260px;
+    background: #1c1c22; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; color: var(--fg); font-family: var(--font-ui);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 9999;
+    display: none;
+  }
+  .tweaks-panel.open { display: block; }
+  .tweaks-panel h4 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--dim); margin: 0 0 10px; font-weight: 600; }
+  .tweaks-panel label { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin-bottom: 8px; gap: 10px; }
+  .tweaks-panel select, .tweaks-panel input {
+    background: #15151a; border: 1px solid var(--border); color: var(--fg);
+    padding: 4px 8px; border-radius: 4px; font-family: inherit; font-size: 12px; min-width: 100px;
+  }
+  .tweaks-panel .swatch-row { display: flex; gap: 6px; }
+  .tweaks-panel .swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .tweaks-panel .swatch.active { border-color: var(--fg); }
+</style>
+</head>
+<body data-theme="dark" data-density="comfortable">
+
+<div class="reasoning">
+  <h1>RalphDex Dashboard — <span>hi-fi design pass</span></h1>
+  <p><b>What this is:</b> a rethink of the main Ralphdex webview focused on <i>one-glance health</i>, <i>task graph + dependencies</i>, and <i>failure recovery</i>. Everything runs inside a simulated VS Code frame to show it in context.</p>
+  <p><b>Core idea:</b> a <b>Mode toggle</b> (Simple · Standard · Advanced) reshapes the surface for novices vs. power users, backed by savable <b>Presets</b> — matching the existing <code>operatorMode</code> setting. A plain-English "Now" hero tells beginners what's happening; Standard adds the real phase tracker; Advanced shows every lane.</p>
+  <ul>
+    <li><b>Hero "Now" card</b> — plain English status + a four-metric health strip. Always visible.</li>
+    <li><b>Task graph</b> — real SVG graph with parent-child (dashed amber) and depends-on (solid) edges. Click a node to drill in.</li>
+    <li><b>Failure panel</b> — moved up, not hidden in a tab. Category + confidence + summary + one-click "Auto-recover".</li>
+    <li><b>Agent lanes</b> — each concurrent role on its own track with live phase tracker.</li>
+    <li><b>Iteration timeline</b> — single-line rows, color-coded classification, clickable artifacts.</li>
+  </ul>
+  <p><b>Try it:</b> Switch modes in the sidebar. Click <kbd>Start loop</kbd> / <kbd>Stop loop</kbd> in the hero. Open the <kbd>Tweaks</kbd> toolbar toggle to swap theme, accent, density, and demo state.</p>
+</div>
+
+<div class="frame-wrap ralph-root" id="root"></div>
+
+<div class="tweaks-panel" id="tweaks-panel">
+  <h4>Tweaks</h4>
+  <label>Theme
+    <select id="tw-theme"><option value="dark">Dark</option><option value="light">Light</option></select>
+  </label>
+  <label>Density
+    <select id="tw-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select>
+  </label>
+  <label>Demo state
+    <select id="tw-state"><option value="running">Running</option><option value="idle">Idle</option><option value="stopped">Stopped</option></select>
+  </label>
+  <label>Mode
+    <select id="tw-mode"><option value="simple">Simple</option><option value="standard" selected>Standard</option><option value="advanced">Advanced</option></select>
+  </label>
+  <div>
+    <div style="font-size:11px; color: var(--dim); margin: 6px 0 4px; text-transform: uppercase; letter-spacing: 1px;">Accent</div>
+    <div class="swatch-row" id="tw-accents">
+      <span class="swatch active" data-c="#f5b041" style="background:#f5b041"></span>
+      <span class="swatch" data-c="#6bd68c" style="background:#6bd68c"></span>
+      <span class="swatch" data-c="#9aa8ff" style="background:#9aa8ff"></span>
+      <span class="swatch" data-c="#e97a9f" style="background:#e97a9f"></span>
+      <span class="swatch" data-c="#6fc3df" style="background:#6fc3df"></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="components/data.jsx"></script>
+<script type="text/babel" src="components/primitives.jsx"></script>
+<script type="text/babel" src="components/hero.jsx"></script>
+<script type="text/babel" src="components/task-graph.jsx"></script>
+<script type="text/babel" src="components/panels.jsx"></script>
+<script type="text/babel" src="components/presets-settings.jsx"></script>
+<script type="text/babel" src="components/pipelines.jsx"></script>
+<script type="text/babel" src="components/orchestration.jsx"></script>
+<script type="text/babel" src="components/sidebar.jsx"></script>
+<script type="text/babel" src="components/vscode-frame.jsx"></script>
+
+<script>
+  // Tweak defaults — persisted by host
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "theme": "dark",
+    "density": "comfortable",
+    "mode": "standard",
+    "demoState": "running",
+    "accent": "#f5b041"
+  }/*EDITMODE-END*/;
+</script>
+
+<script type="text/babel">
+const { useState: useAppState, useEffect: useAppEffect } = React;
+
+function App() {
+  const initial = (window.localStorage.getItem('ralph-mode')) || TWEAK_DEFAULTS.mode || 'standard';
+  const [mode, setMode] = useAppState(initial);
+  const [tab, setTab] = useAppState('now');
+  const [preset, setPreset] = useAppState('standard');
+  const [loopState, setLoopState] = useAppState(TWEAK_DEFAULTS.demoState || 'running');
+  const [selectedTask, setSelectedTask] = useAppState('T-4127');
+
+  useAppEffect(() => { window.localStorage.setItem('ralph-mode', mode); }, [mode]);
+
+  // apply tweak-driven runtime props
+  useAppEffect(() => {
+    window.__setAppProp = (k, v) => {
+      if (k === 'mode') setMode(v);
+      if (k === 'demoState') setLoopState(v);
+    };
+  }, []);
+
+  const data = { ...window.RALPH_DATA, loopState };
+  // keep history + failure consistent with state
+  if (loopState === 'idle') data.iteration = { ...data.iteration, current: 0 };
+
+  const handleToggleLoop = () => setLoopState(loopState === 'running' ? 'idle' : 'running');
+
+  const body = (() => {
+    if (tab === 'now') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding: '18px 22px', overflow:'auto' }}>
+          <HeroNow data={data} mode={mode} onToggleLoop={handleToggleLoop}/>
+          <ActivePipelineStrip data={data} onOpen={()=>setTab('pipelines')}/>
+          {mode === 'advanced' && <BudgetStrip data={data}/>}
+          {mode === 'simple' && <EmptyHint mode={mode}/>}
+          <FailurePanel data={data}/>
+          {mode !== 'simple' && (
+            <div style={{ display:'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap:14 }}>
+              <AgentLanes data={data}/>
+              <Timeline data={data}/>
+            </div>
+          )}
+          {mode === 'simple' && <Timeline data={data}/>}
+          <DeadLetter data={data}/>
+          {mode === 'advanced' && <RawLog entries={data.rawLog}/>}
+        </div>
+      );
+    }
+    if (tab === 'pipelines') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding:'18px 22px', overflow:'auto' }}>
+          <Pipelines data={data} mode={mode}/>
+        </div>
+      );
+    }
+    if (tab === 'orchestration') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding:'18px 22px', overflow:'auto' }}>
+          <Orchestration data={data}/>
+        </div>
+      );
+    }
+    if (tab === 'tasks') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding: '18px 22px', overflow:'auto',
+          gridTemplateColumns: mode==='advanced'?'minmax(0,1.5fr) minmax(260px,1fr)':'1fr', alignItems:'start' }}>
+          <Card padding="18px 20px"><TaskPanel data={data} selectedId={selectedTask} onSelect={setSelectedTask}/></Card>
+          {mode === 'advanced' && (
+            <div style={{ display:'grid', gap: 14 }}>
+              <FailurePanel data={data}/>
+              <DiagnosticsPanel data={data}/>
+            </div>
+          )}
+        </div>
+      );
+    }
+    if (tab === 'diagnostics') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding:'18px 22px', overflow:'auto', gridTemplateColumns:'repeat(auto-fit, minmax(360px, 1fr))' }}>
+          <FailurePanel data={data}/>
+          <DiagnosticsPanel data={data}/>
+          <DeadLetter data={data}/>
+          <Timeline data={data}/>
+        </div>
+      );
+    }
+    if (tab === 'settings') {
+      return (
+        <div style={{ display:'grid', gap: 14, padding:'18px 22px', overflow:'auto', gridTemplateColumns:'minmax(0, 1fr)', alignItems:'start' }}>
+          <PresetChooser preset={preset} onPreset={setPreset}/>
+          <SettingsPanel data={data}/>
+        </div>
+      );
+    }
+    return null;
+  })();
+
+  return (
+    <VSCodeFrame loopState={loopState} workspace={data.workspace} taskId={data.currentTask.id}>
+      <div style={{ display:'flex', flex: 1, minHeight: 0 }}>
+        <Sidebar data={data} mode={mode} activeTab={tab} onTab={setTab} onMode={setMode}/>
+        <main style={{ flex: 1, minWidth: 0, overflow: 'auto' }}>
+          {body}
+        </main>
+      </div>
+    </VSCodeFrame>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<script>
+  // Tweak mode integration
+  (function() {
+    const body = document.body;
+    const panel = document.getElementById('tweaks-panel');
+
+    function applyTheme(v) { body.dataset.theme = v; }
+    function applyDensity(v) { body.dataset.density = v; }
+    function applyAccent(c) { document.documentElement.style.setProperty('--accent', c); }
+
+    // init
+    applyTheme(TWEAK_DEFAULTS.theme);
+    applyDensity(TWEAK_DEFAULTS.density);
+    applyAccent(TWEAK_DEFAULTS.accent);
+
+    // Listeners first, then announce availability.
+    window.addEventListener('message', (ev) => {
+      if (!ev.data || typeof ev.data !== 'object') return;
+      if (ev.data.type === '__activate_edit_mode') panel.classList.add('open');
+      if (ev.data.type === '__deactivate_edit_mode') panel.classList.remove('open');
+    });
+    try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e){}
+
+    function persist(edits) {
+      try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*'); } catch(e){}
+    }
+
+    document.getElementById('tw-theme').value = TWEAK_DEFAULTS.theme;
+    document.getElementById('tw-theme').addEventListener('change', e => { applyTheme(e.target.value); persist({theme: e.target.value}); });
+    document.getElementById('tw-density').value = TWEAK_DEFAULTS.density;
+    document.getElementById('tw-density').addEventListener('change', e => { applyDensity(e.target.value); persist({density: e.target.value}); });
+    document.getElementById('tw-state').value = TWEAK_DEFAULTS.demoState;
+    document.getElementById('tw-state').addEventListener('change', e => { window.__setAppProp && window.__setAppProp('demoState', e.target.value); persist({demoState: e.target.value}); });
+    document.getElementById('tw-mode').value = TWEAK_DEFAULTS.mode;
+    document.getElementById('tw-mode').addEventListener('change', e => { window.__setAppProp && window.__setAppProp('mode', e.target.value); persist({mode: e.target.value}); });
+
+    document.querySelectorAll('#tw-accents .swatch').forEach(s => {
+      if (s.dataset.c === TWEAK_DEFAULTS.accent) s.classList.add('active');
+      else s.classList.remove('active');
+      s.addEventListener('click', () => {
+        document.querySelectorAll('#tw-accents .swatch').forEach(x => x.classList.remove('active'));
+        s.classList.add('active');
+        applyAccent(s.dataset.c); persist({accent: s.dataset.c});
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
