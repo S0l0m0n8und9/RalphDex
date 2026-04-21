@@ -2281,49 +2281,6 @@ test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artif
   assert.ok(lastMessage.includes(fakePrUrl), 'Info message must include the PR URL');
 });
 
-test('New Project scaffolds a project directory and switches workspace settings', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-  // First input box = project name, second = objective — both return the same stub value.
-  harness.setInputBoxValue('auth-refactor');
-
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.newProject');
-
-  const projectDir = path.join(rootPath, '.ralph', 'projects', 'auth-refactor');
-
-  // PRD contains the objective seeded from the input box value
-  const prdContent = await fs.readFile(path.join(projectDir, 'prd.md'), 'utf8');
-  assert.match(prdContent, /auth-refactor/);
-
-  // tasks.json is valid and non-empty (auto-generated from PRD)
-  const tasksJson = JSON.parse(await fs.readFile(path.join(projectDir, 'tasks.json'), 'utf8'));
-  assert.equal(tasksJson.version, 2);
-  assert.ok(tasksJson.tasks.length >= 1, 'Expected at least one auto-generated starter task');
-  assert.match(tasksJson.tasks[0].notes, /Read the current content of \.ralph\/prd\.md/);
-  assert.ok(Array.isArray(tasksJson.tasks[0].acceptance), 'Expected bootstrap task acceptance to survive project creation');
-  assert.deepEqual(tasksJson.tasks[1].dependsOn, ['T1']);
-
-  // progress.md is empty
-  assert.equal(await fs.readFile(path.join(projectDir, 'progress.md'), 'utf8'), '');
-
-  // Workspace settings were updated to point at the new project
-  assert.equal(harness.state.updatedSettings['prdPath'], '.ralph/projects/auth-refactor/prd.md');
-  assert.equal(harness.state.updatedSettings['ralphTaskFilePath'], '.ralph/projects/auth-refactor/tasks.json');
-  assert.equal(harness.state.updatedSettings['progressPath'], '.ralph/projects/auth-refactor/progress.md');
-
-  // Both files were opened for review
-  assert.deepEqual(harness.state.shownDocuments, [
-    path.join(projectDir, 'prd.md'),
-    path.join(projectDir, 'tasks.json')
-  ]);
-
-  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /auth-refactor.*created and active/);
-});
-
 test('Add Task seeds provider-generated backlog tasks and persists a seeding artifact without stripping existing rich task structure', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
@@ -2624,46 +2581,6 @@ test('Seed Tasks from Feature Request reports id collisions discovered at persis
   assert.match(harness.state.errorMessages.at(-1)?.message ?? '', /Task id T2 must be unique/);
 });
 
-test('New Project aborts with a warning when the project slug already exists', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const projectDir = path.join(rootPath, '.ralph', 'projects', 'auth-refactor');
-  await fs.mkdir(projectDir, { recursive: true });
-  await fs.writeFile(path.join(projectDir, 'prd.md'), '# Existing\n', 'utf8');
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-  harness.setInputBoxValue('auth-refactor');
-
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.newProject');
-
-  assert.ok(
-    harness.state.warningMessages.some((m) => /already exists/.test(m.message)),
-    'Expected a warning about the existing project'
-  );
-});
-
-test('New Project Wizard opens a dedicated wizard webview panel', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.newProjectWizard');
-
-  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
-  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
-  assert.equal(harness.state.createdWebviewPanels[0]?.title, 'PRD Creation Wizard');
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /PRD Creation Wizard/);
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Web App/);
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Objective example/);
-  assert.match(harness.state.createdWebviewPanels[0]?.html ?? '', /Tech stack/);
-});
-
 test('Regenerate PRD opens the wizard at the existing PRD flow entry point', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
@@ -2678,19 +2595,4 @@ test('Regenerate PRD opens the wizard at the existing PRD flow entry point', asy
   assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
 });
 
-test('Switch Project shows info message when no named projects exist yet', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.switchProject');
-
-  assert.ok(
-    harness.state.infoMessages.some((m) => /No named projects yet/.test(m.message)),
-    'Expected info message when no projects exist'
-  );
-});
 

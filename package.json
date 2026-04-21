@@ -108,9 +108,6 @@
     "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.addTask",
     "onCommand:ralphCodex.seedTasksFromFeatureRequest",
-    "onCommand:ralphCodex.newProjectWizard",
-    "onCommand:ralphCodex.newProject",
-    "onCommand:ralphCodex.switchProject",
     "onCommand:ralphCodex.generatePrompt",
     "onCommand:ralphCodex.openCodexAndCopyPrompt",
     "onCommand:ralphCodex.runRalphIteration",
@@ -162,18 +159,6 @@
       {
         "command": "ralphCodex.seedTasksFromFeatureRequest",
         "title": "Ralphdex: Seed Tasks from Feature Request"
-      },
-      {
-        "command": "ralphCodex.newProjectWizard",
-        "title": "Ralphdex: New Project Wizard"
-      },
-      {
-        "command": "ralphCodex.newProject",
-        "title": "Ralphdex: New Project"
-      },
-      {
-        "command": "ralphCodex.switchProject",
-        "title": "Ralphdex: Switch Project"
       },
       {
         "command": "ralphCodex.generatePrompt",
