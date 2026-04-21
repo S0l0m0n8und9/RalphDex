@@ -133,9 +133,7 @@
     "onCommand:ralphCodex.runWatchdogAgent",
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runPipeline",
-    "onCommand:ralphCodex.approveHumanReview",
     "onCommand:ralphCodex.openLatestPipelineRun",
-    "onCommand:ralphCodex.resumePipeline",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
@@ -269,16 +267,8 @@
         "title": "Ralphdex: Run Pipeline"
       },
       {
-        "command": "ralphCodex.approveHumanReview",
-        "title": "Ralphdex: Approve Human Review"
-      },
-      {
         "command": "ralphCodex.openLatestPipelineRun",
         "title": "Ralphdex: Open Latest Pipeline Run"
-      },
-      {
-        "command": "ralphCodex.resumePipeline",
-        "title": "Ralphdex: Resume Pipeline"
       },
       {
         "command": "ralphCodex.regeneratePrd",

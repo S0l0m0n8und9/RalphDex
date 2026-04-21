@@ -106,19 +106,6 @@ test('package manifest contributes and activates the runPipeline command', async
   );
 });
 
-test('package manifest contributes and activates the approveHumanReview command', async () => {
-  const manifest = await readPackageManifest();
-  const commands = manifest.contributes?.commands ?? [];
-
-  assert.ok(
-    manifest.activationEvents?.includes('onCommand:ralphCodex.approveHumanReview'),
-    'package.json must activate on ralphCodex.approveHumanReview'
-  );
-  assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.approveHumanReview' && entry.title === 'Ralphdex: Approve Human Review'),
-    'package.json must contribute the Approve Human Review command'
-  );
-});
 
 test('package manifest exposes the pipelineHumanGates boolean setting', async () => {
   const manifest = await readPackageManifest();

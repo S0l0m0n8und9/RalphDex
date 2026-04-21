@@ -13,7 +13,7 @@ import { normalizeNewTask, type RalphNewTaskInput } from './taskNormalization';
 import { resolveOrchestrationPaths } from './orchestrationSupervisor';
 import type { RalphSuggestedChildTask, RalphTask, RalphTaskFile } from './types';
 
-export type PipelineRunStatus = 'running' | 'complete' | 'failed' | 'awaiting_human_approval';
+export type PipelineRunStatus = 'running' | 'complete' | 'failed';
 
 /**
  * Tracks which sub-phase of the pipeline was last successfully completed.
@@ -221,96 +221,6 @@ export async function scaffoldPipelineRun(input: {
 
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
   return { artifact, artifactPath, rootTaskId, childTaskIds };
-}
-
-export interface PipelinePendingHandoff {
-  schemaVersion: 1;
-  kind: 'pipelinePendingHandoff';
-  runId: string;
-  artifactPath: string;
-  reviewTranscriptPath?: string;
-  createdAt: string;
-}
-
-/**
- * Return the canonical path for a pipeline pending-handoff file.
- */
-export function resolvePendingHandoffPath(handoffDir: string, runId: string): string {
-  return path.join(handoffDir, `pipeline-${runId}-pending.json`);
-}
-
-/**
- * Write a pending-handoff file to .ralph/handoff/ and return its path.
- */
-export async function writePipelinePendingHandoff(
-  handoffDir: string,
-  handoff: PipelinePendingHandoff
-): Promise<string> {
-  await fs.mkdir(handoffDir, { recursive: true });
-  const handoffPath = resolvePendingHandoffPath(handoffDir, handoff.runId);
-  await fs.writeFile(handoffPath, stableJson(handoff), 'utf8');
-  return handoffPath;
-}
-
-/**
- * Read and parse a pending-handoff file from disk.
- */
-export async function readPipelinePendingHandoff(handoffPath: string): Promise<PipelinePendingHandoff> {
-  const raw = await fs.readFile(handoffPath, 'utf8');
-  return JSON.parse(raw) as PipelinePendingHandoff;
-}
-
-/**
- * Phases that indicate a pipeline was interrupted mid-run and can be resumed.
- * An artifact with status 'running' and one of these phases was written before
- * the next sub-phase started, so the resume entry point is deterministic.
- */
-const RESUMABLE_PHASES: ReadonlySet<PipelinePhase> = new Set([
-  'scaffold',
-  'loop',
-  'review',
-  'scm'
-]);
-
-/**
- * Scan <artifactDir>/pipelines/ and return all pipeline run artifacts that
- * have status 'running' and a phase in the resumable set.
- * These are candidates for ralphCodex.resumePipeline.
- */
-export async function findResumablePipelineArtifacts(
-  artifactDir: string
-): Promise<Array<{ artifact: PipelineRunArtifact; artifactPath: string }>> {
-  const pipelinesDir = path.join(artifactDir, 'pipelines');
-  let entries: string[];
-  try {
-    entries = await fs.readdir(pipelinesDir);
-  } catch {
-    return [];
-  }
-
-  const jsonFiles = entries.filter((name) => name.endsWith('.json')).sort();
-  const results: Array<{ artifact: PipelineRunArtifact; artifactPath: string }> = [];
-
-  for (const name of jsonFiles) {
-    const artifactPath = path.join(pipelinesDir, name);
-    try {
-      const raw = await fs.readFile(artifactPath, 'utf8');
-      const artifact = JSON.parse(raw) as PipelineRunArtifact;
-      if (
-        artifact.kind === 'pipelineRun' &&
-        typeof artifact.runId === 'string' &&
-        artifact.status === 'running' &&
-        artifact.phase !== undefined &&
-        RESUMABLE_PHASES.has(artifact.phase)
-      ) {
-        results.push({ artifact, artifactPath });
-      }
-    } catch {
-      // skip malformed files
-    }
-  }
-
-  return results;
 }
 
 /**
