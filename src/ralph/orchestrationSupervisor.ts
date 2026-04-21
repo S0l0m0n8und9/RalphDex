@@ -4,12 +4,9 @@ import { stableJson } from './integrity';
 import { readPlanGraph, writePlanGraph } from './planGraph';
 import type {
   ExecutionWave,
-  HumanGateArtifact,
-  HumanGateType,
   OrchestrationEdge,
   OrchestrationEvidenceRef,
   OrchestrationGraph,
-  OrchestrationNodeKind,
   OrchestrationNodeSpan,
   OrchestrationNodeState,
   OrchestrationState,
@@ -309,117 +306,6 @@ export async function readNodeSpan(
 }
 
 // ---------------------------------------------------------------------------
-// Human gate artifacts — choke points for high-risk mutations
-// ---------------------------------------------------------------------------
-
-export type { HumanGateType, HumanGateArtifact };
-
-/**
- * Returns the path where a human gate artifact for `gateType` under
- * `parentTaskId` should be persisted.
- *
- * Layout: `<artifactRootDir>/<parentTaskId>/human-gate-<gateType>.json`.
- */
-export function humanGateArtifactPath(
-  artifactRootDir: string,
-  parentTaskId: string,
-  gateType: HumanGateType
-): string {
-  return path.join(artifactRootDir, parentTaskId, `human-gate-${gateType}.json`);
-}
-
-/**
- * Write a human gate artifact. Creates the directory if needed.
- * Returns the path it was written to.
- */
-export async function writeHumanGateArtifact(
-  artifactRootDir: string,
-  parentTaskId: string,
-  artifact: HumanGateArtifact
-): Promise<string> {
-  const artifactPath = humanGateArtifactPath(artifactRootDir, parentTaskId, artifact.gateType);
-  await fs.mkdir(path.dirname(artifactPath), { recursive: true });
-  await fs.writeFile(artifactPath, stableJson(artifact), 'utf8');
-  return artifactPath;
-}
-
-/**
- * Delete a human gate artifact. No-op if the file does not exist
- * (idempotent so `approveHumanReview` can call it unconditionally).
- */
-export async function clearHumanGateArtifact(
-  artifactRootDir: string,
-  parentTaskId: string,
-  gateType: HumanGateType
-): Promise<void> {
-  const artifactPath = humanGateArtifactPath(artifactRootDir, parentTaskId, gateType);
-  try {
-    await fs.unlink(artifactPath);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw err;
-    }
-  }
-}
-
-export interface CheckContestedFanInScmGateInput {
-  planGraph: PlanGraph;
-  targetNodeKind: OrchestrationNodeKind;
-  pipelineHumanGates: boolean;
-  artifactRootDir?: string;
-  parentTaskId?: string;
-}
-
-export interface ScmGateResult {
-  gateTriggered: boolean;
-  artifactPath: string | null;
-}
-
-/**
- * Check the SCM-after-contested-fan-in choke point.
- *
- * Fires when all of the following are true:
- * - `pipelineHumanGates` is true
- * - `targetNodeKind` is `scm_submit`
- * - The plan graph's fan-in record contains conflict errors
- *
- * When triggered, writes a gate artifact and returns the path.
- * When bypassed (any condition false), returns `{ gateTriggered: false, artifactPath: null }`.
- */
-export async function checkContestedFanInScmGate(
-  input: CheckContestedFanInScmGateInput
-): Promise<ScmGateResult> {
-  const { planGraph, targetNodeKind, pipelineHumanGates, artifactRootDir, parentTaskId } = input;
-
-  if (!pipelineHumanGates || targetNodeKind !== 'scm_submit') {
-    return { gateTriggered: false, artifactPath: null };
-  }
-
-  const fanInErrors = planGraph.fanInRecord?.fanInErrors ?? [];
-  const conflictErrors = fanInErrors.filter(e => e.toLowerCase().includes('conflict'));
-  if (conflictErrors.length === 0) {
-    return { gateTriggered: false, artifactPath: null };
-  }
-
-  // Gate fires: contested fan-in + scm_submit.
-  let artifactPath: string | null = null;
-  if (artifactRootDir && parentTaskId) {
-    const artifact: HumanGateArtifact = {
-      gateType: 'contested_fan_in_scm',
-      triggerReason:
-        `Fan-in reported ${conflictErrors.length} unresolved conflict(s) and a subsequent node attempts scm_submit. ` +
-        `Conflicts: ${conflictErrors.join('; ')}.`,
-      affectedTaskIds: Object.keys(planGraph.fanInRecord?.memberOutcomes ?? {}),
-      requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-      createdAt: new Date().toISOString()
-    };
-    artifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, artifact);
-  }
-
-  return { gateTriggered: true, artifactPath };
-}
-
-// ---------------------------------------------------------------------------
 // Replan node — bounded adaptive re-planning
 // ---------------------------------------------------------------------------
 
@@ -433,8 +319,7 @@ export interface ReplanTrigger {
 export type ReplanOutcome =
   | 'replan_applied'
   | 'replan_cap_exhausted'
-  | 'no_trigger'
-  | 'human_gate_triggered';
+  | 'no_trigger';
 
 export interface ReplanResult {
   outcome: ReplanOutcome;
@@ -445,10 +330,6 @@ export interface ReplanResult {
   updatedGraph: PlanGraph | null;
   /** Path to the written replan decision artifact, or null when no artifact was written. */
   decisionArtifactPath: string | null;
-  /** Set when a human choke point fired and blocked the mutation. */
-  humanGateType?: HumanGateType;
-  /** Path to the written human gate artifact, or null when pipelineHumanGates is false or paths are absent. */
-  humanGateArtifactPath?: string | null;
 }
 
 /**
@@ -534,13 +415,6 @@ export interface ExecuteReplanNodeInput {
   artifactRootDir?: string;
   /** Parent task ID used to locate the replan decision artifact directory. */
   parentTaskId?: string;
-  /**
-   * When true, human choke points are active. Scope expansion and dependency
-   * rewiring gates fire before applying the mutation; they write a gate artifact
-   * and return `human_gate_triggered` without modifying the plan graph.
-   * When false (default), all gate checks are bypassed.
-   */
-  pipelineHumanGates?: boolean;
 }
 
 /**
@@ -600,8 +474,7 @@ export async function executeReplanNode(
     maxGeneratedChildren,
     proposedWaves,
     artifactRootDir,
-    parentTaskId,
-    pipelineHumanGates = false
+    parentTaskId
   } = input;
 
   // Read the current plan graph.
@@ -671,72 +544,6 @@ export async function executeReplanNode(
   const newMemberIds = new Set(truncatedWaves.flatMap(w => w.memberTaskIds));
   const addedTaskIds = [...newMemberIds].filter(id => !oldMemberIds.has(id));
   const removedTaskIds = [...oldMemberIds].filter(id => !newMemberIds.has(id));
-
-  // --- Human choke point 1: Scope expansion gate ---
-  if (pipelineHumanGates && addedTaskIds.length > maxGeneratedChildren / 2) {
-    let gateArtifactPath: string | null = null;
-    if (artifactRootDir && parentTaskId) {
-      const gateArtifact: HumanGateArtifact = {
-        gateType: 'scope_expansion',
-        triggerReason:
-          `Replan would add ${addedTaskIds.length} task(s), exceeding the threshold of ` +
-          `${Math.floor(maxGeneratedChildren / 2)} (maxGeneratedChildren=${maxGeneratedChildren} / 2). ` +
-          `Added tasks: ${addedTaskIds.join(', ')}.`,
-        affectedTaskIds: addedTaskIds,
-        requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-        createdAt: new Date().toISOString()
-      };
-      gateArtifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, gateArtifact);
-    }
-    return {
-      outcome: 'human_gate_triggered',
-      triggers,
-      replanCount: currentCount,
-      needsHumanReview: true,
-      summary:
-        `Scope expansion gate triggered: ${addedTaskIds.length} task(s) would be added ` +
-        `(threshold ${Math.floor(maxGeneratedChildren / 2)}). Mutation blocked pending human review.`,
-      updatedGraph: null,
-      decisionArtifactPath: null,
-      humanGateType: 'scope_expansion',
-      humanGateArtifactPath: gateArtifactPath
-    };
-  }
-
-  // --- Human choke point 2: Dependency rewiring gate ---
-  if (pipelineHumanGates) {
-    // Use the graph's own parentTaskId as the boundary reference so the check
-    // is correct even when the caller does not supply parentTaskId explicitly.
-    const crossBoundaryIds = detectCrossBoundaryDependencies(truncatedWaves, allTasks, parentTaskId ?? graph.parentTaskId);
-    if (crossBoundaryIds.length > 0) {
-      let gateArtifactPath: string | null = null;
-      if (artifactRootDir && parentTaskId) {
-        const gateArtifact: HumanGateArtifact = {
-          gateType: 'dependency_rewiring',
-          triggerReason:
-            `Replan would create cross-parent dependsOn edges for task(s): ${crossBoundaryIds.join(', ')}. ` +
-            `These tasks have dependencies on tasks belonging to a different parent.`,
-          affectedTaskIds: crossBoundaryIds,
-          requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-          createdAt: new Date().toISOString()
-        };
-        gateArtifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, gateArtifact);
-      }
-      return {
-        outcome: 'human_gate_triggered',
-        triggers,
-        replanCount: currentCount,
-        needsHumanReview: true,
-        summary:
-          `Dependency rewiring gate triggered: task(s) ${crossBoundaryIds.join(', ')} would gain ` +
-          `cross-parent dependsOn edges. Mutation blocked pending human review.`,
-        updatedGraph: null,
-        decisionArtifactPath: null,
-        humanGateType: 'dependency_rewiring',
-        humanGateArtifactPath: gateArtifactPath
-      };
-    }
-  }
 
   const updatedGraph: PlanGraph = {
     ...graph,

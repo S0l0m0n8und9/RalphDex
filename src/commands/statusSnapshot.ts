@@ -34,8 +34,8 @@ import {
   normalizeValidationCommand
 } from '../ralph/verifier';
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
-import { humanGateArtifactPath, readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
-import type { FanInRecord, HumanGateArtifact, HumanGateType, OrchestrationNodeSpan } from '../ralph/types';
+import { readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
+import type { FanInRecord, OrchestrationNodeSpan } from '../ralph/types';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
 import { getFailureAnalysisPath, parseFailureDiagnosticResponse, type FailureAnalysis } from '../ralph/failureDiagnostics';
 import { getRecoveryStatePath } from '../ralph/recoveryOrchestrator';
@@ -488,24 +488,6 @@ export async function collectStatusSnapshot(
     }
   }
 
-  // Collect human gate artifacts for the latest pipeline root task.
-  const humanGateArtifacts: HumanGateArtifact[] = [];
-  if (rootTaskId) {
-    const gateTypes: HumanGateType[] = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
-    for (const gateType of gateTypes) {
-      const gatePath = humanGateArtifactPath(inspection.paths.artifactDir, rootTaskId, gateType);
-      try {
-        const raw = await fs.readFile(gatePath, 'utf8');
-        const parsed = JSON.parse(raw) as HumanGateArtifact;
-        if (parsed && parsed.gateType) {
-          humanGateArtifacts.push(parsed);
-        }
-      } catch {
-        // gate file absent — no gate of this type is currently blocking
-      }
-    }
-  }
-
   // Extract fanInRecord from the plan graph for the latest pipeline root task.
   let fanInRecord: FanInRecord | null = null;
   if (rootTaskId) {
@@ -670,7 +652,6 @@ export async function collectStatusSnapshot(
     effectiveRolePolicy,
     rolePolicySource,
     replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined,
-    humanGateArtifacts: humanGateArtifacts.length > 0 ? humanGateArtifacts : undefined,
     fanInRecord: fanInRecord ?? undefined,
     nodeSpans: nodeSpans.length > 0 ? nodeSpans : undefined
   };

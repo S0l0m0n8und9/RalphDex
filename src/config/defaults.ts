@@ -97,7 +97,6 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   autoReviewOnLoopComplete: false,
   autoScmOnConflict: true,
   scmConflictRetryLimit: 1,
-  pipelineHumanGates: false,
   cliExecutionTimeoutMs: 0,
   promptCaching: 'auto' satisfies PromptCachingMode,
   memoryStrategy: 'verbatim' satisfies MemoryStrategy,

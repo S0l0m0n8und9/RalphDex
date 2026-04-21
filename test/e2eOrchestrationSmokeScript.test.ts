@@ -65,7 +65,7 @@ test('run-e2e-orchestration-smoke skips cleanly without RALPH_E2E_ORCHESTRATION'
   );
 });
 
-test('run-e2e-orchestration-smoke exercises graph + fan-in + handoff + role policy + human gate when opted in', async () => {
+test('run-e2e-orchestration-smoke exercises graph + fan-in + handoff + role policy when opted in', async () => {
   const result = await runSmokeScript({
     RALPH_E2E_ORCHESTRATION: '1'
   });
@@ -99,12 +99,4 @@ test('run-e2e-orchestration-smoke exercises graph + fan-in + handoff + role poli
     'Reviewer role must not be allowed to emit in_progress→done (policy_violation trigger).'
   );
   assert.equal(rolePolicy.reviewerRequiresHumanGate, true);
-
-  const humanGate = summary.humanGate as Record<string, unknown>;
-  assert.equal(humanGate.humanGateType, 'scope_expansion');
-  assert.ok(
-    typeof humanGate.humanGateArtifactPath === 'string' &&
-      (humanGate.humanGateArtifactPath as string).endsWith('human-gate-scope_expansion.json'),
-    'Scope-expansion gate must emit a scope_expansion artifact path.'
-  );
 });

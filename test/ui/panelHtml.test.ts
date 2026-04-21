@@ -414,8 +414,7 @@ test('buildPanelDashboardHtml applies refreshed section shells to work, diagnost
     pendingBranchNodes: [],
     fanInStatus: 'passed',
     fanInErrors: [],
-    replanHistory: [],
-    humanGates: []
+    replanHistory: []
   };
 
   const html = buildPanelDashboardHtml(defaultState({

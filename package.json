@@ -90,7 +90,6 @@
         "ralphCodex.openSidebarCommandId",
         "ralphCodex.newChatCommandId",
         "ralphCodex.agentCount",
-        "ralphCodex.pipelineHumanGates",
         "ralphCodex.promptCaching",
         "ralphCodex.memoryStrategy",
         "ralphCodex.memoryWindowSize",
@@ -967,11 +966,6 @@
           "maximum": 20,
           "description": "Maximum number of automatic SCM conflict retries attempted when autoScmOnConflict is enabled."
         },
-        "ralphCodex.pipelineHumanGates": {
-          "type": "boolean",
-          "default": false,
-          "description": "When true, the Run Pipeline command pauses after the review-agent pass and writes an awaiting_human_approval handoff note to .ralph/handoff/ instead of immediately submitting the PR. Use Approve Human Review to resume from the PR submission step."
-        },
         "ralphCodex.cliExecutionTimeoutMs": {
           "type": "number",
           "default": 0,
@@ -1020,9 +1014,9 @@
             "hardcore"
           ],
           "enumDescriptions": [
-            "Single-agent supervised mode. Sets autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, modelTiering.enabled=false, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false, pipelineHumanGates=true.",
-            "Multi-agent autonomous mode. Sets autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, modelTiering.enabled=true, scmStrategy=branch-per-task, autoReplenishBacklog=true, autoReviewOnParentDone=true, memoryStrategy=sliding-window, autoWatchdogOnStall=true, pipelineHumanGates=true.",
-            "Fully autonomous high-capability mode. All multi-agent values plus ralphIterationCap=100, memoryStrategy=summary, pipelineHumanGates=false, autoApplyRemediation=[decompose_task, mark_blocked], modelTiering.complex.model=claude-opus-4-6."
+            "Single-agent supervised mode. Sets autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, modelTiering.enabled=false, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false.",
+            "Multi-agent autonomous mode. Sets autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, modelTiering.enabled=true, scmStrategy=branch-per-task, autoReplenishBacklog=true, autoReviewOnParentDone=true, memoryStrategy=sliding-window, autoWatchdogOnStall=true.",
+            "Fully autonomous high-capability mode. All multi-agent values plus ralphIterationCap=100, memoryStrategy=summary, autoApplyRemediation=[decompose_task, mark_blocked], modelTiering.complex.model=claude-opus-4-6."
           ],
           "description": "Operator mode preset that seeds baseline values for multiple Ralph settings. Individual settings always override the preset when explicitly configured. Omit to keep existing per-setting defaults."
         },

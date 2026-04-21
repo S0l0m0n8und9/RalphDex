@@ -9,7 +9,7 @@ import type { AgentStatusSummary, AgentHandoffSummary } from '../src/ralph/multi
 import type { DeadLetterEntry } from '../src/ralph/deadLetter';
 import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
 import type { PipelineRunArtifact } from '../src/ralph/pipeline';
-import type { FanInRecord, HumanGateArtifact, OrchestrationNodeSpan, RalphProvenanceBundle, ReplanDecisionArtifact } from '../src/ralph/types';
+import type { FanInRecord, OrchestrationNodeSpan, RalphProvenanceBundle, ReplanDecisionArtifact } from '../src/ralph/types';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -40,7 +40,6 @@ function minimalSnapshot(
       | 'latestProvenanceBundle'
       | 'orchestration'
       | 'replanArtifacts'
-      | 'humanGateArtifacts'
       | 'fanInRecord'
       | 'nodeSpans'
     >
@@ -63,7 +62,6 @@ function minimalSnapshot(
     latestProvenanceBundle: null,
     orchestration: undefined,
     replanArtifacts: undefined,
-    humanGateArtifacts: undefined,
     fanInRecord: undefined,
     nodeSpans: undefined,
     ...overrides,
@@ -549,16 +547,6 @@ function makeReplanArtifact(replanIndex: number): ReplanDecisionArtifact {
   };
 }
 
-function makeHumanGateArtifact(gateType: HumanGateArtifact['gateType']): HumanGateArtifact {
-  return {
-    gateType,
-    triggerReason: `Gate triggered: ${gateType}`,
-    affectedTaskIds: ['T2', 'T3'],
-    requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-    createdAt: '2026-01-01T12:00:00.000Z',
-  };
-}
-
 function makeFanInRecord(result: FanInRecord['fanInResult']): FanInRecord {
   return {
     waveIndex: 0,
@@ -654,20 +642,6 @@ test('buildDashboardSnapshot: orchestration panel surfaces replan history', () =
   assert.strictEqual(result.orchestration!.replanHistory[1].replanIndex, 2);
 });
 
-test('buildDashboardSnapshot: orchestration panel surfaces human gate artifacts', () => {
-  const snapshot = minimalSnapshot({
-    orchestration: makeOrchestrationState() as RalphStatusSnapshot['orchestration'],
-    humanGateArtifacts: [makeHumanGateArtifact('scope_expansion')],
-  } as Partial<RalphStatusSnapshot>);
-  const result = buildDashboardSnapshot(snapshot);
-
-  assert.ok(result.orchestration !== null);
-  assert.strictEqual(result.orchestration!.humanGates.length, 1);
-  assert.strictEqual(result.orchestration!.humanGates[0].gateType, 'scope_expansion');
-  assert.ok(result.orchestration!.humanGates[0].triggerReason.includes('scope_expansion'));
-  assert.deepEqual(result.orchestration!.humanGates[0].affectedTaskIds, ['T2', 'T3']);
-});
-
 test('buildDashboardSnapshot: orchestration panel augments completed nodes with span data', () => {
   const snapshot = minimalSnapshot({
     orchestration: makeOrchestrationState({
@@ -703,5 +677,4 @@ test('buildDashboardSnapshot: orchestration panel renders absent fan-in when no 
   assert.ok(result.orchestration !== null);
   assert.strictEqual(result.orchestration!.fanInStatus, 'absent');
   assert.deepEqual(result.orchestration!.replanHistory, []);
-  assert.deepEqual(result.orchestration!.humanGates, []);
 });

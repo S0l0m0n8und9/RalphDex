@@ -261,7 +261,6 @@ interface OperatorPreset {
   scmStrategy: RalphScmStrategy;
   memoryStrategy: MemoryStrategy;
   autoReplenishBacklog: boolean;
-  pipelineHumanGates: boolean;
   autoReviewOnParentDone?: boolean;
   autoWatchdogOnStall?: boolean;
   autoApplyRemediation?: AutoApplyRemediationAction[];
@@ -277,8 +276,7 @@ const OPERATOR_PRESETS: Record<OperatorMode, OperatorPreset> = {
     stopOnHumanReviewNeeded: true,
     scmStrategy: 'none',
     memoryStrategy: 'verbatim',
-    autoReplenishBacklog: false,
-    pipelineHumanGates: true
+    autoReplenishBacklog: false
   },
   'multi-agent': {
     autonomyMode: 'autonomous',
@@ -290,7 +288,6 @@ const OPERATOR_PRESETS: Record<OperatorMode, OperatorPreset> = {
     scmStrategy: 'branch-per-task',
     memoryStrategy: 'sliding-window',
     autoReplenishBacklog: true,
-    pipelineHumanGates: true,
     autoReviewOnParentDone: true,
     autoWatchdogOnStall: true
   },
@@ -304,7 +301,6 @@ const OPERATOR_PRESETS: Record<OperatorMode, OperatorPreset> = {
     scmStrategy: 'branch-per-task',
     memoryStrategy: 'summary',
     autoReplenishBacklog: true,
-    pipelineHumanGates: false,
     autoReviewOnParentDone: true,
     autoWatchdogOnStall: true,
     autoApplyRemediation: ['decompose_task', 'mark_blocked']
@@ -452,7 +448,6 @@ export function resolveOperatorModeProvenance(
     checkKey('scmStrategy', resolvedConfig.scmStrategy),
     checkKey('memoryStrategy', resolvedConfig.memoryStrategy),
     checkKey('autoReplenishBacklog', String(resolvedConfig.autoReplenishBacklog)),
-    checkKey('pipelineHumanGates', String(resolvedConfig.pipelineHumanGates)),
     checkKey('autoReviewOnParentDone', String(resolvedConfig.autoReviewOnParentDone)),
     checkKey('autoWatchdogOnStall', String(resolvedConfig.autoWatchdogOnStall)),
     checkKey('autoApplyRemediation', resolvedConfig.autoApplyRemediation.join(', ') || 'none')
@@ -715,7 +710,6 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', DEFAULT_CONFIG.autoReviewOnLoopComplete),
     autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', DEFAULT_CONFIG.autoScmOnConflict),
     scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', DEFAULT_CONFIG.scmConflictRetryLimit, 1),
-    pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', preset?.pipelineHumanGates ?? DEFAULT_CONFIG.pipelineHumanGates),
     cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
     promptCaching: readEnum<PromptCachingMode>(
       config,

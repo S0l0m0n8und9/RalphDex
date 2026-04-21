@@ -1829,15 +1829,6 @@ function buildOrchestrationTab(state: RalphDashboardState): string {
       </div>`).join('\n')
     : '<div class="empty">No replanning recorded.</div>';
 
-  // Human gate artifacts
-  const humanGatesHtml = orch.humanGates.length > 0
-    ? orch.humanGates.map((gate) => `<div class="failure-meta">
-        <div><strong>${esc(gate.gateType)}</strong> · ${formatUtc(gate.createdAt)}</div>
-        <div><strong>Reason</strong> ${esc(gate.triggerReason)}</div>
-        <div><strong>Affected tasks</strong> ${esc(gate.affectedTaskIds.join(', ') || 'none')}</div>
-      </div>`).join('\n')
-    : '<div class="empty">No human gate artifacts blocking.</div>';
-
   return `<div class="orchestration-shell">
     <div class="diagnostics-grid">
       <div class="dashboard-summary-card full">
@@ -1853,11 +1844,6 @@ function buildOrchestrationTab(state: RalphDashboardState): string {
       <div class="dashboard-summary-card">
         <div class="card-title">Completed Nodes</div>
         ${completedNodesHtml}
-      </div>
-
-      <div class="dashboard-summary-card">
-        <div class="card-title">Human Gates</div>
-        ${humanGatesHtml}
       </div>
 
       <div class="dashboard-summary-card">

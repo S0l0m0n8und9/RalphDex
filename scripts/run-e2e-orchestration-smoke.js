@@ -353,80 +353,6 @@ function runRolePolicyScenario(modules) {
   };
 }
 
-async function runHumanChokePointScenario(modules, rootPath) {
-  const { planGraph, supervisor } = modules;
-  const parentId = 'T_replan_parent';
-  const planGraphPath = path.join(rootPath, '.ralph', 'plan-graphs', `${parentId}.json`);
-  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts', 'human-gates');
-  const artifactsDir = path.join(rootPath, '.ralph', 'artifacts', 'smoke-run');
-  await fsp.mkdir(artifactsDir, { recursive: true });
-  // Seeding systemic-failure-alert.json ensures a replan trigger fires.
-  await fsp.writeFile(path.join(artifactsDir, 'systemic-failure-alert.json'), '{}', 'utf8');
-
-  const initialGraph = {
-    parentTaskId: parentId,
-    waves: [
-      {
-        waveIndex: 0,
-        memberTaskIds: ['c1'],
-        launchGuards: [],
-        fanInCriteria: [],
-        status: 'pending'
-      }
-    ],
-    createdAt: nowIso()
-  };
-  await planGraph.writePlanGraph(planGraphPath, initialGraph);
-
-  // Proposed waves would add 4 new child tasks. With maxGeneratedChildren=6,
-  // the scope_expansion threshold is 3, so 4 > 3 fires the gate.
-  const proposedWaves = [
-    {
-      waveIndex: 1,
-      memberTaskIds: ['c2', 'c3', 'c4', 'c5'],
-      launchGuards: [],
-      fanInCriteria: [],
-      status: 'pending'
-    }
-  ];
-  const allTasks = [
-    { id: 'c1', title: 'Child 1', status: 'done', lastVerifierResult: 'passed' }
-  ];
-
-  const result = await supervisor.executeReplanNode({
-    planGraphFilePath: planGraphPath,
-    allTasks,
-    artifactsDir,
-    maxReplansPerParent: 3,
-    maxGeneratedChildren: 6,
-    proposedWaves,
-    pipelineHumanGates: true,
-    artifactRootDir,
-    parentTaskId: parentId
-  });
-
-  assert.equal(result.outcome, 'human_gate_triggered', 'scope-expansion threshold must trigger a human gate');
-  assert.equal(result.humanGateType, 'scope_expansion');
-  assert.ok(result.humanGateArtifactPath, 'human gate artifact path must be returned');
-
-  await fsp.access(result.humanGateArtifactPath);
-  const artifactRaw = await fsp.readFile(result.humanGateArtifactPath, 'utf8');
-  const artifact = JSON.parse(artifactRaw);
-  assert.equal(artifact.gateType, 'scope_expansion');
-  assert.equal(artifact.requiredApprovalCommand, 'ralphCodex.approveHumanReview');
-  assert.ok(Array.isArray(artifact.affectedTaskIds) && artifact.affectedTaskIds.length === 4);
-
-  // The plan graph must remain untouched because the gate blocked the mutation.
-  const persisted = await planGraph.readPlanGraph(planGraphPath);
-  assert.ok(persisted);
-  assert.deepEqual(persisted.waves[0].memberTaskIds, ['c1']);
-
-  return {
-    humanGateArtifactPath: result.humanGateArtifactPath,
-    humanGateType: result.humanGateType
-  };
-}
-
 async function main() {
   if (process.env.RALPH_E2E_ORCHESTRATION !== '1') {
     console.log('Skipping orchestration E2E smoke. Set RALPH_E2E_ORCHESTRATION=1 to run it.');
@@ -452,15 +378,13 @@ async function main() {
     const planGraphSummary = await runPlanGraphFanInScenario(modules, rootPath);
     const handoffSummary = await runHandoffLifecycleScenario(modules, rootPath);
     const policySummary = runRolePolicyScenario(modules);
-    const gateSummary = await runHumanChokePointScenario(modules, rootPath);
 
     console.log(JSON.stringify({
       rootPath,
       graph: graphSummary,
       planGraph: planGraphSummary,
       handoff: handoffSummary,
-      rolePolicy: policySummary,
-      humanGate: gateSummary
+      rolePolicy: policySummary
     }, null, 2));
   } catch (error) {
     shouldCleanup = false;

@@ -155,13 +155,6 @@ export interface OrchestrationReplanEntry {
   };
 }
 
-export interface OrchestrationHumanGateEntry {
-  gateType: string;
-  triggerReason: string;
-  affectedTaskIds: string[];
-  createdAt: string;
-}
-
 export interface OrchestrationPanelSection {
   activeNodeId: string | null;
   activeNodeLabel: string | null;
@@ -171,7 +164,6 @@ export interface OrchestrationPanelSection {
   fanInStatus: 'passed' | 'failed' | 'absent';
   fanInErrors: string[];
   replanHistory: OrchestrationReplanEntry[];
-  humanGates: OrchestrationHumanGateEntry[];
 }
 
 // ---------------------------------------------------------------------------
@@ -241,7 +233,7 @@ export function buildDashboardSnapshot(
 function buildOrchestrationPanel(snapshot: RalphStatusSnapshot): OrchestrationPanelSection | null {
   const orch = snapshot.orchestration;
   // Return null only when there is no orchestration data at all (no pipeline run / no graph).
-  if (!orch && !snapshot.replanArtifacts?.length && !snapshot.humanGateArtifacts?.length && snapshot.fanInRecord === undefined) {
+  if (!orch && !snapshot.replanArtifacts?.length && snapshot.fanInRecord === undefined) {
     return null;
   }
 
@@ -281,13 +273,6 @@ function buildOrchestrationPanel(snapshot: RalphStatusSnapshot): OrchestrationPa
     taskGraphDiff: artifact.taskGraphDiff
   }));
 
-  const humanGates: OrchestrationHumanGateEntry[] = (snapshot.humanGateArtifacts ?? []).map((gate) => ({
-    gateType: gate.gateType,
-    triggerReason: gate.triggerReason,
-    affectedTaskIds: gate.affectedTaskIds,
-    createdAt: gate.createdAt
-  }));
-
   return {
     activeNodeId: orch?.activeNodeId ?? null,
     activeNodeLabel: orch?.activeNodeLabel ?? null,
@@ -295,8 +280,7 @@ function buildOrchestrationPanel(snapshot: RalphStatusSnapshot): OrchestrationPa
     pendingBranchNodes: orch?.pendingBranchNodes ?? [],
     fanInStatus,
     fanInErrors,
-    replanHistory,
-    humanGates
+    replanHistory
   };
 }
 

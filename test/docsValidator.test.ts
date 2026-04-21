@@ -50,9 +50,6 @@ async function seedValidRepository(rootPath: string): Promise<void> {
           },
           'ralphCodex.agentCount': {
             default: 1
-          },
-          'ralphCodex.pipelineHumanGates': {
-            default: false
           }
         }
       }
@@ -882,9 +879,6 @@ test('validateRepositoryDocs reports missing Marketplace dry-run release validat
           },
           'ralphCodex.agentCount': {
             default: 1
-          },
-          'ralphCodex.pipelineHumanGates': {
-            default: false
           }
         }
       }

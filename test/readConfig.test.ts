@@ -279,7 +279,6 @@ test('readConfig simple preset seeds baseline values when no individual override
   assert.equal(config.scmStrategy, 'none');
   assert.equal(config.memoryStrategy, 'verbatim');
   assert.equal(config.autoReplenishBacklog, false);
-  assert.equal(config.pipelineHumanGates, true);
 });
 
 test('readConfig multi-agent preset with explicit agentCount override respects the override', () => {
@@ -298,7 +297,6 @@ test('readConfig multi-agent preset with explicit agentCount override respects t
   assert.equal(config.memoryStrategy, 'sliding-window');
   assert.equal(config.autoReviewOnParentDone, true);
   assert.equal(config.autoWatchdogOnStall, true);
-  assert.equal(config.pipelineHumanGates, true);
   assert.equal(config.modelTiering.enabled, true);
 });
 
@@ -314,7 +312,6 @@ test('readConfig with no operatorMode does not inject preset values', () => {
   assert.equal(config.preferredHandoffMode, 'ideCommand');
   assert.equal(config.scmStrategy, 'none');
   assert.equal(config.memoryStrategy, 'verbatim');
-  assert.equal(config.pipelineHumanGates, false);
   assert.equal(config.autoWatchdogOnStall, false);
   assert.equal(config.autoReviewOnParentDone, false);
 });

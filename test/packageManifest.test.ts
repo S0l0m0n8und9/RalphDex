@@ -107,14 +107,6 @@ test('package manifest contributes and activates the runPipeline command', async
 });
 
 
-test('package manifest exposes the pipelineHumanGates boolean setting', async () => {
-  const manifest = await readPackageManifest();
-  const properties = manifest.contributes?.configuration?.properties ?? {};
-
-  assert.ok(properties['ralphCodex.pipelineHumanGates'], 'pipelineHumanGates setting must be present');
-  assert.equal((properties['ralphCodex.pipelineHumanGates'] as { type?: string }).type, 'boolean');
-});
-
 test('package manifest contributes and activates the openLatestPipelineRun command', async () => {
   const manifest = await readPackageManifest();
   const commands = manifest.contributes?.commands ?? [];

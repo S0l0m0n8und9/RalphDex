@@ -190,7 +190,6 @@ export interface RalphCodexConfig {
   autoReviewOnLoopComplete: boolean;
   autoScmOnConflict: boolean;
   scmConflictRetryLimit: number;
-  pipelineHumanGates: boolean;
   cliExecutionTimeoutMs: number;
   promptCaching: PromptCachingMode;
   memoryStrategy: MemoryStrategy;

@@ -465,11 +465,6 @@ const CHECKED_CONFIG_DEFAULTS: ReadonlyArray<{
     packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.agentCount', 'default'],
     expectedValue: DEFAULT_CONFIG.agentCount,
     label: 'ralphCodex.agentCount'
-  },
-  {
-    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.pipelineHumanGates', 'default'],
-    expectedValue: DEFAULT_CONFIG.pipelineHumanGates,
-    label: 'ralphCodex.pipelineHumanGates'
   }
 ];
 
@@ -507,11 +502,6 @@ const DESCRIPTION_CONTRADICTION_CHECKS: ReadonlyArray<{
     propertyKey: 'ralphCodex.memorySummaryThreshold',
     defaultPath: [],
     label: 'ralphCodex.memorySummaryThreshold'
-  },
-  {
-    propertyKey: 'ralphCodex.pipelineHumanGates',
-    defaultPath: [],
-    label: 'ralphCodex.pipelineHumanGates'
   }
 ];
 
