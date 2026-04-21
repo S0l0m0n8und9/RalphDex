@@ -8,8 +8,7 @@ import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   resolveLatestStatusArtifacts,
   RalphLatestRemediationStatus,
-  RalphStatusSnapshot,
-  type RecommendedSkill
+  RalphStatusSnapshot
 } from '../ralph/statusReport';
 import { deriveEffectiveTier } from '../ralph/complexityScorer';
 import { RalphStateManager } from '../ralph/stateManager';
@@ -241,24 +240,6 @@ export function normalizeCompletionReportArtifact(candidate: unknown): Completio
   };
 }
 
-async function readRecommendedSkills(filePath: string): Promise<RecommendedSkill[]> {
-  try {
-    const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
-    if (!Array.isArray(raw)) {
-      return [];
-    }
-    return raw.filter(
-      (entry): entry is RecommendedSkill =>
-        typeof entry === 'object'
-        && entry !== null
-        && typeof entry.name === 'string'
-        && typeof entry.rationale === 'string'
-    );
-  } catch {
-    return [];
-  }
-}
-
 export async function collectStatusSnapshot(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
@@ -412,9 +393,6 @@ export async function collectStatusSnapshot(
     agentHealthDiagnostics,
     rolePolicySource
   });
-  const recommendedSkills = await readRecommendedSkills(
-    path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json')
-  );
   const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry, deadLetterQueue] = await Promise.all([
     inspectGeneratedArtifactRetention({
       artifactRootDir: inspection.paths.artifactDir,
@@ -673,7 +651,6 @@ export async function collectStatusSnapshot(
     currentProvenanceId,
     latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
     latestPipelineRun: latestPipelineEntry?.artifact ?? null,
-    recommendedSkills,
     effectiveTierInfo,
     lastTaskTierInfo,
     operatorMode: config.operatorMode,

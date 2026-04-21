@@ -15,11 +15,6 @@ import {
   resolveLatestArtifactPaths
 } from './artifactStore';
 import { RalphPaths } from './pathResolver';
-export interface RecommendedSkill {
-  name: string;
-  description: string;
-  rationale?: string | null;
-}
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import type { DeadLetterEntry } from './deadLetter';
 import type { FailureAnalysis } from './failureDiagnostics';
@@ -104,7 +99,6 @@ export interface RalphStatusSnapshot {
   currentProvenanceId: string | null;
   latestPipelineRunPath: string | null;
   latestPipelineRun: PipelineRunArtifact | null;
-  recommendedSkills: RecommendedSkill[];
   /** Effective tier for the currently selected task (null when no task is selected). */
   effectiveTierInfo: EffectiveTierInfo | null;
   /** Effective tier for the task worked in the last completed iteration (null when unavailable). */
@@ -593,13 +587,6 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
         ...snapshot.replanArtifacts.map((artifact) =>
           `- Replan ${artifact.replanIndex}: triggers [${artifact.triggerEvidenceClass.join(', ')}] | ${artifact.triggerDetails}`
         )
-      ]
-      : []),
-    ...(snapshot.recommendedSkills.length > 0
-      ? [
-        '',
-        '## Recommended Skills',
-        ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
       ]
       : []),
     ...(snapshot.latestHandoff
