@@ -15,7 +15,11 @@ import {
   resolveLatestArtifactPaths
 } from './artifactStore';
 import { RalphPaths } from './pathResolver';
-import type { RecommendedSkill } from './projectGenerator';
+export interface RecommendedSkill {
+  name: string;
+  description: string;
+  rationale?: string | null;
+}
 import { RalphTaskClaimGraphInspection } from './taskFile';
 import type { DeadLetterEntry } from './deadLetter';
 import type { FailureAnalysis } from './failureDiagnostics';

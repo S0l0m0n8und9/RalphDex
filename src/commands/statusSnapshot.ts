@@ -8,7 +8,8 @@ import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   resolveLatestStatusArtifacts,
   RalphLatestRemediationStatus,
-  RalphStatusSnapshot
+  RalphStatusSnapshot,
+  type RecommendedSkill
 } from '../ralph/statusReport';
 import { deriveEffectiveTier } from '../ralph/complexityScorer';
 import { RalphStateManager } from '../ralph/stateManager';
@@ -36,7 +37,6 @@ import {
 import { readLatestPipelineArtifact } from '../ralph/pipeline';
 import { humanGateArtifactPath, readOrchestrationGraph, readOrchestrationState, resolveOrchestrationPaths } from '../ralph/orchestrationSupervisor';
 import type { FanInRecord, HumanGateArtifact, HumanGateType, OrchestrationNodeSpan } from '../ralph/types';
-import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { readDeadLetterQueue, type DeadLetterEntry } from '../ralph/deadLetter';
 import { getFailureAnalysisPath, parseFailureDiagnosticResponse, type FailureAnalysis } from '../ralph/failureDiagnostics';
 import { getRecoveryStatePath } from '../ralph/recoveryOrchestrator';

@@ -14,12 +14,6 @@ export class ProjectGenerationError extends Error {
   }
 }
 
-export interface RecommendedSkill {
-  name: string;
-  description: string;
-  rationale: string;
-}
-
 export interface ProviderPromptExecution {
   responseText: string;
   providerId: string;
@@ -32,7 +26,6 @@ export interface ProviderPromptExecution {
 export function parseGenerationResponse(responseText: string): {
   prdText: string;
   tasks: RalphNewTaskInput[];
-  recommendedSkills: RecommendedSkill[];
   taskCountWarning?: string;
 } {
   const fencePattern = /```json\s*([\s\S]*?)```/g;
@@ -60,7 +53,7 @@ export function parseGenerationResponse(responseText: string): {
   }
 
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-    throw new ProjectGenerationError('AI response JSON block must be an object with "tasks" and optional "recommendedSkills" fields.');
+    throw new ProjectGenerationError('AI response JSON block must be an object with a "tasks" field.');
   }
 
   const parsedObj = parsed as Record<string, unknown>;
@@ -96,29 +89,11 @@ export function parseGenerationResponse(responseText: string): {
     };
   });
 
-  const recommendedSkills: RecommendedSkill[] = [];
-  if (Array.isArray(parsedObj.recommendedSkills)) {
-    for (const skill of parsedObj.recommendedSkills as unknown[]) {
-      if (
-        typeof skill === 'object' && skill !== null &&
-        typeof (skill as Record<string, unknown>).name === 'string' &&
-        typeof (skill as Record<string, unknown>).description === 'string' &&
-        typeof (skill as Record<string, unknown>).rationale === 'string'
-      ) {
-        recommendedSkills.push({
-          name: (skill as Record<string, unknown>).name as string,
-          description: (skill as Record<string, unknown>).description as string,
-          rationale: (skill as Record<string, unknown>).rationale as string
-        });
-      }
-    }
-  }
-
   const taskCountWarning = tasks.length > 8
     ? `Response contained ${tasks.length} tasks; expected 5–8. Excess tasks may reduce autonomous execution quality.`
     : undefined;
 
-  return { prdText, tasks, recommendedSkills, taskCountWarning };
+  return { prdText, tasks, taskCountWarning };
 }
 
 const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
@@ -129,7 +104,7 @@ The user's objective is:
 {OBJECTIVE}
 </objective>
 
-Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks and recommended skills.
+Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks.
 
 Requirements:
 - Start with a # heading for the project title
@@ -137,7 +112,6 @@ Requirements:
 - Keep each section to 2-4 sentences
 - Tasks must correspond one-to-one with the ## work area sections
 - Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
-- Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
 - Each task must include required fields \`id\` and \`title\`. Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only.
 
 ## Good vs bad task formulation
@@ -173,9 +147,6 @@ For each task, supply a \`suggestedValidationCommand\`: the shell command an age
       "tier": "medium"
     },
     { "id": "T2", "title": "short task title", "status": "todo", "dependsOn": ["T1"] }
-  ],
-  "recommendedSkills": [
-    { "name": "skill-name", "description": "one-line description of the skill", "rationale": "why this skill suits the project type and tasks" }
   ]
 }
 \`\`\`
@@ -254,7 +225,7 @@ export async function generateProjectDraft(
   objective: string,
   config: RalphCodexConfig,
   cwd: string
-): Promise<{ prdText: string; tasks: RalphNewTaskInput[]; recommendedSkills: RecommendedSkill[]; taskCountWarning?: string }> {
+): Promise<{ prdText: string; tasks: RalphNewTaskInput[]; taskCountWarning?: string }> {
   const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
   const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
   const prompt = template.replace('{OBJECTIVE}', safeObjective);

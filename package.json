@@ -139,7 +139,6 @@
     "onCommand:ralphCodex.approveHumanReview",
     "onCommand:ralphCodex.openLatestPipelineRun",
     "onCommand:ralphCodex.resumePipeline",
-    "onCommand:ralphCodex.constructRecommendedSkills",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
@@ -295,10 +294,6 @@
       {
         "command": "ralphCodex.resumePipeline",
         "title": "Ralphdex: Resume Pipeline"
-      },
-      {
-        "command": "ralphCodex.constructRecommendedSkills",
-        "title": "Ralphdex: Construct Recommended Skills"
       },
       {
         "command": "ralphCodex.regeneratePrd",

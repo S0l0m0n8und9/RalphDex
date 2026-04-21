@@ -48,7 +48,6 @@ import type { RalphPaths } from '../ralph/pathResolver';
 import type { RalphCodexConfig } from '../config/types';
 import { resolveRalphPaths } from '../ralph/pathResolver';
 import { generateProjectDraft, ProjectGenerationError } from '../ralph/projectGenerator';
-import type { RecommendedSkill } from '../ralph/projectGenerator';
 import { parseCrewRoster } from '../ralph/crewRoster';
 import type { CrewMember } from '../ralph/crewRoster';
 import {
@@ -404,8 +403,6 @@ async function openPrdCreationWizard(
     return;
   }
 
-  const recommendedSkillsPath = path.join(path.dirname(paths.prdPath), 'recommended-skills.json');
-
   PrdCreationWizardPanel.createOrReveal(panelManager, {
     initialMode: options?.mode ?? 'new',
     initialObjective: options?.initialObjective,
@@ -413,8 +410,7 @@ async function openPrdCreationWizard(
     initialStep: options?.initialStep,
     initialPaths: {
       prdPath: paths.prdPath,
-      tasksPath: paths.taskFilePath,
-      recommendedSkillsPath
+      tasksPath: paths.taskFilePath
     },
     configSelections: buildPrdWizardConfigSelections(config),
     generateDraft: async (input): Promise<PrdWizardGenerateResult> => {
@@ -429,15 +425,13 @@ async function openPrdCreationWizard(
           ...task,
           status: task.status ?? 'todo'
         })),
-        recommendedSkills: generated.recommendedSkills,
         taskCountWarning: generated.taskCountWarning
       };
     },
     writeDraft: async (draft: PrdWizardDraftBundle): Promise<PrdWizardWriteResult> => {
       return writePrdWizardDraft(workspaceFolder, draft, {
         prdPath: paths.prdPath,
-        tasksPath: paths.taskFilePath,
-        recommendedSkillsPath
+        tasksPath: paths.taskFilePath
       });
     },
     onWriteComplete: async (result) => {
@@ -733,7 +727,6 @@ export function registerCommands(
 
       let prdText: string;
       let drafts: RalphNewTaskInput[];
-      let skillsPath: string | undefined;
 
       if (objective?.trim()) {
         progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
@@ -741,11 +734,6 @@ export function registerCommands(
           const generated = await generateProjectDraft(objective.trim(), config, workspaceFolder.uri.fsPath);
           prdText = generated.prdText;
           drafts = generated.tasks;
-          if (generated.recommendedSkills.length > 0) {
-            skillsPath = path.join(result.ralphDir, 'recommended-skills.json');
-            await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
-            logger.info('Wrote recommended-skills.json.', { skillCount: generated.recommendedSkills.length });
-          }
           logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
         } catch (err) {
           const reason = err instanceof ProjectGenerationError || err instanceof Error
@@ -884,11 +872,6 @@ export function registerCommands(
           const generated = await generateProjectDraft(objective.trim(), config, workspaceFolder.uri.fsPath);
           prdText = generated.prdText;
           drafts = generated.tasks;
-          if (generated.recommendedSkills.length > 0) {
-            const skillsPath = path.join(absPaths.dir, 'recommended-skills.json');
-            await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
-            logger.info(`Wrote recommended-skills.json for project "${slug}".`, { skillCount: generated.recommendedSkills.length });
-          }
           logger.info(`Generated PRD and tasks for project "${slug}" via AI.`, { taskCount: drafts.length });
         } catch (err) {
           const reason = err instanceof ProjectGenerationError || err instanceof Error
@@ -1805,96 +1788,6 @@ export function registerCommands(
       }
 
       void vscode.window.showInformationMessage(summary || `${providerLabel} provider readiness checks passed.`);
-    }
-  });
-
-  // ---------- Construct Recommended Skills ----------
-  registerCommand(context, logger, {
-    commandId: 'ralphCodex.constructRecommendedSkills',
-    label: 'Ralphdex: Construct Recommended Skills',
-    handler: async (progress) => {
-      const workspaceFolder = await withWorkspaceFolder();
-      const config = readConfig(workspaceFolder);
-      const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
-      const skillsFilePath = path.join(paths.ralphDir, 'recommended-skills.json');
-
-      let skills: RecommendedSkill[];
-      try {
-        const raw = JSON.parse(await fs.readFile(skillsFilePath, 'utf8'));
-        if (!Array.isArray(raw)) {
-          void vscode.window.showInformationMessage('recommended-skills.json does not contain an array.');
-          return;
-        }
-        skills = raw.filter(
-          (entry: unknown): entry is RecommendedSkill =>
-            typeof entry === 'object'
-            && entry !== null
-            && typeof (entry as Record<string, unknown>).name === 'string'
-            && typeof (entry as Record<string, unknown>).description === 'string'
-        );
-      } catch {
-        void vscode.window.showInformationMessage(
-          'No recommended-skills.json found. Run "New Project" with an AI-generated PRD to create one.'
-        );
-        return;
-      }
-
-      if (skills.length === 0) {
-        void vscode.window.showInformationMessage('recommended-skills.json is empty — no skills to construct.');
-        return;
-      }
-
-      const quickPickItems = skills.map((s) => ({
-        label: s.name,
-        description: s.description,
-        detail: s.rationale ?? undefined,
-        picked: false,
-        skill: s
-      }));
-
-      const selected = await vscode.window.showQuickPick(quickPickItems, {
-        canPickMany: true,
-        placeHolder: 'Select skills to construct (only selected skills will be built)',
-        title: 'Recommended Skills'
-      });
-
-      if (!selected || selected.length === 0) {
-        logger.info('constructRecommendedSkills: operator cancelled or selected nothing.');
-        return;
-      }
-
-      const selectedSkills = selected.map((item) => item.skill);
-      logger.info('constructRecommendedSkills: operator approved skills.', {
-        count: selectedSkills.length,
-        names: selectedSkills.map((s) => s.name)
-      });
-
-      progress.report({ message: `Constructing ${selectedSkills.length} skill(s)…` });
-
-      for (const skill of selectedSkills) {
-        progress.report({ message: `Constructing skill: ${skill.name}` });
-
-        const skillDir = path.join(paths.ralphDir, 'skills', skill.name);
-        await fs.mkdir(skillDir, { recursive: true });
-
-        const manifest = {
-          name: skill.name,
-          description: skill.description,
-          rationale: skill.rationale ?? null,
-          constructedAt: new Date().toISOString()
-        };
-        await fs.writeFile(
-          path.join(skillDir, 'skill.json'),
-          JSON.stringify(manifest, null, 2) + '\n',
-          'utf8'
-        );
-
-        logger.info(`Constructed skill: ${skill.name}`, { skillDir });
-      }
-
-      void vscode.window.showInformationMessage(
-        `Constructed ${selectedSkills.length} skill(s): ${selectedSkills.map((s) => s.name).join(', ')}`
-      );
     }
   });
 

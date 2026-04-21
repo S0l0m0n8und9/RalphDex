@@ -56,9 +56,6 @@ function makeGeneratedDraft(overrides: Partial<PrdWizardGenerateResult> = {}): P
     tasks: [
       { id: 'T1', title: 'Draft first task', status: 'todo' }
     ],
-    recommendedSkills: [
-      { name: 'testing', description: 'Testing discipline', rationale: 'Verify changes.' }
-    ],
     ...overrides
   };
 }
@@ -361,16 +358,13 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
       return {
         filesWritten: [
           path.join('workspace', '.ralph', 'prd.md'),
-          path.join('workspace', '.ralph', 'tasks.json'),
-          path.join('workspace', '.ralph', 'recommended-skills.json')
+          path.join('workspace', '.ralph', 'tasks.json')
         ],
         settingsUpdated: [
           'ralphCodex.operatorMode = simple',
           'ralphCodex.cliProvider = codex'
         ],
-        settingsSkipped: [
-          'testing (not selected)'
-        ]
+        settingsSkipped: []
       };
     }
   });
@@ -398,16 +392,13 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
   );
   assert.deepEqual(lastStateMessage(webview).state.writeSummary?.filesWritten, [
     path.join('workspace', '.ralph', 'prd.md'),
-    path.join('workspace', '.ralph', 'tasks.json'),
-    path.join('workspace', '.ralph', 'recommended-skills.json')
+    path.join('workspace', '.ralph', 'tasks.json')
   ]);
   assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsUpdated, [
     'ralphCodex.operatorMode = simple',
     'ralphCodex.cliProvider = codex'
   ]);
-  assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsSkipped, [
-    'testing (not selected)'
-  ]);
+  assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsSkipped, []);
 
   host.dispose();
 });
@@ -429,9 +420,6 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
       prdText: '# Generated PRD\n\nFresh generated content.\n',
       tasks: [
         { id: 'T1', title: 'Draft first task', status: 'todo' }
-      ],
-      recommendedSkills: [
-        { name: 'testing', description: 'Testing discipline', rationale: 'Verify changes.' }
       ]
     }),
     writeDraft: async (draft) => {
@@ -449,7 +437,6 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
   webviewSends(webview, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
   webviewSends(webview, { type: 'set-step', step: 6 });
   webviewSends(webview, { type: 'toggle-config-selection', key: 'operatorMode' });
-  webviewSends(webview, { type: 'toggle-skill', skillName: 'testing' });
   webviewSends(webview, { type: 'confirm-write' });
   await new Promise((resolve) => setImmediate(resolve));
 
@@ -458,7 +445,6 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
   assert.equal(writtenDraft.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
   assert.equal(writtenDraft.tasks[0]?.tier, 'complex');
   assert.equal(writtenDraft.configSelections[0]?.selected, false);
-  assert.equal(writtenDraft.recommendedSkills[0]?.selected, false);
 
   const state = lastStateMessage(webview).state as {
     currentPrdPreview: string | null;

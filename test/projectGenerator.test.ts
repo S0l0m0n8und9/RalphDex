@@ -143,33 +143,6 @@ test('parseGenerationResponse throws ProjectGenerationError when task missing ti
   );
 });
 
-test('parseGenerationResponse extracts recommendedSkills from valid response', () => {
-  const { recommendedSkills } = parseGenerationResponse(VALID_RESPONSE);
-  assert.equal(recommendedSkills.length, 1);
-  assert.equal(recommendedSkills[0].name, 'jest');
-  assert.ok(recommendedSkills[0].description.length > 0);
-  assert.ok(recommendedSkills[0].rationale.length > 0);
-});
-
-test('parseGenerationResponse returns empty recommendedSkills when field is absent', () => {
-  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }]}\n```';
-  const { recommendedSkills } = parseGenerationResponse(response);
-  assert.deepEqual(recommendedSkills, []);
-});
-
-test('parseGenerationResponse returns empty recommendedSkills when field is empty array', () => {
-  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }],"recommendedSkills":[]}\n```';
-  const { recommendedSkills } = parseGenerationResponse(response);
-  assert.deepEqual(recommendedSkills, []);
-});
-
-test('parseGenerationResponse silently skips malformed skill entries', () => {
-  const response = '# P\n```json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo" }],"recommendedSkills":[{"name":"ok","description":"d","rationale":"r"},{"name":42}]}\n```';
-  const { recommendedSkills } = parseGenerationResponse(response);
-  assert.equal(recommendedSkills.length, 1);
-  assert.equal(recommendedSkills[0].name, 'ok');
-});
-
 test('parseGenerationResponse sets taskCountWarning when response has more than 8 tasks', () => {
   const tasks = Array.from({ length: 9 }, (_, i) => `{ "id": "T${i + 1}", "title": "task ${i + 1}", "status": "todo" }`).join(', ');
   const response = `# P\n\`\`\`json\n{"tasks":[${tasks}]}\n\`\`\``;
@@ -198,7 +171,7 @@ const VALID_CLAUDE_STDOUT = JSON.stringify({
   num_turns: 1
 });
 
-test('generateProjectDraft returns prdText, tasks, and recommendedSkills on success (claude provider)', async () => {
+test('generateProjectDraft returns prdText and tasks on success (claude provider)', async () => {
   setProcessRunnerOverride((_cmd, _args, _opts) => ({
     code: 0,
     stdout: VALID_CLAUDE_STDOUT,
@@ -215,8 +188,6 @@ test('generateProjectDraft returns prdText, tasks, and recommendedSkills on succ
     assert.equal(result.tasks.length, 1);
     assert.equal(result.tasks[0].id, 'T1');
     assert.equal(result.tasks[0].status, 'todo');
-    assert.equal(result.recommendedSkills.length, 1);
-    assert.equal(result.recommendedSkills[0].name, 'vitest');
   } finally {
     setProcessRunnerOverride(null);
   }
