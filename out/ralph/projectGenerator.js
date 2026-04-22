@@ -72,7 +72,7 @@ function parseGenerationResponse(responseText) {
         throw new ProjectGenerationError(`AI response contained a malformed JSON block: ${jsonText.slice(0, 100)}`);
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-        throw new ProjectGenerationError('AI response JSON block must be an object with "tasks" and optional "recommendedSkills" fields.');
+        throw new ProjectGenerationError('AI response JSON block must be an object with a "tasks" field.');
     }
     const parsedObj = parsed;
     if (!Array.isArray(parsedObj.tasks) || parsedObj.tasks.length === 0) {
@@ -100,25 +100,10 @@ function parseGenerationResponse(responseText) {
             ...(validation !== undefined ? { validation } : {})
         };
     });
-    const recommendedSkills = [];
-    if (Array.isArray(parsedObj.recommendedSkills)) {
-        for (const skill of parsedObj.recommendedSkills) {
-            if (typeof skill === 'object' && skill !== null &&
-                typeof skill.name === 'string' &&
-                typeof skill.description === 'string' &&
-                typeof skill.rationale === 'string') {
-                recommendedSkills.push({
-                    name: skill.name,
-                    description: skill.description,
-                    rationale: skill.rationale
-                });
-            }
-        }
-    }
     const taskCountWarning = tasks.length > 8
         ? `Response contained ${tasks.length} tasks; expected 5–8. Excess tasks may reduce autonomous execution quality.`
         : undefined;
-    return { prdText, tasks, recommendedSkills, taskCountWarning };
+    return { prdText, tasks, taskCountWarning };
 }
 const GENERATION_PROMPT_TEMPLATE = `You are helping set up a new software project for an agentic coding loop.
 
@@ -128,7 +113,7 @@ The user's objective is:
 {OBJECTIVE}
 </objective>
 
-Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks and recommended skills.
+Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks.
 
 Requirements:
 - Start with a # heading for the project title
@@ -136,7 +121,6 @@ Requirements:
 - Keep each section to 2-4 sentences
 - Tasks must correspond one-to-one with the ## work area sections
 - Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
-- Recommend 2-5 skills that would be valuable for this project type (e.g. testing frameworks, deployment tools, domain-specific libraries)
 - Each task must include required fields \`id\` and \`title\`. Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only.
 
 ## Good vs bad task formulation
@@ -172,9 +156,6 @@ For each task, supply a \`suggestedValidationCommand\`: the shell command an age
       "tier": "medium"
     },
     { "id": "T2", "title": "short task title", "status": "todo", "dependsOn": ["T1"] }
-  ],
-  "recommendedSkills": [
-    { "name": "skill-name", "description": "one-line description of the skill", "rationale": "why this skill suits the project type and tasks" }
   ]
 }
 \`\`\`

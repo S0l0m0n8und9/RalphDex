@@ -98,7 +98,6 @@ exports.DEFAULT_CONFIG = {
     autoReviewOnLoopComplete: false,
     autoScmOnConflict: true,
     scmConflictRetryLimit: 1,
-    pipelineHumanGates: false,
     cliExecutionTimeoutMs: 0,
     promptCaching: 'auto',
     memoryStrategy: 'verbatim',

@@ -450,11 +450,6 @@ const CHECKED_CONFIG_DEFAULTS = [
         packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.agentCount', 'default'],
         expectedValue: defaults_1.DEFAULT_CONFIG.agentCount,
         label: 'ralphCodex.agentCount'
-    },
-    {
-        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.pipelineHumanGates', 'default'],
-        expectedValue: defaults_1.DEFAULT_CONFIG.pipelineHumanGates,
-        label: 'ralphCodex.pipelineHumanGates'
     }
 ];
 /**
@@ -486,11 +481,6 @@ const DESCRIPTION_CONTRADICTION_CHECKS = [
         propertyKey: 'ralphCodex.memorySummaryThreshold',
         defaultPath: [],
         label: 'ralphCodex.memorySummaryThreshold'
-    },
-    {
-        propertyKey: 'ralphCodex.pipelineHumanGates',
-        defaultPath: [],
-        label: 'ralphCodex.pipelineHumanGates'
     }
 ];
 /** Phrases that must not appear in a description when the feature is implemented. */

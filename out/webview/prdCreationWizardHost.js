@@ -157,12 +157,8 @@ function createFallbackDraft(projectType, objective, techStack, outOfScope, exis
     return {
         prdText: `${lines.join('\n')}\n`,
         tasks: bootstrapSeedTasks(),
-        recommendedSkills: [],
         configSelections: cloneConfigSelections(configSelections)
     };
-}
-function normalizeRecommendedSkills(skills) {
-    return skills.map((skill) => ({ ...skill, selected: true }));
 }
 function cloneConfigSelections(configSelections) {
     return configSelections.map((selection) => ({ ...selection }));
@@ -181,7 +177,6 @@ function createComparisonDraft(prdPreview) {
     return {
         prdText: prdPreview,
         tasks: [],
-        recommendedSkills: [],
         configSelections: []
     };
 }
@@ -376,7 +371,6 @@ class PrdCreationWizardHost {
                         : {
                             prdText: message.value,
                             tasks: [],
-                            recommendedSkills: [],
                             configSelections: cloneConfigSelections(this.state.configSelections)
                         },
                     warning: null,
@@ -443,20 +437,6 @@ class PrdCreationWizardHost {
                 };
                 this.emitState();
                 return;
-            case 'toggle-skill':
-                this.state = {
-                    ...this.state,
-                    draft: this.state.draft
-                        ? {
-                            ...this.state.draft,
-                            recommendedSkills: this.state.draft.recommendedSkills.map((skill) => skill.name === message.skillName
-                                ? { ...skill, selected: !skill.selected }
-                                : skill)
-                        }
-                        : null
-                };
-                this.emitState();
-                return;
             case 'generate-draft':
                 await this.generateDraft();
                 return;
@@ -487,7 +467,6 @@ class PrdCreationWizardHost {
                 draft: {
                     prdText: generated.prdText,
                     tasks: generated.tasks,
-                    recommendedSkills: normalizeRecommendedSkills(generated.recommendedSkills),
                     configSelections: cloneConfigSelections(this.state.configSelections)
                 },
                 warning: generated.taskCountWarning ?? null,
@@ -918,17 +897,6 @@ code {
         ).join('') + '</div>';
       }
 
-      function skillList() {
-        if (!state.draft || state.draft.recommendedSkills.length === 0) {
-          return '<p class="empty">No recommended skills are selected for this draft.</p>';
-        }
-        return '<div class="skill-list">' + state.draft.recommendedSkills.map((skill) =>
-          '<label class="skill-row"><header><div><strong>' + escapeHtml(skill.name) + '</strong><div class="muted">' + escapeHtml(skill.description) + '</div></div>' +
-          '<input type="checkbox" data-action="toggle-skill" data-skill-name="' + escapeHtml(skill.name) + '"' + (skill.selected ? ' checked' : '') + ' /></header>' +
-          '<div class="muted">' + escapeHtml(skill.rationale) + '</div></label>'
-        ).join('') + '</div>';
-      }
-
       function configSelectionList() {
         const selections = state.configSelections || [];
         if (selections.length === 0) {
@@ -1043,11 +1011,9 @@ code {
                   taskList() +
                 '</section>' +
                 '<section class="wizard-step">' +
-                  '<h2>6. Configuration And Recommended Skills</h2>' +
+                  '<h2>6. Configuration</h2>' +
                   configSelectionList() +
                   '<div class="actions"><button class="secondary" data-action="set-step" data-step="7">Go To Confirm</button></div>' +
-                  '<h3 style="margin-top:16px;">Recommended Skills</h3>' +
-                  skillList() +
                 '</section>' +
               '</main>' +
               '<aside class="wizard-main">' +
@@ -1056,7 +1022,6 @@ code {
                   '<div class="wizard-summary"><strong>Targets</strong><ul>' +
                     '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
                     '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
-                    (state.paths.recommendedSkillsPath ? '<li><code>' + escapeHtml(state.paths.recommendedSkillsPath) + '</code></li>' : '') +
                   '</ul></div>' +
                   writeSummary() +
                   '<div class="actions">' +
@@ -1132,12 +1097,6 @@ code {
           });
         }
 
-        for (const checkbox of document.querySelectorAll('input[data-action="toggle-skill"]')) {
-          checkbox.addEventListener('change', () => {
-            vscode.postMessage({ type: 'toggle-skill', skillName: checkbox.getAttribute('data-skill-name') });
-          });
-        }
-
         for (const checkbox of document.querySelectorAll('input[data-action="toggle-config-selection"]')) {
           checkbox.addEventListener('change', () => {
             vscode.postMessage({ type: 'toggle-config-selection', key: checkbox.getAttribute('data-config-key') });
@@ -1177,8 +1136,7 @@ code {
 function summarizeWizardPaths(paths) {
     return {
         'PRD path': paths.prdPath,
-        'Task path': paths.tasksPath,
-        ...(paths.recommendedSkillsPath ? { 'Recommended skills': paths.recommendedSkillsPath } : {})
+        'Task path': paths.tasksPath
     };
 }
 function relativeWizardWriteSummary(rootPath, result) {

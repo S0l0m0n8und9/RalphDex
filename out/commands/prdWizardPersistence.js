@@ -83,14 +83,6 @@ async function writePrdWizardDraft(workspaceFolder, draft, paths) {
     const filesWritten = [paths.prdPath, paths.tasksPath];
     const settingsUpdated = [];
     const settingsSkipped = [];
-    const selectedSkills = draft.recommendedSkills
-        .filter((skill) => skill.selected)
-        .map(({ selected: _selected, ...skill }) => skill);
-    const skippedSkills = draft.recommendedSkills
-        .filter((skill) => !skill.selected)
-        .map((skill) => `${skill.name} (not selected)`);
-    await fs.writeFile(paths.recommendedSkillsPath, `${JSON.stringify(selectedSkills, null, 2)}\n`, 'utf8');
-    filesWritten.push(paths.recommendedSkillsPath);
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
     for (const selection of draft.configSelections) {
         if (!selection.selected) {
@@ -100,7 +92,6 @@ async function writePrdWizardDraft(workspaceFolder, draft, paths) {
         await config.update(selectionSettingKey(selection), selection.value, vscode.ConfigurationTarget.Workspace);
         settingsUpdated.push(selectionSummary(selection));
     }
-    settingsSkipped.push(...skippedSkills);
     return {
         filesWritten,
         settingsUpdated,

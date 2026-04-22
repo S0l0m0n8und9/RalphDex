@@ -240,21 +240,6 @@ function normalizeCompletionReportArtifact(candidate) {
         warnings: record.warnings.filter((warning) => typeof warning === 'string')
     };
 }
-async function readRecommendedSkills(filePath) {
-    try {
-        const raw = JSON.parse(await fs.readFile(filePath, 'utf8'));
-        if (!Array.isArray(raw)) {
-            return [];
-        }
-        return raw.filter((entry) => typeof entry === 'object'
-            && entry !== null
-            && typeof entry.name === 'string'
-            && typeof entry.rationale === 'string');
-    }
-    catch {
-        return [];
-    }
-}
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
@@ -396,7 +381,6 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         agentHealthDiagnostics,
         rolePolicySource
     });
-    const recommendedSkills = await readRecommendedSkills(path.join(workspaceFolder.uri.fsPath, '.ralph', 'recommended-skills.json'));
     const [generatedArtifactRetention, provenanceBundleRetention, latestPipelineEntry, deadLetterQueue] = await Promise.all([
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: inspection.paths.artifactDir,
@@ -486,24 +470,6 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         }
         catch {
             // directory absent or unreadable — leave empty
-        }
-    }
-    // Collect human gate artifacts for the latest pipeline root task.
-    const humanGateArtifacts = [];
-    if (rootTaskId) {
-        const gateTypes = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
-        for (const gateType of gateTypes) {
-            const gatePath = (0, orchestrationSupervisor_1.humanGateArtifactPath)(inspection.paths.artifactDir, rootTaskId, gateType);
-            try {
-                const raw = await fs.readFile(gatePath, 'utf8');
-                const parsed = JSON.parse(raw);
-                if (parsed && parsed.gateType) {
-                    humanGateArtifacts.push(parsed);
-                }
-            }
-            catch {
-                // gate file absent — no gate of this type is currently blocking
-            }
         }
     }
     // Extract fanInRecord from the plan graph for the latest pipeline root task.
@@ -649,7 +615,6 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         currentProvenanceId,
         latestPipelineRunPath: latestPipelineEntry?.artifactPath ?? null,
         latestPipelineRun: latestPipelineEntry?.artifact ?? null,
-        recommendedSkills,
         effectiveTierInfo,
         lastTaskTierInfo,
         operatorMode: config.operatorMode,
@@ -669,7 +634,6 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         effectiveRolePolicy,
         rolePolicySource,
         replanArtifacts: replanArtifacts.length > 0 ? replanArtifacts : undefined,
-        humanGateArtifacts: humanGateArtifacts.length > 0 ? humanGateArtifacts : undefined,
         fanInRecord: fanInRecord ?? undefined,
         nodeSpans: nodeSpans.length > 0 ? nodeSpans : undefined
     };

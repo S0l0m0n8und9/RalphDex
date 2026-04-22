@@ -454,7 +454,6 @@ function buildDashboardHtml(state, nonce) {
         <button class="btn" data-command="ralphCodex.showMultiAgentStatus"><span class="btn-label">◫ Agents</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">⊞ New</span><span class="btn-spinner"></span></button>
       </div>
     </div>
   </div>

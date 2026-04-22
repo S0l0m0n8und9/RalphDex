@@ -65,7 +65,6 @@ const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
 const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
-const orchestrationSupervisor_1 = require("../ralph/orchestrationSupervisor");
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -212,59 +211,6 @@ function buildBootstrapSeedTasks() {
         }
     ];
 }
-const RALPH_PROJECTS_DIR = 'projects';
-/**
- * Produce a filesystem-safe slug from a human-readable project name.
- * Lowercases, collapses non-alphanumeric runs to hyphens, trims edge hyphens.
- */
-function slugify(name) {
-    return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
-}
-/** Absolute paths for a named project directory. */
-function projectAbsolutePaths(ralphDir, slug) {
-    const dir = path.join(ralphDir, RALPH_PROJECTS_DIR, slug);
-    return {
-        dir,
-        prdPath: path.join(dir, 'prd.md'),
-        tasksPath: path.join(dir, 'tasks.json'),
-        progressPath: path.join(dir, 'progress.md')
-    };
-}
-/** Workspace-relative settings values for a named project. */
-function projectRelativePaths(slug) {
-    const base = `.ralph/${RALPH_PROJECTS_DIR}/${slug}`;
-    return { prdPath: `${base}/prd.md`, tasksPath: `${base}/tasks.json`, progressPath: `${base}/progress.md` };
-}
-/**
- * List slugs of projects that already exist under .ralph/projects/.
- * A directory qualifies if it contains a prd.md file.
- */
-async function listExistingProjects(ralphDir) {
-    const projectsDir = path.join(ralphDir, RALPH_PROJECTS_DIR);
-    try {
-        const entries = await fs.readdir(projectsDir, { withFileTypes: true });
-        const slugs = [];
-        for (const entry of entries) {
-            if (entry.isDirectory() && await (0, fs_1.pathExists)(path.join(projectsDir, entry.name, 'prd.md'))) {
-                slugs.push(entry.name);
-            }
-        }
-        return slugs.sort();
-    }
-    catch {
-        return [];
-    }
-}
-/**
- * Update the three workspace settings that define which project Ralph uses.
- * Relative paths are resolved from the workspace root at runtime by readConfig.
- */
-async function switchToProject(workspaceFolder, prdPath, tasksPath, progressPath) {
-    const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    await config.update('prdPath', prdPath, vscode.ConfigurationTarget.Workspace);
-    await config.update('ralphTaskFilePath', tasksPath, vscode.ConfigurationTarget.Workspace);
-    await config.update('progressPath', progressPath, vscode.ConfigurationTarget.Workspace);
-}
 /**
  * Append tasks to an existing tasks.json file under lock.
  */
@@ -298,7 +244,6 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
         void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.');
         return;
     }
-    const recommendedSkillsPath = path.join(path.dirname(paths.prdPath), 'recommended-skills.json');
     prdCreationWizardPanel_1.PrdCreationWizardPanel.createOrReveal(panelManager, {
         initialMode: options?.mode ?? 'new',
         initialObjective: options?.initialObjective,
@@ -306,8 +251,7 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
         initialStep: options?.initialStep,
         initialPaths: {
             prdPath: paths.prdPath,
-            tasksPath: paths.taskFilePath,
-            recommendedSkillsPath
+            tasksPath: paths.taskFilePath
         },
         configSelections: (0, prdWizardPersistence_1.buildPrdWizardConfigSelections)(config),
         generateDraft: async (input) => {
@@ -318,15 +262,13 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
                     ...task,
                     status: task.status ?? 'todo'
                 })),
-                recommendedSkills: generated.recommendedSkills,
                 taskCountWarning: generated.taskCountWarning
             };
         },
         writeDraft: async (draft) => {
             return (0, prdWizardPersistence_1.writePrdWizardDraft)(workspaceFolder, draft, {
                 prdPath: paths.prdPath,
-                tasksPath: paths.taskFilePath,
-                recommendedSkillsPath
+                tasksPath: paths.taskFilePath
             });
         },
         onWriteComplete: async (result) => {
@@ -347,19 +289,6 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
             void vscode.window.showInformationMessage(`PRD wizard wrote: ${summary.filesWritten.join(', ')}.${updateSummary}${skipSummary}`);
         }
     });
-}
-/**
- * Map the last completed pipeline phase to the phase that should run on resume.
- * Returns null for phases that are not resumable (artifact was in a terminal state).
- */
-function phaseToResumeFrom(phase) {
-    switch (phase) {
-        case 'scaffold': return 'loop';
-        case 'loop': return 'review';
-        case 'review': return 'scm';
-        case 'scm': return 'scm';
-        default: return null;
-    }
 }
 function buildReviewAgentId(agentId) {
     return (0, validate_1.buildPrefixedAgentId)('review', agentId);
@@ -441,9 +370,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
      * Execute the post-scaffold pipeline phases starting at `startPhase`.
      * Writes a phase checkpoint to the artifact after each sub-phase completes
      * so a crash at any point leaves a resumable artifact on disk.
-     *
-     * Called by both `runPipeline` (after scaffold) and `resumePipeline` (after
-     * determining the last completed phase from the artifact).
      */
     async function runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress) {
         let current = artifact;
@@ -478,20 +404,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     phase: 'review',
                     ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath })
                 });
-                if (config.pipelineHumanGates) {
-                    const handoffPath = await (0, pipeline_1.writePipelinePendingHandoff)(paths.handoffDir, {
-                        schemaVersion: 1,
-                        kind: 'pipelinePendingHandoff',
-                        runId: current.runId,
-                        artifactPath: path.join(paths.artifactDir, 'pipelines', `${current.runId}.json`),
-                        ...(reviewTranscriptPath !== undefined && { reviewTranscriptPath }),
-                        createdAt: new Date().toISOString()
-                    });
-                    await checkpoint({ status: 'awaiting_human_approval', loopEndTime: new Date().toISOString() });
-                    logger.info('Pipeline paused for human review.', { runId: current.runId, handoffPath });
-                    void vscode.window.showInformationMessage(`Ralph pipeline ${current.runId} paused for human review. Run "Ralphdex: Approve Human Review" to submit the PR.`);
-                    return;
-                }
                 runScm = true;
             }
             catch (error) {
@@ -551,18 +463,12 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             });
             let prdText;
             let drafts;
-            let skillsPath;
             if (objective?.trim()) {
                 progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
                 try {
                     const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
                     prdText = generated.prdText;
                     drafts = generated.tasks;
-                    if (generated.recommendedSkills.length > 0) {
-                        skillsPath = path.join(result.ralphDir, 'recommended-skills.json');
-                        await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
-                        logger.info('Wrote recommended-skills.json.', { skillCount: generated.recommendedSkills.length });
-                    }
                     logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
                 }
                 catch (err) {
@@ -618,143 +524,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 successMessageTaskLabel: 'backlog task(s)',
                 logContext: 'Task seeding via seedTasksFromFeatureRequest command'
             });
-        }
-    });
-    registerCommand(context, logger, {
-        commandId: 'ralphCodex.newProjectWizard',
-        label: 'Ralphdex: New Project Wizard',
-        handler: async () => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {
-                mode: 'new',
-                initialStep: 1
-            });
-        }
-    });
-    registerCommand(context, logger, {
-        commandId: 'ralphCodex.newProject',
-        label: 'Ralphdex: New Project',
-        handler: async (progress) => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
-            if (!(await (0, fs_1.pathExists)(ralphDir))) {
-                void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.');
-                return;
-            }
-            const name = await vscode.window.showInputBox({
-                prompt: 'Enter a name for the new project',
-                placeHolder: 'Example: auth-refactor, api-v2, mobile-app',
-                ignoreFocusOut: true,
-                validateInput: (v) => {
-                    if (!v.trim()) {
-                        return 'Name is required';
-                    }
-                    if (!slugify(v)) {
-                        return 'Name must contain at least one letter or number';
-                    }
-                    return null;
-                }
-            });
-            if (!name?.trim()) {
-                return;
-            }
-            const slug = slugify(name.trim());
-            const absPaths = projectAbsolutePaths(ralphDir, slug);
-            if (await (0, fs_1.pathExists)(absPaths.prdPath)) {
-                void vscode.window.showWarningMessage(`Project "${slug}" already exists. Use "Ralphdex: Switch Project" to select it.`);
-                return;
-            }
-            const objective = await vscode.window.showInputBox({
-                prompt: `Describe the objective for "${slug}" (press Escape to fill in manually)`,
-                placeHolder: 'Example: Redesign the authentication layer with OAuth2 support',
-                ignoreFocusOut: true
-            });
-            progress.report({ message: `Creating project "${slug}"` });
-            await fs.mkdir(absPaths.dir, { recursive: true });
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            let prdText;
-            let drafts;
-            if (objective?.trim()) {
-                progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
-                try {
-                    const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
-                    prdText = generated.prdText;
-                    drafts = generated.tasks;
-                    if (generated.recommendedSkills.length > 0) {
-                        const skillsPath = path.join(absPaths.dir, 'recommended-skills.json');
-                        await fs.writeFile(skillsPath, `${JSON.stringify(generated.recommendedSkills, null, 2)}\n`, 'utf8');
-                        logger.info(`Wrote recommended-skills.json for project "${slug}".`, { skillCount: generated.recommendedSkills.length });
-                    }
-                    logger.info(`Generated PRD and tasks for project "${slug}" via AI.`, { taskCount: drafts.length });
-                }
-                catch (err) {
-                    const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
-                        ? err.message
-                        : String(err);
-                    logger.info(`AI generation failed for "${slug}", falling back to bootstrap seed tasks. Reason: ${reason}`);
-                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with bootstrap tasks. Refine before running. (${reason})`);
-                    prdText = `# Product / project brief\n\n${objective.trim()}\n`;
-                    drafts = buildBootstrapSeedTasks();
-                }
-            }
-            else {
-                prdText = RALPH_PRD_PLACEHOLDER;
-                drafts = buildBootstrapSeedTasks();
-            }
-            await fs.writeFile(absPaths.prdPath, prdText, 'utf8');
-            const emptyLocked = await (0, taskFile_1.withTaskFileLock)(absPaths.tasksPath, undefined, async () => {
-                await fs.writeFile(absPaths.tasksPath, `${JSON.stringify({ version: 2, tasks: [] }, null, 2)}\n`, 'utf8');
-            });
-            if (emptyLocked.outcome === 'lock_timeout') {
-                throw new Error(`Timed out acquiring lock for "${slug}" tasks.json.`);
-            }
-            await (0, taskCreation_1.appendNormalizedTasksToFile)(absPaths.tasksPath, drafts);
-            await fs.writeFile(absPaths.progressPath, '', 'utf8');
-            logger.info(`Created new Ralph project "${slug}".`, { dir: absPaths.dir });
-            const relPaths = projectRelativePaths(slug);
-            await switchToProject(workspaceFolder, relPaths.prdPath, relPaths.tasksPath, relPaths.progressPath);
-            await openTextFile(absPaths.prdPath);
-            await openTextFile(absPaths.tasksPath);
-            void vscode.window.showInformationMessage(`Project "${slug}" created and active. Review prd.md and tasks.json, then run your loop.`, 'Got it');
-        }
-    });
-    registerCommand(context, logger, {
-        commandId: 'ralphCodex.switchProject',
-        label: 'Ralphdex: Switch Project',
-        handler: async () => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
-            const slugs = await listExistingProjects(ralphDir);
-            const items = [
-                { label: '$(home) default', description: '.ralph/prd.md  ·  .ralph/tasks.json', slug: '__default__' },
-                ...slugs.map((slug) => ({
-                    label: `$(folder) ${slug}`,
-                    description: `.ralph/projects/${slug}/prd.md`,
-                    slug
-                }))
-            ];
-            if (slugs.length === 0) {
-                void vscode.window.showInformationMessage('No named projects yet. Use "Ralphdex: New Project" to create one.');
-                return;
-            }
-            const picked = await vscode.window.showQuickPick(items, {
-                placeHolder: 'Select a Ralph project to make active',
-                ignoreFocusOut: true
-            });
-            if (!picked) {
-                return;
-            }
-            if (picked.slug === '__default__') {
-                await switchToProject(workspaceFolder, '.ralph/prd.md', '.ralph/tasks.json', '.ralph/progress.md');
-                void vscode.window.showInformationMessage('Switched to default Ralph project.');
-            }
-            else {
-                const relPaths = projectRelativePaths(picked.slug);
-                await switchToProject(workspaceFolder, relPaths.prdPath, relPaths.tasksPath, relPaths.progressPath);
-                void vscode.window.showInformationMessage(`Switched to project "${picked.slug}".`);
-            }
         }
     });
     registerCommand(context, logger, {
@@ -1284,144 +1053,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         }
     });
     registerCommand(context, logger, {
-        commandId: 'ralphCodex.resumePipeline',
-        label: 'Ralphdex: Resume Pipeline',
-        handler: async (progress) => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            const resumable = await (0, pipeline_1.findResumablePipelineArtifacts)(paths.artifactDir);
-            if (resumable.length === 0) {
-                void vscode.window.showWarningMessage('No resumable pipeline runs found.');
-                return;
-            }
-            let selected;
-            if (resumable.length === 1) {
-                selected = resumable[0];
-            }
-            else {
-                const items = resumable.map(({ artifact }) => ({
-                    label: artifact.runId,
-                    description: `phase: ${artifact.phase ?? 'unknown'}, started: ${artifact.loopStartTime}`
-                }));
-                const picked = await vscode.window.showQuickPick(items, {
-                    placeHolder: 'Select a pipeline run to resume'
-                });
-                if (!picked) {
-                    return;
-                }
-                selected = resumable.find(({ artifact }) => artifact.runId === picked.label);
-            }
-            const { artifact } = selected;
-            const startPhase = phaseToResumeFrom(artifact.phase);
-            if (!startPhase) {
-                void vscode.window.showWarningMessage(`Pipeline ${artifact.runId} has phase '${artifact.phase ?? 'unknown'}' which is not resumable.`);
-                return;
-            }
-            progress.report({ message: `Resuming pipeline ${artifact.runId} from phase '${startPhase}'` });
-            logger.info('Resuming pipeline.', { runId: artifact.runId, resumeFrom: startPhase });
-            await runPipelineFromPhase(startPhase, artifact, workspaceFolder, config, paths, progress);
-        }
-    });
-    registerCommand(context, logger, {
-        commandId: 'ralphCodex.approveHumanReview',
-        label: 'Ralphdex: Approve Human Review',
-        handler: async (progress) => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            // Discover all pending pipeline handoff files.
-            let pendingFiles;
-            try {
-                const entries = await fs.readdir(paths.handoffDir);
-                pendingFiles = entries
-                    .filter((e) => /^pipeline-.+-pending\.json$/.test(e))
-                    .map((e) => path.join(paths.handoffDir, e));
-            }
-            catch {
-                pendingFiles = [];
-            }
-            if (pendingFiles.length === 0) {
-                void vscode.window.showWarningMessage('No pending pipeline human-review handoffs found.');
-                return;
-            }
-            let selectedPath;
-            if (pendingFiles.length === 1) {
-                selectedPath = pendingFiles[0];
-            }
-            else {
-                const items = pendingFiles.map((p) => path.basename(p));
-                const picked = await vscode.window.showQuickPick(items, {
-                    placeHolder: 'Select a pending pipeline handoff to approve'
-                });
-                if (!picked) {
-                    return;
-                }
-                selectedPath = path.join(paths.handoffDir, picked);
-            }
-            const handoff = await (0, pipeline_1.readPipelinePendingHandoff)(selectedPath);
-            progress.report({ message: `Approving pipeline ${handoff.runId}: running SCM agent` });
-            let prUrl;
-            try {
-                const scmRun = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                    reachedIterationCap: false,
-                    configOverrides: {
-                        agentRole: 'scm',
-                        agentId: buildScmAgentId(config.agentId)
-                    },
-                    rolePolicySource: 'explicit'
-                });
-                const scmReportPath = path.join(scmRun.result.artifactDir, 'completion-report.json');
-                const scmReport = await (0, statusSnapshot_1.readJsonArtifact)(scmReportPath).then(statusSnapshot_1.normalizeCompletionReportArtifact);
-                prUrl = (0, pipeline_1.extractPrUrl)(scmReport?.report?.progressNote);
-            }
-            catch (error) {
-                logger.error('approveHumanReview: SCM agent failed.', error);
-                void vscode.window.showErrorMessage(`Ralph pipeline ${handoff.runId} PR submission failed.`);
-                return;
-            }
-            // Update the pipeline artifact to complete.
-            try {
-                const rawArtifact = await (0, statusSnapshot_1.readJsonArtifact)(handoff.artifactPath);
-                if (rawArtifact && typeof rawArtifact === 'object') {
-                    const updatedArtifact = {
-                        ...rawArtifact,
-                        status: 'complete',
-                        loopEndTime: new Date().toISOString(),
-                        ...(prUrl !== undefined && { prUrl })
-                    };
-                    await fs.writeFile(handoff.artifactPath, JSON.stringify(updatedArtifact, null, 2) + '\n', 'utf8');
-                }
-            }
-            catch (error) {
-                logger.error('approveHumanReview: failed to update pipeline artifact.', error);
-            }
-            // Remove the pending handoff file.
-            try {
-                await fs.unlink(selectedPath);
-            }
-            catch (error) {
-                logger.error('approveHumanReview: failed to remove pending handoff file.', error);
-            }
-            // Clear any pending human gate artifacts so the supervisor can resume.
-            const gateTypes = ['scope_expansion', 'dependency_rewiring', 'contested_fan_in_scm'];
-            try {
-                const artifactSubDirs = await fs.readdir(paths.artifactDir).catch(() => []);
-                for (const subDir of artifactSubDirs) {
-                    for (const gateType of gateTypes) {
-                        await (0, orchestrationSupervisor_1.clearHumanGateArtifact)(paths.artifactDir, subDir, gateType);
-                    }
-                }
-            }
-            catch (error) {
-                logger.error('approveHumanReview: failed to clear human gate artifacts.', error);
-            }
-            logger.info('Pipeline approved and PR submitted.', { runId: handoff.runId, prUrl });
-            const prSuffix = prUrl ? ` PR: ${prUrl}` : '';
-            void vscode.window.showInformationMessage(`Ralph pipeline ${handoff.runId} approved and submitted.${prSuffix}`);
-        }
-    });
-    registerCommand(context, logger, {
         commandId: 'ralphCodex.testCurrentProviderConnection',
         label: 'Ralphdex: Test Current Provider Connection',
         handler: async (progress) => {
@@ -1453,73 +1084,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 return;
             }
             void vscode.window.showInformationMessage(summary || `${providerLabel} provider readiness checks passed.`);
-        }
-    });
-    // ---------- Construct Recommended Skills ----------
-    registerCommand(context, logger, {
-        commandId: 'ralphCodex.constructRecommendedSkills',
-        label: 'Ralphdex: Construct Recommended Skills',
-        handler: async (progress) => {
-            const workspaceFolder = await withWorkspaceFolder();
-            const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
-            const skillsFilePath = path.join(paths.ralphDir, 'recommended-skills.json');
-            let skills;
-            try {
-                const raw = JSON.parse(await fs.readFile(skillsFilePath, 'utf8'));
-                if (!Array.isArray(raw)) {
-                    void vscode.window.showInformationMessage('recommended-skills.json does not contain an array.');
-                    return;
-                }
-                skills = raw.filter((entry) => typeof entry === 'object'
-                    && entry !== null
-                    && typeof entry.name === 'string'
-                    && typeof entry.description === 'string');
-            }
-            catch {
-                void vscode.window.showInformationMessage('No recommended-skills.json found. Run "New Project" with an AI-generated PRD to create one.');
-                return;
-            }
-            if (skills.length === 0) {
-                void vscode.window.showInformationMessage('recommended-skills.json is empty — no skills to construct.');
-                return;
-            }
-            const quickPickItems = skills.map((s) => ({
-                label: s.name,
-                description: s.description,
-                detail: s.rationale ?? undefined,
-                picked: false,
-                skill: s
-            }));
-            const selected = await vscode.window.showQuickPick(quickPickItems, {
-                canPickMany: true,
-                placeHolder: 'Select skills to construct (only selected skills will be built)',
-                title: 'Recommended Skills'
-            });
-            if (!selected || selected.length === 0) {
-                logger.info('constructRecommendedSkills: operator cancelled or selected nothing.');
-                return;
-            }
-            const selectedSkills = selected.map((item) => item.skill);
-            logger.info('constructRecommendedSkills: operator approved skills.', {
-                count: selectedSkills.length,
-                names: selectedSkills.map((s) => s.name)
-            });
-            progress.report({ message: `Constructing ${selectedSkills.length} skill(s)…` });
-            for (const skill of selectedSkills) {
-                progress.report({ message: `Constructing skill: ${skill.name}` });
-                const skillDir = path.join(paths.ralphDir, 'skills', skill.name);
-                await fs.mkdir(skillDir, { recursive: true });
-                const manifest = {
-                    name: skill.name,
-                    description: skill.description,
-                    rationale: skill.rationale ?? null,
-                    constructedAt: new Date().toISOString()
-                };
-                await fs.writeFile(path.join(skillDir, 'skill.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-                logger.info(`Constructed skill: ${skill.name}`, { skillDir });
-            }
-            void vscode.window.showInformationMessage(`Constructed ${selectedSkills.length} skill(s): ${selectedSkills.map((s) => s.name).join(', ')}`);
         }
     });
     // ---------- Regenerate PRD ----------
@@ -1631,29 +1195,5 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     context.subscriptions.push(vscode.commands.registerCommand('ralphCodex.showTasks', async () => {
         await vscode.commands.executeCommand('ralphCodex.tasks.focus');
     }));
-    // On activation: scan for interrupted pipeline runs and offer to resume.
-    const activationFolder = vscode.workspace.workspaceFolders?.[0];
-    if (activationFolder) {
-        const activationConfig = (0, readConfig_1.readConfig)(activationFolder);
-        const activationPaths = (0, pathResolver_1.resolveRalphPaths)(activationFolder.uri.fsPath, activationConfig);
-        void (async () => {
-            try {
-                const resumable = await (0, pipeline_1.findResumablePipelineArtifacts)(activationPaths.artifactDir);
-                if (resumable.length === 0) {
-                    return;
-                }
-                const label = resumable.length === 1
-                    ? `Ralph pipeline '${resumable[0].artifact.runId}' was interrupted at phase '${resumable[0].artifact.phase ?? 'unknown'}'.`
-                    : `${resumable.length} Ralph pipeline runs were interrupted.`;
-                const choice = await vscode.window.showWarningMessage(`${label} Resume?`, 'Resume Pipeline');
-                if (choice === 'Resume Pipeline') {
-                    await vscode.commands.executeCommand('ralphCodex.resumePipeline');
-                }
-            }
-            catch (err) {
-                logger.error('Failed to check for resumable pipelines on activation.', err);
-            }
-        })();
-    }
 }
 //# sourceMappingURL=registerCommands.js.map

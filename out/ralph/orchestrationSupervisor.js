@@ -43,10 +43,6 @@ exports.readOrchestrationGraph = readOrchestrationGraph;
 exports.readOrchestrationState = readOrchestrationState;
 exports.writeNodeSpan = writeNodeSpan;
 exports.readNodeSpan = readNodeSpan;
-exports.humanGateArtifactPath = humanGateArtifactPath;
-exports.writeHumanGateArtifact = writeHumanGateArtifact;
-exports.clearHumanGateArtifact = clearHumanGateArtifact;
-exports.checkContestedFanInScmGate = checkContestedFanInScmGate;
 exports.classifyReplanTriggers = classifyReplanTriggers;
 exports.executeReplanNode = executeReplanNode;
 exports.truncateWavesToChildLimit = truncateWavesToChildLimit;
@@ -257,76 +253,6 @@ async function readNodeSpan(paths, nodeId) {
     }
 }
 /**
- * Returns the path where a human gate artifact for `gateType` under
- * `parentTaskId` should be persisted.
- *
- * Layout: `<artifactRootDir>/<parentTaskId>/human-gate-<gateType>.json`.
- */
-function humanGateArtifactPath(artifactRootDir, parentTaskId, gateType) {
-    return path.join(artifactRootDir, parentTaskId, `human-gate-${gateType}.json`);
-}
-/**
- * Write a human gate artifact. Creates the directory if needed.
- * Returns the path it was written to.
- */
-async function writeHumanGateArtifact(artifactRootDir, parentTaskId, artifact) {
-    const artifactPath = humanGateArtifactPath(artifactRootDir, parentTaskId, artifact.gateType);
-    await fs.mkdir(path.dirname(artifactPath), { recursive: true });
-    await fs.writeFile(artifactPath, (0, integrity_1.stableJson)(artifact), 'utf8');
-    return artifactPath;
-}
-/**
- * Delete a human gate artifact. No-op if the file does not exist
- * (idempotent so `approveHumanReview` can call it unconditionally).
- */
-async function clearHumanGateArtifact(artifactRootDir, parentTaskId, gateType) {
-    const artifactPath = humanGateArtifactPath(artifactRootDir, parentTaskId, gateType);
-    try {
-        await fs.unlink(artifactPath);
-    }
-    catch (err) {
-        if (err.code !== 'ENOENT') {
-            throw err;
-        }
-    }
-}
-/**
- * Check the SCM-after-contested-fan-in choke point.
- *
- * Fires when all of the following are true:
- * - `pipelineHumanGates` is true
- * - `targetNodeKind` is `scm_submit`
- * - The plan graph's fan-in record contains conflict errors
- *
- * When triggered, writes a gate artifact and returns the path.
- * When bypassed (any condition false), returns `{ gateTriggered: false, artifactPath: null }`.
- */
-async function checkContestedFanInScmGate(input) {
-    const { planGraph, targetNodeKind, pipelineHumanGates, artifactRootDir, parentTaskId } = input;
-    if (!pipelineHumanGates || targetNodeKind !== 'scm_submit') {
-        return { gateTriggered: false, artifactPath: null };
-    }
-    const fanInErrors = planGraph.fanInRecord?.fanInErrors ?? [];
-    const conflictErrors = fanInErrors.filter(e => e.toLowerCase().includes('conflict'));
-    if (conflictErrors.length === 0) {
-        return { gateTriggered: false, artifactPath: null };
-    }
-    // Gate fires: contested fan-in + scm_submit.
-    let artifactPath = null;
-    if (artifactRootDir && parentTaskId) {
-        const artifact = {
-            gateType: 'contested_fan_in_scm',
-            triggerReason: `Fan-in reported ${conflictErrors.length} unresolved conflict(s) and a subsequent node attempts scm_submit. ` +
-                `Conflicts: ${conflictErrors.join('; ')}.`,
-            affectedTaskIds: Object.keys(planGraph.fanInRecord?.memberOutcomes ?? {}),
-            requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-            createdAt: new Date().toISOString()
-        };
-        artifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, artifact);
-    }
-    return { gateTriggered: true, artifactPath };
-}
-/**
  * Classify trigger evidence from child task states and artifacts.
  *
  * Returns an array of triggers that fired. An empty array means no replan
@@ -419,7 +345,7 @@ function detectCrossBoundaryDependencies(proposedWaves, allTasks, parentTaskId) 
  * following the same invariant as `validateFanIn`.
  */
 async function executeReplanNode(input) {
-    const { planGraphFilePath, allTasks, artifactsDir, maxReplansPerParent, maxGeneratedChildren, proposedWaves, artifactRootDir, parentTaskId, pipelineHumanGates = false } = input;
+    const { planGraphFilePath, allTasks, artifactsDir, maxReplansPerParent, maxGeneratedChildren, proposedWaves, artifactRootDir, parentTaskId } = input;
     // Read the current plan graph.
     const graph = await (0, planGraph_1.readPlanGraph)(planGraphFilePath);
     if (!graph) {
@@ -478,66 +404,6 @@ async function executeReplanNode(input) {
     const newMemberIds = new Set(truncatedWaves.flatMap(w => w.memberTaskIds));
     const addedTaskIds = [...newMemberIds].filter(id => !oldMemberIds.has(id));
     const removedTaskIds = [...oldMemberIds].filter(id => !newMemberIds.has(id));
-    // --- Human choke point 1: Scope expansion gate ---
-    if (pipelineHumanGates && addedTaskIds.length > maxGeneratedChildren / 2) {
-        let gateArtifactPath = null;
-        if (artifactRootDir && parentTaskId) {
-            const gateArtifact = {
-                gateType: 'scope_expansion',
-                triggerReason: `Replan would add ${addedTaskIds.length} task(s), exceeding the threshold of ` +
-                    `${Math.floor(maxGeneratedChildren / 2)} (maxGeneratedChildren=${maxGeneratedChildren} / 2). ` +
-                    `Added tasks: ${addedTaskIds.join(', ')}.`,
-                affectedTaskIds: addedTaskIds,
-                requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-                createdAt: new Date().toISOString()
-            };
-            gateArtifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, gateArtifact);
-        }
-        return {
-            outcome: 'human_gate_triggered',
-            triggers,
-            replanCount: currentCount,
-            needsHumanReview: true,
-            summary: `Scope expansion gate triggered: ${addedTaskIds.length} task(s) would be added ` +
-                `(threshold ${Math.floor(maxGeneratedChildren / 2)}). Mutation blocked pending human review.`,
-            updatedGraph: null,
-            decisionArtifactPath: null,
-            humanGateType: 'scope_expansion',
-            humanGateArtifactPath: gateArtifactPath
-        };
-    }
-    // --- Human choke point 2: Dependency rewiring gate ---
-    if (pipelineHumanGates) {
-        // Use the graph's own parentTaskId as the boundary reference so the check
-        // is correct even when the caller does not supply parentTaskId explicitly.
-        const crossBoundaryIds = detectCrossBoundaryDependencies(truncatedWaves, allTasks, parentTaskId ?? graph.parentTaskId);
-        if (crossBoundaryIds.length > 0) {
-            let gateArtifactPath = null;
-            if (artifactRootDir && parentTaskId) {
-                const gateArtifact = {
-                    gateType: 'dependency_rewiring',
-                    triggerReason: `Replan would create cross-parent dependsOn edges for task(s): ${crossBoundaryIds.join(', ')}. ` +
-                        `These tasks have dependencies on tasks belonging to a different parent.`,
-                    affectedTaskIds: crossBoundaryIds,
-                    requiredApprovalCommand: 'ralphCodex.approveHumanReview',
-                    createdAt: new Date().toISOString()
-                };
-                gateArtifactPath = await writeHumanGateArtifact(artifactRootDir, parentTaskId, gateArtifact);
-            }
-            return {
-                outcome: 'human_gate_triggered',
-                triggers,
-                replanCount: currentCount,
-                needsHumanReview: true,
-                summary: `Dependency rewiring gate triggered: task(s) ${crossBoundaryIds.join(', ')} would gain ` +
-                    `cross-parent dependsOn edges. Mutation blocked pending human review.`,
-                updatedGraph: null,
-                decisionArtifactPath: null,
-                humanGateType: 'dependency_rewiring',
-                humanGateArtifactPath: gateArtifactPath
-            };
-        }
-    }
     const updatedGraph = {
         ...graph,
         waves: truncatedWaves.length > 0 ? truncatedWaves : graph.waves,

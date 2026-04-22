@@ -1127,8 +1127,6 @@ function buildPipelineSection(state) {
     </div>
     <div class="inline-actions">
       <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Open Pipeline</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
     </div>
   </div>`;
 }
@@ -1343,8 +1341,6 @@ function buildQuickActionsSection(state) {
     return `<div class="dashboard-summary-card">
     <div class="card-title">Quick Actions</div>
     <div class="btn-grid">
-      <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
@@ -1491,7 +1487,6 @@ function buildHeroCard(state) {
       <div class="hero-actions">
         <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
       </div>
     </div>
     <div class="hero-phase">
@@ -1620,8 +1615,6 @@ function buildOverviewTab(state) {
             <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
             <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
             <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve Review</span><span class="btn-spinner"></span></button>
           </div>
         </div>
       </div>
@@ -1702,9 +1695,6 @@ function buildOrchestrationTab(state) {
         <div class="dashboard-summary-card full">
           <div class="card-title">Orchestration</div>
           <div class="empty">No orchestration data recorded for the latest pipeline run. Start a pipeline to populate this panel.</div>
-          <div class="inline-actions">
-            <button class="btn" data-command="ralphCodex.resumePipeline"><span class="btn-label">Resume Pipeline</span><span class="btn-spinner"></span></button>
-          </div>
         </div>
       </div>
     </div>`;
@@ -1735,17 +1725,6 @@ function buildOrchestrationTab(state) {
         <div><strong>Diff</strong> +${r.taskGraphDiff.addedTaskIds.length} added · -${r.taskGraphDiff.removedTaskIds.length} removed · ~${r.taskGraphDiff.modifiedTaskIds.length} modified</div>
       </div>`).join('\n')
         : '<div class="empty">No replanning recorded.</div>';
-    // Human gate artifacts
-    const humanGatesHtml = orch.humanGates.length > 0
-        ? orch.humanGates.map((gate) => `<div class="failure-meta">
-        <div><strong>${(0, htmlHelpers_1.esc)(gate.gateType)}</strong> · ${formatUtc(gate.createdAt)}</div>
-        <div><strong>Reason</strong> ${(0, htmlHelpers_1.esc)(gate.triggerReason)}</div>
-        <div><strong>Affected tasks</strong> ${(0, htmlHelpers_1.esc)(gate.affectedTaskIds.join(', ') || 'none')}</div>
-        <div class="inline-actions">
-          <button class="btn" data-command="ralphCodex.approveHumanReview"><span class="btn-label">Approve</span><span class="btn-spinner"></span></button>
-        </div>
-      </div>`).join('\n')
-        : '<div class="empty">No human gate artifacts blocking.</div>';
     return `<div class="orchestration-shell">
     <div class="diagnostics-grid">
       <div class="dashboard-summary-card full">
@@ -1764,11 +1743,6 @@ function buildOrchestrationTab(state) {
       </div>
 
       <div class="dashboard-summary-card">
-        <div class="card-title">Human Gates</div>
-        ${humanGatesHtml}
-      </div>
-
-      <div class="dashboard-summary-card">
         <div class="card-title">Replan History</div>
         ${replanHtml}
       </div>
@@ -1781,8 +1755,6 @@ function buildSettingsTab(state) {
       <div class="card-title">Project Actions</div>
       <div class="btn-grid">
         <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.newProject"><span class="btn-label">New Project</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.switchProject"><span class="btn-label">Switch Project</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings UI</span><span class="btn-spinner"></span></button>
       </div>
     </div>

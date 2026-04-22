@@ -391,13 +391,6 @@ function buildStatusReport(snapshot) {
                 ...snapshot.replanArtifacts.map((artifact) => `- Replan ${artifact.replanIndex}: triggers [${artifact.triggerEvidenceClass.join(', ')}] | ${artifact.triggerDetails}`)
             ]
             : []),
-        ...(snapshot.recommendedSkills.length > 0
-            ? [
-                '',
-                '## Recommended Skills',
-                ...snapshot.recommendedSkills.map((skill) => `- ${skill.name}: ${skill.rationale}`)
-            ]
-            : []),
         ...(snapshot.latestHandoff
             ? [
                 '',

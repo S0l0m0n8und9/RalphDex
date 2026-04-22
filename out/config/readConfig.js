@@ -196,8 +196,7 @@ const OPERATOR_PRESETS = {
         stopOnHumanReviewNeeded: true,
         scmStrategy: 'none',
         memoryStrategy: 'verbatim',
-        autoReplenishBacklog: false,
-        pipelineHumanGates: true
+        autoReplenishBacklog: false
     },
     'multi-agent': {
         autonomyMode: 'autonomous',
@@ -209,7 +208,6 @@ const OPERATOR_PRESETS = {
         scmStrategy: 'branch-per-task',
         memoryStrategy: 'sliding-window',
         autoReplenishBacklog: true,
-        pipelineHumanGates: true,
         autoReviewOnParentDone: true,
         autoWatchdogOnStall: true
     },
@@ -223,7 +221,6 @@ const OPERATOR_PRESETS = {
         scmStrategy: 'branch-per-task',
         memoryStrategy: 'summary',
         autoReplenishBacklog: true,
-        pipelineHumanGates: false,
         autoReviewOnParentDone: true,
         autoWatchdogOnStall: true,
         autoApplyRemediation: ['decompose_task', 'mark_blocked']
@@ -332,7 +329,6 @@ function resolveOperatorModeProvenance(config, resolvedConfig, operatorMode) {
         checkKey('scmStrategy', resolvedConfig.scmStrategy),
         checkKey('memoryStrategy', resolvedConfig.memoryStrategy),
         checkKey('autoReplenishBacklog', String(resolvedConfig.autoReplenishBacklog)),
-        checkKey('pipelineHumanGates', String(resolvedConfig.pipelineHumanGates)),
         checkKey('autoReviewOnParentDone', String(resolvedConfig.autoReviewOnParentDone)),
         checkKey('autoWatchdogOnStall', String(resolvedConfig.autoWatchdogOnStall)),
         checkKey('autoApplyRemediation', resolvedConfig.autoApplyRemediation.join(', ') || 'none')
@@ -453,7 +449,6 @@ function readConfig(workspaceFolder) {
         autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete),
         autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', defaults_1.DEFAULT_CONFIG.autoScmOnConflict),
         scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1),
-        pipelineHumanGates: readBoolean(config, 'pipelineHumanGates', preset?.pipelineHumanGates ?? defaults_1.DEFAULT_CONFIG.pipelineHumanGates),
         cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', defaults_1.DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
         promptCaching: readEnum(config, 'promptCaching', ['auto', 'force', 'off'], defaults_1.DEFAULT_CONFIG.promptCaching),
         memoryStrategy: readEnum(config, 'memoryStrategy', ['verbatim', 'sliding-window', 'summary'], preset?.memoryStrategy ?? defaults_1.DEFAULT_CONFIG.memoryStrategy),
