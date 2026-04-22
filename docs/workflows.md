@@ -42,7 +42,7 @@ For Marketplace release validation, use `npm run publish:dry-run` from the repo 
 
 This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
 
-That initial `tasks.json` now enters the same shared task-creation pipeline used by later PRD generation, wizard persistence, decomposition, remediation, and pipeline scaffolding. Generated tasks should therefore preserve the richest fields the bootstrap or AI source already knows instead of being reduced to a title-only starter shape. Optional fields may still be absent when the source objective did not provide them yet; [docs/invariants.md#normalized-task-contract](invariants.md#normalized-task-contract) is the authoritative contract.
+That initial `tasks.json` now enters the same shared task-creation pipeline used by later PRD generation, decomposition, remediation, and pipeline scaffolding. Generated tasks should therefore preserve the richest fields the bootstrap or AI source already knows instead of being reduced to a title-only starter shape. Optional fields may still be absent when the source objective did not provide them yet; [docs/invariants.md#normalized-task-contract](invariants.md#normalized-task-contract) is the authoritative contract.
 
 The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ralph warns and aborts instead of overwriting the current workspace state. That keeps initialization for clean clones separate from runtime cleanup or reset flows on an active workspace.
 
@@ -152,39 +152,14 @@ The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
 - `rootTaskId` — the auto-generated pipeline-root parent task id
 - `decomposedTaskIds` — the child task ids derived from the PRD sections
 - `loopStartTime` and `loopEndTime` — ISO-8601 timestamps
-- `status` — `running`, `complete`, `failed`, or `awaiting_human_approval`
-- `phase` — last sub-phase completed: `scaffold`, `loop`, `review`, `scm`, `done`, or `failed`; written as a durable checkpoint after each sub-phase so crash recovery can re-enter at the right point
+- `status` — `running`, `complete`, or `failed`
+- `phase` — last sub-phase completed: `scaffold`, `loop`, `review`, `scm`, or `done`
 - `reviewTranscriptPath` — path to the review-agent transcript (when the review pass ran)
 - `prUrl` — GitHub/GitLab PR URL extracted from the SCM agent completion report (when available)
 
 This command is the supported end-to-end pipeline path. It does not bypass the normal task-graph, claim, or iteration-cap constraints; it only adds the scaffold tasks and then delegates execution to the existing multi-agent loop.
 
 Pipeline scaffolding follows the same generated-task invariant as every other producer path. The pipeline-root task is intentionally sparse because the scaffold only knows the PRD title and notes at that point, but the section-derived child tasks still persist through the shared normalization boundary so sequential dependencies, inherited fields, and any richer producer-supplied metadata are preserved instead of being stripped by a pipeline-specific write path.
-
-### Configurable Human-Review Gate
-
-When `ralphCodex.pipelineHumanGates` is `true`, Ralph pauses after the review-agent pass instead of immediately submitting the PR. It writes a pending-handoff file to `.ralph/handoff/pipeline-<runId>-pending.json` and sets the pipeline artifact status to `awaiting_human_approval`. No SCM agent is invoked at this point.
-
-To resume, run `Ralphdex: Approve Human Review`. Ralph discovers all pending handoff files in `.ralph/handoff/`, prompts for a selection if more than one is found, then runs the SCM agent to submit the PR, updates the pipeline artifact to `status: complete`, and removes the pending handoff file.
-
-`ralphCodex.pipelineHumanGates` defaults to `false`. With the default, the SCM agent runs immediately after the review pass with no human checkpoint.
-
-### Pipeline Crash Recovery
-
-If VS Code crashes or the extension is reloaded while a pipeline is running, the in-progress run is not silently abandoned. Ralph writes a `phase` checkpoint to the pipeline artifact after each sub-phase completes (`scaffold` → `loop` → `review` → `scm` → `done`). An artifact with `status: running` and a `phase` value of `scaffold`, `loop`, `review`, or `scm` is resumable.
-
-On extension activation, Ralph scans `.ralph/artifacts/pipelines/` for resumable artifacts. If any are found, a warning notification appears. Click **Resume Pipeline** to invoke `Ralphdex: Resume Pipeline`.
-
-`Ralphdex: Resume Pipeline` can also be invoked directly at any time. It:
-
-1. Scans for pipeline artifacts with `status: running` and a resumable `phase`.
-2. Shows a quick-pick selector if more than one interrupted run exists.
-3. Determines the entry point from the last completed `phase`:
-   - `scaffold` → re-enters at the loop phase
-   - `loop` → re-enters at the review-agent phase
-   - `review` → re-enters at the SCM phase (or the human-review gate if `pipelineHumanGates` is `true`)
-   - `scm` → re-runs the SCM agent
-4. Continues writing phase checkpoints from that point so the run remains resumable if interrupted again.
 
 ## Operator Mode Presets
 
@@ -194,9 +169,9 @@ Available modes:
 
 - **`simple`** — single supervised agent, human-review stops enabled, no SCM automation, verbatim memory.
 - **`multi-agent`** — three autonomous agents, branch-per-task SCM, model tiering, sliding-window memory, auto-backlog replenishment, watchdog and auto-review enabled.
-- **`hardcore`** — three autonomous agents with maximum automation: iteration cap 100, `summary` memory strategy, branch-per-task SCM, auto-remediation (`decompose_task` and `mark_blocked`) enabled, and pipeline human-review gates **disabled**.
+- **`hardcore`** — three autonomous agents with maximum automation: iteration cap 100, `summary` memory strategy, branch-per-task SCM, and auto-remediation (`decompose_task` and `mark_blocked`) enabled.
 
-> **Warning — `hardcore` mode disables human-review gates and enables auto-remediation.**
+> **Warning — `hardcore` mode enables auto-remediation.**
 > With `operatorMode = hardcore`, `stopOnHumanReviewNeeded` is `false` and `autoApplyRemediation` includes both `decompose_task` and `mark_blocked`. Ralph will not pause for human approval when it detects a situation that normally requires review, and it will automatically rewrite `.ralph/tasks.json` when remediation fires. Only use this mode when you have tested the workspace against a representative task graph and trust the automated remediation path. Use `simple` or `multi-agent` first when starting a new project.
 
 ## Prompt Budgeting And Quota Control
@@ -610,16 +585,6 @@ For `copilot-foundry`, Ralph passes the resolved auth source into Copilot CLI us
 `Ralphdex: Cleanup Runtime Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.
 
 `Ralphdex: Reset Runtime State` removes generated runtime state, prompts, run artifacts, iteration artifacts, and logs while preserving the durable PRD, progress log, and task file.
-
-## Construct Recommended Skills
-
-1. Ensure `.ralph/recommended-skills.json` exists. This file is created automatically when `Ralphdex: New Project` uses AI generation.
-2. Run `Ralphdex: Construct Recommended Skills`.
-3. Ralph reads `.ralph/recommended-skills.json` and presents a multi-select QuickPick listing each skill's name, description, and rationale.
-4. Select the skills you want to construct. Only operator-selected skills proceed — nothing is auto-constructed.
-5. For each selected skill, Ralph creates a `.ralph/skills/<name>/skill.json` manifest containing the skill metadata and a `constructedAt` timestamp.
-
-If `.ralph/recommended-skills.json` is missing or empty, the command shows an informational message and exits without changes.
 
 ## Diagnostics
 
