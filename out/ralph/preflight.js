@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.summarizeActiveClaimsByAgent = summarizeActiveClaimsByAgent;
 exports.collectProviderReadinessDiagnostics = collectProviderReadinessDiagnostics;
+exports.inspectProviderReadinessDiagnostics = inspectProviderReadinessDiagnostics;
 exports.checkStaleState = checkStaleState;
 exports.inspectPreflightArtifactReadiness = inspectPreflightArtifactReadiness;
 exports.checkHandoffHealth = checkHandoffHealth;
@@ -43,6 +44,7 @@ exports.renderPreflightReport = renderPreflightReport;
 exports.buildBlockingPreflightMessage = buildBlockingPreflightMessage;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const azureAuthResolver_1 = require("../codex/azureAuthResolver");
 const providers_1 = require("../config/providers");
 const fs_1 = require("../util/fs");
 const artifactStore_1 = require("./artifactStore");
@@ -157,6 +159,7 @@ function readTimestampMs(value) {
 }
 function collectProviderReadinessDiagnostics(input) {
     const diagnostics = [];
+    const authFailureSeverity = input.authFailureSeverity ?? 'warning';
     if (input.codexCliSupport) {
         const cliSupport = input.codexCliSupport;
         const providerLabel = (0, providers_1.getCliProviderLabel)(cliSupport.provider ?? 'codex');
@@ -189,27 +192,40 @@ function collectProviderReadinessDiagnostics(input) {
         diagnostics.push(createDiagnostic('codexAdapter', 'info', 'ide_command_strategy_available', `Configured IDE command strategy is available via ${input.ideCommandSupport.openSidebarCommandId} and ${input.ideCommandSupport.newChatCommandId}.`));
     }
     if (input.config.cliProvider === 'azure-foundry') {
-        diagnostics.push(...collectAzureFoundryReadinessDiagnostics(input.config));
+        diagnostics.push(...collectAzureFoundryReadinessDiagnostics(input.config, input.azureAuthReadiness?.['azure-foundry'], authFailureSeverity));
     }
     if (input.config.cliProvider === 'copilot-foundry') {
-        diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(input.config));
+        diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(input.config, input.azureAuthReadiness?.['copilot-foundry'], authFailureSeverity));
     }
     return diagnostics;
 }
-function collectAzureFoundryReadinessDiagnostics(config) {
+async function inspectProviderReadinessDiagnostics(input) {
+    const azureAuthReadiness = { ...input.azureAuthReadiness };
+    if (input.config.cliProvider === 'azure-foundry') {
+        azureAuthReadiness['azure-foundry'] = await (0, azureAuthResolver_1.inspectAzureAuthReadiness)(input.config.azureFoundry.auth);
+    }
+    else if (input.config.cliProvider === 'copilot-foundry') {
+        azureAuthReadiness['copilot-foundry'] = await (0, azureAuthResolver_1.inspectAzureAuthReadiness)(input.config.copilotFoundry.auth);
+    }
+    return collectProviderReadinessDiagnostics({
+        ...input,
+        azureAuthReadiness
+    });
+}
+function collectAzureFoundryReadinessDiagnostics(config, authReadiness, authFailureSeverity = 'warning') {
     const diagnostics = [];
     if (!config.azureFoundry.endpointUrl.trim()) {
         diagnostics.push(createDiagnostic('codexAdapter', 'error', 'azure_foundry_endpoint_missing', 'cliProvider is set to azure-foundry but ralphCodex.azureFoundry.endpointUrl is not configured.'));
     }
-    diagnostics.push(...collectAzureAuthReadinessDiagnostics('azure-foundry', config.azureFoundry.auth, {
+    diagnostics.push(...collectAzureAuthReadinessDiagnostics('azure-foundry', config.azureFoundry.auth, authReadiness, {
         envPrefix: 'ralphCodex.azureFoundry.auth',
         bearerInfoCode: 'azure_foundry_auth_az_bearer',
         bearerInfoMessage: 'Azure AI Foundry will resolve a bearer token via Azure Identity at runtime. Ensure the selected tenant is available to DefaultAzureCredential or Managed Identity before execution.',
         apiKeyInfoCode: 'azure_foundry_auth_api_key_active'
-    }));
+    }, authFailureSeverity));
     return diagnostics;
 }
-function collectCopilotFoundryReadinessDiagnostics(config) {
+function collectCopilotFoundryReadinessDiagnostics(config, authReadiness, authFailureSeverity = 'warning') {
     const diagnostics = [];
     if (!config.copilotFoundry.azure.baseUrlOverride.trim() && !config.copilotFoundry.azure.resourceName.trim()) {
         diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_foundry_base_url_missing', 'cliProvider is set to copilot-foundry but neither ralphCodex.copilotFoundry.azure.resourceName nor ralphCodex.copilotFoundry.azure.baseUrlOverride is configured.'));
@@ -217,15 +233,30 @@ function collectCopilotFoundryReadinessDiagnostics(config) {
     if (!config.copilotFoundry.model.deployment.trim()) {
         diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_foundry_model_missing', 'cliProvider is set to copilot-foundry but ralphCodex.copilotFoundry.model.deployment is not configured.'));
     }
-    diagnostics.push(...collectAzureAuthReadinessDiagnostics('copilot-foundry', config.copilotFoundry.auth, {
+    diagnostics.push(...collectAzureAuthReadinessDiagnostics('copilot-foundry', config.copilotFoundry.auth, authReadiness, {
         envPrefix: 'ralphCodex.copilotFoundry.auth',
         bearerInfoCode: 'copilot_foundry_auth_az_bearer',
         bearerInfoMessage: 'Copilot Foundry will resolve a bearer token via Azure Identity at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
         apiKeyInfoCode: 'copilot_foundry_auth_api_key_active'
-    }));
+    }, authFailureSeverity));
     return diagnostics;
 }
-function collectAzureAuthReadinessDiagnostics(providerId, auth, options) {
+function collectAzureAuthReadinessDiagnostics(providerId, auth, authReadiness, options, authFailureSeverity) {
+    if (authReadiness) {
+        if (authReadiness.status === 'ready') {
+            return [createDiagnostic('codexAdapter', 'info', auth.mode === 'az-bearer'
+                    ? options.bearerInfoCode
+                    : `${providerId.replace(/-/g, '_')}_auth_api_key_ready`, auth.mode === 'az-bearer'
+                    ? `${providerId} bearer-token readiness confirmed via ${authReadiness.redactedSource}.`
+                    : `${providerId} API-key readiness confirmed via ${authReadiness.redactedSource}.`)];
+        }
+        if (authReadiness.status === 'misconfigured') {
+            return [createDiagnostic('codexAdapter', 'error', `${providerId.replace(/-/g, '_')}_auth_misconfigured`, `${providerId} auth is misconfigured: ${authReadiness.detail}`)];
+        }
+        return [createDiagnostic('codexAdapter', authFailureSeverity, `${providerId.replace(/-/g, '_')}_auth_readiness_failed`, auth.mode === 'az-bearer'
+                ? `${providerId} bearer-token readiness probe failed via ${authReadiness.redactedSource}: ${authReadiness.detail}`
+                : `${providerId} API-key readiness failed via ${authReadiness.redactedSource}: ${authReadiness.detail}`)];
+    }
     if (auth.mode === 'env-api-key') {
         if (!auth.apiKeyEnvVar.trim()) {
             return [createDiagnostic('codexAdapter', 'error', `${providerId.replace(/-/g, '_')}_api_key_env_missing`, `${providerId} auth mode is env-api-key but ${options.envPrefix}.apiKeyEnvVar is not configured.`)];
@@ -705,11 +736,11 @@ function buildPreflightReport(input) {
     if (input.lastSummarizationMode === 'fallback_summary') {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'memory_summarization_fallback', 'Memory summarization used a static fallback instead of the active provider. The provider\'s summarizeText call failed or is not implemented. Check provider connectivity.'));
     }
-    diagnostics.push(...collectProviderReadinessDiagnostics({
+    diagnostics.push(...(input.providerReadinessDiagnostics ?? collectProviderReadinessDiagnostics({
         config: input.config,
         codexCliSupport: input.codexCliSupport,
         ideCommandSupport: input.ideCommandSupport
-    }));
+    })));
     if (input.config.verifierModes.includes('validationCommand')) {
         if (!input.validationCommand) {
             diagnostics.push(createDiagnostic('validationVerifier', 'warning', 'validation_command_missing', 'Validation-command verifier is enabled but no validation command was selected for this iteration.'));

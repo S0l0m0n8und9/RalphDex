@@ -1061,9 +1061,10 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             const providerLabel = (0, providers_1.getCliProviderLabel)(config.cliProvider);
             progress.report({ message: `Testing ${providerLabel} provider readiness` });
             const cliSupport = await (0, codexCliSupport_1.inspectCliSupport)(config.cliProvider, (0, providers_1.getCliCommandPath)(config));
-            const diagnostics = (0, preflight_1.collectProviderReadinessDiagnostics)({
+            const diagnostics = await (0, preflight_1.inspectProviderReadinessDiagnostics)({
                 config,
-                codexCliSupport: cliSupport
+                codexCliSupport: cliSupport,
+                authFailureSeverity: 'error'
             });
             const summary = summarizeProviderDiagnostics(diagnostics.map((diagnostic) => diagnostic.message));
             logger.info('Provider readiness test completed.', {

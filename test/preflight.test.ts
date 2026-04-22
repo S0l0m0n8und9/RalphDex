@@ -1050,6 +1050,36 @@ test('buildPreflightReport emits info when azure-foundry uses az-bearer auth', (
   );
 });
 
+test('buildPreflightReport emits warning when azure-foundry bearer readiness probe fails after config passes', () => {
+  const report = buildPreflightReport({
+    ...azureFoundryBaseInput({
+      azureFoundry: {
+        ...DEFAULT_CONFIG.azureFoundry,
+        endpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+        auth: {
+          ...DEFAULT_CONFIG.azureFoundry.auth,
+          mode: 'az-bearer',
+          tenantId: 'tenant-1',
+          subscriptionId: 'sub-1'
+        }
+      }
+    }),
+    providerReadinessDiagnostics: [
+      {
+        category: 'codexAdapter',
+        severity: 'warning',
+        code: 'azure_foundry_auth_readiness_failed',
+        message: 'azure-foundry bearer-token readiness probe failed via DefaultAzureCredential bearer token (tenant tenant-1, subscription sub-1): Azure bearer-token acquisition failed via DefaultAzureCredential for tenant tenant-1, subscription sub-1: credential resolution failed.'
+      }
+    ]
+  });
+
+  assert.equal(report.ready, true);
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'azure_foundry_auth_readiness_failed' && d.severity === 'warning')
+  );
+});
+
 test('buildPreflightReport emits error when azure-foundry env-api-key mode is missing env var metadata', () => {
   const report = buildPreflightReport(azureFoundryBaseInput({
     azureFoundry: {
@@ -1086,6 +1116,59 @@ test('buildPreflightReport emits info when azure-foundry env-api-key mode is con
   assert.ok(
     report.diagnostics.some((d) => d.code === 'azure_foundry_auth_api_key_active' && d.severity === 'info'),
     'should have azure_foundry_auth_api_key_active info diagnostic'
+  );
+});
+
+test('buildPreflightReport emits info when copilot-foundry API-key readiness is confirmed', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Use Copilot Foundry', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-foundry',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        azure: {
+          ...DEFAULT_CONFIG.copilotFoundry.azure,
+          resourceName: 'foundry-resource'
+        },
+        model: {
+          ...DEFAULT_CONFIG.copilotFoundry.model,
+          deployment: 'gpt-4o'
+        },
+        auth: {
+          ...DEFAULT_CONFIG.copilotFoundry.auth,
+          mode: 'env-api-key',
+          apiKeyEnvVar: 'COPILOT_FOUNDRY_KEY'
+        }
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus,
+    providerReadinessDiagnostics: [
+      {
+        category: 'codexAdapter',
+        severity: 'info',
+        code: 'copilot_foundry_auth_api_key_ready',
+        message: 'copilot-foundry API-key readiness confirmed via environment variable COPILOT_FOUNDRY_KEY.'
+      }
+    ]
+  });
+
+  assert.equal(report.ready, true);
+  assert.ok(
+    report.diagnostics.some((d) => d.code === 'copilot_foundry_auth_api_key_ready' && d.severity === 'info')
   );
 });
 

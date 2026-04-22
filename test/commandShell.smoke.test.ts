@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import * as vscode from 'vscode';
 import { activate } from '../src/extension';
+import { setAzureCredentialFactoryOverride } from '../src/codex/azureAuthResolver';
 import { RalphIterationEngine } from '../src/ralph/iterationEngine';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
@@ -636,6 +637,90 @@ test('Test Current Provider Connection blocks azure-foundry when required auth o
     harness.state.errorMessages.at(-1)?.message ?? '',
     /ralphCodex\.azureFoundry\.endpointUrl is not configured/
   );
+});
+
+test('Test Current Provider Connection surfaces azure-foundry bearer readiness failures without leaking token material', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    cliProvider: 'azure-foundry',
+    azureFoundry: {
+      commandPath: 'azure-foundry',
+      endpointUrl: 'https://my-project.inference.ai.azure.com/models/gpt-4o',
+      modelDeployment: 'gpt-4o',
+      apiVersion: '2024-12-01-preview',
+      auth: {
+        mode: 'az-bearer',
+        tenantId: 'tenant-1',
+        subscriptionId: 'sub-1',
+        apiKeyEnvVar: '',
+        secretStorageKey: ''
+      }
+    }
+  });
+
+  setAzureCredentialFactoryOverride(() => ({
+    credential: {
+      getToken: async () => {
+        throw new Error('Bearer secret-token-value was rejected');
+      }
+    },
+    sourceLabel: 'DefaultAzureCredential'
+  }));
+
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+  } finally {
+    setAzureCredentialFactoryOverride(null);
+  }
+
+  const message = harness.state.errorMessages.at(-1)?.message ?? '';
+  assert.match(message, /azure-foundry bearer-token readiness probe failed/i);
+  assert.match(message, /tenant tenant-1/i);
+  assert.doesNotMatch(message, /secret-token-value/);
+});
+
+test('Test Current Provider Connection surfaces copilot-foundry API-key readiness failures as provider errors', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    cliProvider: 'copilot-foundry',
+    copilotFoundry: {
+      commandPath: 'copilot',
+      approvalMode: 'allow-all',
+      maxAutopilotContinues: 200,
+      auth: {
+        mode: 'env-api-key',
+        tenantId: '',
+        subscriptionId: '',
+        apiKeyEnvVar: 'COPILOT_FOUNDRY_KEY',
+        secretStorageKey: ''
+      },
+      azure: {
+        resourceGroup: '',
+        resourceName: 'copilot-foundry-resource',
+        baseUrlOverride: ''
+      },
+      model: {
+        deployment: 'gpt-4o',
+        wireApi: 'responses'
+      }
+    }
+  });
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+
+  const message = harness.state.errorMessages.at(-1)?.message ?? '';
+  assert.match(message, /copilot-foundry api-key readiness failed/i);
+  assert.match(message, /COPILOT_FOUNDRY_KEY/);
 });
 
 test('Set Provider Secret stores a value in VS Code SecretStorage without writing workspace settings', async () => {

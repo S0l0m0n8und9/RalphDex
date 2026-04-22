@@ -47,6 +47,7 @@ import {
   buildPreflightReport,
   checkHandoffHealth,
   checkStaleState,
+  inspectProviderReadinessDiagnostics,
   inspectPreflightArtifactReadiness,
   renderPreflightReport
 } from './preflight';
@@ -414,6 +415,12 @@ export async function prepareIterationContext(
     readLastSummarizationMode(snapshot.paths.memorySummaryPath)
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
+  const providerReadinessDiagnostics = await inspectProviderReadinessDiagnostics({
+    config,
+    codexCliSupport,
+    ideCommandSupport
+  });
+
   const preflightReport = buildPreflightReport({
     rootPath,
     workspaceTrusted: vscode.workspace.isTrusted,
@@ -431,6 +438,7 @@ export async function prepareIterationContext(
     createdPaths: snapshot.createdPaths,
     codexCliSupport,
     ideCommandSupport,
+    providerReadinessDiagnostics,
     artifactReadinessDiagnostics,
     agentHealthDiagnostics,
     sessionHandoff,

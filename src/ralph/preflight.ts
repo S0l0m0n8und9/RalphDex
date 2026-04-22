@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { AzureAuthReadiness, inspectAzureAuthReadiness } from '../codex/azureAuthResolver';
 import { getCliProviderLabel } from '../config/providers';
 import { RalphCodexConfig } from '../config/types';
 import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSupport';
@@ -178,6 +179,7 @@ export interface RalphPreflightInput {
   createdPaths?: string[];
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
+  providerReadinessDiagnostics?: RalphPreflightDiagnostic[];
   artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
   agentHealthDiagnostics?: RalphPreflightExternalDiagnostic[];
   sessionHandoff?: RalphPromptSessionHandoff | null;
@@ -191,6 +193,8 @@ export interface RalphProviderReadinessInput {
   config: RalphCodexConfig;
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
+  azureAuthReadiness?: Partial<Record<'azure-foundry' | 'copilot-foundry', AzureAuthReadiness>>;
+  authFailureSeverity?: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'>;
 }
 
 export interface RalphPreflightExternalDiagnostic {
@@ -239,6 +243,7 @@ function readTimestampMs(value: unknown): number | null {
 
 export function collectProviderReadinessDiagnostics(input: RalphProviderReadinessInput): RalphPreflightDiagnostic[] {
   const diagnostics: RalphPreflightDiagnostic[] = [];
+  const authFailureSeverity = input.authFailureSeverity ?? 'warning';
 
   if (input.codexCliSupport) {
     const cliSupport = input.codexCliSupport as CodexCliSupport & { provider?: string; configKey?: string };
@@ -300,17 +305,46 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
   }
 
   if (input.config.cliProvider === 'azure-foundry') {
-    diagnostics.push(...collectAzureFoundryReadinessDiagnostics(input.config));
+    diagnostics.push(...collectAzureFoundryReadinessDiagnostics(
+      input.config,
+      input.azureAuthReadiness?.['azure-foundry'],
+      authFailureSeverity
+    ));
   }
 
   if (input.config.cliProvider === 'copilot-foundry') {
-    diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(input.config));
+    diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(
+      input.config,
+      input.azureAuthReadiness?.['copilot-foundry'],
+      authFailureSeverity
+    ));
   }
 
   return diagnostics;
 }
 
-function collectAzureFoundryReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
+export async function inspectProviderReadinessDiagnostics(
+  input: RalphProviderReadinessInput
+): Promise<RalphPreflightDiagnostic[]> {
+  const azureAuthReadiness = { ...input.azureAuthReadiness };
+
+  if (input.config.cliProvider === 'azure-foundry') {
+    azureAuthReadiness['azure-foundry'] = await inspectAzureAuthReadiness(input.config.azureFoundry.auth);
+  } else if (input.config.cliProvider === 'copilot-foundry') {
+    azureAuthReadiness['copilot-foundry'] = await inspectAzureAuthReadiness(input.config.copilotFoundry.auth);
+  }
+
+  return collectProviderReadinessDiagnostics({
+    ...input,
+    azureAuthReadiness
+  });
+}
+
+function collectAzureFoundryReadinessDiagnostics(
+  config: RalphCodexConfig,
+  authReadiness?: AzureAuthReadiness,
+  authFailureSeverity: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'> = 'warning'
+): RalphPreflightDiagnostic[] {
   const diagnostics: RalphPreflightDiagnostic[] = [];
   if (!config.azureFoundry.endpointUrl.trim()) {
     diagnostics.push(createDiagnostic(
@@ -324,18 +358,24 @@ function collectAzureFoundryReadinessDiagnostics(config: RalphCodexConfig): Ralp
   diagnostics.push(...collectAzureAuthReadinessDiagnostics(
     'azure-foundry',
     config.azureFoundry.auth,
+    authReadiness,
     {
       envPrefix: 'ralphCodex.azureFoundry.auth',
       bearerInfoCode: 'azure_foundry_auth_az_bearer',
       bearerInfoMessage: 'Azure AI Foundry will resolve a bearer token via Azure Identity at runtime. Ensure the selected tenant is available to DefaultAzureCredential or Managed Identity before execution.',
       apiKeyInfoCode: 'azure_foundry_auth_api_key_active'
-    }
+    },
+    authFailureSeverity
   ));
 
   return diagnostics;
 }
 
-function collectCopilotFoundryReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
+function collectCopilotFoundryReadinessDiagnostics(
+  config: RalphCodexConfig,
+  authReadiness?: AzureAuthReadiness,
+  authFailureSeverity: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'> = 'warning'
+): RalphPreflightDiagnostic[] {
   const diagnostics: RalphPreflightDiagnostic[] = [];
   if (!config.copilotFoundry.azure.baseUrlOverride.trim() && !config.copilotFoundry.azure.resourceName.trim()) {
     diagnostics.push(createDiagnostic(
@@ -358,12 +398,14 @@ function collectCopilotFoundryReadinessDiagnostics(config: RalphCodexConfig): Ra
   diagnostics.push(...collectAzureAuthReadinessDiagnostics(
     'copilot-foundry',
     config.copilotFoundry.auth,
+    authReadiness,
     {
       envPrefix: 'ralphCodex.copilotFoundry.auth',
       bearerInfoCode: 'copilot_foundry_auth_az_bearer',
       bearerInfoMessage: 'Copilot Foundry will resolve a bearer token via Azure Identity at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
       apiKeyInfoCode: 'copilot_foundry_auth_api_key_active'
-    }
+    },
+    authFailureSeverity
   ));
 
   return diagnostics;
@@ -372,13 +414,48 @@ function collectCopilotFoundryReadinessDiagnostics(config: RalphCodexConfig): Ra
 function collectAzureAuthReadinessDiagnostics(
   providerId: 'azure-foundry' | 'copilot-foundry',
   auth: RalphCodexConfig['azureFoundry']['auth'],
+  authReadiness: AzureAuthReadiness | undefined,
   options: {
     envPrefix: string;
     bearerInfoCode: string;
     bearerInfoMessage: string;
     apiKeyInfoCode: string;
-  }
+  },
+  authFailureSeverity: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'>
 ): RalphPreflightDiagnostic[] {
+  if (authReadiness) {
+    if (authReadiness.status === 'ready') {
+      return [createDiagnostic(
+        'codexAdapter',
+        'info',
+        auth.mode === 'az-bearer'
+          ? options.bearerInfoCode
+          : `${providerId.replace(/-/g, '_')}_auth_api_key_ready`,
+        auth.mode === 'az-bearer'
+          ? `${providerId} bearer-token readiness confirmed via ${authReadiness.redactedSource}.`
+          : `${providerId} API-key readiness confirmed via ${authReadiness.redactedSource}.`
+      )];
+    }
+
+    if (authReadiness.status === 'misconfigured') {
+      return [createDiagnostic(
+        'codexAdapter',
+        'error',
+        `${providerId.replace(/-/g, '_')}_auth_misconfigured`,
+        `${providerId} auth is misconfigured: ${authReadiness.detail}`
+      )];
+    }
+
+    return [createDiagnostic(
+      'codexAdapter',
+      authFailureSeverity,
+      `${providerId.replace(/-/g, '_')}_auth_readiness_failed`,
+      auth.mode === 'az-bearer'
+        ? `${providerId} bearer-token readiness probe failed via ${authReadiness.redactedSource}: ${authReadiness.detail}`
+        : `${providerId} API-key readiness failed via ${authReadiness.redactedSource}: ${authReadiness.detail}`
+    )];
+  }
+
   if (auth.mode === 'env-api-key') {
     if (!auth.apiKeyEnvVar.trim()) {
       return [createDiagnostic(
@@ -1096,11 +1173,11 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
     ));
   }
 
-  diagnostics.push(...collectProviderReadinessDiagnostics({
+  diagnostics.push(...(input.providerReadinessDiagnostics ?? collectProviderReadinessDiagnostics({
     config: input.config,
     codexCliSupport: input.codexCliSupport,
     ideCommandSupport: input.ideCommandSupport
-  }));
+  })));
 
   if (input.config.verifierModes.includes('validationCommand')) {
     if (!input.validationCommand) {

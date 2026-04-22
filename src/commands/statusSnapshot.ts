@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath } from '../config/providers';
 import { readConfig, resolveOperatorModeProvenance } from '../config/readConfig';
-import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness } from '../ralph/preflight';
+import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness, inspectProviderReadinessDiagnostics } from '../ralph/preflight';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
   resolveLatestStatusArtifacts,
@@ -373,6 +373,12 @@ export async function collectStatusSnapshot(
   }
   const effectiveRolePolicy = getEffectivePolicy(config.agentRole);
 
+  const providerReadinessDiagnostics = await inspectProviderReadinessDiagnostics({
+    config,
+    codexCliSupport,
+    ideCommandSupport
+  });
+
   const preflightReport = buildPreflightReport({
     rootPath: workspaceFolder.uri.fsPath,
     workspaceTrusted: vscode.workspace.isTrusted,
@@ -389,6 +395,7 @@ export async function collectStatusSnapshot(
     fileStatus: inspection.fileStatus,
     codexCliSupport,
     ideCommandSupport,
+    providerReadinessDiagnostics,
     artifactReadinessDiagnostics,
     agentHealthDiagnostics,
     rolePolicySource

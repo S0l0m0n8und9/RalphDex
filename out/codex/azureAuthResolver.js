@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.configureAzureSecretStorage = configureAzureSecretStorage;
 exports.setAzureCredentialFactoryOverride = setAzureCredentialFactoryOverride;
 exports.resolveAzureAuth = resolveAzureAuth;
+exports.inspectAzureAuthReadiness = inspectAzureAuthReadiness;
 const identity_1 = require("@azure/identity");
 const AZURE_COGNITIVE_SERVICES_SCOPE = 'https://cognitiveservices.azure.com/.default';
 let secretStorage = null;
@@ -22,6 +23,98 @@ async function resolveAzureAuth(config) {
         case 'az-bearer':
         default:
             return await resolveBearerToken(config);
+    }
+}
+async function inspectAzureAuthReadiness(config) {
+    switch (config.mode) {
+        case 'env-api-key': {
+            const variableName = config.apiKeyEnvVar.trim();
+            if (!variableName) {
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'misconfigured',
+                    redactedSource: 'environment variable (unconfigured)',
+                    detail: 'Azure auth mode "env-api-key" requires a non-empty apiKeyEnvVar setting.'
+                };
+            }
+            try {
+                const auth = await resolveApiKeyFromEnv(config);
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'ready',
+                    redactedSource: auth.redactedSource,
+                    detail: `Azure API-key readiness confirmed via ${auth.redactedSource}.`
+                };
+            }
+            catch (error) {
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'unavailable',
+                    redactedSource: `environment variable ${variableName}`,
+                    detail: sanitizeFailureDetail(error)
+                };
+            }
+        }
+        case 'vscode-secret': {
+            const secretKey = config.secretStorageKey.trim();
+            if (!secretKey) {
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'misconfigured',
+                    redactedSource: 'VS Code secret (unconfigured)',
+                    detail: 'Azure auth mode "vscode-secret" requires a non-empty secretStorageKey setting.'
+                };
+            }
+            try {
+                const auth = await resolveApiKeyFromSecretStorage(config);
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'ready',
+                    redactedSource: auth.redactedSource,
+                    detail: `Azure API-key readiness confirmed via ${auth.redactedSource}.`
+                };
+            }
+            catch (error) {
+                return {
+                    mode: config.mode,
+                    kind: 'api-key',
+                    status: 'unavailable',
+                    redactedSource: `VS Code secret ${secretKey}`,
+                    detail: sanitizeFailureDetail(error)
+                };
+            }
+        }
+        case 'az-bearer':
+        default: {
+            const { sourceLabel } = createAzureCredentialFactory(config);
+            const tenantId = config.tenantId.trim();
+            const subscriptionId = config.subscriptionId.trim();
+            const redactedSource = formatBearerSourceLabel(sourceLabel, tenantId, subscriptionId);
+            try {
+                await resolveBearerToken(config);
+                return {
+                    mode: config.mode,
+                    kind: 'bearer',
+                    status: 'ready',
+                    redactedSource,
+                    detail: `Azure bearer-token readiness confirmed via ${redactedSource}.`
+                };
+            }
+            catch (error) {
+                return {
+                    mode: config.mode,
+                    kind: 'bearer',
+                    status: 'unavailable',
+                    redactedSource,
+                    detail: error instanceof Error ? error.message : sanitizeFailureDetail(error)
+                };
+            }
+        }
     }
 }
 async function resolveApiKeyFromEnv(config) {

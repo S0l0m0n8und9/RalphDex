@@ -361,6 +361,11 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         }
     }
     const effectiveRolePolicy = (0, rolePolicy_1.getEffectivePolicy)(config.agentRole);
+    const providerReadinessDiagnostics = await (0, preflight_1.inspectProviderReadinessDiagnostics)({
+        config,
+        codexCliSupport,
+        ideCommandSupport
+    });
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath: workspaceFolder.uri.fsPath,
         workspaceTrusted: vscode.workspace.isTrusted,
@@ -377,6 +382,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         fileStatus: inspection.fileStatus,
         codexCliSupport,
         ideCommandSupport,
+        providerReadinessDiagnostics,
         artifactReadinessDiagnostics,
         agentHealthDiagnostics,
         rolePolicySource

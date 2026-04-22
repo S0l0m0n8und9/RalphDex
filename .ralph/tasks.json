@@ -4212,12 +4212,12 @@
     {
       "id": "T162",
       "title": "Strengthen Azure-backed provider auth-readiness diagnostics and command-surface verification",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T164",
         "T161"
       ],
-      "notes": "Once bearer-token auth is truly keyless, preflight and the provider-test command should move beyond generic informational text and tell operators whether the configured auth path is actually executable. Keep the diagnostics thin, deterministic, and safe to run without disclosing secrets.",
+      "notes": "Added a redacted Azure auth-readiness probe, threaded async provider-readiness diagnostics into preflight/status/iteration preparation, upgraded the provider connection command to surface Azure auth failures clearly, and added regression coverage for azure-foundry and copilot-foundry readiness success/failure paths.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4226,7 +4226,8 @@
         "Warnings and status text remain redacted: they may identify the auth source or tenant/subscription metadata but never include raw bearer tokens or API key values",
         "Regression coverage proves readiness and failure mapping for both azure-foundry and copilot-foundry auth modes",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T163",
@@ -4378,5 +4379,5 @@
       ]
     }
   ],
-  "mutationCount": 178
+  "mutationCount": 179
 }

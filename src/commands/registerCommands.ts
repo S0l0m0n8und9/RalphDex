@@ -54,7 +54,7 @@ import {
   writePrdWizardDraft
 } from './prdWizardPersistence';
 import { appendNormalizedTasksToFile } from '../ralph/taskCreation';
-import { collectProviderReadinessDiagnostics } from '../ralph/preflight';
+import { inspectProviderReadinessDiagnostics } from '../ralph/preflight';
 import {
   relativeWizardWriteSummary,
   type PrdWizardDraftBundle,
@@ -1345,9 +1345,10 @@ export function registerCommands(
       progress.report({ message: `Testing ${providerLabel} provider readiness` });
 
       const cliSupport = await inspectCliSupport(config.cliProvider, getCliCommandPath(config));
-      const diagnostics = collectProviderReadinessDiagnostics({
+      const diagnostics = await inspectProviderReadinessDiagnostics({
         config,
-        codexCliSupport: cliSupport
+        codexCliSupport: cliSupport,
+        authFailureSeverity: 'error'
       });
       const summary = summarizeProviderDiagnostics(diagnostics.map((diagnostic) => diagnostic.message));
 

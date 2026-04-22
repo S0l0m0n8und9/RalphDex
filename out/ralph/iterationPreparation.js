@@ -286,6 +286,11 @@ async function prepareIterationContext(input) {
         readLastSummarizationMode(snapshot.paths.memorySummaryPath)
     ]);
     const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
+    const providerReadinessDiagnostics = await (0, preflight_1.inspectProviderReadinessDiagnostics)({
+        config,
+        codexCliSupport,
+        ideCommandSupport
+    });
     const preflightReport = (0, preflight_1.buildPreflightReport)({
         rootPath,
         workspaceTrusted: vscode.workspace.isTrusted,
@@ -303,6 +308,7 @@ async function prepareIterationContext(input) {
         createdPaths: snapshot.createdPaths,
         codexCliSupport,
         ideCommandSupport,
+        providerReadinessDiagnostics,
         artifactReadinessDiagnostics,
         agentHealthDiagnostics,
         sessionHandoff,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   configureAzureSecretStorage,
+  inspectAzureAuthReadiness,
   resolveAzureAuth,
   setAzureCredentialFactoryOverride
 } from '../src/codex/azureAuthResolver';
@@ -107,4 +108,47 @@ test('resolveAzureAuth normalizes Azure credential acquisition failures without 
       return true;
     }
   );
+});
+
+test('inspectAzureAuthReadiness confirms env-api-key readiness without exposing the secret value', async () => {
+  process.env.AZURE_TEST_KEY = 'env-secret';
+
+  const readiness = await inspectAzureAuthReadiness({
+    mode: 'env-api-key',
+    tenantId: '',
+    subscriptionId: '',
+    apiKeyEnvVar: 'AZURE_TEST_KEY',
+    secretStorageKey: ''
+  });
+
+  assert.equal(readiness.status, 'ready');
+  assert.equal(readiness.kind, 'api-key');
+  assert.match(readiness.redactedSource, /environment variable AZURE_TEST_KEY/i);
+  assert.doesNotMatch(readiness.detail, /env-secret/);
+});
+
+test('inspectAzureAuthReadiness reports bearer-token failures without leaking token-like substrings', async () => {
+  setAzureCredentialFactoryOverride(() => ({
+    credential: {
+      getToken: async () => {
+        throw new Error('Bearer secret-token-value was rejected by tenant policy');
+      }
+    },
+    sourceLabel: 'DefaultAzureCredential'
+  }));
+
+  const readiness = await inspectAzureAuthReadiness({
+    mode: 'az-bearer',
+    tenantId: 'tenant-1',
+    subscriptionId: 'sub-1',
+    apiKeyEnvVar: '',
+    secretStorageKey: ''
+  });
+
+  assert.equal(readiness.status, 'unavailable');
+  assert.equal(readiness.kind, 'bearer');
+  assert.match(readiness.redactedSource, /tenant tenant-1/i);
+  assert.match(readiness.redactedSource, /subscription sub-1/i);
+  assert.match(readiness.detail, /Azure bearer-token acquisition failed via DefaultAzureCredential/i);
+  assert.doesNotMatch(readiness.detail, /secret-token-value/);
 });
