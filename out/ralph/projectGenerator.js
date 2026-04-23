@@ -113,6 +113,8 @@ The user's objective is:
 {OBJECTIVE}
 </objective>
 
+Project type: {PROJECT_TYPE}
+
 Write a Product Requirements Document (PRD) in markdown for this project. Then, at the very end of your response, output a fenced JSON block containing an object with tasks.
 
 Requirements:
@@ -161,6 +163,66 @@ For each task, supply a \`suggestedValidationCommand\`: the shell command an age
 \`\`\`
 
 Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
+const DOCUMENTATION_GENERATION_PROMPT_TEMPLATE = `You are helping set up a documentation-only repository brief for an agentic coding loop.
+
+The user's objective is:
+
+<objective>
+{OBJECTIVE}
+</objective>
+
+Project type: documentation
+
+Write a markdown PRD that documents the repository as it currently exists. The purpose is to help Ralphdex inspect and document the repo in the fashion requested by the operator, not to build or change product behavior.
+
+Requirements:
+- Start with a # heading for the repository documentation brief
+- Include: ## Overview, ## Goals, ## Documentation Scope, ## Existing Structure, and ## Success Criteria
+- Keep each section to 2-4 sentences grounded in what should be documented from the current repository state
+- The PRD must not propose code changes, implementation work, scaffolding, refactors, migrations, or speculative future-state design
+- Tasks must correspond to documentation work areas and stay limited to inspecting the current repo and writing documentation about it
+- Output between 3 and 7 tasks
+- Each task must include required fields \`id\` and \`title\`
+- Set "mode" to "documentation" on every task
+- Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only
+
+For each task:
+- Focus on documenting existing modules, workflows, boundaries, commands, architecture, or operational behavior already present in the repo
+- Do not ask the agent to modify source code except for documentation files requested by the operator
+- Supply a \`suggestedValidationCommand\` only when one helps verify the documentation artifact or consistency check
+- You may include optional fields \`notes\`, \`rationale\`, \`dependsOn\`, \`acceptance\`, \`constraints\`, \`context\`, \`priority\`, and \`tier\` when they materially improve execution
+
+End your response with EXACTLY this structure (no text after the closing fence):
+
+\`\`\`json
+{
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "document a current repo area",
+      "status": "todo",
+      "mode": "documentation",
+      "suggestedValidationCommand": "npm run check:docs",
+      "acceptance": ["one concrete documentation outcome"],
+      "context": ["docs/example.md"]
+    }
+  ]
+}
+\`\`\`
+
+Respond ONLY with the PRD markdown followed by the JSON fence. No preamble, no explanation after the fence.`;
+function resolveProjectDraftRequest(input) {
+    if (typeof input === 'string') {
+        return {
+            objective: input,
+            projectType: 'other'
+        };
+    }
+    return {
+        objective: input.objective,
+        projectType: input.projectType?.trim() || 'other'
+    };
+}
 function buildProviderPromptRequest(prompt, config, cwd, lastMessagePrefix) {
     const commandPath = (0, providers_1.getCliCommandPath)(config);
     const provider = (0, providerFactory_1.createCliProvider)(config);
@@ -211,10 +273,16 @@ async function runPromptThroughConfiguredProvider(prompt, config, cwd, lastMessa
         launchShell: Boolean(launchSpec.shell)
     };
 }
-async function generateProjectDraft(objective, config, cwd) {
-    const safeObjective = objective.replace(/<\/objective>/gi, '[/objective]');
-    const template = config.prdGenerationTemplate?.trim() || GENERATION_PROMPT_TEMPLATE;
-    const prompt = template.replace('{OBJECTIVE}', safeObjective);
+async function generateProjectDraft(input, config, cwd) {
+    const request = resolveProjectDraftRequest(input);
+    const safeObjective = request.objective.replace(/<\/objective>/gi, '[/objective]');
+    const builtInTemplate = request.projectType === 'documentation'
+        ? DOCUMENTATION_GENERATION_PROMPT_TEMPLATE
+        : GENERATION_PROMPT_TEMPLATE;
+    const template = config.prdGenerationTemplate?.trim() || builtInTemplate;
+    const prompt = template
+        .replace('{OBJECTIVE}', safeObjective)
+        .replace('{PROJECT_TYPE}', request.projectType);
     const { responseText } = await runPromptThroughConfiguredProvider(prompt, config, cwd, 'ralph-gen');
     return parseGenerationResponse(responseText);
 }

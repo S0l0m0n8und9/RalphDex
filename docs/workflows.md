@@ -46,6 +46,25 @@ That initial `tasks.json` now enters the same shared task-creation pipeline used
 
 The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ralph warns and aborts instead of overwriting the current workspace state. That keeps initialization for clean clones separate from runtime cleanup or reset flows on an active workspace.
 
+## Regenerate Or Author A PRD
+
+1. Run `Ralphdex: Regenerate PRD`.
+2. Capture the project shape Ralph needs for generation: project type, objective, tech stack, non-goals, and existing conventions.
+3. Generate a draft PRD plus starter backlog tasks.
+4. Review and edit the PRD draft in place, using the inline findings and regenerate comparison summary to understand weak or changed sections before writing.
+5. Review the starter backlog, reorder or retitle tasks, adjust tiers, inspect validation and dependency detail, and treat duplicate or vague-task findings as review warnings rather than hard blockers.
+6. Confirm the write after checking the explicit blast radius: `.ralph/prd.md` is written, `.ralph/tasks.json` is replaced, and no unrelated workspace settings are changed.
+
+This wizard is a narrow authoring surface. It owns PRD drafting, starter backlog drafting, review, and bounded file writes. It does not own provider selection, execution mode presets, skills management, or broader workspace control-plane settings.
+
+Generation quality is surfaced explicitly:
+
+- normal provider-backed output is labeled as a generated draft
+- unusually weak generation, such as an overlong starter backlog, is labeled as a weak draft and should be reviewed before write
+- provider failure falls back to a bootstrap draft, which is labeled as fallback output so the operator can refine it before writing durable files
+
+Regenerate mode uses the same five-step flow as new authoring. The difference is review context: Ralph keeps the current PRD loaded, shows a current-versus-draft comparison summary, and helps the operator decide whether to accept the rewrite without leaving the wizard.
+
 ## Prepare A Prompt For IDE Use
 
 1. Run `Ralphdex: Prepare Prompt` if you only want the next prompt file.

@@ -121,6 +121,34 @@ test('package manifest contributes and activates the regeneratePrd command', asy
   );
 });
 
+test('package manifest contributes and activates the stop loop command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.stopLoop'),
+    'package.json must activate on ralphCodex.stopLoop'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.stopLoop' && entry.title === 'Ralphdex: Stop Loop'),
+    'package.json must contribute the Stop Loop command'
+  );
+});
+
+test('package manifest contributes and activates the openPrdWizard command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.openPrdWizard'),
+    'package.json must activate on ralphCodex.openPrdWizard'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.openPrdWizard' && entry.title === 'Ralphdex: Open PRD Wizard'),
+    'package.json must contribute the Open PRD Wizard command'
+  );
+});
+
 test('package manifest contributes and activates the showSidebar command', async () => {
   const manifest = await readPackageManifest();
   const commands = manifest.contributes?.commands ?? [];

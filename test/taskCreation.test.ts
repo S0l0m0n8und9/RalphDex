@@ -165,6 +165,25 @@ test('appendNormalizedTasksToFile rejects duplicate ids discovered under the tas
   assert.equal(await fs.readFile(tasksPath, 'utf8'), initialText);
 });
 
+test('appendNormalizedTasksToFile rejects an empty pre-existing tasks.json without seeding defaults or mutating the file', async () => {
+  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-create-empty-'));
+  const tasksPath = path.join(tempDir, 'tasks.json');
+  await fs.writeFile(tasksPath, '', 'utf8');
+
+  await assert.rejects(
+    () => appendNormalizedTasksToFile(tasksPath, [
+      {
+        id: 'T2',
+        title: 'Append into empty task file',
+        status: 'todo'
+      }
+    ]),
+    /must not be empty/i
+  );
+
+  assert.equal(await fs.readFile(tasksPath, 'utf8'), '');
+});
+
 test('replaceTasksFileWithNormalizedTasks rewrites the file using the shared normalization pipeline', async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-task-replace-'));
   const tasksPath = path.join(tempDir, 'tasks.json');

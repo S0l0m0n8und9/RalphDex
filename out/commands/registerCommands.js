@@ -65,6 +65,38 @@ const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
 const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
+function createActiveLoopStopRegistry() {
+    let nextSessionId = 1;
+    const cancelledSessionIds = new Set();
+    const activeSessionIds = new Set();
+    return {
+        begin() {
+            const sessionId = nextSessionId++;
+            activeSessionIds.add(sessionId);
+            return {
+                isCancellationRequested() {
+                    return cancelledSessionIds.has(sessionId);
+                },
+                dispose() {
+                    activeSessionIds.delete(sessionId);
+                    cancelledSessionIds.delete(sessionId);
+                }
+            };
+        },
+        requestStop() {
+            if (activeSessionIds.size === 0) {
+                return false;
+            }
+            for (const sessionId of activeSessionIds) {
+                cancelledSessionIds.add(sessionId);
+            }
+            return true;
+        },
+        hasActiveLoop() {
+            return activeSessionIds.size > 0;
+        }
+    };
+}
 function createdPathSummary(rootPath, createdPaths) {
     if (createdPaths.length === 0) {
         return null;
@@ -253,9 +285,11 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
             prdPath: paths.prdPath,
             tasksPath: paths.taskFilePath
         },
-        configSelections: (0, prdWizardPersistence_1.buildPrdWizardConfigSelections)(config),
         generateDraft: async (input) => {
-            const generated = await (0, projectGenerator_1.generateProjectDraft)(buildWizardGenerationPrompt(input), config, workspaceFolder.uri.fsPath);
+            const generated = await (0, projectGenerator_1.generateProjectDraft)({
+                objective: buildWizardGenerationPrompt(input),
+                projectType: input.projectType
+            }, config, workspaceFolder.uri.fsPath);
             return {
                 prdText: generated.prdText,
                 tasks: generated.tasks.map((task) => ({
@@ -266,27 +300,19 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
             };
         },
         writeDraft: async (draft) => {
-            return (0, prdWizardPersistence_1.writePrdWizardDraft)(workspaceFolder, draft, {
+            return (0, prdWizardPersistence_1.writePrdWizardDraft)(draft, {
                 prdPath: paths.prdPath,
                 tasksPath: paths.taskFilePath
             });
         },
         onWriteComplete: async (result) => {
             logger.info('PRD wizard wrote Ralph files.', {
-                filesWritten: result.filesWritten,
-                settingsUpdated: result.settingsUpdated ?? [],
-                settingsSkipped: result.settingsSkipped ?? []
+                filesWritten: result.filesWritten
             });
             await openTextFile(paths.prdPath);
             await openTextFile(paths.taskFilePath);
             const summary = (0, prdCreationWizardHost_1.relativeWizardWriteSummary)(workspaceFolder.uri.fsPath, result);
-            const updateSummary = summary.settingsUpdated && summary.settingsUpdated.length > 0
-                ? ` Settings updated: ${summary.settingsUpdated.join(', ')}.`
-                : '';
-            const skipSummary = summary.settingsSkipped && summary.settingsSkipped.length > 0
-                ? ` Skipped: ${summary.settingsSkipped.join(', ')}.`
-                : '';
-            void vscode.window.showInformationMessage(`PRD wizard wrote: ${summary.filesWritten.join(', ')}.${updateSummary}${skipSummary}`);
+            void vscode.window.showInformationMessage(`PRD wizard wrote: ${summary.filesWritten.join(', ')}.`);
         }
     });
 }
@@ -342,6 +368,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     const stateManager = new stateManager_1.RalphStateManager(context.workspaceState, logger);
     const strategies = new providerFactory_1.CodexStrategyRegistry(logger);
     const engine = new iterationEngine_1.RalphIterationEngine(stateManager, strategies, logger);
+    const activeLoopStops = createActiveLoopStopRegistry();
     async function loadFocusedDiagnosis(workspaceFolder) {
         const status = await (0, statusSnapshot_2.collectStatusSnapshot)(workspaceFolder, stateManager, logger);
         return (0, dashboardSnapshot_1.buildDashboardSnapshot)(status).diagnosis;
@@ -494,6 +521,31 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             await openTextFile(result.prdPath);
             await openTextFile(result.tasksPath);
             void vscode.window.showInformationMessage(`Ralph workspace ready. Review prd.md and tasks.json — refine them with your AI assistant before running your first loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openPrdWizard',
+        label: 'Ralphdex: Open PRD Wizard',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            if (!(await (0, fs_1.pathExists)(paths.ralphDir))) {
+                progress.report({ message: 'Creating a fresh .ralph workspace scaffold for the PRD wizard' });
+                const result = await initializeFreshWorkspace(workspaceFolder.uri.fsPath);
+                logger.info('Initialized a fresh Ralph workspace scaffold for the PRD wizard.', {
+                    rootPath: workspaceFolder.uri.fsPath,
+                    ralphDir: result.ralphDir,
+                    prdPath: result.prdPath,
+                    tasksPath: result.tasksPath,
+                    progressPath: result.progressPath,
+                    gitignorePath: result.gitignorePath
+                });
+            }
+            await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {
+                mode: 'new',
+                initialStep: 1
+            });
         }
     });
     registerCommand(context, logger, {
@@ -727,10 +779,22 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         }
     });
     registerCommand(context, logger, {
+        commandId: 'ralphCodex.stopLoop',
+        label: 'Ralphdex: Stop Loop',
+        handler: async () => {
+            if (!activeLoopStops.requestStop()) {
+                void vscode.window.showWarningMessage('No Ralph loop is currently running.');
+                return;
+            }
+            void vscode.window.showInformationMessage('Stop requested. Ralph will halt before starting the next iteration.');
+        }
+    });
+    registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphLoop',
         label: 'Ralphdex: Run CLI Loop',
         cancellable: true,
         handler: async (progress, token) => {
+            const stopHandle = activeLoopStops.begin();
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
@@ -742,102 +806,107 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 noProgressThreshold: config.noProgressThreshold,
                 repeatedFailureThreshold: config.repeatedFailureThreshold
             });
-            broadcaster?.emitLoopStart(config.ralphIterationCap);
-            let lastRun = null;
-            for (let index = 0; index < config.ralphIterationCap; index += 1) {
-                if (token.isCancellationRequested) {
-                    broadcaster?.emitLoopEnd(index, 'cancelled');
-                    void vscode.window.showInformationMessage(`Ralph CLI loop cancelled after ${index} iteration(s).`);
-                    return;
+            try {
+                broadcaster?.emitLoopStart(config.ralphIterationCap);
+                let lastRun = null;
+                for (let index = 0; index < config.ralphIterationCap; index += 1) {
+                    if (token.isCancellationRequested || stopHandle.isCancellationRequested()) {
+                        broadcaster?.emitLoopEnd(index, 'cancelled');
+                        void vscode.window.showInformationMessage(`Ralph CLI loop cancelled after ${index} iteration(s).`);
+                        return;
+                    }
+                    progress.report({
+                        message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
+                        increment: 100 / config.ralphIterationCap
+                    });
+                    broadcaster?.emitIterationStart({
+                        iteration: index + 1,
+                        iterationCap: config.ralphIterationCap,
+                        selectedTaskId: null,
+                        selectedTaskTitle: null,
+                        agentId: config.agentId
+                    });
+                    lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
+                        reachedIterationCap: index + 1 >= config.ralphIterationCap,
+                        configOverrides: { agentId: config.agentId },
+                        broadcaster
+                    });
+                    broadcaster?.emitIterationEnd({
+                        iteration: lastRun.result.iteration,
+                        classification: lastRun.result.completionClassification,
+                        stopReason: lastRun.result.stopReason
+                    });
+                    if (lastRun.result.executionStatus === 'failed') {
+                        broadcaster?.emitLoopEnd(index + 1, 'execution_failed');
+                        throw new Error(iterationFailureMessage(lastRun.result));
+                    }
+                    if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
+                        progress.report({ message: `Parent ${lastRun.autoReviewContext.parentTaskId} done — running review agent` });
+                        try {
+                            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                reachedIterationCap: false,
+                                configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
+                                rolePolicySource: 'explicit',
+                                focusTaskId: lastRun.autoReviewContext.parentTaskId
+                            });
+                        }
+                        catch (reviewError) {
+                            logger.warn('Auto-review after parent-done failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
+                        }
+                    }
+                    if (!lastRun.loopDecision.shouldContinue) {
+                        if (lastRun.result.stopReason === 'control_plane_reload_required'
+                            && config.autoReloadOnControlPlaneChange) {
+                            logger.info('Ralph is reloading the extension host to apply control-plane changes.', {
+                                iteration: lastRun.result.iteration,
+                                stopReason: lastRun.result.stopReason
+                            });
+                            await (0, async_1.sleep)(1500);
+                            await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                            return;
+                        }
+                        const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+                            || lastRun.result.stopReason === 'repeated_identical_failure';
+                        if (isStallStop && config.autoWatchdogOnStall) {
+                            progress.report({ message: 'Loop stalled — running watchdog agent' });
+                            try {
+                                await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                    reachedIterationCap: false,
+                                    configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                                    rolePolicySource: 'explicit'
+                                });
+                            }
+                            catch (watchdogError) {
+                                logger.warn('Auto-watchdog after stall failed.', { error: (0, error_1.toErrorMessage)(watchdogError) });
+                            }
+                        }
+                        broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
+                        void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
+                        await showFailureDiagnosisNotification(workspaceFolder, previousDiagnosisStamp);
+                        return;
+                    }
                 }
-                progress.report({
-                    message: `Running Ralph loop iteration ${index + 1} of ${config.ralphIterationCap}`,
-                    increment: 100 / config.ralphIterationCap
-                });
-                broadcaster?.emitIterationStart({
-                    iteration: index + 1,
-                    iterationCap: config.ralphIterationCap,
-                    selectedTaskId: null,
-                    selectedTaskTitle: null,
-                    agentId: config.agentId
-                });
-                lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
-                    reachedIterationCap: index + 1 >= config.ralphIterationCap,
-                    configOverrides: { agentId: config.agentId },
-                    broadcaster
-                });
-                broadcaster?.emitIterationEnd({
-                    iteration: lastRun.result.iteration,
-                    classification: lastRun.result.completionClassification,
-                    stopReason: lastRun.result.stopReason
-                });
-                if (lastRun.result.executionStatus === 'failed') {
-                    broadcaster?.emitLoopEnd(index + 1, 'execution_failed');
-                    throw new Error(iterationFailureMessage(lastRun.result));
-                }
-                if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
-                    progress.report({ message: `Parent ${lastRun.autoReviewContext.parentTaskId} done — running review agent` });
+                if (config.autoReviewOnLoopComplete && lastRun) {
+                    progress.report({ message: 'Loop complete — running review agent' });
                     try {
                         await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                             reachedIterationCap: false,
                             configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
-                            rolePolicySource: 'explicit',
-                            focusTaskId: lastRun.autoReviewContext.parentTaskId
+                            rolePolicySource: 'explicit'
                         });
                     }
                     catch (reviewError) {
-                        logger.warn('Auto-review after parent-done failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
+                        logger.warn('Auto-review on loop complete failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
                     }
                 }
-                if (!lastRun.loopDecision.shouldContinue) {
-                    if (lastRun.result.stopReason === 'control_plane_reload_required'
-                        && config.autoReloadOnControlPlaneChange) {
-                        logger.info('Ralph is reloading the extension host to apply control-plane changes.', {
-                            iteration: lastRun.result.iteration,
-                            stopReason: lastRun.result.stopReason
-                        });
-                        await (0, async_1.sleep)(1500);
-                        await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                        return;
-                    }
-                    const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
-                        || lastRun.result.stopReason === 'repeated_identical_failure';
-                    if (isStallStop && config.autoWatchdogOnStall) {
-                        progress.report({ message: 'Loop stalled — running watchdog agent' });
-                        try {
-                            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                                reachedIterationCap: false,
-                                configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
-                                rolePolicySource: 'explicit'
-                            });
-                        }
-                        catch (watchdogError) {
-                            logger.warn('Auto-watchdog after stall failed.', { error: (0, error_1.toErrorMessage)(watchdogError) });
-                        }
-                    }
-                    broadcaster?.emitLoopEnd(index + 1, lastRun.result.stopReason);
-                    void vscode.window.showInformationMessage(`Ralph CLI loop stopped after iteration ${lastRun.result.iteration}: ${lastRun.loopDecision.message}`);
-                    await showFailureDiagnosisNotification(workspaceFolder, previousDiagnosisStamp);
-                    return;
-                }
+                broadcaster?.emitLoopEnd(config.ralphIterationCap, lastRun?.result.stopReason ?? null);
+                void vscode.window.showInformationMessage(lastRun
+                    ? `Ralph CLI loop completed ${config.ralphIterationCap} iteration(s). Last outcome: ${lastRun.result.completionClassification}.`
+                    : 'Ralph CLI loop completed with no iterations.');
             }
-            if (config.autoReviewOnLoopComplete && lastRun) {
-                progress.report({ message: 'Loop complete — running review agent' });
-                try {
-                    await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                        reachedIterationCap: false,
-                        configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(config.agentId) },
-                        rolePolicySource: 'explicit'
-                    });
-                }
-                catch (reviewError) {
-                    logger.warn('Auto-review on loop complete failed.', { error: (0, error_1.toErrorMessage)(reviewError) });
-                }
+            finally {
+                stopHandle.dispose();
             }
-            broadcaster?.emitLoopEnd(config.ralphIterationCap, lastRun?.result.stopReason ?? null);
-            void vscode.window.showInformationMessage(lastRun
-                ? `Ralph CLI loop completed ${config.ralphIterationCap} iteration(s). Last outcome: ${lastRun.result.completionClassification}.`
-                : 'Ralph CLI loop completed with no iterations.');
         }
     });
     registerCommand(context, logger, {
@@ -902,6 +971,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
         label: 'Ralphdex: Run Multi-Agent Loop',
         cancellable: true,
         handler: async (progress, token) => {
+            const stopHandle = activeLoopStops.begin();
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const agentCount = config.agentCount;
@@ -941,97 +1011,108 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             }
             progress.report({ message: `Starting ${agentSlots.length} concurrent agent loop(s)` });
             broadcaster?.emitLoopStart(config.ralphIterationCap);
-            const agentLoops = agentSlots.map(async ({ agentId, crewMember }) => {
-                let lastRun = null;
-                for (let index = 0; index < config.ralphIterationCap; index += 1) {
-                    if (token.isCancellationRequested) {
-                        logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
-                        return { agentId, lastRun, reloadRequired: false };
-                    }
-                    broadcaster?.emitIterationStart({
-                        iteration: index + 1,
-                        iterationCap: config.ralphIterationCap,
-                        selectedTaskId: null,
-                        selectedTaskTitle: null,
-                        agentId
-                    });
-                    lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
-                        reachedIterationCap: index + 1 >= config.ralphIterationCap,
-                        configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
-                        rolePolicySource: crewMember ? 'crew' : 'preset',
-                        broadcaster
-                    });
-                    broadcaster?.emitIterationEnd({
-                        iteration: lastRun.result.iteration,
-                        classification: lastRun.result.completionClassification,
-                        stopReason: lastRun.result.stopReason,
-                        agentId
-                    });
-                    if (lastRun.result.executionStatus === 'failed') {
-                        throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
-                    }
-                    if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
-                        try {
-                            await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
-                                reachedIterationCap: false,
-                                configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
-                                rolePolicySource: 'explicit',
-                                focusTaskId: lastRun.autoReviewContext.parentTaskId
-                            });
+            try {
+                const agentLoops = agentSlots.map(async ({ agentId, crewMember }) => {
+                    let lastRun = null;
+                    for (let index = 0; index < config.ralphIterationCap; index += 1) {
+                        if (token.isCancellationRequested || stopHandle.isCancellationRequested()) {
+                            logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
+                            return { agentId, lastRun, reloadRequired: false };
                         }
-                        catch (reviewError) {
-                            logger.warn('Multi-agent auto-review after parent-done failed.', { agentId, error: (0, error_1.toErrorMessage)(reviewError) });
+                        broadcaster?.emitIterationStart({
+                            iteration: index + 1,
+                            iterationCap: config.ralphIterationCap,
+                            selectedTaskId: null,
+                            selectedTaskTitle: null,
+                            agentId
+                        });
+                        lastRun = await engine.runCliIteration(workspaceFolder, 'loop', progress, {
+                            reachedIterationCap: index + 1 >= config.ralphIterationCap,
+                            configOverrides: { agentId, ...(crewMember ? { agentRole: crewMember.role } : {}) },
+                            rolePolicySource: crewMember ? 'crew' : 'preset',
+                            broadcaster
+                        });
+                        broadcaster?.emitIterationEnd({
+                            iteration: lastRun.result.iteration,
+                            classification: lastRun.result.completionClassification,
+                            stopReason: lastRun.result.stopReason,
+                            agentId
+                        });
+                        if (lastRun.result.executionStatus === 'failed') {
+                            throw new Error(`Agent ${agentId}: ${iterationFailureMessage(lastRun.result)}`);
                         }
-                    }
-                    if (!lastRun.loopDecision.shouldContinue) {
-                        if (lastRun.result.stopReason === 'control_plane_reload_required'
-                            && config.autoReloadOnControlPlaneChange) {
-                            logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
-                            return { agentId, lastRun, reloadRequired: true };
-                        }
-                        const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
-                            || lastRun.result.stopReason === 'repeated_identical_failure';
-                        if (isStallStop && config.autoWatchdogOnStall) {
+                        if (lastRun.autoReviewContext && config.autoReviewOnParentDone) {
                             try {
                                 await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
                                     reachedIterationCap: false,
-                                    configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
-                                    rolePolicySource: 'explicit'
+                                    configOverrides: { agentRole: 'review', agentId: buildReviewAgentId(agentId) },
+                                    rolePolicySource: 'explicit',
+                                    focusTaskId: lastRun.autoReviewContext.parentTaskId
                                 });
                             }
-                            catch (watchdogError) {
-                                logger.warn('Multi-agent auto-watchdog after stall failed.', { agentId, error: (0, error_1.toErrorMessage)(watchdogError) });
+                            catch (reviewError) {
+                                logger.warn('Multi-agent auto-review after parent-done failed.', { agentId, error: (0, error_1.toErrorMessage)(reviewError) });
                             }
                         }
-                        logger.info('Multi-agent loop: agent stopped early.', {
-                            agentId,
-                            iteration: lastRun.result.iteration,
-                            stopReason: lastRun.result.stopReason,
-                            message: lastRun.loopDecision.message
-                        });
-                        return { agentId, lastRun, reloadRequired: false };
+                        if (!lastRun.loopDecision.shouldContinue) {
+                            if (lastRun.result.stopReason === 'control_plane_reload_required'
+                                && config.autoReloadOnControlPlaneChange) {
+                                logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
+                                return { agentId, lastRun, reloadRequired: true };
+                            }
+                            const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
+                                || lastRun.result.stopReason === 'repeated_identical_failure';
+                            if (isStallStop && config.autoWatchdogOnStall) {
+                                try {
+                                    await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
+                                        reachedIterationCap: false,
+                                        configOverrides: { agentRole: 'watchdog', agentId: 'watchdog' },
+                                        rolePolicySource: 'explicit'
+                                    });
+                                }
+                                catch (watchdogError) {
+                                    logger.warn('Multi-agent auto-watchdog after stall failed.', { agentId, error: (0, error_1.toErrorMessage)(watchdogError) });
+                                }
+                            }
+                            logger.info('Multi-agent loop: agent stopped early.', {
+                                agentId,
+                                iteration: lastRun.result.iteration,
+                                stopReason: lastRun.result.stopReason,
+                                message: lastRun.loopDecision.message
+                            });
+                            return { agentId, lastRun, reloadRequired: false };
+                        }
                     }
+                    return { agentId, lastRun, reloadRequired: false };
+                });
+                const settled = await Promise.allSettled(agentLoops);
+                const failures = settled.filter((r) => r.status === 'rejected');
+                const fulfilled = settled.filter((r) => r.status === 'fulfilled');
+                if (fulfilled.some((r) => r.value.reloadRequired)) {
+                    logger.info('Multi-agent loop: reloading extension host to apply control-plane changes.', {});
+                    await (0, async_1.sleep)(1500);
+                    await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                    return;
                 }
-                return { agentId, lastRun, reloadRequired: false };
-            });
-            const settled = await Promise.allSettled(agentLoops);
-            const failures = settled.filter((r) => r.status === 'rejected');
-            const fulfilled = settled.filter((r) => r.status === 'fulfilled');
-            if (fulfilled.some((r) => r.value.reloadRequired)) {
-                logger.info('Multi-agent loop: reloading extension host to apply control-plane changes.', {});
-                await (0, async_1.sleep)(1500);
-                await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                return;
+                if (failures.length > 0) {
+                    const messages = failures.map((r) => (0, error_1.toErrorMessage)(r.reason)).join('; ');
+                    throw new Error(`${failures.length} of ${agentSlots.length} agent(s) failed: ${messages}`);
+                }
+                if (token.isCancellationRequested || stopHandle.isCancellationRequested()) {
+                    const startedIterations = fulfilled.reduce((count, result) => (count + (result.value.lastRun ? 1 : 0)), 0);
+                    broadcaster?.emitLoopEnd(startedIterations, 'cancelled');
+                    void vscode.window.showInformationMessage(`Ralph multi-agent loop cancelled after ${startedIterations} iteration start(s).`);
+                    return;
+                }
+                const summary = fulfilled
+                    .map(({ value: { agentId, lastRun } }) => lastRun ? `${agentId}: ${lastRun.result.completionClassification}` : `${agentId}: no iterations`)
+                    .join('; ');
+                broadcaster?.emitLoopEnd(config.ralphIterationCap, null);
+                void vscode.window.showInformationMessage(`Ralph multi-agent loop finished (${agentSlots.length} agent(s)). ${summary}`);
             }
-            if (failures.length > 0) {
-                const messages = failures.map((r) => (0, error_1.toErrorMessage)(r.reason)).join('; ');
-                throw new Error(`${failures.length} of ${agentSlots.length} agent(s) failed: ${messages}`);
+            finally {
+                stopHandle.dispose();
             }
-            const summary = fulfilled
-                .map(({ value: { agentId, lastRun } }) => lastRun ? `${agentId}: ${lastRun.result.completionClassification}` : `${agentId}: no iterations`)
-                .join('; ');
-            broadcaster?.emitLoopEnd(config.ralphIterationCap, null);
-            void vscode.window.showInformationMessage(`Ralph multi-agent loop finished (${agentSlots.length} agent(s)). ${summary}`);
         }
     });
     registerCommand(context, logger, {
@@ -1104,7 +1185,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 mode: 'regenerate',
                 initialObjective: currentPrdText,
                 initialPrdPreview: currentPrdText,
-                initialStep: 4
+                initialStep: 3
             });
             return;
             progress.report({ message: 'Generating refined PRD — this may take a moment…' });

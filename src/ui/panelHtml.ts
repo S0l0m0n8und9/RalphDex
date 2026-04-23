@@ -1858,6 +1858,7 @@ function buildSettingsTab(state: RalphDashboardState): string {
     <div class="card">
       <div class="card-title">Project Actions</div>
       <div class="btn-grid">
+        <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings UI</span><span class="btn-spinner"></span></button>
       </div>

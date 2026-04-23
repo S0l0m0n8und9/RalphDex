@@ -113,6 +113,7 @@
     "onCommand:ralphCodex.runWatchdogAgent",
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runRalphLoop",
+    "onCommand:ralphCodex.stopLoop",
     "onCommand:ralphCodex.runMultiAgentLoop",
     "onCommand:ralphCodex.showRalphStatus",
     "onCommand:ralphCodex.openFailureDiagnosis",
@@ -131,6 +132,7 @@
     "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runPipeline",
     "onCommand:ralphCodex.openLatestPipelineRun",
+    "onCommand:ralphCodex.openPrdWizard",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
     "onView:ralphCodex.dashboard",
@@ -182,6 +184,10 @@
       {
         "command": "ralphCodex.runRalphLoop",
         "title": "Ralphdex: Run CLI Loop"
+      },
+      {
+        "command": "ralphCodex.stopLoop",
+        "title": "Ralphdex: Stop Loop"
       },
       {
         "command": "ralphCodex.runMultiAgentLoop",
@@ -262,6 +268,10 @@
       {
         "command": "ralphCodex.openLatestPipelineRun",
         "title": "Ralphdex: Open Latest Pipeline Run"
+      },
+      {
+        "command": "ralphCodex.openPrdWizard",
+        "title": "Ralphdex: Open PRD Wizard"
       },
       {
         "command": "ralphCodex.regeneratePrd",

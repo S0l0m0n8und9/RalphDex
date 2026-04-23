@@ -5,10 +5,10 @@ import { SHARED_WEBVIEW_CSS } from './styles';
 import { ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RalphTaskStatus } from '../ralph/types';
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
-import type { CliProviderId } from '../config/types';
 
 export type PrdWizardMode = 'new' | 'regenerate';
-export type PrdWizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type PrdWizardStep = 1 | 2 | 3 | 4 | 5;
+type PrdWizardLegacyStep = PrdWizardStep | 6 | 7;
 
 export interface PrdWizardTaskDraft extends RalphNewTaskInput {
   status: RalphTaskStatus;
@@ -20,27 +20,13 @@ export interface PrdWizardGenerateResult {
   taskCountWarning?: string;
 }
 
-export type PrdWizardConfigKey = 'cliProvider';
-
-export interface PrdWizardConfigSelection {
-  key: PrdWizardConfigKey;
-  label: string;
-  value: CliProviderId;
-  description: string;
-  rationale: string;
-  selected: boolean;
-}
-
 export interface PrdWizardDraftBundle {
   prdText: string;
   tasks: PrdWizardTaskDraft[];
-  configSelections: PrdWizardConfigSelection[];
 }
 
 export interface PrdWizardWriteResult {
   filesWritten: string[];
-  settingsUpdated?: string[];
-  settingsSkipped?: string[];
 }
 
 export interface PrdWizardPaths {
@@ -56,9 +42,8 @@ export interface PrdCreationWizardHostOptions {
   initialObjective?: string;
   initialConstraints?: string;
   initialNonGoals?: string;
-  initialStep?: PrdWizardStep;
+  initialStep?: PrdWizardLegacyStep;
   initialPrdPreview?: string;
-  configSelections?: PrdWizardConfigSelection[];
   generateDraft: (input: {
     mode: PrdWizardMode;
     projectType: string;
@@ -80,13 +65,19 @@ type WizardInboundMessage =
   | { type: 'update-task-tier'; taskId: string; tier: '' | 'simple' | 'medium' | 'complex' }
   | { type: 'move-task'; taskId: string; direction: 'up' | 'down' }
   | { type: 'delete-task'; taskId: string }
-  | { type: 'toggle-config-selection'; key: PrdWizardConfigKey }
   | { type: 'generate-draft' }
   | { type: 'confirm-write' };
 
 type WizardOutboundMessage =
   | { type: 'state'; state: WizardState }
   | { type: 'busy'; value: boolean };
+
+interface ReviewFinding {
+  kind: 'warning' | 'blocker';
+  message: string;
+}
+
+type GenerationState = 'idle' | 'generated' | 'weak' | 'fallback';
 
 interface WizardState {
   mode: PrdWizardMode;
@@ -97,12 +88,15 @@ interface WizardState {
   outOfScope: string;
   existingConventions: string;
   draft: PrdWizardDraftBundle | null;
+  generationState: GenerationState;
+  generationMessage: string | null;
   warning: string | null;
   error: string | null;
   currentPrdPreview: string | null;
   comparisonSummary?: string | null;
+  prdReviewFindings?: ReviewFinding[];
+  taskReviewFindings?: ReviewFinding[];
   writeSummary: PrdWizardWriteResult | null;
-  configSelections: PrdWizardConfigSelection[];
   paths: PrdWizardPaths;
 }
 
@@ -126,6 +120,23 @@ function bootstrapSeedTasks(): PrdWizardTaskDraft[] {
       id: 'T2',
       title: 'Create a starter backlog from the expanded PRD',
       status: 'todo'
+    }
+  ];
+}
+
+function bootstrapDocumentationSeedTasks(): PrdWizardTaskDraft[] {
+  return [
+    {
+      id: 'T1',
+      title: 'Document the current repository structure and owned surfaces',
+      status: 'todo',
+      mode: 'documentation'
+    },
+    {
+      id: 'T2',
+      title: 'Document the current workflows, commands, and operational boundaries',
+      status: 'todo',
+      mode: 'documentation'
     }
   ];
 }
@@ -174,6 +185,13 @@ const PROJECT_TYPE_OPTIONS = [
     objectiveHint: 'Describe the user on the move, the decision they need to make quickly, and the moment the app should support.'
   },
   {
+    value: 'documentation',
+    title: 'Documentation',
+    description: 'Document the repository as it exists today without proposing or making code changes.',
+    objectiveExample: 'Document the current repository structure, workflows, and operator-facing commands in the format requested by the team.',
+    objectiveHint: 'Describe what repo behavior or structure should be documented and what form the resulting documentation should take.'
+  },
+  {
     value: 'other',
     title: 'Other',
     description: 'Use when the work does not fit the standard product shapes above.',
@@ -214,9 +232,40 @@ function createFallbackDraft(
   objective: string,
   techStack: string,
   outOfScope: string,
-  existingConventions: string,
-  configSelections: PrdWizardConfigSelection[]
+  existingConventions: string
 ): PrdWizardDraftBundle {
+  if (projectType === 'documentation') {
+    const constraintSummary = buildConstraintSummary(techStack, existingConventions);
+    const lines = [
+      '# Repository documentation brief',
+      '',
+      '## Overview',
+      '',
+      objective.trim() || 'Describe what should be documented from the current repository state.',
+      '',
+      '## Documentation Scope',
+      '',
+      'Document the repository as it exists today. Do not change repo code or behavior; inspect current files, workflows, and operator surfaces only.',
+      '',
+      '## Constraints',
+      '',
+      constraintSummary || 'Keep the work documentation-only and grounded in the current repository state.',
+      '',
+      '## Non-Goals',
+      '',
+      outOfScope.trim() || 'Do not implement features, refactor code, or propose speculative future-state behavior.',
+      '',
+      '## Success Criteria',
+      '',
+      'The resulting PRD and tasks should direct Ralphdex to inspect the repository and produce documentation in the requested format.'
+    ];
+
+    return {
+      prdText: `${lines.join('\n')}\n`,
+      tasks: bootstrapDocumentationSeedTasks()
+    };
+  }
+
   const constraintSummary = buildConstraintSummary(techStack, existingConventions);
   const lines = [
     '# Product / project brief',
@@ -240,13 +289,8 @@ function createFallbackDraft(
 
   return {
     prdText: `${lines.join('\n')}\n`,
-    tasks: bootstrapSeedTasks(),
-    configSelections: cloneConfigSelections(configSelections)
+    tasks: bootstrapSeedTasks()
   };
-}
-
-function cloneConfigSelections(configSelections: PrdWizardConfigSelection[]): PrdWizardConfigSelection[] {
-  return configSelections.map((selection) => ({ ...selection }));
 }
 
 function mapLegacyInputs(initialConstraints: string | undefined, initialNonGoals: string | undefined): Pick<WizardState, 'techStack' | 'outOfScope' | 'existingConventions'> {
@@ -261,11 +305,28 @@ function createNonce(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function normalizeStep(step: PrdWizardLegacyStep | undefined, mode: PrdWizardMode): PrdWizardStep {
+  if (step === undefined) {
+    return mode === 'regenerate' ? 2 : 1;
+  }
+
+  switch (step) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      return step;
+    case 6:
+    case 7:
+      return 5;
+  }
+}
+
 function createComparisonDraft(prdPreview: string): PrdWizardDraftBundle {
   return {
     prdText: prdPreview,
-    tasks: [],
-    configSelections: []
+    tasks: []
   };
 }
 
@@ -316,6 +377,261 @@ function validateReviewedTasks(tasks: PrdWizardTaskDraft[]): string | null {
   }
 
   return null;
+}
+
+const PRD_REQUIRED_SECTIONS = ['Overview', 'Requirements', 'Success Criteria'];
+const PLACEHOLDER_PATTERN = /\b(?:tbd|todo|placeholder|lorem ipsum|coming soon|fill in)\b/i;
+const VAGUE_WORD_PATTERN = /\b(?:stuff|things|various|misc(?:ellaneous)?|somehow|maybe|soon|improve|better|handle)\b/i;
+const TASK_TITLE_STOP_WORDS = new Set(['a', 'an', 'and', 'for', 'in', 'of', 'the', 'to', 'now']);
+const TASK_ID_LIKE_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]*$/;
+const VALIDATION_COMMAND_PATTERN = /^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?[A-Za-z0-9:_-]+|^(?:pytest|go\s+test|cargo\s+test|dotnet\s+test|npx|node|python|uv\s+run)\b/i;
+const GENERIC_VALIDATION_PATTERN = /^(?:test|check|verify)(?:\s+(?:it|this|works?|behavior))?$/i;
+
+function normalizeSectionTitle(title: string): string {
+  return title
+    .trim()
+    .replace(/^[0-9]+[.)]\s*/, '')
+    .replace(/[:\-\s]+$/, '')
+    .toLowerCase();
+}
+
+function splitIntoSections(prdText: string): Array<{ title: string; body: string }> {
+  const lines = prdText.split(/\r?\n/);
+  const sections: Array<{ title: string; body: string }> = [];
+  let currentTitle: string | null = null;
+  let currentBody: string[] = [];
+
+  const flush = () => {
+    if (currentTitle === null) {
+      return;
+    }
+    sections.push({
+      title: currentTitle,
+      body: currentBody.join('\n').trim()
+    });
+  };
+
+  for (const line of lines) {
+    const headingMatch = /^##\s+(.+?)\s*$/.exec(line.trim());
+    if (headingMatch) {
+      flush();
+      currentTitle = headingMatch[1];
+      currentBody = [];
+      continue;
+    }
+
+    if (currentTitle !== null) {
+      currentBody.push(line);
+    }
+  }
+
+  flush();
+  return sections;
+}
+
+function analyzePrdReviewFindings(prdText: string | null): ReviewFinding[] {
+  if (!prdText?.trim()) {
+    return [{
+      kind: 'warning',
+      message: 'PRD review needs draft content before it can assess title, sections, and wording.'
+    }];
+  }
+
+  const findings: ReviewFinding[] = [];
+  const lines = prdText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const titleLine = lines.find((line) => line.startsWith('# ')) ?? null;
+  const titleText = titleLine?.replace(/^#\s+/, '').trim() ?? '';
+  const sections = splitIntoSections(prdText);
+
+  if (!titleText) {
+    findings.push({
+      kind: 'warning',
+      message: 'PRD title is missing. Add a specific top-level heading before writing.'
+    });
+  } else if (PLACEHOLDER_PATTERN.test(titleText) || titleText.split(/\s+/).length < 3) {
+    findings.push({
+      kind: 'warning',
+      message: `PRD title "${titleText}" looks placeholder-heavy or too thin.`
+    });
+  }
+
+  if (VAGUE_WORD_PATTERN.test(titleText)) {
+    findings.push({
+      kind: 'warning',
+      message: `PRD title "${titleText}" uses vague wording that may weaken the durable brief.`
+    });
+  }
+
+  const presentSections = new Set(sections.map((section) => normalizeSectionTitle(section.title)));
+  const missingSections = PRD_REQUIRED_SECTIONS.filter((title) => !presentSections.has(normalizeSectionTitle(title)));
+  if (missingSections.length > 0) {
+    findings.push({
+      kind: 'warning',
+      message: `PRD is missing required sections: ${missingSections.join(', ')}.`
+    });
+  }
+
+  if (PLACEHOLDER_PATTERN.test(prdText)) {
+    findings.push({
+      kind: 'warning',
+      message: 'PRD still contains placeholder patterns such as TODO/TBD markers.'
+    });
+  }
+
+  for (const section of sections) {
+    const wordCount = section.body.split(/\s+/).filter(Boolean).length;
+    if (wordCount > 0 && wordCount < 8) {
+      findings.push({
+        kind: 'warning',
+        message: `Section "${section.title}" looks thin and may need more operational detail.`
+      });
+    }
+  }
+
+  if (VAGUE_WORD_PATTERN.test(prdText)) {
+    findings.push({
+      kind: 'warning',
+      message: 'PRD includes vague wording that may leave implementation scope underspecified.'
+    });
+  }
+
+  return findings;
+}
+
+function normalizeTaskTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token && !TASK_TITLE_STOP_WORDS.has(token))
+    .join(' ');
+}
+
+function hasWeakValidationDetail(validation: string | null | undefined): boolean {
+  const text = validation?.trim() ?? '';
+  if (!text) {
+    return true;
+  }
+
+  if (VALIDATION_COMMAND_PATTERN.test(text)) {
+    return false;
+  }
+
+  return GENERIC_VALIDATION_PATTERN.test(text);
+}
+
+function getTaskDependencyDetails(task: PrdWizardTaskDraft): string[] {
+  const rawDependencies = task.dependsOn ?? task.dependencies;
+  if (!Array.isArray(rawDependencies)) {
+    return [];
+  }
+
+  return rawDependencies
+    .map((dependency) => {
+      if (typeof dependency === 'string') {
+        return dependency;
+      }
+      if (dependency && typeof dependency === 'object' && 'taskId' in dependency && typeof dependency.taskId === 'string') {
+        return dependency.taskId;
+      }
+      return '';
+    })
+    .filter((dependency) => dependency.length > 0);
+}
+
+function hasWeakDependencyDetail(task: PrdWizardTaskDraft): boolean {
+  const dependencies = getTaskDependencyDetails(task);
+  if (dependencies.length === 0) {
+    return false;
+  }
+
+  return dependencies.every((dependency) => {
+    const detail = dependency.trim();
+    if (TASK_ID_LIKE_PATTERN.test(detail)) {
+      return false;
+    }
+    return /\bdepends on\b/i.test(detail) || detail.length < 6;
+  });
+}
+
+function analyzeTaskReviewFindings(tasks: PrdWizardTaskDraft[]): ReviewFinding[] {
+  const findings: ReviewFinding[] = [];
+
+  if (tasks.length === 0) {
+    findings.push({
+      kind: 'blocker',
+      message: 'Task review cannot write an empty task list.'
+    });
+    return findings;
+  }
+
+  const duplicatePairs = new Set<string>();
+  for (let index = 0; index < tasks.length; index += 1) {
+    const left = tasks[index];
+    const leftTitle = left.title.trim();
+
+    if (!left.id.trim()) {
+      findings.push({
+        kind: 'blocker',
+        message: 'Each reviewed task must keep a non-empty id before writing.'
+      });
+    }
+
+    if (!leftTitle) {
+      findings.push({
+        kind: 'blocker',
+        message: `Task ${left.id || '(missing id)'} must keep a non-empty title before writing.`
+      });
+      continue;
+    }
+
+    if (leftTitle.split(/\s+/).length < 3 || VAGUE_WORD_PATTERN.test(leftTitle)) {
+      findings.push({
+        kind: 'warning',
+        message: `Task ${left.id} has a vague title: "${leftTitle}".`
+      });
+    }
+
+    if (hasWeakValidationDetail(left.validation)) {
+      findings.push({
+        kind: 'warning',
+        message: `Task ${left.id} needs stronger validation detail than "${left.validation?.trim() || 'none'}".`
+      });
+    }
+
+    if (hasWeakDependencyDetail(left)) {
+      findings.push({
+        kind: 'warning',
+        message: `Task ${left.id} needs clearer dependency detail or an explicit "none" note.`
+      });
+    }
+
+    const leftNormalized = normalizeTaskTitle(leftTitle);
+    for (let compareIndex = index + 1; compareIndex < tasks.length; compareIndex += 1) {
+      const right = tasks[compareIndex];
+      const rightNormalized = normalizeTaskTitle(right.title.trim());
+      if (!leftNormalized || !rightNormalized) {
+        continue;
+      }
+      if (
+        leftNormalized === rightNormalized ||
+        leftNormalized.includes(rightNormalized) ||
+        rightNormalized.includes(leftNormalized)
+      ) {
+        duplicatePairs.add(`${left.id}/${right.id}`);
+      }
+    }
+  }
+
+  for (const pair of duplicatePairs) {
+    const [leftId, rightId] = pair.split('/');
+    findings.push({
+      kind: 'warning',
+      message: `Tasks ${leftId} and ${rightId} have duplicate or near-duplicate titles.`
+    });
+  }
+
+  return findings;
 }
 
 function countChangedLines(currentText: string, draftText: string): number {
@@ -370,7 +686,6 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       initialNonGoals: options.initialNonGoals,
       initialStep: options.initialStep,
       initialPrdPreview: options.initialPrdPreview,
-      configSelections: options.configSelections,
       generateDraft: options.generateDraft,
       writeDraft: options.writeDraft,
       onWriteComplete: options.onWriteComplete
@@ -390,7 +705,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     this.state = {
       ...this.state,
       mode: nextMode,
-      step: context.initialStep ?? (context.initialMode === 'regenerate' ? 4 : 1),
+      step: normalizeStep(context.initialStep, nextMode),
       projectType: context.initialProjectType ? coerceProjectType(context.initialProjectType) : this.state.projectType,
       objective: context.initialObjective ?? this.state.objective,
       ...(context.initialConstraints !== undefined || context.initialNonGoals !== undefined
@@ -401,19 +716,14 @@ export class PrdCreationWizardHost implements vscode.Disposable {
           existingConventions: this.state.existingConventions
         }),
       draft: context.initialPrdPreview !== undefined
-        ? {
-          ...createComparisonDraft(context.initialPrdPreview),
-          configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections)
-        }
+        ? createComparisonDraft(context.initialPrdPreview)
         : (nextMode === 'regenerate' && currentPrdPreview && !this.state.draft
-          ? {
-            ...createComparisonDraft(currentPrdPreview),
-            configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections)
-          }
+          ? createComparisonDraft(currentPrdPreview)
           : this.state.draft),
       currentPrdPreview,
       paths: context.initialPaths ?? this.state.paths,
-      configSelections: cloneConfigSelections(context.configSelections ?? this.state.configSelections),
+      generationState: context.initialPrdPreview !== undefined ? 'idle' : this.state.generationState,
+      generationMessage: context.initialPrdPreview !== undefined ? null : this.state.generationMessage,
       warning: null,
       error: null,
       writeSummary: null
@@ -434,30 +744,32 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     const structuredInputs = mapLegacyInputs(this.options.initialConstraints, this.options.initialNonGoals);
     return {
       mode,
-      step: this.options.initialStep ?? (mode === 'regenerate' ? 4 : 1),
+      step: normalizeStep(this.options.initialStep, mode),
       projectType: coerceProjectType(this.options.initialProjectType),
       objective: this.options.initialObjective ?? '',
       ...structuredInputs,
       draft: this.options.initialPrdPreview
-        ? {
-          ...createComparisonDraft(this.options.initialPrdPreview),
-          configSelections: cloneConfigSelections(this.options.configSelections ?? [])
-        }
+        ? createComparisonDraft(this.options.initialPrdPreview)
         : null,
+      generationState: 'idle',
+      generationMessage: null,
       warning: null,
       error: null,
       currentPrdPreview: this.options.initialPrdPreview ?? null,
       writeSummary: null,
-      configSelections: cloneConfigSelections(this.options.configSelections ?? []),
       paths: this.options.initialPaths
     };
   }
 
   private emitState(): void {
+    const prdReviewFindings = analyzePrdReviewFindings(this.state.draft?.prdText ?? null);
+    const taskReviewFindings = analyzeTaskReviewFindings(this.state.draft?.tasks ?? []);
     this.bridge.send({
       type: 'state',
       state: {
         ...this.state,
+        prdReviewFindings,
+        taskReviewFindings,
         comparisonSummary: buildComparisonSummary(
           this.state.mode,
           this.state.currentPrdPreview,
@@ -492,8 +804,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
             }
             : {
               prdText: message.value,
-              tasks: [],
-              configSelections: cloneConfigSelections(this.state.configSelections)
+              tasks: []
             },
           warning: null,
           error: null
@@ -544,25 +855,6 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         };
         this.emitState();
         return;
-      case 'toggle-config-selection':
-        this.state = {
-          ...this.state,
-          configSelections: this.state.configSelections.map((selection) => selection.key === message.key
-            ? { ...selection, selected: !selection.selected }
-            : selection),
-          draft: this.state.draft
-            ? {
-              ...this.state.draft,
-              configSelections: this.state.draft.configSelections.map((selection) => selection.key === message.key
-                ? { ...selection, selected: !selection.selected }
-                : selection)
-            }
-            : null,
-          warning: null,
-          error: null
-        };
-        this.emitState();
-        return;
       case 'generate-draft':
         await this.generateDraft();
         return;
@@ -591,13 +883,14 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       });
       this.state = {
         ...this.state,
-        step: 4,
+        step: 3,
         draft: {
           prdText: generated.prdText,
-          tasks: generated.tasks,
-          configSelections: cloneConfigSelections(this.state.configSelections)
+          tasks: generated.tasks
         },
-        warning: generated.taskCountWarning ?? null,
+        generationState: generated.taskCountWarning ? 'weak' : 'generated',
+        generationMessage: generated.taskCountWarning ?? 'Provider-backed draft generated successfully.',
+        warning: null,
         error: null,
         writeSummary: null
       };
@@ -607,16 +900,17 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         : String(error);
       this.state = {
         ...this.state,
-        step: 4,
+        step: 3,
         draft: createFallbackDraft(
           this.state.projectType,
           this.state.objective,
           this.state.techStack,
           this.state.outOfScope,
-          this.state.existingConventions,
-          this.state.configSelections
+          this.state.existingConventions
         ),
-        warning: `Generation fell back to a bootstrap draft. ${reason}`,
+        generationState: 'fallback',
+        generationMessage: `Generation fell back to a bootstrap draft. ${reason}`,
+        warning: null,
         error: null,
         writeSummary: null
       };
@@ -649,7 +943,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       const result = await this.options.writeDraft(this.state.draft);
       this.state = {
         ...this.state,
-        step: 7,
+        step: 5,
         warning: null,
         error: null,
         writeSummary: result
@@ -692,9 +986,7 @@ body {
 .wizard-header,
 .wizard-step,
 .wizard-summary,
-.task-card,
-.skill-row,
-.config-choice {
+.task-card {
   border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   background: var(--vscode-sideBar-background, var(--vscode-editor-background));
 }
@@ -805,6 +1097,25 @@ body {
   border-left-color: var(--vscode-inputValidation-errorBorder);
 }
 
+.findings-panel {
+  margin-top: 12px;
+  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+  background: var(--vscode-editor-background);
+  padding: 12px;
+}
+
+.findings-panel ul {
+  margin: 8px 0 0;
+}
+
+.finding-blocker {
+  color: var(--vscode-inputValidation-errorForeground, var(--vscode-editor-foreground));
+}
+
+.finding-warning {
+  color: var(--vscode-inputValidation-warningForeground, var(--vscode-editor-foreground));
+}
+
 .preview {
   border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
@@ -834,21 +1145,18 @@ body {
   white-space: pre-wrap;
 }
 
-.task-list,
-.skill-list {
+.task-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
 .task-card,
-.skill-row,
 .wizard-summary {
   padding: 12px;
 }
 
-.task-card header,
-.skill-row header {
+.task-card header {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -884,33 +1192,6 @@ body {
 .task-move-buttons button,
 .task-delete-row button {
   flex: 1 1 0;
-}
-
-.config-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.config-choice {
-  padding: 12px;
-}
-
-.config-choice header {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: start;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
-  color: var(--vscode-descriptionForeground);
-  font-size: 12px;
 }
 
 .actions {
@@ -959,13 +1240,11 @@ code {
       let busy = false;
 
       const stepLabels = {
-        1: 'Project Type',
-        2: 'Objective',
-        3: 'Constraints',
-        4: 'Generate',
-        5: 'Tasks',
-        6: 'Config & Skills',
-        7: 'Confirm'
+        1: 'Project Shape',
+        2: 'Draft Generation',
+        3: 'PRD Review',
+        4: 'Task Review',
+        5: 'Confirm Write'
       };
 
       function escapeHtml(value) {
@@ -997,6 +1276,16 @@ code {
           '<strong>' + escapeHtml(option.title) + '</strong>' +
           '<div class="muted">' + escapeHtml(option.description) + '</div>' +
           '</button></div>';
+      }
+
+      function findingsPanel(title, findings, emptyMessage) {
+        const items = Array.isArray(findings) ? findings : [];
+        const body = items.length === 0
+          ? '<p class="muted">' + escapeHtml(emptyMessage) + '</p>'
+          : '<ul>' + items.map((finding) =>
+            '<li class="finding-' + escapeHtml(finding.kind || 'warning') + '">' + escapeHtml(finding.message || '') + '</li>'
+          ).join('') + '</ul>';
+        return '<div class="findings-panel"><strong>' + escapeHtml(title) + '</strong>' + body + '</div>';
       }
 
       function taskList() {
@@ -1031,47 +1320,92 @@ code {
         ).join('') + '</div>';
       }
 
-      function configSelectionList() {
-        const selections = state.configSelections || [];
-        if (selections.length === 0) {
-          return '<p class="empty">No configuration recommendations are available for this draft.</p>';
-        }
-        return '<div class="config-list">' + selections.map((selection) =>
-          '<label class="config-choice"><header><div><strong>' + escapeHtml(selection.label) + '</strong>' +
-          '<div class="muted"><code>ralphCodex.' + escapeHtml(selection.key) + '</code> = <code>' + escapeHtml(selection.value) + '</code></div>' +
-          '</div><div><span class="status-pill">' + (selection.selected ? 'Selected' : 'Skipped') + '</span> ' +
-          '<input type="checkbox" data-action="toggle-config-selection" data-config-key="' + escapeHtml(selection.key) + '"' + (selection.selected ? ' checked' : '') + ' /></div></header>' +
-          '<div class="muted">' + escapeHtml(selection.description) + '</div>' +
-          '<div class="muted">' + escapeHtml(selection.rationale) + '</div></label>'
-        ).join('') + '</div>';
-      }
-
       function writeSummary() {
         if (!state.writeSummary) {
-          return '<p class="empty">Confirm the write to persist <code>prd.md</code> and <code>tasks.json</code>.</p>';
+          return '<p class="empty">Confirm the write to persist <code>prd.md</code> and <code>tasks.json</code>. No workspace settings will be changed.</p>';
         }
         const filesWritten = state.writeSummary.filesWritten || [];
-        const settingsUpdated = state.writeSummary.settingsUpdated || [];
-        const settingsSkipped = state.writeSummary.settingsSkipped || [];
         return '<div class="wizard-summary"><strong>Files written</strong><ul>' +
           filesWritten.map((file) => '<li><code>' + escapeHtml(file) + '</code></li>').join('') +
-          '</ul>' +
-          '<strong>Configuration updates</strong><ul>' +
-          (settingsUpdated.length > 0
-            ? settingsUpdated.map((entry) => '<li>' + escapeHtml(entry) + '</li>').join('')
-            : '<li>No configuration changes applied.</li>') +
-          '</ul>' +
-          '<strong>Skipped recommendations</strong><ul>' +
-          (settingsSkipped.length > 0
-            ? settingsSkipped.map((entry) => '<li>' + escapeHtml(entry) + '</li>').join('')
-            : '<li>No recommendations were skipped.</li>') +
-          '</ul></div>';
+          '</ul><div class="note">Only <code>prd.md</code> and <code>tasks.json</code> were updated. No workspace settings were changed.</div></div>';
+      }
+
+      function generationStatus() {
+        const generationState = state.generationState || 'idle';
+        if (generationState === 'idle') {
+          return '<div class="note"><strong>Status</strong><div>No draft generated yet.</div></div>';
+        }
+        const title = generationState === 'fallback'
+          ? 'Fallback Draft'
+          : generationState === 'weak'
+            ? 'Weak Draft'
+            : 'Generated Draft';
+        const cssClass = generationState === 'fallback'
+          ? 'warning'
+          : generationState === 'weak'
+            ? 'note'
+            : 'note';
+        const body = state.generationMessage || '';
+        return '<div class="' + cssClass + '"><strong>' + escapeHtml(title) + '</strong><div>' + escapeHtml(body) + '</div></div>';
+      }
+
+      function captureEditableState() {
+        const active = document.activeElement;
+        if (!active || !(active instanceof HTMLTextAreaElement || active instanceof HTMLInputElement)) {
+          return null;
+        }
+
+        const taskId = active.getAttribute('data-task-id');
+        const dataField = active.getAttribute('data-field');
+        const dataAction = active.getAttribute('data-action');
+        if (!taskId && !dataField && !dataAction) {
+          return null;
+        }
+
+        return {
+          tagName: active.tagName,
+          taskId,
+          dataField,
+          dataAction,
+          selectionStart: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+          selectionEnd: typeof active.selectionEnd === 'number' ? active.selectionEnd : null
+        };
+      }
+
+      function restoreEditableState(snapshot) {
+        if (!snapshot) {
+          return;
+        }
+
+        let selector = '';
+        if (snapshot.taskId && snapshot.dataAction) {
+          selector = snapshot.tagName.toLowerCase() + '[data-action="' + snapshot.dataAction + '"][data-task-id="' + snapshot.taskId + '"]';
+        } else if (snapshot.dataField) {
+          selector = snapshot.tagName.toLowerCase() + '[data-field="' + snapshot.dataField + '"]';
+        } else if (snapshot.dataAction) {
+          selector = snapshot.tagName.toLowerCase() + '[data-action="' + snapshot.dataAction + '"]';
+        }
+
+        if (!selector) {
+          return;
+        }
+
+        const next = document.querySelector(selector);
+        if (!next || !(next instanceof HTMLTextAreaElement || next instanceof HTMLInputElement)) {
+          return;
+        }
+
+        next.focus();
+        if (typeof snapshot.selectionStart === 'number' && typeof snapshot.selectionEnd === 'number') {
+          next.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd);
+        }
       }
 
       function render() {
         if (!state) {
           return;
         }
+        const preservedEditable = captureEditableState();
         const currentPreview = state.currentPrdPreview || '';
         const editableDraft = state.draft?.prdText || '';
         const projectType = projectTypeMeta(state.projectType);
@@ -1081,6 +1415,7 @@ code {
         const comparisonSummary = state.comparisonSummary
           ? '<div class="note"><strong>Comparison</strong><div>' + escapeHtml(state.comparisonSummary) + '</div></div>'
           : '';
+        const generation = generationStatus();
         const regenerateComparison = state.mode === 'regenerate' && currentPreview
           ? '<div class="preview-pane">' +
               '<strong>Current PRD</strong>' +
@@ -1099,18 +1434,15 @@ code {
                 ? 'Resume from the generate step with the current PRD preloaded, refine the draft, then write the updated files.'
                 : 'Capture project intent, preview the PRD before writing, review the task backlog, and confirm every file Ralph will persist.') + '</p>' +
               '<div class="wizard-steps">' +
-                stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) + stepButton(6) + stepButton(7) +
+                stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) +
               '</div>' +
               warning + error +
             '</section>' +
             '<div class="wizard-layout">' +
               '<main class="wizard-main">' +
                 '<section class="wizard-step">' +
-                  '<h2>1. Project Type</h2>' +
+                  '<h2>1. Project Shape</h2>' +
                   '<div class="picker-grid">' + projectTypeOptions.map((option) => pickerCard(option)).join('') + '</div>' +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<h2>2. Objective</h2>' +
                   '<label class="field"><span>Objective or PRD source</span><textarea data-field="objective" placeholder="Describe the outcome Ralph should turn into a draft.">' + escapeHtml(state.objective) + '</textarea></label>' +
                   '<div class="field-meta"><span>Objective example: ' + escapeHtml(projectType.objectiveExample) + '</span><span>Characters: ' + objectiveLength + '</span></div>' +
                   '<div class="note"><strong>What good looks like</strong><ul class="guidance-list">' +
@@ -1120,14 +1452,24 @@ code {
                   '</ul></div>' +
                 '</section>' +
                 '<section class="wizard-step">' +
-                  '<h2>3. Constraints</h2>' +
                   '<label class="field"><span>Tech stack</span><textarea data-field="techStack" placeholder="Languages, frameworks, runtime targets, or integration surfaces Ralph should assume.">' + escapeHtml(state.techStack) + '</textarea></label>' +
                   '<label class="field"><span>Out-of-scope</span><textarea data-field="outOfScope" placeholder="What this draft should explicitly avoid, defer, or refuse to redesign.">' + escapeHtml(state.outOfScope) + '</textarea></label>' +
                   '<label class="field"><span>Existing conventions</span><textarea data-field="existingConventions" placeholder="Repository patterns, architecture rules, or operator expectations the draft must preserve.">' + escapeHtml(state.existingConventions) + '</textarea></label>' +
                 '</section>' +
                 '<section class="wizard-step">' +
-                  '<h2>4. Generate With Inline Preview</h2>' +
+                  '<h2>2. Draft Generation</h2>' +
+                  '<div class="note">Generate a draft from the captured project shape. Ralph keeps the current PRD loaded for regenerate comparisons.</div>' +
+                  generation +
+                  '<div class="actions">' +
+                    '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+                    '<button class="secondary" data-action="set-step" data-step="3">Review PRD</button>' +
+                  '</div>' +
+                '</section>' +
+                '<section class="wizard-step">' +
+                  '<h2>3. PRD Review</h2>' +
+                  generation +
                   comparisonSummary +
+                  findingsPanel('PRD Findings', state.prdReviewFindings, 'No PRD findings yet.') +
                   '<div class="preview-grid">' +
                     draftEditor +
                     regenerateComparison +
@@ -1137,30 +1479,27 @@ code {
                     : '') +
                   '<div class="actions">' +
                     '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
-                    '<button class="secondary" data-action="set-step" data-step="5">Review Tasks</button>' +
+                    '<button class="secondary" data-action="set-step" data-step="4">Review Tasks</button>' +
                   '</div>' +
                 '</section>' +
                 '<section class="wizard-step">' +
-                  '<h2>5. Task Review Cards</h2>' +
+                  '<h2>4. Task Review</h2>' +
+                  findingsPanel('Task Findings', state.taskReviewFindings, 'No task findings yet.') +
                   taskList() +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<h2>6. Configuration</h2>' +
-                  configSelectionList() +
-                  '<div class="actions"><button class="secondary" data-action="set-step" data-step="7">Go To Confirm</button></div>' +
+                  '<div class="actions"><button class="secondary" data-action="set-step" data-step="5">Go To Confirm</button></div>' +
                 '</section>' +
               '</main>' +
               '<aside class="wizard-main">' +
                 '<section class="wizard-step">' +
-                  '<h2>7. Confirm And Write Summary</h2>' +
+                  '<h2>5. Confirm Write</h2>' +
                   '<div class="wizard-summary"><strong>Targets</strong><ul>' +
                     '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
                     '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
-                  '</ul></div>' +
+                  '</ul><div class="note">This write replaces <code>tasks.json</code>, updates <code>prd.md</code>, and does not mutate unrelated workspace settings.</div></div>' +
                   writeSummary() +
                   '<div class="actions">' +
                     '<button data-action="confirm-write"' + ((!state.draft || busy) ? ' disabled' : '') + '>Write Files</button>' +
-                    '<button class="secondary" data-action="set-step" data-step="4">Back To Preview</button>' +
+                    '<button class="secondary" data-action="set-step" data-step="3">Back To PRD Review</button>' +
                   '</div>' +
                 '</section>' +
               '</aside>' +
@@ -1231,12 +1570,6 @@ code {
           });
         }
 
-        for (const checkbox of document.querySelectorAll('input[data-action="toggle-config-selection"]')) {
-          checkbox.addEventListener('change', () => {
-            vscode.postMessage({ type: 'toggle-config-selection', key: checkbox.getAttribute('data-config-key') });
-          });
-        }
-
         const generate = document.querySelector('[data-action="generate-draft"]');
         if (generate) {
           generate.addEventListener('click', () => vscode.postMessage({ type: 'generate-draft' }));
@@ -1246,6 +1579,8 @@ code {
         if (confirm) {
           confirm.addEventListener('click', () => vscode.postMessage({ type: 'confirm-write' }));
         }
+
+        restoreEditableState(preservedEditable);
       }
 
       window.addEventListener('message', (event) => {
@@ -1277,8 +1612,6 @@ export function summarizeWizardPaths(paths: PrdWizardPaths): Record<string, stri
 
 export function relativeWizardWriteSummary(rootPath: string, result: PrdWizardWriteResult): PrdWizardWriteResult {
   return {
-    filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target)),
-    settingsUpdated: result.settingsUpdated,
-    settingsSkipped: result.settingsSkipped
+    filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target))
   };
 }

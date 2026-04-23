@@ -3,38 +3,15 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
-import * as vscode from 'vscode';
-import { buildPrdWizardConfigSelections, writePrdWizardDraft } from '../src/commands/prdWizardPersistence';
+import { writePrdWizardDraft } from '../src/commands/prdWizardPersistence';
 import type { PrdWizardDraftBundle } from '../src/webview/prdCreationWizardHost';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
-
-function workspaceFolder(rootPath: string): vscode.WorkspaceFolder {
-  return {
-    uri: vscode.Uri.file(rootPath),
-    name: path.basename(rootPath),
-    index: 0
-  };
-}
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-prd-wizard-'));
 }
 
-test('buildPrdWizardConfigSelections returns a cliProvider selection', () => {
-  vscodeTestHarness().reset();
-  const selections = buildPrdWizardConfigSelections({
-    cliProvider: 'copilot'
-  });
-
-  assert.deepEqual(
-    selections.map(({ key, value, selected }) => ({ key, value, selected })),
-    [
-      { key: 'cliProvider', value: 'copilot', selected: true }
-    ]
-  );
-});
-
-test('writePrdWizardDraft writes files, applies selected settings, and reports skipped recommendations', async () => {
+test('writePrdWizardDraft writes only PRD and tasks files', async () => {
   const harness = vscodeTestHarness();
   harness.reset();
   const rootPath = await makeTempRoot();
@@ -43,20 +20,10 @@ test('writePrdWizardDraft writes files, applies selected settings, and reports s
     prdText: '# Product / project brief\n\nShip the wizard.\n',
     tasks: [
       { id: 'T1', title: 'Implement the wizard write flow', status: 'todo', tier: 'complex' }
-    ],
-    configSelections: [
-      {
-        key: 'cliProvider',
-        label: 'CLI provider',
-        value: 'claude',
-        description: 'Use Claude CLI.',
-        rationale: 'Skip this recommendation in the test.',
-        selected: false
-      }
     ]
   };
 
-  const result = await writePrdWizardDraft(workspaceFolder(rootPath), draft, {
+  const result = await writePrdWizardDraft(draft, {
     prdPath: path.join(ralphDir, 'prd.md'),
     tasksPath: path.join(ralphDir, 'tasks.json')
   });
@@ -74,15 +41,12 @@ test('writePrdWizardDraft writes files, applies selected settings, and reports s
   assert.equal(persistedTasks.tasks[0]?.tier, 'complex');
 
   assert.equal(harness.state.updatedSettings.cliProvider, undefined);
-
-  assert.deepEqual(result.filesWritten, [
-    path.join(ralphDir, 'prd.md'),
-    path.join(ralphDir, 'tasks.json')
-  ]);
-  assert.deepEqual(result.settingsUpdated, []);
-  assert.deepEqual(result.settingsSkipped, [
-    'ralphCodex.cliProvider = claude (not selected)'
-  ]);
+  assert.deepEqual(result, {
+    filesWritten: [
+      path.join(ralphDir, 'prd.md'),
+      path.join(ralphDir, 'tasks.json')
+    ]
+  });
 });
 
 test('writePrdWizardDraft preserves rich reviewed task fields when rewriting tasks.json', async () => {
@@ -119,11 +83,10 @@ test('writePrdWizardDraft preserves rich reviewed task fields when rewriting tas
         constraints: ['Do not drop reviewed fields during replace'],
         context: ['src/commands/prdWizardPersistence.ts']
       }
-    ],
-    configSelections: []
+    ]
   };
 
-  await writePrdWizardDraft(workspaceFolder(rootPath), draft, {
+  await writePrdWizardDraft(draft, {
     prdPath: path.join(ralphDir, 'prd.md'),
     tasksPath: path.join(ralphDir, 'tasks.json')
   });

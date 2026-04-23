@@ -296,9 +296,11 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
   assert.ok(commands.includes('ralphCodex.runReviewAgent'));
   assert.ok(commands.includes('ralphCodex.runScmAgent'));
+  assert.ok(commands.includes('ralphCodex.stopLoop'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
   assert.ok(commands.includes('ralphCodex.showDashboard'));
   assert.ok(commands.includes('ralphCodex.refreshDashboard'));
+  assert.ok(commands.includes('ralphCodex.openPrdWizard'));
   assert.ok(commands.includes('ralphCodex.openFailureDiagnosis'));
   assert.ok(commands.includes('ralphCodex.autoRecoverTask'));
   assert.ok(commands.includes('ralphCodex.skipTask'));
@@ -2644,6 +2646,62 @@ test('Regenerate PRD opens the wizard at the existing PRD flow entry point', asy
   activate(createExtensionContext());
   await vscode.commands.executeCommand('ralphCodex.regeneratePrd');
 
+  assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
+  assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
+});
+
+test('Stop Loop cancels an active CLI loop before the next iteration starts', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    ralphIterationCap: 3
+  });
+
+  let loopIterationsStarted = 0;
+
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      loopIterationsStarted += 1;
+      if (loopIterationsStarted === 1) {
+        await vscode.commands.executeCommand('ralphCodex.stopLoop');
+      }
+      const run = createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        iteration: loopIterationsStarted,
+        followUpAction: 'continue_same_task'
+      });
+      run.loopDecision.shouldContinue = true;
+      run.loopDecision.message = 'Continue looping.';
+      return run;
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
+    }
+  );
+
+  assert.equal(loopIterationsStarted, 1, 'stopLoop should prevent a second loop iteration from starting');
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI loop cancelled after 1 iteration\(s\)\./
+  );
+});
+
+test('Open PRD Wizard bootstraps a missing .ralph scaffold and opens the wizard in new mode', async () => {
+  const rootPath = await makeTempRoot();
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.openPrdWizard');
+
+  await fs.access(path.join(rootPath, '.ralph', 'prd.md'));
+  await fs.access(path.join(rootPath, '.ralph', 'tasks.json'));
+  await fs.access(path.join(rootPath, '.ralph', 'progress.md'));
+  await fs.access(path.join(rootPath, '.ralph', '.gitignore'));
   assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
   assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
 });

@@ -45,6 +45,11 @@ export async function appendNormalizedTasksToFile(
 
   const locked = await withTaskFileLock(tasksPath, undefined, async () => {
     const raw = await fs.readFile(tasksPath, 'utf8');
+    if (!raw.trim()) {
+      throw new Error(
+        'Existing tasks.json must not be empty during append; retry after the current writer finishes or reinitialize the workspace.'
+      );
+    }
     const taskFile = parseTaskFile(raw);
     const next = bumpMutationCount({
       ...taskFile,

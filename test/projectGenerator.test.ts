@@ -293,6 +293,49 @@ test('generateProjectDraft uses prdGenerationTemplate when set instead of built-
   }
 });
 
+test('generateProjectDraft adds documentation-only guardrails and mode guidance when projectType is documentation', async () => {
+  let capturedStdin = '';
+  const stdoutCustom = JSON.stringify({
+    type: 'result',
+    result: `# Repository Documentation
+
+## Overview
+Document the repository as it exists today.
+
+## Documentation Scope
+Summarize the current modules and runtime surfaces.
+
+\`\`\`json
+{"tasks":[{ "id": "T1", "title": "Document the current module boundaries", "status": "todo", "mode": "documentation" }]}
+\`\`\``,
+    num_turns: 1
+  });
+
+  setProcessRunnerOverride((_cmd, _args, opts) => {
+    if (opts?.stdinText) {
+      capturedStdin = opts.stdinText as string;
+    }
+    return { code: 0, stdout: stdoutCustom, stderr: '' };
+  });
+
+  try {
+    const result = await generateProjectDraft(
+      {
+        objective: 'Document the repository structure and current operator workflow.',
+        projectType: 'documentation'
+      },
+      { ...DEFAULT_CONFIG, cliProvider: 'claude' },
+      nodeOs.tmpdir()
+    );
+    assert.match(capturedStdin, /documentation-only repository brief/i);
+    assert.match(capturedStdin, /must not propose code changes, implementation work, scaffolding, or refactors/i);
+    assert.match(capturedStdin, /set "mode" to "documentation"/i);
+    assert.equal(result.tasks[0]?.mode, 'documentation');
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
 test('parseGenerationResponse maps suggestedValidationCommand to task validation field', () => {
   const response = `# P\n\`\`\`json\n{"tasks":[{ "id": "T1", "title": "x", "status": "todo", "suggestedValidationCommand": "npm run validate" }]}\n\`\`\``;
   const { tasks } = parseGenerationResponse(response);

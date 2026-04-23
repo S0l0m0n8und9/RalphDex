@@ -157,6 +157,7 @@ test('buildDashboardHtml renders agent and action button grids', () => {
   assert.ok(html.includes('ralphCodex.runScmAgent'));
   assert.ok(html.includes('ralphCodex.runRalphIteration'));
   assert.ok(html.includes('ralphCodex.generatePrompt'));
+  assert.ok(html.includes('ralphCodex.openPrdWizard'));
   assert.ok(html.includes('ralphCodex.initializeWorkspace'));
 });
 
