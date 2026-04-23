@@ -179,7 +179,7 @@ Requirements:
 - Start with a # heading for the repository documentation brief
 - Include: ## Overview, ## Goals, ## Documentation Scope, ## Existing Structure, and ## Success Criteria
 - Keep each section to 2-4 sentences grounded in what should be documented from the current repository state
-- The PRD must not propose code changes, implementation work, scaffolding, refactors, migrations, or speculative future-state design
+- The PRD must not propose code changes, implementation work, scaffolding, or refactors; also avoid migrations and speculative future-state design
 - Tasks must correspond to documentation work areas and stay limited to inspecting the current repo and writing documentation about it
 - Output between 3 and 7 tasks
 - Each task must include required fields \`id\` and \`title\`

@@ -5,6 +5,7 @@ import { SHARED_WEBVIEW_CSS } from './styles';
 import { ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RalphTaskStatus } from '../ralph/types';
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
+import { buildBaseCss } from '../ui/htmlHelpers';
 
 export type PrdWizardMode = 'new' | 'regenerate';
 export type PrdWizardStep = 1 | 2 | 3 | 4 | 5;
@@ -62,6 +63,9 @@ type WizardInboundMessage =
   | { type: 'update-field'; field: StructuredField; value: string }
   | { type: 'update-draft-prd-text'; value: string }
   | { type: 'update-task-title'; taskId: string; title: string }
+  | { type: 'update-task-dependencies'; taskId: string; value: string }
+  | { type: 'update-task-notes'; taskId: string; value: string }
+  | { type: 'update-task-acceptance'; taskId: string; value: string }
   | { type: 'update-task-tier'; taskId: string; tier: '' | 'simple' | 'medium' | 'complex' }
   | { type: 'move-task'; taskId: string; direction: 'up' | 'down' }
   | { type: 'delete-task'; taskId: string }
@@ -78,6 +82,7 @@ interface ReviewFinding {
 }
 
 type GenerationState = 'idle' | 'generated' | 'weak' | 'fallback';
+type OperationStatus = 'idle' | 'running' | 'succeeded' | 'failed';
 
 interface WizardState {
   mode: PrdWizardMode;
@@ -90,6 +95,8 @@ interface WizardState {
   draft: PrdWizardDraftBundle | null;
   generationState: GenerationState;
   generationMessage: string | null;
+  operationStatus: OperationStatus;
+  operationMessage: string | null;
   warning: string | null;
   error: string | null;
   currentPrdPreview: string | null;
@@ -724,6 +731,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       paths: context.initialPaths ?? this.state.paths,
       generationState: context.initialPrdPreview !== undefined ? 'idle' : this.state.generationState,
       generationMessage: context.initialPrdPreview !== undefined ? null : this.state.generationMessage,
+      operationStatus: context.initialPrdPreview !== undefined ? 'idle' : this.state.operationStatus,
+      operationMessage: context.initialPrdPreview !== undefined ? null : this.state.operationMessage,
       warning: null,
       error: null,
       writeSummary: null
@@ -753,6 +762,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         : null,
       generationState: 'idle',
       generationMessage: null,
+      operationStatus: 'idle',
+      operationMessage: null,
       warning: null,
       error: null,
       currentPrdPreview: this.options.initialPrdPreview ?? null,
@@ -814,11 +825,43 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       case 'update-task-title':
         this.state = {
           ...this.state,
-          draft: updateDraftTasks(this.state.draft, (tasks) => tasks.map((task) => (
-            task.id === message.taskId
-              ? { ...task, title: message.title }
-              : task
-          ))),
+          draft: updateDraftTask(this.state.draft, message.taskId, (task) => ({ ...task, title: message.title })),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'update-task-dependencies':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTask(this.state.draft, message.taskId, (task) => ({
+            ...task,
+            dependsOn: parseMultilineList(message.value)
+          })),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'update-task-notes':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTask(this.state.draft, message.taskId, (task) => ({
+            ...task,
+            notes: message.value
+          })),
+          warning: null,
+          error: null
+        };
+        this.emitState();
+        return;
+      case 'update-task-acceptance':
+        this.state = {
+          ...this.state,
+          draft: updateDraftTask(this.state.draft, message.taskId, (task) => ({
+            ...task,
+            acceptance: parseMultilineList(message.value)
+          })),
           warning: null,
           error: null
         };
@@ -873,6 +916,15 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     }
 
     this.bridge.send({ type: 'busy', value: true });
+    this.state = {
+      ...this.state,
+      operationStatus: 'running',
+      operationMessage: 'Draft generation started. Waiting for provider response.',
+      warning: null,
+      error: null,
+      writeSummary: null
+    };
+    this.emitState();
     try {
       const generated = await this.options.generateDraft({
         mode: this.state.mode,
@@ -890,6 +942,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         },
         generationState: generated.taskCountWarning ? 'weak' : 'generated',
         generationMessage: generated.taskCountWarning ?? 'Provider-backed draft generated successfully.',
+        operationStatus: 'succeeded',
+        operationMessage: 'Draft generation completed.',
         warning: null,
         error: null,
         writeSummary: null
@@ -910,6 +964,8 @@ export class PrdCreationWizardHost implements vscode.Disposable {
         ),
         generationState: 'fallback',
         generationMessage: `Generation fell back to a bootstrap draft. ${reason}`,
+        operationStatus: 'failed',
+        operationMessage: `Draft generation failed. Falling back to a bootstrap draft. ${reason}`,
         warning: null,
         error: null,
         writeSummary: null
@@ -927,7 +983,9 @@ export class PrdCreationWizardHost implements vscode.Disposable {
       return;
     }
 
-    const taskValidationError = validateReviewedTasks(this.state.draft.tasks);
+    const draft = this.state.draft;
+
+    const taskValidationError = validateReviewedTasks(draft.tasks);
     if (taskValidationError) {
       this.state = {
         ...this.state,
@@ -939,20 +997,32 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     }
 
     this.bridge.send({ type: 'busy', value: true });
+    this.state = {
+      ...this.state,
+      operationStatus: 'running',
+      operationMessage: 'File write started. Writing prd.md and tasks.json.',
+      warning: null,
+      error: null
+    };
+    this.emitState();
     try {
-      const result = await this.options.writeDraft(this.state.draft);
+      const result = await this.options.writeDraft(draft);
       this.state = {
         ...this.state,
         step: 5,
         warning: null,
         error: null,
-        writeSummary: result
+        writeSummary: result,
+        operationStatus: 'succeeded',
+        operationMessage: 'File write completed.'
       };
       this.emitState();
       await this.options.onWriteComplete?.(result);
     } catch (error) {
       this.state = {
         ...this.state,
+        operationStatus: 'failed',
+        operationMessage: `File write failed. ${error instanceof Error ? error.message : String(error)}`,
         error: error instanceof Error ? error.message : String(error)
       };
       this.emitState();
@@ -972,68 +1042,148 @@ function renderWizardHtml(nonce: string): string {
     <title>PRD Creation Wizard</title>
     <style nonce="${nonce}">
 ${SHARED_WEBVIEW_CSS}
+${buildBaseCss()}
 
 body {
   padding: 0;
+  background: var(--vscode-editor-background);
 }
 
 .wizard-shell {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
-  padding: 16px;
-}
-
-.wizard-header,
-.wizard-step,
-.wizard-summary,
-.task-card {
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
-  background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  padding: 16px 18px 20px;
 }
 
 .wizard-header {
-  padding: 16px;
-  margin-bottom: 16px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.wizard-header.header {
+  padding: 22px 24px 18px;
+}
+
+.wizard-header .header-title {
+  font-size: 14px;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
+  background: none;
 }
 
 .wizard-header p {
-  color: var(--vscode-descriptionForeground);
-  margin-top: 4px;
+  color: var(--dim);
+  margin-top: 6px;
+  max-width: 80ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.wizard-step-panel,
+.wizard-step-nav,
+.step-summary-card,
+.wizard-summary,
+.task-card {
+  margin-bottom: 0;
+}
+
+.wizard-frame {
+  display: grid;
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) minmax(260px, 320px);
+  gap: 14px;
+  align-items: start;
+}
+
+.wizard-step-nav,
+.wizard-side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.wizard-step-nav {
+  padding: 10px;
 }
 
 .wizard-steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-top: 16px;
 }
 
 .wizard-step-button {
   text-align: left;
-  background: var(--vscode-editor-background);
-  color: var(--vscode-editor-foreground);
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
-  padding: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 2px;
+  justify-content: start;
+  box-shadow: none;
 }
 
 .wizard-step-button.is-active {
-  border-color: var(--vscode-focusBorder);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  color: var(--fg);
 }
 
-.wizard-layout {
+.wizard-step-button.is-complete {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.wizard-step-index {
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.wizard-main,
+.wizard-side-column {
+  min-width: 0;
+}
+
+.wizard-step-panel {
+  padding: 18px;
+}
+
+.wizard-step-panel > h2 {
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.step-summary-card {
+  padding: 12px;
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
-  gap: 16px;
+  gap: 8px;
 }
 
-.wizard-main {
+.step-summary-card header {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
 }
 
-.wizard-step {
-  padding: 16px;
+.step-summary-card header strong {
+  color: var(--fg);
+}
+
+.step-summary-card.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--glass-bg));
+}
+
+.step-summary-card.is-locked {
+  opacity: 0.8;
 }
 
 .field {
@@ -1048,11 +1198,15 @@ body {
   resize: vertical;
 }
 
+.field.compact textarea {
+  min-height: 72px;
+}
+
 .field-meta {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: var(--vscode-descriptionForeground);
+  color: var(--dim);
   font-size: 0.92em;
 }
 
@@ -1063,13 +1217,18 @@ body {
 }
 
 .picker-card {
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
   padding: 12px;
-  background: var(--vscode-editor-background);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  box-shadow: none;
+  min-height: 156px;
+  display: flex;
 }
 
 .picker-card.is-selected {
-  border-color: var(--vscode-focusBorder);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--glass-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .picker-card button {
@@ -1078,6 +1237,42 @@ body {
   background: transparent;
   color: inherit;
   padding: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  justify-items: start;
+}
+
+.picker-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.picker-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.picker-selection {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-2));
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.picker-description {
+  color: var(--dim);
+  line-height: 1.5;
 }
 
 .note,
@@ -1085,22 +1280,21 @@ body {
 .error {
   margin-top: 12px;
   padding: 10px 12px;
-  border-left: 3px solid var(--vscode-focusBorder);
-  background: var(--vscode-textBlockQuote-background, transparent);
+  border-left: 3px solid var(--accent);
+  background: rgba(0, 0, 0, 0.14);
+  border-radius: 0 8px 8px 0;
 }
 
 .warning {
-  border-left-color: var(--vscode-inputValidation-warningBorder);
+  border-left-color: var(--warn);
 }
 
 .error {
-  border-left-color: var(--vscode-inputValidation-errorBorder);
+  border-left-color: var(--bad);
 }
 
 .findings-panel {
   margin-top: 12px;
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
-  background: var(--vscode-editor-background);
   padding: 12px;
 }
 
@@ -1117,11 +1311,12 @@ body {
 }
 
 .preview {
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
-  background: var(--vscode-textCodeBlock-background, var(--vscode-editor-background));
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
   padding: 12px;
   min-height: 260px;
   overflow: auto;
+  border-radius: 8px;
 }
 
 .preview-grid {
@@ -1176,6 +1371,29 @@ body {
   width: 100%;
 }
 
+.task-card-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.task-card-body textarea {
+  min-height: 82px;
+}
+
+.task-card-meta {
+  display: grid;
+  gap: 8px;
+}
+
+.task-inline-note {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
 .task-card-controls {
   display: flex;
   flex-direction: column;
@@ -1201,14 +1419,54 @@ body {
   margin-top: 16px;
 }
 
-.actions .secondary {
-  background: var(--vscode-button-secondaryBackground, var(--vscode-editor-background));
-  color: var(--vscode-button-secondaryForeground, var(--vscode-editor-foreground));
-  border: 1px solid var(--vscode-panel-border, var(--vscode-editorWidget-border));
+.btn.secondary {
+  background: var(--surface-2);
+  color: var(--fg);
+  border-color: var(--border);
+}
+
+.btn.secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+}
+
+.wizard-step-nav.card {
+  padding: 10px;
+}
+
+.field span:first-child,
+.task-card-controls label {
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.wizard-side-column .step-summary-card,
+.wizard-main .wizard-step-panel,
+.wizard-main .task-card,
+.wizard-main .findings-panel,
+.wizard-main .picker-card,
+.wizard-main .wizard-summary {
+  background: var(--glass-bg);
+  border-color: var(--border);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 8px;
+}
+
+.wizard-main textarea,
+.wizard-main input,
+.wizard-main select {
+  background: rgba(0, 0, 0, 0.18);
+  border-color: var(--border);
+  color: var(--fg);
+  border-radius: 8px;
+  padding: 8px 10px;
 }
 
 .muted {
-  color: var(--vscode-descriptionForeground);
+  color: var(--dim);
 }
 
 .guidance-list {
@@ -1225,8 +1483,19 @@ code {
   font-family: var(--vscode-editor-font-family, monospace);
 }
 
+@media (max-width: 1080px) {
+  .wizard-frame {
+    grid-template-columns: 1fr;
+  }
+
+  .wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
-  .wizard-layout {
+  .task-card-body {
     grid-template-columns: 1fr;
   }
 }
@@ -1258,8 +1527,11 @@ code {
 
       function stepButton(step) {
         const active = state.step === step ? ' is-active' : '';
-        return '<button class="wizard-step-button' + active + '" data-action="set-step" data-step="' + step + '">' +
-          '<strong>' + step + '</strong><div>' + stepLabels[step] + '</div></button>';
+        const complete = state.step > step ? ' is-complete' : '';
+        return '<button class="wizard-step-button btn' + active + complete + '" data-action="set-step" data-step="' + step + '">' +
+          '<span class="wizard-step-index">Step ' + step + '</span>' +
+          '<strong>' + stepLabels[step] + '</strong>' +
+          '</button>';
       }
 
       const projectTypeOptions = ${JSON.stringify(PROJECT_TYPE_OPTIONS)};
@@ -1271,10 +1543,13 @@ code {
       function pickerCard(option) {
         const value = option.value;
         const selected = state.projectType === value ? ' is-selected' : '';
-        return '<div class="picker-card' + selected + '">' +
+        const selectedBadge = state.projectType === value
+          ? '<span class="picker-selection">Selected</span>'
+          : '';
+        return '<div class="picker-card card' + selected + '">' +
           '<button data-action="project-type" data-value="' + escapeHtml(value) + '">' +
-          '<strong>' + escapeHtml(option.title) + '</strong>' +
-          '<div class="muted">' + escapeHtml(option.description) + '</div>' +
+          '<div class="picker-header"><strong class="picker-title">' + escapeHtml(option.title) + '</strong>' + selectedBadge + '</div>' +
+          '<div class="picker-description">' + escapeHtml(option.description) + '</div>' +
           '</button></div>';
       }
 
@@ -1288,12 +1563,28 @@ code {
         return '<div class="findings-panel"><strong>' + escapeHtml(title) + '</strong>' + body + '</div>';
       }
 
+      function stepSummaryCard(step, title, summary, options) {
+        const isActive = state.step === step;
+        const isLocked = !options.clickable;
+        const classes = 'step-summary-card' + (isActive ? ' is-active' : '') + (isLocked ? ' is-locked' : '');
+        const actionAttrs = options.clickable ? ' data-action="set-step" data-step="' + step + '"' : '';
+        const footer = options.meta
+          ? '<div class="muted">' + escapeHtml(options.meta) + '</div>'
+          : '';
+        return '<section class="' + classes + ' card">' +
+          '<header><strong>' + escapeHtml(title) + '</strong><span class="muted">Step ' + step + '</span></header>' +
+          '<div>' + escapeHtml(summary) + '</div>' +
+          footer +
+          (options.clickable ? '<div><button class="btn secondary"' + actionAttrs + '>Open</button></div>' : '') +
+        '</section>';
+      }
+
       function taskList() {
         if (!state.draft || state.draft.tasks.length === 0) {
           return '<p class="empty">Generate a draft to review task cards.</p>';
         }
         return '<div class="task-list">' + state.draft.tasks.map((task) =>
-          '<article class="task-card">' +
+          '<article class="task-card card">' +
             '<header>' +
               '<div class="task-card-main">' +
                 '<strong>' + escapeHtml(task.id) + '</strong>' +
@@ -1307,15 +1598,24 @@ code {
                   '<option value="complex"' + (task.tier === 'complex' ? ' selected' : '') + '>Complex</option>' +
                 '</select></label>' +
                 '<div class="task-move-buttons">' +
-                  '<button class="secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="up">Move Up</button>' +
-                  '<button class="secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="down">Move Down</button>' +
+                  '<button class="btn secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="up">Move Up</button>' +
+                  '<button class="btn secondary" data-action="move-task" data-task-id="' + escapeHtml(task.id) + '" data-direction="down">Move Down</button>' +
                 '</div>' +
                 '<div class="task-delete-row">' +
-                  '<button class="secondary" data-action="delete-task" data-task-id="' + escapeHtml(task.id) + '">Delete</button>' +
+                  '<button class="btn secondary" data-action="delete-task" data-task-id="' + escapeHtml(task.id) + '">Delete</button>' +
                 '</div>' +
               '</div>' +
             '</header>' +
-            '<div class="muted">' + escapeHtml(task.validation || 'No task-specific validation hint') + '</div>' +
+            '<div class="task-card-body">' +
+              '<div class="task-card-meta">' +
+                '<label class="field compact"><span>Dependencies</span><textarea data-action="task-dependencies" data-task-id="' + escapeHtml(task.id) + '" placeholder="One task id per line.">' + escapeHtml((task.dependsOn || task.dependencies || []).join('\\n')) + '</textarea></label>' +
+                '<label class="field compact"><span>Notes</span><textarea data-action="task-notes" data-task-id="' + escapeHtml(task.id) + '" placeholder="Execution notes, rationale, or repo-specific constraints.">' + escapeHtml(task.notes || '') + '</textarea></label>' +
+              '</div>' +
+              '<div class="task-card-meta">' +
+                '<label class="field compact"><span>Acceptance</span><textarea data-action="task-acceptance" data-task-id="' + escapeHtml(task.id) + '" placeholder="One acceptance criterion per line.">' + escapeHtml((task.acceptance || []).join('\\n')) + '</textarea></label>' +
+                '<div class="task-inline-note"><strong>Validation</strong><div class="muted">' + escapeHtml(task.validation || 'No task-specific validation hint') + '</div></div>' +
+              '</div>' +
+            '</div>' +
           '</article>'
         ).join('') + '</div>';
       }
@@ -1325,7 +1625,7 @@ code {
           return '<p class="empty">Confirm the write to persist <code>prd.md</code> and <code>tasks.json</code>. No workspace settings will be changed.</p>';
         }
         const filesWritten = state.writeSummary.filesWritten || [];
-        return '<div class="wizard-summary"><strong>Files written</strong><ul>' +
+        return '<div class="wizard-summary card"><strong>Files written</strong><ul>' +
           filesWritten.map((file) => '<li><code>' + escapeHtml(file) + '</code></li>').join('') +
           '</ul><div class="note">Only <code>prd.md</code> and <code>tasks.json</code> were updated. No workspace settings were changed.</div></div>';
       }
@@ -1347,6 +1647,19 @@ code {
             : 'note';
         const body = state.generationMessage || '';
         return '<div class="' + cssClass + '"><strong>' + escapeHtml(title) + '</strong><div>' + escapeHtml(body) + '</div></div>';
+      }
+
+      function operationStatus() {
+        if (!state.operationMessage) {
+          return '';
+        }
+        const title = state.operationStatus === 'running'
+          ? 'In Progress'
+          : state.operationStatus === 'failed'
+            ? 'Action Failed'
+            : 'Action Complete';
+        const cssClass = state.operationStatus === 'failed' ? 'warning' : 'note';
+        return '<div class="' + cssClass + '"><strong>' + escapeHtml(title) + '</strong><div>' + escapeHtml(state.operationMessage) + '</div></div>';
       }
 
       function captureEditableState() {
@@ -1416,6 +1729,7 @@ code {
           ? '<div class="note"><strong>Comparison</strong><div>' + escapeHtml(state.comparisonSummary) + '</div></div>'
           : '';
         const generation = generationStatus();
+        const operation = operationStatus();
         const regenerateComparison = state.mode === 'regenerate' && currentPreview
           ? '<div class="preview-pane">' +
               '<strong>Current PRD</strong>' +
@@ -1426,82 +1740,100 @@ code {
             '<strong>' + (state.mode === 'regenerate' ? 'Editable regenerated draft' : 'Editable generated draft') + '</strong>' +
             '<textarea data-action="draft-prd-text" placeholder="Generate a draft, then refine the PRD text here before writing files.">' + escapeHtml(editableDraft) + '</textarea>' +
           '</div>';
+        const stepOnePanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>1. Project Shape</h2>' +
+            '<div class="picker-grid">' + projectTypeOptions.map((option) => pickerCard(option)).join('') + '</div>' +
+            '<label class="field"><span>Objective or PRD source</span><textarea data-field="objective" placeholder="Describe the outcome Ralph should turn into a draft.">' + escapeHtml(state.objective) + '</textarea></label>' +
+            '<div class="field-meta"><span>Objective example: ' + escapeHtml(projectType.objectiveExample) + '</span><span>Characters: ' + objectiveLength + '</span></div>' +
+            '<label class="field"><span>Tech stack</span><textarea data-field="techStack" placeholder="Languages, frameworks, runtime targets, or integration surfaces Ralph should assume.">' + escapeHtml(state.techStack) + '</textarea></label>' +
+            '<label class="field"><span>Out-of-scope</span><textarea data-field="outOfScope" placeholder="What this draft should explicitly avoid, defer, or refuse to redesign.">' + escapeHtml(state.outOfScope) + '</textarea></label>' +
+            '<label class="field"><span>Existing conventions</span><textarea data-field="existingConventions" placeholder="Repository patterns, architecture rules, or operator expectations the draft must preserve.">' + escapeHtml(state.existingConventions) + '</textarea></label>' +
+            '<div class="note"><strong>What good looks like</strong><ul class="guidance-list">' +
+              '<li>' + escapeHtml(projectType.objectiveHint) + '</li>' +
+              '<li>Keep the outcome concrete enough that Ralph can derive tasks without guessing at scope.</li>' +
+              '<li>For regeneration, the current PRD text can stay here and act as the source material.</li>' +
+            '</ul></div>' +
+            '<div class="actions"><button class="btn secondary" data-action="set-step" data-step="2">Continue To Draft</button></div>' +
+          '</section>';
+        const stepTwoPanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>2. Draft Generation</h2>' +
+            '<div class="note">Generate a draft from the captured project shape. Ralph keeps the current PRD loaded for regenerate comparisons.</div>' +
+            generation +
+            operation +
+            '<div class="actions">' +
+              '<button class="btn primary" data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="3">Review PRD</button>' +
+            '</div>' +
+          '</section>';
+        const stepThreePanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>3. PRD Review</h2>' +
+            generation +
+            operation +
+            comparisonSummary +
+            findingsPanel('PRD Findings', state.prdReviewFindings, 'No PRD findings yet.') +
+            '<div class="preview-grid">' + draftEditor + regenerateComparison + '</div>' +
+            (!editableDraft && !(state.mode === 'regenerate' && currentPreview)
+              ? '<div class="note">No draft generated yet. Use generate to seed the editable PRD before writing files.</div>'
+              : '') +
+            '<div class="actions">' +
+              '<button class="btn primary" data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="4">Review Tasks</button>' +
+            '</div>' +
+          '</section>';
+        const stepFourPanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>4. Task Review</h2>' +
+            findingsPanel('Task Findings', state.taskReviewFindings, 'No task findings yet.') +
+            taskList() +
+            '<div class="actions"><button class="btn secondary" data-action="set-step" data-step="5">Go To Confirm</button></div>' +
+          '</section>';
+        const confirmPanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>5. Confirm Write</h2>' +
+            '<div class="wizard-summary card"><strong>Targets</strong><ul>' +
+              '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
+              '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
+            '</ul><div class="note">This write replaces <code>tasks.json</code>, updates <code>prd.md</code>, and does not mutate unrelated workspace settings.</div></div>' +
+            operation +
+            writeSummary() +
+            '<div class="actions">' +
+              '<button class="btn primary" data-action="confirm-write"' + ((!state.draft || busy) ? ' disabled' : '') + '>Write Files</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="3">Back To PRD Review</button>' +
+            '</div>' +
+          '</section>';
+        const mainPanelByStep = {
+          1: stepOnePanel,
+          2: stepTwoPanel,
+          3: stepThreePanel,
+          4: stepFourPanel,
+          5: confirmPanel
+        };
+        const taskCount = state.draft?.tasks?.length || 0;
         document.getElementById('app').innerHTML = '' +
           '<div class="wizard-shell">' +
-            '<section class="wizard-header">' +
-              '<h1>PRD Creation Wizard</h1>' +
+            '<section class="wizard-header header">' +
+              '<h1 class="header-title">PRD Creation Wizard</h1>' +
               '<p>' + (state.mode === 'regenerate'
                 ? 'Resume from the generate step with the current PRD preloaded, refine the draft, then write the updated files.'
                 : 'Capture project intent, preview the PRD before writing, review the task backlog, and confirm every file Ralph will persist.') + '</p>' +
-              '<div class="wizard-steps">' +
-                stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) +
-              '</div>' +
               warning + error +
             '</section>' +
-            '<div class="wizard-layout">' +
+            '<div class="wizard-frame">' +
+              '<aside class="wizard-step-nav card">' +
+                '<div class="wizard-steps">' + stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) + '</div>' +
+              '</aside>' +
               '<main class="wizard-main">' +
-                '<section class="wizard-step">' +
-                  '<h2>1. Project Shape</h2>' +
-                  '<div class="picker-grid">' + projectTypeOptions.map((option) => pickerCard(option)).join('') + '</div>' +
-                  '<label class="field"><span>Objective or PRD source</span><textarea data-field="objective" placeholder="Describe the outcome Ralph should turn into a draft.">' + escapeHtml(state.objective) + '</textarea></label>' +
-                  '<div class="field-meta"><span>Objective example: ' + escapeHtml(projectType.objectiveExample) + '</span><span>Characters: ' + objectiveLength + '</span></div>' +
-                  '<div class="note"><strong>What good looks like</strong><ul class="guidance-list">' +
-                    '<li>' + escapeHtml(projectType.objectiveHint) + '</li>' +
-                    '<li>Keep the outcome concrete enough that Ralph can derive tasks without guessing at scope.</li>' +
-                    '<li>For regeneration, the current PRD text can stay here and act as the source material.</li>' +
-                  '</ul></div>' +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<label class="field"><span>Tech stack</span><textarea data-field="techStack" placeholder="Languages, frameworks, runtime targets, or integration surfaces Ralph should assume.">' + escapeHtml(state.techStack) + '</textarea></label>' +
-                  '<label class="field"><span>Out-of-scope</span><textarea data-field="outOfScope" placeholder="What this draft should explicitly avoid, defer, or refuse to redesign.">' + escapeHtml(state.outOfScope) + '</textarea></label>' +
-                  '<label class="field"><span>Existing conventions</span><textarea data-field="existingConventions" placeholder="Repository patterns, architecture rules, or operator expectations the draft must preserve.">' + escapeHtml(state.existingConventions) + '</textarea></label>' +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<h2>2. Draft Generation</h2>' +
-                  '<div class="note">Generate a draft from the captured project shape. Ralph keeps the current PRD loaded for regenerate comparisons.</div>' +
-                  generation +
-                  '<div class="actions">' +
-                    '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
-                    '<button class="secondary" data-action="set-step" data-step="3">Review PRD</button>' +
-                  '</div>' +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<h2>3. PRD Review</h2>' +
-                  generation +
-                  comparisonSummary +
-                  findingsPanel('PRD Findings', state.prdReviewFindings, 'No PRD findings yet.') +
-                  '<div class="preview-grid">' +
-                    draftEditor +
-                    regenerateComparison +
-                  '</div>' +
-                  (!editableDraft && !(state.mode === 'regenerate' && currentPreview)
-                    ? '<div class="note">No draft generated yet. Use generate to seed the editable PRD before writing files.</div>'
-                    : '') +
-                  '<div class="actions">' +
-                    '<button data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
-                    '<button class="secondary" data-action="set-step" data-step="4">Review Tasks</button>' +
-                  '</div>' +
-                '</section>' +
-                '<section class="wizard-step">' +
-                  '<h2>4. Task Review</h2>' +
-                  findingsPanel('Task Findings', state.taskReviewFindings, 'No task findings yet.') +
-                  taskList() +
-                  '<div class="actions"><button class="secondary" data-action="set-step" data-step="5">Go To Confirm</button></div>' +
-                '</section>' +
+                mainPanelByStep[state.step] +
               '</main>' +
-              '<aside class="wizard-main">' +
-                '<section class="wizard-step">' +
-                  '<h2>5. Confirm Write</h2>' +
-                  '<div class="wizard-summary"><strong>Targets</strong><ul>' +
-                    '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
-                    '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
-                  '</ul><div class="note">This write replaces <code>tasks.json</code>, updates <code>prd.md</code>, and does not mutate unrelated workspace settings.</div></div>' +
-                  writeSummary() +
-                  '<div class="actions">' +
-                    '<button data-action="confirm-write"' + ((!state.draft || busy) ? ' disabled' : '') + '>Write Files</button>' +
-                    '<button class="secondary" data-action="set-step" data-step="3">Back To PRD Review</button>' +
-                  '</div>' +
-                '</section>' +
+              '<aside class="wizard-side-column">' +
+                stepSummaryCard(1, 'Project Shape', state.objective.trim() || 'Objective not captured yet.', { clickable: true, meta: projectType.title }) +
+                stepSummaryCard(2, 'Draft Generation', state.generationMessage || 'Generate a provider-backed draft or use the fallback bootstrap.', { clickable: true, meta: state.generationState || 'idle' }) +
+                stepSummaryCard(3, 'PRD Review', editableDraft ? 'Draft text is available for editing.' : 'Waiting for draft text.', { clickable: !!editableDraft, meta: state.comparisonSummary || 'No comparison yet' }) +
+                stepSummaryCard(4, 'Task Review', taskCount > 0 ? 'Review ' + taskCount + ' task card(s).' : 'Waiting for generated tasks.', { clickable: taskCount > 0, meta: taskCount > 0 ? 'Dependencies, notes, and acceptance stay visible here.' : 'No task cards yet' }) +
+                (state.step === 5 || state.writeSummary ? confirmPanel : stepSummaryCard(5, 'Confirm Write', state.draft ? 'Ready to persist prd.md and tasks.json.' : 'Generate a draft before writing files.', { clickable: !!state.draft, meta: state.writeSummary ? 'Files written.' : 'No write yet' })) +
               '</aside>' +
             '</div>' +
           '</div>';
@@ -1547,6 +1879,36 @@ code {
               type: 'update-task-title',
               taskId: input.getAttribute('data-task-id'),
               title: input.value
+            });
+          });
+        }
+
+        for (const textarea of document.querySelectorAll('textarea[data-action="task-dependencies"]')) {
+          textarea.addEventListener('input', () => {
+            vscode.postMessage({
+              type: 'update-task-dependencies',
+              taskId: textarea.getAttribute('data-task-id'),
+              value: textarea.value
+            });
+          });
+        }
+
+        for (const textarea of document.querySelectorAll('textarea[data-action="task-notes"]')) {
+          textarea.addEventListener('input', () => {
+            vscode.postMessage({
+              type: 'update-task-notes',
+              taskId: textarea.getAttribute('data-task-id'),
+              value: textarea.value
+            });
+          });
+        }
+
+        for (const textarea of document.querySelectorAll('textarea[data-action="task-acceptance"]')) {
+          textarea.addEventListener('input', () => {
+            vscode.postMessage({
+              type: 'update-task-acceptance',
+              taskId: textarea.getAttribute('data-task-id'),
+              value: textarea.value
             });
           });
         }
@@ -1614,4 +1976,21 @@ export function relativeWizardWriteSummary(rootPath: string, result: PrdWizardWr
   return {
     filesWritten: result.filesWritten.map((target) => path.relative(rootPath, target) || path.basename(target))
   };
+}
+
+function updateDraftTask(
+  draft: PrdWizardDraftBundle | null,
+  taskId: string,
+  transform: (task: PrdWizardTaskDraft) => PrdWizardTaskDraft
+): PrdWizardDraftBundle | null {
+  return updateDraftTasks(draft, (tasks) => tasks.map((task) => (
+    task.id === taskId ? transform(task) : task
+  )));
+}
+
+function parseMultilineList(value: string): string[] {
+  return value
+    .split(/\r?\n|,/)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }

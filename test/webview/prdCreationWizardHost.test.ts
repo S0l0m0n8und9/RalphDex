@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import test from 'node:test';
 import * as path from 'node:path';
 import { ProjectGenerationError } from '../../src/ralph/projectGenerator';
@@ -59,6 +60,16 @@ function makeGeneratedDraft(overrides: Partial<PrdWizardGenerateResult> = {}): P
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function lastStateMessage(webview: MockWebview): {
   type: string;
   state: {
@@ -89,6 +100,12 @@ function lastStateMessage(webview: MockWebview): {
   return states.at(-1)!;
 }
 
+function extractWebviewScript(html: string): string {
+  const match = html.match(/<script nonce="[^"]*">([\s\S]*)<\/script>/);
+  assert.ok(match, 'Expected a nonce-scoped webview script block');
+  return match[1]!;
+}
+
 test('PrdCreationWizardHost: renders the 5-step wizard without config controls', () => {
   const webview = makeMockWebview();
 
@@ -108,13 +125,62 @@ test('PrdCreationWizardHost: renders the 5-step wizard without config controls',
   assert.match(webview.html, /PRD Review/);
   assert.match(webview.html, /Task Review/);
   assert.match(webview.html, /Confirm Write/);
+  assert.match(webview.html, /wizard-step-nav/);
+  assert.match(webview.html, /wizard-step-panel/);
+  assert.match(webview.html, /step-summary-card/);
   assert.doesNotMatch(webview.html, /Config & Skills/);
   assert.doesNotMatch(webview.html, /No configuration recommendations are available/i);
   assert.doesNotMatch(webview.html, /toggle-config-selection/);
   assert.doesNotMatch(webview.html, /configSelections/);
+  assert.doesNotThrow(() => new vm.Script(extractWebviewScript(webview.html)));
 
   const state = lastStateMessage(webview).state;
   assert.equal(state.step, 1);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: reuses shared Ralphdex visual primitives for the wizard shell', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  assert.match(webview.html, /--accent:\s*#f5b041;/);
+  assert.match(webview.html, /wizard-header header/);
+  assert.match(webview.html, /wizard-step-button btn/);
+  assert.match(webview.html, /wizard-step-panel card/);
+  assert.match(webview.html, /step-summary-card/);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: selected project shape renders an explicit active marker', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    initialProjectType: 'service',
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  const script = extractWebviewScript(webview.html);
+  assert.match(script, /picker-selection/);
+  assert.match(script, /Selected/);
 
   host.dispose();
 });
@@ -373,6 +439,105 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
   host.dispose();
 });
 
+test('PrdCreationWizardHost: generate-draft immediately reports honest in-progress status before completion', async () => {
+  const webview = makeMockWebview();
+  const deferred = createDeferred<PrdWizardGenerateResult>();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => deferred.promise,
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate a PRD with visible progress.' });
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  let state = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    operationMessage?: string | null;
+  };
+  assert.equal(state.operationStatus, 'running');
+  assert.match(state.operationMessage ?? '', /draft generation started/i);
+  assert.match(state.operationMessage ?? '', /waiting for provider response/i);
+
+  deferred.resolve(makeGeneratedDraft());
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const completedState = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    operationMessage?: string | null;
+    generationState?: string;
+  };
+  assert.equal(completedState.operationStatus, 'succeeded');
+  assert.match(completedState.operationMessage ?? '', /draft generation completed/i);
+  assert.equal(completedState.generationState, 'generated');
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: confirm-write immediately reports honest in-progress status before files are written', async () => {
+  const webview = makeMockWebview();
+  const deferred = createDeferred<PrdWizardWriteResult>();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => deferred.promise
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Write files with visible progress.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  let state = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    operationMessage?: string | null;
+  };
+  assert.equal(state.operationStatus, 'running');
+  assert.match(state.operationMessage ?? '', /file write started/i);
+  assert.match(state.operationMessage ?? '', /writing prd\.md and tasks\.json/i);
+
+  deferred.resolve({
+    filesWritten: [
+      path.join('workspace', '.ralph', 'prd.md'),
+      path.join('workspace', '.ralph', 'tasks.json')
+    ]
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const completedState = lastStateMessage(webview).state as {
+    operationStatus?: string;
+    operationMessage?: string | null;
+    writeSummary?: { filesWritten: string[] };
+  };
+  assert.equal(completedState.operationStatus, 'succeeded');
+  assert.match(completedState.operationMessage ?? '', /file write completed/i);
+  assert.deepEqual(completedState.writeSummary?.filesWritten, [
+    path.join('workspace', '.ralph', 'prd.md'),
+    path.join('workspace', '.ralph', 'tasks.json')
+  ]);
+
+  host.dispose();
+});
+
 test('PrdCreationWizardHost: documentation fallback draft stays documentation-only and marks tasks with documentation mode', async () => {
   const webview = makeMockWebview();
 
@@ -610,6 +775,59 @@ test('PrdCreationWizardHost: confirm-write blocks empty or invalid reviewed task
   assert.equal(writeCount, 0, 'empty task lists must block confirm-write');
   assert.equal(state.draft.tasks.length, 0);
   assert.match(state.warning ?? '', /at least one task/i);
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: task review persists dependencies, notes, and acceptance details', async () => {
+  const webview = makeMockWebview();
+  let writeInput: PrdWizardDraftBundle | null = null;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft({
+      tasks: [
+        {
+          id: 'T1',
+          title: 'Review generated task contract',
+          status: 'todo',
+          dependsOn: ['T0'],
+          notes: 'Initial notes.',
+          acceptance: ['Initial acceptance']
+        }
+      ]
+    }),
+    writeDraft: async (draft) => {
+      writeInput = draft;
+      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
+    }
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable rich tasks.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'update-task-dependencies', taskId: 'T1', value: 'T0\nTbase' });
+  webviewSends(webview, { type: 'update-task-notes', taskId: 'T1', value: 'Expanded operator notes.' });
+  webviewSends(webview, { type: 'update-task-acceptance', taskId: 'T1', value: 'Acceptance one\nAcceptance two' });
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(writeInput, 'confirm-write should pass the reviewed task details to writeDraft');
+  const writtenDraft = writeInput as PrdWizardDraftBundle;
+  assert.deepEqual(writtenDraft.tasks[0], {
+    id: 'T1',
+    title: 'Review generated task contract',
+    status: 'todo',
+    dependsOn: ['T0', 'Tbase'],
+    notes: 'Expanded operator notes.',
+    acceptance: ['Acceptance one', 'Acceptance two']
+  });
 
   host.dispose();
 });
