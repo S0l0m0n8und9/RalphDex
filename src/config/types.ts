@@ -33,8 +33,6 @@ export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
 
 export type FailureDiagnosticsMode = 'auto' | 'off';
 
-export type OperatorMode = 'simple' | 'multi-agent' | 'hardcore';
-
 export type PlanningPassMode = 'dedicated' | 'inline';
 
 export interface RalphPlanningPassConfig {
@@ -195,7 +193,6 @@ export interface RalphCodexConfig {
   memoryStrategy: MemoryStrategy;
   memoryWindowSize: number;
   memorySummaryThreshold: number;
-  operatorMode?: OperatorMode;
   prdGenerationTemplate: string;
   planningPass: RalphPlanningPassConfig;
   failureDiagnostics: FailureDiagnosticsMode;

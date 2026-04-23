@@ -42,18 +42,7 @@ const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const taskCreation_1 = require("../ralph/taskCreation");
 function buildPrdWizardConfigSelections(config) {
-    const operatorMode = config.operatorMode ?? 'simple';
     return [
-        {
-            key: 'operatorMode',
-            label: 'Operator mode',
-            value: operatorMode,
-            description: 'Persist the recommended operator preset into workspace settings at confirm time.',
-            rationale: operatorMode === config.operatorMode
-                ? 'Uses the current workspace preset so future runs stay aligned.'
-                : 'Defaults to the supervised preset until the workspace opts into a broader autonomy mode.',
-            selected: true
-        },
         {
             key: 'cliProvider',
             label: 'CLI provider',

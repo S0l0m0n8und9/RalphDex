@@ -5,7 +5,7 @@ import { SHARED_WEBVIEW_CSS } from './styles';
 import { ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RalphTaskStatus } from '../ralph/types';
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
-import type { CliProviderId, OperatorMode } from '../config/types';
+import type { CliProviderId } from '../config/types';
 
 export type PrdWizardMode = 'new' | 'regenerate';
 export type PrdWizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -20,12 +20,12 @@ export interface PrdWizardGenerateResult {
   taskCountWarning?: string;
 }
 
-export type PrdWizardConfigKey = 'operatorMode' | 'cliProvider';
+export type PrdWizardConfigKey = 'cliProvider';
 
 export interface PrdWizardConfigSelection {
   key: PrdWizardConfigKey;
   label: string;
-  value: OperatorMode | CliProviderId;
+  value: CliProviderId;
   description: string;
   rationale: string;
   selected: boolean;

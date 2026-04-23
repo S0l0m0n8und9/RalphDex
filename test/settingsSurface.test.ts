@@ -17,11 +17,7 @@ test('getSettingsSurfaceMetadata exposes the planned settings-panel sections wit
     ['operator-mode', 'provider', 'memory', 'planning', 'copilot-foundry', 'azure-foundry']
   );
 
-  const operatorMode = metadata.entries.find((entry) => entry.key === 'operatorMode');
-  assert.ok(operatorMode, 'operatorMode entry should exist');
-  assert.equal(operatorMode?.manifestKey, 'ralphCodex.operatorMode');
-  assert.equal(operatorMode?.defaultValue, DEFAULT_CONFIG.operatorMode);
-  assert.ok(operatorMode?.description.includes('Preset that seeds multiple Ralph settings'));
+  assert.equal(metadata.entries.some((entry) => entry.key === 'operatorMode'), false);
 
   const planningMode = metadata.entries.find((entry) => entry.key === 'planningPass.mode');
   assert.ok(planningMode, 'planningPass.mode entry should exist');
@@ -44,7 +40,6 @@ test('buildSettingsSurfaceSnapshot projects config values into grouped sections 
     {
       ...DEFAULT_CONFIG,
       cliProvider: 'copilot-foundry',
-      operatorMode: 'multi-agent',
       memoryStrategy: 'summary',
       memorySummaryThreshold: 42,
       planningPass: { enabled: true, mode: 'dedicated' },
@@ -101,7 +96,6 @@ test('collectNewSettingsNotice reports only unseen settings and returns the firs
   const metadata = getSettingsSurfaceMetadata();
 
   const previousState = buildSettingsDiscoveryState([
-    'operatorMode',
     'autonomyMode',
     'agentCount',
     'preferredHandoffMode'
@@ -109,8 +103,8 @@ test('collectNewSettingsNotice reports only unseen settings and returns the firs
   const result = collectNewSettingsNotice(metadata, previousState);
 
   assert.ok(result, 'new settings should be reported when seen keys are incomplete');
-  assert.deepEqual(result?.newSettingKeys, metadata.entries.slice(4).map((entry) => entry.key));
-  assert.equal(result?.focusSettingKey, metadata.entries[4]?.key);
+  assert.deepEqual(result?.newSettingKeys, metadata.entries.slice(3).map((entry) => entry.key));
+  assert.equal(result?.focusSettingKey, metadata.entries[3]?.key);
   assert.match(result?.message ?? '', /^Ralphdex: \d+ new settings available$/);
 });
 

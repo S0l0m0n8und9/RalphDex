@@ -78,7 +78,7 @@ test('activate shows a one-time new-settings notification and opens the dashboar
   const sharedState = new MemoryMemento();
   await sharedState.update(
     'ralphCodex.settingsSurfaceDiscovery',
-    buildSettingsDiscoveryState(['operatorMode'])
+    buildSettingsDiscoveryState(['autonomyMode'])
   );
   activate(createExtensionContext(sharedState));
   await new Promise((resolve) => setImmediate(resolve));
@@ -92,7 +92,7 @@ test('activate shows a one-time new-settings notification and opens the dashboar
   assert.ok(showDashboardCall, 'expected activation notification action to open the dashboard');
   assert.deepEqual(showDashboardCall?.args[0], {
     activeTab: 'settings',
-    focusSettingKey: 'autonomyMode'
+    focusSettingKey: 'agentCount'
   });
 
   harness.reset();

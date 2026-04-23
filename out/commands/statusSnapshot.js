@@ -243,7 +243,6 @@ function normalizeCompletionReportArtifact(candidate) {
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    const operatorModeProvenance = (0, readConfig_1.resolveOperatorModeProvenance)(rawConfig, config, config.operatorMode);
     const planningPassInspect = rawConfig.inspect('planningPass');
     const planningPassExplicit = planningPassInspect?.workspaceValue !== undefined
         || planningPassInspect?.globalValue !== undefined;
@@ -623,8 +622,6 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestPipelineRun: latestPipelineEntry?.artifact ?? null,
         effectiveTierInfo,
         lastTaskTierInfo,
-        operatorMode: config.operatorMode,
-        operatorModeProvenance,
         planningPassEnabled: config.planningPass.enabled,
         planningPassEnabledSource,
         promptBudgetProfile: config.promptBudgetProfile,

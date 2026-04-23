@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath } from '../config/providers';
-import { readConfig, resolveOperatorModeProvenance } from '../config/readConfig';
+import { readConfig } from '../config/readConfig';
 import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness, inspectProviderReadinessDiagnostics } from '../ralph/preflight';
 import { deriveRootPolicy } from '../ralph/rootPolicy';
 import {
@@ -247,7 +247,6 @@ export async function collectStatusSnapshot(
 ): Promise<RalphStatusSnapshot> {
   const config = readConfig(workspaceFolder);
   const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-  const operatorModeProvenance = resolveOperatorModeProvenance(rawConfig, config, config.operatorMode);
 
   const planningPassInspect = rawConfig.inspect<unknown>('planningPass');
   const planningPassExplicit = planningPassInspect?.workspaceValue !== undefined
@@ -642,8 +641,6 @@ export async function collectStatusSnapshot(
     latestPipelineRun: latestPipelineEntry?.artifact ?? null,
     effectiveTierInfo,
     lastTaskTierInfo,
-    operatorMode: config.operatorMode,
-    operatorModeProvenance,
     planningPassEnabled: config.planningPass.enabled,
     planningPassEnabledSource,
     promptBudgetProfile: config.promptBudgetProfile,

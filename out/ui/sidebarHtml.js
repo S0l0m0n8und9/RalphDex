@@ -451,7 +451,6 @@ function buildDashboardHtml(state, nonce) {
     <div class="mode-section mode-advanced">
       <div class="section-label" style="margin-top: 10px;">Advanced</div>
       <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.showMultiAgentStatus"><span class="btn-label">◫ Agents</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
       </div>

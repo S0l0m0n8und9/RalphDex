@@ -20,17 +20,15 @@ async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-prd-wizard-'));
 }
 
-test('buildPrdWizardConfigSelections falls back to simple operator mode when none is configured', () => {
+test('buildPrdWizardConfigSelections returns a cliProvider selection', () => {
   vscodeTestHarness().reset();
   const selections = buildPrdWizardConfigSelections({
-    cliProvider: 'copilot',
-    operatorMode: undefined
+    cliProvider: 'copilot'
   });
 
   assert.deepEqual(
     selections.map(({ key, value, selected }) => ({ key, value, selected })),
     [
-      { key: 'operatorMode', value: 'simple', selected: true },
       { key: 'cliProvider', value: 'copilot', selected: true }
     ]
   );
@@ -47,14 +45,6 @@ test('writePrdWizardDraft writes files, applies selected settings, and reports s
       { id: 'T1', title: 'Implement the wizard write flow', status: 'todo', tier: 'complex' }
     ],
     configSelections: [
-      {
-        key: 'operatorMode',
-        label: 'Operator mode',
-        value: 'multi-agent',
-        description: 'Use the multi-agent preset.',
-        rationale: 'This workspace is ready for autonomous runs.',
-        selected: true
-      },
       {
         key: 'cliProvider',
         label: 'CLI provider',
@@ -83,14 +73,13 @@ test('writePrdWizardDraft writes files, applies selected settings, and reports s
   assert.equal(persistedTasks.tasks[0]?.title, 'Implement the wizard write flow');
   assert.equal(persistedTasks.tasks[0]?.tier, 'complex');
 
-  assert.equal(harness.state.updatedSettings.operatorMode, 'multi-agent');
   assert.equal(harness.state.updatedSettings.cliProvider, undefined);
 
   assert.deepEqual(result.filesWritten, [
     path.join(ralphDir, 'prd.md'),
     path.join(ralphDir, 'tasks.json')
   ]);
-  assert.deepEqual(result.settingsUpdated, ['ralphCodex.operatorMode = multi-agent']);
+  assert.deepEqual(result.settingsUpdated, []);
   assert.deepEqual(result.settingsSkipped, [
     'ralphCodex.cliProvider = claude (not selected)'
   ]);

@@ -237,15 +237,10 @@ function buildStatusReport(snapshot) {
     const scan = snapshot.workspaceScan;
     const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
     const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
-    const operatorModeLines = snapshot.operatorModeProvenance
-        ? snapshot.operatorModeProvenance.map((entry) => `  - ${entry.key}: ${entry.value} (${entry.source})`)
-        : [];
     return [
         `# Ralph Status: ${snapshot.workspaceName}`,
         '',
         '## Loop',
-        `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
-        ...operatorModeLines,
         `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
         `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,
         `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,

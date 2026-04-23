@@ -33,7 +33,6 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resolveOperatorModeProvenance = resolveOperatorModeProvenance;
 exports.readConfig = readConfig;
 const vscode = __importStar(require("vscode"));
 const defaults_1 = require("./defaults");
@@ -186,46 +185,6 @@ function readAzureFoundryConfig(raw, fallback) {
     };
 }
 const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'];
-const OPERATOR_PRESETS = {
-    simple: {
-        autonomyMode: 'supervised',
-        agentCount: 1,
-        preferredHandoffMode: 'ideCommand',
-        modelTieringEnabled: false,
-        ralphIterationCap: 20,
-        stopOnHumanReviewNeeded: true,
-        scmStrategy: 'none',
-        memoryStrategy: 'verbatim',
-        autoReplenishBacklog: false
-    },
-    'multi-agent': {
-        autonomyMode: 'autonomous',
-        agentCount: 3,
-        preferredHandoffMode: 'cliExec',
-        modelTieringEnabled: true,
-        ralphIterationCap: defaults_1.DEFAULT_CONFIG.ralphIterationCap,
-        stopOnHumanReviewNeeded: defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded,
-        scmStrategy: 'branch-per-task',
-        memoryStrategy: 'sliding-window',
-        autoReplenishBacklog: true,
-        autoReviewOnParentDone: true,
-        autoWatchdogOnStall: true
-    },
-    hardcore: {
-        autonomyMode: 'autonomous',
-        agentCount: 3,
-        preferredHandoffMode: 'cliExec',
-        modelTieringEnabled: true,
-        ralphIterationCap: 100,
-        stopOnHumanReviewNeeded: defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded,
-        scmStrategy: 'branch-per-task',
-        memoryStrategy: 'summary',
-        autoReplenishBacklog: true,
-        autoReviewOnParentDone: true,
-        autoWatchdogOnStall: true,
-        autoApplyRemediation: ['decompose_task', 'mark_blocked']
-    }
-};
 function readTierConfig(raw, fallback) {
     // Accept a plain string (backward-compat: old flat `simpleModel` format).
     if (typeof raw === 'string' && raw.trim()) {
@@ -305,62 +264,15 @@ function readPlanningPass(config, fallback) {
         : fallback.mode;
     return { enabled, mode };
 }
-/**
- * Returns per-setting provenance for all preset-affected keys when an operator mode is active.
- * Returns null when no operator mode is set.
- * For each setting, `source` is 'explicit' when the user has a workspace or global override,
- * and 'preset' when the resolved value came from the preset fallback.
- */
-function resolveOperatorModeProvenance(config, resolvedConfig, operatorMode) {
-    if (operatorMode === undefined) {
-        return null;
-    }
-    const checkKey = (key, resolvedValue) => {
-        const inspect = config.inspect(key);
-        const hasExplicit = inspect?.workspaceValue !== undefined || inspect?.globalValue !== undefined;
-        return { key, value: resolvedValue, source: hasExplicit ? 'explicit' : 'preset' };
-    };
-    const entries = [
-        checkKey('autonomyMode', resolvedConfig.autonomyMode),
-        checkKey('agentCount', String(resolvedConfig.agentCount)),
-        checkKey('preferredHandoffMode', resolvedConfig.preferredHandoffMode),
-        checkKey('ralphIterationCap', String(resolvedConfig.ralphIterationCap)),
-        checkKey('stopOnHumanReviewNeeded', String(resolvedConfig.stopOnHumanReviewNeeded)),
-        checkKey('scmStrategy', resolvedConfig.scmStrategy),
-        checkKey('memoryStrategy', resolvedConfig.memoryStrategy),
-        checkKey('autoReplenishBacklog', String(resolvedConfig.autoReplenishBacklog)),
-        checkKey('autoReviewOnParentDone', String(resolvedConfig.autoReviewOnParentDone)),
-        checkKey('autoWatchdogOnStall', String(resolvedConfig.autoWatchdogOnStall)),
-        checkKey('autoApplyRemediation', resolvedConfig.autoApplyRemediation.join(', ') || 'none')
-    ];
-    // modelTiering.enabled needs special handling since it's nested and has a flat legacy key
-    const tieringInspect = config.inspect('modelTiering');
-    const tieringRecord = (tieringInspect?.workspaceValue ?? tieringInspect?.globalValue);
-    const enableInspect = config.inspect('enableModelTiering');
-    const modelTieringExplicit = typeof tieringRecord?.enabled === 'boolean'
-        || enableInspect?.workspaceValue !== undefined
-        || enableInspect?.globalValue !== undefined;
-    entries.push({
-        key: 'modelTiering.enabled',
-        value: String(resolvedConfig.modelTiering.enabled),
-        source: modelTieringExplicit ? 'explicit' : 'preset'
-    });
-    return entries;
-}
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    const rawOperatorMode = config.get('operatorMode');
-    const operatorMode = rawOperatorMode === 'simple' || rawOperatorMode === 'multi-agent' || rawOperatorMode === 'hardcore'
-        ? rawOperatorMode
-        : undefined;
-    const preset = operatorMode !== undefined ? OPERATOR_PRESETS[operatorMode] : undefined;
     const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'], defaults_1.DEFAULT_CONFIG.cliProvider);
-    const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], preset?.autonomyMode ?? defaults_1.DEFAULT_CONFIG.autonomyMode);
+    const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
-    const autoReplenishBacklog = readBoolean(config, 'autoReplenishBacklog', preset?.autoReplenishBacklog ?? defaults_1.DEFAULT_CONFIG.autoReplenishBacklog);
+    const autoReplenishBacklog = readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog);
     const autoReloadOnControlPlaneChange = readBoolean(config, 'autoReloadOnControlPlaneChange', defaults_1.DEFAULT_CONFIG.autoReloadOnControlPlaneChange);
-    const autoApplyRemediation = readEnumArray(config, 'autoApplyRemediation', ['decompose_task', 'mark_blocked'], preset?.autoApplyRemediation ?? defaults_1.DEFAULT_CONFIG.autoApplyRemediation);
+    const autoApplyRemediation = readEnumArray(config, 'autoApplyRemediation', ['decompose_task', 'mark_blocked'], defaults_1.DEFAULT_CONFIG.autoApplyRemediation);
     const effectiveAutonomy = autonomyMode === 'autonomous'
         ? {
             autoReplenishBacklog: true,
@@ -386,9 +298,9 @@ function readConfig(workspaceFolder) {
         copilotApprovalMode: readEnum(config, 'copilotApprovalMode', ['allow-all', 'allow-tools-only', 'interactive'], defaults_1.DEFAULT_CONFIG.copilotApprovalMode),
         agentId: readString(config, 'agentId', defaults_1.DEFAULT_CONFIG.agentId),
         agentRole: readEnum(config, 'agentRole', ['build', 'review', 'watchdog', 'scm', 'planner', 'implementer', 'reviewer'], defaults_1.DEFAULT_CONFIG.agentRole),
-        preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], preset?.preferredHandoffMode ?? defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
+        preferredHandoffMode: readEnum(config, 'preferredHandoffMode', ['ideCommand', 'clipboard', 'cliExec'], defaults_1.DEFAULT_CONFIG.preferredHandoffMode),
         inspectionRootOverride: readString(config, 'inspectionRootOverride', defaults_1.DEFAULT_CONFIG.inspectionRootOverride),
-        ralphIterationCap: readNumber(config, 'ralphIterationCap', preset?.ralphIterationCap ?? defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
+        ralphIterationCap: readNumber(config, 'ralphIterationCap', defaults_1.DEFAULT_CONFIG.ralphIterationCap, 1, ['maxIterations']),
         verifierModes: readEnumArray(config, 'verifierModes', ['validationCommand', 'gitDiff', 'taskState'], defaults_1.DEFAULT_CONFIG.verifierModes),
         noProgressThreshold: readNumber(config, 'noProgressThreshold', defaults_1.DEFAULT_CONFIG.noProgressThreshold, 1),
         repeatedFailureThreshold: readNumber(config, 'repeatedFailureThreshold', defaults_1.DEFAULT_CONFIG.repeatedFailureThreshold, 1),
@@ -396,11 +308,11 @@ function readConfig(workspaceFolder) {
         generatedArtifactRetentionCount: readNumber(config, 'generatedArtifactRetentionCount', defaults_1.DEFAULT_CONFIG.generatedArtifactRetentionCount, 0),
         provenanceBundleRetentionCount: readNumber(config, 'provenanceBundleRetentionCount', defaults_1.DEFAULT_CONFIG.provenanceBundleRetentionCount, 0),
         gitCheckpointMode: readEnum(config, 'gitCheckpointMode', ['off', 'snapshot', 'snapshotAndDiff'], defaults_1.DEFAULT_CONFIG.gitCheckpointMode),
-        scmStrategy: readEnum(config, 'scmStrategy', ['none', 'commit-on-done', 'branch-per-task'], preset?.scmStrategy ?? defaults_1.DEFAULT_CONFIG.scmStrategy),
+        scmStrategy: readEnum(config, 'scmStrategy', ['none', 'commit-on-done', 'branch-per-task'], defaults_1.DEFAULT_CONFIG.scmStrategy),
         scmPrOnParentDone: readBoolean(config, 'scmPrOnParentDone', defaults_1.DEFAULT_CONFIG.scmPrOnParentDone),
         watchdogStaleTtlMs: readNumber(config, 'watchdogStaleTtlMs', defaults_1.DEFAULT_CONFIG.watchdogStaleTtlMs, 0),
         validationCommandOverride: readString(config, 'validationCommandOverride', defaults_1.DEFAULT_CONFIG.validationCommandOverride),
-        stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', preset?.stopOnHumanReviewNeeded ?? defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
+        stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
         autonomyMode,
         autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
         autoReloadOnControlPlaneChange: effectiveAutonomy.autoReloadOnControlPlaneChange,
@@ -422,7 +334,7 @@ function readConfig(workspaceFolder) {
         newChatCommandId: readString(config, 'newChatCommandId', newChatFallback),
         claimTtlHours: readNumber(config, 'claimTtlHours', defaults_1.DEFAULT_CONFIG.claimTtlHours, 1),
         staleLockThresholdMinutes: readNumber(config, 'staleLockThresholdMinutes', defaults_1.DEFAULT_CONFIG.staleLockThresholdMinutes, 1),
-        agentCount: readNumber(config, 'agentCount', preset?.agentCount ?? defaults_1.DEFAULT_CONFIG.agentCount, 1),
+        agentCount: readNumber(config, 'agentCount', defaults_1.DEFAULT_CONFIG.agentCount, 1),
         modelTiering: (() => {
             const tiering = readModelTiering(config, defaults_1.DEFAULT_CONFIG.modelTiering);
             // Flat ralphCodex.enableModelTiering takes precedence over modelTiering.enabled,
@@ -433,28 +345,19 @@ function readConfig(workspaceFolder) {
             if (typeof enableOverride === 'boolean') {
                 tiering.enabled = enableOverride;
             }
-            else if (preset?.modelTieringEnabled !== undefined) {
-                // Apply preset value when modelTiering.enabled was not explicitly set.
-                const tieringInspect = config.inspect('modelTiering');
-                const tieringRecord = (tieringInspect?.workspaceValue ?? tieringInspect?.globalValue);
-                if (typeof tieringRecord?.enabled !== 'boolean') {
-                    tiering.enabled = preset.modelTieringEnabled;
-                }
-            }
             return tiering;
         })(),
         hooks: readHooks(config, defaults_1.DEFAULT_CONFIG.hooks),
-        autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', preset?.autoWatchdogOnStall ?? defaults_1.DEFAULT_CONFIG.autoWatchdogOnStall),
-        autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', preset?.autoReviewOnParentDone ?? defaults_1.DEFAULT_CONFIG.autoReviewOnParentDone),
+        autoWatchdogOnStall: readBoolean(config, 'autoWatchdogOnStall', defaults_1.DEFAULT_CONFIG.autoWatchdogOnStall),
+        autoReviewOnParentDone: readBoolean(config, 'autoReviewOnParentDone', defaults_1.DEFAULT_CONFIG.autoReviewOnParentDone),
         autoReviewOnLoopComplete: readBoolean(config, 'autoReviewOnLoopComplete', defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete),
         autoScmOnConflict: readBoolean(config, 'autoScmOnConflict', defaults_1.DEFAULT_CONFIG.autoScmOnConflict),
         scmConflictRetryLimit: readNumber(config, 'scmConflictRetryLimit', defaults_1.DEFAULT_CONFIG.scmConflictRetryLimit, 1),
         cliExecutionTimeoutMs: readNumber(config, 'cliExecutionTimeoutMs', defaults_1.DEFAULT_CONFIG.cliExecutionTimeoutMs, 0),
         promptCaching: readEnum(config, 'promptCaching', ['auto', 'force', 'off'], defaults_1.DEFAULT_CONFIG.promptCaching),
-        memoryStrategy: readEnum(config, 'memoryStrategy', ['verbatim', 'sliding-window', 'summary'], preset?.memoryStrategy ?? defaults_1.DEFAULT_CONFIG.memoryStrategy),
+        memoryStrategy: readEnum(config, 'memoryStrategy', ['verbatim', 'sliding-window', 'summary'], defaults_1.DEFAULT_CONFIG.memoryStrategy),
         memoryWindowSize: readNumber(config, 'memoryWindowSize', defaults_1.DEFAULT_CONFIG.memoryWindowSize, 1),
         memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1),
-        operatorMode,
         prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate),
         planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass),
         failureDiagnostics: readEnum(config, 'failureDiagnostics', ['auto', 'off'], defaults_1.DEFAULT_CONFIG.failureDiagnostics),

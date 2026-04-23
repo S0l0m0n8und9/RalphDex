@@ -94,7 +94,6 @@
         "ralphCodex.memoryStrategy",
         "ralphCodex.memoryWindowSize",
         "ralphCodex.memorySummaryThreshold",
-        "ralphCodex.operatorMode",
         "ralphCodex.prdGenerationTemplate"
       ]
     },
@@ -116,7 +115,6 @@
     "onCommand:ralphCodex.runRalphLoop",
     "onCommand:ralphCodex.runMultiAgentLoop",
     "onCommand:ralphCodex.showRalphStatus",
-    "onCommand:ralphCodex.showMultiAgentStatus",
     "onCommand:ralphCodex.openFailureDiagnosis",
     "onCommand:ralphCodex.autoRecoverTask",
     "onCommand:ralphCodex.skipTask",
@@ -192,10 +190,6 @@
       {
         "command": "ralphCodex.showRalphStatus",
         "title": "Ralphdex: Show Status"
-      },
-      {
-        "command": "ralphCodex.showMultiAgentStatus",
-        "title": "Ralphdex: Show Multi-Agent Status"
       },
       {
         "command": "ralphCodex.openFailureDiagnosis",
@@ -1005,20 +999,6 @@
           "minimum": 1,
           "maximum": 500,
           "description": "Minimum iteration count before automatic summarisation is triggered when memoryStrategy is summary. Below this threshold the summary strategy behaves like verbatim."
-        },
-        "ralphCodex.operatorMode": {
-          "type": "string",
-          "enum": [
-            "simple",
-            "multi-agent",
-            "hardcore"
-          ],
-          "enumDescriptions": [
-            "Single-agent supervised mode. Sets autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, modelTiering.enabled=false, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false.",
-            "Multi-agent autonomous mode. Sets autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, modelTiering.enabled=true, scmStrategy=branch-per-task, autoReplenishBacklog=true, autoReviewOnParentDone=true, memoryStrategy=sliding-window, autoWatchdogOnStall=true.",
-            "Fully autonomous high-capability mode. All multi-agent values plus ralphIterationCap=100, memoryStrategy=summary, autoApplyRemediation=[decompose_task, mark_blocked], modelTiering.complex.model=claude-opus-4-6."
-          ],
-          "description": "Operator mode preset that seeds baseline values for multiple Ralph settings. Individual settings always override the preset when explicitly configured. Omit to keep existing per-setting defaults."
         },
         "ralphCodex.enableModelTiering": {
           "type": "boolean",

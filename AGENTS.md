@@ -60,7 +60,6 @@ Ralphdex is a VS Code extension that:
 - `Ralphdex: Run CLI Loop`
 - `Ralphdex: Run Multi-Agent Loop`
 - `Ralphdex: Show Status`
-- `Ralphdex: Show Multi-Agent Status`
 - `Ralphdex: Open Latest Ralph Summary`
 - `Ralphdex: Open Latest Provenance Bundle`
 - `Ralphdex: Open Latest Prompt Evidence`
@@ -71,26 +70,13 @@ Ralphdex is a VS Code extension that:
 - `Ralphdex: Cleanup Runtime Artifacts`
 - `Ralphdex: Reset Runtime State`
 - `Ralphdex: Run Pipeline`
-- `Ralphdex: Approve Human Review`
 - `Ralphdex: Open Latest Pipeline Run`
-- `Ralphdex: Resume Pipeline`
-- `Ralphdex: Construct Recommended Skills`
 - `Ralphdex: Regenerate PRD`
 - `Ralphdex: Show Sidebar`
 
 - `npm run check:docs`: deterministic docs/architecture sanity checks for required files, headings, links, and ownership guardrails
 - `npm run validate`: authoritative compile + type-check + test gate
 - `npm run test:activation`: thin real Extension Development Host smoke path
-
-## Operator Mode Presets
-
-`ralphCodex.operatorMode` applies a curated setting bundle; individual overrides take precedence. `Show Status` reports each preset-affected setting's source (`preset` vs `explicit`). Source of truth: `src/config/readConfig.ts` (`OPERATOR_PRESETS`). See [docs/workflows.md](docs/workflows.md#operator-mode-presets) for the `hardcore` safety warning.
-
-| Preset | Settings applied |
-|---|---|
-| `simple` | autonomyMode=supervised, agentCount=1, preferredHandoffMode=ideCommand, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=none, memoryStrategy=verbatim, autoReplenishBacklog=false, pipelineHumanGates=true, autoReviewOnParentDone=false, autoWatchdogOnStall=false, autoApplyRemediation=[], modelTiering.enabled=false |
-| `multi-agent` | autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, ralphIterationCap=20, stopOnHumanReviewNeeded=true, scmStrategy=branch-per-task, memoryStrategy=sliding-window, autoReplenishBacklog=true, pipelineHumanGates=true, autoReviewOnParentDone=true, autoWatchdogOnStall=true, autoApplyRemediation=[], modelTiering.enabled=true |
-| `hardcore` | autonomyMode=autonomous, agentCount=3, preferredHandoffMode=cliExec, ralphIterationCap=100, stopOnHumanReviewNeeded=false, scmStrategy=branch-per-task, memoryStrategy=summary, autoReplenishBacklog=true, pipelineHumanGates=false, autoReviewOnParentDone=true, autoWatchdogOnStall=true, autoApplyRemediation=decompose_task+mark_blocked, modelTiering.enabled=true |
 
 ## Task Schema
 

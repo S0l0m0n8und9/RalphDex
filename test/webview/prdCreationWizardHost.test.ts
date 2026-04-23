@@ -63,14 +63,6 @@ function makeGeneratedDraft(overrides: Partial<PrdWizardGenerateResult> = {}): P
 function makeConfigSelections(): PrdWizardConfigSelection[] {
   return [
     {
-      key: 'operatorMode',
-      label: 'Operator mode',
-      value: 'simple',
-      description: 'Use the simple preset while the project is still being shaped.',
-      rationale: 'Keeps the initial flow supervised and deterministic.',
-      selected: true
-    },
-    {
       key: 'cliProvider',
       label: 'CLI provider',
       value: 'codex',
@@ -120,7 +112,6 @@ test('PrdCreationWizardHost: renders expanded intake controls and guidance copy'
   assert.deepEqual(
     state.configSelections.map(({ key, value, selected }) => ({ key, value, selected })),
     [
-      { key: 'operatorMode', value: 'simple', selected: true },
       { key: 'cliProvider', value: 'codex', selected: true }
     ]
   );
@@ -361,7 +352,6 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
           path.join('workspace', '.ralph', 'tasks.json')
         ],
         settingsUpdated: [
-          'ralphCodex.operatorMode = simple',
           'ralphCodex.cliProvider = codex'
         ],
         settingsSkipped: []
@@ -386,7 +376,6 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
   assert.deepEqual(
     writtenDraft.configSelections.map(({ key, selected, value }) => ({ key, selected, value })),
     [
-      { key: 'operatorMode', selected: true, value: 'simple' },
       { key: 'cliProvider', selected: true, value: 'codex' }
     ]
   );
@@ -395,7 +384,6 @@ test('PrdCreationWizardHost: confirm-write posts a per-file write summary', asyn
     path.join('workspace', '.ralph', 'tasks.json')
   ]);
   assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsUpdated, [
-    'ralphCodex.operatorMode = simple',
     'ralphCodex.cliProvider = codex'
   ]);
   assert.deepEqual(lastStateMessage(webview).state.writeSummary?.settingsSkipped, []);
@@ -436,7 +424,7 @@ test('PrdCreationWizardHost: manual draft edits persist through later steps and 
   webviewSends(webview, { type: 'set-step', step: 5 });
   webviewSends(webview, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
   webviewSends(webview, { type: 'set-step', step: 6 });
-  webviewSends(webview, { type: 'toggle-config-selection', key: 'operatorMode' });
+  webviewSends(webview, { type: 'toggle-config-selection', key: 'cliProvider' });
   webviewSends(webview, { type: 'confirm-write' });
   await new Promise((resolve) => setImmediate(resolve));
 
@@ -576,7 +564,7 @@ test('PrdCreationWizardHost: config recommendations persist through toggles and 
   });
 
   webview.posted.length = 0;
-  webviewSends(webview, { type: 'toggle-config-selection', key: 'operatorMode' });
+  webviewSends(webview, { type: 'toggle-config-selection', key: 'cliProvider' });
   webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Build a deterministic wizard.' });
   webviewSends(webview, { type: 'generate-draft' });
   await new Promise((resolve) => setImmediate(resolve));
@@ -587,8 +575,7 @@ test('PrdCreationWizardHost: config recommendations persist through toggles and 
   assert.deepEqual(
     state.draft?.configSelections.map(({ key, selected, value }) => ({ key, selected, value })),
     [
-      { key: 'operatorMode', selected: false, value: 'simple' },
-      { key: 'cliProvider', selected: true, value: 'codex' }
+      { key: 'cliProvider', selected: false, value: 'codex' }
     ]
   );
 

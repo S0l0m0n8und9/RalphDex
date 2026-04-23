@@ -1523,7 +1523,6 @@ function buildDashboardSidebar(state) {
       <div class="dashboard-sidebar-actions">
         <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
-        <button class="btn rail-command" data-command="ralphCodex.showMultiAgentStatus"><span class="btn-label">Agent Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>

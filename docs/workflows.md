@@ -161,19 +161,6 @@ This command is the supported end-to-end pipeline path. It does not bypass the n
 
 Pipeline scaffolding follows the same generated-task invariant as every other producer path. The pipeline-root task is intentionally sparse because the scaffold only knows the PRD title and notes at that point, but the section-derived child tasks still persist through the shared normalization boundary so sequential dependencies, inherited fields, and any richer producer-supplied metadata are preserved instead of being stripped by a pipeline-specific write path.
 
-## Operator Mode Presets
-
-Set `ralphCodex.operatorMode` to apply a curated bundle of settings in one step. Ralph uses the preset values as fallbacks; any individually configured setting still takes precedence. `Show Status` reports each preset-affected setting and whether its current value came from the preset or an explicit override.
-
-Available modes:
-
-- **`simple`** — single supervised agent, human-review stops enabled, no SCM automation, verbatim memory.
-- **`multi-agent`** — three autonomous agents, branch-per-task SCM, model tiering, sliding-window memory, auto-backlog replenishment, watchdog and auto-review enabled.
-- **`hardcore`** — three autonomous agents with maximum automation: iteration cap 100, `summary` memory strategy, branch-per-task SCM, and auto-remediation (`decompose_task` and `mark_blocked`) enabled.
-
-> **Warning — `hardcore` mode enables auto-remediation.**
-> With `operatorMode = hardcore`, `stopOnHumanReviewNeeded` is `false` and `autoApplyRemediation` includes both `decompose_task` and `mark_blocked`. Ralph will not pause for human approval when it detects a situation that normally requires review, and it will automatically rewrite `.ralph/tasks.json` when remediation fires. Only use this mode when you have tested the workspace against a representative task graph and trust the automated remediation path. Use `simple` or `multi-agent` first when starting a new project.
-
 ## Prompt Budgeting And Quota Control
 
 > **Maturity: stable** (`codex` profile) / **experimental** (`claude` and `custom` profiles) — only the built-in `codex` matrix is calibrated for production use. The `claude` profile is an intentionally provisional higher-context placeholder. The `custom` profile exposes per-policy overrides for operators who measure their own token targets.
@@ -255,21 +242,6 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 7. If any agent hits `control_plane_reload_required` and `autoReloadOnControlPlaneChange` is enabled, Ralph reloads the extension host once all other loops have settled.
 
 Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique base value (or rely on the auto-suffix scheme) so claim attribution in `.ralph/claims.json` stays distinct.
-
-### Show Multi-Agent Status
-
-Run `Ralphdex: Show Multi-Agent Status` to display a per-agent summary in the Ralphdex output channel. For each agent identity record found under `.ralph/agents/`, the report shows:
-
-- `agentId` and `firstSeenAt` timestamp
-- number of tasks completed by that agent
-- current active claim task id (from `.ralph/claims.json`), or `none`
-- last iteration number, selected task, completion classification, stop reason, and progress note (from the latest `.ralph/handoff/<agentId>-NNN.json`)
-- a compact no-progress heatmap strip showing up to the last 10 iterations (`X` = `no_progress`, `.` = any other classification), in ascending chronological order
-- a stuck-score warning when the agent has 3 or more consecutive `no_progress` stops on the same task
-
-The stuck score is the count of trailing handoff entries (sorted ascending by iteration) that share the same `selectedTaskId` and have `completionClassification === 'no_progress'`. Any break in task id or classification resets the streak. Agents at or above the threshold of 3 are rendered with a `WARNING Agent` prefix and a `STUCK` line that names the affected task and suggests investigating or resolving the stale claim.
-
-This command reads only persisted durable state and does not run any CLI iteration. It is available in untrusted workspaces.
 
 ### Autonomous Loop Mode
 

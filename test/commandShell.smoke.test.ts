@@ -297,7 +297,6 @@ test('activate registers the key Ralph commands', async () => {
   assert.ok(commands.includes('ralphCodex.runReviewAgent'));
   assert.ok(commands.includes('ralphCodex.runScmAgent'));
   assert.ok(commands.includes('ralphCodex.showRalphStatus'));
-  assert.ok(commands.includes('ralphCodex.showMultiAgentStatus'));
   assert.ok(commands.includes('ralphCodex.showDashboard'));
   assert.ok(commands.includes('ralphCodex.refreshDashboard'));
   assert.ok(commands.includes('ralphCodex.openFailureDiagnosis'));
@@ -532,37 +531,6 @@ test('Show Ralph Status routes through the dashboard and writes raw report to ou
 
   // User choosing 'Open Latest Summary' still opens the artifact.
   assert.deepEqual(harness.state.shownDocuments, [latestSummaryPath]);
-});
-
-test('Show Multi-Agent Status routes through the dashboard and writes raw report to output channel', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.showMultiAgentStatus');
-
-  // Dashboard routing: both commands must have been executed.
-  assert.ok(
-    harness.state.executedCommands.some((e) => e.command === 'ralphCodex.showDashboard'),
-    'showMultiAgentStatus must execute ralphCodex.showDashboard'
-  );
-  assert.ok(
-    harness.state.executedCommands.some((e) => e.command === 'ralphCodex.refreshDashboard'),
-    'showMultiAgentStatus must execute ralphCodex.refreshDashboard'
-  );
-
-  // Notification reflects dashboard-first flow.
-  assert.match(
-    harness.state.infoMessages.at(-1)?.message ?? '',
-    /available in the dashboard|populate agent state/
-  );
-
-  // Raw report still written to the output channel for audit/debugging.
-  const output = harness.getOutputLines('Ralphdex').join('\n');
-  assert.match(output, /Multi-Agent Status/);
 });
 
 test('Show Tasks focuses the task tree view', async () => {

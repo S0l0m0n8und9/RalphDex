@@ -561,8 +561,6 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestPipelineRun: null,
     effectiveTierInfo: null,
     lastTaskTierInfo: null,
-    operatorMode: undefined,
-    operatorModeProvenance: null,
     planningPassEnabled: false,
     planningPassEnabledSource: 'manifest-default',
     promptBudgetProfile: 'codex',
@@ -1231,101 +1229,6 @@ test('buildStatusReport omits tier suffix for last task when lastTaskTierInfo is
   assert.doesNotMatch(report, /- Last task:.*\[tier:/);
 });
 
-// ---------------------------------------------------------------------------
-// Operator mode preset rendering
-// ---------------------------------------------------------------------------
-
-test('buildStatusReport renders operator mode as none when operatorMode is absent', () => {
-  const report = buildStatusReport(snapshot({ operatorMode: undefined, operatorModeProvenance: null }));
-  assert.match(report, /- Operator mode: none/);
-});
-
-test('buildStatusReport renders simple preset with all preset-sourced settings', () => {
-  const report = buildStatusReport(snapshot({
-    operatorMode: 'simple',
-    operatorModeProvenance: [
-      { key: 'autonomyMode', value: 'supervised', source: 'preset' },
-      { key: 'agentCount', value: '1', source: 'preset' },
-      { key: 'preferredHandoffMode', value: 'ideCommand', source: 'preset' },
-      { key: 'ralphIterationCap', value: '20', source: 'preset' },
-      { key: 'stopOnHumanReviewNeeded', value: 'true', source: 'preset' },
-      { key: 'scmStrategy', value: 'none', source: 'preset' },
-      { key: 'memoryStrategy', value: 'verbatim', source: 'preset' },
-      { key: 'autoReplenishBacklog', value: 'false', source: 'preset' },
-      { key: 'pipelineHumanGates', value: 'true', source: 'preset' },
-      { key: 'autoReviewOnParentDone', value: 'false', source: 'preset' },
-      { key: 'autoWatchdogOnStall', value: 'false', source: 'preset' },
-      { key: 'autoApplyRemediation', value: 'none', source: 'preset' },
-      { key: 'modelTiering.enabled', value: 'false', source: 'preset' }
-    ]
-  }));
-  assert.match(report, /- Operator mode: simple/);
-  assert.match(report, /autonomyMode: supervised \(preset\)/);
-  assert.match(report, /agentCount: 1 \(preset\)/);
-  assert.match(report, /preferredHandoffMode: ideCommand \(preset\)/);
-  assert.match(report, /stopOnHumanReviewNeeded: true \(preset\)/);
-  assert.match(report, /scmStrategy: none \(preset\)/);
-  assert.match(report, /memoryStrategy: verbatim \(preset\)/);
-  assert.match(report, /pipelineHumanGates: true \(preset\)/);
-  assert.match(report, /modelTiering\.enabled: false \(preset\)/);
-});
-
-test('buildStatusReport renders multi-agent preset settings', () => {
-  const report = buildStatusReport(snapshot({
-    operatorMode: 'multi-agent',
-    operatorModeProvenance: [
-      { key: 'autonomyMode', value: 'autonomous', source: 'preset' },
-      { key: 'agentCount', value: '3', source: 'preset' },
-      { key: 'preferredHandoffMode', value: 'cliExec', source: 'preset' },
-      { key: 'ralphIterationCap', value: '20', source: 'preset' },
-      { key: 'stopOnHumanReviewNeeded', value: 'true', source: 'preset' },
-      { key: 'scmStrategy', value: 'branch-per-task', source: 'preset' },
-      { key: 'memoryStrategy', value: 'sliding-window', source: 'preset' },
-      { key: 'autoReplenishBacklog', value: 'true', source: 'preset' },
-      { key: 'pipelineHumanGates', value: 'true', source: 'preset' },
-      { key: 'autoReviewOnParentDone', value: 'true', source: 'preset' },
-      { key: 'autoWatchdogOnStall', value: 'true', source: 'preset' },
-      { key: 'autoApplyRemediation', value: 'none', source: 'preset' },
-      { key: 'modelTiering.enabled', value: 'true', source: 'preset' }
-    ]
-  }));
-  assert.match(report, /- Operator mode: multi-agent/);
-  assert.match(report, /autonomyMode: autonomous \(preset\)/);
-  assert.match(report, /agentCount: 3 \(preset\)/);
-  assert.match(report, /scmStrategy: branch-per-task \(preset\)/);
-  assert.match(report, /memoryStrategy: sliding-window \(preset\)/);
-  assert.match(report, /autoReplenishBacklog: true \(preset\)/);
-  assert.match(report, /autoReviewOnParentDone: true \(preset\)/);
-  assert.match(report, /autoWatchdogOnStall: true \(preset\)/);
-  assert.match(report, /modelTiering\.enabled: true \(preset\)/);
-});
-
-test('buildStatusReport renders hardcore preset settings and explicit overrides', () => {
-  const report = buildStatusReport(snapshot({
-    operatorMode: 'hardcore',
-    operatorModeProvenance: [
-      { key: 'autonomyMode', value: 'autonomous', source: 'preset' },
-      { key: 'agentCount', value: '3', source: 'preset' },
-      { key: 'preferredHandoffMode', value: 'cliExec', source: 'preset' },
-      { key: 'ralphIterationCap', value: '100', source: 'preset' },
-      { key: 'stopOnHumanReviewNeeded', value: 'false', source: 'preset' },
-      { key: 'scmStrategy', value: 'branch-per-task', source: 'preset' },
-      { key: 'memoryStrategy', value: 'summary', source: 'preset' },
-      { key: 'autoReplenishBacklog', value: 'true', source: 'preset' },
-      { key: 'pipelineHumanGates', value: 'false', source: 'preset' },
-      { key: 'autoReviewOnParentDone', value: 'true', source: 'preset' },
-      { key: 'autoWatchdogOnStall', value: 'true', source: 'preset' },
-      { key: 'autoApplyRemediation', value: 'decompose_task, mark_blocked', source: 'preset' },
-      { key: 'modelTiering.enabled', value: 'true', source: 'explicit' }
-    ]
-  }));
-  assert.match(report, /- Operator mode: hardcore/);
-  assert.match(report, /ralphIterationCap: 100 \(preset\)/);
-  assert.match(report, /stopOnHumanReviewNeeded: false \(preset\)/);
-  assert.match(report, /pipelineHumanGates: false \(preset\)/);
-  assert.match(report, /autoApplyRemediation: decompose_task, mark_blocked \(preset\)/);
-  assert.match(report, /modelTiering\.enabled: true \(explicit\)/);
-});
 
 // ---------------------------------------------------------------------------
 // Orchestration rendering

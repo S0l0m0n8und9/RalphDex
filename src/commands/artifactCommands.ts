@@ -22,12 +22,6 @@ import {
 import { inspectCodexExecActivity } from '../services/cliActivity';
 import { Logger } from '../services/logger';
 import {
-  type AgentHandoffSummary,
-  type AgentStatusSummary,
-  buildMultiAgentStatusReport,
-} from '../ralph/multiAgentStatus';
-import { readMultiAgentStatusSummaries } from '../ralph/multiAgentStatusSnapshot';
-import {
   collectStatusSnapshot,
   firstExistingPath,
   normalizeCliInvocation,
@@ -542,46 +536,6 @@ export function registerArtifactAndMaintenanceCommands(
       progress.report({ message: 'Revealing latest Ralph provenance bundle directory' });
       const workspaceFolder = await withWorkspaceFolder();
       await revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger);
-    }
-  });
-
-  registerCommand(context, logger, {
-    commandId: 'ralphCodex.showMultiAgentStatus',
-    label: 'Ralphdex: Show Multi-Agent Status',
-    requiresTrustedWorkspace: false,
-    handler: async (progress) => {
-      progress.report({ message: 'Collecting per-agent status' });
-      const workspaceFolder = await withWorkspaceFolder();
-      const ralphDir = path.join(workspaceFolder.uri.fsPath, '.ralph');
-      const claimFilePath = path.join(ralphDir, 'claims.json');
-      const deadLetterPath = path.join(ralphDir, 'dead-letter.json');
-
-      const [summaries, deadLetterQueue] = await Promise.all([
-        readMultiAgentStatusSummaries(ralphDir, claimFilePath),
-        readDeadLetterQueue(deadLetterPath)
-      ]);
-      const report = buildMultiAgentStatusReport(summaries, deadLetterQueue.entries);
-
-      logger.appendText(report);
-      logger.info('Multi-agent status snapshot generated.', {
-        workspace: workspaceFolder.name,
-        agentCount: summaries.length
-      });
-
-      // Open or focus the dashboard and force a fresh snapshot load so the
-      // operator sees current per-agent data even if the panel was already open.
-      await vscode.commands.executeCommand('ralphCodex.showDashboard');
-      await vscode.commands.executeCommand('ralphCodex.refreshDashboard');
-
-      const choice = await vscode.window.showInformationMessage(
-        summaries.length > 0
-          ? `Multi-agent status for ${summaries.length} agent(s) is available in the dashboard. Raw report written to the output channel.`
-          : 'No agent identity records found. Run at least one CLI iteration to populate agent state.',
-        'Show Output'
-      );
-      if (choice === 'Show Output') {
-        logger.show(false);
-      }
     }
   });
 

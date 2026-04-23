@@ -152,7 +152,6 @@ Current command surface:
 - `Ralph: Run Watchdog Agent`
 - `Ralph: Run SCM Agent`
 - `Ralphdex: Show Status`
-- `Ralphdex: Show Multi-Agent Status`
 - `Ralphdex: Open Failure Diagnosis`
 - `Ralphdex: Auto-Recover Task`
 - `Ralphdex: Skip Task`
@@ -263,7 +262,6 @@ Azure-backed providers use grouped settings and secure auth references instead o
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.operatorMode` | _unset_ | Optional preset (`simple`, `multi-agent`, `hardcore`) that seeds multiple defaults |
 | `ralphCodex.memoryStrategy` | `"verbatim"` | Iteration memory strategy: `verbatim`, `sliding-window`, or `summary` |
 
 **Model tiering**

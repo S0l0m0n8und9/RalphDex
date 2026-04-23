@@ -1,6 +1,5 @@
 import * as path from 'path';
-import { OperatorModeSettingProvenance } from '../config/readConfig';
-import { OperatorMode, RalphCodexConfig } from '../config/types';
+import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
 import { EffectiveTierInfo } from './complexityScorer';
@@ -102,13 +101,6 @@ export interface RalphStatusSnapshot {
   effectiveTierInfo: EffectiveTierInfo | null;
   /** Effective tier for the task worked in the last completed iteration (null when unavailable). */
   lastTaskTierInfo: EffectiveTierInfo | null;
-  /** Active operator mode preset, or undefined when none is set. */
-  operatorMode: OperatorMode | undefined;
-  /**
-   * Per-setting provenance for all preset-affected keys.
-   * Non-null only when operatorMode is set.
-   */
-  operatorModeProvenance: OperatorModeSettingProvenance[] | null;
   /** Effective value of planningPass.enabled and whether it came from a user override or the manifest default. */
   planningPassEnabled: boolean;
   planningPassEnabledSource: 'explicit' | 'manifest-default';
@@ -406,16 +398,10 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
   const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
 
-  const operatorModeLines = snapshot.operatorModeProvenance
-    ? snapshot.operatorModeProvenance.map((entry) => `  - ${entry.key}: ${entry.value} (${entry.source})`)
-    : [];
-
   return [
     `# Ralph Status: ${snapshot.workspaceName}`,
     '',
     '## Loop',
-    `- Operator mode: ${snapshot.operatorMode ?? 'none'}`,
-    ...operatorModeLines,
     `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
     `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,
     `- Workspace trusted: ${snapshot.workspaceTrusted ? 'yes' : 'no'}`,

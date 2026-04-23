@@ -371,7 +371,7 @@ test('buildPanelDashboardHtml rail preserves live operator shortcuts', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-rail');
 
   assert.ok(html.includes('ralphCodex.showRalphStatus'));
-  assert.ok(html.includes('ralphCodex.showMultiAgentStatus'));
+  assert.ok(!html.includes('ralphCodex.showMultiAgentStatus'));
   assert.ok(html.includes('ralphCodex.showTasks'));
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
 });
@@ -488,7 +488,6 @@ test('buildPanelDashboardHtml includes task detail sections for expandable tasks
 test('buildPanelDashboardHtml renders metadata-driven settings sections when settingsSurface is present', () => {
   const settingsSurface = buildSettingsSurfaceSnapshot({
     ...DEFAULT_CONFIG,
-    operatorMode: 'multi-agent',
     cliProvider: 'copilot',
     memoryStrategy: 'summary',
     planningPass: { enabled: true, mode: 'dedicated' },
@@ -506,7 +505,7 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
   assert.ok(html.includes('Memory'));
   assert.ok(html.includes('Planning'));
   assert.ok(html.includes('Azure Foundry'));
-  assert.ok(html.includes('data-setting="operatorMode"'));
+  assert.ok(!html.includes('data-setting="operatorMode"'));
   assert.ok(html.includes('data-setting="planningPass.enabled"'));
   assert.ok(html.includes('data-setting="azureFoundry.endpointUrl"'));
   assert.ok(html.includes('https://foundry.example'));
@@ -534,7 +533,7 @@ test('buildPanelDashboardHtml uses the dashboard view intent to open the setting
 
 test('buildPanelDashboardHtml hides settings inputs when settingsSurface is null', () => {
   const html = buildPanelDashboardHtml(defaultState({ settingsSurface: null }), 'n13');
-  assert.ok(!html.includes('data-setting="operatorMode"'));
+  assert.ok(!html.includes('data-setting="autonomyMode"'));
 });
 
 test('buildPanelDashboardHtml empty states use the registered regeneratePrd command id', () => {

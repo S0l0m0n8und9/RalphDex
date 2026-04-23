@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { RalphTask } from '../ralph/types';
-import type { OperatorMode, RalphCodexConfig } from '../config/types';
+import type { RalphCodexConfig } from '../config/types';
 import {
   normalizeTaskInputsForPersistence,
   replaceTasksFileWithNormalizedTasks
@@ -20,21 +20,9 @@ export interface PrdWizardWritePaths {
 }
 
 export function buildPrdWizardConfigSelections(
-  config: Pick<RalphCodexConfig, 'cliProvider' | 'operatorMode'>
+  config: Pick<RalphCodexConfig, 'cliProvider'>
 ): PrdWizardConfigSelection[] {
-  const operatorMode: OperatorMode = config.operatorMode ?? 'simple';
-
   return [
-    {
-      key: 'operatorMode',
-      label: 'Operator mode',
-      value: operatorMode,
-      description: 'Persist the recommended operator preset into workspace settings at confirm time.',
-      rationale: operatorMode === config.operatorMode
-        ? 'Uses the current workspace preset so future runs stay aligned.'
-        : 'Defaults to the supervised preset until the workspace opts into a broader autonomy mode.',
-      selected: true
-    },
     {
       key: 'cliProvider',
       label: 'CLI provider',
@@ -57,7 +45,7 @@ export async function replaceTasksFile(
   await replaceTasksFileWithNormalizedTasks(tasksPath, newTasks);
 }
 
-function selectionSettingKey(selection: PrdWizardConfigSelection): 'operatorMode' | 'cliProvider' {
+function selectionSettingKey(selection: PrdWizardConfigSelection): 'cliProvider' {
   return selection.key;
 }
 
