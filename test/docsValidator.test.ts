@@ -20,7 +20,7 @@ async function seedValidRepository(rootPath: string): Promise<void> {
 
   await writeFile(rootPath, 'package.json', JSON.stringify({
     scripts: {
-      'publish:dry-run': 'npm run check:runtime && vsce publish --dry-run --no-dependencies'
+      'publish:dry-run': 'npm run package'
     },
     contributes: {
       configuration: {
@@ -472,8 +472,8 @@ Steps to publish a new version of the extension to the VS Code Marketplace.
 1. Run \`npm run validate\` from the repo root.
 2. Bump the version in package.json.
 3. Run \`npm run package\`.
-4. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
-5. Commit, tag, and run \`npx vsce publish --no-dependencies\`.
+4. Run \`npm run publish:dry-run\` so packaging is validated without publishing the release.
+5. Commit, tag, and run \`npx vsce publish\`.
 
 ## Rollback
 
@@ -905,7 +905,7 @@ Run \`npm run package\` to build and inspect the \`.vsix\`.
 ### 4. Publish
 
 \`\`\`bash
-npx vsce publish --no-dependencies
+npx vsce publish
 \`\`\`
 `);
 
@@ -955,10 +955,10 @@ test('validateRepositoryDocs rejects stale nested-repo path in release-workflow'
 1. Run \`npm run validate\` from the repo root.
 2. Bump the version in package.json.
 3. Run \`npm run package\`.
-4. Run \`npm run publish:dry-run\` so \`vsce publish --dry-run --no-dependencies\` validates the Marketplace publish path without shipping the release.
+4. Run \`npm run publish:dry-run\` so packaging is validated without publishing the release.
 
 \`\`\`bash
-cd ralph-codex-vscode-starter && npx vsce publish --no-dependencies
+cd ralph-codex-vscode-starter && npx vsce publish
 \`\`\`
 
 ## Rollback

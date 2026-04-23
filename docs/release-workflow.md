@@ -39,7 +39,7 @@ Add a new `## [x.y.z] — YYYY-MM-DD` section at the top of `CHANGELOG.md` descr
 npm run package
 ```
 
-This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the generated `.vsix` for 0 blocking warnings before continuing.
+This runs `check:runtime` then `vsce package`. Inspect the generated `.vsix` for 0 blocking warnings before continuing.
 
 ### 5. Run the repo-level dry-run script
 
@@ -47,9 +47,9 @@ This runs `check:runtime` then `vsce package --no-dependencies`. Inspect the gen
 npm run publish:dry-run
 ```
 
-Run this from the Ralphdex repo root after `npm run package` succeeds. In the current script surface, `publish:dry-run` aliases `npm run package` (equivalent to `vsce package --no-dependencies`), so it validates CHANGELOG format, file inclusion, and packaging integrity without shipping a Marketplace release.
+Run this from the Ralphdex repo root after `npm run package` succeeds. In the current script surface, `publish:dry-run` aliases `npm run package`, so it validates CHANGELOG format, file inclusion, runtime dependency inclusion, and packaging integrity without publishing a Marketplace release.
 
-Treat this as a packaging-readiness check before the real publish command. If you need an explicit Marketplace publish-path dry run, run `npx vsce publish --dry-run --no-dependencies` manually.
+Treat this as a packaging-readiness check before the real publish command.
 
 ### 6. Commit and tag
 
@@ -65,13 +65,13 @@ If the release only changes version and changelog content, stage just those file
 ### 7. Publish
 
 ```bash
-npx vsce publish --no-dependencies
+npx vsce publish
 ```
 
 Run this from the Ralphdex repo root only after `npm run publish:dry-run` succeeds. `vsce` will prompt for the PAT if `VSCE_PAT` is not set in the environment. Alternatively:
 
 ```bash
-VSCE_PAT=<token> npx vsce publish --no-dependencies
+VSCE_PAT=<token> npx vsce publish
 ```
 
 ### 8. Verify on the Marketplace

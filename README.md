@@ -36,7 +36,7 @@ Alternatively, install from the command line:
 code --install-extension s0l0m0n8und9.ralphdex
 ```
 
-For a local package build, run `npm run package` from the repo root and install the generated `ralphdex-<version>.vsix` via `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`. `npm run publish:dry-run` currently aliases that same packaging check. See [docs/release-workflow.md](docs/release-workflow.md) for the full package and Marketplace publish flow, including explicit `vsce publish --dry-run` usage.
+For a local package build, run `npm run package` from the repo root and install the generated `ralphdex-<version>.vsix` via `Extensions: Install from VSIX...` or `code --install-extension ./ralphdex-<version>.vsix`. `npm run publish:dry-run` currently aliases that same packaging check. The release package now includes runtime dependencies and excludes local worktree and prior-package artifacts. See [docs/release-workflow.md](docs/release-workflow.md) for the full package and Marketplace publish flow.
 
 ### Post-Install Tour
 

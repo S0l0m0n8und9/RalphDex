@@ -26,13 +26,13 @@ Use [docs/testing.md](testing.md) for the validation gate and test coverage.
 4. In VS Code, run `Extensions: Install from VSIX...` and select the generated file.
 5. Reload VS Code if prompted, then confirm the extension appears as `Ralphdex`.
 
-The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive. The published archive is intentionally limited to the compiled extension, prompt templates, bundled license, and operator-facing docs instead of the full development tree.
+The package command is the supported release-build path for this repo. It first runs `npm run check:runtime` and then delegates to `vsce package`, which also triggers the `vscode:prepublish` compile hook before writing the archive. The published archive must include runtime dependencies while excluding the full development tree and local packaging byproducts.
 
 If you prefer a shell-driven local install, run `code --install-extension ./ralphdex-<version>.vsix` from the extension root instead of using the command palette.
 
 This workflow proves that the repo can build a distributable `.vsix`. It does not prove marketplace publishing or host-specific install UX; those remain manual operator checks.
 
-For Marketplace release validation, use `npm run publish:dry-run` from the repo root after `npm run package`. In the current script surface this command aliases `npm run package` (runtime check + `vsce package --no-dependencies`). Use `npx vsce publish --dry-run --no-dependencies` manually when you need an explicit publish-path dry run. The full release procedure lives in [docs/release-workflow.md](release-workflow.md).
+For Marketplace release validation, use `npm run publish:dry-run` from the repo root after `npm run package`. In the current script surface this command aliases `npm run package` (runtime check + `vsce package`). The full release procedure lives in [docs/release-workflow.md](release-workflow.md).
 
 ## Initialize A Fresh Workspace
 

@@ -16,6 +16,7 @@ tsconfig.tsbuildinfo
 
 # Ralph workspace state — project-specific, not part of extension
 .ralph/**
+.worktrees/**
 
 # Context and editor tooling files
 .claude/**
@@ -26,3 +27,5 @@ ralph.code-workspace
 CLAUDE.md
 .gitignore
 .codex
+*.tgz
+*.vsix
