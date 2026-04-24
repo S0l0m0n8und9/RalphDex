@@ -517,6 +517,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
     progressPath: readString(config, 'progressPath', DEFAULT_CONFIG.progressPath),
+    structureDefinitionPath: readString(config, 'structureDefinitionPath', DEFAULT_CONFIG.structureDefinitionPath),
     promptTemplateDirectory: readString(
       config,
       'promptTemplateDirectory',

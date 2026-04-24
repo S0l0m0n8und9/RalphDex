@@ -320,6 +320,7 @@ function readConfig(workspaceFolder) {
         ralphTaskFilePath: readString(config, 'ralphTaskFilePath', defaults_1.DEFAULT_CONFIG.ralphTaskFilePath),
         prdPath: readString(config, 'prdPath', defaults_1.DEFAULT_CONFIG.prdPath),
         progressPath: readString(config, 'progressPath', defaults_1.DEFAULT_CONFIG.progressPath),
+        structureDefinitionPath: readString(config, 'structureDefinitionPath', defaults_1.DEFAULT_CONFIG.structureDefinitionPath),
         promptTemplateDirectory: readString(config, 'promptTemplateDirectory', defaults_1.DEFAULT_CONFIG.promptTemplateDirectory),
         promptIncludeVerifierFeedback: readBoolean(config, 'promptIncludeVerifierFeedback', defaults_1.DEFAULT_CONFIG.promptIncludeVerifierFeedback),
         promptPriorContextBudget: readNumber(config, 'promptPriorContextBudget', defaults_1.DEFAULT_CONFIG.promptPriorContextBudget, 1),

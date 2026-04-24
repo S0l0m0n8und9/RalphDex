@@ -75,6 +75,7 @@
         "ralphCodex.ralphTaskFilePath",
         "ralphCodex.prdPath",
         "ralphCodex.progressPath",
+        "ralphCodex.structureDefinitionPath",
         "ralphCodex.promptTemplateDirectory",
         "ralphCodex.promptIncludeVerifierFeedback",
         "ralphCodex.promptPriorContextBudget",
@@ -799,6 +800,11 @@
           "type": "string",
           "default": ".ralph/progress.md",
           "description": "Workspace-relative path to the durable Ralph progress log."
+        },
+        "ralphCodex.structureDefinitionPath": {
+          "type": "string",
+          "default": ".ralph/structure.json",
+          "description": "Workspace-relative path to the repo structure definition file (structure.d). Describes directory roles, placement rules, naming conventions, and forbidden paths so Ralph respects the repo's existing layout."
         },
         "ralphCodex.promptTemplateDirectory": {
           "type": "string",

@@ -4404,7 +4404,7 @@
     {
       "id": "CR11",
       "title": "Run a bounded end-to-end self-dogfood validation pass and record remaining gaps",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "CR10"
       ],
@@ -4573,11 +4573,11 @@
     {
       "id": "T172",
       "title": "Design the schema and naming convention for a repo structure definition file (structure.d)",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T171"
       ],
-      "notes": "Define the format (JSON, YAML, or Markdown) and schema for `structure.d` (or `.ralph/structure.json`). The file should describe: top-level directory roles, naming conventions, file-type placement rules, and any forbidden paths. Keep it human-readable and hand-editable. Propose the filename in config so it is overridable.",
+      "notes": "Defined StructureDefinition schema (TypeScript types + JSON example) and wired structureDefinitionPath config key with default .ralph/structure.json",
       "validation": "npm run validate",
       "priority": "high",
       "acceptance": [
@@ -4587,7 +4587,8 @@
       "context": [
         "docs/architecture.md",
         "src/config/types.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T173",
@@ -4743,5 +4744,5 @@
       ]
     }
   ],
-  "mutationCount": 191
+  "mutationCount": 192
 }

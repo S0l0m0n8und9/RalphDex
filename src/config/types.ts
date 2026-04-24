@@ -166,6 +166,7 @@ export interface RalphCodexConfig {
   ralphTaskFilePath: string;
   prdPath: string;
   progressPath: string;
+  structureDefinitionPath: string;
   promptTemplateDirectory: string;
   promptIncludeVerifierFeedback: boolean;
   promptPriorContextBudget: number;

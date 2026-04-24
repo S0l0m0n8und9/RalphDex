@@ -68,6 +68,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   ralphTaskFilePath: '.ralph/tasks.json',
   prdPath: '.ralph/prd.md',
   progressPath: '.ralph/progress.md',
+  structureDefinitionPath: '.ralph/structure.json',
   promptTemplateDirectory: '',
   promptIncludeVerifierFeedback: true,
   promptPriorContextBudget: 8,
