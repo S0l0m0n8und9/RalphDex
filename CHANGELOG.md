@@ -2,6 +2,12 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [0.3.1] — 2026-04-24
+
+### Changed
+
+- Maintenance release for Marketplace republish and release-metadata alignment.
+
 ## [0.3.0] — 2026-04-16
 
 ### Added
