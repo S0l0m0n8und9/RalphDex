@@ -109,8 +109,7 @@ function populatedDashboardSnapshot(): DashboardSnapshot {
       diagnosticCostUsd: null,
       promptCacheStats: { staticPrefixBytes: 8192, cacheHit: true },
       hasAnyCostData: true
-    },
-    orchestration: null
+    }
   };
 }
 
