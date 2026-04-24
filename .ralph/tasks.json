@@ -4231,12 +4231,12 @@
     {
       "id": "T163",
       "title": "Reconcile Azure auth and feature-maturity docs with the shipped runtime contract",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T161",
         "T162"
       ],
-      "notes": "The PRD, README, and workflow docs currently mix shipped Azure-backed provider behavior with older future-tense auth wording. Align the operator docs, maturity markers, and validator coverage so the documented trust model matches the runtime contract exactly.",
+      "notes": "Reconciled Azure auth documentation with shipped runtime contract. Added maturity markers, updated PRD, and added validation rules to prevent stale language regression.",
       "validation": "npm run check:docs",
       "tier": "simple",
       "acceptance": [
@@ -4244,7 +4244,8 @@
         "Operator-facing docs make the distinction between calibrated/stable defaults and beta or experimental Azure/provider behaviors explicit where needed",
         "Docs validation or focused tests fail if future changes reintroduce stale Azure auth placeholder language for the reviewed surfaces",
         "npm run check:docs passes"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "CR7",
@@ -4434,5 +4435,5 @@
       ]
     }
   ],
-  "mutationCount": 179
+  "mutationCount": 180
 }
