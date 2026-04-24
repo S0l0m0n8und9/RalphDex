@@ -1,5 +1,6 @@
 # Source TypeScript files — compiled output is in out/**
 src/**
+.env/**
 
 # Test infrastructure
 test/**
