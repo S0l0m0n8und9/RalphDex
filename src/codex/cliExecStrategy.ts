@@ -5,6 +5,7 @@ import { Logger } from '../services/logger';
 import { ProcessLaunchError, runProcess } from '../services/processRunner';
 import { CliProvider } from './cliProvider';
 import { CodexCliProvider } from './codexCliProvider';
+import { sanitizeTranscriptForStorage } from './transcriptSafety';
 import { CodexExecRequest, CodexExecResult, CodexStrategy } from './types';
 
 async function hasGitMetadata(rootPath: string): Promise<boolean> {
@@ -123,9 +124,10 @@ export class CliExecCodexStrategy implements CodexStrategy {
       };
     }
 
+    const sanitizedTranscript = sanitizeTranscriptForStorage(this.provider.buildTranscript(result, request));
     await fs.writeFile(
       request.transcriptPath,
-      `${this.provider.buildTranscript(result, request).trimEnd()}\n`,
+      `${sanitizedTranscript.trimEnd()}\n`,
       'utf8'
     );
 

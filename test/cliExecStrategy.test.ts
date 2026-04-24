@@ -9,6 +9,7 @@ import {
 import { CopilotCliProvider } from '../src/codex/copilotCliProvider';
 import { CodexCliProvider } from '../src/codex/codexCliProvider';
 import { AzureFoundryProvider } from '../src/codex/azureFoundryProvider';
+import { TRANSCRIPT_MAX_BYTES } from '../src/codex/transcriptSafety';
 import { CodexExecRequest, CodexExecResult } from '../src/codex/types';
 import { hashText } from '../src/ralph/integrity';
 import { Logger } from '../src/services/logger';
@@ -310,6 +311,87 @@ test('CliExecCodexStrategy does not emit caching warning when promptCaching is a
   }
 });
 
+test('CliExecCodexStrategy caps stored transcripts and keeps exit code plus extracted response', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-transcript-cap-'));
+  const fillerLine = `${JSON.stringify({ type: 'debug', data: { content: 'x'.repeat(4096) } })}\n`;
+  const largeStdout = `${fillerLine.repeat(200)}${JSON.stringify({
+    type: 'assistant.message',
+    data: { content: 'final extracted response' }
+  })}\n`;
+
+  setProcessRunnerOverride(async () => ({
+    code: 0,
+    stdout: largeStdout,
+    stderr: ''
+  }));
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new CopilotCliProvider({ approvalMode: 'allow-all', maxAutopilotContinues: 10 })
+    );
+    const requestInput = {
+      ...request(),
+      commandPath: 'copilot',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+    };
+    const execution = await strategy.runExec(requestInput);
+    const transcript = await fs.readFile(requestInput.transcriptPath, 'utf8');
+
+    assert.equal(execution.exitCode, 0);
+    assert.equal(execution.lastMessage, 'final extracted response');
+    assert.ok(Buffer.byteLength(transcript, 'utf8') <= TRANSCRIPT_MAX_BYTES + 1);
+    assert.match(transcript, /transcript truncated/i);
+    assert.match(transcript, /- Exit code: 0/);
+    assert.match(transcript, /final extracted response/);
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
+test('CliExecCodexStrategy redacts obvious secrets before writing transcripts', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-cli-transcript-redact-'));
+  const secretApiKey = 'sk-super-secret-token-1234567890abcdefghijkl';
+  const secretBearer = 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abcdefghijklmnopqrstuvwxyz.ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: `api_key=${secretApiKey}` } }),
+    JSON.stringify({ type: 'result', result: 'done' })
+  ].join('\n');
+
+  setProcessRunnerOverride(async () => ({
+    code: 0,
+    stdout,
+    stderr: `${secretBearer}\nTOKEN=very-long-token_value-with-delimiter-12345678901234567890`
+  }));
+
+  try {
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new CopilotCliProvider({ approvalMode: 'allow-all', maxAutopilotContinues: 10 })
+    );
+    const requestInput = {
+      ...request(),
+      commandPath: 'copilot',
+      workspaceRoot: root,
+      executionRoot: root,
+      transcriptPath: path.join(root, '.ralph', 'runs', 'bootstrap-001.transcript.md'),
+      lastMessagePath: path.join(root, '.ralph', 'runs', 'bootstrap-001.last-message.md')
+    };
+
+    await strategy.runExec(requestInput);
+    const transcript = await fs.readFile(requestInput.transcriptPath, 'utf8');
+
+    assert.ok(!transcript.includes(secretApiKey));
+    assert.ok(!transcript.includes(secretBearer));
+    assert.match(transcript, /\[redacted\]/);
+  } finally {
+    setProcessRunnerOverride(null);
+  }
+});
+
 test('CliExecCodexStrategy uses executeDirectly instead of spawning a child process when available', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-azure-direct-strategy-'));
   let processRunnerCalled = false;
@@ -326,19 +408,19 @@ test('CliExecCodexStrategy uses executeDirectly instead of spawning a child proc
   setHttpsClientOverride(async () => ({ responseBody: responseJson, statusCode: 200 }));
 
   try {
-        const strategy = new CliExecCodexStrategy(
-          createLogger(),
-          new AzureFoundryProvider({
-            endpointUrl: 'https://my-project.inference.ai.azure.com/models/my-deployment',
-            auth: {
-              mode: 'env-api-key',
-              tenantId: '',
-              subscriptionId: '',
-              apiKeyEnvVar: 'AZURE_OPENAI_API_KEY',
-              secretStorageKey: ''
-            }
-          })
-      );
+    const strategy = new CliExecCodexStrategy(
+      createLogger(),
+      new AzureFoundryProvider({
+        endpointUrl: 'https://my-project.inference.ai.azure.com/models/my-deployment',
+        auth: {
+          mode: 'env-api-key',
+          tenantId: '',
+          subscriptionId: '',
+          apiKeyEnvVar: 'AZURE_OPENAI_API_KEY',
+          secretStorageKey: ''
+        }
+      })
+    );
     const result = await strategy.runExec({
       ...request(),
       commandPath: 'azure-foundry',
@@ -350,11 +432,11 @@ test('CliExecCodexStrategy uses executeDirectly instead of spawning a child proc
 
     assert.equal(result.exitCode, 0);
     assert.equal(result.lastMessage, 'Strategy direct result.');
-      assert.equal(processRunnerCalled, false, 'child process should not have been spawned');
-      assert.deepEqual(result.args, []);
-    } finally {
-      delete process.env.AZURE_OPENAI_API_KEY;
-      setProcessRunnerOverride(null);
-      setHttpsClientOverride(null);
-    }
-  });
+    assert.equal(processRunnerCalled, false, 'child process should not have been spawned');
+    assert.deepEqual(result.args, []);
+  } finally {
+    delete process.env.AZURE_OPENAI_API_KEY;
+    setProcessRunnerOverride(null);
+    setHttpsClientOverride(null);
+  }
+});

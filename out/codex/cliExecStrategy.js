@@ -39,6 +39,7 @@ const path = __importStar(require("path"));
 const integrity_1 = require("../ralph/integrity");
 const processRunner_1 = require("../services/processRunner");
 const codexCliProvider_1 = require("./codexCliProvider");
+const transcriptSafety_1 = require("./transcriptSafety");
 async function hasGitMetadata(rootPath) {
     try {
         await fs.access(path.join(rootPath, '.git'));
@@ -136,7 +137,8 @@ class CliExecCodexStrategy {
                     : null
             };
         }
-        await fs.writeFile(request.transcriptPath, `${this.provider.buildTranscript(result, request).trimEnd()}\n`, 'utf8');
+        const sanitizedTranscript = (0, transcriptSafety_1.sanitizeTranscriptForStorage)(this.provider.buildTranscript(result, request));
+        await fs.writeFile(request.transcriptPath, `${sanitizedTranscript.trimEnd()}\n`, 'utf8');
         return result;
     }
 }
