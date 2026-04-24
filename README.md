@@ -196,13 +196,14 @@ This section lists **core settings** only. Source of truth for the full settings
 | `ralphCodex.claudeCommandPath` | `"claude"` | Claude CLI executable path or name |
 | `ralphCodex.copilotCommandPath` | `"copilot"` | Copilot CLI executable path or name |
 
-Azure-backed providers use grouped settings and secure auth references instead of literal keys in `settings.json`:
+**Azure-backed providers** *(maturity: beta)* — both `copilot-foundry` and `azure-foundry` are functional and available for use. They require grouped settings and secure auth references instead of literal keys in `settings.json`:
 
 - `copilot-foundry` runs GitHub Copilot CLI against Azure OpenAI BYOK while preserving Copilot's tool and harness behavior.
-- `azure-foundry` uses RalphDex's direct HTTPS Azure path.
-- Supported auth sources for both are `az-bearer`, `env-api-key`, and `vscode-secret`.
+- `azure-foundry` uses RalphDex's direct HTTPS Azure path via the Azure AI Foundry inference API.
+- Supported auth sources for both are `az-bearer` (Azure AD / Managed Identity), `env-api-key` (environment variable), and `vscode-secret` (VS Code SecretStorage).
 - Literal API keys in `ralphCodex.*` settings are not supported.
 - Use `Ralphdex: Set Provider Secret` and `Ralphdex: Clear Provider Secret` for `vscode-secret` flows.
+- For detailed configuration, see [docs/workflows.md — Azure AI Foundry Provider](docs/workflows.md#azure-ai-foundry-provider).
 
 **Agent identity**
 

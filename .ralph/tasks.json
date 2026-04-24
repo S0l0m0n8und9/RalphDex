@@ -4214,7 +4214,6 @@
       "title": "Strengthen Azure-backed provider auth-readiness diagnostics and command-surface verification",
       "status": "done",
       "dependsOn": [
-        "T164",
         "T161"
       ],
       "notes": "Added a redacted Azure auth-readiness probe, threaded async provider-readiness diagnostics into preflight/status/iteration preparation, upgraded the provider connection command to surface Azure auth failures clearly, and added regression coverage for azure-foundry and copilot-foundry readiness success/failure paths.",
@@ -4232,7 +4231,7 @@
     {
       "id": "T163",
       "title": "Reconcile Azure auth and feature-maturity docs with the shipped runtime contract",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T161",
         "T162"
@@ -4248,134 +4247,190 @@
       ]
     },
     {
-      "id": "T164",
-      "title": "Align CSS design tokens and base component styles to UXrefresh prototype",
-      "status": "done",
-      "notes": "Update buildBaseCss() in src/ui/htmlHelpers.ts to adopt the prototype's full token set: --accent (#f5b041), --ok (#5bd69c), --warn (#f5a14d), --bad (#eb5e5e), --cyan (#6fc3df), --surface, --surface-2, --border, --fg, --dim, --font-ui (Geist), --font-mono (Geist Mono). Add @import for Geist via the nonce-safe inline font stack fallback. Update Card, StatusPill, and Btn CSS equivalents in the base sheet. Preserve all existing --ralph-* aliases so existing callers don't break.",
+      "id": "CR7",
+      "title": "Audit normalized task schema field preservation and add drift coverage",
+      "status": "todo",
+      "notes": "Verify that the documented normalized task contract, RalphTask interface, normalizeTask behavior, and serialization behavior agree. Add regression coverage for every persisted task field so future schema drift is caught.",
       "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
       "tier": "medium",
       "acceptance": [
-        "buildBaseCss() emits all prototype color tokens",
-        "Existing --ralph-amber, --ralph-green etc. are remapped as aliases to the new tokens so no breakage",
-        "npm run validate passes"
+        "Tests prove all intended persisted RalphTask fields survive normalization and serialization.",
+        "Tests prove parser-injected source metadata is not persisted to disk.",
+        "Any supported-field allowlist or equivalent schema guard matches the RalphTask persisted contract.",
+        "No task fields are silently dropped unless explicitly documented as non-persisted."
+      ],
+      "constraints": [
+        "Do not introduce new task fields.",
+        "Do not change task selection semantics.",
+        "Do not alter task graph validation behaviour unless a test proves the current behaviour is inconsistent with the documented contract.",
+        "Keep the change focused on schema drift prevention and tests."
       ],
       "context": [
-        "src/ui/htmlHelpers.ts",
-        "UXrefresh/components/primitives.jsx",
-        "UXrefresh/Ralphdex Dashboard.html"
+        "src/ralph/types.ts",
+        "src/ralph/taskFile.ts",
+        "src/ralph/taskNormalization.ts",
+        "docs/invariants.md",
+        "test"
+      ],
+      "writeRiskLabels": [
+        "task-schema",
+        "task-normalization",
+        "tests"
       ]
     },
     {
-      "id": "T165",
-      "title": "Redesign sidebar HTML to match UXrefresh: mode switcher, tab nav, quick actions, current-task card",
+      "id": "CR8",
+      "title": "Add regression coverage for task auto-repair visibility",
       "status": "todo",
       "dependsOn": [
-        "T164"
+        "CR7"
       ],
-      "notes": "Rewrite the body of buildDashboardHtml() in src/ui/sidebarHtml.ts. Add: (1) a mode-selector row (Simple/Standard/Advanced) stored in VS Code state via postMessage; (2) tab nav (Overview, Pipelines, Tasks, Diagnostics, Settings) whose visibility is mode-gated — Simple shows 3 tabs, Standard 5, Advanced 6, matching UXrefresh/components/sidebar.jsx; (3) quick-actions row replacing the flat btn-grid for common commands, showing keyboard shortcuts from UXrefresh QuickAction component; (4) current-task focus card at the bottom of the sidebar when a task is selected, showing task id in accent mono + title. Preserve all existing data-command and data-seed-submit wire-ups.",
+      "notes": "Ralph may auto-repair or normalize some task graph states. Ensure every non-trivial repair is visible through diagnostics, preflight, status, or artifacts so operators do not mistake repaired drift for clean state.",
       "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
       "tier": "medium",
       "acceptance": [
-        "Sidebar renders mode-switcher with Simple/Standard/Advanced buttons",
-        "Tab nav items adjust by mode",
-        "Quick-actions section shows at minimum: Initialize, New Project, Add Task, Prepare Prompt, Show Dashboard",
-        "Current task card at bottom shows task id + title from state.taskSeeding or dashboardSnapshot",
-        "All existing data-command wire-ups remain functional",
-        "npm run validate passes"
+        "Tests cover at least one warning-level repair path and prove the repair is surfaced to the operator.",
+        "Tests cover at least one blocking task-graph drift path and prove it blocks preflight or loop continuation.",
+        "Status or preflight output clearly distinguishes clean backlog exhaustion from repaired or drifted task state.",
+        "Documentation identifies where task-ledger drift and repair evidence appears."
+      ],
+      "constraints": [
+        "Do not add autonomous repair behaviours.",
+        "Do not make blocked/error drift pass silently.",
+        "Do not expand remediation scope.",
+        "Prefer tests and wording fixes over behavioural changes."
       ],
       "context": [
-        "src/ui/sidebarHtml.ts",
-        "src/ui/uiTypes.ts",
-        "UXrefresh/components/sidebar.jsx"
+        "src/ralph/taskFile.ts",
+        "src/ralph/preflight.ts",
+        "src/ralph/status",
+        "docs/invariants.md",
+        "docs/workflows.md",
+        "test/preflight.test.ts"
+      ],
+      "writeRiskLabels": [
+        "task-graph",
+        "preflight",
+        "status",
+        "docs"
       ]
     },
     {
-      "id": "T166",
-      "title": "Add hero health strip (Progress/Iteration/Attention/Cost cells) to dashboard Overview tab",
+      "id": "CR9",
+      "title": "Audit committed dogfood state and separate durable examples from local runtime artifacts",
       "status": "todo",
       "dependsOn": [
-        "T164"
+        "CR7"
       ],
-      "notes": "In src/ui/panelHtml.ts, add a buildHeroHealthStrip(state) function that renders a CSS grid strip of 4 HealthCell-style tiles modelled on UXrefresh/components/hero.jsx HealthCell: Progress (done/total + % bar in --ok), Iteration (current/cap + % bar in --accent), Attention (blocked + dead-letter count, amber/red tone if >0), Cost ($loop / $today from state if available — show 'n/a' if not in state). Inject the strip below the existing header row on the overview tab. No new state fields — derive everything from existing RalphDashboardState.",
+      "notes": "Review committed .ralph state, local tool settings, generated artifacts, UXrefresh material, and historical plans. Keep intentional dogfood/example state clearly documented; archive or remove stale runtime/scratch artifacts.",
+      "validation": "npm run check:docs",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Committed .ralph files are classified as intentional dogfood/example state or removed from the tracked repo.",
+        "Generated runtime artifacts that should not be tracked are ignored or removed.",
+        "Historical plans/specs are archived or clearly marked as historical.",
+        "README or docs explain what committed Ralph state represents.",
+        "Docs validation passes."
+      ],
+      "constraints": [
+        "Do not delete current architecture documentation.",
+        "Do not remove evidence needed for active dogfooding unless it is replaced by a clearer example.",
+        "Do not change runtime code except ignore/package metadata if required.",
+        "Do not perform broad documentation rewrites."
+      ],
+      "context": [
+        ".ralph",
+        ".gitignore",
+        ".vscodeignore",
+        ".claude",
+        "docs",
+        "README.md",
+        "AGENTS.md"
+      ],
+      "writeRiskLabels": [
+        "repo-hygiene",
+        "docs",
+        "dogfood-state"
+      ]
+    },
+    {
+      "id": "CR10",
+      "title": "Document the post-hardening operating boundary for RalphDex self-dogfooding",
+      "status": "todo",
+      "dependsOn": [
+        "CR8",
+        "CR9"
+      ],
+      "notes": "Capture when RalphDex should be used against itself and when direct Codex should be used. This should become an operator rule, not tribal knowledge.",
+      "validation": "npm run check:docs",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Docs state that RalphDex is appropriate for bounded, verifiable tasks such as tests, docs, invariant checks, and repo hygiene.",
+        "Docs state that direct Codex is preferred for control-plane changes such as provider execution, process runner, command wiring, config interpretation, and iteration engine restructuring.",
+        "Docs include the rationale: avoid self-modifying the harness while relying on that same harness.",
+        "No new product features are proposed."
+      ],
+      "constraints": [
+        "Do not add commands, settings, or runtime logic.",
+        "Do not overstate safety guarantees.",
+        "Keep the guidance short and operator-facing.",
+        "Do not turn this into a general agent philosophy essay."
+      ],
+      "context": [
+        "README.md",
+        "docs/workflows.md",
+        "docs/invariants.md",
+        "docs/boundaries.md",
+        "AGENTS.md"
+      ],
+      "writeRiskLabels": [
+        "docs",
+        "operator-guidance"
+      ]
+    },
+    {
+      "id": "CR11",
+      "title": "Run a bounded end-to-end self-dogfood validation pass and record remaining gaps",
+      "status": "todo",
+      "dependsOn": [
+        "CR10"
+      ],
+      "notes": "Use the hardened RalphDex flow on its own repo for a small validation pass. The output should be evidence, not new feature work: latest status, prompt evidence, validation result, and a short gap list.",
       "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
       "tier": "medium",
       "acceptance": [
-        "Overview tab shows 4 health cells in a horizontal strip",
-        "Progress cell includes an inline bar",
-        "Attention cell turns amber when blocked+dead-letter > 0",
-        "Renders without errors when counts are null",
-        "npm run validate passes"
+        "A bounded RalphDex run completes or stops with clear evidence.",
+        "Latest status, prompt evidence, preflight evidence, and validation output are inspectable.",
+        "Any remaining gaps are recorded as proposed future tasks rather than implemented opportunistically.",
+        "No unrelated code changes are made."
+      ],
+      "constraints": [
+        "Do not add new features during the validation pass.",
+        "Do not allow autonomous scope expansion.",
+        "Do not accept broad refactors as part of this task.",
+        "If validation fails, preserve the failure evidence and stop."
       ],
       "context": [
-        "src/ui/panelHtml.ts",
-        "src/ui/uiTypes.ts",
-        "UXrefresh/components/hero.jsx"
-      ]
-    },
-    {
-      "id": "T167",
-      "title": "Replace glyph phase tracker with pill-based design and add role-colored agent lane borders",
-      "status": "todo",
-      "dependsOn": [
-        "T164"
+        ".ralph",
+        "src/ralph",
+        "test",
+        "docs/workflows.md",
+        "README.md"
       ],
-      "notes": "In src/ui/htmlHelpers.ts: (1) Rewrite buildPhaseTracker() to render pill spans matching UXrefresh PhaseTracker: done phases show ✓ + muted style; active phase has accent background + blinking dot animation (ralph-blink keyframe); future phases transparent. (2) Update buildAgentLanes() so each lane has a left border colored by role: implementer=amber, reviewer=green, watchdog=warn, scm=cyan — derive from agentId string matching those substrings. (3) Update .phase-step CSS in buildBaseCss() accordingly. Keep the inline PHASE_LABELS ordering unchanged.",
-      "validation": "npm run validate",
-      "acceptance": [
-        "Active phase renders with blinking dot and accent background",
-        "Done phases show ✓ prefix",
-        "Agent lane rows have 3px left border with role-derived color",
-        "npm run validate passes"
-      ],
-      "context": [
-        "src/ui/htmlHelpers.ts",
-        "UXrefresh/components/hero.jsx",
-        "UXrefresh/components/panels.jsx"
-      ]
-    },
-    {
-      "id": "T168",
-      "title": "Upgrade iteration history rows to show classification color dots and cost column",
-      "status": "todo",
-      "dependsOn": [
-        "T164"
-      ],
-      "notes": "In src/ui/htmlHelpers.ts, update buildIterationRow() to: (1) prepend a 6px color dot before the classification text using the same classColor map as UXrefresh Timeline (complete=ok, partial_progress=accent, blocked=warn, failed=bad, needs_human_review=cyan, no_progress=dim); (2) add a cost column cell if iter.cost is present in the type (check uiTypes.ts — add optional cost?: number to RalphDashboardIteration if absent); (3) use grid layout matching prototype: #iter | agent | tier | task | classification | cost. Update .iter-* CSS in buildBaseCss() as needed.",
-      "validation": "npm run validate",
-      "acceptance": [
-        "complete iterations show green dot",
-        "failed iterations show red dot",
-        "blocked/partial show correct colors",
-        "Cost column renders 'n/a' when undefined",
-        "npm run validate passes"
-      ],
-      "context": [
-        "src/ui/htmlHelpers.ts",
-        "src/ui/uiTypes.ts",
-        "UXrefresh/components/panels.jsx"
-      ]
-    },
-    {
-      "id": "T169",
-      "title": "Add rich failure diagnosis card to dashboard overview when a failure entry is present",
-      "status": "todo",
-      "dependsOn": [
-        "T164"
-      ],
-      "notes": "In src/ui/panelHtml.ts, add a buildFailureDiagnosisCard(state) function. When state.dashboardSnapshot?.failureFeed.entries[0] exists, render a card matching UXrefresh FailurePanel: red-tinted border/background; header row with warn icon, 'Needs Attention · Failure Diagnosis' label, and confidence pill; task-id chip + title + attempt count + category; a 'What went wrong' summary block; a 'Suggested fix' amber-tinted block if entry.suggestedAction is present; action buttons: 'Open failure artifact' (data-command ralphCodex.openFailureArtifact), 'Requeue task', 'Skip task'. Inject card at top of overview tab, above the health strip. Show nothing if no failure entry.",
-      "validation": "npm run validate",
-      "tier": "medium",
-      "acceptance": [
-        "No failure entry → card absent, no layout shift",
-        "Failure present → card renders with red-tinted border",
-        "Summary and suggested-action blocks render when fields are populated",
-        "Action buttons fire correct data-command attributes",
-        "npm run validate passes"
-      ],
-      "context": [
-        "src/ui/panelHtml.ts",
-        "src/ui/uiTypes.ts",
-        "UXrefresh/components/panels.jsx"
+      "writeRiskLabels": [
+        "self-dogfood",
+        "validation",
+        "evidence"
       ]
     }
   ],

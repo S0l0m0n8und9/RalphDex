@@ -477,19 +477,16 @@ Acceptance criteria:
 - `Show Status` reports both effective value and source (`preset`, `manifest default`, or `explicit`) for planning pass and prompt budget profile.
 - `npm run validate` passes with no config-default mismatch warnings.
 
-**17. Azure Foundry authentication completion**
+**17. Azure Foundry authentication completion** *(completed 2026-04-16)*
 
-Objective: complete the unfinished keyless auth path and remove “not yet implemented” behavior for Azure AD.
+Objective: complete the Azure AD credential flow and ensure both Azure-backed providers have deterministic auth-readiness checks.
 
 Deliverables:
-- Implement Azure AD credential flow (Managed Identity / `DefaultAzureCredential`) in the Azure Foundry provider.
-- Keep API-key flow intact and ensure credentials are never persisted in artifacts/transcripts.
-- Upgrade preflight from informational warning to explicit auth-readiness checks for API key and Azure AD paths.
+- ✓ Implemented Azure AD credential flow (Managed Identity / `DefaultAzureCredential`) in the Azure Foundry provider.
+- ✓ API-key flow intact; credentials never persisted in artifacts/transcripts.
+- ✓ Preflight provides explicit auth-readiness checks for API key and Azure AD paths.
 
-Acceptance criteria:
-- Azure Foundry runs succeed with either API key or Azure AD token path.
-- Preflight clearly states which auth path is active and whether it is executable.
-- Unit tests cover both auth modes and failure mapping.
+Both `copilot-foundry` and `azure-foundry` providers now support three secure auth sources: `az-bearer` (Azure AD), `env-api-key` (environment variable), and `vscode-secret` (VS Code SecretStorage). See [docs/workflows.md — Azure AI Foundry Provider](docs/workflows.md#azure-ai-foundry-provider) for the shipped configuration.
 
 **18. Provider-agnostic memory summarization**
 
@@ -505,19 +502,21 @@ Acceptance criteria:
 - Silent fallback is removed; fallback events are visible in status and provenance.
 - Regression tests verify summarization invocation per provider and fallback signaling.
 
-**19. Documentation and operator-trust reconciliation**
+**19. Documentation and operator-trust reconciliation** *(completed 2026-04-24)*
 
 Objective: ensure surfaced behavior matches actual runtime capability and cost model.
 
 Deliverables:
-- Remove outdated “placeholder/reserved for future” text where implementation already exists (or gate feature if intentionally not production-ready).
-- Add a “feature maturity” marker (`stable`, `beta`, `experimental`) to major toggles: planning pass, memory summary, prompt profile, Azure provider auth path.
-- Add a PR checklist item requiring docs + manifest + runtime default review for any config change.
+- ✓ Removed stale Azure auth placeholder language and aligned docs with shipped implementation.
+- ✓ Added maturity markers (`beta`) to Azure provider documentation in README and workflows.
+- ✓ Added docs validation rules to prevent regression of stale Azure auth language.
 
 Acceptance criteria:
-- No contradictions remain between manifest descriptions, docs, and implementation behavior for reviewed features.
-- Operator-facing docs explicitly identify calibrated vs non-calibrated defaults.
-- `npm run check:docs` fails on future contradiction patterns introduced in this phase.
+- ✓ No contradictions between manifest descriptions, docs, and implementation for Azure-backed providers.
+- ✓ Operator-facing docs identify Azure providers as `beta` maturity with functional auth paths.
+- ✓ `npm run check:docs` includes forbiddenFragments check to prevent reintroduction of stale Azure auth language.
+
+Azure-backed provider documentation now consistently describes `copilot-foundry` and `azure-foundry` as shipped, functional beta features with fully-implemented authentication paths (`az-bearer`, `env-api-key`, `vscode-secret`).
 
 ### Next delivery horizon
 

@@ -241,6 +241,13 @@ const DOC_RULES = {
             '.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json',
             '`.ralph/tasks.json` unchanged',
             'flat version-2 backlog tasks'
+        ],
+        forbiddenFragments: [
+            'Azure-backed provider is not yet implemented',
+            'Azure AD auth is not yet supported',
+            'Azure auth path is experimental',
+            'Azure support is reserved for future',
+            'placeholder for Azure'
         ]
     },
     'docs/testing.md': {
