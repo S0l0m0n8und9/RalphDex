@@ -21,6 +21,75 @@ type PackageManifest = {
 };
 
 const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
+const commandRegistrationSourceFiles = [
+  path.join(__dirname, '..', '..', 'src', 'commands', 'registerCommands.ts'),
+  path.join(__dirname, '..', '..', 'src', 'commands', 'artifactCommands.ts'),
+  path.join(__dirname, '..', '..', 'src', 'extension.ts')
+];
+
+// Keep this list tiny: these commands are intentionally registered for internal
+// flows (status bar/webview wiring) and not surfaced in contributes.commands.
+const internalOnlyRegisteredCommands = new Set([
+  'ralphCodex.refreshDashboard',
+  'ralphCodex.statusBarQuickPick',
+  'ralphCodex.testCurrentProviderConnection'
+]);
+
+function duplicateIds(ids: readonly string[]): string[] {
+  const counts = new Map<string, number>();
+  for (const id of ids) {
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .filter(([, count]) => count > 1)
+    .map(([id]) => id)
+    .sort();
+}
+
+async function readRegisteredCommandIds(): Promise<string[]> {
+  const commandIds = new Set<string>();
+
+  for (const sourceFile of commandRegistrationSourceFiles) {
+    const sourceText = await fs.readFile(sourceFile, 'utf8');
+
+    const commandIdMatches = sourceText.matchAll(/commandId:\s*['"]([^'"]+)['"]/g);
+    for (const [, commandId] of commandIdMatches) {
+      commandIds.add(commandId);
+    }
+
+    const directRegistrationMatches = sourceText.matchAll(/vscode\.commands\.registerCommand\(\s*['"]([^'"]+)['"]/g);
+    for (const [, commandId] of directRegistrationMatches) {
+      commandIds.add(commandId);
+    }
+  }
+
+  return Array.from(commandIds).sort();
+}
+
+async function readCommandInventory(): Promise<{
+  contributedCommandIds: string[];
+  activationCommandIds: string[];
+  registeredCommandIds: string[];
+  registeredPublicCommandIds: string[];
+}> {
+  const manifest = await readPackageManifest();
+  const contributedCommandIds = (manifest.contributes?.commands ?? [])
+    .map((entry) => entry.command)
+    .filter((command): command is string => Boolean(command));
+  const activationCommandIds = (manifest.activationEvents ?? [])
+    .filter((event) => event.startsWith('onCommand:'))
+    .map((event) => event.slice('onCommand:'.length));
+  const registeredCommandIds = await readRegisteredCommandIds();
+  const registeredPublicCommandIds = registeredCommandIds
+    .filter((commandId) => !internalOnlyRegisteredCommands.has(commandId));
+
+  return {
+    contributedCommandIds,
+    activationCommandIds,
+    registeredCommandIds,
+    registeredPublicCommandIds
+  };
+}
 
 async function readPackageManifest(): Promise<PackageManifest> {
   const raw = await fs.readFile(packageJsonPath, 'utf8');
@@ -36,7 +105,7 @@ test('package manifest contributes and activates the watchdog command', async ()
     'package.json must activate on ralphCodex.runWatchdogAgent'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.runWatchdogAgent' && entry.title === 'Ralph: Run Watchdog Agent'),
+    commands.some((entry) => entry.command === 'ralphCodex.runWatchdogAgent' && entry.title === 'Ralphdex: Run Watchdog Agent'),
     'package.json must contribute the Run Watchdog Agent command'
   );
 });
@@ -50,8 +119,78 @@ test('package manifest contributes and activates the scm command', async () => {
     'package.json must activate on ralphCodex.runScmAgent'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.runScmAgent' && entry.title === 'Ralph: Run SCM Agent'),
+    commands.some((entry) => entry.command === 'ralphCodex.runScmAgent' && entry.title === 'Ralphdex: Run SCM Agent'),
     'package.json must contribute the Run SCM Agent command'
+  );
+});
+
+test('command manifest has no duplicate contributed command ids', async () => {
+  const { contributedCommandIds } = await readCommandInventory();
+  assert.deepEqual(
+    duplicateIds(contributedCommandIds),
+    [],
+    'package.json contributes.commands must not contain duplicate command ids'
+  );
+});
+
+test('command manifest has no duplicate activation command ids', async () => {
+  const { activationCommandIds } = await readCommandInventory();
+  assert.deepEqual(
+    duplicateIds(activationCommandIds),
+    [],
+    'package.json activationEvents must not contain duplicate onCommand ids'
+  );
+});
+
+test('every contributed command id is registered in source', async () => {
+  const { contributedCommandIds, registeredCommandIds } = await readCommandInventory();
+  const registered = new Set(registeredCommandIds);
+  const missingRegistrations = contributedCommandIds
+    .filter((commandId) => !registered.has(commandId))
+    .sort();
+
+  assert.deepEqual(
+    missingRegistrations,
+    [],
+    `Contributed command ids missing runtime registration: ${missingRegistrations.join(', ')}`
+  );
+});
+
+test('every registered public command id is contributed', async () => {
+  const { contributedCommandIds, registeredPublicCommandIds } = await readCommandInventory();
+  const contributed = new Set(contributedCommandIds);
+  const missingContributions = registeredPublicCommandIds
+    .filter((commandId) => !contributed.has(commandId))
+    .sort();
+
+  assert.deepEqual(
+    missingContributions,
+    [],
+    `Registered public command ids missing contributes.commands entries: ${missingContributions.join(', ')}`
+  );
+});
+
+test('every contributed command has an onCommand activation event and no activation event targets unknown commands', async () => {
+  const { contributedCommandIds, activationCommandIds } = await readCommandInventory();
+  const contributed = new Set(contributedCommandIds);
+  const activation = new Set(activationCommandIds);
+
+  const missingActivationEvents = contributedCommandIds
+    .filter((commandId) => !activation.has(commandId))
+    .sort();
+  const unknownActivationCommands = activationCommandIds
+    .filter((commandId) => !contributed.has(commandId))
+    .sort();
+
+  assert.deepEqual(
+    missingActivationEvents,
+    [],
+    `Contributed command ids missing onCommand activation: ${missingActivationEvents.join(', ')}`
+  );
+  assert.deepEqual(
+    unknownActivationCommands,
+    [],
+    `onCommand activation events for unknown commands: ${unknownActivationCommands.join(', ')}`
   );
 });
 

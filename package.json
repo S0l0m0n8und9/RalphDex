@@ -128,8 +128,6 @@
     "onCommand:ralphCodex.revealLatestProvenanceBundleDirectory",
     "onCommand:ralphCodex.cleanupRalphRuntimeArtifacts",
     "onCommand:ralphCodex.resetRalphWorkspaceState",
-    "onCommand:ralphCodex.runWatchdogAgent",
-    "onCommand:ralphCodex.runScmAgent",
     "onCommand:ralphCodex.runPipeline",
     "onCommand:ralphCodex.openLatestPipelineRun",
     "onCommand:ralphCodex.openPrdWizard",
@@ -140,7 +138,8 @@
     "onCommand:ralphCodex.clearProviderSecret",
     "onCommand:ralphCodex.showSidebar",
     "onCommand:ralphCodex.showTasks",
-    "onCommand:ralphCodex.showDashboard"
+    "onCommand:ralphCodex.showDashboard",
+    "onCommand:ralphCodex.openDashboard"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -171,15 +170,15 @@
       },
       {
         "command": "ralphCodex.runReviewAgent",
-        "title": "Ralph: Run Review Agent"
+        "title": "Ralphdex: Run Review Agent"
       },
       {
         "command": "ralphCodex.runWatchdogAgent",
-        "title": "Ralph: Run Watchdog Agent"
+        "title": "Ralphdex: Run Watchdog Agent"
       },
       {
         "command": "ralphCodex.runScmAgent",
-        "title": "Ralph: Run SCM Agent"
+        "title": "Ralphdex: Run SCM Agent"
       },
       {
         "command": "ralphCodex.runRalphLoop",
@@ -244,14 +243,6 @@
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
         "title": "Ralphdex: Reset Runtime State"
-      },
-      {
-        "command": "ralphCodex.runWatchdogAgent",
-        "title": "Ralph: Run Watchdog Agent"
-      },
-      {
-        "command": "ralphCodex.runScmAgent",
-        "title": "Ralph: Run SCM Agent"
       },
       {
         "command": "ralphCodex.showDashboard",

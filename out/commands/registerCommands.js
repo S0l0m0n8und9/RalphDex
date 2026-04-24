@@ -347,12 +347,13 @@ function registerCommand(context, logger, spec) {
             if (spec.requiresTrustedWorkspace ?? true) {
                 (0, workspaceSupport_1.requireTrustedWorkspace)(spec.label);
             }
-            return await vscode.window.withProgress({
+            const result = await vscode.window.withProgress({
                 location: vscode.ProgressLocation.Notification,
                 title: spec.label,
                 cancellable: spec.cancellable ?? false
             }, async (progress, token) => spec.handler(progress, token));
             logger.info('Command completed.', { commandId: spec.commandId });
+            return result;
         }
         catch (error) {
             logger.show(false);

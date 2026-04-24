@@ -9,7 +9,7 @@ exports.DEFAULT_CONFIG = {
     geminiCommandPath: 'gemini',
     copilotFoundry: {
         commandPath: 'copilot',
-        approvalMode: 'allow-all',
+        approvalMode: 'allow-tools-only',
         maxAutopilotContinues: 200,
         auth: {
             mode: 'az-bearer',
@@ -43,8 +43,8 @@ exports.DEFAULT_CONFIG = {
     },
     claudeMaxTurns: 125,
     copilotMaxAutopilotContinues: 200,
-    claudePermissionMode: 'dangerously-skip-permissions',
-    copilotApprovalMode: 'allow-all',
+    claudePermissionMode: 'default',
+    copilotApprovalMode: 'allow-tools-only',
     agentId: 'default',
     agentRole: 'implementer',
     preferredHandoffMode: 'ideCommand',

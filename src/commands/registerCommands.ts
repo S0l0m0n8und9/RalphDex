@@ -472,7 +472,7 @@ function registerCommand(
         requireTrustedWorkspace(spec.label);
       }
 
-      return await vscode.window.withProgress(
+      const result = await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Notification,
           title: spec.label,
@@ -482,6 +482,7 @@ function registerCommand(
       );
 
       logger.info('Command completed.', { commandId: spec.commandId });
+      return result;
     } catch (error) {
       logger.show(false);
       logger.error(`Command failed: ${spec.commandId}`, error);
