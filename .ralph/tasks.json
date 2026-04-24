@@ -4514,8 +4514,8 @@
     {
       "id": "T169",
       "title": "Show PRD wizard CTA in empty state when no PRD or tasks exist",
-      "status": "todo",
-      "notes": "Currently the empty state (no tasks) shows 'No tasks yet.' with an 'Initialize Workspace' button wired to ralphCodex.regeneratePrd. Replace this with a two-branch empty state: (1) if no PRD file exists at the configured prdPath, show onboarding copy ('Start here — define your project scope in the PRD wizard') with an 'Open PRD Wizard' button wired to ralphCodex.openPrdWizard; (2) if PRD exists but no tasks, show a 'Generate tasks from PRD' prompt. The dashboard state object must expose whether the PRD file is present so the HTML renderer can branch. Check dashboardHost.ts for how state is assembled.",
+      "status": "done",
+      "notes": "Added prdExists flag to watched/dashboard state, watch prd.md for changes, replaced both 'Initialize Workspace' empty-state buttons with conditional Open PRD Wizard / Generate tasks from PRD CTAs",
       "validation": "npm run validate",
       "priority": "high",
       "tier": "medium",
@@ -4530,7 +4530,8 @@
         "src/ui/sidebarHtml.ts",
         "src/webview/dashboardHost.ts",
         "src/ui/prdCreationWizardPanel.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T170",
@@ -4738,5 +4739,5 @@
       ]
     }
   ],
-  "mutationCount": 186
+  "mutationCount": 187
 }

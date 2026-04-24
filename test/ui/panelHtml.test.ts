@@ -25,6 +25,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     snapshotStatus: { phase: 'idle', errorMessage: null },
     taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
+    prdExists: false,
     ...overrides
   };
 }
@@ -275,9 +276,10 @@ test('buildPanelDashboardHtml eagerly persists plain setting inputs before comma
   assert.ok(html.includes('function sendSettingUpdate(el)'));
 });
 
-test('buildPanelDashboardHtml shows empty state when no tasks', () => {
-  const html = buildPanelDashboardHtml(defaultState(), 'n10');
-  assert.ok(html.includes('No tasks yet'));
+test('buildPanelDashboardHtml shows empty state when no tasks and no PRD', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: false }), 'n10');
+  assert.ok(html.includes('Open PRD Wizard'));
+  assert.ok(html.includes('ralphCodex.openPrdWizard'));
 });
 
 test('buildPanelDashboardHtml renders empty dashboard summary sections when no durable snapshot is loaded', () => {
@@ -537,9 +539,18 @@ test('buildPanelDashboardHtml hides settings inputs when settingsSurface is null
   assert.ok(!html.includes('data-setting="autonomyMode"'));
 });
 
-test('buildPanelDashboardHtml empty states use the registered regeneratePrd command id', () => {
-  const html = buildPanelDashboardHtml(defaultState(), 'n14');
+test('buildPanelDashboardHtml empty state shows Open PRD Wizard when prdExists is false', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: false }), 'n14');
 
-  assert.ok(!html.includes('ralphCodex.regeneratePRD'));
-  assert.ok(html.includes('ralphCodex.regeneratePrd'));
+  assert.ok(!html.includes('ralphCodex.regeneratePrd'), 'should not show old Initialize Workspace command');
+  assert.ok(html.includes('ralphCodex.openPrdWizard'), 'should show openPrdWizard command');
+  assert.ok(html.includes('Open PRD Wizard'), 'should show Open PRD Wizard label');
+});
+
+test('buildPanelDashboardHtml empty state shows Generate tasks when prdExists is true', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'n15');
+
+  assert.ok(!html.includes('ralphCodex.regeneratePrd'), 'should not show old Initialize Workspace command');
+  assert.ok(html.includes('ralphCodex.openPrdWizard'), 'should show openPrdWizard command');
+  assert.ok(html.includes('Generate tasks from PRD'), 'should show generate tasks label');
 });

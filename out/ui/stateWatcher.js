@@ -54,7 +54,7 @@ class RalphStateWatcher {
     constructor(workspaceRoot) {
         this.workspaceRoot = workspaceRoot;
         this.ralphDir = path.join(workspaceRoot, '.ralph');
-        const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json}');
+        const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json,prd.md}');
         const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json,recovery-state.json}');
         const orchestrationPattern = new vscode.RelativePattern(this.ralphDir, '{orchestration/**/*.json,artifacts/**/{human-gate-*.json,replan-*.json,plan-graph.json}}');
         for (const pattern of [statePattern, artifactPattern, orchestrationPattern]) {
@@ -113,6 +113,14 @@ async function readWatchedState(ralphDir) {
     catch {
         // state.json missing or invalid — leave null
     }
-    return { taskFile, workspaceState, selectedTaskId };
+    let prdExists = false;
+    try {
+        await fs.access(path.join(ralphDir, 'prd.md'));
+        prdExists = true;
+    }
+    catch {
+        // prd.md absent
+    }
+    return { taskFile, workspaceState, selectedTaskId, prdExists };
 }
 //# sourceMappingURL=stateWatcher.js.map

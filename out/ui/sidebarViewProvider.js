@@ -69,7 +69,8 @@ function defaultDashboardState() {
         dashboardSnapshot: null,
         snapshotStatus: { phase: 'idle', errorMessage: null },
         taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
-        viewIntent: null
+        viewIntent: null,
+        prdExists: false
     };
 }
 function buildDashboardTasks(taskFile, selectedTaskId) {

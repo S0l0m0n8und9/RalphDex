@@ -157,7 +157,8 @@ class DashboardHost {
             dashboardSnapshot: this.latestState.dashboardSnapshot,
             snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null },
             taskSeeding: this.latestState.taskSeeding,
-            viewIntent: this.latestState.viewIntent
+            viewIntent: this.latestState.viewIntent,
+            prdExists: watched.prdExists
         };
         this.fullRender();
         void this.refreshDashboardSnapshot();

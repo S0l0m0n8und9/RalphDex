@@ -158,6 +158,7 @@ export interface RalphDashboardState {
   snapshotStatus: RalphDashboardSnapshotStatus;
   taskSeeding: RalphDashboardTaskSeedingState;
   viewIntent: RalphDashboardViewIntent | null;
+  prdExists: boolean;
 }
 
 /** Messages sent from extension to webview. */

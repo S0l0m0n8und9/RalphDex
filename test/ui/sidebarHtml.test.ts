@@ -23,6 +23,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     snapshotStatus: { phase: 'idle', errorMessage: null },
     taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
+    prdExists: false,
     ...overrides
   };
 }

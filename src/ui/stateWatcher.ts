@@ -8,6 +8,7 @@ export interface RalphWatchedState {
   taskFile: RalphTaskFile | null;
   workspaceState: RalphWorkspaceState | null;
   selectedTaskId: string | null;
+  prdExists: boolean;
 }
 
 /**
@@ -27,7 +28,7 @@ export class RalphStateWatcher implements vscode.Disposable {
   public constructor(private readonly workspaceRoot: string) {
     this.ralphDir = path.join(workspaceRoot, '.ralph');
 
-    const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json}');
+    const statePattern = new vscode.RelativePattern(this.ralphDir, '{tasks.json,state.json,claims.json,dead-letter.json,prd.md}');
     const artifactPattern = new vscode.RelativePattern(this.ralphDir, 'artifacts/**/{task-plan.json,failure-analysis.json,recovery-state.json}');
     const orchestrationPattern = new vscode.RelativePattern(this.ralphDir, '{orchestration/**/*.json,artifacts/**/{human-gate-*.json,replan-*.json,plan-graph.json}}');
 
@@ -91,5 +92,13 @@ async function readWatchedState(ralphDir: string): Promise<RalphWatchedState> {
     // state.json missing or invalid — leave null
   }
 
-  return { taskFile, workspaceState, selectedTaskId };
+  let prdExists = false;
+  try {
+    await fs.access(path.join(ralphDir, 'prd.md'));
+    prdExists = true;
+  } catch {
+    // prd.md absent
+  }
+
+  return { taskFile, workspaceState, selectedTaskId, prdExists };
 }

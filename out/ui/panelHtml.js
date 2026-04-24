@@ -1604,7 +1604,9 @@ function buildOverviewTab(state) {
               </div>`
         : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
             ? '<div class="empty">Loading workspace data...</div>'
-            : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePrd"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
+            : state.prdExists
+                ? '<div class="empty" style="margin-bottom: 6px;">PRD exists but no tasks yet.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>'
+                : '<div class="empty" style="margin-bottom: 6px;">Start here — define your project scope in the PRD wizard.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>')}
         </div>
 
         <div class="card">
@@ -1638,7 +1640,9 @@ function buildWorkTab(state) {
             ? activeTasks.map((task) => (0, htmlHelpers_1.buildTaskRow)(task, state.loopState === 'running')).join('\n')
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
-                : '<div class="empty" style="margin-bottom: 6px;">No tasks yet.</div><button class="btn" data-command="ralphCodex.regeneratePrd"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>')}
+                : state.prdExists
+                    ? '<div class="empty" style="margin-bottom: 6px;">PRD exists but no tasks yet.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>'
+                    : '<div class="empty" style="margin-bottom: 6px;">Start here — define your project scope in the PRD wizard.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>')}
         ${!allDone && doneTasks.length > 0
         ? `<details data-section="completed-tasks">
               <summary class="completed-toggle">Completed (${doneTasks.length})</summary>

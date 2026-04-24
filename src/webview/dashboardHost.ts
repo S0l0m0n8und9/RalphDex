@@ -156,7 +156,8 @@ export class DashboardHost implements vscode.Disposable {
       dashboardSnapshot: this.latestState.dashboardSnapshot,
       snapshotStatus: this.latestState.snapshotStatus ?? { phase: 'idle', errorMessage: null },
       taskSeeding: this.latestState.taskSeeding,
-      viewIntent: this.latestState.viewIntent
+      viewIntent: this.latestState.viewIntent,
+      prdExists: watched.prdExists
     };
 
     this.fullRender();
