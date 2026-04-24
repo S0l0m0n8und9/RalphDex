@@ -820,7 +820,7 @@
             "custom"
           ],
           "default": "codex",
-          "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context placeholder matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
+          "description": "Prompt-budget policy profile for Ralph prompt shaping. 'codex' uses the calibrated default matrix, 'claude' uses a higher-context deterministic matrix that must be calibrated before production use, and 'custom' reads per-policy targetTokens overrides from ralphCodex.customPromptBudget."
         },
         "ralphCodex.customPromptBudget": {
           "type": "object",

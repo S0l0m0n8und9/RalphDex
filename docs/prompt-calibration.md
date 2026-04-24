@@ -2,14 +2,16 @@
 
 ## Calibration Baseline
 
-The checked-in codex policy matrix in `src/prompt/promptBuilder.ts` is the calibrated baseline. It represents the current hardcoded targets Ralph uses when `promptBudgetProfile = codex`. Each `targetTokens` value represents the desired rendered prompt size, not the model's response budget.
+The checked-in codex policy matrix in `src/prompt/promptBudget.ts` is the calibrated baseline. It represents the current hardcoded targets Ralph uses when `promptBudgetProfile = codex`. Each `targetTokens` value represents the desired rendered prompt size, not the model's response budget.
 
 The policy matrix is keyed on `promptKind:promptTarget` (e.g. `iteration:cliExec`). Two targets exist per kind: `cliExec` (scripted) and `ideHandoff` (human-reviewed clipboard handoff). IDE handoff targets are set 30–40 % below the equivalent CLI target because human reviewers benefit from shorter, denser prompts.
 
 Ralph also exposes two alternate profiles:
 
-- `claude`: a separate placeholder matrix with higher token ceilings for Claude's longer context window. Those targets are intentionally provisional and require calibration before production use.
+- `claude`: a separate higher-context matrix with higher token ceilings for Claude's longer context window. Those targets are intentionally provisional and require calibration before production use.
 - `custom`: a flat `ralphCodex.customPromptBudget` object keyed by `promptKind:promptTarget` that overrides only `targetTokens` while reusing the codex section-shaping heuristics.
+
+These profiles are deterministic prompt-shaping policies. They are not guarantees about model output quality.
 
 ## Token Target Methodology
 
@@ -22,7 +24,7 @@ Token targets were set by **estimating section sizes** rather than by observing 
   - `priorBudget` → budget is measured in prior-context lines, each estimated at 20–25 tokens
 - The `targetTokens` value is the sum of estimated fixed overhead plus the variable section budgets, rounded to the nearest 100 and biased slightly high to avoid truncating the most important sections.
 
-Every current codex policy target in `src/prompt/promptBuilder.ts` was derived with that same estimated-budget method:
+Every current codex policy target in `src/prompt/promptBudget.ts` was derived with that same estimated-budget method:
 
 | Policy entry | Current target | Derivation method |
 |-------------|----------------|-------------------|
@@ -39,7 +41,7 @@ Every current codex policy target in `src/prompt/promptBuilder.ts` was derived w
 | `human-review-handoff:cliExec` | 1500 | Estimated from blocker and remediation context; not set from observed truncation. |
 | `human-review-handoff:ideHandoff` | 1100 | Estimated from the CLI human-review profile, then reduced for shorter human review. |
 
-The checked-in `claude` profile currently uses placeholder targets only. They are intentionally higher than the codex baseline to reflect a larger context window, but they have not been empirically calibrated and must not be treated as production-tuned values until the recalibration procedure below is run against real Claude prompt measurements.
+The checked-in `claude` profile currently uses higher deterministic targets. They are intentionally higher than the codex baseline to reflect a larger context window, but they have not been empirically calibrated and must not be treated as production-tuned values until the recalibration procedure below is run against real Claude prompt measurements.
 
 **Worked example — `iteration:cliExec`:** fixed overhead ≈ 600, objectiveChars 960/4 = 240, progressChars 420/4 = 105, priorBudget 5 lines × 22 ≈ 110, repoContext minimal ≈ 60, runtimeContext minimal ≈ 60. Sum ≈ 1175; rounded up to **1600** with a conservative buffer for task-context variance.
 
@@ -61,7 +63,7 @@ Manual calibration renders are available through `npm run prompt:calibrate -- <w
 
 5. **Re-derive each policy entry.** For each `promptKind:promptTarget`, recompute `floor + variableBudget + 15 % buffer`, then round to the nearest 100. Keep IDE handoff targets 30–40 % below their CLI equivalents unless testing shows a different review density is better.
 
-6. **Adjust character limits if needed.** If the new model has a larger context window and you want to allow richer context, increase `objectiveChars`, `progressChars`, and `priorBudget` proportionally in `src/prompt/promptBuilder.ts`, then re-derive `targetTokens`. If the new model has a smaller context window, reduce those section budgets first and only then set lower token targets.
+6. **Adjust character limits if needed.** If the new model has a larger context window and you want to allow richer context, increase `objectiveChars`, `progressChars`, and `priorBudget` proportionally in `src/prompt/promptBudget.ts`, then re-derive `targetTokens`. If the new model has a smaller context window, reduce those section budgets first and only then set lower token targets.
 
 7. **Smoke-test real prompts.** Run one representative prompt for each CLI kind and inspect the resulting prompt artifacts or CLI usage output for truncation, omitted sections, or obvious over-padding. If real truncation occurs, prefer lowering section budgets before lowering only one `targetTokens` value.
 

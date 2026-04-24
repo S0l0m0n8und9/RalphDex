@@ -182,7 +182,7 @@ Pipeline scaffolding follows the same generated-task invariant as every other pr
 
 ## Prompt Budgeting And Quota Control
 
-> **Maturity: stable** (`codex` profile) / **experimental** (`claude` and `custom` profiles) — only the built-in `codex` matrix is calibrated for production use. The `claude` profile is an intentionally provisional higher-context placeholder. The `custom` profile exposes per-policy overrides for operators who measure their own token targets.
+> **Maturity: stable** (`codex` profile) / **experimental** (`claude` and `custom` profiles) — only the built-in `codex` matrix is calibrated for production use. The `claude` profile is a higher-context deterministic policy matrix that still requires calibration before production use. The `custom` profile exposes per-policy overrides for operators who measure their own token targets.
 
 Ralph keeps prompt generation deterministic, but it does not render every prompt shape at the same size. Prompt budget policy is selected by prompt kind plus target so CLI execution gets enough context to act while IDE handoff stays tighter and easier to review.
 
@@ -213,7 +213,7 @@ Budget pressure drops only lower-priority sections, in a fixed order captured in
 
 For `fix-failure` and `human-review-handoff`, that policy is intentionally biased toward blocker evidence: Ralph drops recent progress before it drops prior-iteration remediation or stop-reason context for the same task.
 
-The built-in `codex` policy matrix is the default selected by `ralphCodex.promptBudgetProfile`. Operators can switch to the higher-context placeholder `claude` profile or provide `ralphCodex.customPromptBudget` overrides for a `custom` profile, but only the `codex` matrix below is calibrated for production use today. See [docs/prompt-calibration.md](prompt-calibration.md) before treating a non-`codex` profile as a stable baseline.
+The built-in `codex` policy matrix is the default selected by `ralphCodex.promptBudgetProfile`. Operators can switch to the higher-context `claude` profile or provide `ralphCodex.customPromptBudget` overrides for a `custom` profile, but only the `codex` matrix below is calibrated for production use today. Prompt-budget profiles are deterministic sizing policies, not model-quality guarantees. See [docs/prompt-calibration.md](prompt-calibration.md) before treating a non-`codex` profile as a stable baseline.
 
 The default policy matrix is:
 

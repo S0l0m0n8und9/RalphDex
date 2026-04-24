@@ -188,73 +188,73 @@ exports.CLAUDE_PROMPT_BUDGET_POLICIES = {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['bootstrap:cliExec'],
         name: 'claude/bootstrap:cliExec',
         targetTokens: 3200,
-        minimumContextBias: 'placeholder Claude profile: broader objective, expanded repo scan, standard runtime pointers'
+        minimumContextBias: 'Claude profile: broader objective, expanded repo scan, standard runtime pointers'
     },
     'bootstrap:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['bootstrap:ideHandoff'],
         name: 'claude/bootstrap:ideHandoff',
         targetTokens: 2200,
-        minimumContextBias: 'placeholder Claude profile: broader objective with lighter runtime and repo detail for human review'
+        minimumContextBias: 'Claude profile: broader objective with lighter runtime and repo detail for human review'
     },
     'iteration:cliExec': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['iteration:cliExec'],
         name: 'claude/iteration:cliExec',
         targetTokens: 2400,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer repo/runtime context'
+        minimumContextBias: 'Claude profile: selected task plus richer repo/runtime context'
     },
     'iteration:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['iteration:ideHandoff'],
         name: 'claude/iteration:ideHandoff',
         targetTokens: 1500,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer review-oriented context'
+        minimumContextBias: 'Claude profile: selected task plus richer review-oriented context'
     },
     'replenish-backlog:cliExec': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:cliExec'],
         name: 'claude/replenish-backlog:cliExec',
         targetTokens: 2800,
-        minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and richer repo/runtime context for task generation'
+        minimumContextBias: 'Claude profile: PRD, backlog counts, and richer repo/runtime context for task generation'
     },
     'replenish-backlog:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['replenish-backlog:ideHandoff'],
         name: 'claude/replenish-backlog:ideHandoff',
         targetTokens: 1900,
-        minimumContextBias: 'placeholder Claude profile: PRD, backlog counts, and explicit next-task generation context'
+        minimumContextBias: 'Claude profile: PRD, backlog counts, and explicit next-task generation context'
     },
     'fix-failure:cliExec': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['fix-failure:cliExec'],
         name: 'claude/fix-failure:cliExec',
         targetTokens: 2500,
-        minimumContextBias: 'placeholder Claude profile: failure signature, blocker, remediation, and fuller validation context'
+        minimumContextBias: 'Claude profile: failure signature, blocker, remediation, and fuller validation context'
     },
     'fix-failure:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['fix-failure:ideHandoff'],
         name: 'claude/fix-failure:ideHandoff',
         targetTokens: 1700,
-        minimumContextBias: 'placeholder Claude profile: failure signature and blocker summary for manual inspection'
+        minimumContextBias: 'Claude profile: failure signature and blocker summary for manual inspection'
     },
     'continue-progress:cliExec': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['continue-progress:cliExec'],
         name: 'claude/continue-progress:cliExec',
         targetTokens: 2400,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer recent progress and prior iteration state'
+        minimumContextBias: 'Claude profile: selected task plus richer recent progress and prior iteration state'
     },
     'continue-progress:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['continue-progress:ideHandoff'],
         name: 'claude/continue-progress:ideHandoff',
         targetTokens: 1500,
-        minimumContextBias: 'placeholder Claude profile: selected task plus richer carry-forward state for human review'
+        minimumContextBias: 'Claude profile: selected task plus richer carry-forward state for human review'
     },
     'human-review-handoff:cliExec': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:cliExec'],
         name: 'claude/human-review-handoff:cliExec',
         targetTokens: 2300,
-        minimumContextBias: 'placeholder Claude profile: blocker, remediation, and current task state over broader history'
+        minimumContextBias: 'Claude profile: blocker, remediation, and current task state over broader history'
     },
     'human-review-handoff:ideHandoff': {
         ...exports.CODEX_PROMPT_BUDGET_POLICIES['human-review-handoff:ideHandoff'],
         name: 'claude/human-review-handoff:ideHandoff',
         targetTokens: 1700,
-        minimumContextBias: 'placeholder Claude profile: blocker and review decision points over broader history'
+        minimumContextBias: 'Claude profile: blocker and review decision points over broader history'
     }
 };
 function buildPromptBudgetPolicy(kind, target, profile = 'codex', customPromptBudget = {}) {
