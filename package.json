@@ -2,7 +2,7 @@
   "name": "ralphdex",
   "displayName": "Ralphdex",
   "description": "VS Code extension for file-backed Ralphdex prompts, IDE handoff, and CLI exec loops.",
-  "version": "0.3.1",
+  "version": "1.0.0",
   "publisher": "s0l0m0n8und9",
   "icon": "media/ralph-icon.png",
   "homepage": "https://github.com/S0l0m0n8und9/RalphDex#readme",
