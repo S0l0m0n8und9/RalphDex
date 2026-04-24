@@ -98,30 +98,38 @@ To build a distributable local package: `npm run package` from the repo root, th
 
 ## Durable Files
 
-Ralph keeps its durable state in the workspace:
+Ralph keeps persistent state in the workspace under `.ralph/`, organized into committed durable artifacts and operator-local runtime artifacts:
 
+**Committed project state** (tracked in version control):
 - objective: `.ralph/prd.md`
 - progress: `.ralph/progress.md`
 - tasks: `.ralph/tasks.json`
-- runtime state: `.ralph/state.json`
-- prompts: `.ralph/prompts/`
-- transcripts: `.ralph/runs/`
+- memory state: `.ralph/memory-summary.md` (when using summary memory strategy)
+
+**Operator-local runtime state** (machine-specific, not committed):
+- session state: `.ralph/state.json` (cursor, claims, iteration count)
+- prompts: `.ralph/prompts/` (generated per iteration)
+- transcripts: `.ralph/runs/` (raw provider responses)
 - clean-stop session handoff notes: `.ralph/handoff/`
 - role-to-role handoff contracts: `.ralph/handoffs/`
-- artifacts and latest pointers: `.ralph/artifacts/`
+- agent history metadata: `.ralph/agents/`
 - logs: `.ralph/logs/extension.log`
 
-The durable task model is explicit and flat. Newly created tasks also share one producer-facing normalization path, so AI-generated, decomposed, remediated, and pipeline-scaffolded tasks all persist through the same version-2 contract instead of bespoke thinner write paths. See [docs/invariants.md](docs/invariants.md) for the task schema, field-presence rules, and control-plane invariants.
+**Generated execution evidence** (iteration artifacts and provenance):
+- artifacts and latest pointers: `.ralph/artifacts/` (provenance bundles, diagnostic reports, latest-pointer files)
+
+See [docs/boundaries.md](docs/boundaries.md#repository-layout-and-workspace-state) for the authoritative classification and [docs/invariants.md](docs/invariants.md) for the task schema, field-presence rules, and control-plane invariants.
 
 ## Artifact Lifecycle
 
-Ralph separates durable source-of-truth files from generated runtime evidence:
+Ralph separates committed durable state from operator-local runtime evidence:
 
-- durable operator state: `.ralph/prd.md`, `.ralph/progress.md`, `.ralph/tasks.json`, `.ralph/state.json`
-- generated execution evidence: prompts, transcripts, iteration artifacts, and provenance bundles under `.ralph/`
-- stable latest entry points: `latest-summary.md`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, and related latest-pointer artifacts under `.ralph/artifacts/`
+- **Committed durable state** (safe to track in version control): `.ralph/prd.md`, `.ralph/progress.md`, `.ralph/tasks.json`, `.ralph/memory-summary.md`
+- **Operator-local runtime state** (machine-specific, should be ignored): `.ralph/state.json`, `.ralph/logs/`, `.ralph/agents/`, `.ralph/handoff/`
+- **Generated execution evidence** (iteration artifacts): prompts, transcripts, provenance bundles, diagnostic reports under `.ralph/artifacts/`
+- **Latest stable entry points** (convenient access): `.ralph/artifacts/latest-summary.md`, `latest-prompt-evidence.json`, `latest-execution-plan.json` and related latest-pointer artifacts
 
-`Ralphdex: Cleanup Runtime Artifacts` is the safe maintenance path — it preserves durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralphdex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
+`Ralphdex: Cleanup Runtime Artifacts` is the safe maintenance path — it preserves committed durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralphdex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
 
 For day-to-day loop inspection:
 

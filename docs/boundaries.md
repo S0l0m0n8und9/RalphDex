@@ -66,19 +66,22 @@ It does not:
 
 When the repository itself is the Ralph workspace, as in this repo, some `.ralph` files are project artifacts that belong alongside source and are safe to commit:
 
-- `.ralph/prd.md`
-- `.ralph/tasks.json`
-- `.ralph/progress.md`
+- `.ralph/prd.md` — product objective and requirements
+- `.ralph/tasks.json` — task graph and backlog state
+- `.ralph/progress.md` — progress notes across sessions
+- `.ralph/memory-summary.md` — condensed memory state when using summary memory strategy
 
 The rest of the runtime tree is operator-local runtime state and must not be committed:
 
-- `.ralph/state.json`
-- `.ralph/logs/`
-- `.ralph/prompts/`
-- `.ralph/runs/`
-- `.ralph/artifacts/`
+- `.ralph/state.json` — current session runtime state (cursor, claims, iteration count)
+- `.ralph/logs/` — execution logs per session
+- `.ralph/prompts/` — generated prompts per iteration
+- `.ralph/runs/` — raw provider transcripts per run
+- `.ralph/artifacts/` — iteration provenance bundles, diagnostic reports, and latest-pointer artifacts
+- `.ralph/agents/` — per-agent history metadata per session
+- `.ralph/handoff/` — session clean-stop handoff notes
 
-This distinction keeps the durable project brief, task graph, and progress log reviewable in version control while leaving machine-local execution state, logs, prompts, transcripts, and generated evidence out of the committed source tree.
+This distinction keeps the durable project brief, task graph, progress log, and condensed memory reviewable in version control while leaving machine-local execution state, logs, prompts, transcripts, and generated evidence out of the committed source tree.
 
 ## Workspace And Runtime Boundary
 

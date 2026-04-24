@@ -4325,11 +4325,11 @@
     {
       "id": "CR9",
       "title": "Audit committed dogfood state and separate durable examples from local runtime artifacts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "CR7"
       ],
-      "notes": "Review committed .ralph state, local tool settings, generated artifacts, UXrefresh material, and historical plans. Keep intentional dogfood/example state clearly documented; archive or remove stale runtime/scratch artifacts.",
+      "notes": "Audited committed dogfood state: documented .ralph file classification (committed vs runtime vs generated), updated docs/boundaries.md and README.md with clear distinctions, verified all artifacts are properly ignored, docs validation passes",
       "validation": "npm run check:docs",
       "priority": "normal",
       "mode": "documentation",
@@ -4360,7 +4360,8 @@
         "repo-hygiene",
         "docs",
         "dogfood-state"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "CR10",
@@ -4553,7 +4554,7 @@
     {
       "id": "T171",
       "title": "Audit file-creation paths in RalphDex to identify where structure decisions are made",
-      "status": "todo",
+      "status": "in_progress",
       "notes": "Identify every code path where Ralph or the agent decides where to place a new file. Document gaps where no structural guidance is provided to the agent.",
       "validation": "npm run validate",
       "priority": "high",
@@ -4740,5 +4741,5 @@
       ]
     }
   ],
-  "mutationCount": 188
+  "mutationCount": 189
 }
