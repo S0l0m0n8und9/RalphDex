@@ -117,3 +117,31 @@ The repo does not currently try to prove through automated tests:
 - heavy Extension Development Host UI automation
 
 Those areas require manual verification when changed.
+
+## Self-Dogfooding Boundary
+
+RalphDex is the extension that runs itself on this repository. To avoid self-modification hazards, the repo observes a clear split between work appropriate for Ralph loops and work that must use direct Codex.
+
+**Use RalphDex for:**
+
+- Adding or refining tests (`test/`)
+- Writing or improving documentation (`docs/`, README.md, code comments)
+- Invariant checks and structural audits of the codebase
+- Repository hygiene tasks (reformatting, unused-code removal, dependency audits)
+- Non-critical bug fixes that do not affect the harness itself
+
+These tasks are **bounded and verifiable**: Ralph can validate its own work through tests, docs links, type checking, and lint passes without trusting that the harness changes are sound before relying on the next iteration.
+
+**Use direct Codex for:**
+
+- Control-plane changes (decision logic in `src/ralph/loopLogic.ts`, task selection in `src/ralph/taskFile.ts`, iteration orchestration in `src/ralph/iterationEngine.ts`)
+- Provider execution and invocation (CLI shim, provider routing, execution strategies in `src/codex/`)
+- Process runner and command wiring (`src/commands/registerCommands.ts`)
+- Configuration interpretation (`src/config/`, settings schema)
+- Iteration engine restructuring, prompt template changes, or major architectural changes to the loop itself
+
+These are **control-plane changes** that Ralph depends on to function. Modifying the harness while relying on that same harness to validate the change creates a logical dependency cycle. Ralph cannot prove its own self-modifications are correct before using them.
+
+**Rationale:** Ralph is a verifier and executor. Its value is deterministic validation that work is complete. Self-modifying the harness while relying on that harness to verify the modification breaks that property. When in doubt, use direct Codex to inspect and change the control plane, then rerun Ralph afterward if needed to validate follow-on tasks.
+
+This boundary is not absolute — judgment calls may apply depending on scope and risk. But the principle is: avoid letting Ralph depend on its own untested changes to itself.

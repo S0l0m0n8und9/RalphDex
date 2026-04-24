@@ -4366,12 +4366,12 @@
     {
       "id": "CR10",
       "title": "Document the post-hardening operating boundary for RalphDex self-dogfooding",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "CR8",
         "CR9"
       ],
-      "notes": "Capture when RalphDex should be used against itself and when direct Codex should be used. This should become an operator rule, not tribal knowledge.",
+      "notes": "Added Self-Dogfooding Boundary section to docs/boundaries.md documenting when to use RalphDex vs direct Codex. Covers all acceptance criteria: appropriate task types (tests, docs, invariant checks, repo hygiene), control-plane changes (provider execution, command wiring, config interpretation, iteration engine), and rationale (avoid self-modifying the harness while relying on it). All validation p",
       "validation": "npm run check:docs",
       "priority": "normal",
       "mode": "documentation",
@@ -4398,7 +4398,8 @@
       "writeRiskLabels": [
         "docs",
         "operator-guidance"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "CR11",
@@ -4572,7 +4573,7 @@
     {
       "id": "T172",
       "title": "Design the schema and naming convention for a repo structure definition file (structure.d)",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T171"
       ],
@@ -4742,5 +4743,5 @@
       ]
     }
   ],
-  "mutationCount": 190
+  "mutationCount": 191
 }
