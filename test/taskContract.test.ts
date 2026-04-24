@@ -8,7 +8,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { normalizeTaskFileText, parseTaskFile, applySuggestedChildTasks } from '../src/ralph/taskFile';
+import { normalizeTaskFileText, parseTaskFile, applySuggestedChildTasks, stringifyTaskFile, SUPPORTED_TASK_FIELDS, normalizeTask } from '../src/ralph/taskFile';
 import type { RalphTask, RalphTaskFile, RalphSuggestedChildTask } from '../src/ralph/types';
 
 /** Parse a single task through normalizeTaskFileText (normalizes without graph validation). */
@@ -214,4 +214,130 @@ test('contract: parent promoted to in_progress when children are applied', () =>
   const result = applySuggestedChildTasks(parentTaskFile, 'T1', suggestions);
   const parent = result.tasks.find((t) => t.id === 'T1')!;
   assert.equal(parent.status, 'in_progress', 'done parent promoted to in_progress');
+});
+
+// --- Schema guard: SUPPORTED_TASK_FIELDS allowlist matches persisted RalphTask contract ---
+
+/**
+ * Persisted fields = all RalphTask fields except `source`, which is parser-injected
+ * and explicitly stripped by stringifyTaskFile.
+ */
+const PERSISTED_RALPH_TASK_FIELDS = new Set([
+  'id', 'title', 'status',
+  'parentId', 'dependsOn', 'notes', 'validation', 'blocker',
+  'priority', 'mode', 'tier',
+  'acceptance', 'constraints', 'context',
+  'writeRiskLabels', 'lastVerifierResult', 'lastReconciliationWarning'
+]);
+
+test('schema guard: SUPPORTED_TASK_FIELDS covers every persisted RalphTask field', () => {
+  for (const field of PERSISTED_RALPH_TASK_FIELDS) {
+    assert.ok(
+      SUPPORTED_TASK_FIELDS.has(field),
+      `SUPPORTED_TASK_FIELDS is missing persisted field: ${field}`
+    );
+  }
+});
+
+test('schema guard: SUPPORTED_TASK_FIELDS contains no undocumented fields', () => {
+  for (const field of SUPPORTED_TASK_FIELDS) {
+    assert.ok(
+      PERSISTED_RALPH_TASK_FIELDS.has(field),
+      `SUPPORTED_TASK_FIELDS contains undocumented field: ${field}`
+    );
+  }
+});
+
+test('schema guard: normalizeTask return literal explicitly sets every SUPPORTED_TASK_FIELDS key', () => {
+  // hasOwnProperty distinguishes "key present as undefined" (good) from "key absent" (drift).
+  // If normalizeTask's return literal omits a field, this test will fail.
+  const result = normalizeTask({ id: 'T1', title: 'T', status: 'todo' });
+  for (const field of SUPPORTED_TASK_FIELDS) {
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(result, field),
+      `normalizeTask return literal does not set field: ${field}`
+    );
+  }
+});
+
+// --- Serialization round-trip: all persisted fields survive ---
+
+test('serialization: all persisted RalphTask fields survive stringify → parse round-trip', () => {
+  const fullTask = {
+    id: 'T1',
+    title: 'Round-trip task',
+    // blocker is set on an in_progress task to test persistence, not the blocker/status invariant.
+    // normalizeTask stores blocker regardless of status; status constraints are a graph-layer concern.
+    status: 'in_progress',
+    blocker: 'Waiting on upstream',
+    parentId: 'T0',
+    dependsOn: ['T0'],
+    notes: 'Round-trip notes',
+    validation: 'npm run validate',
+    priority: 'high',
+    mode: 'documentation',
+    tier: 'complex',
+    acceptance: ['All checks pass'],
+    constraints: ['No breaking changes'],
+    context: ['src/ralph/types.ts'],
+    writeRiskLabels: ['wave-1'],
+    lastVerifierResult: 'passed',
+    lastReconciliationWarning: 'Conflict detected'
+  };
+
+  // Parent is in_progress so the graph is valid (done parent with unfinished child is blocked).
+  const { taskFile } = normalizeTaskFileText(JSON.stringify({ version: 2, tasks: [{ id: 'T0', title: 'Parent', status: 'in_progress' }, fullTask] }));
+  const json = stringifyTaskFile(taskFile);
+  const { taskFile: reparsed } = normalizeTaskFileText(json);
+  const task = reparsed.tasks.find((t) => t.id === 'T1')!;
+
+  assert.equal(task.id, 'T1');
+  assert.equal(task.title, 'Round-trip task');
+  assert.equal(task.status, 'in_progress');
+  assert.equal(task.blocker, 'Waiting on upstream');
+  assert.equal(task.parentId, 'T0');
+  assert.deepEqual(task.dependsOn, ['T0']);
+  assert.equal(task.notes, 'Round-trip notes');
+  assert.equal(task.validation, 'npm run validate');
+  assert.equal(task.priority, 'high');
+  assert.equal(task.mode, 'documentation');
+  assert.equal(task.tier, 'complex');
+  assert.deepEqual(task.acceptance, ['All checks pass']);
+  assert.deepEqual(task.constraints, ['No breaking changes']);
+  assert.deepEqual(task.context, ['src/ralph/types.ts']);
+  assert.deepEqual(task.writeRiskLabels, ['wave-1']);
+  assert.equal(task.lastVerifierResult, 'passed');
+  assert.equal(task.lastReconciliationWarning, 'Conflict detected');
+});
+
+// --- Serialization: source is stripped, never persisted ---
+
+test('serialization: source field is absent from stringifyTaskFile JSON output', () => {
+  const { taskFile } = normalizeTaskFileText(
+    JSON.stringify({ version: 2, tasks: [{ id: 'T1', title: 'T', status: 'todo' }] })
+  );
+  // Inject a source value as the parser would.
+  const taskWithSource: RalphTask = {
+    ...taskFile.tasks[0],
+    source: { arrayIndex: 0, line: 1, column: 1 }
+  };
+  const json = stringifyTaskFile({ ...taskFile, tasks: [taskWithSource] });
+  const parsed = JSON.parse(json) as { tasks: Record<string, unknown>[] };
+  assert.equal(parsed.tasks[0].source, undefined, 'source must not appear in persisted JSON');
+});
+
+test('serialization: explicit source content in JSON file is never used; parser determines location', () => {
+  // If someone writes "source": {...} directly in tasks.json, it must be ignored.
+  // Source location is always determined by the parser, never by file content.
+  const jsonWithExplicitSource = JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'T', status: 'todo', source: { arrayIndex: 99, line: 99, column: 99 } }]
+  });
+  const { taskFile } = normalizeTaskFileText(jsonWithExplicitSource);
+  const task = taskFile.tasks[0];
+  assert.notDeepEqual(
+    task.source,
+    { arrayIndex: 99, line: 99, column: 99 },
+    'source from JSON file content must not be used as the task source location'
+  );
 });

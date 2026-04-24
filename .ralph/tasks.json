@@ -4250,8 +4250,8 @@
     {
       "id": "CR7",
       "title": "Audit normalized task schema field preservation and add drift coverage",
-      "status": "todo",
-      "notes": "Verify that the documented normalized task contract, RalphTask interface, normalizeTask behavior, and serialization behavior agree. Add regression coverage for every persisted task field so future schema drift is caught.",
+      "status": "done",
+      "notes": "Added blocker to round-trip test fixture and assertion; added hasOwnProperty schema guard test for all SUPPORTED_TASK_FIELDS; all 1031 tests pass.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -4279,7 +4279,8 @@
         "task-schema",
         "task-normalization",
         "tests"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "CR8",
@@ -4433,7 +4434,308 @@
         "validation",
         "evidence"
       ]
+    },
+    {
+      "id": "T164",
+      "title": "Remove standard tab from sidebar",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "No 'standard' tab appears in the sidebar view",
+        "No dead references to the removed tab remain in source or package.json"
+      ],
+      "context": [
+        "src/commands/registerCommands.ts",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T165",
+      "title": "Remove orchestration tab from sidebar",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "No 'orchestration' tab appears in the sidebar view",
+        "No dead references to the removed tab remain in source or package.json"
+      ],
+      "context": [
+        "src/commands/registerCommands.ts",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T166",
+      "title": "Add 'Open PRD wizard' entry to simple tab in sidebar",
+      "status": "todo",
+      "dependsOn": [
+        "T164",
+        "T165"
+      ],
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "'Open PRD wizard' button or link is visible in the simple tab",
+        "Clicking it triggers the expected PRD wizard command or shows a placeholder if not yet wired"
+      ],
+      "context": [
+        "src/commands/registerCommands.ts",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T167",
+      "title": "Remove all 'Initialize Workspace' UI instances",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "No 'Initialize Workspace' label, button, or command entry appears in any sidebar view or command palette contribution",
+        "Grep for 'initialize workspace' (case-insensitive) in src/ and package.json returns no UI-facing hits"
+      ],
+      "context": [
+        "src/commands/registerCommands.ts",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T168",
+      "title": "Remove all 'pipeline strip' section instances from UI",
+      "status": "todo",
+      "validation": "npm run validate",
+      "acceptance": [
+        "No 'pipeline strip' section rendered in any webview or sidebar panel",
+        "Grep for 'pipeline strip' (case-insensitive) in src/ returns no UI-facing hits"
+      ],
+      "context": [
+        "src/commands/registerCommands.ts",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T169",
+      "title": "Show PRD wizard CTA in empty state when no PRD or tasks exist",
+      "status": "todo",
+      "notes": "Currently the empty state (no tasks) shows 'No tasks yet.' with an 'Initialize Workspace' button wired to ralphCodex.regeneratePrd. Replace this with a two-branch empty state: (1) if no PRD file exists at the configured prdPath, show onboarding copy ('Start here — define your project scope in the PRD wizard') with an 'Open PRD Wizard' button wired to ralphCodex.openPrdWizard; (2) if PRD exists but no tasks, show a 'Generate tasks from PRD' prompt. The dashboard state object must expose whether the PRD file is present so the HTML renderer can branch. Check dashboardHost.ts for how state is assembled.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "When prdPath file does not exist, empty state shows 'Open PRD Wizard' button calling ralphCodex.openPrdWizard",
+        "When prdPath file exists but task count is zero, empty state shows a distinct 'Generate tasks' prompt",
+        "The old 'Initialize Workspace' button is no longer shown in the empty state",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/panelHtml.ts",
+        "src/ui/sidebarHtml.ts",
+        "src/webview/dashboardHost.ts",
+        "src/ui/prdCreationWizardPanel.ts"
+      ]
+    },
+    {
+      "id": "T170",
+      "title": "Fix 'Open Settings' buttons to open RalphDex-filtered VSCode settings",
+      "status": "todo",
+      "notes": "Three buttons in panelHtml.ts (lines ~1419, ~1620, ~1863) use data-command='workbench.action.openSettings' with no filter argument, so they open the raw unfiltered settings list. Change each to pass 'ralphCodex' as the search query. Check how the webview command dispatcher in dashboardHost.ts handles command arguments (look for data-args or equivalent attribute). If the dispatcher does not yet support args for built-in VS Code commands, add a thin wrapper command (e.g. ralphCodex.openSettings) in registerCommands.ts that calls vscode.commands.executeCommand('workbench.action.openSettings', '@ext:s0l0m0n8und9.ralphdex') or the ralphCodex query string, then point all three buttons at that command.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "acceptance": [
+        "Clicking 'Open Settings' in any dashboard location opens VSCode settings pre-filtered to the ralphCodex section",
+        "No unfiltered settings list is shown",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ui/panelHtml.ts"
+      ]
+    },
+    {
+      "id": "T171",
+      "title": "Audit file-creation paths in RalphDex to identify where structure decisions are made",
+      "status": "todo",
+      "notes": "Identify every code path where Ralph or the agent decides where to place a new file. Document gaps where no structural guidance is provided to the agent.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "acceptance": [
+        "A short written summary (in task notes or a scratch doc) lists every file-placement decision point and whether structural guidance is currently available at that point"
+      ],
+      "context": [
+        "src/ralph/iterationPreparation.ts",
+        "src/ralph/reconciliation.ts",
+        "src/prompt/promptBuilder.ts",
+        "src/ralph/taskFile.ts"
+      ]
+    },
+    {
+      "id": "T172",
+      "title": "Design the schema and naming convention for a repo structure definition file (structure.d)",
+      "status": "todo",
+      "dependsOn": [
+        "T171"
+      ],
+      "notes": "Define the format (JSON, YAML, or Markdown) and schema for `structure.d` (or `.ralph/structure.json`). The file should describe: top-level directory roles, naming conventions, file-type placement rules, and any forbidden paths. Keep it human-readable and hand-editable. Propose the filename in config so it is overridable.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "acceptance": [
+        "A schema definition is written with at least: directory roles, placement rules, and an example for a TypeScript repo",
+        "Filename/location is a config key with a sensible default"
+      ],
+      "context": [
+        "docs/architecture.md",
+        "src/config/types.ts"
+      ]
+    },
+    {
+      "id": "T173",
+      "title": "Implement repo-structure inference to generate a default structure.d from an existing repo layout",
+      "status": "todo",
+      "dependsOn": [
+        "T172"
+      ],
+      "notes": "On first run (or when structure.d is absent), scan the repo's top-level directories and known config files (package.json, tsconfig.json, .eslintrc, etc.) to infer a plausible structure definition. Write the inferred file to the configured path. Do not overwrite an existing file.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "Running inference on this repo produces a valid structure.d with correct top-level directory entries",
+        "Re-running does not overwrite an existing file",
+        "New config key is wired end-to-end (types → defaults → readConfig)"
+      ],
+      "context": [
+        "src/ralph/preflight.ts",
+        "src/config/types.ts",
+        "src/config/defaults.ts"
+      ]
+    },
+    {
+      "id": "T174",
+      "title": "Inject structure.d content into the agent prompt so Ralph respects the defined layout",
+      "status": "todo",
+      "dependsOn": [
+        "T173"
+      ],
+      "notes": "Add a new prompt section (or extend an existing context section) that includes the structure.d content when present. The section should instruct the agent to place all new files in accordance with the defined layout and to flag deviations in the completion report. Keep prompt budget impact minimal — summarise rather than dump the full file when it is large.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "Prompt snapshot tests are updated to reflect the new section",
+        "When structure.d is absent the section is omitted cleanly (no empty placeholder)",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/prompt/promptBuilder.ts",
+        "src/ralph/iterationPreparation.ts",
+        "prompt-templates/"
+      ]
+    },
+    {
+      "id": "T175",
+      "title": "Trigger structure.d generation during workspace preflight if the file is absent",
+      "status": "todo",
+      "dependsOn": [
+        "T173"
+      ],
+      "notes": "Hook the inference step into the preflight gate so a structure.d is always on disk before the first iteration. Log a notice when the file is freshly generated so the user is aware.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Preflight run on a repo without structure.d creates the file and logs a notice",
+        "Preflight run on a repo with structure.d is a no-op for this step",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ralph/preflight.ts"
+      ]
+    },
+    {
+      "id": "T176",
+      "title": "Add tests for structure inference, generation, and prompt injection",
+      "status": "todo",
+      "dependsOn": [
+        "T174",
+        "T175"
+      ],
+      "notes": "Cover: (1) inference produces a well-formed structure.d from a known fixture directory tree, (2) existing file is not overwritten, (3) prompt builder includes the structure section when file present and omits it when absent, (4) preflight generates the file on first run.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "All new tests pass under npm run validate",
+        "No existing tests are broken"
+      ],
+      "context": [
+        "test/",
+        "src/ralph/preflight.ts",
+        "src/prompt/promptBuilder.ts"
+      ]
+    },
+    {
+      "id": "T177",
+      "title": "Document structure.d format, inference behaviour, and override options in docs/",
+      "status": "todo",
+      "dependsOn": [
+        "T175"
+      ],
+      "notes": "Add a dedicated `docs/structure-definition.md` covering: what the file is, where it lives, the schema, how inference works, how to hand-edit it, and how to disable inference via config. Link from architecture.md.",
+      "validation": "npm run validate",
+      "priority": "low",
+      "acceptance": [
+        "docs/structure-definition.md exists and covers all four topics above",
+        "architecture.md links to it",
+        "npm run validate passes (check:docs step)"
+      ],
+      "context": [
+        "docs/",
+        "docs/architecture.md"
+      ]
+    },
+    {
+      "id": "T178",
+      "title": "Audit optionset control styling to locate where dropdown open-state colours are defined",
+      "status": "todo",
+      "notes": "Search for select, dropdown, combobox, or optionset-related CSS/SCSS/Tailwind rules. Identify the open/active state rules that produce white-on-white rendering. Note every file and selector responsible.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "All CSS/SCSS/JS-in-CSS rules governing optionset background and text colour in open state are identified and listed in a code comment or task note"
+      ],
+      "context": [
+        "src/",
+        "media/",
+        "src/webview/",
+        "src/views/"
+      ]
+    },
+    {
+      "id": "T179",
+      "title": "Fix optionset open-state colours so dropdown list items are legible against their background",
+      "status": "todo",
+      "dependsOn": [
+        "T178"
+      ],
+      "notes": "Use VS Code theme CSS variables (--vscode-dropdown-background, --vscode-dropdown-foreground, --vscode-list-activeSelectionBackground, --vscode-list-activeSelectionForeground) rather than hard-coded colour values so the fix works across light, dark, and high-contrast themes.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "Opening any optionset/select control in the extension renders list items with clearly visible text against a contrasting background",
+        "No hard-coded colour values introduced; only VS Code theme variables used",
+        "Fix applies in both light and dark VS Code themes"
+      ],
+      "constraints": [
+        "Do not override VS Code theme variables with fixed hex/rgb values",
+        "Changes must be scoped to optionset/dropdown components only"
+      ]
+    },
+    {
+      "id": "T180",
+      "title": "Verify optionset legibility fix across light, dark, and high-contrast VS Code themes",
+      "status": "todo",
+      "dependsOn": [
+        "T179"
+      ],
+      "notes": "Manually open each optionset control in the extension under VS Code Default Light, Default Dark, and High Contrast themes. Confirm text is legible and no white-on-white or low-contrast state remains. Record observations.",
+      "validation": "npm run validate",
+      "acceptance": [
+        "All optionset controls tested in at least two themes (light + dark)",
+        "No near-invisible text observed in open state under any tested theme",
+        "npm run validate passes"
+      ]
     }
   ],
-  "mutationCount": 180
+  "mutationCount": 185
 }

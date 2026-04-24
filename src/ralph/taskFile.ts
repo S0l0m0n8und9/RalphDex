@@ -26,7 +26,7 @@ const EMPTY_COUNTS: RalphTaskCounts = {
   done: 0
 };
 
-const SUPPORTED_TASK_FIELDS = new Set([
+export const SUPPORTED_TASK_FIELDS = new Set([
   'id',
   'title',
   'status',
@@ -40,7 +40,10 @@ const SUPPORTED_TASK_FIELDS = new Set([
   'tier',
   'acceptance',
   'constraints',
-  'context'
+  'context',
+  'writeRiskLabels',
+  'lastVerifierResult',
+  'lastReconciliationWarning'
 ]);
 
 const LIKELY_TASK_FIELD_MISTAKES = new Map<string, string>([

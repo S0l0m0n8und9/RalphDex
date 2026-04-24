@@ -355,7 +355,10 @@ Optional fields follow one of three presence behaviors:
 | `acceptance` | `string[]?` | derive-if-possible | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. Decomposition derives acceptance from parent when possible. |
 | `constraints` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
 | `context` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. |
-| `source` | `RalphTaskSourceLocation?` | preserve-source | Injected by the parser for diagnostic line/column reporting. Not persisted to disk; stripped during serialization. |
+| `writeRiskLabels` | `string[]?` | leave-absent | Each entry trimmed, empties filtered. Returns `undefined` if result array is empty. Write-risk labels for fan-out wave safety validation. Tasks sharing a label cannot run in the same wave. |
+| `lastVerifierResult` | `'passed' \| 'failed' \| 'skipped'?` | leave-absent | Set by reconciliation to record the last verifier outcome. Returns `undefined` if value is not a recognized enum member. |
+| `lastReconciliationWarning` | `string?` | leave-absent | Trimmed. Returns `undefined` if empty or whitespace-only. Set by reconciliation when a conflict warning snippet exists. |
+| `source` | `RalphTaskSourceLocation?` | preserve-source | Injected by the parser for diagnostic line/column reporting. Not persisted to disk; stripped during serialization. Source location in JSON file content is ignored; the parser always determines location. |
 
 ### Source Parsing vs Synthesis
 
@@ -374,7 +377,7 @@ This means:
 2. **Array coercion**: optional array fields filter out non-string entries and entries that are empty after trimming. If the resulting array is empty, the field becomes `undefined`, not `[]`.
 3. **Dependency deduplication**: `dependsOn` passes through `Set` after trimming, so duplicate task IDs are silently collapsed.
 4. **Enum rejection**: `priority`, `mode`, and `tier` silently become `undefined` when the supplied value is not a recognized enum member. They do not throw.
-5. **Unknown-field drop**: only fields in `SUPPORTED_TASK_FIELDS` survive normalization. Any field not in that set is silently discarded. The supported set is: `id`, `title`, `status`, `parentId`, `dependsOn`, `notes`, `validation`, `blocker`, `priority`, `mode`, `tier`, `acceptance`, `constraints`, `context`.
+5. **Unknown-field drop**: only fields in `SUPPORTED_TASK_FIELDS` survive normalization. Any field not in that set is silently discarded. The supported set is: `id`, `title`, `status`, `parentId`, `dependsOn`, `notes`, `validation`, `blocker`, `priority`, `mode`, `tier`, `acceptance`, `constraints`, `context`, `writeRiskLabels`, `lastVerifierResult`, `lastReconciliationWarning`. The `source` field is handled separately (parser-injected, never persisted).
 6. **Auto-correction**: before normalization, commonly misspelled field names are auto-corrected with a diagnostic warning. The correction is applied before validation so the corrected field name enters normalization normally. See the auto-correction reference below.
 
 ### Auto-Correction Reference

@@ -36,6 +36,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.SUPPORTED_TASK_FIELDS = void 0;
 exports.withTaskFileLock = withTaskFileLock;
 exports.autoCorrectKnownMistakes = autoCorrectKnownMistakes;
 exports.normalizeTask = normalizeTask;
@@ -71,7 +72,7 @@ const EMPTY_COUNTS = {
     blocked: 0,
     done: 0
 };
-const SUPPORTED_TASK_FIELDS = new Set([
+exports.SUPPORTED_TASK_FIELDS = new Set([
     'id',
     'title',
     'status',
@@ -85,7 +86,10 @@ const SUPPORTED_TASK_FIELDS = new Set([
     'tier',
     'acceptance',
     'constraints',
-    'context'
+    'context',
+    'writeRiskLabels',
+    'lastVerifierResult',
+    'lastReconciliationWarning'
 ]);
 const LIKELY_TASK_FIELD_MISTAKES = new Map([
     ['dependencies', 'dependsOn'],
@@ -202,7 +206,7 @@ function normalizedFieldKey(key) {
 function autoCorrectKnownMistakes(record) {
     const corrections = [];
     for (const key of Object.keys(record)) {
-        if (SUPPORTED_TASK_FIELDS.has(key)) {
+        if (exports.SUPPORTED_TASK_FIELDS.has(key)) {
             continue;
         }
         const corrected = LIKELY_TASK_FIELD_MISTAKES.get(normalizedFieldKey(key));
