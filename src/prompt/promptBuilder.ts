@@ -1007,6 +1007,13 @@ function buildStructureContext(definition: StructureDefinition | null | undefine
     return '';
   }
 
+  const sanitizeInlinePromptText = (value: string | null | undefined): string => (
+    value ?? ''
+  )
+    .replace(/[\r\n\t]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
   const lines = [
     '## Repo Structure',
     'Place new files according to this layout. Flag deviations in your completion report.'
@@ -1014,8 +1021,11 @@ function buildStructureContext(definition: StructureDefinition | null | undefine
 
   const maxDirs = 20;
   for (const dir of definition.directories.slice(0, maxDirs)) {
-    const desc = dir.description ? ` ${dir.description}` : '';
-    lines.push(`- ${dir.path}/ (${dir.role}):${desc}`);
+    const dirPath = sanitizeInlinePromptText(dir.path);
+    const dirRole = sanitizeInlinePromptText(dir.role);
+    const dirDescription = sanitizeInlinePromptText(dir.description);
+    const desc = dirDescription ? ` ${dirDescription}` : '';
+    lines.push(`- ${dirPath}/ (${dirRole}):${desc}`);
   }
   if (definition.directories.length > maxDirs) {
     lines.push(`- (${definition.directories.length - maxDirs} more directories not shown)`);
@@ -1024,15 +1034,20 @@ function buildStructureContext(definition: StructureDefinition | null | undefine
   if (definition.placementRules && definition.placementRules.length > 0) {
     lines.push('- File placement rules:');
     for (const rule of definition.placementRules.slice(0, 10)) {
-      const desc = rule.description ? ` (${rule.description})` : '';
-      lines.push(`  - ${rule.pattern} → ${rule.directory}${desc}`);
+      const rulePattern = sanitizeInlinePromptText(rule.pattern);
+      const ruleDirectory = sanitizeInlinePromptText(rule.directory);
+      const ruleDescription = sanitizeInlinePromptText(rule.description);
+      const desc = ruleDescription ? ` (${ruleDescription})` : '';
+      lines.push(`  - ${rulePattern} → ${ruleDirectory}${desc}`);
     }
   }
 
   if (definition.forbiddenPaths && definition.forbiddenPaths.length > 0) {
     lines.push('- Forbidden paths (do not create or modify):');
     for (const fp of definition.forbiddenPaths.slice(0, 5)) {
-      lines.push(`  - ${fp.path}: ${fp.reason}`);
+      const forbiddenPath = sanitizeInlinePromptText(fp.path);
+      const forbiddenReason = sanitizeInlinePromptText(fp.reason);
+      lines.push(`  - ${forbiddenPath}: ${forbiddenReason}`);
     }
   }
 

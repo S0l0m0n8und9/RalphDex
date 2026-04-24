@@ -339,3 +339,4 @@
 - Added an 'Open PRD wizard' button to the simple sidebar tab, reusing the existing ralphCodex.openPrdWizard command binding, and added regression coverage for the simple-mode affordance.
 - Removed the shared pipeline-strip dashboard section from panel surfaces, deleted the typed pipeline snapshot projection, updated UI/snapshot tests, and verified that src no longer contains any 'pipeline strip' references.
 - Hooked structure-definition generation into mutable workspace preflight, surfaced fresh generation as a preflight info diagnostic, and added regression coverage for create-once/no-op behavior.
+- Added representative structure inference coverage and a prompt-injection regression test, then hardened Repo Structure rendering so file-backed structure metadata cannot inject extra prompt headings or instructions.

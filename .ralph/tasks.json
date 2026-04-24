@@ -4669,12 +4669,12 @@
     {
       "id": "T176",
       "title": "Add tests for structure inference, generation, and prompt injection",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T174",
         "T175"
       ],
-      "notes": "Cover: (1) inference produces a well-formed structure.d from a known fixture directory tree, (2) existing file is not overwritten, (3) prompt builder includes the structure section when file present and omits it when absent, (4) preflight generates the file on first run.",
+      "notes": "Added representative structure inference coverage and a prompt-injection regression test, then hardened Repo Structure rendering so file-backed structure metadata cannot inject extra prompt headings or instructions.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4685,7 +4685,8 @@
         "test/",
         "src/ralph/preflight.ts",
         "src/prompt/promptBuilder.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T177",
@@ -4888,5 +4889,5 @@
       ]
     }
   ],
-  "mutationCount": 203
+  "mutationCount": 204
 }
