@@ -24,7 +24,8 @@ Related docs:
 - `src/ralph/stateManager.ts`: durable Ralph state persistence and path management
 - `src/ralph/taskFile.ts`: explicit task-schema parsing, normalization, deterministic selection, graph diagnostics, and task-claim file coordination
 - `src/ralph/preflight.ts`: categorized readiness diagnostics before CLI execution
-- `src/ralph/iterationEngine.ts`: explicit Ralph loop orchestration
+- `src/ralph/iterationEngine.ts`: thin Ralph loop orchestration and phase sequencing
+- `src/ralph/iteration/`: single-responsibility iteration services (`IterationExecutor`, `VerificationRunner`, `OutcomeClassifier`, `RemediationCoordinator`, `ScmCoordinator`, `ArtifactPersistenceService`, `LoopDecisionService`)
 - `src/ralph/cliOutputFormatter.ts`: claude stream-json event parsing and log-label formatting
 - `src/ralph/reviewPolicy.ts`: review-agent file-change anomaly detection and policy enforcement
 - `src/ralph/verifier.ts`: validation-command, git/file-change, and task-state verifiers
@@ -68,7 +69,7 @@ The execution trust chain, run-bundle contract, and blocked integrity-failure be
 
 `src/ralph/taskFile.ts` owns task normalization and the thin task-claim ledger used by agent coordination. The canonical field-presence rules — required, preserve-source, derive-if-possible, and leave-absent categories — are enforced by `normalizeTask` and documented in [docs/invariants.md § Normalized Task Contract](invariants.md#normalized-task-contract). Claim acquisition and release stay file-backed and local to one JSON file, guarded by a sibling lock file plus a write-then-verify readback so callers can detect contested ownership without depending on in-memory session state.
 
-`src/ralph/iterationEngine.ts` is within the target line budget (≤1100 lines). Stream-formatting helpers live in `src/ralph/cliOutputFormatter.ts`, auto-remediation helpers live in `src/ralph/taskDecomposition.ts`, and review-agent policy lives in `src/ralph/reviewPolicy.ts`.
+`src/ralph/iterationEngine.ts` stays within the target line budget (≤1100 lines) by delegating execution, verification, classification, remediation, SCM coordination, loop decisions, and artifact persistence to `src/ralph/iteration/` services. Stream-formatting helpers live in `src/ralph/cliOutputFormatter.ts`, auto-remediation helpers live in `src/ralph/taskDecomposition.ts`, and review-agent policy lives in `src/ralph/reviewPolicy.ts`.
 
 `src/ralph/orchestrationSupervisor.ts` adds a separate durable orchestration layer under `.ralph/orchestration/<runId>/`. `graph.json` stores the bounded node/edge DSL and required evidence references for each transition, while `state.json` stores the current cursor plus per-node outcomes and timestamps so interrupted runs can resume without hidden runtime memory.
 

@@ -32,7 +32,14 @@ Ralphdex is a VS Code extension that:
 
 - `src/commands/registerCommands.ts`: command wiring and user-visible status/reporting behavior
 - `src/prompt/promptBuilder.ts`: prompt-kind selection, template rendering, and prompt evidence
-- `src/ralph/iterationEngine.ts`: loop orchestration and phase order
+- `src/ralph/iterationEngine.ts`: thin loop orchestrator and phase order wiring
+- `src/ralph/iteration/IterationExecutor.ts`: CLI/provider execution and invocation persistence handoff
+- `src/ralph/iteration/VerificationRunner.ts`: validation/git/task-state verifier orchestration and structured verification outputs
+- `src/ralph/iteration/OutcomeClassifier.ts`: deterministic outcome classification and iteration-result shaping
+- `src/ralph/iteration/RemediationCoordinator.ts`: remediation synthesis and auto-apply coordination
+- `src/ralph/iteration/ScmCoordinator.ts`: branch-per-task + commit-on-done SCM actions
+- `src/ralph/iteration/ArtifactPersistenceService.ts`: iteration/provenance artifact persistence
+- `src/ralph/iteration/LoopDecisionService.ts`: loop continuation/stop decision evaluation
 - `src/ralph/completionReportParser.ts`: completion-report parsing and structured extraction from Codex output
 - `src/ralph/taskDecomposition.ts`: remediation artifact shaping, deterministic child-task decomposition, and auto-remediation application (mark_blocked, decompose_task)
 - `src/ralph/taskCreation.ts`: shared producer-facing task-creation pipeline for append, replace, and child-task persistence
