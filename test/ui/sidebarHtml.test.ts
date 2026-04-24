@@ -209,6 +209,13 @@ test('buildDashboardHtml preserves live status, orchestration, task, and setting
   assert.ok(html.includes('ralphCodex.openDashboard'));
 });
 
+test('buildDashboardHtml exposes Open PRD wizard in simple mode with the existing command binding', () => {
+  const html = buildDashboardHtml(defaultState(), 'simple-prd-wizard');
+
+  assert.ok(html.includes('Open PRD wizard'));
+  assert.ok(html.includes('data-command="ralphCodex.openPrdWizard"'));
+});
+
 test('buildDashboardHtml omits orchestration tab wiring from sidebar navigation', () => {
   const html = buildDashboardHtml(defaultState(), 'sidebar-tabs');
 

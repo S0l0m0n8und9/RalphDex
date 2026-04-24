@@ -419,6 +419,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
       ${isRunning
         ? `<button class="btn btn-danger" data-command="ralphCodex.stopLoop" style="grid-column: 1/-1;"><span class="btn-label">■ Stop Loop</span><span class="btn-spinner"></span></button>`
         : `<button class="btn btn-primary" data-command="ralphCodex.runRalphLoop" style="grid-column: 1/-1;"><span class="btn-label">▸ Start Loop</span><span class="btn-spinner"></span></button>`}
+      <button class="btn" data-command="ralphCodex.openPrdWizard" style="grid-column: 1/-1;"><span class="btn-label">Open PRD wizard</span><span class="btn-spinner"></span></button>
     </div>
   </div>
 

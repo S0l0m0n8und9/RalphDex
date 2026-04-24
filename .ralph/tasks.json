@@ -4474,11 +4474,12 @@
     {
       "id": "T166",
       "title": "Add 'Open PRD wizard' entry to simple tab in sidebar",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T164",
         "T165"
       ],
+      "notes": "Added an 'Open PRD wizard' button to the simple sidebar tab, reusing the existing ralphCodex.openPrdWizard command binding, and added regression coverage for the simple-mode affordance.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4488,7 +4489,8 @@
       "context": [
         "src/commands/registerCommands.ts",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T167",
@@ -4883,5 +4885,5 @@
       ]
     }
   ],
-  "mutationCount": 200
+  "mutationCount": 201
 }
