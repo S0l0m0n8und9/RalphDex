@@ -4366,7 +4366,7 @@
     {
       "id": "CR10",
       "title": "Document the post-hardening operating boundary for RalphDex self-dogfooding",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "CR8",
         "CR9"
@@ -4554,8 +4554,8 @@
     {
       "id": "T171",
       "title": "Audit file-creation paths in RalphDex to identify where structure decisions are made",
-      "status": "in_progress",
-      "notes": "Identify every code path where Ralph or the agent decides where to place a new file. Document gaps where no structural guidance is provided to the agent.",
+      "status": "done",
+      "notes": "Completed comprehensive audit of all file-creation paths in RalphDex. Documented 20+ decision points across 14 modules, identified 11 hardcoded subdirectories lacking config guidance, and catalogued 6 major structural guidance gaps. Ready for structure.d schema design (T172).",
       "validation": "npm run validate",
       "priority": "high",
       "acceptance": [
@@ -4566,7 +4566,8 @@
         "src/ralph/reconciliation.ts",
         "src/prompt/promptBuilder.ts",
         "src/ralph/taskFile.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T172",
@@ -4741,5 +4742,5 @@
       ]
     }
   ],
-  "mutationCount": 189
+  "mutationCount": 190
 }

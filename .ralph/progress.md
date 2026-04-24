@@ -327,3 +327,4 @@
 - Added prdExists flag to watched/dashboard state, watch prd.md for changes, replaced both 'Initialize Workspace' empty-state buttons with conditional Open PRD Wizard / Generate tasks from PRD CTAs
 - Registered ralphCodex.openSettings command with filter argument and updated all 4 button references (3 in panelHtml.ts, 1 in sidebarHtml.ts). Updated tests. All validation passes.
 - Audited committed dogfood state: documented .ralph file classification (committed vs runtime vs generated), updated docs/boundaries.md and README.md with clear distinctions, verified all artifacts are properly ignored, docs validation passes
+- Completed comprehensive audit of all file-creation paths in RalphDex. Documented 20+ decision points across 14 modules, identified 11 hardcoded subdirectories lacking config guidance, and catalogued 6 major structural guidance gaps. Ready for structure.d schema design (T172).
