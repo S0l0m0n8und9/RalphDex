@@ -165,6 +165,15 @@ Severe preflight findings must block CLI execution before `codex exec` starts.
 
 Task-ledger drift is one of those blocking findings. When a persisted parent is `done` while any descendant remains `todo`, `in_progress`, or `blocked`, Ralph must treat the backlog as inconsistent rather than exhausted. In that state, status and preflight surfaces should keep the drift explicit with messages like `No task selected because task-ledger drift blocks safe selection: ...` and `Task-ledger drift: ...` so operators repair the ledger instead of assuming Ralph needs new work.
 
+Drift and repair evidence surfaces in:
+
+- **`report.diagnostics`** (and the `preflight-report.json` artifact): task-graph errors use code `completed_parent_with_incomplete_descendants`; auto-repairs use code `auto_corrected_parent_reference` with severity `warning`.
+- **`renderPreflightReport` output** (the `preflight-summary.md` artifact and the preflight section of every prompt): each diagnostic is rendered as `- <severity> [<code>]: <message>` under the **Task graph** section. Operators see repair warnings before a task is selected and drift errors that block selection.
+- **Loop continuation** (`decideLoopContinuation`): `completed_parent_with_incomplete_descendants` and `ledger_drift` error diagnostics are passed as `preflightDiagnostics` and prevent automatic backlog replenishment — the loop stops with `no_actionable_task` rather than continuing into a `replenish-backlog` prompt.
+- **`Show Status` command output**: the Task graph summary line counts errors and warnings by severity, distinguishing drift errors from clean or repaired states.
+
+A clean backlog exhaustion (all tasks `done`, no drift) produces a `ready: true` report with no error or drift diagnostics and a summary of `Preflight ready: No task selected.`. This is visually and structurally distinct from a drift-blocked state (`ready: false`, summary beginning `No task selected because task-ledger drift blocks safe selection: ...`).
+
 ## Agent Health Checks
 
 Every preflight run executes `checkStaleState` in-process (no LLM, no external process) and appends its results to the preflight report under the **Agent Health** section. The check is mechanical-only — it detects stale signals and surfaces them as warnings; it does not take recovery actions.

@@ -743,6 +743,31 @@ test('decideLoopContinuation stops on ledger drift even when auto-replenishment 
   assert.match(decision.message, /No executable Ralph task remains/i);
 });
 
+test('decideLoopContinuation stops auto-replenishment on completed_parent_with_incomplete_descendants drift', () => {
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    backlog: { remainingTaskCount: 0, actionableTaskAvailable: false }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    autoReplenishBacklog: true,
+    preflightDiagnostics: [
+      diagnostic({
+        category: 'taskGraph',
+        severity: 'error',
+        code: 'completed_parent_with_incomplete_descendants',
+        message: 'Task T1 is marked done but descendant tasks are still unfinished.'
+      })
+    ]
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+});
+
 // -- Documentation mode tests --
 
 test('classifyIterationOutcome does not demote partial_progress to no_progress for documentation-mode tasks', () => {
@@ -821,4 +846,26 @@ test('classifyIterationOutcome demotes partial_progress to no_progress for defau
   // + same_validation_failure_signature are all present.
   assert.equal(outcome.classification, 'no_progress');
   assert.equal(outcome.followUpAction, 'retry_same_task');
+});
+
+test('decideLoopContinuation stops on clean backlog exhaustion without drift diagnostics', () => {
+  // All tasks done, no drift — loop must stop with no_actionable_task, not any
+  // drift-related reason, so clean exhaustion is visually distinct (AC3).
+  const current = iterationResult({
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    backlog: { remainingTaskCount: 0, actionableTaskAvailable: false }
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    hasActionableTask: false,
+    remainingTaskCount: 0,
+    autoReplenishBacklog: false,
+    preflightDiagnostics: []
+  }));
+
+  assert.equal(decision.shouldContinue, false);
+  assert.equal(decision.stopReason, 'no_actionable_task');
+  assert.match(decision.message, /No executable Ralph task remains/i);
 });

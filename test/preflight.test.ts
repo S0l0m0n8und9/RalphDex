@@ -492,6 +492,75 @@ test('checkStaleState returns no diagnostics when lock files are absent and no c
   assert.deepEqual(diagnostics, []);
 });
 
+test('buildPreflightReport surfaces parentId auto-correction as a warning visible in the rendered report', () => {
+  // A todo task whose parent is already done gets its parentId stripped so the
+  // loop can continue. This repair must be visible to the operator (AC1).
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Done parent', status: 'done' },
+      { id: 'T1.1', title: 'Follow-on task', status: 'todo', parentId: 'T1' }
+    ]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 1 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  // Auto-correction is a warning — preflight stays ready.
+  assert.equal(report.ready, true);
+  assert.ok(report.diagnostics.some((d) => d.code === 'auto_corrected_parent_reference' && d.severity === 'warning'));
+  // Operator-visible: the rendered preflight surfaces the repair code and message.
+  const rendered = renderPreflightReport(report);
+  assert.match(rendered, /auto_corrected_parent_reference/);
+  assert.match(rendered, /parentId.*stripped/i);
+});
+
+test('buildPreflightReport reports clean backlog exhaustion as ready with no error diagnostics', () => {
+  // All tasks done, no drift — preflight must be clearly distinct from a drift-blocked
+  // state so operators know no repair is needed (AC3).
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Completed work', status: 'done' },
+      { id: 'T2', title: 'Also done', status: 'done' }
+    ]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 2 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  // Ready, no errors, summary starts with 'Preflight ready' not 'Preflight blocked'.
+  assert.equal(report.ready, true);
+  assert.equal(report.diagnostics.filter((d) => d.severity === 'error').length, 0);
+  assert.match(report.summary, /^Preflight ready/);
+  assert.match(report.summary, /No task selected\./);
+  // Drift codes must be absent to confirm this is not a masked drift state.
+  assert.equal(report.diagnostics.some((d) => d.code === 'completed_parent_with_incomplete_descendants'), false);
+  assert.equal(report.diagnostics.some((d) => d.code === 'auto_corrected_parent_reference'), false);
+});
+
 test('checkStaleState emits stale_state_lock warning when state.lock is older than threshold', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
   const ralphDir = path.join(rootPath, '.ralph');
@@ -1388,4 +1457,75 @@ test('checkHandoffHealth emits no diagnostic for accepted non-expired handoff', 
   const diagnostics = await checkHandoffHealth({ ralphRoot, now });
 
   assert.deepEqual(diagnostics, []);
+});
+
+test('buildPreflightReport surfaces auto_corrected_parent_reference warning in rendered preflight output', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Completed parent', status: 'done' },
+      { id: 'T2', title: 'Orphaned todo', status: 'todo', parentId: 'T1' }
+    ]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 1 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  // The repair is a warning — task file still loads and preflight stays ready.
+  assert.equal(report.ready, true);
+  assert.ok(report.diagnostics.some((d) => d.code === 'auto_corrected_parent_reference'));
+  assert.equal(
+    report.diagnostics.find((d) => d.code === 'auto_corrected_parent_reference')?.severity,
+    'warning'
+  );
+
+  // The rendered preflight text an operator sees includes the diagnostic code and message.
+  const rendered = renderPreflightReport(report);
+  assert.match(rendered, /auto_corrected_parent_reference/);
+  assert.match(rendered, /parentId stripped/);
+});
+
+test('buildPreflightReport reports clean ready state when all tasks are done and no drift exists', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Completed task', status: 'done' }
+    ]
+  }, null, 2));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 1 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  // Clean backlog exhaustion: ready, no errors, no drift or repair codes.
+  assert.equal(report.ready, true);
+  assert.ok(!report.diagnostics.some((d) => d.severity === 'error'));
+  assert.ok(!report.diagnostics.some((d) =>
+    d.code === 'completed_parent_with_incomplete_descendants' ||
+    d.code === 'auto_corrected_parent_reference'
+  ));
+  // Summary is distinctly 'ready' with no task selected, not a drift-blocked state.
+  assert.match(report.summary, /Preflight ready/);
+  assert.doesNotMatch(report.summary, /task-ledger drift/i);
 });

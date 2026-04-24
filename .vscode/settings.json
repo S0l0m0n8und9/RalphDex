@@ -26,5 +26,6 @@
             "model": "claude-opus-4-6"
         }
     },
-    "sarif-viewer.connectToGithubCodeScanning": "off"
+    "sarif-viewer.connectToGithubCodeScanning": "off",
+    "ralphCodex.autonomyMode": "autonomous"
 }

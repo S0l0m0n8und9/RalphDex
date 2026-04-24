@@ -4285,11 +4285,11 @@
     {
       "id": "CR8",
       "title": "Add regression coverage for task auto-repair visibility",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "CR7"
       ],
-      "notes": "Ralph may auto-repair or normalize some task graph states. Ensure every non-trivial repair is visible through diagnostics, preflight, status, or artifacts so operators do not mistake repaired drift for clean state.",
+      "notes": "Added 3 targeted tests: auto_corrected_parent_reference warning surfaced in rendered preflight (AC1), clean backlog exhaustion distinct from drift-blocked state (AC3), and loop stop on clean exhaustion without drift diagnostics (AC3). All 1037 tests pass.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -4319,7 +4319,8 @@
         "preflight",
         "status",
         "docs"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "CR9",
@@ -4737,5 +4738,5 @@
       ]
     }
   ],
-  "mutationCount": 185
+  "mutationCount": 186
 }

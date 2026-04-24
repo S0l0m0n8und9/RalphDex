@@ -323,3 +323,4 @@
 - Added a redacted Azure auth-readiness probe, threaded async provider-readiness diagnostics into preflight/status/iteration preparation, upgraded the provider connection command to surface Azure auth failures clearly, and added regression coverage for azure-foundry and copilot-foundry readiness success/failure paths.
 - Reconciled Azure auth documentation with shipped runtime contract. Added maturity markers, updated PRD, and added validation rules to prevent stale language regression.
 - Added blocker to round-trip test fixture and assertion; added hasOwnProperty schema guard test for all SUPPORTED_TASK_FIELDS; all 1031 tests pass.
+- Added 3 targeted tests: auto_corrected_parent_reference warning surfaced in rendered preflight (AC1), clean backlog exhaustion distinct from drift-blocked state (AC3), and loop stop on clean exhaustion without drift diagnostics (AC3). All 1037 tests pass.
