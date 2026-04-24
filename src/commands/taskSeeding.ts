@@ -34,7 +34,7 @@ export async function seedTasksFromFeatureRequest(
 
   if (!(await pathExists(tasksPath))) {
     throw new TaskSeedingCommandError(
-      'No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.'
+      'No .ralph/tasks.json found. Run "Ralphdex: Bootstrap Ralph Workspace" first.'
     );
   }
 

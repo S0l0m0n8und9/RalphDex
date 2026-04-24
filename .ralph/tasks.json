@@ -4491,7 +4491,8 @@
     {
       "id": "T167",
       "title": "Remove all 'Initialize Workspace' UI instances",
-      "status": "todo",
+      "status": "done",
+      "notes": "Removed all UI-facing 'Initialize Workspace' instances from sidebar/dashboard and Command Palette contributions; updated user-facing copy and tests; npm run validate passed.",
       "validation": "npm run validate",
       "acceptance": [
         "No 'Initialize Workspace' label, button, or command entry appears in any sidebar view or command palette contribution",
@@ -4500,7 +4501,8 @@
       "context": [
         "src/commands/registerCommands.ts",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T168",
@@ -4879,5 +4881,5 @@
       ]
     }
   ],
-  "mutationCount": 198
+  "mutationCount": 199
 }

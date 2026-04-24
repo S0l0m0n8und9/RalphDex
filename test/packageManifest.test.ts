@@ -30,6 +30,7 @@ const commandRegistrationSourceFiles = [
 // Keep this list tiny: these commands are intentionally registered for internal
 // flows (status bar/webview wiring) and not surfaced in contributes.commands.
 const internalOnlyRegisteredCommands = new Set([
+  'ralphCodex.initializeWorkspace',
   'ralphCodex.refreshDashboard',
   'ralphCodex.statusBarQuickPick',
   'ralphCodex.testCurrentProviderConnection'

@@ -104,7 +104,6 @@
     }
   },
   "activationEvents": [
-    "onCommand:ralphCodex.initializeWorkspace",
     "onCommand:ralphCodex.addTask",
     "onCommand:ralphCodex.seedTasksFromFeatureRequest",
     "onCommand:ralphCodex.generatePrompt",
@@ -146,10 +145,6 @@
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      {
-        "command": "ralphCodex.initializeWorkspace",
-        "title": "Ralphdex: Initialize Workspace"
-      },
       {
         "command": "ralphCodex.addTask",
         "title": "Ralphdex: Add Task"

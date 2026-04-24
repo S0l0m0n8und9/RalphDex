@@ -334,3 +334,4 @@
 - Implemented inferStructureDefinition (role-map-based directory scanning + config-file detection) and generateStructureDefinition (write-if-absent with parent-dir creation) in src/ralph/structureInference.ts. Added 6 TDD tests covering all acceptance criteria. All 1044 tests pass.
 - Verified task T164 (Remove standard tab from sidebar) is complete. Audited sidebarHtml.ts, panelHtml.ts, uiTypes.ts, package.json, registerCommands.ts, and all UI files. No 'standard' sidebar/tab references remain. Validation: npm run validate passes all 1044 tests.
 - Validated the structure-definition prompt wiring by adding regression coverage for both omission and populated rendering, and added a snapshot fixture for the rendered Repo Structure section.
+- Removed all UI-facing 'Initialize Workspace' instances from sidebar/dashboard and Command Palette contributions; updated user-facing copy and tests; npm run validate passed.

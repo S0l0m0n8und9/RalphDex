@@ -449,7 +449,6 @@ function buildDashboardHtml(state, nonce) {
       <div class="btn-grid">
         <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">PRD Wizard</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">⏻ Init</span><span class="btn-spinner"></span></button>
       </div>
     </div>
   </div>

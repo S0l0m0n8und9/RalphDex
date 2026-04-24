@@ -53,7 +53,7 @@ async function seedTasksFromFeatureRequest(workspaceFolder, logger, options) {
     const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
     const tasksPath = paths.taskFilePath;
     if (!(await (0, fs_1.pathExists)(tasksPath))) {
-        throw new TaskSeedingCommandError('No .ralph/tasks.json found. Run "Ralphdex: Initialize Workspace" first.');
+        throw new TaskSeedingCommandError('No .ralph/tasks.json found. Run "Ralphdex: Bootstrap Ralph Workspace" first.');
     }
     const raw = await fs.readFile(tasksPath, 'utf8');
     const taskFile = (0, taskFile_1.parseTaskFile)(raw);
