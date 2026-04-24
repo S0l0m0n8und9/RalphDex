@@ -49,8 +49,10 @@ import {
   checkStaleState,
   inspectProviderReadinessDiagnostics,
   inspectPreflightArtifactReadiness,
+  RalphPreflightStructureDefinitionGeneration,
   renderPreflightReport
 } from './preflight';
+import { generateStructureDefinition } from './structureInference';
 import {
   captureCoreState,
   captureGitStatus,
@@ -127,6 +129,8 @@ export interface PreparedIterationContext extends PreparedPromptContext {
 }
 
 export type PreparedPrompt = PreparedPromptContext;
+
+export interface PreflightStructureDefinitionGenerationOutcome extends RalphPreflightStructureDefinitionGeneration {}
 
 export interface PrepareIterationContextInput {
   workspaceFolder: vscode.WorkspaceFolder;
@@ -291,6 +295,11 @@ export async function prepareIterationContext(
     });
   }
 
+  const structureDefinitionGeneration = await ensureStructureDefinitionForPreflight(
+    rootPath,
+    config.structureDefinitionPath
+  );
+
   const objectiveText = await maybeSeedObjective(stateManager, snapshot.paths);
   const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
     ? vscode.window.activeTextEditor.document.uri.fsPath
@@ -439,6 +448,7 @@ export async function prepareIterationContext(
     validationCommandReadiness,
     fileStatus: snapshot.fileStatus,
     createdPaths: snapshot.createdPaths,
+    structureDefinitionGeneration,
     codexCliSupport,
     ideCommandSupport,
     providerReadinessDiagnostics,
@@ -508,11 +518,7 @@ export async function prepareIterationContext(
   // Read structure.json when available — informs the agent of the defined directory layout.
   const [taskPlanArtifact, structureDefinition] = await Promise.all([
     selectedTask ? readTaskPlan(snapshot.paths.artifactDir, selectedTask.id) : Promise.resolve(null),
-    readStructureDefinition(
-      path.isAbsolute(config.structureDefinitionPath)
-        ? config.structureDefinitionPath
-        : path.join(rootPath, config.structureDefinitionPath)
-    )
+    readStructureDefinition(structureDefinitionGeneration.path)
   ]);
 
   const promptRender = await buildPrompt({
@@ -682,6 +688,21 @@ async function readStructureDefinition(structureDefinitionPath: string): Promise
   } catch {
     return null;
   }
+}
+
+export async function ensureStructureDefinitionForPreflight(
+  rootPath: string,
+  structureDefinitionPath: string
+): Promise<PreflightStructureDefinitionGenerationOutcome> {
+  const resolvedPath = path.isAbsolute(structureDefinitionPath)
+    ? structureDefinitionPath
+    : path.join(rootPath, structureDefinitionPath);
+  const outcome = await generateStructureDefinition(rootPath, resolvedPath);
+  return {
+    path: resolvedPath,
+    written: outcome.written,
+    reason: outcome.reason
+  };
 }
 
 async function selectClaimedTask(

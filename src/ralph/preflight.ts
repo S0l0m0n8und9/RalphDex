@@ -177,6 +177,7 @@ export interface RalphPreflightInput {
   validationCommandReadiness: RalphValidationCommandReadiness;
   fileStatus: RalphWorkspaceFileStatus;
   createdPaths?: string[];
+  structureDefinitionGeneration?: RalphPreflightStructureDefinitionGeneration | null;
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
   providerReadinessDiagnostics?: RalphPreflightDiagnostic[];
@@ -201,6 +202,12 @@ export interface RalphPreflightExternalDiagnostic {
   severity: RalphPreflightDiagnostic['severity'];
   code: string;
   message: string;
+}
+
+export interface RalphPreflightStructureDefinitionGeneration {
+  path: string;
+  written: boolean;
+  reason: string;
 }
 
 export interface RalphPreflightArtifactReadinessInput {
@@ -1139,6 +1146,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
       'info',
       'workspace_paths_initialized',
       `Initialized Ralph paths: ${input.createdPaths!.map((target) => relativePath(input.rootPath, target)).join(', ')}.`
+    ));
+  }
+
+  if (input.structureDefinitionGeneration?.written) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      'info',
+      'structure_definition_generated',
+      `Generated structure definition at ${relativePath(input.rootPath, input.structureDefinitionGeneration.path)} during workspace preflight.`
     ));
   }
 

@@ -4650,11 +4650,11 @@
     {
       "id": "T175",
       "title": "Trigger structure.d generation during workspace preflight if the file is absent",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T173"
       ],
-      "notes": "Hook the inference step into the preflight gate so a structure.d is always on disk before the first iteration. Log a notice when the file is freshly generated so the user is aware.",
+      "notes": "Hooked structure-definition generation into mutable workspace preflight, surfaced fresh generation as a preflight info diagnostic, and added regression coverage for create-once/no-op behavior.",
       "validation": "npm run validate",
       "acceptance": [
         "Preflight run on a repo without structure.d creates the file and logs a notice",
@@ -4663,7 +4663,8 @@
       ],
       "context": [
         "src/ralph/preflight.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T176",
@@ -4887,5 +4888,5 @@
       ]
     }
   ],
-  "mutationCount": 202
+  "mutationCount": 203
 }

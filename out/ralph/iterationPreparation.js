@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.prepareIterationContext = prepareIterationContext;
+exports.ensureStructureDefinitionForPreflight = ensureStructureDefinitionForPreflight;
 exports.recoverUnexpectedUnclaimedSelection = recoverUnexpectedUnclaimedSelection;
 exports.readLastSummarizationMode = readLastSummarizationMode;
 exports.maybeSummariseHistory = maybeSummariseHistory;
@@ -52,6 +53,7 @@ const contextEnvelopeWriter_1 = require("./contextEnvelopeWriter");
 const taskFile_1 = require("./taskFile");
 const planningPass_1 = require("./planningPass");
 const preflight_1 = require("./preflight");
+const structureInference_1 = require("./structureInference");
 const verifier_1 = require("./verifier");
 const artifactStore_1 = require("./artifactStore");
 const EMPTY_GIT_STATUS = {
@@ -170,6 +172,7 @@ async function prepareIterationContext(input) {
             createdPaths: snapshot.createdPaths
         });
     }
+    const structureDefinitionGeneration = await ensureStructureDefinitionForPreflight(rootPath, config.structureDefinitionPath);
     const objectiveText = await maybeSeedObjective(stateManager, snapshot.paths);
     const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
         ? vscode.window.activeTextEditor.document.uri.fsPath
@@ -308,6 +311,7 @@ async function prepareIterationContext(input) {
         validationCommandReadiness,
         fileStatus: snapshot.fileStatus,
         createdPaths: snapshot.createdPaths,
+        structureDefinitionGeneration,
         codexCliSupport,
         ideCommandSupport,
         providerReadinessDiagnostics,
@@ -372,9 +376,7 @@ async function prepareIterationContext(input) {
     // Read structure.json when available — informs the agent of the defined directory layout.
     const [taskPlanArtifact, structureDefinition] = await Promise.all([
         selectedTask ? (0, planningPass_1.readTaskPlan)(snapshot.paths.artifactDir, selectedTask.id) : Promise.resolve(null),
-        readStructureDefinition(path.isAbsolute(config.structureDefinitionPath)
-            ? config.structureDefinitionPath
-            : path.join(rootPath, config.structureDefinitionPath))
+        readStructureDefinition(structureDefinitionGeneration.path)
     ]);
     const promptRender = await (0, promptBuilder_1.buildPrompt)({
         kind: promptKind,
@@ -534,6 +536,17 @@ async function readStructureDefinition(structureDefinitionPath) {
     catch {
         return null;
     }
+}
+async function ensureStructureDefinitionForPreflight(rootPath, structureDefinitionPath) {
+    const resolvedPath = path.isAbsolute(structureDefinitionPath)
+        ? structureDefinitionPath
+        : path.join(rootPath, structureDefinitionPath);
+    const outcome = await (0, structureInference_1.generateStructureDefinition)(rootPath, resolvedPath);
+    return {
+        path: resolvedPath,
+        written: outcome.written,
+        reason: outcome.reason
+    };
 }
 async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId, focusTaskId) {
     const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');

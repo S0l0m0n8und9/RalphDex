@@ -299,6 +299,45 @@ test('buildPreflightReport surfaces an informational diagnostic when resuming fr
   assert.match(report.summary, /Workspace\/runtime: 1 info/);
 });
 
+test('buildPreflightReport surfaces an informational diagnostic when preflight generates the structure definition', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Use generated structure definition', status: 'todo' }
+    ]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: DEFAULT_CONFIG,
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: taskInspection.taskFile ? selectNextTask(taskInspection.taskFile) : null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: {
+      command: null,
+      status: 'missing',
+      executable: null
+    },
+    fileStatus,
+    structureDefinitionGeneration: {
+      path: '/workspace/.ralph/structure.json',
+      written: true,
+      reason: 'Structure definition inferred and written.'
+    }
+  });
+
+  assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'structure_definition_generated'));
+  assert.match(
+    report.diagnostics.find((diagnostic) => diagnostic.code === 'structure_definition_generated')?.message ?? '',
+    /\.ralph[\\/]+structure\.json/
+  );
+  assert.match(renderPreflightReport(report), /structure_definition_generated/);
+});
+
 test('buildPreflightReport does not emit no_actionable_task when an unselected task is still selectable', () => {
   const taskInspection = inspectTaskFileText(JSON.stringify({
     version: 2,

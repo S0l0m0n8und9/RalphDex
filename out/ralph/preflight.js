@@ -723,6 +723,9 @@ function buildPreflightReport(input) {
     if ((input.createdPaths ?? []).length > 0) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'workspace_paths_initialized', `Initialized Ralph paths: ${input.createdPaths.map((target) => relativePath(input.rootPath, target)).join(', ')}.`));
     }
+    if (input.structureDefinitionGeneration?.written) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'structure_definition_generated', `Generated structure definition at ${relativePath(input.rootPath, input.structureDefinitionGeneration.path)} during workspace preflight.`));
+    }
     if (input.sessionHandoff) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'info', 'session_handoff_available', `Resuming from handoff note ${input.sessionHandoff.agentId}-${String(input.sessionHandoff.iteration).padStart(3, '0')}.json: ${input.sessionHandoff.humanSummary}`));
     }

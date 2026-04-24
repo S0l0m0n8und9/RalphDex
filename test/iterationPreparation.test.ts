@@ -4,7 +4,10 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { recoverUnexpectedUnclaimedSelection } from '../src/ralph/iterationPreparation';
+import {
+  ensureStructureDefinitionForPreflight,
+  recoverUnexpectedUnclaimedSelection
+} from '../src/ralph/iterationPreparation';
 import { parseTaskFile, stringifyTaskFile } from '../src/ralph/taskFile';
 import { RalphTaskFile } from '../src/ralph/types';
 import { initializeFakeGitRepository } from './support/processTestHarness';
@@ -218,4 +221,41 @@ test('recoverUnexpectedUnclaimedSelection in branch-per-task records branch meta
   assert.equal(persistedClaims.claims[0]?.baseBranch, 'main');
   assert.equal(persistedClaims.claims[0]?.integrationBranch, 'ralph/integration/T90');
   assert.equal(persistedClaims.claims[0]?.featureBranch, 'ralph/T90.1');
+});
+
+test('ensureStructureDefinitionForPreflight writes a missing configured structure definition once', async () => {
+  const rootPath = await makeTempRoot();
+  await fs.mkdir(path.join(rootPath, 'src'), { recursive: true });
+  await fs.writeFile(path.join(rootPath, 'package.json'), JSON.stringify({ name: 'demo' }), 'utf8');
+
+  const result = await ensureStructureDefinitionForPreflight(rootPath, DEFAULT_CONFIG.structureDefinitionPath);
+
+  const expectedPath = path.join(rootPath, DEFAULT_CONFIG.structureDefinitionPath);
+  const raw = await fs.readFile(expectedPath, 'utf8');
+  const parsed = JSON.parse(raw) as { version: number; directories: Array<{ path: string; role: string }> };
+
+  assert.equal(result.path, expectedPath);
+  assert.equal(result.written, true);
+  assert.match(result.reason, /written/i);
+  assert.equal(parsed.version, 1);
+  assert.ok(parsed.directories.some((entry) => entry.path === 'src' && entry.role === 'source'));
+});
+
+test('ensureStructureDefinitionForPreflight is a no-op when the configured structure definition already exists', async () => {
+  const rootPath = await makeTempRoot();
+  const existingPath = path.join(rootPath, '.ralph', 'custom-structure.json');
+  const existingContent = JSON.stringify({
+    version: 1,
+    directories: [{ path: 'existing', role: 'other', description: 'keep me' }]
+  }, null, 2);
+  await fs.mkdir(path.dirname(existingPath), { recursive: true });
+  await fs.writeFile(existingPath, existingContent, 'utf8');
+
+  const result = await ensureStructureDefinitionForPreflight(rootPath, existingPath);
+  const persisted = await fs.readFile(existingPath, 'utf8');
+
+  assert.equal(result.path, existingPath);
+  assert.equal(result.written, false);
+  assert.match(result.reason, /already exists/i);
+  assert.equal(persisted, existingContent);
 });
