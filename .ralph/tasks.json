@@ -4404,11 +4404,11 @@
     {
       "id": "CR11",
       "title": "Run a bounded end-to-end self-dogfood validation pass and record remaining gaps",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "CR10"
       ],
-      "notes": "Use the hardened RalphDex flow on its own repo for a small validation pass. The output should be evidence, not new feature work: latest status, prompt evidence, validation result, and a short gap list.",
+      "notes": "Bounded self-dogfood validation pass complete. npm run validate passes (1038/1038 tests). Preflight: 2 warnings (stale provenance-failure pointer + IDE command unavailable). All 314 prior tasks confirmed done. New gap T181 added to backlog: repair stale latest-provenance-failure.json pointer after artifact cleanup. No code changes.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -4436,7 +4436,8 @@
         "self-dogfood",
         "validation",
         "evidence"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T164",
@@ -4742,7 +4743,23 @@
         "No near-invisible text observed in open state under any tested theme",
         "npm run validate passes"
       ]
+    },
+    {
+      "id": "T181",
+      "title": "Repair or suppress stale latest-provenance-failure.json pointer after artifact cleanup",
+      "status": "todo",
+      "notes": "latest-provenance-failure.json under .ralph/artifacts/ references iteration-037 artifacts that were cleaned up. The file is retained as a latest pointer but its referenced artifact directory no longer exists, causing a persistent preflight warning. Fix: when cleanup removes an iteration dir, also clear the latest-provenance-failure pointer if it references that dir (or suppress the warning when the failure record referenced dir is gone).",
+      "validation": "npm run validate",
+      "tier": "simple",
+      "acceptance": [
+        "No persistent preflight warning about missing files referenced by latest-provenance-failure.json after cleanup removes the referenced iteration directory",
+        "npm run validate passes"
+      ],
+      "context": [
+        "src/ralph/artifactStore.ts",
+        "src/ralph/preflight.ts"
+      ]
     }
   ],
-  "mutationCount": 192
+  "mutationCount": 194
 }
