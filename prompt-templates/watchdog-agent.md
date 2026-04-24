@@ -19,6 +19,8 @@ You are the Ralph watchdog agent. Interpret the mechanical health signals Ralph 
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

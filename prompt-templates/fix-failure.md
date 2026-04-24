@@ -28,6 +28,8 @@ Focus first on the concrete failure or no-progress signal carried forward from t
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

@@ -39,55 +39,6 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         deadLetter: buildDeadLetter(snapshot),
         quickActions: buildQuickActions(snapshot),
         cost: buildCostSection(snapshot),
-        orchestration: buildOrchestrationPanel(snapshot),
-    };
-}
-function buildOrchestrationPanel(snapshot) {
-    const orch = snapshot.orchestration;
-    // Return null only when there is no orchestration data at all (no pipeline run / no graph).
-    if (!orch && !snapshot.replanArtifacts?.length && snapshot.fanInRecord === undefined) {
-        return null;
-    }
-    // Build span lookup keyed by nodeId for augmenting completedNodes.
-    const spanByNodeId = new Map();
-    for (const span of snapshot.nodeSpans ?? []) {
-        spanByNodeId.set(span.nodeId, {
-            agentRole: span.agentRole,
-            stopClassification: span.stopClassification
-        });
-    }
-    const completedNodes = (orch?.completedNodes ?? []).map((node) => {
-        const span = spanByNodeId.get(node.nodeId);
-        return {
-            nodeId: node.nodeId,
-            label: node.label,
-            outcome: node.outcome,
-            finishedAt: node.finishedAt,
-            agentRole: span?.agentRole,
-            stopClassification: span?.stopClassification
-        };
-    });
-    const fanInRecord = snapshot.fanInRecord;
-    let fanInStatus = 'absent';
-    let fanInErrors = [];
-    if (fanInRecord) {
-        fanInStatus = fanInRecord.fanInResult === 'passed' ? 'passed' : 'failed';
-        fanInErrors = fanInRecord.fanInErrors ?? [];
-    }
-    const replanHistory = (snapshot.replanArtifacts ?? []).map((artifact) => ({
-        replanIndex: artifact.replanIndex,
-        triggerEvidenceClass: artifact.triggerEvidenceClass,
-        triggerDetails: artifact.triggerDetails,
-        taskGraphDiff: artifact.taskGraphDiff
-    }));
-    return {
-        activeNodeId: orch?.activeNodeId ?? null,
-        activeNodeLabel: orch?.activeNodeLabel ?? null,
-        completedNodes,
-        pendingBranchNodes: orch?.pendingBranchNodes ?? [],
-        fanInStatus,
-        fanInErrors,
-        replanHistory
     };
 }
 function buildCostSection(snapshot) {

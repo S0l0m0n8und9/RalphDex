@@ -209,6 +209,17 @@ test('buildDashboardHtml preserves live status, orchestration, task, and setting
   assert.ok(html.includes('ralphCodex.openDashboard'));
 });
 
+test('buildDashboardHtml omits orchestration tab wiring from sidebar navigation', () => {
+  const html = buildDashboardHtml(defaultState(), 'sidebar-tabs');
+
+  assert.ok(html.includes('data-sidebar-tab="run"'));
+  assert.ok(html.includes('data-sidebar-tab="agents"'));
+  assert.ok(html.includes('data-sidebar-tab="seed"'));
+  assert.ok(!html.includes('data-sidebar-tab="orchestration"'));
+  assert.ok(!html.includes('data-sidebar-panel="orchestration"'));
+  assert.ok(!html.includes('>Orchestration<'));
+});
+
 test('buildDashboardHtml keeps refreshed sidebar routing bound to live commands and typed seed-task hooks', () => {
   const html = buildDashboardHtml(defaultState({
     taskSeeding: {

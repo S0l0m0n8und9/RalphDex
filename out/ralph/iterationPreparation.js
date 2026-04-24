@@ -369,9 +369,13 @@ async function prepareIterationContext(input) {
     // Read task-plan.json when available — the Task Plan section is injected into
     // the implementer prompt regardless of whether planningPass.enabled is true so
     // that plans produced by dedicated planner agents are always surfaced.
-    const taskPlanArtifact = selectedTask
-        ? await (0, planningPass_1.readTaskPlan)(snapshot.paths.artifactDir, selectedTask.id)
-        : null;
+    // Read structure.json when available — informs the agent of the defined directory layout.
+    const [taskPlanArtifact, structureDefinition] = await Promise.all([
+        selectedTask ? (0, planningPass_1.readTaskPlan)(snapshot.paths.artifactDir, selectedTask.id) : Promise.resolve(null),
+        readStructureDefinition(path.isAbsolute(config.structureDefinitionPath)
+            ? config.structureDefinitionPath
+            : path.join(rootPath, config.structureDefinitionPath))
+    ]);
     const promptRender = await (0, promptBuilder_1.buildPrompt)({
         kind: promptKind,
         target: promptTarget,
@@ -393,6 +397,7 @@ async function prepareIterationContext(input) {
         sessionHandoff,
         selectedTaskClaim,
         taskPlanArtifact,
+        structureDefinition,
         config
     });
     const prompt = promptRender.prompt;
@@ -520,6 +525,15 @@ async function prepareIterationContext(input) {
     };
     await input.persistPreparedProvenanceBundle(preparedContext);
     return preparedContext;
+}
+async function readStructureDefinition(structureDefinitionPath) {
+    try {
+        const raw = await fs.readFile(structureDefinitionPath, 'utf8');
+        return JSON.parse(raw);
+    }
+    catch {
+        return null;
+    }
 }
 async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claimFilePath, provenanceId, agentId, focusTaskId) {
     const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');

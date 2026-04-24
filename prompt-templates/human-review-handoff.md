@@ -28,6 +28,8 @@ Treat the prior blocker as real until the repository proves otherwise. Keep the 
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

@@ -4458,7 +4458,7 @@
     {
       "id": "T165",
       "title": "Remove orchestration tab from sidebar",
-      "status": "todo",
+      "status": "in_progress",
       "validation": "npm run validate",
       "acceptance": [
         "No 'orchestration' tab appears in the sidebar view",
@@ -4619,11 +4619,11 @@
     {
       "id": "T174",
       "title": "Inject structure.d content into the agent prompt so Ralph respects the defined layout",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T173"
       ],
-      "notes": "Add a new prompt section (or extend an existing context section) that includes the structure.d content when present. The section should instruct the agent to place all new files in accordance with the defined layout and to flag deviations in the completion report. Keep prompt budget impact minimal — summarise rather than dump the full file when it is large.",
+      "notes": "Validated the structure-definition prompt wiring by adding regression coverage for both omission and populated rendering, and added a snapshot fixture for the rendered Repo Structure section.",
       "validation": "npm run validate",
       "priority": "high",
       "tier": "medium",
@@ -4636,7 +4636,8 @@
         "src/prompt/promptBuilder.ts",
         "src/ralph/iterationPreparation.ts",
         "prompt-templates/"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T175",
@@ -4878,5 +4879,5 @@
       ]
     }
   ],
-  "mutationCount": 197
+  "mutationCount": 198
 }

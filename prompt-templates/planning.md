@@ -19,6 +19,8 @@ Do not implement code changes in this run. Analyse the selected task, decompose 
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

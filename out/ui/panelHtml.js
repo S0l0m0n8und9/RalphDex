@@ -6,7 +6,6 @@ const DASHBOARD_TABS = [
     { id: 'overview', label: 'Overview' },
     { id: 'work', label: 'Work' },
     { id: 'diagnostics', label: 'Diagnostics' },
-    { id: 'orchestration', label: 'Orchestration' },
     { id: 'settings', label: 'Settings' }
 ];
 // ---------------------------------------------------------------------------
@@ -897,7 +896,6 @@ details[open] > .settings-advanced-toggle::before { content: '▾ '; }
 .overview-shell,
 .work-shell,
 .diagnostics-shell,
-.orchestration-shell,
 .settings-shell {
   display: grid;
   gap: 14px;
@@ -1467,7 +1465,7 @@ function buildHeroCard(state) {
     const title = currentTask ? `${currentTask.id} · ${currentTask.title}` : 'No active task selected';
     const summary = currentTask
         ? state.loopState === 'running'
-            ? `${(0, htmlHelpers_1.esc)(state.workspaceName)} is executing ${(0, htmlHelpers_1.esc)(currentTask.id)} with the ${(0, htmlHelpers_1.esc)(state.agentRole)} role. Durable snapshot data remains live across overview, work, diagnostics, orchestration, and settings.`
+            ? `${(0, htmlHelpers_1.esc)(state.workspaceName)} is executing ${(0, htmlHelpers_1.esc)(currentTask.id)} with the ${(0, htmlHelpers_1.esc)(state.agentRole)} role. Durable snapshot data remains live across overview, work, diagnostics, and settings.`
             : `${(0, htmlHelpers_1.esc)(state.workspaceName)} is ready for the next loop. Resume when you want Ralph to continue ${(0, htmlHelpers_1.esc)(currentTask.id)}.`
         : 'No task is selected yet. Seed or regenerate work to populate the dashboard.';
     const loopDisabled = state.loopState === 'running' ? ' disabled title="Loop already running"' : '';
@@ -1690,68 +1688,6 @@ function buildDiagnosticsTab(state) {
     </div>
   </div>`;
 }
-function buildOrchestrationTab(state) {
-    const orch = state.dashboardSnapshot?.orchestration ?? null;
-    if (!orch) {
-        return `<div class="orchestration-shell">
-      <div class="diagnostics-grid">
-        <div class="dashboard-summary-card full">
-          <div class="card-title">Orchestration</div>
-          <div class="empty">No orchestration data recorded for the latest pipeline run. Start a pipeline to populate this panel.</div>
-        </div>
-      </div>
-    </div>`;
-    }
-    // Fan-in status badge
-    const fanInBadgeClass = orch.fanInStatus === 'passed' ? 'ok' : orch.fanInStatus === 'failed' ? 'warn' : '';
-    const fanInLabel = orch.fanInStatus === 'absent' ? 'not evaluated' : orch.fanInStatus;
-    // Completed nodes with span detail
-    const completedNodesHtml = orch.completedNodes.length > 0
-        ? orch.completedNodes.map((node) => `<div class="dead-letter-item">
-        <div><strong>${(0, htmlHelpers_1.esc)(node.nodeId)}</strong> · ${(0, htmlHelpers_1.esc)(node.label)}</div>
-        <div class="dead-letter-meta">
-          <div><strong>Outcome</strong> ${(0, htmlHelpers_1.esc)(node.outcome)}${node.finishedAt ? ` · <strong>At</strong> ${formatUtc(node.finishedAt)}` : ''}</div>
-          ${node.agentRole ? `<div><strong>Role</strong> ${(0, htmlHelpers_1.esc)(node.agentRole)}</div>` : ''}
-          ${node.stopClassification ? `<div><strong>Stop</strong> ${(0, htmlHelpers_1.esc)(node.stopClassification)}</div>` : ''}
-        </div>
-      </div>`).join('\n')
-        : '<div class="empty">No nodes completed yet.</div>';
-    // Pending branch nodes
-    const pendingNodesHtml = orch.pendingBranchNodes.length > 0
-        ? orch.pendingBranchNodes.map((node) => `<span class="pill">${(0, htmlHelpers_1.esc)(node.nodeId)} · ${(0, htmlHelpers_1.esc)(node.label)}</span>`).join('\n')
-        : '<div class="empty">No pending branches.</div>';
-    // Replan history
-    const replanHtml = orch.replanHistory.length > 0
-        ? orch.replanHistory.map((r) => `<div class="failure-meta">
-        <div><strong>Replan ${r.replanIndex}</strong> · triggers: ${(0, htmlHelpers_1.esc)(r.triggerEvidenceClass.join(', '))}</div>
-        <div><strong>Details</strong> ${(0, htmlHelpers_1.esc)(r.triggerDetails)}</div>
-        <div><strong>Diff</strong> +${r.taskGraphDiff.addedTaskIds.length} added · -${r.taskGraphDiff.removedTaskIds.length} removed · ~${r.taskGraphDiff.modifiedTaskIds.length} modified</div>
-      </div>`).join('\n')
-        : '<div class="empty">No replanning recorded.</div>';
-    return `<div class="orchestration-shell">
-    <div class="diagnostics-grid">
-      <div class="dashboard-summary-card full">
-        <div class="card-title">Graph State</div>
-        <div class="pipeline-meta">
-          <div><strong>Active node</strong> ${(0, htmlHelpers_1.esc)(orch.activeNodeId ?? 'none')}${orch.activeNodeLabel ? ` · ${(0, htmlHelpers_1.esc)(orch.activeNodeLabel)}` : ''}</div>
-          <div><strong>Fan-in</strong> <span class="metric-value ${fanInBadgeClass}">${(0, htmlHelpers_1.esc)(fanInLabel)}</span>${orch.fanInErrors.length > 0 ? ` · ${(0, htmlHelpers_1.esc)(orch.fanInErrors.join('; '))}` : ''}</div>
-        </div>
-        <div class="card-title" style="margin-top:12px;">Pending Branches</div>
-        <div class="pill-row">${pendingNodesHtml}</div>
-      </div>
-
-      <div class="dashboard-summary-card">
-        <div class="card-title">Completed Nodes</div>
-        ${completedNodesHtml}
-      </div>
-
-      <div class="dashboard-summary-card">
-        <div class="card-title">Replan History</div>
-        ${replanHtml}
-      </div>
-    </div>
-  </div>`;
-}
 function buildSettingsTab(state) {
     return `<div class="settings-shell">
     <div class="card">
@@ -1815,9 +1751,6 @@ function buildPanelDashboardHtml(state, nonce) {
           </div>
           <div id="tab-diagnostics" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-diagnostics" hidden>
             ${buildDiagnosticsTab(state)}
-          </div>
-          <div id="tab-orchestration" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-orchestration" hidden>
-            ${buildOrchestrationTab(state)}
           </div>
           <div id="tab-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-button-settings" hidden>
             ${buildSettingsTab(state)}

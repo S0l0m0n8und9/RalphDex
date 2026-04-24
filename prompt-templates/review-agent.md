@@ -19,6 +19,8 @@ Do not implement fixes in this run. Run the validation command when available, i
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

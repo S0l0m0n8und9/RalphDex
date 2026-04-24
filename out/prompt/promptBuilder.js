@@ -777,6 +777,37 @@ function buildOperatingRules(agentRole, taskMode) {
         '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
 }
+function buildStructureContext(definition) {
+    if (!definition || definition.directories.length === 0) {
+        return '';
+    }
+    const lines = [
+        '## Repo Structure',
+        'Place new files according to this layout. Flag deviations in your completion report.'
+    ];
+    const maxDirs = 20;
+    for (const dir of definition.directories.slice(0, maxDirs)) {
+        const desc = dir.description ? ` ${dir.description}` : '';
+        lines.push(`- ${dir.path}/ (${dir.role}):${desc}`);
+    }
+    if (definition.directories.length > maxDirs) {
+        lines.push(`- (${definition.directories.length - maxDirs} more directories not shown)`);
+    }
+    if (definition.placementRules && definition.placementRules.length > 0) {
+        lines.push('- File placement rules:');
+        for (const rule of definition.placementRules.slice(0, 10)) {
+            const desc = rule.description ? ` (${rule.description})` : '';
+            lines.push(`  - ${rule.pattern} → ${rule.directory}${desc}`);
+        }
+    }
+    if (definition.forbiddenPaths && definition.forbiddenPaths.length > 0) {
+        lines.push('- Forbidden paths (do not create or modify):');
+        for (const fp of definition.forbiddenPaths.slice(0, 5)) {
+            lines.push(`  - ${fp.path}: ${fp.reason}`);
+        }
+    }
+    return lines.join('\n');
+}
 function buildExecutionContract(target, kind, agentRole, taskMode) {
     if (kind === 'replenish-backlog') {
         const contract = [
@@ -1200,6 +1231,10 @@ async function buildPrompt(input) {
     const taskPlanContextLines = input.taskPlanArtifact
         ? ['## Task Plan', ...(0, planningPass_1.formatTaskPlanContext)(input.taskPlanArtifact).split('\n').filter((l) => l.length > 0)]
         : [];
+    // When a structure.json exists the "Repo Structure" section (including its heading)
+    // is injected after the repo context section. An empty string collapses cleanly
+    // in the template so no orphan heading appears when the file is absent.
+    const structureContext = buildStructureContext(input.structureDefinition);
     const dynamicSectionBodies = {
         preflightContext: buildPreflightContext(input.preflightReport),
         objectiveContext: clipText(input.objectiveText, budgetPolicy.objectiveLines, budgetPolicy.objectiveChars),
@@ -1269,6 +1304,7 @@ async function buildPrompt(input) {
         preflight_context: placeholderFor('preflightContext'),
         objective_context: placeholderFor('objectiveContext'),
         repo_context: placeholderFor('repoContext'),
+        structure_context: structureContext,
         runtime_context: placeholderFor('runtimeContext'),
         task_plan_context: placeholderFor('taskPlanContext'),
         task_context: placeholderFor('taskContext'),
@@ -1343,6 +1379,7 @@ async function buildPrompt(input) {
             repoContextSnapshot: input.summary,
             runtimeContext: sectionBodies.runtimeContext,
             ...(taskPlanContextLines.length > 0 ? { taskPlanContext: taskPlanContextLines } : {}),
+            ...(structureContext ? { structureContext } : {}),
             taskContext: sectionBodies.taskContext,
             progressContext: sectionBodies.progressContext,
             priorIterationContext: sectionBodies.priorIterationContext,

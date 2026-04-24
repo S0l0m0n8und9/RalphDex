@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import test from 'node:test';
 import { buildPrompt, decidePromptKind } from '../src/prompt/promptBuilder';
 import { RalphPaths } from '../src/ralph/pathResolver';
+import { StructureDefinition } from '../src/ralph/structureDefinition';
 import { RalphPromptKind, RalphTask } from '../src/ralph/types';
 import {
   PromptScenarioFixture,
@@ -134,4 +135,63 @@ test('prompt builder matches readable golden snapshots for each valid fixture sc
     assertPromptSemantics(scenario, render.prompt);
     await assertMarkdownSnapshot(decision.kind, scenario, render.prompt);
   }
+});
+
+test('prompt builder snapshot includes Repo Structure section when structureDefinition is present', async () => {
+  const scenario = promptScenarioList.find((entry) => entry.name === 'partialProgress');
+  assert.ok(scenario, 'partial-progress fixture must exist');
+
+  const state = buildWorkspaceStateForScenario(scenario);
+  const selectedTask = findSelectedTaskForScenario(scenario);
+  const structureDefinition: StructureDefinition = {
+    version: 1,
+    directories: [
+      { path: 'src', role: 'source', description: 'Production TypeScript source files.' },
+      { path: 'test', role: 'test', description: 'Node test suites.' },
+      { path: 'docs', role: 'docs', description: 'Durable product and architecture docs.' }
+    ],
+    placementRules: [
+      { pattern: 'src/**/*.ts', directory: 'src', description: 'Implementation code stays under src/.' },
+      { pattern: 'test/**/*.test.ts', directory: 'test', description: 'Regression coverage belongs in test/.' }
+    ],
+    forbiddenPaths: [
+      { path: 'out/**', reason: 'Generated build output.' }
+    ]
+  };
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: state.nextIteration,
+    selectionReason: 'Snapshot fixture for populated structure definition context.',
+    objectiveText: scenario.prd,
+    progressText: scenario.progress,
+    taskCounts: taskCountsForScenario(scenario),
+    summary: scenario.workspaceScan,
+    state,
+    paths: createPaths(scenario.workspaceScan.rootPath),
+    taskFile: scenario.taskFile,
+    selectedTask,
+    taskValidationHint: selectedValidation(selectedTask),
+    effectiveValidationCommand: selectedValidation(selectedTask),
+    normalizedValidationCommandFrom: selectedValidation(selectedTask),
+    validationCommand: selectedValidation(selectedTask),
+    preflightReport: {
+      ready: true,
+      summary: 'Structure-definition snapshot fixture is ready for prompt rendering.',
+      diagnostics: []
+    },
+    structureDefinition,
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  await assertMarkdownSnapshot(
+    'iteration',
+    { ...scenario, name: 'partial-progress-with-structure' },
+    render.prompt
+  );
 });

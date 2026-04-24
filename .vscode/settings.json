@@ -3,11 +3,11 @@
     "kiro-codex-ide.codex.steeringPath": ".",
     "kiro-codex-ide.codex.specsPath": ".ralph",
     "ralphCodex.agentCount": 1,
-    "ralphCodex.cliProvider": "claude",
+    "ralphCodex.cliProvider": "codex",
     "ralphCodex.promptBudgetProfile": "claude",
     "ralphCodex.ralphIterationCap": 15,
     "ralphCodex.autoReloadOnControlPlaneChange": false,
-    "ralphCodex.model": "claude-sonnet-4-6",
+    "ralphCodex.model": "gpt-5.4",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,
     "ralphCodex.scmStrategy": "commit-on-done",
@@ -16,14 +16,16 @@
     "ralphCodex.modelTiering": {
         "enabled": true,
         "simple": {
-            "model": "claude-haiku-4-5"
+            "model": "gpt-5.3-codex",
+            "provider": "codex"
         },
         "medium": {
-            "model": "claude-sonnet-4-6",
-            "provider": "claude"
+            "model": "gpt-5.4",
+            "provider": "codex"
         },
         "complex": {
-            "model": "claude-opus-4-6"
+            "model": "gpt-5.5",
+            "provider": "codex"
         }
     },
     "sarif-viewer.connectToGithubCodeScanning": "off",

@@ -68,6 +68,7 @@ import {
   writePreflightArtifacts,
   writePromptArtifacts
 } from './artifactStore';
+import { StructureDefinition } from './structureDefinition';
 
 const EMPTY_GIT_STATUS: GitStatusSnapshot = {
   available: false,
@@ -504,9 +505,15 @@ export async function prepareIterationContext(
   // Read task-plan.json when available — the Task Plan section is injected into
   // the implementer prompt regardless of whether planningPass.enabled is true so
   // that plans produced by dedicated planner agents are always surfaced.
-  const taskPlanArtifact = selectedTask
-    ? await readTaskPlan(snapshot.paths.artifactDir, selectedTask.id)
-    : null;
+  // Read structure.json when available — informs the agent of the defined directory layout.
+  const [taskPlanArtifact, structureDefinition] = await Promise.all([
+    selectedTask ? readTaskPlan(snapshot.paths.artifactDir, selectedTask.id) : Promise.resolve(null),
+    readStructureDefinition(
+      path.isAbsolute(config.structureDefinitionPath)
+        ? config.structureDefinitionPath
+        : path.join(rootPath, config.structureDefinitionPath)
+    )
+  ]);
 
   const promptRender = await buildPrompt({
     kind: promptKind,
@@ -529,6 +536,7 @@ export async function prepareIterationContext(
       sessionHandoff,
       selectedTaskClaim,
       taskPlanArtifact,
+      structureDefinition,
       config
     });
   const prompt = promptRender.prompt;
@@ -665,6 +673,15 @@ export async function prepareIterationContext(
   await input.persistPreparedProvenanceBundle(preparedContext);
 
   return preparedContext;
+}
+
+async function readStructureDefinition(structureDefinitionPath: string): Promise<StructureDefinition | null> {
+  try {
+    const raw = await fs.readFile(structureDefinitionPath, 'utf8');
+    return JSON.parse(raw) as StructureDefinition;
+  } catch {
+    return null;
+  }
 }
 
 async function selectClaimedTask(

@@ -16,6 +16,8 @@ You are the Ralph SCM conflict-resolution agent. A git merge has failed due to c
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

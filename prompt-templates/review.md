@@ -19,6 +19,8 @@ Do not implement fixes in this run. Inspect the done task's artifacts, acceptanc
 ## Repo Context
 {{repo_context}}
 
+{{structure_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

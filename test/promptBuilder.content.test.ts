@@ -3,6 +3,7 @@ import test from 'node:test';
 import { buildPrompt, PromptRenderResult } from '../src/prompt/promptBuilder';
 import { RalphPaths } from '../src/ralph/pathResolver';
 import { TaskPlanArtifact } from '../src/ralph/planningPass';
+import { StructureDefinition } from '../src/ralph/structureDefinition';
 import { RalphAgentRole, RalphTaskMode } from '../src/ralph/types';
 import { RalphPromptKind, RalphTask } from '../src/ralph/types';
 import {
@@ -201,4 +202,65 @@ test('iteration prompt does not include Task Plan section when taskPlanArtifact 
   const render = await renderScenario(promptScenarios.partialProgress, 'iteration');
 
   assert.doesNotMatch(render.prompt, /## Task Plan/);
+});
+
+test('iteration prompt omits Repo Structure section cleanly when structureDefinition is absent', async () => {
+  const render = await renderScenario(promptScenarios.partialProgress, 'iteration');
+
+  assert.doesNotMatch(render.prompt, /## Repo Structure/);
+  assert.doesNotMatch(render.prompt, /Place new files according to this layout\./);
+});
+
+test('iteration prompt includes Repo Structure guidance when structureDefinition is provided', async () => {
+  const scenario = promptScenarios.partialProgress;
+  const state = buildWorkspaceStateForScenario(scenario);
+  const selectedTask = findSelectedTaskForScenario(scenario);
+  const validationCommand = selectedTask?.validation ?? null;
+  const structureDefinition: StructureDefinition = {
+    version: 1,
+    directories: [
+      { path: 'src', role: 'source', description: 'Production TypeScript source files.' },
+      { path: 'test', role: 'test', description: 'Node test suites.' }
+    ],
+    placementRules: [
+      { pattern: 'src/**/*.ts', directory: 'src', description: 'All implementation code belongs under src/.' }
+    ],
+    forbiddenPaths: [
+      { path: 'out/**', reason: 'Generated output only.' }
+    ]
+  };
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: state.nextIteration,
+    selectionReason: 'structure-definition context test',
+    objectiveText: scenario.prd,
+    progressText: scenario.progress,
+    taskCounts: taskCountsForScenario(scenario),
+    summary: scenario.workspaceScan,
+    state,
+    paths: createPaths(scenario.workspaceScan.rootPath),
+    taskFile: scenario.taskFile,
+    selectedTask,
+    taskValidationHint: validationCommand,
+    effectiveValidationCommand: validationCommand,
+    normalizedValidationCommandFrom: validationCommand,
+    validationCommand,
+    preflightReport: { ready: true, summary: 'Ready.', diagnostics: [] },
+    structureDefinition,
+    config: {
+      promptTemplateDirectory: '',
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8,
+      agentRole: 'implementer'
+    }
+  });
+
+  assert.match(render.prompt, /## Repo Structure/);
+  assert.match(render.prompt, /Place new files according to this layout\. Flag deviations in your completion report\./);
+  assert.match(render.prompt, /- src\/ \(source\): Production TypeScript source files\./);
+  assert.match(render.prompt, /- test\/ \(test\): Node test suites\./);
+  assert.match(render.prompt, /src\/\*\*\/\*\.ts → src/);
+  assert.match(render.prompt, /out\/\*\*: Generated output only\./);
 });

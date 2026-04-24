@@ -406,6 +406,7 @@ export interface RalphPromptEvidence {
     repoContextSnapshot: WorkspaceScan;
     runtimeContext: string[];
     taskPlanContext?: string[];
+    structureContext?: string;
     taskContext: string[];
     progressContext: string[];
     priorIterationContext: string[];
