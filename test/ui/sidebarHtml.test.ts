@@ -31,17 +31,6 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
 function populatedDashboardSnapshot(): DashboardSnapshot {
   return {
     workspaceName: 'test-ws',
-    pipeline: {
-      runId: 'pipeline-001',
-      status: 'running',
-      phase: 'loop',
-      rootTaskId: 'Tpipe-1',
-      decomposedTaskCount: 3,
-      loopStartTime: '2026-01-01T00:00:00.000Z',
-      loopEndTime: null,
-      prUrl: null,
-      lastStopReason: 'repeated_no_progress'
-    },
     taskBoard: {
       counts: { todo: 2, in_progress: 1, blocked: 1, done: 4 },
       deadLetterCount: 1,

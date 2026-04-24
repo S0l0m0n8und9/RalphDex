@@ -3,14 +3,13 @@
  *
  * `buildDashboardSnapshot` projects from a durable `RalphStatusSnapshot`
  * (plus optional multi-agent summaries) into a `DashboardSnapshot` covering
- * six sections: pipeline strip, task board, agent grid, failure feed,
- * dead-letter, and quick-action inputs.
+ * five sections: task board, agent grid, failure feed, dead-letter,
+ * and quick-action inputs.
  *
  * All sections use null or empty states when source data is unavailable,
  * so callers can always render a valid (possibly empty) dashboard.
  */
 
-import type { PipelineRunArtifact, PipelineRunStatus, PipelinePhase } from '../ralph/pipeline';
 import type { RalphStatusSnapshot } from '../ralph/statusReport';
 import {
   buildNoProgressHeatmap,
@@ -19,22 +18,6 @@ import {
 } from '../ralph/multiAgentStatus';
 import type { DeadLetterEntry } from '../ralph/deadLetter';
 import type { FailureCategoryId, PromptCacheStats, RalphTaskCounts } from '../ralph/types';
-
-// ---------------------------------------------------------------------------
-// Pipeline strip
-// ---------------------------------------------------------------------------
-
-export interface PipelineStrip {
-  runId: string;
-  status: PipelineRunStatus;
-  phase: PipelinePhase | null;
-  rootTaskId: string;
-  decomposedTaskCount: number;
-  loopStartTime: string;
-  loopEndTime: string | null;
-  prUrl: string | null;
-  lastStopReason: string | null;
-}
 
 // ---------------------------------------------------------------------------
 // Task board
@@ -150,7 +133,6 @@ export interface QuickActionsSection {
 
 export interface DashboardSnapshot {
   workspaceName: string;
-  pipeline: PipelineStrip | null;
   taskBoard: TaskBoardSection;
   agentGrid: AgentGridSection;
   diagnosis: DiagnosisSection | null;
@@ -167,7 +149,7 @@ export interface DashboardSnapshot {
 /**
  * Project from a durable `RalphStatusSnapshot` into a typed `DashboardSnapshot`.
  *
- * All six dashboard sections are populated from canonical durable sources
+ * All dashboard sections are populated from canonical durable sources
  * (`collectStatusSnapshot` output and optional multi-agent summaries) rather
  * than a separate watcher-local model.  Sections with no available data
  * return null or empty defaults.
@@ -182,7 +164,6 @@ export function buildDashboardSnapshot(
 ): DashboardSnapshot {
   return {
     workspaceName: snapshot.workspaceName,
-    pipeline: buildPipelineStrip(snapshot),
     taskBoard: buildTaskBoard(snapshot),
     agentGrid: buildAgentGrid(agentSummaries),
     diagnosis: buildDiagnosis(snapshot),
@@ -200,24 +181,6 @@ function buildCostSection(snapshot: RalphStatusSnapshot): DashboardCostSection {
   const promptCacheStats = bundle?.promptCacheStats ?? null;
   const hasAnyCostData = executionCostUsd !== null || diagnosticCostUsd !== null;
   return { executionCostUsd, diagnosticCostUsd, promptCacheStats, hasAnyCostData };
-}
-
-function buildPipelineStrip(snapshot: RalphStatusSnapshot): PipelineStrip | null {
-  const run = snapshot.latestPipelineRun;
-  if (!run) {
-    return null;
-  }
-  return {
-    runId: run.runId,
-    status: run.status,
-    phase: run.phase ?? null,
-    rootTaskId: run.rootTaskId,
-    decomposedTaskCount: run.decomposedTaskIds.length,
-    loopStartTime: run.loopStartTime,
-    loopEndTime: run.loopEndTime ?? null,
-    prUrl: run.prUrl ?? null,
-    lastStopReason: snapshot.lastIteration?.stopReason ?? null,
-  };
 }
 
 function buildTaskBoard(snapshot: RalphStatusSnapshot): TaskBoardSection {

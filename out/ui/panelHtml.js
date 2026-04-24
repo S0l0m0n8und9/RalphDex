@@ -106,7 +106,6 @@ body {
 .metric-value.warn { color: var(--warn); }
 .metric-value.ok { color: var(--ok); }
 
-.pipeline-meta,
 .failure-meta,
 .dead-letter-meta {
   display: grid;
@@ -1090,44 +1089,6 @@ function formatUtc(value) {
     }
     return (0, htmlHelpers_1.esc)(date.toISOString().replace('.000Z', 'Z'));
 }
-function formatElapsed(start, end) {
-    const startTime = new Date(start).getTime();
-    const endTime = end ? new Date(end).getTime() : Date.now();
-    if (Number.isNaN(startTime) || Number.isNaN(endTime) || endTime < startTime) {
-        return 'unknown';
-    }
-    const totalSeconds = Math.round((endTime - startTime) / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    if (minutes === 0) {
-        return `${seconds}s`;
-    }
-    return `${minutes}m ${seconds}s`;
-}
-function buildPipelineSection(state) {
-    const snapshot = state.dashboardSnapshot;
-    if (!snapshot?.pipeline) {
-        return `<div class="dashboard-summary-card full">
-      <div class="card-title">Pipeline Strip</div>
-      <div class="empty">No pipeline run artifact recorded yet.</div>
-    </div>`;
-    }
-    const pipeline = snapshot.pipeline;
-    return `<div class="dashboard-summary-card full">
-    <div class="card-title">Pipeline Strip</div>
-    <div class="pipeline-meta">
-      <div><strong>Run</strong> ${(0, htmlHelpers_1.esc)(pipeline.runId)} · ${(0, htmlHelpers_1.esc)(pipeline.status)}${pipeline.phase ? ` · phase ${(0, htmlHelpers_1.esc)(pipeline.phase)}` : ''}</div>
-      <div><strong>Elapsed</strong> ${(0, htmlHelpers_1.esc)(formatElapsed(pipeline.loopStartTime, pipeline.loopEndTime))}</div>
-      <div><strong>Root Task</strong> ${(0, htmlHelpers_1.esc)(pipeline.rootTaskId)} · ${pipeline.decomposedTaskCount} child task(s)</div>
-      <div><strong>Started</strong> ${formatUtc(pipeline.loopStartTime)}${pipeline.loopEndTime ? ` · <strong>Ended</strong> ${formatUtc(pipeline.loopEndTime)}` : ''}</div>
-      <div><strong>Last Stop</strong> ${(0, htmlHelpers_1.esc)(pipeline.lastStopReason ?? 'none')}</div>
-      <div><strong>PR</strong> ${pipeline.prUrl ? (0, htmlHelpers_1.esc)(pipeline.prUrl) : 'none'}</div>
-    </div>
-    <div class="inline-actions">
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Open Pipeline</span><span class="btn-spinner"></span></button>
-    </div>
-  </div>`;
-}
 function buildTaskBoardSection(state) {
     const snapshot = state.dashboardSnapshot;
     const taskBoard = snapshot?.taskBoard ?? null;
@@ -1575,8 +1536,6 @@ function buildOverviewTab(state) {
           </div>
         </div>
 
-        ${buildPipelineSection(state)}
-
         <div class="card">
           <div class="card-title">Recent Activity</div>
           <div class="history-list">
@@ -1665,7 +1624,6 @@ function buildWorkTab(state) {
 function buildDiagnosticsTab(state) {
     return `<div class="diagnostics-shell">
     <div class="diagnostics-grid">
-      ${buildPipelineSection(state)}
       ${buildTaskBoardSection(state)}
       ${buildDiagnosisSection(state)}
       ${buildFailureFeedSection(state)}

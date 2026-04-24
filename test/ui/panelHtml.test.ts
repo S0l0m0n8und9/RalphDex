@@ -33,17 +33,6 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
 function populatedDashboardSnapshot(): DashboardSnapshot {
   return {
     workspaceName: 'test-ws',
-    pipeline: {
-      runId: 'pipeline-001',
-      status: 'running',
-      phase: 'loop',
-      rootTaskId: 'Tpipe-1',
-      decomposedTaskCount: 3,
-      loopStartTime: '2026-01-01T00:00:00.000Z',
-      loopEndTime: null,
-      prUrl: null,
-      lastStopReason: 'repeated_no_progress'
-    },
     taskBoard: {
       counts: { todo: 2, in_progress: 1, blocked: 1, done: 4 },
       deadLetterCount: 1,
@@ -283,8 +272,6 @@ test('buildPanelDashboardHtml shows empty state when no tasks and no PRD', () =>
 
 test('buildPanelDashboardHtml renders empty dashboard summary sections when no durable snapshot is loaded', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'dash-empty');
-  assert.ok(html.includes('Pipeline'));
-  assert.ok(html.includes('No pipeline run artifact recorded yet.'));
   assert.ok(html.includes('Task board unavailable until Ralph status is loaded.'));
   assert.ok(html.includes('No focused diagnosis is available for the selected task.'));
   assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
@@ -321,11 +308,8 @@ test('buildPanelDashboardHtml renders accessible task and history controls with 
   assert.ok(html.includes('type: \'open-iteration-artifact\''));
 });
 
-test('buildPanelDashboardHtml renders populated pipeline, agent, task, dead-letter, and failure sections', () => {
+test('buildPanelDashboardHtml renders populated agent, task, dead-letter, and failure sections', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-full');
-  assert.ok(html.includes('pipeline-001'));
-  assert.ok(html.includes('Last Stop</strong> repeated_no_progress'));
-  assert.ok(html.includes('data-command="ralphCodex.openLatestPipelineRun"'));
   assert.match(html, /Done<\/span><span class="metric-value ok">4<\/span>/);
   assert.ok(html.includes('Dead-Letter'));
   assert.ok(html.includes('Recover failed task'));
@@ -352,7 +336,6 @@ test('buildPanelDashboardHtml prefers durable snapshot sections over empty-state
   assert.ok(html.includes('Dead-Letter'));
   assert.ok(html.includes('Recover failed task'));
   assert.ok(html.includes('agent-alpha'));
-  assert.ok(!html.includes('No pipeline run artifact recorded yet.'));
   assert.ok(!html.includes('Task board unavailable until Ralph status is loaded.'));
   assert.ok(!html.includes('No focused diagnosis is available for the selected task.'));
   assert.ok(!html.includes('No durable agent identity records found yet.'));

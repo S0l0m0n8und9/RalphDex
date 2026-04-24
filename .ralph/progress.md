@@ -337,3 +337,4 @@
 - Removed all UI-facing 'Initialize Workspace' instances from sidebar/dashboard and Command Palette contributions; updated user-facing copy and tests; npm run validate passed.
 - Confirmed no orchestration sidebar tab wiring remains in source/manifest paths and added a regression test that package contributions contain no legacy orchestration view or command ids/labels.
 - Added an 'Open PRD wizard' button to the simple sidebar tab, reusing the existing ralphCodex.openPrdWizard command binding, and added regression coverage for the simple-mode affordance.
+- Removed the shared pipeline-strip dashboard section from panel surfaces, deleted the typed pipeline snapshot projection, updated UI/snapshot tests, and verified that src no longer contains any 'pipeline strip' references.

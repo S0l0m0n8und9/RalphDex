@@ -4,8 +4,8 @@
  *
  * `buildDashboardSnapshot` projects from a durable `RalphStatusSnapshot`
  * (plus optional multi-agent summaries) into a `DashboardSnapshot` covering
- * six sections: pipeline strip, task board, agent grid, failure feed,
- * dead-letter, and quick-action inputs.
+ * five sections: task board, agent grid, failure feed, dead-letter,
+ * and quick-action inputs.
  *
  * All sections use null or empty states when source data is unavailable,
  * so callers can always render a valid (possibly empty) dashboard.
@@ -19,7 +19,7 @@ const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 /**
  * Project from a durable `RalphStatusSnapshot` into a typed `DashboardSnapshot`.
  *
- * All six dashboard sections are populated from canonical durable sources
+ * All dashboard sections are populated from canonical durable sources
  * (`collectStatusSnapshot` output and optional multi-agent summaries) rather
  * than a separate watcher-local model.  Sections with no available data
  * return null or empty defaults.
@@ -31,7 +31,6 @@ const multiAgentStatus_1 = require("../ralph/multiAgentStatus");
 function buildDashboardSnapshot(snapshot, agentSummaries = null) {
     return {
         workspaceName: snapshot.workspaceName,
-        pipeline: buildPipelineStrip(snapshot),
         taskBoard: buildTaskBoard(snapshot),
         agentGrid: buildAgentGrid(agentSummaries),
         diagnosis: buildDiagnosis(snapshot),
@@ -48,23 +47,6 @@ function buildCostSection(snapshot) {
     const promptCacheStats = bundle?.promptCacheStats ?? null;
     const hasAnyCostData = executionCostUsd !== null || diagnosticCostUsd !== null;
     return { executionCostUsd, diagnosticCostUsd, promptCacheStats, hasAnyCostData };
-}
-function buildPipelineStrip(snapshot) {
-    const run = snapshot.latestPipelineRun;
-    if (!run) {
-        return null;
-    }
-    return {
-        runId: run.runId,
-        status: run.status,
-        phase: run.phase ?? null,
-        rootTaskId: run.rootTaskId,
-        decomposedTaskCount: run.decomposedTaskIds.length,
-        loopStartTime: run.loopStartTime,
-        loopEndTime: run.loopEndTime ?? null,
-        prUrl: run.prUrl ?? null,
-        lastStopReason: snapshot.lastIteration?.stopReason ?? null,
-    };
 }
 function buildTaskBoard(snapshot) {
     return {

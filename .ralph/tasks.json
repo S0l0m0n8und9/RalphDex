@@ -4511,7 +4511,8 @@
     {
       "id": "T168",
       "title": "Remove all 'pipeline strip' section instances from UI",
-      "status": "todo",
+      "status": "done",
+      "notes": "Removed the shared pipeline-strip dashboard section from panel surfaces, deleted the typed pipeline snapshot projection, updated UI/snapshot tests, and verified that src no longer contains any 'pipeline strip' references.",
       "validation": "npm run validate",
       "acceptance": [
         "No 'pipeline strip' section rendered in any webview or sidebar panel",
@@ -4520,7 +4521,8 @@
       "context": [
         "src/commands/registerCommands.ts",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T169",
@@ -4885,5 +4887,5 @@
       ]
     }
   ],
-  "mutationCount": 201
+  "mutationCount": 202
 }

@@ -8,7 +8,6 @@ import type { RalphStatusSnapshot } from '../src/ralph/statusReport';
 import type { AgentStatusSummary, AgentHandoffSummary } from '../src/ralph/multiAgentStatus';
 import type { DeadLetterEntry } from '../src/ralph/deadLetter';
 import type { FailureAnalysis } from '../src/ralph/failureDiagnostics';
-import type { PipelineRunArtifact } from '../src/ralph/pipeline';
 import type { FanInRecord, OrchestrationNodeSpan, RalphProvenanceBundle, ReplanDecisionArtifact } from '../src/ralph/types';
 
 // ---------------------------------------------------------------------------
@@ -29,7 +28,6 @@ function minimalSnapshot(
       | 'nextIteration'
       | 'taskCounts'
       | 'selectedTask'
-      | 'latestPipelineRun'
       | 'latestRemediation'
       | 'deadLetterEntries'
       | 'lastFailureCategory'
@@ -51,7 +49,6 @@ function minimalSnapshot(
     nextIteration: 1,
     taskCounts: null,
     selectedTask: null,
-    latestPipelineRun: null,
     latestRemediation: null,
     deadLetterEntries: undefined,
     lastFailureCategory: undefined,
@@ -132,21 +129,6 @@ function makeHandoff(
   };
 }
 
-function makePipelineRun(overrides: Partial<PipelineRunArtifact> = {}): PipelineRunArtifact {
-  return {
-    schemaVersion: 1,
-    kind: 'pipelineRun',
-    runId: 'pipeline-run-001',
-    prdHash: 'abc123',
-    prdPath: '.ralph/prd.md',
-    rootTaskId: 'T1',
-    decomposedTaskIds: ['T2', 'T3', 'T4'],
-    loopStartTime: '2026-01-01T00:00:00.000Z',
-    status: 'running',
-    ...overrides,
-  };
-}
-
 // ---------------------------------------------------------------------------
 // Empty workspace
 // ---------------------------------------------------------------------------
@@ -156,7 +138,6 @@ test('buildDashboardSnapshot: empty Ralph workspace returns null/empty sections'
   const result: DashboardSnapshot = buildDashboardSnapshot(snapshot);
 
   assert.strictEqual(result.workspaceName, 'test-workspace');
-  assert.strictEqual(result.pipeline, null);
   assert.strictEqual(result.taskBoard.counts, null);
   assert.strictEqual(result.taskBoard.deadLetterCount, 0);
   assert.strictEqual(result.taskBoard.selectedTaskId, null);
@@ -174,7 +155,7 @@ test('buildDashboardSnapshot: empty Ralph workspace returns null/empty sections'
 // Populated workspace
 // ---------------------------------------------------------------------------
 
-test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, failures, and dead-letter', () => {
+test('buildDashboardSnapshot: populated workspace surfaces tasks, failures, and dead-letter', () => {
   const snapshot = minimalSnapshot({
     workspaceName: 'my-repo',
     workspaceTrusted: true,
@@ -185,12 +166,6 @@ test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, fail
       title: 'Webview UI Phase 2.1',
       status: 'in_progress',
     } as RalphStatusSnapshot['selectedTask'],
-    latestPipelineRun: makePipelineRun({
-      status: 'running',
-      phase: 'loop',
-      decomposedTaskIds: ['T2', 'T3'],
-      prUrl: undefined,
-    }),
     latestRemediation: {
       trigger: 'repeated_no_progress',
       attemptCount: 2,
@@ -215,14 +190,6 @@ test('buildDashboardSnapshot: populated workspace surfaces pipeline, tasks, fail
   });
 
   const result = buildDashboardSnapshot(snapshot);
-
-  // Pipeline strip
-  assert.ok(result.pipeline !== null);
-  assert.strictEqual(result.pipeline!.runId, 'pipeline-run-001');
-  assert.strictEqual(result.pipeline!.status, 'running');
-  assert.strictEqual(result.pipeline!.phase, 'loop');
-  assert.strictEqual(result.pipeline!.decomposedTaskCount, 2);
-  assert.strictEqual(result.pipeline!.prUrl, null);
 
   // Task board
   assert.deepEqual(result.taskBoard.counts, { todo: 5, in_progress: 1, blocked: 2, done: 234 });
@@ -326,29 +293,6 @@ test('buildDashboardSnapshot: canAttemptLoop is true when trusted and task selec
   });
   const result = buildDashboardSnapshot(snapshot);
   assert.strictEqual(result.quickActions.canAttemptLoop, true);
-});
-
-// ---------------------------------------------------------------------------
-// Pipeline strip edge cases
-// ---------------------------------------------------------------------------
-
-test('buildDashboardSnapshot: pipeline strip includes prUrl when present', () => {
-  const snapshot = minimalSnapshot({
-    latestPipelineRun: makePipelineRun({
-      status: 'complete',
-      phase: 'done',
-      loopEndTime: '2026-01-02T00:00:00.000Z',
-      prUrl: 'https://github.com/org/repo/pull/42',
-    }),
-  });
-  const result = buildDashboardSnapshot(snapshot);
-
-  assert.ok(result.pipeline !== null);
-  assert.strictEqual(result.pipeline!.status, 'complete');
-  assert.strictEqual(result.pipeline!.phase, 'done');
-  assert.strictEqual(result.pipeline!.loopEndTime, '2026-01-02T00:00:00.000Z');
-  assert.strictEqual(result.pipeline!.prUrl, 'https://github.com/org/repo/pull/42');
-  assert.strictEqual(result.pipeline!.lastStopReason, null);
 });
 
 test('buildDashboardSnapshot: deadLetterEntries undefined treated as empty', () => {

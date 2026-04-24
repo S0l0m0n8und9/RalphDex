@@ -122,7 +122,6 @@ body {
 .metric-value.warn { color: var(--warn); }
 .metric-value.ok { color: var(--ok); }
 
-.pipeline-meta,
 .failure-meta,
 .dead-letter-meta {
   display: grid;
@@ -1137,48 +1136,6 @@ function formatUtc(value: string | null): string {
   return esc(date.toISOString().replace('.000Z', 'Z'));
 }
 
-function formatElapsed(start: string, end: string | null): string {
-  const startTime = new Date(start).getTime();
-  const endTime = end ? new Date(end).getTime() : Date.now();
-  if (Number.isNaN(startTime) || Number.isNaN(endTime) || endTime < startTime) {
-    return 'unknown';
-  }
-
-  const totalSeconds = Math.round((endTime - startTime) / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  if (minutes === 0) {
-    return `${seconds}s`;
-  }
-  return `${minutes}m ${seconds}s`;
-}
-
-function buildPipelineSection(state: RalphDashboardState): string {
-  const snapshot = state.dashboardSnapshot;
-  if (!snapshot?.pipeline) {
-    return `<div class="dashboard-summary-card full">
-      <div class="card-title">Pipeline Strip</div>
-      <div class="empty">No pipeline run artifact recorded yet.</div>
-    </div>`;
-  }
-
-  const pipeline = snapshot.pipeline;
-  return `<div class="dashboard-summary-card full">
-    <div class="card-title">Pipeline Strip</div>
-    <div class="pipeline-meta">
-      <div><strong>Run</strong> ${esc(pipeline.runId)} · ${esc(pipeline.status)}${pipeline.phase ? ` · phase ${esc(pipeline.phase)}` : ''}</div>
-      <div><strong>Elapsed</strong> ${esc(formatElapsed(pipeline.loopStartTime, pipeline.loopEndTime))}</div>
-      <div><strong>Root Task</strong> ${esc(pipeline.rootTaskId)} · ${pipeline.decomposedTaskCount} child task(s)</div>
-      <div><strong>Started</strong> ${formatUtc(pipeline.loopStartTime)}${pipeline.loopEndTime ? ` · <strong>Ended</strong> ${formatUtc(pipeline.loopEndTime)}` : ''}</div>
-      <div><strong>Last Stop</strong> ${esc(pipeline.lastStopReason ?? 'none')}</div>
-      <div><strong>PR</strong> ${pipeline.prUrl ? esc(pipeline.prUrl) : 'none'}</div>
-    </div>
-    <div class="inline-actions">
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Open Pipeline</span><span class="btn-spinner"></span></button>
-    </div>
-  </div>`;
-}
-
 function buildTaskBoardSection(state: RalphDashboardState): string {
   const snapshot = state.dashboardSnapshot;
   const taskBoard = snapshot?.taskBoard ?? null;
@@ -1669,8 +1626,6 @@ function buildOverviewTab(state: RalphDashboardState): string {
           </div>
         </div>
 
-        ${buildPipelineSection(state)}
-
         <div class="card">
           <div class="card-title">Recent Activity</div>
           <div class="history-list">
@@ -1762,7 +1717,6 @@ function buildWorkTab(state: RalphDashboardState): string {
 function buildDiagnosticsTab(state: RalphDashboardState): string {
   return `<div class="diagnostics-shell">
     <div class="diagnostics-grid">
-      ${buildPipelineSection(state)}
       ${buildTaskBoardSection(state)}
       ${buildDiagnosisSection(state)}
       ${buildFailureFeedSection(state)}
