@@ -43,6 +43,12 @@ class ScmCoordinator {
     constructor(logger) {
         this.logger = logger;
     }
+    async prepareExecutionWorkspace(prepared) {
+        if (prepared.config.scmStrategy !== 'branch-per-task') {
+            return;
+        }
+        await (0, iterationScm_1.prepareBranchPerTaskExecutionWorkspace)(prepared);
+    }
     async reconcileBranchPerTask(input) {
         const warnings = [];
         let autoReviewContext;

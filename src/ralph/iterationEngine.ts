@@ -536,7 +536,8 @@ export class RalphIterationEngine {
         effectiveCommandPath,
         artifactPaths,
         runArtifacts,
-        beforeCliExecutionIntegrityCheck: this.hooks.beforeCliExecutionIntegrityCheck
+        beforeCliExecutionIntegrityCheck: this.hooks.beforeCliExecutionIntegrityCheck,
+        prepareExecutionWorkspace: (preparedContext) => this.scmCoordinator.prepareExecutionWorkspace(preparedContext)
       });
       phaseTimestamps.executionStartedAt = execution.executionStartedAt;
       phaseTimestamps.executionFinishedAt = execution.executionFinishedAt;

@@ -115,6 +115,12 @@ class IterationExecutor {
                     throw new executionIntegrity_1.StaleTaskContextError(input.prepared.selectedTask.id);
                 }
             }
+            // Phase boundary: preparation has already persisted prompt/plan artifacts
+            // and durable claim/task state. Git branch/worktree mutation occurs here,
+            // immediately before provider execution.
+            if (input.prepareExecutionWorkspace) {
+                await input.prepareExecutionWorkspace(input.prepared);
+            }
             executionStartedAt = new Date().toISOString();
             let claudeLineBuffer = '';
             const baseExecRequest = {

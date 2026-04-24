@@ -7,6 +7,7 @@ import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { recoverUnexpectedUnclaimedSelection } from '../src/ralph/iterationPreparation';
 import { parseTaskFile, stringifyTaskFile } from '../src/ralph/taskFile';
 import { RalphTaskFile } from '../src/ralph/types';
+import { initializeFakeGitRepository } from './support/processTestHarness';
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-iteration-prep-'));
@@ -19,6 +20,16 @@ async function seedWorkspace(rootPath: string, taskFile: RalphTaskFile): Promise
   const claimFilePath = path.join(ralphDir, 'claims.json');
   await fs.writeFile(taskFilePath, stringifyTaskFile(taskFile), 'utf8');
   return { taskFilePath, claimFilePath };
+}
+
+async function readFakeGitState(rootPath: string): Promise<{
+  currentBranch: string;
+  branches: Record<string, { files: Record<string, string>; baseFiles: Record<string, string> }>;
+}> {
+  return JSON.parse(await fs.readFile(path.join(rootPath, '.git', 'ralph-test-index.json'), 'utf8')) as {
+    currentBranch: string;
+    branches: Record<string, { files: Record<string, string>; baseFiles: Record<string, string> }>;
+  };
 }
 
 test('recoverUnexpectedUnclaimedSelection reclaims an eligible unclaimed task', async () => {
@@ -160,4 +171,51 @@ test('recoverUnexpectedUnclaimedSelection does not steal an actively claimed tas
     status: 'active',
     agentId: 'other-agent'
   }]);
+});
+
+test('recoverUnexpectedUnclaimedSelection in branch-per-task records branch metadata without mutating git branches', async () => {
+  const rootPath = await makeTempRoot();
+  const { taskFilePath, claimFilePath } = await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T90', title: 'Parent', status: 'todo', dependsOn: ['T90.1'] },
+      { id: 'T90.1', title: 'Child', status: 'todo', parentId: 'T90' }
+    ]
+  });
+  await initializeFakeGitRepository(rootPath);
+
+  const taskFile = parseTaskFile(await fs.readFile(taskFilePath, 'utf8'));
+  const recovered = await recoverUnexpectedUnclaimedSelection({
+    rootPath,
+    config: {
+      ...DEFAULT_CONFIG,
+      scmStrategy: 'branch-per-task'
+    },
+    taskFile,
+    taskFilePath,
+    claimFilePath,
+    provenanceId: 'run-i004-cli-20260414T000000Z',
+    agentId: 'default'
+  });
+
+  const gitState = await readFakeGitState(rootPath);
+  const persistedClaims = JSON.parse(await fs.readFile(claimFilePath, 'utf8')) as {
+    claims: Array<{
+      taskId: string;
+      status: string;
+      baseBranch?: string;
+      integrationBranch?: string;
+      featureBranch?: string;
+    }>;
+  };
+
+  assert.equal(recovered.recovered, true);
+  assert.equal(recovered.task?.id, 'T90.1');
+  assert.equal(gitState.currentBranch, 'main');
+  assert.deepEqual(Object.keys(gitState.branches).sort(), ['main']);
+  assert.equal(persistedClaims.claims[0]?.taskId, 'T90.1');
+  assert.equal(persistedClaims.claims[0]?.status, 'active');
+  assert.equal(persistedClaims.claims[0]?.baseBranch, 'main');
+  assert.equal(persistedClaims.claims[0]?.integrationBranch, 'ralph/integration/T90');
+  assert.equal(persistedClaims.claims[0]?.featureBranch, 'ralph/T90.1');
 });

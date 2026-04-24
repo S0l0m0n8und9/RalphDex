@@ -542,6 +542,10 @@ test('runCliIteration uses branch-per-task SCM with parent integration branches 
   const run = createEngine([
     {
       run: async () => {
+        const gitStateAtExecution = await readFakeGitState(rootPath);
+        assert.equal(gitStateAtExecution.currentBranch, 'ralph/T40.2');
+        assert.ok('ralph/integration/T40' in gitStateAtExecution.branches);
+        assert.ok('ralph/T40.2' in gitStateAtExecution.branches);
         await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "branch-per-task";\n', 'utf8');
         return {
           stdout: 'completed task',
@@ -701,6 +705,50 @@ test('runCliIteration persists blocked preflight evidence before throwing', asyn
   assert.equal(latestBundle.promptArtifactPath, null);
   await assert.rejects(fs.access(path.join(iterationDir, 'task-remediation.json')));
   await assert.rejects(fs.access(path.join(rootPath, '.ralph', 'artifacts', 'latest-remediation.json')));
+});
+
+test('runCliIteration keeps git branch state unchanged when branch-per-task preflight blocks before execution', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T55', title: 'Blocked before execution', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: '/tmp/ralph-codex-missing/bin/codex',
+    scmStrategy: 'branch-per-task'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([{ run: async () => ({ lastMessage: 'Should not execute.' }) }]);
+  await assert.rejects(
+    () => run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+      reachedIterationCap: false
+    }),
+    /Ralph preflight blocked iteration start/
+  );
+
+  const gitState = await readFakeGitState(rootPath);
+  assert.equal(gitState.currentBranch, 'main');
+  assert.deepEqual(Object.keys(gitState.branches).sort(), ['main']);
+
+  const claims = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'claims.json'), 'utf8')) as {
+    claims: Array<{
+      taskId: string;
+      status: string;
+      baseBranch?: string;
+      featureBranch?: string;
+    }>;
+  };
+  assert.equal(claims.claims[0]?.taskId, 'T55');
+  assert.equal(claims.claims[0]?.status, 'active');
+  assert.equal(claims.claims[0]?.baseBranch, 'main');
+  assert.equal(claims.claims[0]?.featureBranch, 'ralph/T55');
 });
 
 test('runCliIteration does not emit remediation artifacts when repeated preflight blocks prevent execution from starting', async () => {

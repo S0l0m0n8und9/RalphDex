@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import {
   commitOnDone,
+  prepareBranchPerTaskExecutionWorkspace,
   listGitConflictPaths,
   reconcileBranchPerTaskScm,
   type ScmConflictResolver
@@ -38,6 +39,14 @@ export interface CommitOnDoneInput {
 
 export class ScmCoordinator {
   public constructor(private readonly logger: Logger) {}
+
+  public async prepareExecutionWorkspace(prepared: PreparedIterationContext): Promise<void> {
+    if (prepared.config.scmStrategy !== 'branch-per-task') {
+      return;
+    }
+
+    await prepareBranchPerTaskExecutionWorkspace(prepared);
+  }
 
   public async reconcileBranchPerTask(input: ReconcileBranchPerTaskInput): Promise<ReconcileBranchPerTaskOutput> {
     const warnings: string[] = [];

@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.commitOnDone = commitOnDone;
+exports.prepareBranchPerTaskExecutionWorkspace = prepareBranchPerTaskExecutionWorkspace;
 exports.listGitConflictPaths = listGitConflictPaths;
 exports.reconcileBranchPerTaskScm = reconcileBranchPerTaskScm;
 const fs = __importStar(require("fs/promises"));
@@ -172,12 +173,40 @@ async function commitOnDone(input) {
     }
     return `SCM commit-on-done succeeded: ${message.subject}`;
 }
+async function branchExists(rootPath, branchName) {
+    const result = await (0, processRunner_1.runProcess)('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
+    return result.code === 0;
+}
+async function ensureGitBranch(rootPath, branchName, startPoint) {
+    if (await branchExists(rootPath, branchName)) {
+        return;
+    }
+    const result = await (0, processRunner_1.runProcess)('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
+    if (result.code !== 0) {
+        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+        throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
+    }
+}
 async function checkoutGitBranch(rootPath, branchName) {
     const result = await (0, processRunner_1.runProcess)('git', ['checkout', branchName], { cwd: rootPath });
     if (result.code !== 0) {
         const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
         throw new Error(`git checkout ${branchName} failed: ${failure}`);
     }
+}
+async function prepareBranchPerTaskExecutionWorkspace(prepared) {
+    const selectedClaim = prepared.selectedTaskClaim?.claim;
+    if (!prepared.selectedTask || !selectedClaim?.featureBranch || !selectedClaim.baseBranch) {
+        return;
+    }
+    if (selectedClaim.integrationBranch) {
+        await ensureGitBranch(prepared.rootPath, selectedClaim.integrationBranch, selectedClaim.baseBranch);
+        await ensureGitBranch(prepared.rootPath, selectedClaim.featureBranch, selectedClaim.integrationBranch);
+    }
+    else {
+        await ensureGitBranch(prepared.rootPath, selectedClaim.featureBranch, selectedClaim.baseBranch);
+    }
+    await checkoutGitBranch(prepared.rootPath, selectedClaim.featureBranch);
 }
 async function mergeGitBranch(input) {
     await checkoutGitBranch(input.rootPath, input.targetBranch);

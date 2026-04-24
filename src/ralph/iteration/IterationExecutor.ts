@@ -27,6 +27,7 @@ export interface IterationExecutorInput {
   artifactPaths: ReturnType<ArtifactPersistenceService['resolvePaths']>;
   runArtifacts: { transcriptPath: string; lastMessagePath: string };
   beforeCliExecutionIntegrityCheck?: (prepared: PreparedIterationContext) => Promise<void>;
+  prepareExecutionWorkspace?: (prepared: PreparedIterationContext) => Promise<void>;
 }
 
 export interface IterationExecutionResult {
@@ -131,6 +132,13 @@ export class IterationExecutor {
         if (freshTask?.status === 'done') {
           throw new StaleTaskContextError(input.prepared.selectedTask.id);
         }
+      }
+
+      // Phase boundary: preparation has already persisted prompt/plan artifacts
+      // and durable claim/task state. Git branch/worktree mutation occurs here,
+      // immediately before provider execution.
+      if (input.prepareExecutionWorkspace) {
+        await input.prepareExecutionWorkspace(input.prepared);
       }
 
       executionStartedAt = new Date().toISOString();

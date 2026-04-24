@@ -319,6 +319,8 @@ export async function prepareIterationContext(
     promptTarget,
     createdAt: taskSelectedAt
   });
+  // Preparation phase may mutate only Ralph durable state (task claim/task status).
+  // Git branch/worktree mutations are deferred to the SCM/execution phase.
   const claimedSelection = promptTarget === 'cliExec'
     ? await selectClaimedTask(
       rootPath,
@@ -678,8 +680,11 @@ async function selectClaimedTask(
   const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
   const candidates = await listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId);
   for (const candidate of candidates) {
+    // Preparation phase is intentionally non-mutating for Git state.
+    // We only compute deterministic branch metadata for claim/provenance here;
+    // actual branch creation/checkout is deferred to the SCM execution phase.
     const claimBranches = config.scmStrategy === 'branch-per-task'
-      ? await prepareTaskBranchWorkspace(rootPath, candidate)
+      ? await buildTaskBranchClaimMetadata(rootPath, candidate)
       : null;
     const claimResult = await acquireClaim(
       claimFilePath,
@@ -763,7 +768,7 @@ export async function recoverUnexpectedUnclaimedSelection(
   }
 
   const claimBranches = input.config.scmStrategy === 'branch-per-task'
-    ? await prepareTaskBranchWorkspace(input.rootPath, recoveryCandidate)
+    ? await buildTaskBranchClaimMetadata(input.rootPath, recoveryCandidate)
     : null;
   const claimResult = await acquireClaim(
     input.claimFilePath,
@@ -790,18 +795,16 @@ export async function recoverUnexpectedUnclaimedSelection(
   };
 }
 
-async function prepareTaskBranchWorkspace(
+async function buildTaskBranchClaimMetadata(
   rootPath: string,
   task: RalphTask
 ): Promise<{ baseBranch: string; integrationBranch?: string; featureBranch: string }> {
+  // Claim metadata only: derive intended branch names without creating/checking out branches.
   const baseBranch = await currentGitBranch(rootPath);
   const featureBranch = `ralph/${task.id}`;
 
   if (task.parentId) {
     const integrationBranch = `ralph/integration/${task.parentId}`;
-    await ensureGitBranch(rootPath, integrationBranch, baseBranch);
-    await ensureGitBranch(rootPath, featureBranch, integrationBranch);
-    await checkoutGitBranch(rootPath, featureBranch);
     return {
       baseBranch,
       integrationBranch,
@@ -809,8 +812,6 @@ async function prepareTaskBranchWorkspace(
     };
   }
 
-  await ensureGitBranch(rootPath, featureBranch, baseBranch);
-  await checkoutGitBranch(rootPath, featureBranch);
   return {
     baseBranch,
     featureBranch
@@ -830,31 +831,6 @@ async function currentGitBranch(rootPath: string): Promise<string> {
   }
 
   return branch;
-}
-
-async function branchExists(rootPath: string, branchName: string): Promise<boolean> {
-  const result = await runProcess('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
-  return result.code === 0;
-}
-
-async function ensureGitBranch(rootPath: string, branchName: string, startPoint: string): Promise<void> {
-  if (await branchExists(rootPath, branchName)) {
-    return;
-  }
-
-  const result = await runProcess('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
-  if (result.code !== 0) {
-    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
-    throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
-  }
-}
-
-async function checkoutGitBranch(rootPath: string, branchName: string): Promise<void> {
-  const result = await runProcess('git', ['checkout', branchName], { cwd: rootPath });
-  if (result.code !== 0) {
-    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
-    throw new Error(`git checkout ${branchName} failed: ${failure}`);
-  }
 }
 
 /**

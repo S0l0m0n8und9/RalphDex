@@ -199,6 +199,8 @@ async function prepareIterationContext(input) {
         promptTarget,
         createdAt: taskSelectedAt
     });
+    // Preparation phase may mutate only Ralph durable state (task claim/task status).
+    // Git branch/worktree mutations are deferred to the SCM/execution phase.
     const claimedSelection = promptTarget === 'cliExec'
         ? await selectClaimedTask(rootPath, config, taskFile, snapshot.paths.taskFilePath, snapshot.paths.claimFilePath, provenanceId, config.agentId, input.focusTaskId)
         : {
@@ -523,8 +525,11 @@ async function selectClaimedTask(rootPath, config, taskFile, taskFilePath, claim
     const artifactsDir = path.join(rootPath, config.artifactRetentionPath || '.ralph/artifacts');
     const candidates = await listClaimSelectionCandidates(taskFile, config, artifactsDir, focusTaskId);
     for (const candidate of candidates) {
+        // Preparation phase is intentionally non-mutating for Git state.
+        // We only compute deterministic branch metadata for claim/provenance here;
+        // actual branch creation/checkout is deferred to the SCM execution phase.
         const claimBranches = config.scmStrategy === 'branch-per-task'
-            ? await prepareTaskBranchWorkspace(rootPath, candidate)
+            ? await buildTaskBranchClaimMetadata(rootPath, candidate)
             : null;
         const claimResult = await (0, taskFile_1.acquireClaim)(claimFilePath, candidate.id, agentId, provenanceId, {
             ...(claimBranches ?? {}),
@@ -576,7 +581,7 @@ async function recoverUnexpectedUnclaimedSelection(input) {
         return { task: null, claim: null, recovered: false };
     }
     const claimBranches = input.config.scmStrategy === 'branch-per-task'
-        ? await prepareTaskBranchWorkspace(input.rootPath, recoveryCandidate)
+        ? await buildTaskBranchClaimMetadata(input.rootPath, recoveryCandidate)
         : null;
     const claimResult = await (0, taskFile_1.acquireClaim)(input.claimFilePath, recoveryCandidate.id, input.agentId, input.provenanceId, {
         ...(claimBranches ?? {}),
@@ -594,22 +599,18 @@ async function recoverUnexpectedUnclaimedSelection(input) {
         recovered: true
     };
 }
-async function prepareTaskBranchWorkspace(rootPath, task) {
+async function buildTaskBranchClaimMetadata(rootPath, task) {
+    // Claim metadata only: derive intended branch names without creating/checking out branches.
     const baseBranch = await currentGitBranch(rootPath);
     const featureBranch = `ralph/${task.id}`;
     if (task.parentId) {
         const integrationBranch = `ralph/integration/${task.parentId}`;
-        await ensureGitBranch(rootPath, integrationBranch, baseBranch);
-        await ensureGitBranch(rootPath, featureBranch, integrationBranch);
-        await checkoutGitBranch(rootPath, featureBranch);
         return {
             baseBranch,
             integrationBranch,
             featureBranch
         };
     }
-    await ensureGitBranch(rootPath, featureBranch, baseBranch);
-    await checkoutGitBranch(rootPath, featureBranch);
     return {
         baseBranch,
         featureBranch
@@ -626,27 +627,6 @@ async function currentGitBranch(rootPath) {
         throw new Error('git rev-parse --abbrev-ref HEAD returned an empty branch name.');
     }
     return branch;
-}
-async function branchExists(rootPath, branchName) {
-    const result = await (0, processRunner_1.runProcess)('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
-    return result.code === 0;
-}
-async function ensureGitBranch(rootPath, branchName, startPoint) {
-    if (await branchExists(rootPath, branchName)) {
-        return;
-    }
-    const result = await (0, processRunner_1.runProcess)('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
-    if (result.code !== 0) {
-        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
-        throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
-    }
-}
-async function checkoutGitBranch(rootPath, branchName) {
-    const result = await (0, processRunner_1.runProcess)('git', ['checkout', branchName], { cwd: rootPath });
-    if (result.code !== 0) {
-        const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
-        throw new Error(`git checkout ${branchName} failed: ${failure}`);
-    }
 }
 /**
  * Read the summarization mode from a previously-written memory-summary.md.

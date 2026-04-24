@@ -204,12 +204,45 @@ export async function commitOnDone(input: {
   return `SCM commit-on-done succeeded: ${message.subject}`;
 }
 
+async function branchExists(rootPath: string, branchName: string): Promise<boolean> {
+  const result = await runProcess('git', ['rev-parse', '--verify', branchName], { cwd: rootPath });
+  return result.code === 0;
+}
+
+async function ensureGitBranch(rootPath: string, branchName: string, startPoint: string): Promise<void> {
+  if (await branchExists(rootPath, branchName)) {
+    return;
+  }
+
+  const result = await runProcess('git', ['checkout', '-b', branchName, startPoint], { cwd: rootPath });
+  if (result.code !== 0) {
+    const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
+    throw new Error(`git checkout -b ${branchName} ${startPoint} failed: ${failure}`);
+  }
+}
+
 async function checkoutGitBranch(rootPath: string, branchName: string): Promise<void> {
   const result = await runProcess('git', ['checkout', branchName], { cwd: rootPath });
   if (result.code !== 0) {
     const failure = (result.stderr || result.stdout || `exit code ${result.code}`).trim();
     throw new Error(`git checkout ${branchName} failed: ${failure}`);
   }
+}
+
+export async function prepareBranchPerTaskExecutionWorkspace(prepared: PreparedIterationContext): Promise<void> {
+  const selectedClaim = prepared.selectedTaskClaim?.claim;
+  if (!prepared.selectedTask || !selectedClaim?.featureBranch || !selectedClaim.baseBranch) {
+    return;
+  }
+
+  if (selectedClaim.integrationBranch) {
+    await ensureGitBranch(prepared.rootPath, selectedClaim.integrationBranch, selectedClaim.baseBranch);
+    await ensureGitBranch(prepared.rootPath, selectedClaim.featureBranch, selectedClaim.integrationBranch);
+  } else {
+    await ensureGitBranch(prepared.rootPath, selectedClaim.featureBranch, selectedClaim.baseBranch);
+  }
+
+  await checkoutGitBranch(prepared.rootPath, selectedClaim.featureBranch);
 }
 
 async function mergeGitBranch(input: {
