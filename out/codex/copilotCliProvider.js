@@ -177,7 +177,8 @@ class CopilotCliProvider {
         ].join('\n');
     }
     async summarizeText(prompt, cwd) {
-        const result = await (0, processRunner_1.runProcess)('copilot', ['-s', '--no-ask-user', '--output-format=json'], {
+        const commandPath = this.options.commandPath?.trim() || 'copilot';
+        const result = await (0, processRunner_1.runProcess)(commandPath, ['-s', '--no-ask-user', '--output-format=json'], {
             cwd,
             stdinText: prompt,
             shell: process.platform === 'win32'

@@ -127,10 +127,11 @@ class CodexCliProvider {
         ].join('\n');
     }
     async summarizeText(prompt, cwd) {
-        const result = await (0, processRunner_1.runProcess)('codex', ['exec', '--quiet', '-'], {
+        const commandPath = this.options.commandPath?.trim() || 'codex';
+        const result = await (0, processRunner_1.runProcess)(commandPath, ['exec', '--quiet', '-'], {
             cwd,
             stdinText: prompt,
-            shell: process.platform === 'win32'
+            shell: shouldUseWindowsShell(commandPath)
         });
         if (result.code !== 0) {
             throw new Error(`codex summarization exited with code ${result.code}`);

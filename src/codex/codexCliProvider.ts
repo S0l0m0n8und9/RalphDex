@@ -7,6 +7,7 @@ import { CliLaunchSpec, CliProvider } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
 export interface CodexCliProviderOptions {
+  commandPath?: string;
   reasoningEffort: CodexReasoningEffort;
   sandboxMode: CodexSandboxMode;
   approvalMode: CodexApprovalMode;
@@ -111,10 +112,11 @@ export class CodexCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const result = await runProcess('codex', ['exec', '--quiet', '-'], {
+    const commandPath = this.options.commandPath?.trim() || 'codex';
+    const result = await runProcess(commandPath, ['exec', '--quiet', '-'], {
       cwd,
       stdinText: prompt,
-      shell: process.platform === 'win32'
+      shell: shouldUseWindowsShell(commandPath)
     });
     if (result.code !== 0) {
       throw new Error(`codex summarization exited with code ${result.code}`);

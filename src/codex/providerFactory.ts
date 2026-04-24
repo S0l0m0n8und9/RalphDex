@@ -12,6 +12,8 @@ import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
 
+const GEMINI_DEFAULT_MAX_TURNS = 125;
+
 export function createCliProvider(config: RalphCodexConfig): CliProvider {
   return createCliProviderForId(config.cliProvider, config);
 }
@@ -23,6 +25,7 @@ export function createCliProvider(config: RalphCodexConfig): CliProvider {
 export function createCliProviderForId(providerId: CliProviderId, config: RalphCodexConfig): CliProvider {
   if (providerId === 'claude') {
     return new ClaudeCliProvider({
+      commandPath: config.claudeCommandPath,
       maxTurns: config.claudeMaxTurns,
       permissionMode: config.claudePermissionMode
     });
@@ -30,13 +33,15 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
 
   if (providerId === 'gemini') {
     return new GeminiCliProvider({
-      maxTurns: config.claudeMaxTurns,
+      commandPath: config.geminiCommandPath,
+      maxTurns: GEMINI_DEFAULT_MAX_TURNS,
       permissionMode: 'yolo'
     });
   }
 
   if (providerId === 'copilot') {
     return new CopilotCliProvider({
+      commandPath: config.copilotCommandPath,
       approvalMode: config.copilotApprovalMode,
       maxAutopilotContinues: config.copilotMaxAutopilotContinues
     });
@@ -57,6 +62,7 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
   }
 
   return new CodexCliProvider({
+    commandPath: config.codexCommandPath,
     reasoningEffort: config.reasoningEffort,
     sandboxMode: config.sandboxMode,
     approvalMode: config.approvalMode
@@ -114,6 +120,10 @@ export class CodexStrategyRegistry {
 
   public getPromptHandoffStrategy(mode: CodexHandoffMode): CodexStrategy {
     if (mode === 'cliExec') {
+      // Deliberate compatibility fallback: "Open Codex IDE" is an IDE handoff
+      // command, so we keep it on clipboard transport even when the workspace
+      // default execution mode is cliExec. The CLI path is exposed through the
+      // explicit iteration/loop commands.
       return this.clipboardStrategy;
     }
 

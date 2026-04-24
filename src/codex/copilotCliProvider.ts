@@ -7,6 +7,7 @@ import { CodexExecRequest, CodexExecResult } from './types';
 export type CopilotApprovalMode = 'allow-all' | 'allow-tools-only' | 'interactive';
 
 export interface CopilotCliProviderOptions {
+  commandPath?: string;
   approvalMode: CopilotApprovalMode;
   maxAutopilotContinues: number;
 }
@@ -170,7 +171,8 @@ export class CopilotCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const result = await runProcess('copilot', ['-s', '--no-ask-user', '--output-format=json'], {
+    const commandPath = this.options.commandPath?.trim() || 'copilot';
+    const result = await runProcess(commandPath, ['-s', '--no-ask-user', '--output-format=json'], {
       cwd,
       stdinText: prompt,
       shell: process.platform === 'win32'

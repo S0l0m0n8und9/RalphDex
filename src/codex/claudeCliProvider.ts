@@ -7,6 +7,7 @@ import { CodexExecRequest, CodexExecResult } from './types';
 export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
 
 export interface ClaudeCliProviderOptions {
+  commandPath?: string;
   maxTurns: number;
   permissionMode: ClaudePermissionMode;
 }
@@ -193,7 +194,8 @@ export class ClaudeCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const result = await runProcess('claude', ['-p', '-', '--no-session-persistence'], {
+    const commandPath = this.options.commandPath?.trim() || 'claude';
+    const result = await runProcess(commandPath, ['-p', '-', '--no-session-persistence'], {
       cwd,
       stdinText: prompt
     });

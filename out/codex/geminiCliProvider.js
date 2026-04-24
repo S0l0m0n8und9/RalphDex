@@ -185,7 +185,8 @@ class GeminiCliProvider {
         ].join('\n');
     }
     async summarizeText(prompt, cwd) {
-        const result = await (0, processRunner_1.runProcess)('gemini', ['-p', '-'], {
+        const commandPath = this.options.commandPath?.trim() || 'gemini';
+        const result = await (0, processRunner_1.runProcess)(commandPath, ['-p', '-'], {
             cwd,
             stdinText: prompt
         });

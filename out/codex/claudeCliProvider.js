@@ -193,7 +193,8 @@ class ClaudeCliProvider {
         ].join('\n');
     }
     async summarizeText(prompt, cwd) {
-        const result = await (0, processRunner_1.runProcess)('claude', ['-p', '-', '--no-session-persistence'], {
+        const commandPath = this.options.commandPath?.trim() || 'claude';
+        const result = await (0, processRunner_1.runProcess)(commandPath, ['-p', '-', '--no-session-persistence'], {
             cwd,
             stdinText: prompt
         });

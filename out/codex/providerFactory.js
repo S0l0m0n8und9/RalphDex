@@ -12,6 +12,7 @@ const copilotCliProvider_1 = require("./copilotCliProvider");
 const copilotFoundryCliProvider_1 = require("./copilotFoundryCliProvider");
 const codexCliProvider_1 = require("./codexCliProvider");
 const ideCommandStrategy_1 = require("./ideCommandStrategy");
+const GEMINI_DEFAULT_MAX_TURNS = 125;
 function createCliProvider(config) {
     return createCliProviderForId(config.cliProvider, config);
 }
@@ -22,18 +23,21 @@ function createCliProvider(config) {
 function createCliProviderForId(providerId, config) {
     if (providerId === 'claude') {
         return new claudeCliProvider_1.ClaudeCliProvider({
+            commandPath: config.claudeCommandPath,
             maxTurns: config.claudeMaxTurns,
             permissionMode: config.claudePermissionMode
         });
     }
     if (providerId === 'gemini') {
         return new geminiCliProvider_1.GeminiCliProvider({
-            maxTurns: config.claudeMaxTurns,
+            commandPath: config.geminiCommandPath,
+            maxTurns: GEMINI_DEFAULT_MAX_TURNS,
             permissionMode: 'yolo'
         });
     }
     if (providerId === 'copilot') {
         return new copilotCliProvider_1.CopilotCliProvider({
+            commandPath: config.copilotCommandPath,
             approvalMode: config.copilotApprovalMode,
             maxAutopilotContinues: config.copilotMaxAutopilotContinues
         });
@@ -51,6 +55,7 @@ function createCliProviderForId(providerId, config) {
         });
     }
     return new codexCliProvider_1.CodexCliProvider({
+        commandPath: config.codexCommandPath,
         reasoningEffort: config.reasoningEffort,
         sandboxMode: config.sandboxMode,
         approvalMode: config.approvalMode
@@ -102,6 +107,10 @@ class CodexStrategyRegistry {
     }
     getPromptHandoffStrategy(mode) {
         if (mode === 'cliExec') {
+            // Deliberate compatibility fallback: "Open Codex IDE" is an IDE handoff
+            // command, so we keep it on clipboard transport even when the workspace
+            // default execution mode is cliExec. The CLI path is exposed through the
+            // explicit iteration/loop commands.
             return this.clipboardStrategy;
         }
         return this.getById(mode);

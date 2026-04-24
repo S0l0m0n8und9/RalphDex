@@ -7,6 +7,7 @@ import { CodexExecRequest, CodexExecResult } from './types';
 export type GeminiPermissionMode = 'yolo' | 'default';
 
 export interface GeminiCliProviderOptions {
+  commandPath?: string;
   maxTurns: number;
   permissionMode: GeminiPermissionMode;
 }
@@ -182,7 +183,8 @@ export class GeminiCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const result = await runProcess('gemini', ['-p', '-'], {
+    const commandPath = this.options.commandPath?.trim() || 'gemini';
+    const result = await runProcess(commandPath, ['-p', '-'], {
       cwd,
       stdinText: prompt
     });
