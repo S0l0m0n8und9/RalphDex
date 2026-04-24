@@ -368,7 +368,7 @@
           "type": "object",
           "default": {
             "commandPath": "copilot",
-            "approvalMode": "allow-all",
+            "approvalMode": "allow-tools-only",
             "maxAutopilotContinues": 200,
             "auth": {
               "mode": "az-bearer",
@@ -401,7 +401,7 @@
                 "allow-tools-only",
                 "interactive"
               ],
-              "default": "allow-all",
+              "default": "allow-tools-only",
               "description": "Approval posture used by the Copilot CLI harness."
             },
             "maxAutopilotContinues": {
@@ -604,8 +604,8 @@
             "dangerously-skip-permissions",
             "default"
           ],
-          "default": "dangerously-skip-permissions",
-          "description": "Permission mode for Claude CLI runs. 'dangerously-skip-permissions' runs without approval prompts (suitable for unattended Ralph iterations). 'default' uses Claude's standard permission system."
+          "default": "default",
+          "description": "Permission mode for Claude CLI runs. 'default' keeps Claude's standard permission checks. 'dangerously-skip-permissions' is a permissive override and should be enabled explicitly by the operator."
         },
         "ralphCodex.copilotApprovalMode": {
           "type": "string",
@@ -614,8 +614,8 @@
             "allow-tools-only",
             "interactive"
           ],
-          "default": "allow-all",
-          "description": "Approval posture for GitHub Copilot CLI runs. 'allow-all' favors unattended Ralph iterations, 'allow-tools-only' pre-approves tools but stays more restrictive, and 'interactive' leaves Copilot in its default approval flow."
+          "default": "allow-tools-only",
+          "description": "Approval posture for GitHub Copilot CLI runs. 'allow-tools-only' is the safer default. 'interactive' is stricter, and 'allow-all' is permissive and should be selected explicitly by the operator."
         },
         "ralphCodex.agentId": {
           "type": "string",
@@ -662,7 +662,7 @@
         },
         "ralphCodex.ralphIterationCap": {
           "type": "number",
-          "default": 5,
+          "default": 20,
           "minimum": 1,
           "maximum": 100,
           "description": "Maximum number of CLI iterations to run for the Ralphdex loop command."
@@ -734,7 +734,7 @@
             "commit-on-done",
             "branch-per-task"
           ],
-          "default": "commit-on-done",
+          "default": "none",
           "description": "Controls optional SCM automation after Ralph reconciles task results. none disables SCM actions, commit-on-done creates a commit after a task is reconciled done, and branch-per-task commits task branches and merges completed child slices through the recorded integration branch flow."
         },
         "ralphCodex.scmPrOnParentDone": {
@@ -764,12 +764,12 @@
             "supervised",
             "autonomous"
           ],
-          "default": "autonomous",
+          "default": "supervised",
           "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoReloadOnControlPlaneChange on, autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on, while preserving hard stops such as blocked preflight, request_human_review, and manual PRD authorship."
         },
         "ralphCodex.autoReplenishBacklog": {
           "type": "boolean",
-          "default": true,
+          "default": false,
           "description": "Continue the Ralph loop into backlog replenishment when no actionable task remains and preflight found no ledger-drift safety errors."
         },
         "ralphCodex.autoReloadOnControlPlaneChange": {
@@ -786,9 +786,7 @@
               "mark_blocked"
             ]
           },
-          "default": [
-            "decompose_task"
-          ],
+          "default": [],
           "description": "Opt-in remediation actions Ralph may auto-apply after repeated-stop evidence. Leave this empty to preserve review-only behavior; set one or both of decompose_task and mark_blocked to allow only those actions."
         },
         "ralphCodex.ralphTaskFilePath": {
@@ -1013,15 +1011,15 @@
         "ralphCodex.enableModelTiering": {
           "type": "boolean",
           "default": true,
-          "description": "Enable complexity-based model tier selection. When true, Ralph scores each task using structural signals (validation field, child count, blocker note, trailing failures) and routes it to the simple, medium, or complex tier model. Thresholds default to simpleThreshold=2, complexThreshold=6 and can be overridden via ralphCodex.modelTiering. See docs/model-tiering.md for signal definitions and expected cost savings."
+          "description": "Enable complexity-based model tier selection. When true, Ralph scores each task using structural signals (validation field, child count, blocker note, trailing failures) and routes it to the simple, medium, or complex tier model. Thresholds default to simpleThreshold=3, complexThreshold=6 and can be overridden via ralphCodex.modelTiering. See docs/model-tiering.md for signal definitions and expected cost savings."
         },
         "ralphCodex.modelTiering": {
           "type": "object",
           "default": {
             "enabled": true,
             "simple": {
-              "provider": "copilot",
-              "model": "claude-opus-4-6"
+              "provider": "claude",
+              "model": "claude-haiku-4-5"
             },
             "medium": {
               "provider": "claude",
@@ -1031,10 +1029,10 @@
               "provider": "claude",
               "model": "claude-opus-4-6"
             },
-            "simpleThreshold": 2,
+            "simpleThreshold": 3,
             "complexThreshold": 6
           },
-          "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (objects with model string and optional provider), simpleThreshold (int, default 2 — tasks below this use the simple model), complexThreshold (int, default 6 — tasks at or above this use the complex model). ralphCodex.enableModelTiering is a convenience toggle for the enabled field. Override ralphCodex.complexityTierThresholds via simpleThreshold and complexThreshold here."
+          "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (objects with model string and optional provider), simpleThreshold (int, default 3 — tasks below this use the simple model), complexThreshold (int, default 6 — tasks at or above this use the complex model). ralphCodex.enableModelTiering is a convenience toggle for the enabled field. Override ralphCodex.complexityTierThresholds via simpleThreshold and complexThreshold here."
         },
         "ralphCodex.prdGenerationTemplate": {
           "type": "string",

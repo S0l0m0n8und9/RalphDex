@@ -71,7 +71,7 @@ export interface RalphModelTieringConfig {
   medium: RalphModelTierConfig;
   /** Tier config for high-complexity tasks (score >= complexThreshold). */
   complex: RalphModelTierConfig;
-  /** Complexity score below which the simple tier is selected. Default: 2. */
+  /** Complexity score below which the simple tier is selected. Default: 3. */
   simpleThreshold: number;
   /** Complexity score at or above which the complex tier is selected. Default: 6. */
   complexThreshold: number;

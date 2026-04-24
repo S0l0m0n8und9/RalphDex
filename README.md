@@ -216,14 +216,16 @@ Azure-backed providers use grouped settings and secure auth references instead o
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.ralphIterationCap` | `5` | Maximum CLI iterations for the loop command (operator presets can raise this) |
-| `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` |
+| `ralphCodex.ralphIterationCap` | `20` | Maximum CLI iterations for the loop command (operator presets can raise this) |
+| `ralphCodex.autonomyMode` | `"supervised"` | `supervised` or `autonomous` |
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
-| `ralphCodex.autoReplenishBacklog` | `true` | Continue into backlog replenishment when no actionable task remains |
+| `ralphCodex.autoReplenishBacklog` | `false` | Continue into backlog replenishment when no actionable task remains |
 | `ralphCodex.autoReloadOnControlPlaneChange` | `false` | Reload window automatically after `control_plane_reload_required` |
-| `ralphCodex.autoApplyRemediation` | `["decompose_task"]` | Remediation actions to auto-apply |
+| `ralphCodex.autoApplyRemediation` | `[]` | Remediation actions to auto-apply |
 | `ralphCodex.noProgressThreshold` | `2` | Consecutive no-progress iterations before stopping |
 | `ralphCodex.repeatedFailureThreshold` | `2` | Consecutive identical failure classifications before stopping |
+
+`supervised` is the shipped default. `autonomous` is an explicit operator opt-in that forces the documented auto behaviors at runtime.
 
 **Execution**
 
@@ -231,9 +233,12 @@ Azure-backed providers use grouped settings and secure auth references instead o
 |---|---|---|
 | `ralphCodex.model` | `"claude-sonnet-4-6"` | Default model for CLI runs |
 | `ralphCodex.claudeMaxTurns` | `125` | Maximum agentic turns per Claude CLI invocation |
-| `ralphCodex.claudePermissionMode` | `"dangerously-skip-permissions"` | Claude CLI permission mode for unattended runs |
+| `ralphCodex.claudePermissionMode` | `"default"` | Claude CLI permission mode |
+| `ralphCodex.copilotApprovalMode` | `"allow-tools-only"` | Approval posture for Copilot CLI runs |
 | `ralphCodex.reasoningEffort` | `"medium"` | Reasoning effort for Codex CLI runs |
 | `ralphCodex.cliExecutionTimeoutMs` | `0` | CLI iteration timeout in ms; `0` disables the timeout |
+
+Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are available but should be operator-selected, not assumed as workspace defaults.
 
 **Verification**
 
@@ -247,7 +252,7 @@ Azure-backed providers use grouped settings and secure auth references instead o
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.gitCheckpointMode` | `"snapshotAndDiff"` | Git safety artifacts: `off`, `snapshot`, or `snapshotAndDiff` |
-| `ralphCodex.scmStrategy` | `"commit-on-done"` | SCM automation: `none`, `commit-on-done`, or `branch-per-task` |
+| `ralphCodex.scmStrategy` | `"none"` | SCM automation: `none`, `commit-on-done`, or `branch-per-task` |
 | `ralphCodex.scmPrOnParentDone` | `false` | Open a GitHub PR when `branch-per-task` completes a parent task |
 
 **Prompt**
@@ -271,7 +276,7 @@ Azure-backed providers use grouped settings and secure auth references instead o
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.enableModelTiering` | `true` | Convenience toggle for `ralphCodex.modelTiering.enabled` |
-| `ralphCodex.modelTiering.simpleThreshold` | `2` | Score strictly below this threshold maps to the simple tier |
+| `ralphCodex.modelTiering.simpleThreshold` | `3` | Score strictly below this threshold maps to the simple tier |
 | `ralphCodex.modelTiering.complexThreshold` | `6` | Score at or above this threshold maps to the complex tier |
 
 **Artifacts**

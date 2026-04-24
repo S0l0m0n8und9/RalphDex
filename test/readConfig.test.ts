@@ -34,6 +34,26 @@ test('readConfig preserves individually configured autonomy settings in supervis
   assert.equal(config.autoReplenishBacklog, false);
 });
 
+test('readConfig defaults to supervised safe posture', () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.autonomyMode, 'supervised');
+  assert.equal(config.autoReplenishBacklog, false);
+  assert.equal(config.autoReloadOnControlPlaneChange, false);
+  assert.deepEqual(config.autoApplyRemediation, []);
+  assert.equal(config.scmStrategy, 'none');
+  assert.equal(config.scmPrOnParentDone, false);
+  assert.equal(config.reasoningEffort, 'medium');
+  assert.equal(config.sandboxMode, 'workspace-write');
+  assert.equal(config.approvalMode, 'never');
+  assert.equal(config.ralphIterationCap, 20);
+  assert.equal(config.claudePermissionMode, 'default');
+  assert.equal(config.copilotApprovalMode, 'allow-tools-only');
+});
+
 test('readConfig forces the autonomous shorthand overrides regardless of individual settings', () => {
   const harness = vscodeTestHarness();
   harness.setConfiguration({
@@ -177,7 +197,7 @@ test('readConfig returns grouped provider defaults when no settings are configur
   const config = readConfig(workspaceFolder('C:\\repo'));
 
   assert.equal(config.copilotFoundry.commandPath, 'copilot');
-  assert.equal(config.copilotFoundry.approvalMode, 'allow-all');
+  assert.equal(config.copilotFoundry.approvalMode, 'allow-tools-only');
   assert.equal(config.copilotFoundry.maxAutopilotContinues, 200);
   assert.equal(config.copilotFoundry.auth.mode, 'az-bearer');
   assert.equal(config.copilotFoundry.model.wireApi, 'responses');

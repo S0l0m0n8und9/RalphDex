@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   geminiCommandPath: 'gemini',
   copilotFoundry: {
     commandPath: 'copilot',
-    approvalMode: 'allow-all',
+    approvalMode: 'allow-tools-only',
     maxAutopilotContinues: 200,
     auth: {
       mode: 'az-bearer',
@@ -42,8 +42,8 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   } satisfies RalphCodexConfig['azureFoundry'],
   claudeMaxTurns: 125,
   copilotMaxAutopilotContinues: 200,
-  claudePermissionMode: 'dangerously-skip-permissions',
-  copilotApprovalMode: 'allow-all',
+  claudePermissionMode: 'default',
+  copilotApprovalMode: 'allow-tools-only',
   agentId: 'default',
   agentRole: 'implementer',
   preferredHandoffMode: 'ideCommand',
