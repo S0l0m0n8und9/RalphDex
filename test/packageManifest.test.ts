@@ -327,6 +327,30 @@ test('package manifest activity bar entry includes placeholder navigation views'
   assert.ok(ralphViews.some((v) => v.id === 'ralphCodex.logs'), 'ralphCodex container must include placeholder logs view');
 });
 
+test('package manifest does not contribute legacy orchestration sidebar entries', async () => {
+  const manifest = await readPackageManifest();
+  const views = (manifest.contributes as Record<string, unknown> & { views?: Record<string, Array<{ id?: string; name?: string }>> })?.views ?? {};
+  const ralphViews = views['ralphCodex'] ?? [];
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    !ralphViews.some((view) => (view.id ?? '').toLowerCase().includes('orchestration')),
+    'ralphCodex views must not include legacy orchestration ids'
+  );
+  assert.ok(
+    !ralphViews.some((view) => (view.name ?? '').toLowerCase().includes('orchestration')),
+    'ralphCodex views must not include legacy orchestration labels'
+  );
+  assert.ok(
+    !commands.some((command) => (command.command ?? '').toLowerCase().includes('orchestration')),
+    'contributed commands must not include legacy orchestration ids'
+  );
+  assert.ok(
+    !commands.some((command) => (command.title ?? '').toLowerCase().includes('orchestration')),
+    'contributed commands must not include legacy orchestration labels'
+  );
+});
+
 test('package manifest excludes the shim entry point from the VSIX payload', async () => {
   // vsce does not support combining "files" in package.json with .vscodeignore.
   // The .vscodeignore blocklist strategy is used here; out/shim/** is excluded explicitly.

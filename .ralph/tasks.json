@@ -4458,7 +4458,8 @@
     {
       "id": "T165",
       "title": "Remove orchestration tab from sidebar",
-      "status": "in_progress",
+      "status": "done",
+      "notes": "Confirmed no orchestration sidebar tab wiring remains in source/manifest paths and added a regression test that package contributions contain no legacy orchestration view or command ids/labels.",
       "validation": "npm run validate",
       "acceptance": [
         "No 'orchestration' tab appears in the sidebar view",
@@ -4467,7 +4468,8 @@
       "context": [
         "src/commands/registerCommands.ts",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T166",
@@ -4881,5 +4883,5 @@
       ]
     }
   ],
-  "mutationCount": 199
+  "mutationCount": 200
 }
