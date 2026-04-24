@@ -27,10 +27,7 @@ body {
 
 /* Mode-driven visibility */
 .mode-section { display: block; }
-body[data-mode="simple"] .mode-standard,
 body[data-mode="simple"] .mode-advanced { display: none; }
-body[data-mode="standard"] .mode-simple,
-body[data-mode="standard"] .mode-advanced { display: none; }
 body[data-mode="advanced"] .mode-simple { display: none; }
 
 /* Mode switcher */
@@ -49,7 +46,7 @@ body[data-mode="advanced"] .mode-simple { display: none; }
 
 .mode-switcher-pills {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 3px;
   padding: 3px;
   background: rgba(0, 0, 0, 0.15);
@@ -384,7 +381,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style nonce="${nonce}">${buildSidebarCss()}</style>
 </head>
-<body data-mode="standard">
+<body data-mode="simple">
 
   <!-- Header: workspace + loop state -->
   <div class="header">
@@ -402,13 +399,12 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
     <div class="mode-switcher-label">Mode</div>
     <div class="mode-switcher-pills">
       <button class="mode-pill active" data-mode="simple">Simple</button>
-      <button class="mode-pill" data-mode="standard">Standard</button>
       <button class="mode-pill" data-mode="advanced">Advanced</button>
     </div>
   </div>
 
-  <!-- Progress bar (shown in standard + advanced) -->
-  <div class="mode-section mode-standard mode-advanced">
+  <!-- Progress bar (shown in advanced mode) -->
+  <div class="mode-section mode-advanced">
     ${buildProgressBar(state.taskCounts)}
   </div>
 
@@ -426,8 +422,8 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
     </div>
   </div>
 
-  <!-- Tab nav (standard + advanced) -->
-  <div class="mode-section mode-standard mode-advanced">
+  <!-- Tab nav (shown in advanced mode) -->
+  <div class="mode-section mode-advanced">
     <div class="sidebar-tabs">
       <button class="sidebar-tab active" data-sidebar-tab="run">Run</button>
       <button class="sidebar-tab" data-sidebar-tab="agents">Agents</button>
@@ -436,7 +432,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   </div>
 
   <!-- Run tab panel -->
-  <div class="sidebar-tab-panel active mode-section mode-standard mode-advanced" data-sidebar-panel="run">
+  <div class="sidebar-tab-panel active mode-section mode-advanced" data-sidebar-panel="run">
     <div class="section-label">Loop Controls</div>
     <div class="btn-grid">
       <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
@@ -473,7 +469,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   </div>
 
   <!-- Agents tab panel -->
-  <div class="sidebar-tab-panel mode-section mode-standard mode-advanced" data-sidebar-panel="agents">
+  <div class="sidebar-tab-panel mode-section mode-advanced" data-sidebar-panel="agents">
     <div class="section-label">Agent Roles</div>
     <div class="btn-grid">
       <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">◆ Build</span><span class="btn-spinner"></span></button>
@@ -484,7 +480,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   </div>
 
   <!-- Seed tab panel -->
-  <div class="sidebar-tab-panel mode-section mode-standard mode-advanced" data-sidebar-panel="seed">
+  <div class="sidebar-tab-panel mode-section mode-advanced" data-sidebar-panel="seed">
     <div class="seed-block">
       <textarea data-seed-request="sidebar" placeholder="Describe the epic...">${esc(state.taskSeeding.requestText)}</textarea>
       <div class="btn-grid" style="margin-top: 8px;">
@@ -507,7 +503,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
 
       // --- Mode switcher ---
       var savedMode = (function() {
-        try { return localStorage.getItem('ralph-sidebar-mode') || 'standard'; } catch(e) { return 'standard'; }
+        try { return localStorage.getItem('ralph-sidebar-mode') || 'simple'; } catch(e) { return 'simple'; }
       })();
       setMode(savedMode);
 
