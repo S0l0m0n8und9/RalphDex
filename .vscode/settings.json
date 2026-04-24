@@ -27,5 +27,5 @@
         }
     },
     "sarif-viewer.connectToGithubCodeScanning": "off",
-    "ralphCodex.autonomyMode": "autonomous"
+    "ralphCodex.autonomyMode": "supervised"
 }

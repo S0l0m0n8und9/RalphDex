@@ -367,7 +367,7 @@ test('buildPanelDashboardHtml quick actions expose latest artifact and settings 
   assert.ok(html.includes('ralphCodex.openLatestPromptEvidence'));
   assert.ok(html.includes('ralphCodex.openLatestCliTranscript'));
   assert.ok(html.includes('ralphCodex.openPrdWizard'));
-  assert.ok(html.includes('workbench.action.openSettings'));
+  assert.ok(html.includes('ralphCodex.openSettings'));
 });
 
 test('buildPanelDashboardHtml rail preserves live operator shortcuts', () => {

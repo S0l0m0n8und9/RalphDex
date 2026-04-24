@@ -1346,7 +1346,7 @@ function buildQuickActionsSection(state) {
       <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Dead-Letter</span><span class="btn-spinner"></span></button>` : ''}
       ${quick?.canAttemptLoop ? `<button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>` : ''}
     </div>
@@ -1525,7 +1525,7 @@ function buildDashboardSidebar(state) {
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
-        <button class="btn rail-command" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       </div>
     </div>
 
@@ -1759,7 +1759,7 @@ function buildSettingsTab(state) {
       <div class="btn-grid">
         <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.initializeWorkspace"><span class="btn-label">Initialize Workspace</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="workbench.action.openSettings"><span class="btn-label">Open Settings UI</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings UI</span><span class="btn-spinner"></span></button>
       </div>
     </div>
 

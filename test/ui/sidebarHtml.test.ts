@@ -206,7 +206,7 @@ test('buildDashboardHtml preserves live status, orchestration, task, and setting
   assert.ok(!html.includes('ralphCodex.showMultiAgentStatus'));
   assert.ok(html.includes('ralphCodex.showTasks'));
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
-  assert.ok(html.includes('workbench.action.openSettings'));
+  assert.ok(html.includes('ralphCodex.openSettings'));
   assert.ok(html.includes('ralphCodex.openDashboard'));
 });
 
@@ -227,7 +227,7 @@ test('buildDashboardHtml keeps refreshed sidebar routing bound to live commands 
   assert.ok(html.includes('data-command="ralphCodex.showRalphStatus"'));
   assert.ok(!html.includes('data-command="ralphCodex.showMultiAgentStatus"'));
   assert.ok(html.includes('data-command="ralphCodex.openLatestPipelineRun"'));
-  assert.ok(html.includes('data-command="workbench.action.openSettings"'));
+  assert.ok(html.includes('data-command="ralphCodex.openSettings"'));
   assert.ok(html.includes('data-command="ralphCodex.showTasks"'));
   assert.ok(html.includes('data-command="ralphCodex.openDashboard"'));
   assert.ok(html.includes('data-seed-request="sidebar"'));

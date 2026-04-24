@@ -1602,6 +1602,13 @@ export function registerCommands(
     }
   });
 
+  // Open VS Code settings filtered to RalphDex settings.
+  context.subscriptions.push(
+    vscode.commands.registerCommand('ralphCodex.openSettings', async () => {
+      await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:s0l0m0n8und9.ralphdex');
+    })
+  );
+
   // Show the Ralphdex activity bar sidebar (focuses the dashboard view).
   context.subscriptions.push(
     vscode.commands.registerCommand('ralphCodex.showSidebar', async () => {

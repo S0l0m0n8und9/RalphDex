@@ -456,7 +456,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
       <button class="quick-action" data-command="ralphCodex.openLatestPipelineRun">
         <span>Latest Run</span><span class="quick-shortcut">◫</span>
       </button>
-      <button class="quick-action" data-command="workbench.action.openSettings">
+      <button class="quick-action" data-command="ralphCodex.openSettings">
         <span>Settings</span><span class="quick-shortcut">⌘,</span>
       </button>
     </div>

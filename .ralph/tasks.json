@@ -4536,8 +4536,8 @@
     {
       "id": "T170",
       "title": "Fix 'Open Settings' buttons to open RalphDex-filtered VSCode settings",
-      "status": "todo",
-      "notes": "Three buttons in panelHtml.ts (lines ~1419, ~1620, ~1863) use data-command='workbench.action.openSettings' with no filter argument, so they open the raw unfiltered settings list. Change each to pass 'ralphCodex' as the search query. Check how the webview command dispatcher in dashboardHost.ts handles command arguments (look for data-args or equivalent attribute). If the dispatcher does not yet support args for built-in VS Code commands, add a thin wrapper command (e.g. ralphCodex.openSettings) in registerCommands.ts that calls vscode.commands.executeCommand('workbench.action.openSettings', '@ext:s0l0m0n8und9.ralphdex') or the ralphCodex query string, then point all three buttons at that command.",
+      "status": "done",
+      "notes": "Registered ralphCodex.openSettings command with filter argument and updated all 4 button references (3 in panelHtml.ts, 1 in sidebarHtml.ts). Updated tests. All validation passes.",
       "validation": "npm run validate",
       "priority": "high",
       "acceptance": [
@@ -4547,7 +4547,8 @@
       ],
       "context": [
         "src/ui/panelHtml.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T171",
@@ -4739,5 +4740,5 @@
       ]
     }
   ],
-  "mutationCount": 187
+  "mutationCount": 188
 }
