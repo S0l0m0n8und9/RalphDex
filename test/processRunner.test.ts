@@ -18,8 +18,8 @@ function successfulEchoCommand(text: string): { command: string; args: string[] 
   }
 
   return {
-    command: 'sh',
-    args: ['-lc', `printf '${text}\n'`]
+    command: process.execPath,
+    args: ['-e', `process.stdout.write(${JSON.stringify(`${text}\n`)})`]
   };
 }
 

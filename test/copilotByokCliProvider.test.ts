@@ -69,6 +69,10 @@ test('buildLaunchSpec copilot-foundry preset forces providerType to azure', () =
   const launch = provider.buildLaunchSpec(request(), false);
 
   assert.equal(launch.env?.COPILOT_PROVIDER_TYPE, 'azure');
+  assert.equal(
+    launch.env?.COPILOT_PROVIDER_BASE_URL,
+    'https://resource-1.openai.azure.com/openai/deployments/deployment-1'
+  );
 });
 
 // 3. Azure URL derivation from resourceName + deployment
@@ -120,6 +124,18 @@ test('buildLaunchSpec for OpenAI providerType uses baseUrlOverride', () => {
 
   assert.equal(launch.env?.COPILOT_PROVIDER_TYPE, 'openai');
   assert.equal(launch.env?.COPILOT_PROVIDER_BASE_URL, 'https://api.openai.com/v1');
+});
+
+test('buildLaunchSpec falls back to azure deployment name when model values are blank', () => {
+  const options: CopilotByokConfig = {
+    ...makeByokOptions(),
+    model: '',
+    azure: { resourceName: 'resource-1', deployment: 'deploy-fallback' }
+  };
+  const provider = new CopilotByokCliProvider(options, 'foundry-preset');
+  const launch = provider.buildLaunchSpec({ ...request(), model: '' }, false);
+
+  assert.equal(launch.env?.COPILOT_MODEL, 'deploy-fallback');
 });
 
 // 7. Offline mode adds COPILOT_OFFLINE

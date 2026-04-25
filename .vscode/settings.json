@@ -6,7 +6,6 @@
     "ralphCodex.cliProvider": "codex",
     "ralphCodex.promptBudgetProfile": "claude",
     "ralphCodex.ralphIterationCap": 15,
-    "ralphCodex.autoReloadOnControlPlaneChange": false,
     "ralphCodex.model": "gpt-5.4",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,

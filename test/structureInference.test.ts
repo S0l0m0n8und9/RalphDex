@@ -138,3 +138,22 @@ test('generateStructureDefinition writes a well-formed structure definition for 
     ]
   );
 });
+
+test('generateStructureDefinition omits vendor/runtime directories such as node_modules', async () => {
+  const rootPath = await makeTempRoot();
+  await Promise.all([
+    fs.mkdir(path.join(rootPath, 'src'), { recursive: true }),
+    fs.mkdir(path.join(rootPath, 'node_modules', 'left-pad'), { recursive: true })
+  ]);
+
+  const outputPath = path.join(rootPath, '.ralph', 'structure.json');
+  await generateStructureDefinition(rootPath, outputPath);
+
+  const parsed = JSON.parse(await fs.readFile(outputPath, 'utf8')) as {
+    directories: Array<{ path: string }>;
+  };
+  const paths = new Set(parsed.directories.map((entry) => entry.path));
+
+  assert.equal(paths.has('src'), true);
+  assert.equal(paths.has('node_modules'), false);
+});

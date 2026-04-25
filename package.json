@@ -427,7 +427,7 @@
             "requiredApiKeyEnvVar": {
               "type": "string",
               "default": "COPILOT_PROVIDER_API_KEY",
-              "description": "Name of the environment variable that must be set by the operator before launch. Used only for preflight presence diagnostics — the value is never read by RalphDex."
+              "description": "Name of the environment variable that must be set by the operator before launch. Used for preflight readiness checks only; secret values are never stored or logged by RalphDex."
             },
             "approvalMode": {
               "type": "string",
