@@ -247,6 +247,10 @@ function createEngine(
 test.beforeEach(() => {
   const harness = vscodeTestHarness();
   harness.reset();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath
+  });
 });
 
 test('runCliIteration records successful progress, artifacts, and state persistence across iterations', async () => {

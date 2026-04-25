@@ -61,6 +61,20 @@ const CONFIG_FILE_INDICATORS = [
   'go.mod'
 ];
 
+const IGNORED_DIRECTORY_NAMES = new Set([
+  'node_modules',
+  '.git',
+  '.svn',
+  '.hg',
+  '.pnpm-store',
+  '.yarn',
+  '.npm',
+  '.cache',
+  '.venv',
+  'venv',
+  '__pycache__'
+]);
+
 function inferDirRole(name: string): StructureDirectoryRole {
   return ROLE_MAP.get(name.toLowerCase()) ?? 'other';
 }
@@ -77,7 +91,8 @@ export async function inferStructureDefinition(rootPath: string): Promise<Struct
 
   const dirNames = entries
     .filter((e) => e.isDirectory())
-    .map((e) => e.name);
+    .map((e) => e.name)
+    .filter((name) => !IGNORED_DIRECTORY_NAMES.has(name.toLowerCase()));
 
   const fileNames = new Set(entries.filter((e) => e.isFile()).map((e) => e.name));
 

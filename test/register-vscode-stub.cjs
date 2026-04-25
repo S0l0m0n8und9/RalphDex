@@ -1,5 +1,14 @@
 const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const Module = require('node:module');
+
+const cliShimDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ralph-cli-shims-'));
+for (const command of ['claude', 'codex', 'copilot', 'gemini', 'azure-foundry']) {
+  const shimPath = path.join(cliShimDir, command);
+  fs.writeFileSync(shimPath, '#!/usr/bin/env sh\nexit 0\n', { encoding: 'utf8', mode: 0o755 });
+}
+process.env.PATH = `${cliShimDir}${path.delimiter}${process.env.PATH ?? ''}`;
 
 const state = {
   configuration: {},

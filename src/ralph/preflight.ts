@@ -380,28 +380,29 @@ function collectCopilotByokReadinessDiagnostics(config: RalphCodexConfig): Ralph
   const effectiveProviderType = providerId === 'copilot-foundry' ? 'azure' : cfg.providerType;
 
   // Check base URL is resolvable
-  if (!cfg.baseUrlOverride.trim()) {
-    if (effectiveProviderType === 'azure') {
-      if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
-        diagnostics.push(createDiagnostic(
-          'codexAdapter',
-          'error',
-          'copilot_byok_base_url_missing',
-          `cliProvider is set to ${providerId} but neither ralphCodex.copilotFoundry.baseUrlOverride nor both ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are configured.`
-        ));
-      }
-    } else {
+  const hasOverride = !!cfg.baseUrlOverride.trim();
+  if (effectiveProviderType === 'azure') {
+    if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
       diagnostics.push(createDiagnostic(
         'codexAdapter',
         'error',
         'copilot_byok_base_url_missing',
-        `cliProvider is set to ${providerId} with providerType "${cfg.providerType}" but ralphCodex.copilotFoundry.baseUrlOverride is not configured. A base URL is required for non-azure provider types.`
+        providerId === 'copilot-foundry'
+          ? 'cliProvider is set to copilot-foundry but ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are not both configured.'
+          : `cliProvider is set to ${providerId} but neither ralphCodex.copilotFoundry.baseUrlOverride nor both ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are configured.`
       ));
     }
+  } else if (!hasOverride) {
+    diagnostics.push(createDiagnostic(
+      'codexAdapter',
+      'error',
+      'copilot_byok_base_url_missing',
+      `cliProvider is set to ${providerId} with providerType "${cfg.providerType}" but ralphCodex.copilotFoundry.baseUrlOverride is not configured. A base URL is required for non-azure provider types.`
+    ));
   }
 
-  // Check model is configured
-  if (!cfg.model.trim()) {
+  // Check model is configured (for azure, deployment is a fallback model identifier)
+  if (!cfg.model.trim() && !(effectiveProviderType === 'azure' && cfg.azure.deployment.trim())) {
     diagnostics.push(createDiagnostic(
       'codexAdapter',
       'warning',

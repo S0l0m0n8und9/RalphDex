@@ -63,7 +63,7 @@ export interface RalphModelTierConfig {
  * routing (e.g. copilot for simple tasks, claude for medium/complex).
  */
 export interface RalphModelTieringConfig {
-  /** Enable complexity-based model selection. Default: false (always use config.model). */
+  /** Enable complexity-based model selection. Default: true. */
   enabled: boolean;
   /** Tier config for low-complexity tasks (score < simpleThreshold). */
   simple: RalphModelTierConfig;

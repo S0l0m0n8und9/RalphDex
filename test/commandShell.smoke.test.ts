@@ -637,13 +637,15 @@ test('Test Current Provider Connection surfaces azure-foundry bearer readiness f
 test('Test Current Provider Connection surfaces copilot-foundry API-key readiness failures as provider errors', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
+  const previousApiKey = process.env.COPILOT_FOUNDRY_KEY;
+  delete process.env.COPILOT_FOUNDRY_KEY;
 
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
     cliProvider: 'copilot-foundry',
     copilotFoundry: {
-      commandPath: 'copilot',
+      commandPath: process.execPath,
       approvalMode: 'allow-all',
       maxAutopilotContinues: 200,
       providerType: 'azure',
@@ -658,8 +660,16 @@ test('Test Current Provider Connection surfaces copilot-foundry API-key readines
     }
   });
 
-  activate(createExtensionContext());
-  await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+  try {
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
+  } finally {
+    if (previousApiKey === undefined) {
+      delete process.env.COPILOT_FOUNDRY_KEY;
+    } else {
+      process.env.COPILOT_FOUNDRY_KEY = previousApiKey;
+    }
+  }
 
   const message = harness.state.warningMessages.at(-1)?.message ?? '';
   assert.match(message, /Required API key env var COPILOT_FOUNDRY_KEY is not set/i);
@@ -2639,4 +2649,3 @@ test('Open PRD Wizard bootstraps a missing .ralph scaffold and opens the wizard 
   assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
   assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
 });
-
