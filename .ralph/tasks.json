@@ -4691,11 +4691,11 @@
     {
       "id": "T177",
       "title": "Document structure.d format, inference behaviour, and override options in docs/",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T175"
       ],
-      "notes": "Add a dedicated `docs/structure-definition.md` covering: what the file is, where it lives, the schema, how inference works, how to hand-edit it, and how to disable inference via config. Link from architecture.md.",
+      "notes": "Added docs/structure-definition.md covering structure.d purpose/location, schema, inference and preflight generation behavior, hand-edit guidance, and override controls including structureDefinitionPath/no-overwrite behavior; linked it from docs/architecture.md.",
       "validation": "npm run validate",
       "priority": "low",
       "acceptance": [
@@ -4706,7 +4706,8 @@
       "context": [
         "docs/",
         "docs/architecture.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T178",
@@ -4900,5 +4901,5 @@
       "lastVerifierResult": "failed"
     }
   ],
-  "mutationCount": 221
+  "mutationCount": 222
 }

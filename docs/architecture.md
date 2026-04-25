@@ -8,6 +8,7 @@ Related docs:
 - [Provenance](provenance.md)
 - [Verifier](verifier.md)
 - [Boundaries](boundaries.md)
+- [Structure Definition](structure-definition.md)
 
 ## Entry Point
 
