@@ -646,30 +646,23 @@ test('Test Current Provider Connection surfaces copilot-foundry API-key readines
       commandPath: 'copilot',
       approvalMode: 'allow-all',
       maxAutopilotContinues: 200,
-      auth: {
-        mode: 'env-api-key',
-        tenantId: '',
-        subscriptionId: '',
-        apiKeyEnvVar: 'COPILOT_FOUNDRY_KEY',
-        secretStorageKey: ''
-      },
+      providerType: 'azure',
+      baseUrlOverride: '',
+      model: 'gpt-4o',
       azure: {
-        resourceGroup: '',
         resourceName: 'copilot-foundry-resource',
-        baseUrlOverride: ''
+        deployment: 'gpt-4o'
       },
-      model: {
-        deployment: 'gpt-4o',
-        wireApi: 'responses'
-      }
+      offline: false,
+      requiredApiKeyEnvVar: 'COPILOT_FOUNDRY_KEY'
     }
   });
 
   activate(createExtensionContext());
   await vscode.commands.executeCommand('ralphCodex.testCurrentProviderConnection');
 
-  const message = harness.state.errorMessages.at(-1)?.message ?? '';
-  assert.match(message, /copilot-foundry api-key readiness failed/i);
+  const message = harness.state.warningMessages.at(-1)?.message ?? '';
+  assert.match(message, /Required API key env var COPILOT_FOUNDRY_KEY is not set/i);
   assert.match(message, /COPILOT_FOUNDRY_KEY/);
 });
 

@@ -133,22 +133,15 @@ test('readConfig supports copilot-foundry and grouped Azure provider config', ()
       commandPath: 'copilot-foundry',
       approvalMode: 'interactive',
       maxAutopilotContinues: 123,
-      auth: {
-        mode: 'env-api-key',
-        tenantId: 'tenant-1',
-        subscriptionId: 'subscription-1',
-        apiKeyEnvVar: 'COPILOT_FOUNDRY_API_KEY',
-        secretStorageKey: 'copilot-foundry.secret'
-      },
+      providerType: 'azure',
+      baseUrlOverride: 'https://override.example',
+      model: 'gpt-5.4',
       azure: {
-        resourceGroup: 'rg-1',
         resourceName: 'resource-1',
-        baseUrlOverride: 'https://override.example'
+        deployment: 'gpt-5.4'
       },
-      model: {
-        deployment: 'gpt-5.4',
-        wireApi: 'responses'
-      }
+      offline: false,
+      requiredApiKeyEnvVar: 'COPILOT_FOUNDRY_API_KEY'
     },
     azureFoundry: {
       commandPath: 'azure-foundry-custom',
@@ -171,10 +164,10 @@ test('readConfig supports copilot-foundry and grouped Azure provider config', ()
   assert.equal(config.copilotFoundry.commandPath, 'copilot-foundry');
   assert.equal(config.copilotFoundry.approvalMode, 'interactive');
   assert.equal(config.copilotFoundry.maxAutopilotContinues, 123);
-  assert.equal(config.copilotFoundry.auth.mode, 'env-api-key');
-  assert.equal(config.copilotFoundry.auth.apiKeyEnvVar, 'COPILOT_FOUNDRY_API_KEY');
+  assert.equal(config.copilotFoundry.providerType, 'azure');
+  assert.equal(config.copilotFoundry.requiredApiKeyEnvVar, 'COPILOT_FOUNDRY_API_KEY');
   assert.equal(config.copilotFoundry.azure.resourceName, 'resource-1');
-  assert.equal(config.copilotFoundry.model.deployment, 'gpt-5.4');
+  assert.equal(config.copilotFoundry.model, 'gpt-5.4');
 
   assert.equal(config.azureFoundry.commandPath, 'azure-foundry-custom');
   assert.equal(config.azureFoundry.endpointUrl, 'https://foundry.example');
@@ -194,8 +187,8 @@ test('readConfig returns grouped provider defaults when no settings are configur
   assert.equal(config.copilotFoundry.commandPath, 'copilot');
   assert.equal(config.copilotFoundry.approvalMode, 'allow-tools-only');
   assert.equal(config.copilotFoundry.maxAutopilotContinues, 200);
-  assert.equal(config.copilotFoundry.auth.mode, 'az-bearer');
-  assert.equal(config.copilotFoundry.model.wireApi, 'responses');
+  assert.equal(config.copilotFoundry.providerType, 'azure');
+  assert.equal(config.copilotFoundry.requiredApiKeyEnvVar, 'COPILOT_PROVIDER_API_KEY');
   assert.equal(config.azureFoundry.commandPath, 'azure-foundry');
   assert.equal(config.azureFoundry.apiVersion, '2024-12-01-preview');
   assert.equal(config.azureFoundry.auth.mode, 'az-bearer');

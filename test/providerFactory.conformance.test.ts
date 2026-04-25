@@ -41,17 +41,11 @@ function makeConfig(): RalphCodexConfig {
       commandPath: 'copilot-foundry-custom',
       approvalMode: 'interactive',
       maxAutopilotContinues: 88,
-      auth: {
-        ...DEFAULT_CONFIG.copilotFoundry.auth,
-        mode: 'env-api-key',
-        apiKeyEnvVar: 'COPILOT_FOUNDRY_KEY'
-      },
+      providerType: 'azure' as const,
+      baseUrlOverride: 'https://copilot-foundry.example.test',
+      model: 'gpt-foundry',
       azure: {
-        ...DEFAULT_CONFIG.copilotFoundry.azure,
-        baseUrlOverride: 'https://copilot-foundry.example.test'
-      },
-      model: {
-        ...DEFAULT_CONFIG.copilotFoundry.model,
+        resourceName: 'foundry-resource',
         deployment: 'gpt-foundry'
       }
     },
@@ -103,7 +97,6 @@ function makeResult(request: CodexExecRequest, args: string[]): CodexExecResult 
 
 test.afterEach(() => {
   setProcessRunnerOverride(null);
-  delete process.env.COPILOT_FOUNDRY_KEY;
 });
 
 test('getCliCommandPathForProvider maps each provider to its own configured command path', () => {
@@ -112,6 +105,7 @@ test('getCliCommandPathForProvider maps each provider to its own configured comm
     codex: config.codexCommandPath,
     claude: config.claudeCommandPath,
     copilot: config.copilotCommandPath,
+    'copilot-byok': config.copilotFoundry.commandPath,
     'copilot-foundry': config.copilotFoundry.commandPath,
     'azure-foundry': config.azureFoundry.commandPath,
     gemini: config.geminiCommandPath
@@ -168,14 +162,14 @@ test('provider factory keeps provider-specific settings isolated', () => {
 
 test('provider summarizeText uses configured command paths from factory wiring', async () => {
   const config = makeConfig();
-  process.env.COPILOT_FOUNDRY_KEY = 'foundry-test-key';
 
   const cases: Array<{ providerId: CliProviderId; expectedCommandPath: string }> = [
     { providerId: 'codex', expectedCommandPath: config.codexCommandPath },
     { providerId: 'claude', expectedCommandPath: config.claudeCommandPath },
     { providerId: 'copilot', expectedCommandPath: config.copilotCommandPath },
     { providerId: 'gemini', expectedCommandPath: config.geminiCommandPath },
-    { providerId: 'copilot-foundry', expectedCommandPath: config.copilotFoundry.commandPath }
+    { providerId: 'copilot-foundry', expectedCommandPath: config.copilotFoundry.commandPath },
+    { providerId: 'copilot-byok', expectedCommandPath: config.copilotFoundry.commandPath }
   ];
 
   for (const { providerId, expectedCommandPath } of cases) {

@@ -23,10 +23,10 @@ test('getSettingsSurfaceMetadata exposes the planned settings-panel sections wit
   assert.ok(planningMode, 'planningPass.mode entry should exist');
   assert.deepEqual(planningMode?.options, ['dedicated', 'inline']);
 
-  const copilotFoundryMode = metadata.entries.find((entry) => entry.key === 'copilotFoundry.auth.mode');
-  assert.ok(copilotFoundryMode, 'copilotFoundry.auth.mode entry should exist');
-  assert.deepEqual(copilotFoundryMode?.options, ['az-bearer', 'env-api-key', 'vscode-secret']);
-  assert.equal(copilotFoundryMode?.defaultValue, DEFAULT_CONFIG.copilotFoundry.auth.mode);
+  const copilotFoundryProviderType = metadata.entries.find((entry) => entry.key === 'copilotFoundry.providerType');
+  assert.ok(copilotFoundryProviderType, 'copilotFoundry.providerType entry should exist');
+  assert.deepEqual(copilotFoundryProviderType?.options, ['azure', 'openai', 'anthropic']);
+  assert.equal(copilotFoundryProviderType?.defaultValue, DEFAULT_CONFIG.copilotFoundry.providerType);
 
   const azureEndpoint = metadata.entries.find((entry) => entry.key === 'azureFoundry.endpointUrl');
   assert.ok(azureEndpoint, 'azureFoundry.endpointUrl entry should exist');
@@ -47,14 +47,10 @@ test('buildSettingsSurfaceSnapshot projects config values into grouped sections 
         ...DEFAULT_CONFIG.copilotFoundry,
         commandPath: 'copilot-foundry',
         azure: {
-          ...DEFAULT_CONFIG.copilotFoundry.azure,
           resourceName: 'resource-1',
-          baseUrlOverride: 'https://foundry.example/openai/v1'
-        },
-        model: {
-          ...DEFAULT_CONFIG.copilotFoundry.model,
           deployment: 'gpt-5.4'
-        }
+        },
+        model: 'gpt-5.4'
       },
       azureFoundry: {
         ...DEFAULT_CONFIG.azureFoundry,
@@ -71,7 +67,7 @@ test('buildSettingsSurfaceSnapshot projects config values into grouped sections 
   const copilotSection = snapshot.sections.find((section) => section.id === 'copilot-foundry');
   assert.ok(copilotSection, 'copilot section should exist');
   assert.equal(
-    copilotSection?.entries.find((entry) => entry.key === 'copilotFoundry.model.deployment')?.value,
+    copilotSection?.entries.find((entry) => entry.key === 'copilotFoundry.model')?.value,
     'gpt-5.4'
   );
 

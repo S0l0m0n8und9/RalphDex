@@ -1354,15 +1354,8 @@ test('buildPreflightReport emits info when copilot-foundry API-key readiness is 
           ...DEFAULT_CONFIG.copilotFoundry.azure,
           resourceName: 'foundry-resource'
         },
-        model: {
-          ...DEFAULT_CONFIG.copilotFoundry.model,
-          deployment: 'gpt-4o'
-        },
-        auth: {
-          ...DEFAULT_CONFIG.copilotFoundry.auth,
-          mode: 'env-api-key',
-          apiKeyEnvVar: 'COPILOT_FOUNDRY_KEY'
-        }
+        model: 'gpt-4o',
+        requiredApiKeyEnvVar: 'COPILOT_FOUNDRY_KEY'
       }
     },
     taskInspection,
