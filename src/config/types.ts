@@ -1,6 +1,6 @@
 import { RalphAgentRole } from '../ralph/types';
 
-export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-foundry' | 'azure-foundry' | 'gemini';
+export type CliProviderId = 'codex' | 'claude' | 'copilot' | 'copilot-byok' | 'copilot-foundry' | 'azure-foundry' | 'gemini';
 
 export type CodexHandoffMode = 'ideCommand' | 'clipboard' | 'cliExec';
 
@@ -106,20 +106,21 @@ export interface AzureAuthConfig {
   secretStorageKey: string;
 }
 
-export interface CopilotFoundryConfig {
+export type CopilotByokProviderType = 'azure' | 'openai' | 'anthropic';
+
+export interface CopilotByokConfig {
   commandPath: string;
+  providerType: CopilotByokProviderType;
+  baseUrlOverride: string;
+  model: string;
+  azure: {
+    resourceName: string;
+    deployment: string;
+  };
+  offline: boolean;
+  requiredApiKeyEnvVar: string;
   approvalMode: CopilotApprovalMode;
   maxAutopilotContinues: number;
-  auth: AzureAuthConfig;
-  azure: {
-    resourceGroup: string;
-    resourceName: string;
-    baseUrlOverride: string;
-  };
-  model: {
-    deployment: string;
-    wireApi: string;
-  };
 }
 
 export interface AzureFoundryConfig {
@@ -136,7 +137,7 @@ export interface RalphCodexConfig {
   claudeCommandPath: string;
   copilotCommandPath: string;
   geminiCommandPath: string;
-  copilotFoundry: CopilotFoundryConfig;
+  copilotFoundry: CopilotByokConfig;
   azureFoundry: AzureFoundryConfig;
   claudeMaxTurns: number;
   copilotMaxAutopilotContinues: number;

@@ -21,7 +21,8 @@ import {
   RalphAutonomyMode,
   RalphGitCheckpointMode,
   RalphHooksConfig,
-  CopilotFoundryConfig,
+  CopilotByokConfig,
+  CopilotByokProviderType,
   RalphModelTierConfig,
   RalphModelTieringConfig,
   RalphPlanningPassConfig,
@@ -202,34 +203,37 @@ function readAzureAuthConfig(raw: unknown, fallback: AzureAuthConfig): AzureAuth
   };
 }
 
-function readCopilotFoundryConfig(raw: unknown, fallback: CopilotFoundryConfig): CopilotFoundryConfig {
+function readCopilotFoundryConfig(raw: unknown, fallback: CopilotByokConfig): CopilotByokConfig {
   const record = asRecord(raw);
   if (!record) {
     return fallback;
   }
 
   const azure = asRecord(record.azure);
-  const model = asRecord(record.model);
 
   return {
     commandPath: readStringField(record, 'commandPath', fallback.commandPath),
+    providerType: readEnumField<CopilotByokProviderType>(
+      record,
+      'providerType',
+      ['azure', 'openai', 'anthropic'],
+      fallback.providerType
+    ),
+    baseUrlOverride: readStringField(record, 'baseUrlOverride', fallback.baseUrlOverride),
+    model: readStringField(record, 'model', fallback.model),
+    azure: {
+      resourceName: readStringField(azure ?? {}, 'resourceName', fallback.azure.resourceName),
+      deployment: readStringField(azure ?? {}, 'deployment', fallback.azure.deployment)
+    },
+    offline: typeof record.offline === 'boolean' ? record.offline : fallback.offline,
+    requiredApiKeyEnvVar: readStringField(record, 'requiredApiKeyEnvVar', fallback.requiredApiKeyEnvVar),
     approvalMode: readEnumField<CopilotApprovalMode>(
       record,
       'approvalMode',
       ['allow-all', 'allow-tools-only', 'interactive'],
       fallback.approvalMode
     ),
-    maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1),
-    auth: readAzureAuthConfig(record.auth, fallback.auth),
-    azure: {
-      resourceGroup: readStringField(azure ?? {}, 'resourceGroup', fallback.azure.resourceGroup),
-      resourceName: readStringField(azure ?? {}, 'resourceName', fallback.azure.resourceName),
-      baseUrlOverride: readStringField(azure ?? {}, 'baseUrlOverride', fallback.azure.baseUrlOverride)
-    },
-    model: {
-      deployment: readStringField(model ?? {}, 'deployment', fallback.model.deployment),
-      wireApi: readStringField(model ?? {}, 'wireApi', fallback.model.wireApi)
-    }
+    maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1)
   };
 }
 
@@ -248,7 +252,7 @@ function readAzureFoundryConfig(raw: unknown, fallback: AzureFoundryConfig): Azu
   };
 }
 
-const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'];
+const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
 
 
 function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
@@ -362,7 +366,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const cliProvider = readEnum<CliProviderId>(
     config,
     'cliProvider',
-    ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'],
+    ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'],
     DEFAULT_CONFIG.cliProvider
   );
   const autonomyMode = readEnum<RalphAutonomyMode>(
