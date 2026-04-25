@@ -1456,13 +1456,30 @@ body {
 }
 
 .wizard-main textarea,
-.wizard-main input,
-.wizard-main select {
+.wizard-main input {
   background: rgba(0, 0, 0, 0.18);
   border-color: var(--border);
   color: var(--fg);
   border-radius: 8px;
   padding: 8px 10px;
+}
+
+.wizard-main select {
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  border-color: var(--border);
+  color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.wizard-main select option {
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+}
+
+.wizard-main select option:checked {
+  background: var(--vscode-list-activeSelectionBackground, var(--vscode-dropdown-background));
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-dropdown-foreground));
 }
 
 .muted {

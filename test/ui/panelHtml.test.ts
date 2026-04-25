@@ -264,6 +264,17 @@ test('buildPanelDashboardHtml eagerly persists plain setting inputs before comma
   assert.ok(html.includes('function sendSettingUpdate(el)'));
 });
 
+test('buildPanelDashboardHtml keeps settings selects readable with VS Code dropdown and list tokens', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'select-theme');
+
+  assert.match(html, /\.setting-control select\s*option/);
+  assert.match(html, /\.setting-control select\s*option:checked/);
+  assert.ok(html.includes('var(--vscode-dropdown-background, var(--vscode-input-background))'));
+  assert.ok(html.includes('var(--vscode-dropdown-foreground, var(--vscode-input-foreground))'));
+  assert.ok(html.includes('var(--vscode-list-activeSelectionBackground, var(--vscode-dropdown-background))'));
+  assert.ok(html.includes('var(--vscode-list-activeSelectionForeground, var(--vscode-dropdown-foreground))'));
+});
+
 test('buildPanelDashboardHtml shows empty state when no tasks and no PRD', () => {
   const html = buildPanelDashboardHtml(defaultState({ prdExists: false }), 'n10');
   assert.ok(html.includes('Open PRD Wizard'));

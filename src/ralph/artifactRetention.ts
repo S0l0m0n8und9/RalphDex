@@ -512,6 +512,30 @@ function derivedLatestSurfaceReferences(input: {
   ];
 }
 
+async function cleanupStaleLatestProvenanceFailurePointer(artifactRootDir: string): Promise<void> {
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+  const latestProvenanceFailureRecord = await readJsonRecord(latestPaths.latestProvenanceFailurePath);
+  if (!latestProvenanceFailureRecord) {
+    return;
+  }
+
+  const referencedPaths = PROTECTED_GENERATED_LATEST_POINTER_REFERENCES['latest-provenance-failure.json']
+    .map((field) => readPathReference(latestProvenanceFailureRecord, field))
+    .filter((targetPath): targetPath is string => Boolean(targetPath));
+  if (referencedPaths.length === 0) {
+    return;
+  }
+
+  const hasMissingReferences = (await Promise.all(referencedPaths.map(async (targetPath) =>
+    await pathExists(targetPath) ? null : targetPath
+  ))).some((targetPath) => targetPath !== null);
+  if (!hasMissingReferences) {
+    return;
+  }
+
+  await fs.rm(latestPaths.latestProvenanceFailurePath, { force: true });
+}
+
 async function readTextRecord(target: string): Promise<string | null> {
   try {
     return await fs.readFile(target, 'utf8');
@@ -963,6 +987,8 @@ export async function cleanupGeneratedArtifacts(input: {
   summary.retainedWatchdogFiles = inspection.watchdogFiles
     .filter((entry) => retainedWatchdogFiles.has(entry.name))
     .map((entry) => entry.name);
+
+  await cleanupStaleLatestProvenanceFailurePointer(input.artifactRootDir);
 
   return summary;
 }

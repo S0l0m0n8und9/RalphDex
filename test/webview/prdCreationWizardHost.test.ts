@@ -185,6 +185,30 @@ test('PrdCreationWizardHost: selected project shape renders an explicit active m
   host.dispose();
 });
 
+test('PrdCreationWizardHost: wizard select controls keep open-state colors tied to VS Code dropdown tokens', () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft(),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  assert.match(webview.html, /\.wizard-main select\s*option/);
+  assert.match(webview.html, /\.wizard-main select\s*option:checked/);
+  assert.match(webview.html, /var\(--vscode-dropdown-background, var\(--vscode-input-background\)\)/);
+  assert.match(webview.html, /var\(--vscode-dropdown-foreground, var\(--vscode-input-foreground\)\)/);
+  assert.match(webview.html, /var\(--vscode-list-activeSelectionBackground, var\(--vscode-dropdown-background\)\)/);
+  assert.match(webview.html, /var\(--vscode-list-activeSelectionForeground, var\(--vscode-dropdown-foreground\)\)/);
+
+  host.dispose();
+});
+
 test('PrdCreationWizardHost: generate composes structured intake fields into the existing draft contract', async () => {
   const webview = makeMockWebview();
   let generateInput: {

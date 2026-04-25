@@ -359,7 +359,6 @@ details[open] > .completed-toggle::before {
   text-transform: uppercase;
 }
 
-.setting-control select,
 .setting-control input[type="text"],
 .setting-control input[type="number"] {
   width: 100%;
@@ -367,14 +366,42 @@ details[open] > .completed-toggle::before {
   font-family: var(--font-ui);
   font-size: 11px;
   background: rgba(0, 0, 0, 0.2);
-  color: var(--vscode-input-foreground, #ccc);
+  color: var(--vscode-input-foreground);
   border: 1px solid var(--border);
   border-radius: 4px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.setting-control select:focus,
+.setting-control select {
+  width: 100%;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.setting-control select option {
+  background: var(--vscode-dropdown-background, var(--vscode-input-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-input-foreground));
+}
+
+.setting-control select option:checked {
+  background: var(--vscode-list-activeSelectionBackground, var(--vscode-dropdown-background));
+  color: var(--vscode-list-activeSelectionForeground, var(--vscode-dropdown-foreground));
+}
+
+.setting-control select:focus {
+  border-color: var(--vscode-focusBorder);
+  outline: 1px solid var(--vscode-focusBorder);
+  box-shadow: none;
+}
+
 .setting-control input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);

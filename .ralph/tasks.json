@@ -4711,8 +4711,8 @@
     {
       "id": "T178",
       "title": "Audit optionset control styling to locate where dropdown open-state colours are defined",
-      "status": "todo",
-      "notes": "Search for select, dropdown, combobox, or optionset-related CSS/SCSS/Tailwind rules. Identify the open/active state rules that produce white-on-white rendering. Note every file and selector responsible.",
+      "status": "done",
+      "notes": "Completed a full optionset/dropdown style audit and documented every governing select background/text-color rule plus token chain; confirmed there are no explicit open-state popup selectors in the repo.",
       "validation": "npm run validate",
       "acceptance": [
         "All CSS/SCSS/JS-in-CSS rules governing optionset background and text colour in open state are identified and listed in a code comment or task note"
@@ -4722,16 +4722,17 @@
         "media/",
         "src/webview/",
         "src/views/"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T179",
       "title": "Fix optionset open-state colours so dropdown list items are legible against their background",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T178"
       ],
-      "notes": "Use VS Code theme CSS variables (--vscode-dropdown-background, --vscode-dropdown-foreground, --vscode-list-activeSelectionBackground, --vscode-list-activeSelectionForeground) rather than hard-coded colour values so the fix works across light, dark, and high-contrast themes.",
+      "notes": "Completed the select open-state legibility fix across shared webview styles, dashboard settings selects, and the PRD wizard using VS Code dropdown/list theme tokens only; added regression coverage for all three surfaces and validated with npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "Opening any optionset/select control in the extension renders list items with clearly visible text against a contrasting background",
@@ -4741,7 +4742,8 @@
       "constraints": [
         "Do not override VS Code theme variables with fixed hex/rgb values",
         "Changes must be scoped to optionset/dropdown components only"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T180",
@@ -4761,7 +4763,7 @@
     {
       "id": "T181",
       "title": "Repair or suppress stale latest-provenance-failure.json pointer after artifact cleanup",
-      "status": "todo",
+      "status": "in_progress",
       "notes": "latest-provenance-failure.json under .ralph/artifacts/ references iteration-037 artifacts that were cleaned up. The file is retained as a latest pointer but its referenced artifact directory no longer exists, causing a persistent preflight warning. Fix: when cleanup removes an iteration dir, also clear the latest-provenance-failure pointer if it references that dir (or suppress the warning when the failure record referenced dir is gone).",
       "validation": "npm run validate",
       "tier": "simple",
@@ -4889,5 +4891,5 @@
       ]
     }
   ],
-  "mutationCount": 204
+  "mutationCount": 206
 }

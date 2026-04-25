@@ -340,3 +340,5 @@
 - Removed the shared pipeline-strip dashboard section from panel surfaces, deleted the typed pipeline snapshot projection, updated UI/snapshot tests, and verified that src no longer contains any 'pipeline strip' references.
 - Hooked structure-definition generation into mutable workspace preflight, surfaced fresh generation as a preflight info diagnostic, and added regression coverage for create-once/no-op behavior.
 - Added representative structure inference coverage and a prompt-injection regression test, then hardened Repo Structure rendering so file-backed structure metadata cannot inject extra prompt headings or instructions.
+- Completed a full optionset/dropdown style audit and documented every governing select background/text-color rule plus token chain; confirmed there are no explicit open-state popup selectors in the repo.
+- Completed the select open-state legibility fix across shared webview styles, dashboard settings selects, and the PRD wizard using VS Code dropdown/list theme tokens only; added regression coverage for all three surfaces and validated with npm run validate.

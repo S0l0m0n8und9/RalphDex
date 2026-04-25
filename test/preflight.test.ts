@@ -6,6 +6,7 @@ import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
+import { cleanupGeneratedArtifacts } from '../src/ralph/artifactStore';
 
 const fileStatus = {
   prdPath: true,
@@ -507,6 +508,62 @@ test('inspectPreflightArtifactReadiness warns when retention cleanup is disabled
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'artifact_cleanup_root_overlap'));
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'generated_artifact_retention_disabled'));
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === 'provenance_bundle_retention_disabled'));
+});
+
+test('cleanupGeneratedArtifacts clears stale latest provenance failure pointer so preflight no longer warns', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const stateFilePath = path.join(rootPath, '.ralph', 'state.json');
+
+  await createDirectories([
+    path.dirname(stateFilePath),
+    artifactRootDir,
+    promptDir,
+    runDir,
+    path.join(artifactRootDir, 'iteration-010'),
+    path.join(artifactRootDir, 'iteration-011')
+  ]);
+  await writeUtf8Files([
+    [stateFilePath, JSON.stringify({ version: 2, runHistory: [], iterationHistory: [] })],
+    [path.join(promptDir, 'iteration-010.prompt.md'), 'iteration 10\n'],
+    [path.join(promptDir, 'iteration-011.prompt.md'), 'iteration 11\n'],
+    [path.join(runDir, 'iteration-010.transcript.md'), 'transcript 10\n'],
+    [path.join(runDir, 'iteration-010.last-message.md'), 'message 10\n'],
+    [path.join(runDir, 'iteration-011.transcript.md'), 'transcript 11\n'],
+    [path.join(runDir, 'iteration-011.last-message.md'), 'message 11\n'],
+    [path.join(artifactRootDir, 'latest-provenance-failure.json'), JSON.stringify({
+      artifactDir: path.join(artifactRootDir, 'iteration-009'),
+      executionPlanPath: path.join(artifactRootDir, 'iteration-009', 'execution-plan.json'),
+      promptArtifactPath: path.join(artifactRootDir, 'iteration-009', 'prompt.md'),
+      cliInvocationPath: path.join(artifactRootDir, 'iteration-009', 'cli-invocation.json')
+    })]
+  ]);
+
+  await cleanupGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    retentionCount: 1
+  });
+  await assert.rejects(fs.access(path.join(artifactRootDir, 'latest-provenance-failure.json')));
+
+  const diagnostics = await inspectPreflightArtifactReadiness({
+    rootPath,
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    generatedArtifactRetentionCount: 1,
+    provenanceBundleRetentionCount: 1
+  });
+
+  assert.equal(
+    diagnostics.some((diagnostic) => diagnostic.code === 'latest_artifact_pointer_targets_missing'),
+    false
+  );
 });
 
 test('checkStaleState returns no diagnostics when lock files are absent and no claims', async () => {
