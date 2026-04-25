@@ -1382,6 +1382,112 @@ test('buildPreflightReport emits info when copilot-foundry API-key readiness is 
   );
 });
 
+test('buildPreflightReport allows copilot-byok azure when baseUrlOverride is configured without azure resource/deployment', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Use Copilot BYOK', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-byok',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        providerType: 'azure',
+        baseUrlOverride: 'https://example.azure.com/openai/deployments/my-deployment',
+        azure: {
+          ...DEFAULT_CONFIG.copilotFoundry.azure,
+          resourceName: '',
+          deployment: ''
+        }
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  assert.equal(report.ready, true);
+  assert.ok(!report.diagnostics.some((d) => d.code === 'copilot_byok_base_url_missing'));
+});
+
+test('buildPreflightReport keeps copilot-foundry strict and ignores baseUrlOverride when azure resource/deployment are missing', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Use Copilot Foundry', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-foundry',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        providerType: 'azure',
+        baseUrlOverride: 'https://example.azure.com/openai/deployments/my-deployment',
+        azure: {
+          ...DEFAULT_CONFIG.copilotFoundry.azure,
+          resourceName: '',
+          deployment: ''
+        }
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  assert.equal(report.ready, false);
+  assert.ok(report.diagnostics.some((d) => d.code === 'copilot_byok_base_url_missing'));
+});
+
+test('buildPreflightReport requires baseUrlOverride for non-azure copilot-byok provider types', () => {
+  const taskInspection = inspectTaskFileText(JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T1', title: 'Use Copilot BYOK OpenAI', status: 'todo' }]
+  }));
+
+  const report = buildPreflightReport({
+    rootPath: '/workspace',
+    workspaceTrusted: true,
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-byok',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        providerType: 'openai',
+        baseUrlOverride: ''
+      }
+    },
+    taskInspection,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    taskValidationHint: null,
+    validationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommandReadiness: { command: null, status: 'missing', executable: null },
+    fileStatus
+  });
+
+  assert.equal(report.ready, false);
+  assert.ok(report.diagnostics.some((d) => d.code === 'copilot_byok_base_url_missing'));
+});
+
 // ---------------------------------------------------------------------------
 // Memory summarization fallback diagnostic
 // ---------------------------------------------------------------------------
