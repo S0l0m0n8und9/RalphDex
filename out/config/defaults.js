@@ -9,24 +9,17 @@ exports.DEFAULT_CONFIG = {
     geminiCommandPath: 'gemini',
     copilotFoundry: {
         commandPath: 'copilot',
-        approvalMode: 'allow-tools-only',
-        maxAutopilotContinues: 200,
-        auth: {
-            mode: 'az-bearer',
-            tenantId: '',
-            subscriptionId: '',
-            apiKeyEnvVar: '',
-            secretStorageKey: ''
-        },
+        providerType: 'azure',
+        baseUrlOverride: '',
+        model: '',
         azure: {
-            resourceGroup: '',
             resourceName: '',
-            baseUrlOverride: ''
+            deployment: ''
         },
-        model: {
-            deployment: '',
-            wireApi: 'responses'
-        }
+        offline: false,
+        requiredApiKeyEnvVar: 'COPILOT_PROVIDER_API_KEY',
+        approvalMode: 'allow-tools-only',
+        maxAutopilotContinues: 200
     },
     azureFoundry: {
         commandPath: 'azure-foundry',

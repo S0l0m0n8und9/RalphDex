@@ -2,6 +2,18 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.1] — 2026-04-25
+
+### Changed
+
+- Patch Marketplace release increment for republishing Ralphdex.
+
+## [1.1.0] — 2026-04-25
+
+### Changed
+
+- Minor Marketplace release increment to republish the current Ralphdex extension package.
+
 ## [0.3.1] — 2026-04-24
 
 ### Changed

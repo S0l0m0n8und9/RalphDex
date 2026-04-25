@@ -154,21 +154,19 @@ function readCopilotFoundryConfig(raw, fallback) {
         return fallback;
     }
     const azure = asRecord(record.azure);
-    const model = asRecord(record.model);
     return {
         commandPath: readStringField(record, 'commandPath', fallback.commandPath),
-        approvalMode: readEnumField(record, 'approvalMode', ['allow-all', 'allow-tools-only', 'interactive'], fallback.approvalMode),
-        maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1),
-        auth: readAzureAuthConfig(record.auth, fallback.auth),
+        providerType: readEnumField(record, 'providerType', ['azure', 'openai', 'anthropic'], fallback.providerType),
+        baseUrlOverride: readStringField(record, 'baseUrlOverride', fallback.baseUrlOverride),
+        model: readStringField(record, 'model', fallback.model),
         azure: {
-            resourceGroup: readStringField(azure ?? {}, 'resourceGroup', fallback.azure.resourceGroup),
             resourceName: readStringField(azure ?? {}, 'resourceName', fallback.azure.resourceName),
-            baseUrlOverride: readStringField(azure ?? {}, 'baseUrlOverride', fallback.azure.baseUrlOverride)
+            deployment: readStringField(azure ?? {}, 'deployment', fallback.azure.deployment)
         },
-        model: {
-            deployment: readStringField(model ?? {}, 'deployment', fallback.model.deployment),
-            wireApi: readStringField(model ?? {}, 'wireApi', fallback.model.wireApi)
-        }
+        offline: typeof record.offline === 'boolean' ? record.offline : fallback.offline,
+        requiredApiKeyEnvVar: readStringField(record, 'requiredApiKeyEnvVar', fallback.requiredApiKeyEnvVar),
+        approvalMode: readEnumField(record, 'approvalMode', ['allow-all', 'allow-tools-only', 'interactive'], fallback.approvalMode),
+        maxAutopilotContinues: readNumberField(record, 'maxAutopilotContinues', fallback.maxAutopilotContinues, 1)
     };
 }
 function readAzureFoundryConfig(raw, fallback) {
@@ -184,7 +182,7 @@ function readAzureFoundryConfig(raw, fallback) {
         auth: readAzureAuthConfig(record.auth, fallback.auth)
     };
 }
-const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'];
+const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
 function readTierConfig(raw, fallback) {
     // Accept a plain string (backward-compat: old flat `simpleModel` format).
     if (typeof raw === 'string' && raw.trim()) {
@@ -266,7 +264,7 @@ function readPlanningPass(config, fallback) {
 }
 function readConfig(workspaceFolder) {
     const config = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
-    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-foundry', 'azure-foundry', 'gemini'], defaults_1.DEFAULT_CONFIG.cliProvider);
+    const cliProvider = readEnum(config, 'cliProvider', ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'], defaults_1.DEFAULT_CONFIG.cliProvider);
     const autonomyMode = readEnum(config, 'autonomyMode', ['supervised', 'autonomous'], defaults_1.DEFAULT_CONFIG.autonomyMode);
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);

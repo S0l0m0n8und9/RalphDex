@@ -9,7 +9,7 @@ const geminiCliProvider_1 = require("./geminiCliProvider");
 const cliExecStrategy_1 = require("./cliExecStrategy");
 const clipboardStrategy_1 = require("./clipboardStrategy");
 const copilotCliProvider_1 = require("./copilotCliProvider");
-const copilotFoundryCliProvider_1 = require("./copilotFoundryCliProvider");
+const copilotByokCliProvider_1 = require("./copilotByokCliProvider");
 const codexCliProvider_1 = require("./codexCliProvider");
 const ideCommandStrategy_1 = require("./ideCommandStrategy");
 const GEMINI_DEFAULT_MAX_TURNS = 125;
@@ -42,8 +42,11 @@ function createCliProviderForId(providerId, config) {
             maxAutopilotContinues: config.copilotMaxAutopilotContinues
         });
     }
+    if (providerId === 'copilot-byok') {
+        return new copilotByokCliProvider_1.CopilotByokCliProvider(config.copilotFoundry, 'byok');
+    }
     if (providerId === 'copilot-foundry') {
-        return new copilotFoundryCliProvider_1.CopilotFoundryCliProvider(config.copilotFoundry);
+        return new copilotByokCliProvider_1.CopilotByokCliProvider(config.copilotFoundry, 'foundry-preset');
     }
     if (providerId === 'azure-foundry') {
         return new azureFoundryProvider_1.AzureFoundryProvider({
