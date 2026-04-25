@@ -381,8 +381,12 @@ function collectCopilotByokReadinessDiagnostics(config: RalphCodexConfig): Ralph
 
   // Check base URL is resolvable
   const hasOverride = !!cfg.baseUrlOverride.trim();
+  const hasAzureResourceDeployment = !!cfg.azure.resourceName.trim() && !!cfg.azure.deployment.trim();
   if (effectiveProviderType === 'azure') {
-    if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
+    const baseUrlResolvable = providerId === 'copilot-foundry'
+      ? hasAzureResourceDeployment
+      : hasOverride || hasAzureResourceDeployment;
+    if (!baseUrlResolvable) {
       diagnostics.push(createDiagnostic(
         'codexAdapter',
         'error',
