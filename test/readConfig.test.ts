@@ -21,7 +21,6 @@ test('readConfig preserves individually configured autonomy settings in supervis
   const harness = vscodeTestHarness();
   harness.setConfiguration({
     autonomyMode: 'supervised',
-    autoReloadOnControlPlaneChange: true,
     autoApplyRemediation: ['mark_blocked'],
     autoReplenishBacklog: false
   });
@@ -29,7 +28,6 @@ test('readConfig preserves individually configured autonomy settings in supervis
   const config = readConfig(workspaceFolder('C:\\repo'));
 
   assert.equal(config.autonomyMode, 'supervised');
-  assert.equal(config.autoReloadOnControlPlaneChange, true);
   assert.deepEqual(config.autoApplyRemediation, ['mark_blocked']);
   assert.equal(config.autoReplenishBacklog, false);
 });
@@ -42,7 +40,6 @@ test('readConfig defaults to supervised safe posture', () => {
 
   assert.equal(config.autonomyMode, 'supervised');
   assert.equal(config.autoReplenishBacklog, false);
-  assert.equal(config.autoReloadOnControlPlaneChange, false);
   assert.deepEqual(config.autoApplyRemediation, []);
   assert.equal(config.scmStrategy, 'none');
   assert.equal(config.scmPrOnParentDone, false);
@@ -58,7 +55,6 @@ test('readConfig forces the autonomous shorthand overrides regardless of individ
   const harness = vscodeTestHarness();
   harness.setConfiguration({
     autonomyMode: 'autonomous',
-    autoReloadOnControlPlaneChange: false,
     autoApplyRemediation: [],
     autoReplenishBacklog: false
   });
@@ -66,7 +62,6 @@ test('readConfig forces the autonomous shorthand overrides regardless of individ
   const config = readConfig(workspaceFolder('C:\\repo'));
 
   assert.equal(config.autonomyMode, 'autonomous');
-  assert.equal(config.autoReloadOnControlPlaneChange, true);
   assert.deepEqual(config.autoApplyRemediation, ['decompose_task', 'mark_blocked']);
   assert.equal(config.autoReplenishBacklog, true);
 });

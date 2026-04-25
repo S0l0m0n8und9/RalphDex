@@ -135,7 +135,6 @@ function activate(context) {
         logger.info('Effective Ralph autonomy configuration.', {
             workspaceFolder: workspaceFolder.name,
             autonomyMode: config.autonomyMode,
-            autoReloadOnControlPlaneChange: config.autoReloadOnControlPlaneChange,
             autoApplyRemediation: config.autoApplyRemediation,
             autoReplenishBacklog: config.autoReplenishBacklog
         });

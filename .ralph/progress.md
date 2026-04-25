@@ -353,3 +353,4 @@
 - No code changes were needed. Fresh real-host activation smoke passed across Default Light Modern, Default Dark Modern, and High Contrast using the local code.cmd wrapper. Full validate is currently blocked by Ralph ledger drift because T180 is marked done in .ralph/tasks.json while an active T180 CLI claim remains in .ralph/claims.json.
 - Removed control-plane reload detection from LoopDecisionService, simplified its evaluate input contract, and updated integration coverage to assert continuation behavior.
 - Removed control_plane_reload_required from RalphStopReason and provenance clean-terminal allowlist; eliminated command/test branches depending on that stop reason and aligned verifier docs so validation gates pass.
+- Removed autoReloadOnControlPlaneChange from contributed configuration, runtime config types/defaults/parsing, activation logging, and associated tests. Autonomous shorthand now only force-enables autoApplyRemediation and autoReplenishBacklog.

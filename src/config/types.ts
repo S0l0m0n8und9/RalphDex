@@ -161,7 +161,6 @@ export interface RalphCodexConfig {
   stopOnHumanReviewNeeded: boolean;
   autonomyMode: RalphAutonomyMode;
   autoReplenishBacklog: boolean;
-  autoReloadOnControlPlaneChange: boolean;
   autoApplyRemediation: AutoApplyRemediationAction[];
   ralphTaskFilePath: string;
   prdPath: string;

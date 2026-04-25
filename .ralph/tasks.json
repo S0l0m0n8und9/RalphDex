@@ -4816,11 +4816,11 @@
     {
       "id": "T184",
       "title": "Remove autoReloadOnControlPlaneChange config setting",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T182"
       ],
-      "notes": "Remove the `autoReloadOnControlPlaneChange` field from RalphConfig (types.ts line 164), its default (defaults.ts line 66), its read logic (readConfig.ts lines 381-400 and 515), the log reference in extension.ts (line 140), and the package.json contributes.configuration entry (line 772-775). Also remove the field from the autonomy shorthand that force-enables it.",
+      "notes": "Removed autoReloadOnControlPlaneChange from contributed configuration, runtime config types/defaults/parsing, activation logging, and associated tests. Autonomous shorthand now only force-enables autoApplyRemediation and autoReplenishBacklog.",
       "validation": "npm run validate",
       "acceptance": [
         "No remaining references to autoReloadOnControlPlaneChange in src/ or package.json",
@@ -4832,7 +4832,8 @@
         "src/config/readConfig.ts",
         "src/extension.ts",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T185",
@@ -4896,5 +4897,5 @@
       ]
     }
   ],
-  "mutationCount": 217
+  "mutationCount": 218
 }

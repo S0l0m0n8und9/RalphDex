@@ -63,7 +63,6 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
   stopOnHumanReviewNeeded: true,
   autonomyMode: 'supervised',
   autoReplenishBacklog: false,
-  autoReloadOnControlPlaneChange: false,
   autoApplyRemediation: [],
   ralphTaskFilePath: '.ralph/tasks.json',
   prdPath: '.ralph/prd.md',

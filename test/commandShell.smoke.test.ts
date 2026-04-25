@@ -264,7 +264,6 @@ test('activate registers the key Ralph commands', async () => {
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
     autonomyMode: 'autonomous',
-    autoReloadOnControlPlaneChange: false,
     autoApplyRemediation: [],
     autoReplenishBacklog: false
   });
@@ -299,7 +298,6 @@ test('activate registers the key Ralph commands', async () => {
   const output = harness.getOutputLines('Ralphdex').join('\n');
   assert.match(output, /"message":"Effective Ralph autonomy configuration\."/);
   assert.match(output, /"autonomyMode":"autonomous"/);
-  assert.match(output, /"autoReloadOnControlPlaneChange":true/);
   assert.match(output, /"autoApplyRemediation":\["decompose_task","mark_blocked"\]/);
   assert.match(output, /"autoReplenishBacklog":true/);
 });
@@ -1673,7 +1671,6 @@ test('Run CLI Loop stops cleanly without auto-reload when no actionable task rem
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
-    autoReloadOnControlPlaneChange: false
   });
 
   const seenModes: Array<'singleExec' | 'loop'> = [];
@@ -1706,7 +1703,6 @@ test('Run CLI Iteration does not auto-reload when no actionable task remains', a
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
-    autoReloadOnControlPlaneChange: true
   });
 
   const seenModes: Array<'singleExec' | 'loop'> = [];
@@ -1858,7 +1854,6 @@ test('Run CLI Loop does not auto-reload when no actionable task remains even wit
   const harness = vscodeTestHarness();
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
-    autoReloadOnControlPlaneChange: true
   });
 
   const seenModes: Array<'singleExec' | 'loop'> = [];
@@ -1895,7 +1890,6 @@ test('Run CLI Loop still stops for human review in autonomous mode', async () =>
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
     autonomyMode: 'autonomous',
-    autoReloadOnControlPlaneChange: false,
     autoApplyRemediation: [],
     autoReplenishBacklog: false
   });
@@ -1923,7 +1917,6 @@ test('Run CLI Loop still stops on blocked preflight in autonomous mode', async (
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setConfiguration({
     autonomyMode: 'autonomous',
-    autoReloadOnControlPlaneChange: false,
     autoApplyRemediation: [],
     autoReplenishBacklog: false
   });
@@ -2688,5 +2681,4 @@ test('Open PRD Wizard bootstraps a missing .ralph scaffold and opens the wizard 
   assert.equal(harness.state.createdWebviewPanels.length, 1, 'Expected one webview panel to be created');
   assert.equal(harness.state.createdWebviewPanels[0]?.viewType, 'ralphCodex.prdCreationWizard');
 });
-
 

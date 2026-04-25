@@ -271,17 +271,14 @@ function readConfig(workspaceFolder) {
     const openSidebarFallback = (0, providers_1.getDefaultOpenSidebarCommandId)(cliProvider);
     const newChatFallback = (0, providers_1.getDefaultNewChatCommandId)(cliProvider);
     const autoReplenishBacklog = readBoolean(config, 'autoReplenishBacklog', defaults_1.DEFAULT_CONFIG.autoReplenishBacklog);
-    const autoReloadOnControlPlaneChange = readBoolean(config, 'autoReloadOnControlPlaneChange', defaults_1.DEFAULT_CONFIG.autoReloadOnControlPlaneChange);
     const autoApplyRemediation = readEnumArray(config, 'autoApplyRemediation', ['decompose_task', 'mark_blocked'], defaults_1.DEFAULT_CONFIG.autoApplyRemediation);
     const effectiveAutonomy = autonomyMode === 'autonomous'
         ? {
             autoReplenishBacklog: true,
-            autoReloadOnControlPlaneChange: true,
             autoApplyRemediation: ['decompose_task', 'mark_blocked']
         }
         : {
             autoReplenishBacklog,
-            autoReloadOnControlPlaneChange,
             autoApplyRemediation
         };
     return {
@@ -315,7 +312,6 @@ function readConfig(workspaceFolder) {
         stopOnHumanReviewNeeded: readBoolean(config, 'stopOnHumanReviewNeeded', defaults_1.DEFAULT_CONFIG.stopOnHumanReviewNeeded),
         autonomyMode,
         autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
-        autoReloadOnControlPlaneChange: effectiveAutonomy.autoReloadOnControlPlaneChange,
         autoApplyRemediation: effectiveAutonomy.autoApplyRemediation,
         ralphTaskFilePath: readString(config, 'ralphTaskFilePath', defaults_1.DEFAULT_CONFIG.ralphTaskFilePath),
         prdPath: readString(config, 'prdPath', defaults_1.DEFAULT_CONFIG.prdPath),

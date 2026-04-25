@@ -378,11 +378,6 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     'autoReplenishBacklog',
     DEFAULT_CONFIG.autoReplenishBacklog
   );
-  const autoReloadOnControlPlaneChange = readBoolean(
-    config,
-    'autoReloadOnControlPlaneChange',
-    DEFAULT_CONFIG.autoReloadOnControlPlaneChange
-  );
   const autoApplyRemediation = readEnumArray<AutoApplyRemediationAction>(
     config,
     'autoApplyRemediation',
@@ -392,12 +387,10 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
   const effectiveAutonomy = autonomyMode === 'autonomous'
     ? {
         autoReplenishBacklog: true,
-        autoReloadOnControlPlaneChange: true,
         autoApplyRemediation: ['decompose_task', 'mark_blocked'] as AutoApplyRemediationAction[]
       }
     : {
         autoReplenishBacklog,
-        autoReloadOnControlPlaneChange,
         autoApplyRemediation
       };
 
@@ -512,7 +505,6 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     ),
     autonomyMode,
     autoReplenishBacklog: effectiveAutonomy.autoReplenishBacklog,
-    autoReloadOnControlPlaneChange: effectiveAutonomy.autoReloadOnControlPlaneChange,
     autoApplyRemediation: effectiveAutonomy.autoApplyRemediation,
     ralphTaskFilePath: readString(config, 'ralphTaskFilePath', DEFAULT_CONFIG.ralphTaskFilePath),
     prdPath: readString(config, 'prdPath', DEFAULT_CONFIG.prdPath),
