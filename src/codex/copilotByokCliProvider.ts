@@ -1,9 +1,8 @@
 import * as fs from 'fs/promises';
 import { runProcess } from '../services/processRunner';
-import { CopilotFoundryConfig } from '../config/types';
+import { CopilotByokConfig } from '../config/types';
 import { firstNonEmptyLine, truncateSummary } from '../util/text';
-import { CliLaunchSpec, CliProvider } from './cliProvider';
-import { resolveAzureAuth } from './azureAuthResolver';
+import { CliLaunchSpec, CliProvider, CliProviderId } from './cliProvider';
 import { CodexExecRequest, CodexExecResult } from './types';
 
 interface CopilotJsonlEvent {
@@ -12,28 +11,32 @@ interface CopilotJsonlEvent {
   data?: { content?: string; summary?: string };
 }
 
-export class CopilotFoundryCliProvider implements CliProvider {
-  public readonly id = 'copilot-foundry' as const;
+export class CopilotByokCliProvider implements CliProvider {
+  public readonly id: CliProviderId;
 
-  public constructor(private readonly options: CopilotFoundryConfig) {}
-
-  public buildLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): CliLaunchSpec {
-    return {
-      args: this.buildArgs(request),
-      cwd: request.executionRoot,
-      stdinText: request.prompt,
-      shell: process.platform === 'win32'
-    };
+  public constructor(
+    private readonly options: CopilotByokConfig,
+    private readonly mode: 'byok' | 'foundry-preset'
+  ) {
+    this.id = mode === 'foundry-preset' ? 'copilot-foundry' : 'copilot-byok';
   }
 
-  public async prepareLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): Promise<CliLaunchSpec> {
-    const auth = await resolveAzureAuth(this.options.auth);
-    const baseUrl = this.resolveBaseUrl();
-    const modelId = request.model.trim() || this.options.model.deployment.trim();
-    const wireModel = this.options.model.deployment.trim() || modelId;
+  public buildLaunchSpec(request: CodexExecRequest, _skipGitCheck: boolean): CliLaunchSpec {
+    const effectiveProviderType = this.mode === 'foundry-preset' ? 'azure' : this.options.providerType;
+    const baseUrl = this.resolveBaseUrl(effectiveProviderType);
+    const model = request.model.trim() || this.options.model.trim();
 
-    if (!wireModel) {
-      throw new Error('copilot-foundry requires a configured model deployment before launch.');
+    const env: NodeJS.ProcessEnv = {
+      COPILOT_PROVIDER_TYPE: effectiveProviderType,
+      COPILOT_PROVIDER_BASE_URL: baseUrl
+    };
+
+    if (model) {
+      env.COPILOT_MODEL = model;
+    }
+
+    if (this.options.offline) {
+      env.COPILOT_OFFLINE = 'true';
     }
 
     return {
@@ -41,14 +44,7 @@ export class CopilotFoundryCliProvider implements CliProvider {
       cwd: request.executionRoot,
       stdinText: request.prompt,
       shell: process.platform === 'win32',
-      env: {
-        COPILOT_PROVIDER_TYPE: 'azure',
-        COPILOT_PROVIDER_BASE_URL: baseUrl,
-        COPILOT_PROVIDER_WIRE_API: this.options.model.wireApi,
-        COPILOT_PROVIDER_MODEL_ID: modelId || wireModel,
-        COPILOT_PROVIDER_WIRE_MODEL: wireModel,
-        ...(auth.copilotEnv ?? {})
-      }
+      env
     };
   }
 
@@ -98,13 +94,13 @@ export class CopilotFoundryCliProvider implements CliProvider {
 
   public summarizeResult(input: { exitCode: number; stderr: string; lastMessage: string }): string {
     if (input.exitCode === 0) {
-      return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? 'copilot-foundry completed successfully.');
+      return truncateSummary(firstNonEmptyLine(input.lastMessage) ?? `${this.id} completed successfully.`);
     }
 
     const detail = this.extractFailureDetail(input.stderr, input.lastMessage);
     return detail
-      ? `copilot-foundry exited with code ${input.exitCode}: ${detail}`
-      : `copilot-foundry exited with code ${input.exitCode}.`;
+      ? `${this.id} exited with code ${input.exitCode}: ${detail}`
+      : `${this.id} exited with code ${input.exitCode}.`;
   }
 
   public describeLaunchError(commandPath: string, error: { code?: string; message: string }): string {
@@ -112,14 +108,15 @@ export class CopilotFoundryCliProvider implements CliProvider {
       return `GitHub Copilot CLI was not found at "${commandPath}". Install Copilot CLI or update ralphCodex.copilotFoundry.commandPath.`;
     }
 
-    return `Failed to start Copilot Foundry CLI with "${commandPath}": ${error.message}`;
+    return `Failed to start Copilot BYOK CLI with "${commandPath}": ${error.message}`;
   }
 
   public buildTranscript(result: CodexExecResult, request: CodexExecRequest): string {
+    const effectiveProviderType = this.mode === 'foundry-preset' ? 'azure' : this.options.providerType;
     const payloadMatched = result.stdinHash === request.promptHash ? 'yes' : 'no';
 
     return [
-      '# Copilot Foundry CLI Transcript',
+      '# Copilot BYOK CLI Transcript',
       '',
       `- Command: ${request.commandPath} ${result.args.join(' ')}`,
       `- Workspace root: ${request.workspaceRoot}`,
@@ -127,10 +124,11 @@ export class CopilotFoundryCliProvider implements CliProvider {
       `- Prompt path: ${request.promptPath}`,
       `- Prompt hash: ${request.promptHash}`,
       `- Prompt bytes: ${request.promptByteLength}`,
-      `- Model: ${request.model || this.options.model.deployment}`,
-      `- Azure resource: ${this.options.azure.resourceName || '(override only)'}`,
+      `- Model: ${request.model || this.options.model}`,
+      `- Provider type: ${effectiveProviderType}`,
       `- Approval mode: ${this.options.approvalMode}`,
-      `- Wire API: ${this.options.model.wireApi}`,
+      `- Offline: ${this.options.offline}`,
+      `- API key env var: ${this.options.requiredApiKeyEnvVar} (value not logged)`,
       `- Stdin hash: ${result.stdinHash}`,
       `- Payload matched prompt artifact: ${payloadMatched}`,
       `- Exit code: ${result.exitCode}`,
@@ -150,36 +148,38 @@ export class CopilotFoundryCliProvider implements CliProvider {
   }
 
   public async summarizeText(prompt: string, cwd: string): Promise<string> {
-    const auth = await resolveAzureAuth(this.options.auth);
-    const baseUrl = this.resolveBaseUrl();
-    const modelId = this.options.model.deployment.trim();
+    const effectiveProviderType = this.mode === 'foundry-preset' ? 'azure' : this.options.providerType;
+    const baseUrl = this.resolveBaseUrl(effectiveProviderType);
+    const modelId = this.options.model.trim();
+
+    const env: NodeJS.ProcessEnv = {
+      COPILOT_PROVIDER_TYPE: effectiveProviderType,
+      COPILOT_PROVIDER_BASE_URL: baseUrl
+    };
+
+    if (modelId) {
+      env.COPILOT_MODEL = modelId;
+    }
+
+    if (this.options.offline) {
+      env.COPILOT_OFFLINE = 'true';
+    }
 
     const result = await runProcess(this.options.commandPath, ['-s', '--no-ask-user', '--output-format=json'], {
       cwd,
       stdinText: prompt,
       shell: process.platform === 'win32',
-      env: {
-        COPILOT_PROVIDER_TYPE: 'azure',
-        COPILOT_PROVIDER_BASE_URL: baseUrl,
-        COPILOT_PROVIDER_WIRE_API: this.options.model.wireApi,
-        ...(modelId ? {
-          COPILOT_PROVIDER_MODEL_ID: modelId,
-          COPILOT_PROVIDER_WIRE_MODEL: modelId
-        } : {}),
-        ...(auth.copilotEnv ?? {})
-      }
+      env
     });
+
     if (result.code !== 0) {
-      throw new Error(`copilot-foundry summarization exited with code ${result.code}`);
+      throw new Error(`${this.id} summarization exited with code ${result.code}`);
     }
 
     const lines = result.stdout.trim().split('\n');
     for (let i = lines.length - 1; i >= 0; i--) {
       const line = lines[i].trim();
-      if (!line) {
-        continue;
-      }
-
+      if (!line) { continue; }
       try {
         const parsed = JSON.parse(line) as CopilotJsonlEvent;
         if (parsed.type === 'assistant.message' && typeof parsed.data?.content === 'string' && parsed.data.content.trim()) {
@@ -192,7 +192,7 @@ export class CopilotFoundryCliProvider implements CliProvider {
 
     const text = result.stdout.trim();
     if (!text) {
-      throw new Error('copilot-foundry summarization returned empty output');
+      throw new Error(`${this.id} summarization returned empty output`);
     }
 
     return text;
@@ -219,18 +219,25 @@ export class CopilotFoundryCliProvider implements CliProvider {
     return args;
   }
 
-  private resolveBaseUrl(): string {
-    const override = this.options.azure.baseUrlOverride.trim();
+  private resolveBaseUrl(effectiveProviderType: string): string {
+    const override = this.options.baseUrlOverride.trim();
     if (override) {
       return override;
     }
 
-    const resourceName = this.options.azure.resourceName.trim();
-    if (!resourceName) {
-      throw new Error('copilot-foundry requires either azure.baseUrlOverride or azure.resourceName.');
+    if (effectiveProviderType === 'azure') {
+      const { resourceName, deployment } = this.options.azure;
+      if (!resourceName.trim() || !deployment.trim()) {
+        throw new Error(
+          'copilot-byok with providerType "azure" requires both azure.resourceName and azure.deployment, or baseUrlOverride.'
+        );
+      }
+      return `https://${resourceName.trim()}.openai.azure.com/openai/deployments/${deployment.trim()}`;
     }
 
-    return `https://${resourceName}.openai.azure.com`;
+    throw new Error(
+      'copilot-byok requires baseUrlOverride when providerType is not "azure".'
+    );
   }
 
   private extractFailureDetail(stderr: string, lastMessage: string): string | null {
