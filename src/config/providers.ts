@@ -15,6 +15,7 @@ export function getCliCommandPathForProvider(
       return config.claudeCommandPath;
     case 'copilot':
       return config.copilotCommandPath;
+    case 'copilot-byok':
     case 'copilot-foundry':
       return config.copilotFoundry.commandPath;
     case 'azure-foundry':
@@ -32,6 +33,8 @@ export function getCliProviderLabel(provider: CliProviderId): string {
       return 'Claude';
     case 'copilot':
       return 'GitHub Copilot';
+    case 'copilot-byok':
+      return 'Copilot BYOK';
     case 'copilot-foundry':
       return 'Copilot Foundry';
     case 'azure-foundry':
@@ -48,6 +51,7 @@ export function getDefaultOpenSidebarCommandId(provider: CliProviderId): string 
     case 'claude':
       return 'claude.openSidebar';
     case 'copilot':
+    case 'copilot-byok':
     case 'copilot-foundry':
       return 'none';
     case 'gemini':
@@ -62,6 +66,7 @@ export function getDefaultNewChatCommandId(provider: CliProviderId): string {
     case 'claude':
       return 'claude.newChat';
     case 'copilot':
+    case 'copilot-byok':
     case 'copilot-foundry':
       return 'github.copilot.cli.newSession';
     case 'gemini':

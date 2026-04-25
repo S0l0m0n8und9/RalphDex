@@ -7,7 +7,7 @@ import { CliExecCodexStrategy } from './cliExecStrategy';
 import { CliProvider } from './cliProvider';
 import { ClipboardCodexStrategy } from './clipboardStrategy';
 import { CopilotCliProvider } from './copilotCliProvider';
-import { CopilotFoundryCliProvider } from './copilotFoundryCliProvider';
+import { CopilotByokCliProvider } from './copilotByokCliProvider';
 import { CodexCliProvider } from './codexCliProvider';
 import { IdeCommandCodexStrategy } from './ideCommandStrategy';
 import { CodexStrategy, CodexStrategyId } from './types';
@@ -47,8 +47,12 @@ export function createCliProviderForId(providerId: CliProviderId, config: RalphC
     });
   }
 
+  if (providerId === 'copilot-byok') {
+    return new CopilotByokCliProvider(config.copilotFoundry, 'byok');
+  }
+
   if (providerId === 'copilot-foundry') {
-    return new CopilotFoundryCliProvider(config.copilotFoundry);
+    return new CopilotByokCliProvider(config.copilotFoundry, 'foundry-preset');
   }
 
   if (providerId === 'azure-foundry') {
