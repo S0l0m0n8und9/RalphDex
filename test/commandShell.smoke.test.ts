@@ -1847,41 +1847,6 @@ test('Skip Task marks the selected task blocked using the diagnosis summary', as
   );
 });
 
-test('Run CLI Loop does not auto-reload when no actionable task remains even with reload setting enabled', async () => {
-  const rootPath = await makeTempRoot();
-  await seedWorkspace(rootPath);
-
-  const harness = vscodeTestHarness();
-  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
-  harness.setConfiguration({
-  });
-
-  const seenModes: Array<'singleExec' | 'loop'> = [];
-  const executeCalls = await withMockedExecuteCommand(async (calls) => {
-    await withMockedRunCliIteration(
-      async (workspaceFolderArg, mode) => {
-        seenModes.push(mode);
-        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'no_actionable_task');
-      },
-      async () => {
-        activate(createExtensionContext());
-        await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
-      }
-    );
-    return calls;
-  });
-
-  assert.deepEqual(seenModes, ['loop']);
-  assert.equal(
-    executeCalls.some((entry) => entry.command === 'workbench.action.reloadWindow'),
-    false
-  );
-  assert.match(
-    harness.state.infoMessages.at(-1)?.message ?? '',
-    /Ralph CLI loop stopped after iteration 1: No actionable task remains\./
-  );
-});
-
 test('Run CLI Loop still stops for human review in autonomous mode', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

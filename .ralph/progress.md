@@ -356,3 +356,4 @@
 - Removed autoReloadOnControlPlaneChange from contributed configuration, runtime config types/defaults/parsing, activation logging, and associated tests. Autonomous shorthand now only force-enables autoApplyRemediation and autoReplenishBacklog.
 - Verified registerCommands.ts has no remaining auto-reload trigger paths (no control_plane_reload_required, autoReloadOnControlPlaneChange, or reloadRequired references). No source edits were necessary.
 - Removed stale control-plane reload references from README and docs workflow guidance, including obsolete stop reason/setting/reload-command mentions; validated with full npm run validate.
+- Completed test cleanup after control-plane reload removal: removed stale reload-toggle test coverage, added loop decision regression coverage for source-progress continuation, confirmed no remaining forbidden test references, and passed npm run validate.

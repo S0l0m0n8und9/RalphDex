@@ -601,6 +601,34 @@ test('decideLoopContinuation continues after task completion when backlog remain
   assert.equal(decision.stopReason, null);
 });
 
+test('decideLoopContinuation keeps iterating when source files changed and progress was reported', () => {
+  const current = iterationResult({
+    completionClassification: 'partial_progress',
+    verificationStatus: 'passed',
+    followUpAction: 'continue_same_task',
+    summary: 'Updated src/feature.ts with in-progress changes.',
+    diffSummary: {
+      available: true,
+      gitAvailable: true,
+      summary: 'Updated src/feature.ts.',
+      changedFileCount: 1,
+      relevantChangedFileCount: 1,
+      changedFiles: ['src/feature.ts'],
+      relevantChangedFiles: ['src/feature.ts'],
+      statusTransitions: []
+    },
+    noProgressSignals: []
+  });
+
+  const decision = decideLoopContinuation(stopDecisionInput({
+    currentResult: current,
+    previousIterations: [iterationResult({ iteration: 1, completionClassification: 'no_progress' })]
+  }));
+
+  assert.equal(decision.shouldContinue, true);
+  assert.equal(decision.stopReason, null);
+});
+
 test('decideLoopContinuation stops when no actionable task remains even if blocked work is still recorded', () => {
   const current = iterationResult({
     selectedTaskId: null,
