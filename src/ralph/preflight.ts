@@ -319,12 +319,8 @@ export function collectProviderReadinessDiagnostics(input: RalphProviderReadines
     ));
   }
 
-  if (input.config.cliProvider === 'copilot-foundry') {
-    diagnostics.push(...collectCopilotFoundryReadinessDiagnostics(
-      input.config,
-      input.azureAuthReadiness?.['copilot-foundry'],
-      authFailureSeverity
-    ));
+  if (input.config.cliProvider === 'copilot-foundry' || input.config.cliProvider === 'copilot-byok') {
+    diagnostics.push(...collectCopilotByokReadinessDiagnostics(input.config));
   }
 
   return diagnostics;
@@ -337,8 +333,6 @@ export async function inspectProviderReadinessDiagnostics(
 
   if (input.config.cliProvider === 'azure-foundry') {
     azureAuthReadiness['azure-foundry'] = await inspectAzureAuthReadiness(input.config.azureFoundry.auth);
-  } else if (input.config.cliProvider === 'copilot-foundry') {
-    azureAuthReadiness['copilot-foundry'] = await inspectAzureAuthReadiness(input.config.copilotFoundry.auth);
   }
 
   return collectProviderReadinessDiagnostics({
@@ -378,42 +372,62 @@ function collectAzureFoundryReadinessDiagnostics(
   return diagnostics;
 }
 
-function collectCopilotFoundryReadinessDiagnostics(
-  config: RalphCodexConfig,
-  authReadiness?: AzureAuthReadiness,
-  authFailureSeverity: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'> = 'warning'
-): RalphPreflightDiagnostic[] {
+function collectCopilotByokReadinessDiagnostics(config: RalphCodexConfig): RalphPreflightDiagnostic[] {
   const diagnostics: RalphPreflightDiagnostic[] = [];
-  if (!config.copilotFoundry.azure.baseUrlOverride.trim() && !config.copilotFoundry.azure.resourceName.trim()) {
+  const cfg = config.copilotFoundry;
+  const providerId = config.cliProvider; // 'copilot-byok' or 'copilot-foundry'
+
+  // Check base URL is resolvable
+  if (!cfg.baseUrlOverride.trim()) {
+    if (cfg.providerType === 'azure') {
+      if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
+        diagnostics.push(createDiagnostic(
+          'codexAdapter',
+          'error',
+          'copilot_byok_base_url_missing',
+          `cliProvider is set to ${providerId} but neither ralphCodex.copilotFoundry.baseUrlOverride nor both ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are configured.`
+        ));
+      }
+    } else {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'error',
+        'copilot_byok_base_url_missing',
+        `cliProvider is set to ${providerId} with providerType "${cfg.providerType}" but ralphCodex.copilotFoundry.baseUrlOverride is not configured. A base URL is required for non-azure provider types.`
+      ));
+    }
+  }
+
+  // Check model is configured
+  if (!cfg.model.trim()) {
     diagnostics.push(createDiagnostic(
       'codexAdapter',
-      'error',
-      'copilot_foundry_base_url_missing',
-      'cliProvider is set to copilot-foundry but neither ralphCodex.copilotFoundry.azure.resourceName nor ralphCodex.copilotFoundry.azure.baseUrlOverride is configured.'
+      'warning',
+      'copilot_byok_model_missing',
+      `cliProvider is set to ${providerId} but ralphCodex.copilotFoundry.model is not configured. COPILOT_MODEL will not be set in the child process environment.`
     ));
   }
 
-  if (!config.copilotFoundry.model.deployment.trim()) {
-    diagnostics.push(createDiagnostic(
-      'codexAdapter',
-      'error',
-      'copilot_foundry_model_missing',
-      'cliProvider is set to copilot-foundry but ralphCodex.copilotFoundry.model.deployment is not configured.'
-    ));
+  // Check API key env var presence (sync, presence check only — no value read)
+  const envVarName = cfg.requiredApiKeyEnvVar.trim();
+  if (envVarName) {
+    const isPresent = !!(process.env[envVarName]);
+    if (isPresent) {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'info',
+        'copilot_byok_api_key_present',
+        `copilot-byok: Required API key env var ${envVarName} is present in the current process environment.`
+      ));
+    } else {
+      diagnostics.push(createDiagnostic(
+        'codexAdapter',
+        'warning',
+        'copilot_byok_api_key_absent',
+        `copilot-byok: Required API key env var ${envVarName} is not set. The child process must inherit it from the operator environment before launch.`
+      ));
+    }
   }
-
-  diagnostics.push(...collectAzureAuthReadinessDiagnostics(
-    'copilot-foundry',
-    config.copilotFoundry.auth,
-    authReadiness,
-    {
-      envPrefix: 'ralphCodex.copilotFoundry.auth',
-      bearerInfoCode: 'copilot_foundry_auth_az_bearer',
-      bearerInfoMessage: 'Copilot Foundry will resolve a bearer token via Azure Identity at runtime and pass it to Copilot via COPILOT_PROVIDER_BEARER_TOKEN.',
-      apiKeyInfoCode: 'copilot_foundry_auth_api_key_active'
-    },
-    authFailureSeverity
-  ));
 
   return diagnostics;
 }
