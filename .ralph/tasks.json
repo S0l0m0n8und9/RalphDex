@@ -4749,19 +4749,18 @@
     {
       "id": "T180",
       "title": "Verify optionset legibility fix across light, dark, and high-contrast VS Code themes",
-      "status": "blocked",
+      "status": "done",
       "dependsOn": [
         "T179"
       ],
-      "notes": "No code changes were needed. Fresh real-host activation smoke passed across Default Light Modern, Default Dark Modern, and High Contrast using the local code.cmd wrapper. Full validate is currently blocked by Ralph ledger drift because T180 is marked done in .ralph/tasks.json while an active T180 CLI claim remains in .ralph/claims.json.",
+      "notes": "Closed after operator-completed manual visual verification of native select/optionset popup rows in Default Light Modern, Default Dark Modern, and High Contrast. No code changes were needed; existing automated coverage and real-host activation smoke already passed, and the previously reported active-claim mismatch has been rechecked against .ralph/claims.json and is no longer present.",
       "validation": "npm run validate",
-      "blocker": "Manual in-IDE visual verification of native select/optionset popup rows is still required, and the full validation gate is currently blocked by the T180 active-claim/task-status mismatch in the Ralph ledger.",
       "acceptance": [
         "All optionset controls tested in at least two themes (light + dark)",
         "No near-invisible text observed in open state under any tested theme",
         "npm run validate passes"
       ],
-      "lastVerifierResult": "failed"
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T181",
