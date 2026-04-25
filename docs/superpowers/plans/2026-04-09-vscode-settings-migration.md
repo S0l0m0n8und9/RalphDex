@@ -41,7 +41,6 @@
       "ralphCodex.cliProvider": "codex",
       "ralphCodex.promptBudgetProfile": "claude",
       "ralphCodex.ralphIterationCap": 15,
-      "ralphCodex.autoReloadOnControlPlaneChange": false,
       "ralphCodex.model": "claude-sonnet-4-6",
       "ralphCodex.agentId": "build",
       "ralphCodex.claudeMaxTurns": 125,

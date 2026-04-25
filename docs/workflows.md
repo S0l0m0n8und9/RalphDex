@@ -120,7 +120,6 @@ Clean handoff notes are written only for terminal stop reasons that preserve ins
 
 - `task_marked_complete`
 - `iteration_cap_reached`
-- `control_plane_reload_required`
 - `human_review_needed`
 - `no_actionable_task`
 - `verification_passed_no_remaining_subtasks`
@@ -258,13 +257,12 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 4. Each agent loop acquires task claims independently using the existing claim mechanism in `.ralph/claims.json`, so agents pick up different tasks without coordination overhead.
 5. All agent loops run concurrently and Ralph waits for all of them to finish before reporting the combined summary.
 6. If `ralphCodex.agentCount` is 1 the command behaves like `Run CLI Loop` and surfaces a warning suggesting you increase the count.
-7. If any agent hits `control_plane_reload_required` and `autoReloadOnControlPlaneChange` is enabled, Ralph reloads the extension host once all other loops have settled.
 
 Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique base value (or rely on the auto-suffix scheme) so claim attribution in `.ralph/claims.json` stays distinct.
 
 ### Autonomous Loop Mode
 
-`ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces three effective settings at runtime regardless of their stored values: `autoReloadOnControlPlaneChange = true`, `autoApplyRemediation = ["decompose_task", "mark_blocked"]`, and `autoReplenishBacklog = true`.
+`ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces two effective settings at runtime regardless of their stored values: `autoApplyRemediation = ["decompose_task", "mark_blocked"]` and `autoReplenishBacklog = true`.
 
 Autonomous mode widens what Ralph may do without another click, but it does not remove hard stops. These stops are never automated and still require an operator decision even when autonomy mode is `autonomous`:
 
@@ -313,7 +311,7 @@ Backlog replenishment is a different path. Use it only when the durable task led
 
 `ralphCodex.autoReplenishBacklog` lets the loop continue into the replenish-backlog prompt kind after a `no_actionable_task` stop, but that is only safe when preflight says the durable ledger is still internally consistent.
 
-On activation, Ralph writes the effective autonomy mode and those three resolved settings to the `Ralphdex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
+On activation, Ralph writes the effective autonomy mode and those resolved settings to the `Ralphdex` output channel so the operator can confirm whether the extension is running in supervised or autonomous mode.
 
 The safety gate is the preflight drift check. Ralph only auto-replenishes when the selector found no actionable task, the current result recorded `no_actionable_task`, and preflight found no error-severity ledger-drift diagnostics such as `ledger_drift` or `done_parent_unfinished_descendants`.
 
@@ -324,17 +322,7 @@ That check matters because “no actionable task” can mean two very different 
 
 Use the setting only for the first case. Leave it off when you want explicit operator review before Ralph adds more backlog, and treat any drift diagnostic as a repair-first stop even if auto-replenishment is enabled.
 
-If an iteration changes control-plane runtime files, the loop stops with `control_plane_reload_required` after persisting the current iteration so the operator can rerun Ralph in a fresh process.
-
-### Control-Plane Reload
-
-`ralphCodex.autoReloadOnControlPlaneChange` defaults to `false`. Leave it off when you want to inspect the persisted result first and restart the loop manually after a control-plane stop.
-
-When the setting is `true`, only `Run CLI Loop` auto-reloads. `Run CLI Iteration` stays single-shot even if the result stop reason is `control_plane_reload_required`.
-
-When auto-reload is enabled, the loop waits 1500 ms before it invokes the VS Code reload command `workbench.action.reloadWindow`. That short flush delay gives the extension host time to finish writing the already-persisted iteration result, latest pointers, and operator-facing summary surfaces before VS Code tears the process down.
-
-`workbench.action.reloadWindow` is only safe in this narrow path because the iteration outcome was already durably recorded before the reload fires. Ralph is not relying on in-memory loop state surviving the reload.
+Control-plane file changes no longer trigger a special loop stop or automatic extension-host reload. Iteration and loop commands persist the current result and continue to use the normal verifier-based stop semantics.
 
 Stop reasons and precedence rules are defined in [docs/verifier.md](verifier.md).
 

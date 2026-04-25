@@ -4857,11 +4857,11 @@
     {
       "id": "T186",
       "title": "Update docs to remove control-plane reload references",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T185"
       ],
-      "notes": "Remove or rewrite any mention of the control-plane reload boundary, the control_plane_reload_required stop reason, and the autoReloadOnControlPlaneChange setting. Keep references to other boundaries intact. Update docsValidator.ts (src/validation/docsValidator.ts lines 153 and 206) if 'control plane' or 'Control-Plane Boundary' are enforced as required phrases — either remove those phrases from the required list or update to new terminology.",
+      "notes": "Removed stale control-plane reload references from README and docs workflow guidance, including obsolete stop reason/setting/reload-command mentions; validated with full npm run validate.",
       "validation": "npm run validate",
       "acceptance": [
         "npm run validate passes including check:docs",
@@ -4874,7 +4874,8 @@
         "docs/multi-agent-readiness.md",
         "README.md",
         "AGENTS.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T187",
@@ -4898,5 +4899,5 @@
       ]
     }
   ],
-  "mutationCount": 219
+  "mutationCount": 220
 }
