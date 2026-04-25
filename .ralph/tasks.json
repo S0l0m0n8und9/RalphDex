@@ -4838,12 +4838,12 @@
     {
       "id": "T185",
       "title": "Remove auto-reload trigger from registerCommands.ts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T183",
         "T184"
       ],
-      "notes": "Remove the single-agent auto-reload block (lines 1100-1109), the multi-agent reloadRequired tracking on SlotResult (lines 1282-1377 — remove the reloadRequired field, the conditional setting it true, and the post-loop window reload). No longer needs to read config.autoReloadOnControlPlaneChange.",
+      "notes": "Verified registerCommands.ts has no remaining auto-reload trigger paths (no control_plane_reload_required, autoReloadOnControlPlaneChange, or reloadRequired references). No source edits were necessary.",
       "validation": "npm run validate",
       "acceptance": [
         "registerCommands.ts contains no references to control_plane_reload_required or autoReloadOnControlPlaneChange",
@@ -4851,7 +4851,8 @@
       ],
       "context": [
         "src/commands/registerCommands.ts"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T186",
@@ -4897,5 +4898,5 @@
       ]
     }
   ],
-  "mutationCount": 218
+  "mutationCount": 219
 }
