@@ -328,12 +328,13 @@
             "codex",
             "claude",
             "copilot",
+            "copilot-byok",
             "copilot-foundry",
             "azure-foundry",
             "gemini"
           ],
           "default": "claude",
-          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, 'copilot-foundry' uses the Copilot CLI with Azure OpenAI BYOK, 'azure-foundry' uses Azure AI Foundry, and 'gemini' uses the Google Gemini CLI."
+          "description": "Which CLI backend to use for scripted iterations. 'codex' uses the OpenAI Codex CLI, 'claude' uses the Anthropic Claude CLI, 'copilot' uses the GitHub Copilot CLI, 'copilot-byok' uses the Copilot CLI with an external BYOK provider, 'copilot-foundry' is a preset alias for copilot-byok with providerType azure, 'azure-foundry' uses Azure AI Foundry directly, and 'gemini' uses the Google Gemini CLI."
         },
         "ralphCodex.codexCommandPath": {
           "type": "string",
@@ -359,31 +360,74 @@
           "type": "object",
           "default": {
             "commandPath": "copilot",
-            "approvalMode": "allow-tools-only",
-            "maxAutopilotContinues": 200,
-            "auth": {
-              "mode": "az-bearer",
-              "tenantId": "",
-              "subscriptionId": "",
-              "apiKeyEnvVar": "",
-              "secretStorageKey": ""
-            },
+            "providerType": "azure",
+            "baseUrlOverride": "",
+            "model": "",
             "azure": {
-              "resourceGroup": "",
               "resourceName": "",
-              "baseUrlOverride": ""
+              "deployment": ""
             },
-            "model": {
-              "deployment": "",
-              "wireApi": "responses"
-            }
+            "offline": false,
+            "requiredApiKeyEnvVar": "COPILOT_PROVIDER_API_KEY",
+            "approvalMode": "allow-tools-only",
+            "maxAutopilotContinues": 200
           },
-          "description": "Grouped Copilot CLI + Azure OpenAI BYOK settings. Secrets are resolved externally and are not stored in settings.",
+          "description": "Copilot CLI + BYOK provider settings (used by both copilot-byok and copilot-foundry). Auth credentials are inherited from the operator process environment — RalphDex never reads or stores API key values.",
           "properties": {
             "commandPath": {
               "type": "string",
               "default": "copilot",
               "description": "Path or command name for the Copilot CLI executable."
+            },
+            "providerType": {
+              "type": "string",
+              "enum": [
+                "azure",
+                "openai",
+                "anthropic"
+              ],
+              "default": "azure",
+              "description": "Target LLM provider type for BYOK routing. For copilot-foundry alias, this is always 'azure'."
+            },
+            "baseUrlOverride": {
+              "type": "string",
+              "default": "",
+              "description": "Full base URL override. Required for non-azure provider types. For azure, derived from azure.resourceName and azure.deployment if not set."
+            },
+            "model": {
+              "type": "string",
+              "default": "",
+              "description": "Model name passed as COPILOT_MODEL to the child process environment."
+            },
+            "azure": {
+              "type": "object",
+              "default": {
+                "resourceName": "",
+                "deployment": ""
+              },
+              "description": "Azure OpenAI resource and deployment settings. Used to derive the base URL when providerType is azure.",
+              "properties": {
+                "resourceName": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure OpenAI resource name. Derived base URL: https://<resourceName>.openai.azure.com/openai/deployments/<deployment>."
+                },
+                "deployment": {
+                  "type": "string",
+                  "default": "",
+                  "description": "Azure deployment name, appended to the base URL path and used for COPILOT_MODEL if model is not set."
+                }
+              }
+            },
+            "offline": {
+              "type": "boolean",
+              "default": false,
+              "description": "When true, sets COPILOT_OFFLINE=true in the child process environment."
+            },
+            "requiredApiKeyEnvVar": {
+              "type": "string",
+              "default": "COPILOT_PROVIDER_API_KEY",
+              "description": "Name of the environment variable that must be set by the operator before launch. Used only for preflight presence diagnostics — the value is never read by RalphDex."
             },
             "approvalMode": {
               "type": "string",
@@ -401,95 +445,6 @@
               "minimum": 1,
               "maximum": 500,
               "description": "Maximum number of autopilot continuation turns per Copilot CLI invocation."
-            },
-            "auth": {
-              "type": "object",
-              "default": {
-                "mode": "az-bearer",
-                "tenantId": "",
-                "subscriptionId": "",
-                "apiKeyEnvVar": "",
-                "secretStorageKey": ""
-              },
-              "description": "Azure auth source metadata. Secrets are resolved externally, not stored in settings.",
-              "properties": {
-                "mode": {
-                  "type": "string",
-                  "enum": [
-                    "az-bearer",
-                    "env-api-key",
-                    "vscode-secret"
-                  ],
-                  "default": "az-bearer",
-                  "description": "How the provider resolves Azure credentials."
-                },
-                "tenantId": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Azure tenant identifier used for bearer-token auth."
-                },
-                "subscriptionId": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Azure subscription identifier used for readiness diagnostics."
-                },
-                "apiKeyEnvVar": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Environment variable name used when the API key is sourced externally."
-                },
-                "secretStorageKey": {
-                  "type": "string",
-                  "default": "",
-                  "description": "SecretStorage key used when the API key is sourced from VS Code secrets."
-                }
-              }
-            },
-            "azure": {
-              "type": "object",
-              "default": {
-                "resourceGroup": "",
-                "resourceName": "",
-                "baseUrlOverride": ""
-              },
-              "description": "Azure OpenAI resource metadata used to derive the Copilot Foundry base URL.",
-              "properties": {
-                "resourceGroup": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Azure resource group name used for operator clarity and diagnostics."
-                },
-                "resourceName": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Azure OpenAI resource name used to derive the base URL."
-                },
-                "baseUrlOverride": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Optional override for the derived Azure OpenAI base URL."
-                }
-              }
-            },
-            "model": {
-              "type": "object",
-              "default": {
-                "deployment": "",
-                "wireApi": "responses"
-              },
-              "description": "Azure deployment and wire-protocol settings used by the Copilot Foundry harness.",
-              "properties": {
-                "deployment": {
-                  "type": "string",
-                  "default": "",
-                  "description": "Azure deployment name and Copilot model identifier."
-                },
-                "wireApi": {
-                  "type": "string",
-                  "default": "responses",
-                  "description": "Wire protocol selected for the Copilot Foundry harness."
-                }
-              }
             }
           }
         },
