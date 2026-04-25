@@ -194,7 +194,7 @@ export interface RalphProviderReadinessInput {
   config: RalphCodexConfig;
   codexCliSupport?: CodexCliSupport | null;
   ideCommandSupport?: CodexIdeCommandSupport | null;
-  azureAuthReadiness?: Partial<Record<'azure-foundry' | 'copilot-foundry', AzureAuthReadiness>>;
+  azureAuthReadiness?: Partial<Record<'azure-foundry', AzureAuthReadiness>>;
   authFailureSeverity?: Extract<RalphPreflightDiagnostic['severity'], 'warning' | 'error'>;
 }
 
@@ -376,10 +376,12 @@ function collectCopilotByokReadinessDiagnostics(config: RalphCodexConfig): Ralph
   const diagnostics: RalphPreflightDiagnostic[] = [];
   const cfg = config.copilotFoundry;
   const providerId = config.cliProvider; // 'copilot-byok' or 'copilot-foundry'
+  // Mirror the runtime behaviour: copilot-foundry always forces azure regardless of config
+  const effectiveProviderType = providerId === 'copilot-foundry' ? 'azure' : cfg.providerType;
 
   // Check base URL is resolvable
   if (!cfg.baseUrlOverride.trim()) {
-    if (cfg.providerType === 'azure') {
+    if (effectiveProviderType === 'azure') {
       if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
         diagnostics.push(createDiagnostic(
           'codexAdapter',
@@ -433,7 +435,7 @@ function collectCopilotByokReadinessDiagnostics(config: RalphCodexConfig): Ralph
 }
 
 function collectAzureAuthReadinessDiagnostics(
-  providerId: 'azure-foundry' | 'copilot-foundry',
+  providerId: 'azure-foundry',
   auth: RalphCodexConfig['azureFoundry']['auth'],
   authReadiness: AzureAuthReadiness | undefined,
   options: {
