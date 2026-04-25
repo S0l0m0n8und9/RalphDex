@@ -4763,8 +4763,8 @@
     {
       "id": "T181",
       "title": "Repair or suppress stale latest-provenance-failure.json pointer after artifact cleanup",
-      "status": "in_progress",
-      "notes": "latest-provenance-failure.json under .ralph/artifacts/ references iteration-037 artifacts that were cleaned up. The file is retained as a latest pointer but its referenced artifact directory no longer exists, causing a persistent preflight warning. Fix: when cleanup removes an iteration dir, also clear the latest-provenance-failure pointer if it references that dir (or suppress the warning when the failure record referenced dir is gone).",
+      "status": "done",
+      "notes": "Fixed stale latest-provenance-failure pointer repair for retention-disabled cleanup path and added artifactRetention + preflight regressions. Validation gate passes.",
       "validation": "npm run validate",
       "tier": "simple",
       "acceptance": [
@@ -4774,7 +4774,8 @@
       "context": [
         "src/ralph/artifactStore.ts",
         "src/ralph/preflight.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T182",
@@ -4891,5 +4892,5 @@
       ]
     }
   ],
-  "mutationCount": 206
+  "mutationCount": 207
 }

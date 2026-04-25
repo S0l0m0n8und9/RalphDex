@@ -1024,6 +1024,52 @@ test('cleanupGeneratedArtifacts removes stale latest provenance failure pointer 
   );
 });
 
+test('cleanupGeneratedArtifacts removes stale latest provenance failure pointer even when retention is disabled', async () => {
+  const { artifactRootDir, promptDir, runDir, stateFilePath } = await makeGeneratedArtifactDirs();
+
+  await seedGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    iterations: ['010']
+  });
+  await Promise.all([
+    fs.writeFile(stateFilePath, JSON.stringify({ version: 2 }), 'utf8'),
+    fs.writeFile(path.join(artifactRootDir, 'latest-provenance-failure.json'), JSON.stringify({
+      artifactDir: path.join(artifactRootDir, 'iteration-009'),
+      executionPlanPath: path.join(artifactRootDir, 'iteration-009', 'execution-plan.json'),
+      promptArtifactPath: path.join(artifactRootDir, 'iteration-009', 'prompt.md'),
+      cliInvocationPath: path.join(artifactRootDir, 'iteration-009', 'cli-invocation.json')
+    }), 'utf8')
+  ]);
+
+  const retention = await cleanupGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    retentionCount: 0
+  });
+
+  await assert.rejects(
+    fs.access(path.join(artifactRootDir, 'latest-provenance-failure.json'))
+  );
+  assert.deepEqual(retention, {
+    deletedIterationDirectories: [],
+    retainedIterationDirectories: [],
+    protectedRetainedIterationDirectories: [],
+    deletedPromptFiles: [],
+    retainedPromptFiles: [],
+    protectedRetainedPromptFiles: [],
+    deletedRunArtifactBaseNames: [],
+    retainedRunArtifactBaseNames: [],
+    protectedRetainedRunArtifactBaseNames: [],
+    deletedWatchdogFiles: [],
+    retainedWatchdogFiles: []
+  });
+  assert.deepEqual((await fs.readdir(artifactRootDir)).sort(), ['iteration-010']);
+});
+
 test('cleanupGeneratedArtifacts keeps separately referenced latest result and preflight iterations', async () => {
   const { artifactRootDir, promptDir, runDir, stateFilePath } = await makeGeneratedArtifactDirs();
 

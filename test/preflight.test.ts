@@ -566,6 +566,58 @@ test('cleanupGeneratedArtifacts clears stale latest provenance failure pointer s
   );
 });
 
+test('cleanupGeneratedArtifacts clears stale latest provenance failure pointer with retention disabled so preflight no longer warns', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const stateFilePath = path.join(rootPath, '.ralph', 'state.json');
+
+  await createDirectories([
+    path.dirname(stateFilePath),
+    artifactRootDir,
+    promptDir,
+    runDir,
+    path.join(artifactRootDir, 'iteration-010')
+  ]);
+  await writeUtf8Files([
+    [stateFilePath, JSON.stringify({ version: 2, runHistory: [], iterationHistory: [] })],
+    [path.join(promptDir, 'iteration-010.prompt.md'), 'iteration 10\n'],
+    [path.join(runDir, 'iteration-010.transcript.md'), 'transcript 10\n'],
+    [path.join(runDir, 'iteration-010.last-message.md'), 'message 10\n'],
+    [path.join(artifactRootDir, 'latest-provenance-failure.json'), JSON.stringify({
+      artifactDir: path.join(artifactRootDir, 'iteration-009'),
+      executionPlanPath: path.join(artifactRootDir, 'iteration-009', 'execution-plan.json'),
+      promptArtifactPath: path.join(artifactRootDir, 'iteration-009', 'prompt.md'),
+      cliInvocationPath: path.join(artifactRootDir, 'iteration-009', 'cli-invocation.json')
+    })]
+  ]);
+
+  await cleanupGeneratedArtifacts({
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    retentionCount: 0
+  });
+  await assert.rejects(fs.access(path.join(artifactRootDir, 'latest-provenance-failure.json')));
+
+  const diagnostics = await inspectPreflightArtifactReadiness({
+    rootPath,
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    generatedArtifactRetentionCount: 0,
+    provenanceBundleRetentionCount: 1
+  });
+
+  assert.equal(
+    diagnostics.some((diagnostic) => diagnostic.code === 'latest_artifact_pointer_targets_missing'),
+    false
+  );
+});
+
 test('checkStaleState returns no diagnostics when lock files are absent and no claims', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-stale-'));
   const ralphDir = path.join(rootPath, '.ralph');

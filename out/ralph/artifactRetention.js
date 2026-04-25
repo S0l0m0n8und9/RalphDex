@@ -626,6 +626,7 @@ async function inspectProvenanceBundleRetention(input) {
 }
 async function cleanupGeneratedArtifacts(input) {
     if (input.retentionCount <= 0) {
+        await cleanupStaleLatestProvenanceFailurePointer(input.artifactRootDir);
         const summary = {
             deletedIterationDirectories: [],
             retainedIterationDirectories: [],

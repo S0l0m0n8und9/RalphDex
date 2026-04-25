@@ -881,6 +881,7 @@ export async function cleanupGeneratedArtifacts(input: {
   protectionScope?: RalphGeneratedArtifactProtectionScope;
 }): Promise<RalphGeneratedArtifactRetentionSummary> {
   if (input.retentionCount <= 0) {
+    await cleanupStaleLatestProvenanceFailurePointer(input.artifactRootDir);
     const summary: RalphGeneratedArtifactRetentionSummary = {
       deletedIterationDirectories: [],
       retainedIterationDirectories: [],
