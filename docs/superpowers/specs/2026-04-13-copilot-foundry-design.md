@@ -1,5 +1,7 @@
 # Copilot-Foundry Provider Design
 
+> **Superseded** — the copilot-foundry auth approach (RalphDex-owned Azure credential resolution) was removed in the `copilot-byok` refactor (2026-04-25). `copilot-foundry` is now an alias for `copilot-byok` with forced `providerType: azure`. Auth is fully operator-supplied via `COPILOT_PROVIDER_*` env vars. The original design is preserved below for historical reference.
+
 ## Context
 
 RalphDex currently supports several CLI/runtime backends:

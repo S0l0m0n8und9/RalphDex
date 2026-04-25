@@ -14,7 +14,7 @@ Related docs:
 Supported paths:
 
 - IDE handoff through clipboard plus `vscode.commands.executeCommand(...)`
-- scripted automation through provider CLI/direct execution (`codex`, `claude`, `copilot`, `copilot-foundry`, `azure-foundry`, `gemini`)
+- scripted automation through provider CLI/direct execution (`codex`, `claude`, `copilot`, `copilot-byok`, `copilot-foundry`, `azure-foundry`, `gemini`)
 
 Unsupported assumptions:
 
