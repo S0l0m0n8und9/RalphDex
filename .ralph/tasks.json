@@ -4748,17 +4748,19 @@
     {
       "id": "T180",
       "title": "Verify optionset legibility fix across light, dark, and high-contrast VS Code themes",
-      "status": "todo",
+      "status": "in_progress",
       "dependsOn": [
         "T179"
       ],
-      "notes": "Manually open each optionset control in the extension under VS Code Default Light, Default Dark, and High Contrast themes. Confirm text is legible and no white-on-white or low-contrast state remains. Record observations.",
+      "notes": "Added a regression test and implementation so the real VS Code theme-matrix activation smoke restores the original color theme after exercising Dashboard settings and the PRD wizard. Revalidated the existing T180 worktree with fresh npm run validate and real-host npm run test:activation using the local code.cmd wrapper.",
       "validation": "npm run validate",
+      "blocker": "Manual in-IDE visual verification of the opened native select/optionset popup rows is still required in Default Light Modern, Default Dark Modern, and High Contrast to confirm no near-invisible text appears.",
       "acceptance": [
         "All optionset controls tested in at least two themes (light + dark)",
         "No near-invisible text observed in open state under any tested theme",
         "npm run validate passes"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T181",
@@ -4892,5 +4894,5 @@
       ]
     }
   ],
-  "mutationCount": 207
+  "mutationCount": 214
 }

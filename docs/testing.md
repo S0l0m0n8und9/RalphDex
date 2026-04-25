@@ -30,7 +30,7 @@ Related docs:
 - `scripts/run-e2e-orchestration-smoke.js`: opt-in temp-workspace orchestration smoke that threads the orchestration supervisor, plan-graph fan-in gate, handoff manager lifecycle, role-policy check, and the `scope_expansion` human choke point through a single deterministic end-to-end run. The accompanying `test/e2eOrchestrationSmokeScript.test.ts` harness drives both the skip path and the full opt-in path and asserts the emitted JSON summary so orchestration regressions surface inside the default `npm test` gate.
 - `test/statusReport.test.ts`: focused rendering coverage for status output, including task/backlog separation, provenance trust level messaging, inspection-root overrides, repeated-stop remediation reporting for decomposition, blocked, and human-review cases, recent iteration/run history, live retention summaries for generated artifacts and provenance bundles, and latest-artifact repair or stale-surface reporting.
 - `test/artifactStore.test.ts`: targeted retention cleanup coverage proving protected bundles survive cleanup when a latest pointer still references them, proving generated prompt/run/iteration artifacts stay protected when `.ralph/state.json` `last*`, `runHistory[]`, or `iterationHistory[]` entries or latest result, preflight-report, prompt-evidence, execution-plan, or CLI-invocation records still reference them, including root-by-root regressions for latest-linked prompt, summary, and preflight references plus state-referenced transcript, last-message, and iteration-directory protection, including summary-only and path-only iteration references plus transcript-only and last-message-only run references, proving latest summary, preflight-summary, and provenance-summary Markdown surfaces can still protect the implied iteration directory when the matching JSON pointer is absent, including both iteration markers and rendered artifact-path lines, proving mixed latest-pointer and raw-state protection can preserve older summary/preflight iteration directories separately from older prompt/transcript/last-message artifacts in the same cleanup pass, proving latest provenance bundle/failure pointers keep only the referenced iteration directory, proving handoff-note cleanup keeps only the newest retained `.ralph/handoff/*.json` entries, including run-only state fallbacks that omit explicit iteration records and raw state run references that carry only explicit file paths, and proving generated-artifact conflicts resolve deterministically by keeping the newest parsed-iteration window first, then adding older protected entries without reordering it, while also reporting which retained entries survived only because of that protection.
-- `test/vscode/runActivationSmoke.ts` and `test/vscode/suite/index.ts`: optional real activation smoke coverage for extension activation, command registration, and one basic command invocation in a real Extension Development Host.
+- `test/vscode/runActivationSmoke.ts` and `test/vscode/suite/index.ts`: optional real activation smoke coverage for extension activation, command registration, and theme-sensitive Dashboard/PRD wizard smoke coverage in a real Extension Development Host across `Default Light Modern`, `Default Dark Modern`, and `High Contrast`.
 - `scripts/run-real-cli-smoke.js`: optional real `codex exec` smoke coverage that seeds a temp Ralph workspace, runs one CLI iteration against the actual Codex binary, and prints the resulting artifact pointers or preserved temp path for inspection.
 - `test/promptBuilder.test.ts`: deterministic prompt-kind selection, file-based template rendering, verifier-informed prompt refinement, prior-context trimming, prompt-budget omission behavior, and prompt-output determinism.
 - `test/promptBuilder.snapshot.test.ts`: golden snapshot coverage for each valid prompt-kind fixture scenario using readable `.md` snapshots under `test/fixtures/snapshots/`.
@@ -53,7 +53,7 @@ Related docs:
 ## Stub Smoke Vs Real Activation Smoke
 
 - The default `npm test` path keeps using the lightweight stubbed harness because it is fast, deterministic, and good enough for most command-shell and artifact assertions.
-- `npm run test:activation` is intentionally narrower but more realistic: it verifies the packaged extension can activate under VS Code and that a basic command path executes in the real host.
+- `npm run test:activation` is intentionally narrower than the default Node test gate but more realistic: it verifies the packaged extension can activate under VS Code, confirms key Ralph commands are registered, switches the host through `Default Light Modern`, `Default Dark Modern`, and `High Contrast`, and opens the Dashboard settings tab plus the PRD wizard in each theme.
 - If the default `@vscode/test-electron` download does not launch cleanly in your environment, rerun `npm run test:activation` with `RALPH_VSCODE_EXECUTABLE_PATH=/absolute/path/to/code` so the smoke can target a known-good local VS Code executable.
 - Neither path introduces heavy UI automation or a richer VS Code integration framework.
 - `npm run test:real-cli-smoke` is intentionally separate from `npm run validate` because it depends on live Codex auth/network reachability and may preserve the temp workspace on failure for inspection.
@@ -79,7 +79,21 @@ When changing those areas, rely on the authoritative commands above plus manual 
 - `npm run test:real-cli-smoke` accepts `RALPH_REAL_CLI_SMOKE_COMMAND`, `RALPH_REAL_CLI_SMOKE_MODEL`, and `RALPH_REAL_CLI_SMOKE_KEEP_WORKSPACE=1` when you need a non-default Codex binary, model, or preserved temp workspace.
 - Prompt-template tests may point `ralphCodex.promptTemplateDirectory` at temp directories so rendering stays thin and deterministic without pulling in a heavier templating engine.
 - Prompt snapshot updates require `npm test -- --updateSnapshot`; reviewers should read `.md` snapshot diffs with the same care as code diffs because they capture the durable prompt contract.
-- The activation smoke also stays thin: it checks one real activation path and one basic command invocation, then stops.
+- The activation smoke still stays thin: it exercises only the owned theme-sensitive surfaces and does not attempt deep UI automation inside native VS Code dropdown popups.
+
+## Manual Theme Verification
+
+The select legibility guardrail is split between deterministic coverage and one manual host check:
+
+- `npm run validate` proves the shared webview CSS and generated Dashboard/PRD wizard HTML keep select open-state colors tied to VS Code dropdown and active-selection theme tokens.
+- `npm run test:activation` proves those owned surfaces open cleanly in a real Extension Development Host under `Default Light Modern`, `Default Dark Modern`, and `High Contrast`.
+- One manual check is still required because native VS Code select popups are rendered by the host rather than the HTML test harness: open the Dashboard settings tab and the PRD wizard in each theme, expand every select/optionset, and confirm the option rows and selected row stay readable with no near-invisible foreground/background pair.
+
+Recommended operator flow:
+
+1. Run `npm run validate`.
+2. Run `npm run test:activation` or `RALPH_VSCODE_EXECUTABLE_PATH=/absolute/path/to/code npm run test:activation` when the bundled VS Code download is unreliable on the current machine.
+3. In the Extension Development Host, switch through `Default Light Modern`, `Default Dark Modern`, and `High Contrast`, open the Dashboard settings tab plus the PRD wizard, and visually inspect each expanded select/optionset popup.
 
 ## Packaging Runtime
 
