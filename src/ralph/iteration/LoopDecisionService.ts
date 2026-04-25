@@ -3,20 +3,6 @@ import type { CompletionReconciliationOutcome } from '../reconciliation';
 import type { PreparedIterationContext } from '../iterationPreparation';
 import type { RalphIterationResult, RalphLoopDecision } from '../types';
 
-function controlPlaneRuntimeChanges(changedFiles: string[]): string[] {
-  const matches = new Set<string>();
-
-  for (const filePath of changedFiles) {
-    const normalized = filePath.replace(/\\/g, '/');
-    if (/^(?:.+\/)?package\.json$/.test(normalized)
-      || /(?:^|\/)(?:src|out|prompt-templates)\//.test(normalized)) {
-      matches.add(filePath);
-    }
-  }
-
-  return Array.from(matches).sort();
-}
-
 export interface EvaluateLoopDecisionInput {
   prepared: PreparedIterationContext;
   result: RalphIterationResult;
@@ -25,7 +11,6 @@ export interface EvaluateLoopDecisionInput {
   remainingTaskCount: number;
   hasActionableTask: boolean;
   reachedIterationCap: boolean;
-  relevantChangedFiles: string[];
   completionReconciliation: CompletionReconciliationOutcome;
 }
 
@@ -51,7 +36,6 @@ export class LoopDecisionService {
       reachedIterationCap: input.reachedIterationCap,
       previousIterations: input.prepared.state.iterationHistory
     });
-    const runtimeChanges = controlPlaneRuntimeChanges(input.relevantChangedFiles);
     const result: RalphIterationResult = {
       ...input.result,
       warnings: [...input.result.warnings]
@@ -96,25 +80,6 @@ export class LoopDecisionService {
         loopDecision,
         result,
         shouldBuildRemediation: true
-      };
-    }
-
-    if (runtimeChanges.length > 0) {
-      loopDecision = {
-        shouldContinue: false,
-        stopReason: 'control_plane_reload_required',
-        message: 'Control-plane runtime files changed; rerun Ralph in a fresh process before continuing.'
-      };
-      result.stopReason = 'control_plane_reload_required';
-      result.followUpAction = 'stop';
-      result.remediation = null;
-      result.warnings.push(
-        `Control-plane runtime files changed during this iteration; rerun Ralph in a fresh process before continuing. (${runtimeChanges.join(', ')})`
-      );
-      return {
-        loopDecision,
-        result,
-        shouldBuildRemediation: false
       };
     }
 

@@ -535,7 +535,6 @@ class RalphIterationEngine {
                 remainingTaskCount: classified.remainingTaskCount,
                 hasActionableTask: Boolean(classified.nextActionableTask),
                 reachedIterationCap: options.reachedIterationCap,
-                relevantChangedFiles: preliminaryVerification.effectiveFileChangeVerification.diffSummary?.relevantChangedFiles ?? [],
                 completionReconciliation
             });
             const loopDecision = loopEvaluation.loopDecision;

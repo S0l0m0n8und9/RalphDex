@@ -2291,12 +2291,12 @@ test('runCliIteration keeps parent completion applied when PR creation cannot ru
   );
 });
 
-test('runCliIteration stops loop continuation when control-plane runtime files change', async () => {
+test('runCliIteration keeps looping when source files change and completion is in progress', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
     version: 2,
     tasks: [
-      { id: 'T1', title: 'Trigger the reload barrier', status: 'todo' },
+      { id: 'T1', title: 'Continue iteration after source edits', status: 'todo' },
       { id: 'T1.1', title: 'Keep iterating after progress', status: 'todo', parentId: 'T1' }
     ]
   });
@@ -2320,7 +2320,7 @@ test('runCliIteration stops loop continuation when control-plane runtime files c
             requestedStatus: 'in_progress',
             progressNote: 'Updated src/feature.ts.',
             validationRan: 'npm test'
-          }, 'Changed control-plane runtime files.')
+          }, 'Changed source files while keeping the task in progress.')
         };
       }
     }
@@ -2332,10 +2332,9 @@ test('runCliIteration stops loop continuation when control-plane runtime files c
 
   assert.equal(summary.result.verificationStatus, 'passed');
   assert.equal(summary.result.completionReportStatus, 'applied');
-  assert.equal(summary.loopDecision.shouldContinue, false);
-  assert.equal(summary.loopDecision.stopReason, 'control_plane_reload_required');
-  assert.equal(summary.result.stopReason, 'control_plane_reload_required');
-  assert.match(summary.result.warnings.join('\n'), /src\/feature\.ts/);
+  assert.equal(summary.loopDecision.shouldContinue, true);
+  assert.equal(summary.loopDecision.stopReason, null);
+  assert.equal(summary.result.stopReason, null);
 });
 
 test('runCliIteration keeps looping after test-only changes because they do not modify the control plane runtime', async () => {
