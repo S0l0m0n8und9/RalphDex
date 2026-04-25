@@ -4797,11 +4797,11 @@
     {
       "id": "T183",
       "title": "Remove control_plane_reload_required from stop-reason types and provenance",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T182"
       ],
-      "notes": "Remove 'control_plane_reload_required' from the StopReason union in types.ts (line 216) and from the provenance allowlist array in provenancePersistence.ts (line 325).",
+      "notes": "Removed control_plane_reload_required from RalphStopReason and provenance clean-terminal allowlist; eliminated command/test branches depending on that stop reason and aligned verifier docs so validation gates pass.",
       "validation": "npm run validate",
       "acceptance": [
         "No TypeScript references to control_plane_reload_required remain in src/",
@@ -4810,7 +4810,8 @@
       "context": [
         "src/ralph/types.ts",
         "src/ralph/provenancePersistence.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T184",
@@ -4895,5 +4896,5 @@
       ]
     }
   ],
-  "mutationCount": 216
+  "mutationCount": 217
 }

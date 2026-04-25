@@ -213,7 +213,6 @@ export type RalphFollowUpAction =
 export type RalphStopReason =
   | 'iteration_cap_reached'
   | 'task_marked_complete'
-  | 'control_plane_reload_required'
   | 'claim_contested'
   | 'policy_violation'
   | 'repeated_no_progress'

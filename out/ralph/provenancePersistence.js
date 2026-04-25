@@ -259,7 +259,6 @@ async function cleanupGeneratedArtifactsHelper(paths, retentionCount, stage, log
 const CLEAN_TERMINAL_HANDOFF_STOP_REASONS = new Set([
     'task_marked_complete',
     'iteration_cap_reached',
-    'control_plane_reload_required',
     'human_review_needed',
     'no_actionable_task',
     'verification_passed_no_remaining_subtasks'

@@ -160,15 +160,15 @@ type MockRunCliIterationResult = Awaited<ReturnType<RalphIterationEngine['runCli
 function createMockRun(
   rootPath: string,
   mode: 'singleExec' | 'loop',
-  stopReason: 'control_plane_reload_required' | 'human_review_needed' | 'preflight_blocked' | null,
+  stopReason: 'no_actionable_task' | 'human_review_needed' | 'preflight_blocked' | null,
   overrides: Partial<MockRunCliIterationResult['result']> = {}
 ): MockRunCliIterationResult {
-  const message = stopReason === 'control_plane_reload_required'
-    ? 'Control-plane changes require a reload.'
-    : stopReason === 'human_review_needed'
+  const message = stopReason === 'human_review_needed'
       ? 'The current outcome requires explicit human review.'
       : stopReason === 'preflight_blocked'
         ? 'Ralph preflight blocked iteration start. Missing human-authored PRD.'
+      : stopReason === 'no_actionable_task'
+        ? 'No actionable task remains.'
       : `Mock ${mode} stop.`;
 
   return {
@@ -229,24 +229,6 @@ async function _withImmediateTimeout<T>(action: () => Promise<T>): Promise<T> {
 
   try {
     return await action();
-  } finally {
-    globalThis.setTimeout = originalSetTimeout;
-  }
-}
-
-async function withCapturedTimeouts<T>(
-  action: (delays: number[]) => Promise<T>
-): Promise<T> {
-  const originalSetTimeout = globalThis.setTimeout;
-  const delays: number[] = [];
-  globalThis.setTimeout = ((callback: (...args: unknown[]) => void, delay?: number, ...args: unknown[]) => {
-    delays.push(typeof delay === 'number' ? delay : 0);
-    callback(...args);
-    return 0 as unknown as ReturnType<typeof setTimeout>;
-  }) as typeof setTimeout;
-
-  try {
-    return await action(delays);
   } finally {
     globalThis.setTimeout = originalSetTimeout;
   }
@@ -1684,7 +1666,7 @@ test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on cli
   );
 });
 
-test('Run CLI Loop does not auto-reload when control-plane reload is required but the setting is disabled', async () => {
+test('Run CLI Loop stops cleanly without auto-reload when no actionable task remains', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1699,7 +1681,7 @@ test('Run CLI Loop does not auto-reload when control-plane reload is required bu
     await withMockedRunCliIteration(
       async (workspaceFolderArg, mode) => {
         seenModes.push(mode);
-        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'no_actionable_task');
       },
       async () => {
         activate(createExtensionContext());
@@ -1713,11 +1695,11 @@ test('Run CLI Loop does not auto-reload when control-plane reload is required bu
   assert.equal(executeCalls.some((entry) => entry.command === 'workbench.action.reloadWindow'), false);
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
-    /Ralph CLI loop stopped after iteration 1: Control-plane changes require a reload\./
+    /Ralph CLI loop stopped after iteration 1: No actionable task remains\./
   );
 });
 
-test('Run CLI Iteration does not auto-reload on a control-plane reload stop even when the setting is enabled', async () => {
+test('Run CLI Iteration does not auto-reload when no actionable task remains', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1732,7 +1714,7 @@ test('Run CLI Iteration does not auto-reload on a control-plane reload stop even
     await withMockedRunCliIteration(
       async (workspaceFolderArg, mode) => {
         seenModes.push(mode);
-        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'no_actionable_task');
       },
       async () => {
         activate(createExtensionContext());
@@ -1869,7 +1851,7 @@ test('Skip Task marks the selected task blocked using the diagnosis summary', as
   );
 });
 
-test('Run CLI Loop auto-reloads with the VS Code reload command after a control-plane reload stop when enabled', async () => {
+test('Run CLI Loop does not auto-reload when no actionable task remains even with reload setting enabled', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1884,23 +1866,24 @@ test('Run CLI Loop auto-reloads with the VS Code reload command after a control-
     await withMockedRunCliIteration(
       async (workspaceFolderArg, mode) => {
         seenModes.push(mode);
-        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'control_plane_reload_required');
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, 'no_actionable_task');
       },
-      async () => withCapturedTimeouts(async () => {
+      async () => {
         activate(createExtensionContext());
         await vscode.commands.executeCommand('ralphCodex.runRalphLoop');
-      })
+      }
     );
     return calls;
   });
 
   assert.deepEqual(seenModes, ['loop']);
-  const reloadCommands = executeCalls.filter((entry) => entry.command === 'workbench.action.reloadWindow');
-  assert.equal(reloadCommands.length, 1);
-  assert.deepEqual(reloadCommands[0]?.args ?? [], []);
   assert.equal(
-    harness.state.infoMessages.some((entry) => /Ralph CLI loop stopped after iteration/.test(entry.message)),
+    executeCalls.some((entry) => entry.command === 'workbench.action.reloadWindow'),
     false
+  );
+  assert.match(
+    harness.state.infoMessages.at(-1)?.message ?? '',
+    /Ralph CLI loop stopped after iteration 1: No actionable task remains\./
   );
 });
 

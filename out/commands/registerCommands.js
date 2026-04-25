@@ -45,7 +45,6 @@ const iterationEngine_1 = require("../ralph/iterationEngine");
 const stateManager_1 = require("../ralph/stateManager");
 const taskFile_1 = require("../ralph/taskFile");
 const codexCliSupport_1 = require("../services/codexCliSupport");
-const async_1 = require("../util/async");
 const error_1 = require("../util/error");
 const fs_1 = require("../util/fs");
 const validate_1 = require("../util/validate");
@@ -856,16 +855,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                         }
                     }
                     if (!lastRun.loopDecision.shouldContinue) {
-                        if (lastRun.result.stopReason === 'control_plane_reload_required'
-                            && config.autoReloadOnControlPlaneChange) {
-                            logger.info('Ralph is reloading the extension host to apply control-plane changes.', {
-                                iteration: lastRun.result.iteration,
-                                stopReason: lastRun.result.stopReason
-                            });
-                            await (0, async_1.sleep)(1500);
-                            await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                            return;
-                        }
                         const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
                             || lastRun.result.stopReason === 'repeated_identical_failure';
                         if (isStallStop && config.autoWatchdogOnStall) {
@@ -1018,7 +1007,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     for (let index = 0; index < config.ralphIterationCap; index += 1) {
                         if (token.isCancellationRequested || stopHandle.isCancellationRequested()) {
                             logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
-                            return { agentId, lastRun, reloadRequired: false };
+                            return { agentId, lastRun };
                         }
                         broadcaster?.emitIterationStart({
                             iteration: index + 1,
@@ -1056,11 +1045,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                             }
                         }
                         if (!lastRun.loopDecision.shouldContinue) {
-                            if (lastRun.result.stopReason === 'control_plane_reload_required'
-                                && config.autoReloadOnControlPlaneChange) {
-                                logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
-                                return { agentId, lastRun, reloadRequired: true };
-                            }
                             const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
                                 || lastRun.result.stopReason === 'repeated_identical_failure';
                             if (isStallStop && config.autoWatchdogOnStall) {
@@ -1081,20 +1065,14 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                                 stopReason: lastRun.result.stopReason,
                                 message: lastRun.loopDecision.message
                             });
-                            return { agentId, lastRun, reloadRequired: false };
+                            return { agentId, lastRun };
                         }
                     }
-                    return { agentId, lastRun, reloadRequired: false };
+                    return { agentId, lastRun };
                 });
                 const settled = await Promise.allSettled(agentLoops);
                 const failures = settled.filter((r) => r.status === 'rejected');
                 const fulfilled = settled.filter((r) => r.status === 'fulfilled');
-                if (fulfilled.some((r) => r.value.reloadRequired)) {
-                    logger.info('Multi-agent loop: reloading extension host to apply control-plane changes.', {});
-                    await (0, async_1.sleep)(1500);
-                    await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                    return;
-                }
                 if (failures.length > 0) {
                     const messages = failures.map((r) => (0, error_1.toErrorMessage)(r.reason)).join('; ');
                     throw new Error(`${failures.length} of ${agentSlots.length} agent(s) failed: ${messages}`);

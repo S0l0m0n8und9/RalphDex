@@ -20,7 +20,6 @@ import type {
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
 import { Logger } from '../services/logger';
 import { inspectCliSupport } from '../services/codexCliSupport';
-import { sleep } from '../util/async';
 import { toErrorMessage } from '../util/error';
 import { pathExists } from '../util/fs';
 import { buildPrefixedAgentId } from '../util/validate';
@@ -1096,19 +1095,6 @@ export function registerCommands(
           }
 
           if (!lastRun.loopDecision.shouldContinue) {
-            if (
-              lastRun.result.stopReason === 'control_plane_reload_required'
-              && config.autoReloadOnControlPlaneChange
-            ) {
-              logger.info('Ralph is reloading the extension host to apply control-plane changes.', {
-                iteration: lastRun.result.iteration,
-                stopReason: lastRun.result.stopReason
-              });
-              await sleep(1500);
-              await vscode.commands.executeCommand('workbench.action.reloadWindow');
-              return;
-            }
-
             const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
               || lastRun.result.stopReason === 'repeated_identical_failure';
             if (isStallStop && config.autoWatchdogOnStall) {
@@ -1279,7 +1265,7 @@ export function registerCommands(
       progress.report({ message: `Starting ${agentSlots.length} concurrent agent loop(s)` });
       broadcaster?.emitLoopStart(config.ralphIterationCap);
 
-      type SlotResult = { agentId: string; lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null; reloadRequired: boolean };
+      type SlotResult = { agentId: string; lastRun: Awaited<ReturnType<RalphIterationEngine['runCliIteration']>> | null };
 
       try {
         const agentLoops = agentSlots.map(async ({ agentId, crewMember }): Promise<SlotResult> => {
@@ -1288,7 +1274,7 @@ export function registerCommands(
           for (let index = 0; index < config.ralphIterationCap; index += 1) {
             if (token.isCancellationRequested || stopHandle.isCancellationRequested()) {
               logger.info('Multi-agent loop: cancelled by user.', { agentId, iteration: index });
-              return { agentId, lastRun, reloadRequired: false };
+              return { agentId, lastRun };
             }
 
             broadcaster?.emitIterationStart({
@@ -1331,14 +1317,6 @@ export function registerCommands(
             }
 
             if (!lastRun.loopDecision.shouldContinue) {
-              if (
-                lastRun.result.stopReason === 'control_plane_reload_required'
-                && config.autoReloadOnControlPlaneChange
-              ) {
-                logger.info('Multi-agent loop: agent hit control-plane change.', { agentId, iteration: lastRun.result.iteration });
-                return { agentId, lastRun, reloadRequired: true };
-              }
-
               const isStallStop = lastRun.result.stopReason === 'repeated_no_progress'
                 || lastRun.result.stopReason === 'repeated_identical_failure';
               if (isStallStop && config.autoWatchdogOnStall) {
@@ -1359,24 +1337,17 @@ export function registerCommands(
                 stopReason: lastRun.result.stopReason,
                 message: lastRun.loopDecision.message
               });
-              return { agentId, lastRun, reloadRequired: false };
+              return { agentId, lastRun };
             }
           }
 
-          return { agentId, lastRun, reloadRequired: false };
+          return { agentId, lastRun };
         });
 
         const settled = await Promise.allSettled(agentLoops);
 
         const failures = settled.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
         const fulfilled = settled.filter((r): r is PromiseFulfilledResult<SlotResult> => r.status === 'fulfilled');
-
-        if (fulfilled.some((r) => r.value.reloadRequired)) {
-          logger.info('Multi-agent loop: reloading extension host to apply control-plane changes.', {});
-          await sleep(1500);
-          await vscode.commands.executeCommand('workbench.action.reloadWindow');
-          return;
-        }
 
         if (failures.length > 0) {
           const messages = failures.map((r) => toErrorMessage(r.reason)).join('; ');

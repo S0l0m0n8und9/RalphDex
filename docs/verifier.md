@@ -79,7 +79,6 @@ Do not replace this with an open-ended "AI decides progress" rule.
 The loop may stop for:
 
 - `task_marked_complete`
-- `control_plane_reload_required`
 - `iteration_cap_reached`
 - `claim_contested`
 - `policy_violation`
@@ -93,8 +92,6 @@ The loop may stop for:
 The stop decision uses durable task state, verifier results, and configured thresholds such as `noProgressThreshold`, `repeatedFailureThreshold`, and `stopOnHumanReviewNeeded`.
 
 Repeated-stop detection for `repeated_no_progress` and `repeated_identical_failure` is scoped per `agentId` on the selected task. Multi-agent deployments should assign distinct stable `agentId` values so one agent's interleaved history does not consume another agent's retry budget, while the default sentinel preserves existing single-agent behavior when no explicit agent id is provided.
-
-`control_plane_reload_required` is a deliberate safety barrier. If an iteration changes control-plane runtime files such as `src/**`, `out/**`, `prompt-templates/**`, or `package.json`, Ralph records the current iteration normally and then stops the loop so the next run starts in a fresh extension process.
 
 ## Task Remediation
 
