@@ -480,6 +480,15 @@ That PR creation step is intentionally failure-tolerant:
 
 The planning pass is an optional pre-execution step that produces a `task-plan.json` artifact before the implementer prompt runs. It is disabled by default — `ralphCodex.planningPass.enabled` defaults to `false`, so no additional LLM cost is incurred unless you explicitly enable it.
 
+`ralphCodex.taskReadinessGate` controls whether planning output is advisory or blocking. Default is `off` (backward-compatible; no automatic task mutation).
+
+- `off`: planning remains context-only; execution always proceeds.
+- `warn`: readiness findings are persisted as warnings but execution proceeds.
+- `auto`: if planning returns `needs_decomposition` with valid bounded `suggestedChildTasks`, Ralph applies them using the shared task writer, makes the parent depend on those children, and stops before provider execution. `blocked` / `needs_human_review` also stop before provider execution.
+- `strict`: enforces executable task shape before launch (bounded scope, validation, acceptance, and planner readiness). It stops pre-execution when readiness is insufficient.
+
+Planning-gate stops are pre-execution readiness outcomes, not implementer failures. They persist planning artifacts (including readiness fields) and stop cleanly so the next normal iteration can pick the first actionable child task.
+
 ### Inline Mode
 
 `ralphCodex.planningPass.mode = 'inline'` (the default when enabled): the implementer agent runs a short planning turn before the main implementation turn. This results in **two LLM calls per task**. Ralph parses the planning response and injects a "Task Plan" context section into the implementation prompt. No extra CLI iteration is required.
@@ -496,7 +505,9 @@ If no `task-plan.json` exists when dedicated mode is active, the implementer pro
 cat .ralph/artifacts/<taskId>/task-plan.json
 ```
 
-The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array), and an optional `suggestedValidationCommand`. If the file is absent after a dedicated-mode planning iteration, inspect `.ralph/artifacts/latest-summary.md` to confirm the planner agent's iteration ran and completed.
+The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array), optional `suggestedValidationCommand`, readiness fields (`readiness`, `readinessReason`), and optional decomposition/guardrail suggestions (`suggestedChildTasks`, `suggestedAcceptance`, `suggestedConstraints`). If the file is absent after a dedicated-mode planning iteration, inspect `.ralph/artifacts/latest-summary.md` to confirm the planner agent's iteration ran and completed.
+
+Planning-gate decomposition is pre-execution; repeated-stop remediation decomposition is post-failure recovery. They share the same `RalphSuggestedChildTask` schema and task-file apply path, but occur at different lifecycle phases.
 
 ## Memory Strategy
 

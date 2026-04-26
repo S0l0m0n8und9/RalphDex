@@ -4127,3 +4127,63 @@ test('reconciliation does not overwrite existing task validation field with sugg
   assert.ok(task, 'task T201 should exist');
   assert.equal(task.validation, 'npm test', 'existing validation field should not be overwritten by suggestedValidationCommand');
 });
+
+test('taskReadinessGate auto decomposes and stops before implementer execution', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T1', title: 'Build complete greenfield platform', status: 'todo' }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  let callCount = 0;
+  const { engine } = createEngine([{
+    run: async () => {
+      callCount += 1;
+      return {
+        lastMessage: JSON.stringify({
+          reasoning: 'Task is too broad for one iteration.',
+          approach: 'Decompose before execution.',
+          steps: ['Scaffold', 'Smoke test', 'Vertical slice'],
+          risks: ['Implementer thrash'],
+          readiness: 'needs_decomposition',
+          readinessReason: 'Greenfield bootstrap should be split.',
+          suggestedChildTasks: [{
+            id: 'T1.1',
+            title: 'Create project scaffold',
+            parentId: 'T1',
+            dependsOn: [],
+            validation: 'npm test',
+            rationale: 'Bound first step.'
+          }]
+        })
+      };
+    }
+  }]);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'auto'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(callCount, 1);
+  assert.equal(run.result.executionStatus, 'skipped');
+  assert.equal(run.result.stopReason, 'policy_violation');
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const parent = taskFile.tasks.find((task) => task.id === 'T1');
+  const child = taskFile.tasks.find((task) => task.id === 'T1.1');
+  assert.ok(parent);
+  assert.ok(child);
+  assert.equal(child?.parentId, 'T1');
+  assert.ok(parent?.dependsOn?.includes('T1.1'));
+});

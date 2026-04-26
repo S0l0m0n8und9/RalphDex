@@ -34,6 +34,7 @@ export type MemoryStrategy = 'verbatim' | 'sliding-window' | 'summary';
 export type FailureDiagnosticsMode = 'auto' | 'off';
 
 export type PlanningPassMode = 'dedicated' | 'inline';
+export type TaskReadinessGateMode = 'off' | 'warn' | 'auto' | 'strict';
 
 export interface RalphPlanningPassConfig {
   /** Enable the pre-execution planning pass. Default: false. */
@@ -196,6 +197,7 @@ export interface RalphCodexConfig {
   memorySummaryThreshold: number;
   prdGenerationTemplate: string;
   planningPass: RalphPlanningPassConfig;
+  taskReadinessGate: TaskReadinessGateMode;
   failureDiagnostics: FailureDiagnosticsMode;
   maxRecoveryAttempts: number;
   maxReplansPerParent: number;

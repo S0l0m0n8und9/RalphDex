@@ -49,6 +49,20 @@ test('readConfig defaults to supervised safe posture', () => {
   assert.equal(config.ralphIterationCap, 20);
   assert.equal(config.claudePermissionMode, 'default');
   assert.equal(config.copilotApprovalMode, 'allow-tools-only');
+  assert.equal(config.taskReadinessGate, 'off');
+});
+
+test('readConfig accepts explicit taskReadinessGate values and falls back safely', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    taskReadinessGate: 'strict'
+  });
+  assert.equal(readConfig(workspaceFolder('C:\\repo')).taskReadinessGate, 'strict');
+
+  harness.setConfiguration({
+    taskReadinessGate: 'invalid-value'
+  } as unknown as Record<string, unknown>);
+  assert.equal(readConfig(workspaceFolder('C:\\repo')).taskReadinessGate, 'off');
 });
 
 test('readConfig forces the autonomous shorthand overrides regardless of individual settings', () => {
@@ -270,4 +284,3 @@ test('readConfig does not override modelTiering.enabled when enableModelTiering 
     'modelTiering.enabled should not be overridden when enableModelTiering is absent'
   );
 });
-

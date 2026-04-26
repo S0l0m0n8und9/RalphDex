@@ -230,6 +230,7 @@ This section lists **core settings** only. Source of truth for the full settings
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
 | `ralphCodex.autoReplenishBacklog` | `false` | Continue into backlog replenishment when no actionable task remains |
 | `ralphCodex.autoApplyRemediation` | `[]` | Remediation actions to auto-apply |
+| `ralphCodex.taskReadinessGate` | `"off"` | Planning readiness gate mode: `off`, `warn`, `auto`, or `strict` |
 | `ralphCodex.noProgressThreshold` | `2` | Consecutive no-progress iterations before stopping |
 | `ralphCodex.repeatedFailureThreshold` | `2` | Consecutive identical failure classifications before stopping |
 
