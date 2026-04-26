@@ -355,6 +355,7 @@ function readConfig(workspaceFolder) {
         memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', defaults_1.DEFAULT_CONFIG.memorySummaryThreshold, 1),
         prdGenerationTemplate: readString(config, 'prdGenerationTemplate', defaults_1.DEFAULT_CONFIG.prdGenerationTemplate),
         planningPass: readPlanningPass(config, defaults_1.DEFAULT_CONFIG.planningPass),
+        taskReadinessGate: readEnum(config, 'taskReadinessGate', ['off', 'warn', 'auto', 'strict'], defaults_1.DEFAULT_CONFIG.taskReadinessGate),
         failureDiagnostics: readEnum(config, 'failureDiagnostics', ['auto', 'off'], defaults_1.DEFAULT_CONFIG.failureDiagnostics),
         maxRecoveryAttempts: readNumber(config, 'maxRecoveryAttempts', defaults_1.DEFAULT_CONFIG.maxRecoveryAttempts, 1),
         maxReplansPerParent: readNumber(config, 'maxReplansPerParent', defaults_1.DEFAULT_CONFIG.maxReplansPerParent, 1),

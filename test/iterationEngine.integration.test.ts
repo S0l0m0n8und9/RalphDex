@@ -4322,20 +4322,29 @@ test('stale task-plan is ignored for gating and regenerated', async () => {
   }, null, 2), 'utf8');
 
   let calls = 0;
-  const { engine } = createEngine([{
-    run: async () => {
-      calls += 1;
-      return {
-        lastMessage: JSON.stringify({
-          reasoning: 'fresh',
-          approach: 'execute',
-          steps: ['go'],
-          risks: [],
-          readiness: 'ready'
-        })
-      };
+  let implementerPrompt = '';
+  const { engine } = createEngine([
+    {
+      run: async () => {
+        calls += 1;
+        return {
+          lastMessage: JSON.stringify({
+            reasoning: 'fresh',
+            approach: 'execute',
+            steps: ['go'],
+            risks: [],
+            readiness: 'ready'
+          })
+        };
+      }
+    },
+    {
+      run: async (request) => {
+        implementerPrompt = request.prompt;
+        return { lastMessage: completionReport({ selectedTaskId: 'T11', requestedStatus: 'in_progress' }) };
+      }
     }
-  }]);
+  ]);
   const harness = vscodeTestHarness();
   harness.setConfiguration({ planningPass: { enabled: true, mode: 'inline' }, taskReadinessGate: 'auto' });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
@@ -4343,6 +4352,7 @@ test('stale task-plan is ignored for gating and regenerated', async () => {
   assert.equal(calls >= 1, true);
   const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
   assert.equal(taskFile.tasks.some((task) => task.id === 'T11.1'), false, 'stale plan should not auto-decompose');
+  assert.doesNotMatch(implementerPrompt, /stale/i, 'final prompt should not retain stale task-plan content');
 });
 
 test('auto ready injects accepted-plan execution rule into implementer prompt', async () => {
@@ -4377,4 +4387,16 @@ test('auto ready injects accepted-plan execution rule into implementer prompt', 
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
   assert.match(implementerPrompt, /follow this accepted plan unless repository evidence shows it is unsafe/i);
+
+  const promptEvidence = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-prompt-evidence.json'), 'utf8')) as {
+    inputs?: {
+      taskPlanContext?: unknown;
+    };
+  };
+  assert.ok(Array.isArray(promptEvidence.inputs?.taskPlanContext));
+
+  const latestBundle = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-provenance-bundle.json'), 'utf8')) as {
+    promptHash: string | null;
+  };
+  assert.equal(latestBundle.promptHash, hashText(implementerPrompt));
 });

@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.rerenderPreparedPromptContext = rerenderPreparedPromptContext;
 exports.prepareIterationContext = prepareIterationContext;
 exports.ensureStructureDefinitionForPreflight = ensureStructureDefinitionForPreflight;
 exports.recoverUnexpectedUnclaimedSelection = recoverUnexpectedUnclaimedSelection;
@@ -61,6 +62,93 @@ const EMPTY_GIT_STATUS = {
     raw: '',
     entries: []
 };
+async function rerenderPreparedPromptContext(input) {
+    const { prepared } = input;
+    const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration);
+    const [taskPlanArtifact, structureDefinition] = await Promise.all([
+        prepared.selectedTask ? (0, planningPass_1.readTaskPlan)(prepared.paths.artifactDir, prepared.selectedTask.id) : Promise.resolve(null),
+        readStructureDefinition(path.join(prepared.rootPath, prepared.config.structureDefinitionPath))
+    ]);
+    const promptRender = await (0, promptBuilder_1.buildPrompt)({
+        kind: prepared.promptKind,
+        target: prepared.promptTarget,
+        iteration: prepared.iteration,
+        selectionReason: prepared.promptSelectionReason,
+        objectiveText: prepared.objectiveText,
+        progressText: prepared.progressText,
+        taskCounts: prepared.taskCounts,
+        summary: prepared.summary,
+        state: prepared.state,
+        paths: prepared.paths,
+        taskFile: prepared.taskFile,
+        selectedTask: prepared.selectedTask,
+        taskValidationHint: prepared.taskValidationHint,
+        effectiveValidationCommand: prepared.effectiveValidationCommand,
+        normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+        validationCommand: prepared.effectiveValidationCommand,
+        preflightReport: prepared.preflightReport,
+        sessionHandoff: prepared.sessionHandoff,
+        selectedTaskClaim: prepared.selectedTaskClaim,
+        taskPlanArtifact,
+        structureDefinition,
+        config: prepared.config
+    });
+    const prompt = promptRender.prompt;
+    const promptEvidence = {
+        ...promptRender.evidence,
+        provenanceId: prepared.provenanceId
+    };
+    const promptPath = await input.stateManager.writePrompt(prepared.paths, (0, promptBuilder_1.createPromptFileName)(prepared.promptKind, prepared.iteration), prompt);
+    await (0, artifactStore_1.writePromptArtifacts)({
+        paths: artifactPaths,
+        artifactRootDir: prepared.paths.artifactDir,
+        prompt,
+        promptEvidence
+    });
+    await (0, contextEnvelopeWriter_1.writeContextEnvelope)({
+        artifactRootDir: prepared.paths.artifactDir,
+        iteration: prepared.iteration,
+        contextEnvelope: promptRender.contextEnvelope,
+        policySource: input.rolePolicySource ?? 'preset'
+    });
+    const executionPlan = {
+        ...prepared.executionPlan,
+        templatePath: promptRender.templatePath,
+        promptPath,
+        promptArtifactPath: artifactPaths.promptPath,
+        promptEvidencePath: artifactPaths.promptEvidencePath,
+        promptHash: (0, integrity_1.hashText)(prompt),
+        promptByteLength: (0, integrity_1.utf8ByteLength)(prompt),
+        createdAt: new Date().toISOString()
+    };
+    const executionPlanHash = (0, integrity_1.hashJson)(executionPlan);
+    await (0, artifactStore_1.writeExecutionPlanArtifact)({
+        paths: artifactPaths,
+        artifactRootDir: prepared.paths.artifactDir,
+        plan: executionPlan
+    });
+    const promptGeneratedAt = new Date().toISOString();
+    const rerendered = {
+        ...prepared,
+        prompt,
+        promptPath,
+        promptTemplatePath: promptRender.templatePath,
+        promptEvidence,
+        executionPlan,
+        executionPlanHash,
+        phaseSeed: {
+            ...prepared.phaseSeed,
+            promptGeneratedAt
+        }
+    };
+    await input.persistPreparedProvenanceBundle(rerendered);
+    input.logger.info('Rerendered prepared prompt context after planning gate.', {
+        iteration: rerendered.iteration,
+        selectedTaskId: rerendered.selectedTask?.id ?? null,
+        promptPath: rerendered.promptPath
+    });
+    return rerendered;
+}
 function trustLevelForTarget(promptTarget) {
     return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
 }
