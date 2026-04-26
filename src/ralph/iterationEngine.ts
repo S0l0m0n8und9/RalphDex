@@ -24,6 +24,7 @@ import {
   releaseClaim,
 } from './taskFile';
 import {
+  formatTaskPlanContext,
   parsePlanningResponse,
   readTaskPlan,
   TaskPlanArtifact,
@@ -36,8 +37,9 @@ import {
   parseFailureDiagnosticResponse,
   writeFailureAnalysis
 } from './failureDiagnostics';
-import { hashText, utf8ByteLength } from './integrity';
+import { hashJson, hashText, utf8ByteLength } from './integrity';
 import { shouldRunFailureDiagnostic } from './loopLogic';
+import { writeExecutionPlanArtifact } from './artifactStore';
 import { selectModelForTask } from './complexityScorer';
 import { runHook, HookRunContext } from './hookRunner';
 import { captureCoreState } from './verifier';
@@ -135,7 +137,7 @@ export class RalphIterationEngine {
       rolePolicySource?: 'preset' | 'crew' | 'explicit';
     }
   ): Promise<PreparedPrompt> {
-    const prepared = await prepareIterationContext({
+    let prepared = await prepareIterationContext({
       workspaceFolder,
       progress,
       includeVerifierContext: false,
@@ -315,6 +317,42 @@ export class RalphIterationEngine {
     return /\b(greenfield|bootstrap|architecture|ambiguous|risky)\b/.test(combined);
   }
 
+  private taskPlanningFingerprint(task: import('./types').RalphTask): string {
+    return hashText(JSON.stringify({
+      id: task.id,
+      title: task.title,
+      validation: task.validation ?? null,
+      acceptance: task.acceptance ?? [],
+      constraints: task.constraints ?? [],
+      notes: task.notes ?? ''
+    }));
+  }
+
+  private buildPlanningInput(
+    prepared: PreparedIterationContext,
+    gateMode: string
+  ): NonNullable<TaskPlanArtifact['planningInput']> {
+    return {
+      selectedTaskId: prepared.selectedTask?.id ?? '',
+      taskFingerprint: prepared.selectedTask ? this.taskPlanningFingerprint(prepared.selectedTask) : '',
+      gateMode,
+      mutationCount: prepared.beforeCoreState.taskFile.mutationCount ?? null,
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  private isPlanFreshForSelectedTask(prepared: PreparedIterationContext, plan: TaskPlanArtifact): boolean {
+    if (!prepared.selectedTask) {
+      return false;
+    }
+    if (!plan.planningInput) {
+      return false;
+    }
+    return plan.planningInput.selectedTaskId === prepared.selectedTask.id
+      && plan.planningInput.taskFingerprint === this.taskPlanningFingerprint(prepared.selectedTask)
+      && plan.planningInput.mutationCount === (prepared.beforeCoreState.taskFile.mutationCount ?? null);
+  }
+
   private async writePlanningDoc(
     rootPath: string,
     task: import('./types').RalphTask,
@@ -352,12 +390,42 @@ export class RalphIterationEngine {
     };
   }
 
+  private async applyPlanContextToPreparedPrompt(prepared: PreparedIterationContext, plan: TaskPlanArtifact): Promise<void> {
+    const planContext = formatTaskPlanContext(plan);
+    if (!planContext || prepared.prompt.includes(planContext)) {
+      return;
+    }
+
+    prepared.prompt = `${prepared.prompt.trimEnd()}\n\n## Task Plan\n${planContext}\n`;
+    await fs.writeFile(prepared.promptPath, prepared.prompt, 'utf8');
+    if (prepared.executionPlan.promptArtifactPath) {
+      await fs.writeFile(prepared.executionPlan.promptArtifactPath, prepared.prompt, 'utf8');
+    }
+    const promptHash = hashText(prepared.prompt);
+    prepared.executionPlan = {
+      ...prepared.executionPlan,
+      promptHash,
+      promptByteLength: utf8ByteLength(prepared.prompt),
+      promptArtifactPath: prepared.executionPlan.promptArtifactPath ?? prepared.promptPath
+    };
+    prepared.executionPlanHash = hashJson(prepared.executionPlan);
+    await writeExecutionPlanArtifact({
+      paths: this.artifactPersistence.resolvePaths(prepared.paths.artifactDir, prepared.iteration),
+      artifactRootDir: prepared.paths.artifactDir,
+      plan: prepared.executionPlan
+    });
+  }
+
   private async evaluatePlanningGate(prepared: PreparedIterationContext): Promise<PlanningGateDecision> {
-    if (!prepared.selectedTask || !shouldRunInlinePlanningPassForConfig(prepared.config)) {
+    if (!prepared.selectedTask) {
       return { outcome: 'skipped', plan: null, warnings: [] };
     }
 
     const gateMode = prepared.config.taskReadinessGate;
+    const planningEnabled = shouldRunInlinePlanningPassForConfig(prepared.config);
+    if (!planningEnabled && gateMode === 'off') {
+      return { outcome: 'skipped', plan: null, warnings: [] };
+    }
     if ((gateMode === 'auto' || gateMode === 'strict') && this.isLikelyAtomicTask(prepared.selectedTask)) {
       const atomicPlan: TaskPlanArtifact = {
         reasoning: 'Selected task already appears atomic and executable.',
@@ -371,13 +439,20 @@ export class RalphIterationEngine {
         acceptedByRalph: true,
         nextAction: 'execute_selected_task',
         planningDocPath: null,
-        planningDocSectionId: null
+        planningDocSectionId: null,
+        planningInput: this.buildPlanningInput(prepared, gateMode)
       };
       await writeTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id, atomicPlan);
       return { outcome: 'proceed', plan: atomicPlan, warnings: [] };
     }
 
     let plan = await readTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id);
+    if (plan && !this.isPlanFreshForSelectedTask(prepared, plan)) {
+      this.logger.info('Existing task-plan.json is stale for selected task; regenerating.', {
+        taskId: prepared.selectedTask.id
+      });
+      plan = null;
+    }
     if (!plan) {
       this.strategies.configureCliProvider(prepared.config);
       const execStrategy = this.strategies.getCliExecStrategyForProvider();
@@ -412,6 +487,7 @@ export class RalphIterationEngine {
       estimatedTaskCount: plan.estimatedTaskCount ?? Math.max(1, plan.suggestedChildTasks?.length ?? 1),
       nextAction: plan.nextAction ?? 'execute_selected_task'
     };
+    normalizedPlan.planningInput = this.buildPlanningInput(prepared, gateMode);
     const readiness = normalizedPlan.readiness ?? 'ready';
     const reason = plan.readinessReason?.trim() || 'No readiness reason was provided.';
     normalizedPlan.acceptedByRalph = readiness === 'ready';
@@ -622,7 +698,7 @@ export class RalphIterationEngine {
     const earlyAgentId = options.configOverrides?.agentId;
     broadcaster?.emitPhase(0, 'inspect', earlyAgentId);
 
-    const prepared = await prepareIterationContext({
+    let prepared = await prepareIterationContext({
       workspaceFolder,
       progress,
       includeVerifierContext: true,
@@ -636,7 +712,7 @@ export class RalphIterationEngine {
       persistPreparedProvenanceBundle: (preparedContext) => persistPreparedProvenanceBundle(preparedContext, this.logger)
     });
     try {
-      const artifactPaths = this.artifactPersistence.resolvePaths(prepared.paths.artifactDir, prepared.iteration);
+      let artifactPaths = this.artifactPersistence.resolvePaths(prepared.paths.artifactDir, prepared.iteration);
       const startedAt = prepared.phaseSeed.inspectStartedAt;
       const phaseTimestamps: RalphIterationResult['phaseTimestamps'] = {
         inspectStartedAt: prepared.phaseSeed.inspectStartedAt,
@@ -659,11 +735,16 @@ export class RalphIterationEngine {
         || planningGateDecision.outcome === 'blocked_and_stop'
         || planningGateDecision.outcome === 'human_review_and_stop') {
         const now = new Date().toISOString();
-        const stopReason = planningGateDecision.outcome === 'human_review_and_stop' ? 'human_review_needed' : 'policy_violation';
+        const stopReason = planningGateDecision.outcome === 'decomposed_and_stop'
+          ? 'planning_gate_decomposed'
+          : planningGateDecision.outcome === 'blocked_and_stop'
+            ? 'planning_gate_blocked'
+            : 'planning_gate_human_review';
         const completionClassification = planningGateDecision.outcome === 'human_review_and_stop' ? 'needs_human_review' : 'blocked';
         const taskArtifactDir = path.join(prepared.paths.artifactDir, prepared.selectedTask?.id ?? 'none');
         await fs.mkdir(taskArtifactDir, { recursive: true });
         const gateArtifactPath = path.join(taskArtifactDir, 'planning-gate-result.json');
+        const iterationGateArtifactPath = path.join(artifactPaths.directory, 'planning-gate-result.json');
         await fs.writeFile(gateArtifactPath, JSON.stringify({
           schemaVersion: 1,
           kind: 'planningReadinessGate',
@@ -675,6 +756,8 @@ export class RalphIterationEngine {
           plan: planningGateDecision.plan,
           createdAt: now
         }, null, 2), 'utf8');
+        await fs.mkdir(artifactPaths.directory, { recursive: true });
+        await fs.copyFile(gateArtifactPath, iterationGateArtifactPath);
 
         const result: RalphIterationResult = {
           schemaVersion: 1,
@@ -736,6 +819,39 @@ export class RalphIterationEngine {
           message: planningGateDecision.summary
         };
 
+        await this.artifactPersistence.persistIterationArtifacts({
+          prepared,
+          artifactPaths,
+          completionReport: {
+            schemaVersion: 1,
+            kind: 'completionReport',
+            status: 'missing',
+            rejectionReason: null,
+            selectedTaskId: prepared.selectedTask?.id ?? null,
+            report: null,
+            rawBlock: null,
+            parseError: null,
+            warnings: []
+          },
+          stdout: '',
+          stderr: '',
+          executionStatus: 'skipped',
+          exitCode: null,
+          executionMessage: planningGateDecision.summary,
+          stdinHash: null,
+          transcriptPath: undefined,
+          lastMessagePath: undefined,
+          lastMessage: planningGateDecision.summary,
+          invocation: undefined,
+          verifierResults: [],
+          diffSummary: null,
+          result,
+          remediationArtifact: null,
+          afterGit: prepared.beforeGit,
+          promptCacheStats: null,
+          executionCostUsd: null
+        });
+
         const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
         await this.stateManager.recordIteration(
           prepared.rootPath,
@@ -758,6 +874,11 @@ export class RalphIterationEngine {
           loopDecision,
           createdPaths: prepared.createdPaths
         };
+      }
+
+      if ((planningGateDecision.outcome === 'proceed' || planningGateDecision.outcome === 'warn_and_proceed')
+        && planningGateDecision.plan) {
+        await this.applyPlanContextToPreparedPrompt(prepared, planningGateDecision.plan);
       }
 
       broadcaster?.emitPhase(prepared.iteration, 'prompt', prepared.config.agentId);

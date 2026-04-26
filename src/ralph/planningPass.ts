@@ -31,6 +31,13 @@ export interface TaskPlanArtifact {
   suggestedAcceptance?: string[];
   suggestedConstraints?: string[];
   skillsOrInputsUsed?: string[];
+  planningInput?: {
+    selectedTaskId: string;
+    taskFingerprint: string;
+    gateMode: string;
+    mutationCount: number | null;
+    createdAt: string;
+  };
 }
 
 function isImplementerLikeRole(agentRole: RalphCodexConfig['agentRole']): boolean {
@@ -121,6 +128,7 @@ export function parsePlanningResponse(text: string): TaskPlanArtifact | null {
   const nextAction = normalizeTaskPlanNextAction(record.nextAction);
   const planningDocPath = normalizeNullableString(record.planningDocPath);
   const planningDocSectionId = normalizeNullableString(record.planningDocSectionId);
+  const planningInput = parsePlanningInput(record.planningInput);
 
   // Require at minimum reasoning or approach to be non-empty.
   const hasMeaningfulPlan = Boolean(reasoning || approach || steps.length > 0);
@@ -142,10 +150,33 @@ export function parsePlanningResponse(text: string): TaskPlanArtifact | null {
     nextAction,
     planningDocPath,
     planningDocSectionId,
+    ...(planningInput ? { planningInput } : {}),
     ...(suggestedChildTasks !== undefined ? { suggestedChildTasks } : {}),
     ...(suggestedAcceptance ? { suggestedAcceptance } : {}),
     ...(suggestedConstraints ? { suggestedConstraints } : {}),
     ...(skillsOrInputsUsed ? { skillsOrInputsUsed } : {})
+  };
+}
+
+function parsePlanningInput(value: unknown): TaskPlanArtifact['planningInput'] | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  const record = value as Record<string, unknown>;
+  if (typeof record.selectedTaskId !== 'string' || !record.selectedTaskId.trim()) {
+    return undefined;
+  }
+  if (typeof record.taskFingerprint !== 'string' || !record.taskFingerprint.trim()) {
+    return undefined;
+  }
+  return {
+    selectedTaskId: record.selectedTaskId.trim(),
+    taskFingerprint: record.taskFingerprint.trim(),
+    gateMode: typeof record.gateMode === 'string' ? record.gateMode : 'off',
+    mutationCount: typeof record.mutationCount === 'number' && Number.isFinite(record.mutationCount)
+      ? Math.floor(record.mutationCount)
+      : null,
+    createdAt: typeof record.createdAt === 'string' ? record.createdAt : ''
   };
 }
 
@@ -321,6 +352,10 @@ export function formatTaskPlanContext(plan: TaskPlanArtifact): string {
 
   if (plan.suggestedValidationCommand) {
     lines.push(`- Suggested validation: ${plan.suggestedValidationCommand}`);
+  }
+
+  if (plan.readiness && plan.readiness !== 'ready') {
+    lines.push(`- Readiness advisory: ${plan.readiness}${plan.readinessReason ? ` (${plan.readinessReason})` : ''}`);
   }
 
   if (plan.acceptedByRalph) {
