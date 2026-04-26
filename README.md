@@ -1,5 +1,3 @@
-<!-- Codex branch update marker -->
-
 # Ralphdex
 
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/s0l0m0n8und9.ralphdex?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=s0l0m0n8und9.ralphdex) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
