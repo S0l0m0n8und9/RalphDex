@@ -420,7 +420,7 @@ export class RalphIterationEngine {
     }
 
     let plan = await readTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id);
-    if (plan && !this.isPlanFreshForSelectedTask(prepared, plan)) {
+    if (gateMode !== 'off' && plan && !this.isPlanFreshForSelectedTask(prepared, plan)) {
       this.logger.info('Existing task-plan.json is stale for selected task; regenerating.', {
         taskId: prepared.selectedTask.id
       });

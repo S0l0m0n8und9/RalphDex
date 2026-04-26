@@ -484,7 +484,7 @@ The planning pass is an optional pre-execution step that produces a `task-plan.j
 
 When `taskReadinessGate != off`, Ralph runs readiness planning even if `planningPass.enabled` is false, so gate decisions remain explicit and predictable.
 
-- `off`: planning remains context-only; execution always proceeds.
+- `off`: planning remains context-only; execution always proceeds. Existing `task-plan.json` artifacts remain advisory context even when older plans do not contain `planningInput`; Ralph does not force regeneration solely for missing freshness metadata in this mode.
 - `warn`: readiness findings are persisted as warnings but execution proceeds.
 - `auto`: if planning returns `needs_decomposition` with valid bounded `suggestedChildTasks`, Ralph applies them using the shared task writer, makes the parent depend on those children, and stops before provider execution. `blocked` / `needs_human_review` also stop before provider execution.
 - `strict`: enforces executable task shape before launch (bounded scope, validation, acceptance, and planner readiness). It stops pre-execution when readiness is insufficient.
