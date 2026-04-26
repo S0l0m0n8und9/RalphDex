@@ -82,6 +82,9 @@ The loop may stop for:
 - `iteration_cap_reached`
 - `claim_contested`
 - `policy_violation`
+- `planning_gate_decomposed`
+- `planning_gate_blocked`
+- `planning_gate_human_review`
 - `repeated_no_progress`
 - `repeated_identical_failure`
 - `human_review_needed`
