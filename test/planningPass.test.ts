@@ -72,6 +72,46 @@ test('parsePlanningResponse omits suggestedValidationCommand when not present', 
   const result = parsePlanningResponse(text);
   assert.ok(result !== null);
   assert.equal(result.suggestedValidationCommand, undefined);
+  assert.equal(result.readiness, 'ready');
+});
+
+test('parsePlanningResponse parses readiness and valid suggestedChildTasks', () => {
+  const text = JSON.stringify({
+    reasoning: 'Task is broad',
+    approach: 'Split it',
+    steps: ['Scaffold', 'Smoke test'],
+    risks: [],
+    readiness: 'needs_decomposition',
+    readinessReason: 'Greenfield epic',
+    suggestedChildTasks: [{
+      id: 'T1.1',
+      title: 'Create scaffold',
+      parentId: 'T1',
+      dependsOn: [],
+      validation: 'npm test',
+      rationale: 'Bounded first step'
+    }]
+  });
+  const result = parsePlanningResponse(text);
+  assert.ok(result);
+  assert.equal(result.readiness, 'needs_decomposition');
+  assert.equal(result.readinessReason, 'Greenfield epic');
+  assert.equal(result.suggestedChildTasks?.length, 1);
+});
+
+test('parsePlanningResponse ignores malformed readiness and malformed suggestedChildTasks safely', () => {
+  const text = JSON.stringify({
+    reasoning: 'Task exists',
+    approach: 'Try',
+    steps: ['one'],
+    risks: [],
+    readiness: 'explode',
+    suggestedChildTasks: [{ id: '', title: 'bad' }]
+  });
+  const result = parsePlanningResponse(text);
+  assert.ok(result);
+  assert.equal(result.readiness, 'ready');
+  assert.equal(result.suggestedChildTasks, undefined);
 });
 
 // -- writeTaskPlan / readTaskPlan roundtrip --

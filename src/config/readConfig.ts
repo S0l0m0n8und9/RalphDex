@@ -26,6 +26,7 @@ import {
   RalphModelTierConfig,
   RalphModelTieringConfig,
   RalphPlanningPassConfig,
+  TaskReadinessGateMode,
   RalphScmStrategy,
   RalphVerifierMode
 } from './types';
@@ -597,6 +598,12 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     memorySummaryThreshold: readNumber(config, 'memorySummaryThreshold', DEFAULT_CONFIG.memorySummaryThreshold, 1),
     prdGenerationTemplate: readString(config, 'prdGenerationTemplate', DEFAULT_CONFIG.prdGenerationTemplate),
     planningPass: readPlanningPass(config, DEFAULT_CONFIG.planningPass),
+    taskReadinessGate: readEnum<TaskReadinessGateMode>(
+      config,
+      'taskReadinessGate',
+      ['off', 'warn', 'auto', 'strict'],
+      DEFAULT_CONFIG.taskReadinessGate
+    ),
     failureDiagnostics: readEnum<FailureDiagnosticsMode>(
       config,
       'failureDiagnostics',

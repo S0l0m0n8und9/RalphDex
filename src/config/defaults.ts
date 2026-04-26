@@ -100,6 +100,7 @@ export const DEFAULT_CONFIG: RalphCodexConfig = {
     enabled: false,
     mode: 'inline'
   } satisfies RalphPlanningPassConfig,
+  taskReadinessGate: 'off',
   failureDiagnostics: 'auto' satisfies FailureDiagnosticsMode,
   maxRecoveryAttempts: 3,
   maxReplansPerParent: 2,

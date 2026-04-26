@@ -3,7 +3,6 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { getCliCommandPath, getCliCommandPathForProvider } from '../config/providers';
 import { CliProviderId } from '../config/types';
-import { readConfig } from '../config/readConfig';
 import { CodexStrategyRegistry } from '../codex/providerFactory';
 import { createArtifactBaseName } from '../prompt/promptBuilder';
 import { Logger } from '../services/logger';
@@ -22,13 +21,12 @@ import {
   RalphRunRecord,
 } from './types';
 import {
-  parseTaskFile,
   releaseClaim,
-  selectNextTaskForRole,
 } from './taskFile';
 import {
   parsePlanningResponse,
   readTaskPlan,
+  TaskPlanArtifact,
   shouldRunInlinePlanningPassForConfig,
   writeTaskPlan
 } from './planningPass';
@@ -43,6 +41,7 @@ import { shouldRunFailureDiagnostic } from './loopLogic';
 import { selectModelForTask } from './complexityScorer';
 import { runHook, HookRunContext } from './hookRunner';
 import { captureCoreState } from './verifier';
+import { applySuggestedChildTasksToFile } from './taskCreation';
 import { reconcileCompletionReport } from './reconciliation';
 import {
   persistPreparedProvenanceBundle,
@@ -72,6 +71,10 @@ export interface RalphIterationRunSummary {
   /** Set when a parent task completed and its integration branch was merged, signalling a review pass is appropriate. */
   autoReviewContext?: { parentTaskId: string; parentTaskTitle: string };
 }
+
+type PlanningGateDecision =
+  | { outcome: 'skipped' | 'proceed' | 'warn_and_proceed'; plan: TaskPlanArtifact | null; warnings: string[] }
+  | { outcome: 'decomposed_and_stop' | 'blocked_and_stop' | 'human_review_and_stop'; plan: TaskPlanArtifact; warnings: string[]; summary: string };
 
 function runRecordFromIteration(
   mode: RalphRunMode,
@@ -151,68 +154,6 @@ export class RalphIterationEngine {
   }
 
   /**
-   * Checks whether the inline planning pass should run and, if so, delegates
-   * to runInlinePlanningPass.  Best-effort: all failures are swallowed so the
-   * main iteration always proceeds.
-   */
-  private async maybeRunInlinePlanningPass(
-    workspaceFolder: vscode.WorkspaceFolder,
-    configOverrides?: Partial<Pick<PreparedPrompt['config'], 'agentId' | 'agentRole'>>
-  ): Promise<void> {
-    try {
-      const config = { ...readConfig(workspaceFolder), ...(configOverrides ?? {}) };
-      if (!shouldRunInlinePlanningPassForConfig(config)) {
-        return;
-      }
-
-      const rootPath = workspaceFolder.uri.fsPath;
-      const paths = this.stateManager.resolvePaths(rootPath, config);
-
-      let taskFileText: string;
-      try {
-        taskFileText = await fs.readFile(paths.taskFilePath, 'utf8');
-      } catch {
-        return; // No task file yet; let prepareIterationContext handle initialization
-      }
-
-      const taskFile = parseTaskFile(taskFileText);
-      const selectedTask = await selectNextTaskForRole(taskFile, config.agentRole, paths.artifactDir);
-      if (!selectedTask) {
-        return;
-      }
-
-      const existingPlan = await readTaskPlan(paths.artifactDir, selectedTask.id);
-      if (existingPlan) {
-        return; // Plan already exists; skip the planning pass
-      }
-
-      this.logger.info('Starting inline planning pass.', { taskId: selectedTask.id });
-
-      this.strategies.configureCliProvider(config);
-      const execStrategy = this.strategies.getCliExecStrategyForProvider();
-      if (!execStrategy.runExec) {
-        this.logger.warn('Inline planning pass skipped: CLI strategy does not support exec.');
-        return;
-      }
-
-      await this.runInlinePlanningPass(
-        rootPath,
-        paths.artifactDir,
-        selectedTask.id,
-        selectedTask.title,
-        selectedTask.acceptance ?? [],
-        execStrategy as { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> },
-        getCliCommandPath(config),
-        config
-      );
-    } catch (err) {
-      this.logger.warn('maybeRunInlinePlanningPass encountered an unexpected error; continuing.', {
-        error: String(err)
-      });
-    }
-  }
-
-  /**
    * Runs a lightweight planning CLI turn for the given task and writes task-plan.json.
    * Failures are logged but do not abort the main iteration — the planning pass is best-effort.
    */
@@ -225,21 +166,46 @@ export class RalphIterationEngine {
     execStrategy: { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> },
     commandPath: string,
     config: import('../config/types').RalphCodexConfig
-  ): Promise<void> {
+  ): Promise<TaskPlanArtifact | null> {
     const planningPrompt = [
-      'You are a planning agent. Analyse the task below and produce a JSON planning artifact.',
+      'You are a planning/readiness agent. Analyse the task below and return JSON only.',
       '',
       `Task ID: ${taskId}`,
       `Task Title: ${taskTitle}`,
       taskAcceptance.length > 0 ? `Acceptance criteria:\n${taskAcceptance.map((a) => `- ${a}`).join('\n')}` : '',
       '',
-      'Respond with ONLY a valid JSON object (no markdown fences) in this exact schema:',
+      'Assess readiness before execution:',
+      '- Is the task executable in one bounded iteration?',
+      '- Is there a concrete validation command?',
+      '- Are acceptance criteria clear?',
+      '- Is this task too broad / greenfield and should be decomposed?',
+      '- For greenfield/bootstrap tasks, prefer decomposition into scaffold -> smoke test -> first vertical slice.',
+      '',
+      'Respond with ONLY a valid JSON object (no markdown fences) in this schema:',
       '{',
       '  "reasoning": "<why this task matters and what the key challenge is>",',
       '  "approach": "<one-sentence implementation strategy>",',
       '  "steps": ["<step 1>", "<step 2>", ...],',
       '  "risks": ["<risk 1>", ...],',
-      '  "suggestedValidationCommand": "<optional shell command to validate the work>"',
+      '  "suggestedValidationCommand": "<optional shell command to validate the work>",',
+      '  "readiness": "ready" | "needs_decomposition" | "blocked" | "needs_human_review",',
+      '  "readinessReason": "<short reason for readiness decision>",',
+      '  "suggestedChildTasks": [',
+      '    {',
+      '      "id": "<task id>",',
+      '      "title": "<task title>",',
+      '      "parentId": "<selected parent task id>",',
+      '      "dependsOn": [{"taskId":"<id>","reason":"blocks_sequence|inherits_parent_dependency"}],',
+      '      "validation": "<command>" | null,',
+      '      "rationale": "<why this child exists>",',
+      '      "acceptance": ["<criterion>"],',
+      '      "constraints": ["<guardrail>"],',
+      '      "context": ["<pointer>"],',
+      '      "tier": "simple" | "medium" | "complex"',
+      '    }',
+      '  ],',
+      '  "suggestedAcceptance": ["<acceptance criterion for parent/next child>"],',
+      '  "suggestedConstraints": ["<constraint/guardrail>"]',
       '}'
     ].filter(Boolean).join('\n');
 
@@ -275,23 +241,130 @@ export class RalphIterationEngine {
           taskId,
           exitCode: execResult.exitCode
         });
-        return;
+        return null;
       }
 
       const plan = parsePlanningResponse(execResult.lastMessage);
       if (!plan) {
         this.logger.warn('Inline planning pass produced no parseable plan; skipping task-plan.json.', { taskId });
-        return;
+        return null;
       }
 
       await writeTaskPlan(artifactsDir, taskId, plan);
       this.logger.info('Inline planning pass wrote task-plan.json.', { taskId });
+      return plan;
     } catch (err) {
       this.logger.warn('Inline planning pass failed; continuing without plan.', {
         taskId,
         error: String(err)
       });
+      return null;
     }
+  }
+
+  private assessStrictReadiness(task: import('./types').RalphTask, plan: TaskPlanArtifact): string[] {
+    const findings: string[] = [];
+    const validation = (task.validation ?? plan.suggestedValidationCommand ?? '').trim();
+    if (!validation) {
+      findings.push('Selected task is missing a concrete validation command.');
+    }
+    if ((task.acceptance ?? []).length === 0 && (plan.suggestedAcceptance ?? []).length === 0) {
+      findings.push('Selected task has no acceptance criteria.');
+    }
+    if (plan.readiness && plan.readiness !== 'ready') {
+      findings.push(`Planner readiness is ${plan.readiness}.`);
+    }
+    return findings;
+  }
+
+  private async evaluatePlanningGate(prepared: PreparedIterationContext): Promise<PlanningGateDecision> {
+    if (!prepared.selectedTask || !shouldRunInlinePlanningPassForConfig(prepared.config)) {
+      return { outcome: 'skipped', plan: null, warnings: [] };
+    }
+
+    const gateMode = prepared.config.taskReadinessGate;
+    let plan = await readTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id);
+    if (!plan) {
+      this.strategies.configureCliProvider(prepared.config);
+      const execStrategy = this.strategies.getCliExecStrategyForProvider();
+      if (!execStrategy.runExec) {
+        return { outcome: 'skipped', plan: null, warnings: ['Planning pass strategy does not support exec; skipping readiness gate.'] };
+      }
+      plan = await this.runInlinePlanningPass(
+        prepared.rootPath,
+        prepared.paths.artifactDir,
+        prepared.selectedTask.id,
+        prepared.selectedTask.title,
+        prepared.selectedTask.acceptance ?? [],
+        execStrategy as { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> },
+        getCliCommandPath(prepared.config),
+        prepared.config
+      );
+    }
+
+    if (!plan) {
+      return { outcome: 'skipped', plan: null, warnings: ['Planning pass did not produce a parseable task-plan artifact.'] };
+    }
+
+    if (gateMode === 'off') {
+      return { outcome: 'proceed', plan, warnings: [] };
+    }
+
+    const warnings: string[] = [];
+    const readiness = plan.readiness ?? 'ready';
+    const reason = plan.readinessReason?.trim() || 'No readiness reason was provided.';
+
+    if (gateMode === 'warn' && readiness !== 'ready') {
+      warnings.push(`Planning readiness warning: ${readiness} (${reason})`);
+      return { outcome: 'warn_and_proceed', plan, warnings };
+    }
+
+    if ((gateMode === 'auto' || gateMode === 'strict') && readiness === 'needs_decomposition') {
+      const filteredChildren = (plan.suggestedChildTasks ?? [])
+        .filter((child) => child.parentId === prepared.selectedTask?.id)
+        .slice(0, prepared.config.maxGeneratedChildren);
+      if (filteredChildren.length > 0) {
+        await applySuggestedChildTasksToFile(prepared.paths.taskFilePath, prepared.selectedTask.id, filteredChildren);
+        const refreshedPlan: TaskPlanArtifact = {
+          ...plan,
+          suggestedChildTasks: filteredChildren
+        };
+        await writeTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id, refreshedPlan);
+        return {
+          outcome: 'decomposed_and_stop',
+          plan: refreshedPlan,
+          warnings,
+          summary: `Planning gate decomposed ${prepared.selectedTask.id}: ${reason}`
+        };
+      }
+      warnings.push('Planning gate received needs_decomposition but no valid suggestedChildTasks were provided.');
+      if (gateMode === 'auto') {
+        return { outcome: 'warn_and_proceed', plan, warnings };
+      }
+    }
+
+    if (gateMode === 'auto' && readiness === 'blocked') {
+      return { outcome: 'blocked_and_stop', plan, warnings, summary: `Planning gate blocked execution: ${reason}` };
+    }
+    if (gateMode === 'auto' && readiness === 'needs_human_review') {
+      return { outcome: 'human_review_and_stop', plan, warnings, summary: `Planning gate requested human review: ${reason}` };
+    }
+
+    if (gateMode === 'strict') {
+      const strictFindings = this.assessStrictReadiness(prepared.selectedTask, plan);
+      if (strictFindings.length > 0) {
+        return {
+          outcome: readiness === 'needs_human_review' ? 'human_review_and_stop' : 'blocked_and_stop',
+          plan,
+          warnings: [...warnings, ...strictFindings],
+          summary: `Strict readiness gate stopped execution: ${strictFindings.join(' ')}`
+        };
+      }
+    }
+
+    return warnings.length > 0
+      ? { outcome: 'warn_and_proceed', plan, warnings }
+      : { outcome: 'proceed', plan, warnings: [] };
   }
 
   /**
@@ -430,12 +503,6 @@ export class RalphIterationEngine {
     const earlyAgentId = options.configOverrides?.agentId;
     broadcaster?.emitPhase(0, 'inspect', earlyAgentId);
 
-    // Inline planning pass: runs a quick planning CLI turn before the main
-    // iteration so the implementer prompt can include task-plan.json context.
-    // Only runs when planningPass.enabled=true, mode='inline', and the selected
-    // task does not yet have a task-plan.json artifact.
-    await this.maybeRunInlinePlanningPass(workspaceFolder, options.configOverrides);
-
     const prepared = await prepareIterationContext({
       workspaceFolder,
       progress,
@@ -461,6 +528,118 @@ export class RalphIterationEngine {
         verificationFinishedAt: startedAt,
         classifiedAt: startedAt
       };
+
+      const planningGateDecision = await this.evaluatePlanningGate(prepared);
+      if (planningGateDecision.warnings.length > 0) {
+        this.logger.warn('Planning readiness gate produced warnings.', {
+          selectedTaskId: prepared.selectedTask?.id ?? null,
+          warnings: planningGateDecision.warnings
+        });
+      }
+      if (planningGateDecision.outcome === 'decomposed_and_stop'
+        || planningGateDecision.outcome === 'blocked_and_stop'
+        || planningGateDecision.outcome === 'human_review_and_stop') {
+        const now = new Date().toISOString();
+        const stopReason = planningGateDecision.outcome === 'human_review_and_stop' ? 'human_review_needed' : 'policy_violation';
+        const completionClassification = planningGateDecision.outcome === 'human_review_and_stop' ? 'needs_human_review' : 'blocked';
+        const taskArtifactDir = path.join(prepared.paths.artifactDir, prepared.selectedTask?.id ?? 'none');
+        await fs.mkdir(taskArtifactDir, { recursive: true });
+        const gateArtifactPath = path.join(taskArtifactDir, 'planning-gate-result.json');
+        await fs.writeFile(gateArtifactPath, JSON.stringify({
+          schemaVersion: 1,
+          kind: 'planningReadinessGate',
+          outcome: planningGateDecision.outcome,
+          selectedTaskId: prepared.selectedTask?.id ?? null,
+          selectedTaskTitle: prepared.selectedTask?.title ?? null,
+          summary: planningGateDecision.summary,
+          warnings: planningGateDecision.warnings,
+          plan: planningGateDecision.plan,
+          createdAt: now
+        }, null, 2), 'utf8');
+
+        const result: RalphIterationResult = {
+          schemaVersion: 1,
+          agentId: prepared.config.agentId,
+          provenanceId: prepared.provenanceId,
+          iteration: prepared.iteration,
+          selectedTaskId: prepared.selectedTask?.id ?? null,
+          selectedTaskTitle: prepared.selectedTask?.title ?? null,
+          promptKind: prepared.promptKind,
+          promptPath: prepared.promptPath,
+          artifactDir: artifactPaths.directory,
+          adapterUsed: prepared.config.cliProvider,
+          executionIntegrity: null,
+          executionStatus: 'skipped',
+          verificationStatus: 'skipped',
+          completionClassification,
+          followUpAction: 'stop',
+          startedAt,
+          finishedAt: now,
+          phaseTimestamps: {
+            ...phaseTimestamps,
+            executionStartedAt: now,
+            executionFinishedAt: now,
+            resultCollectedAt: now,
+            verificationFinishedAt: now,
+            classifiedAt: now,
+            persistedAt: now
+          },
+          summary: planningGateDecision.summary,
+          warnings: planningGateDecision.warnings,
+          errors: [],
+          execution: {
+            exitCode: null,
+            message: planningGateDecision.summary
+          },
+          verification: {
+            taskValidationHint: prepared.taskValidationHint,
+            effectiveValidationCommand: prepared.effectiveValidationCommand,
+            normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+            primaryCommand: null,
+            validationFailureSignature: null,
+            verifiers: []
+          },
+          backlog: {
+            remainingTaskCount: prepared.beforeCoreState.taskFile.tasks.filter((task) => task.status !== 'done').length,
+            actionableTaskAvailable: true
+          },
+          diffSummary: null,
+          noProgressSignals: [],
+          remediation: null,
+          completionReportStatus: 'missing',
+          stopReason,
+          selectedModel: prepared.config.model,
+          effectiveTier: 'planning_gate'
+        };
+        const loopDecision: RalphLoopDecision = {
+          shouldContinue: false,
+          stopReason,
+          message: planningGateDecision.summary
+        };
+
+        const runRecord = runRecordFromIteration(mode, prepared, startedAt, result);
+        await this.stateManager.recordIteration(
+          prepared.rootPath,
+          prepared.paths,
+          prepared.state,
+          result,
+          prepared.objectiveText,
+          runRecord
+        );
+        await writeLoopTerminationHandoff({
+          paths: prepared.paths,
+          result,
+          progressNote: null,
+          pendingBlocker: planningGateDecision.summary
+        });
+
+        return {
+          prepared,
+          result,
+          loopDecision,
+          createdPaths: prepared.createdPaths
+        };
+      }
 
       broadcaster?.emitPhase(prepared.iteration, 'prompt', prepared.config.agentId);
       progress.report({

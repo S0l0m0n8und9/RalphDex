@@ -238,6 +238,7 @@ Each iteration directory is predictable and should include the artifacts that ap
 - `execution-summary.json`
 - `verifier-summary.json`
 - `task-remediation.json` when repeated-stop remediation is emitted for that iteration
+- planning-gate stop evidence when pre-execution readiness blocks or decomposes the selected task
 - `iteration-result.json` when an iteration result exists
 
 Run-level provenance bundles are first-class artifacts, not optional debugging leftovers. Each bundle should include:
@@ -322,6 +323,7 @@ New tasks enter the system through one of these paths. Every path terminates in 
 | Manual edit of `tasks.json` | `parseTaskFileText` → `normalizeTask` | All fields come from the file author. The parser adds a `source` location for diagnostic reporting. |
 | Task decomposition | `buildDecompositionProposal` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Child IDs follow `${parentId}.${index}`. `dependsOn`, `validation`, `mode`, `tier`, and `acceptance` may be derived from the parent via `normalizeNewTask` augmentation. |
 | Remediation (reframe / mark_blocked) | `remediationSuggestedChildTasks` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Creates a single `.1` child scoped to the remediation action. |
+| Planning gate pre-execution decomposition | `planningPass.parsePlanningResponse` (`suggestedChildTasks`) → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Optional (`taskReadinessGate=auto|strict`), bounded by `maxGeneratedChildren`, and stops before implementer execution. |
 | Pipeline root | `buildPipelineRootTask` → `taskCreation.appendNormalizedTasksToFile` → `normalizeNewTask` → `parseTaskFile` → `normalizeTask` | Intentionally minimal source payload: only `id`, `title`, and `notes`. Status defaults to `'todo'`, and other optional fields remain absent because the scaffold path does not know them yet. |
 | Pipeline children | `buildPipelineChildTasks` → `taskCreation.applySuggestedChildTasksToFile` → `taskFile.applySuggestedChildTasks` → `normalizeNewTask` | Children are derived from PRD sections with sequential dependencies. `validation: null` becomes `undefined` via `normalizeNewTask`. |
 | PRD generation / backlog seeding / bootstrap append | `generateProjectDraft`, `seedTasksFromRequest`, or command-local drafts → `appendNormalizedTasksToFile` → `normalizeNewTask` | Initialize Workspace and New Project append through the shared persistence helper, and both `Ralphdex: Add Task` and `Ralphdex: Seed Tasks from Feature Request` seed flat backlog tasks from a high-level request through the same normalization boundary. Seeding writes durable request/response evidence under `.ralph/artifacts/task-seeding/`, but persisted tasks still enter `tasks.json` only as flat version-2 task objects through the shared append pipeline. Rich producer fields survive AI generation, seeding, and fallback/bootstrap paths. |

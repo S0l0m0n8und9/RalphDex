@@ -149,6 +149,7 @@ const SETTINGS_SURFACE_REGISTRY: Array<{
 
   { key: 'planningPass.enabled', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Enabled', control: 'boolean', description: 'Enable the pre-execution planning pass.' },
   { key: 'planningPass.mode', manifestKey: 'ralphCodex.planningPass', sectionId: 'planning', title: 'Planning Pass Mode', control: 'enum', description: 'Choose inline or dedicated planning execution.', options: ['dedicated', 'inline'] },
+  { key: 'taskReadinessGate', manifestKey: 'ralphCodex.taskReadinessGate', sectionId: 'planning', title: 'Task Readiness Gate', control: 'enum', description: 'Optional pre-execution gate that can warn, block, or auto-decompose broad tasks.', options: ['off', 'warn', 'auto', 'strict'] },
 
   { key: 'copilotFoundry.commandPath', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Command Path', control: 'string', description: 'Path or command name for the Copilot CLI executable.' },
   { key: 'copilotFoundry.approvalMode', manifestKey: 'ralphCodex.copilotFoundry', sectionId: 'copilot-foundry', title: 'Approval Mode', control: 'enum', description: 'Approval posture used by the Copilot CLI harness.', options: ['allow-all', 'allow-tools-only', 'interactive'] },

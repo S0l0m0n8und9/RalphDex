@@ -1,6 +1,9 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
+import { RalphSuggestedChildTask, RalphTaskTier } from './types';
+
+export type TaskReadiness = 'ready' | 'needs_decomposition' | 'blocked' | 'needs_human_review';
 
 export interface TaskPlanArtifact {
   reasoning: string;
@@ -8,6 +11,11 @@ export interface TaskPlanArtifact {
   steps: string[];
   risks: string[];
   suggestedValidationCommand?: string;
+  readiness?: TaskReadiness;
+  readinessReason?: string;
+  suggestedChildTasks?: RalphSuggestedChildTask[];
+  suggestedAcceptance?: string[];
+  suggestedConstraints?: string[];
 }
 
 function isImplementerLikeRole(agentRole: RalphCodexConfig['agentRole']): boolean {
@@ -82,13 +90,126 @@ export function parsePlanningResponse(text: string): TaskPlanArtifact | null {
   const suggestedValidationCommand = typeof record.suggestedValidationCommand === 'string' && record.suggestedValidationCommand.trim()
     ? record.suggestedValidationCommand.trim()
     : undefined;
+  const readiness = normalizeTaskReadiness(record.readiness);
+  const readinessReason = typeof record.readinessReason === 'string' && record.readinessReason.trim()
+    ? record.readinessReason.trim()
+    : undefined;
+  const suggestedChildTasks = parseSuggestedChildTasks(record.suggestedChildTasks);
+  const suggestedAcceptance = parseOptionalStringArray(record.suggestedAcceptance);
+  const suggestedConstraints = parseOptionalStringArray(record.suggestedConstraints);
 
   // Require at minimum reasoning or approach to be non-empty.
-  if (!reasoning && !approach && steps.length === 0) {
+  const hasMeaningfulPlan = Boolean(reasoning || approach || steps.length > 0);
+  if (!hasMeaningfulPlan) {
     return null;
   }
 
-  return { reasoning, approach, steps, risks, suggestedValidationCommand };
+  return {
+    reasoning,
+    approach,
+    steps,
+    risks,
+    suggestedValidationCommand,
+    readiness: readiness ?? 'ready',
+    readinessReason,
+    ...(suggestedChildTasks !== undefined ? { suggestedChildTasks } : {}),
+    ...(suggestedAcceptance ? { suggestedAcceptance } : {}),
+    ...(suggestedConstraints ? { suggestedConstraints } : {})
+  };
+}
+
+function normalizeTaskReadiness(candidate: unknown): TaskReadiness | undefined {
+  if (candidate !== 'ready'
+    && candidate !== 'needs_decomposition'
+    && candidate !== 'blocked'
+    && candidate !== 'needs_human_review') {
+    return undefined;
+  }
+
+  return candidate;
+}
+
+function parseOptionalStringArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const normalized = value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function parseTier(value: unknown): RalphTaskTier | undefined {
+  return value === 'simple' || value === 'medium' || value === 'complex'
+    ? value
+    : undefined;
+}
+
+function parseSuggestedChildTasks(candidate: unknown): RalphSuggestedChildTask[] | undefined {
+  if (!Array.isArray(candidate)) {
+    return undefined;
+  }
+
+  const tasks = candidate
+    .map(parseSuggestedChildTask)
+    .filter((task): task is RalphSuggestedChildTask => task !== null);
+
+  return tasks.length > 0 ? tasks : undefined;
+}
+
+function parseSuggestedChildTask(candidate: unknown): RalphSuggestedChildTask | null {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  const id = typeof record.id === 'string' ? record.id.trim() : '';
+  const title = typeof record.title === 'string' ? record.title.trim() : '';
+  const parentId = typeof record.parentId === 'string' ? record.parentId.trim() : '';
+  const rationale = typeof record.rationale === 'string' ? record.rationale.trim() : '';
+  if (!id || !title || !parentId || !rationale) {
+    return null;
+  }
+
+  const dependsOn = Array.isArray(record.dependsOn)
+    ? record.dependsOn
+      .map((dependency) => {
+        if (!dependency || typeof dependency !== 'object' || Array.isArray(dependency)) {
+          return null;
+        }
+        const dependencyRecord = dependency as Record<string, unknown>;
+        if (typeof dependencyRecord.taskId !== 'string' || !dependencyRecord.taskId.trim()) {
+          return null;
+        }
+        if (dependencyRecord.reason !== 'blocks_sequence' && dependencyRecord.reason !== 'inherits_parent_dependency') {
+          return null;
+        }
+        return {
+          taskId: dependencyRecord.taskId.trim(),
+          reason: dependencyRecord.reason
+        };
+      })
+      .filter((dependency): dependency is RalphSuggestedChildTask['dependsOn'][number] => dependency !== null)
+    : [];
+
+  if (record.validation !== null && record.validation !== undefined && typeof record.validation !== 'string') {
+    return null;
+  }
+
+  return {
+    id,
+    title,
+    parentId,
+    dependsOn,
+    validation: typeof record.validation === 'string' ? record.validation.trim() : null,
+    rationale,
+    acceptance: parseOptionalStringArray(record.acceptance),
+    constraints: parseOptionalStringArray(record.constraints),
+    context: parseOptionalStringArray(record.context),
+    tier: parseTier(record.tier)
+  };
 }
 
 /** Writes a task-plan.json artifact under `.ralph/artifacts/<taskId>/`. */

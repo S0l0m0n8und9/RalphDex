@@ -993,6 +993,17 @@
           },
           "description": "Pre-execution planning pass configuration. enabled (bool, default false): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
         },
+        "ralphCodex.taskReadinessGate": {
+          "type": "string",
+          "enum": [
+            "off",
+            "warn",
+            "auto",
+            "strict"
+          ],
+          "default": "off",
+          "description": "Controls whether planning-pass readiness can gate execution. off: never gate. warn: record readiness warnings and continue. auto: stop before provider execution when planner reports blocked/needs_human_review, and auto-apply valid suggestedChildTasks for needs_decomposition. strict: require an executable task shape (bounded scope, validation, acceptance) and stop/decompose before execution when missing."
+        },
         "ralphCodex.failureDiagnostics": {
           "type": "string",
           "enum": [
