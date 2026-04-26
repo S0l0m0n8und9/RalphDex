@@ -509,6 +509,8 @@ The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array),
 
 Planning-gate decomposition is pre-execution; repeated-stop remediation decomposition is post-failure recovery. They share the same `RalphSuggestedChildTask` schema and task-file apply path, but occur at different lifecycle phases.
 
+When planning-gate decomposition writes child tasks, each child carries a planning-doc backlink via `context[]` (for example `.ralph/artifacts/plans/<taskId>/plan.md#task-1`) so implementation/review passes can trace the decomposition rationale without introducing a new task schema field.
+
 ## Memory Strategy
 
 > **Maturity: stable** (`verbatim`) / **stable** (`sliding-window`) / **beta** (`summary`) — verbatim and sliding-window are production-exercised. Summary invokes the configured CLI provider to produce a condensed `memory-summary.md` and incurs an additional LLM call when the iteration count exceeds `memorySummaryThreshold`.

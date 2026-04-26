@@ -4186,4 +4186,54 @@ test('taskReadinessGate auto decomposes and stops before implementer execution',
   assert.ok(child);
   assert.equal(child?.parentId, 'T1');
   assert.ok(parent?.dependsOn?.includes('T1.1'));
+  assert.ok((child?.context ?? []).some((entry) => /artifacts\/plans\/T1\/plan\.md#task-1$/.test(entry)));
+  const planningDocPath = path.join(rootPath, '.ralph', 'artifacts', 'plans', 'T1', 'plan.md');
+  assert.equal((await fs.stat(planningDocPath)).isFile(), true);
+});
+
+test('taskReadinessGate strict allows atomic shaped task without writing plan.md', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T2',
+        title: 'Add health endpoint',
+        status: 'todo',
+        acceptance: ['GET /health returns 200'],
+        validation: 'npm test'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  let callCount = 0;
+  const { engine } = createEngine([{
+    run: async () => {
+      callCount += 1;
+      return {
+        lastMessage: completionReport({
+          selectedTaskId: 'T2',
+          requestedStatus: 'in_progress',
+          progressNote: 'Implemented endpoint.'
+        })
+      };
+    }
+  }]);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'strict'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+  assert.equal(callCount, 1, 'Strict atomic fast-off-ramp should avoid extra planning provider call.');
+  assert.notEqual(run.result.executionStatus, 'skipped');
+  await assert.rejects(() => fs.stat(path.join(rootPath, '.ralph', 'artifacts', 'plans', 'T2', 'plan.md')));
 });

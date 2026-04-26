@@ -4,6 +4,14 @@ import { RalphCodexConfig } from '../config/types';
 import { RalphSuggestedChildTask, RalphTaskTier } from './types';
 
 export type TaskReadiness = 'ready' | 'needs_decomposition' | 'blocked' | 'needs_human_review';
+export type TaskAtomicity = 'atomic' | 'compound' | 'epic' | 'unknown';
+export type TaskPlanNextAction =
+  | 'execute_selected_task'
+  | 'warn_and_execute'
+  | 'apply_child_tasks_and_stop'
+  | 'mark_blocked_and_stop'
+  | 'request_human_review'
+  | 'skip_planning';
 
 export interface TaskPlanArtifact {
   reasoning: string;
@@ -13,9 +21,16 @@ export interface TaskPlanArtifact {
   suggestedValidationCommand?: string;
   readiness?: TaskReadiness;
   readinessReason?: string;
+  atomicity?: TaskAtomicity;
+  estimatedTaskCount?: number;
+  acceptedByRalph?: boolean;
+  nextAction?: TaskPlanNextAction;
+  planningDocPath?: string | null;
+  planningDocSectionId?: string | null;
   suggestedChildTasks?: RalphSuggestedChildTask[];
   suggestedAcceptance?: string[];
   suggestedConstraints?: string[];
+  skillsOrInputsUsed?: string[];
 }
 
 function isImplementerLikeRole(agentRole: RalphCodexConfig['agentRole']): boolean {
@@ -97,6 +112,15 @@ export function parsePlanningResponse(text: string): TaskPlanArtifact | null {
   const suggestedChildTasks = parseSuggestedChildTasks(record.suggestedChildTasks);
   const suggestedAcceptance = parseOptionalStringArray(record.suggestedAcceptance);
   const suggestedConstraints = parseOptionalStringArray(record.suggestedConstraints);
+  const skillsOrInputsUsed = parseOptionalStringArray(record.skillsOrInputsUsed);
+  const atomicity = normalizeTaskAtomicity(record.atomicity);
+  const estimatedTaskCount = typeof record.estimatedTaskCount === 'number' && Number.isFinite(record.estimatedTaskCount)
+    ? Math.max(1, Math.floor(record.estimatedTaskCount))
+    : undefined;
+  const acceptedByRalph = typeof record.acceptedByRalph === 'boolean' ? record.acceptedByRalph : undefined;
+  const nextAction = normalizeTaskPlanNextAction(record.nextAction);
+  const planningDocPath = normalizeNullableString(record.planningDocPath);
+  const planningDocSectionId = normalizeNullableString(record.planningDocSectionId);
 
   // Require at minimum reasoning or approach to be non-empty.
   const hasMeaningfulPlan = Boolean(reasoning || approach || steps.length > 0);
@@ -112,9 +136,16 @@ export function parsePlanningResponse(text: string): TaskPlanArtifact | null {
     suggestedValidationCommand,
     readiness: readiness ?? 'ready',
     readinessReason,
+    atomicity,
+    estimatedTaskCount,
+    acceptedByRalph,
+    nextAction,
+    planningDocPath,
+    planningDocSectionId,
     ...(suggestedChildTasks !== undefined ? { suggestedChildTasks } : {}),
     ...(suggestedAcceptance ? { suggestedAcceptance } : {}),
-    ...(suggestedConstraints ? { suggestedConstraints } : {})
+    ...(suggestedConstraints ? { suggestedConstraints } : {}),
+    ...(skillsOrInputsUsed ? { skillsOrInputsUsed } : {})
   };
 }
 
@@ -127,6 +158,32 @@ function normalizeTaskReadiness(candidate: unknown): TaskReadiness | undefined {
   }
 
   return candidate;
+}
+
+function normalizeTaskAtomicity(candidate: unknown): TaskAtomicity | undefined {
+  return candidate === 'atomic' || candidate === 'compound' || candidate === 'epic' || candidate === 'unknown'
+    ? candidate
+    : undefined;
+}
+
+function normalizeTaskPlanNextAction(candidate: unknown): TaskPlanNextAction | undefined {
+  return candidate === 'execute_selected_task'
+    || candidate === 'warn_and_execute'
+    || candidate === 'apply_child_tasks_and_stop'
+    || candidate === 'mark_blocked_and_stop'
+    || candidate === 'request_human_review'
+    || candidate === 'skip_planning'
+    ? candidate
+    : undefined;
+}
+
+function normalizeNullableString(value: unknown): string | null | undefined {
+  if (value === null) {
+    return null;
+  }
+  return typeof value === 'string'
+    ? (value.trim() || null)
+    : undefined;
 }
 
 function parseOptionalStringArray(value: unknown): string[] | undefined {
@@ -264,6 +321,11 @@ export function formatTaskPlanContext(plan: TaskPlanArtifact): string {
 
   if (plan.suggestedValidationCommand) {
     lines.push(`- Suggested validation: ${plan.suggestedValidationCommand}`);
+  }
+
+  if (plan.acceptedByRalph) {
+    lines.push('- Plan status: accepted by Ralph readiness gate');
+    lines.push('- Execution rule: follow this accepted plan unless repository evidence shows it is unsafe; explain any divergence in completion report.');
   }
 
   return lines.join('\n');

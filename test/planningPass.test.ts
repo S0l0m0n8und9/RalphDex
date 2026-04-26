@@ -83,6 +83,9 @@ test('parsePlanningResponse parses readiness and valid suggestedChildTasks', () 
     risks: [],
     readiness: 'needs_decomposition',
     readinessReason: 'Greenfield epic',
+    atomicity: 'epic',
+    estimatedTaskCount: 3,
+    nextAction: 'apply_child_tasks_and_stop',
     suggestedChildTasks: [{
       id: 'T1.1',
       title: 'Create scaffold',
@@ -96,6 +99,9 @@ test('parsePlanningResponse parses readiness and valid suggestedChildTasks', () 
   assert.ok(result);
   assert.equal(result.readiness, 'needs_decomposition');
   assert.equal(result.readinessReason, 'Greenfield epic');
+  assert.equal(result.atomicity, 'epic');
+  assert.equal(result.estimatedTaskCount, 3);
+  assert.equal(result.nextAction, 'apply_child_tasks_and_stop');
   assert.equal(result.suggestedChildTasks?.length, 1);
 });
 
@@ -106,11 +112,15 @@ test('parsePlanningResponse ignores malformed readiness and malformed suggestedC
     steps: ['one'],
     risks: [],
     readiness: 'explode',
+    atomicity: 'gigantic',
+    nextAction: 'do_everything',
     suggestedChildTasks: [{ id: '', title: 'bad' }]
   });
   const result = parsePlanningResponse(text);
   assert.ok(result);
   assert.equal(result.readiness, 'ready');
+  assert.equal(result.atomicity, undefined);
+  assert.equal(result.nextAction, undefined);
   assert.equal(result.suggestedChildTasks, undefined);
 });
 

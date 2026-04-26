@@ -331,6 +331,8 @@ New tasks enter the system through one of these paths. Every path terminates in 
 
 For paths that go through `taskCreation.applySuggestedChildTasksToFile`, children are normalized at creation time via `normalizeNewTask` (which handles alias mapping, dependency flattening, parent augmentation, and canonical coercion). The subsequent write-then-read cycle re-normalizes through `parseTaskFile` for consistency.
 
+Planning providers may use provider-native skills/tools and repository guidance (AGENTS.md, workflows, invariants), but any readiness/decomposition decision that affects execution must be persisted in Ralph-owned artifacts (`task-plan.json`, optional `plan.md`, iteration result, and planning-gate evidence). Provider-internal state is never a durable source of truth.
+
 This shared invariant is deliberate for UI and workflow surfaces: operator-visible commands should describe generated tasks as "complete when the source is complete" rather than implying that sparse generated tasks are the normal or preferred result. Sparse output is valid only for producer paths whose source data is truly sparse.
 
 Epic or feature task seeding is intentionally not a hierarchy-construction path. Regardless of whether the request comes from the command palette, dashboard, or sidebar, the seeding helper may remap duplicate IDs and rewrite seeded intra-batch dependencies accordingly, but it must still persist only flat top-level version-2 tasks. Parent/child structure remains an explicit later step through decomposition or other bounded child-task producers, not an implicit side effect of seeding.
