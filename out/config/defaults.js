@@ -101,6 +101,7 @@ exports.DEFAULT_CONFIG = {
         enabled: false,
         mode: 'inline'
     },
+    taskReadinessGate: 'off',
     failureDiagnostics: 'auto',
     maxRecoveryAttempts: 3,
     maxReplansPerParent: 2,

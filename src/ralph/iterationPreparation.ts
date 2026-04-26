@@ -128,6 +128,107 @@ export interface PreparedIterationContext extends PreparedPromptContext {
   };
 }
 
+export async function rerenderPreparedPromptContext(input: {
+  prepared: PreparedIterationContext;
+  stateManager: RalphStateManager;
+  logger: Logger;
+  rolePolicySource?: 'preset' | 'crew' | 'explicit';
+  persistPreparedProvenanceBundle: (prepared: PreparedIterationContext) => Promise<void>;
+}): Promise<PreparedIterationContext> {
+  const { prepared } = input;
+  const artifactPaths = resolveIterationArtifactPaths(prepared.paths.artifactDir, prepared.iteration);
+  const [taskPlanArtifact, structureDefinition] = await Promise.all([
+    prepared.selectedTask ? readTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id) : Promise.resolve(null),
+    readStructureDefinition(path.join(prepared.rootPath, prepared.config.structureDefinitionPath))
+  ]);
+
+  const promptRender = await buildPrompt({
+    kind: prepared.promptKind,
+    target: prepared.promptTarget,
+    iteration: prepared.iteration,
+    selectionReason: prepared.promptSelectionReason,
+    objectiveText: prepared.objectiveText,
+    progressText: prepared.progressText,
+    taskCounts: prepared.taskCounts,
+    summary: prepared.summary,
+    state: prepared.state,
+    paths: prepared.paths,
+    taskFile: prepared.taskFile,
+    selectedTask: prepared.selectedTask,
+    taskValidationHint: prepared.taskValidationHint,
+    effectiveValidationCommand: prepared.effectiveValidationCommand,
+    normalizedValidationCommandFrom: prepared.normalizedValidationCommandFrom,
+    validationCommand: prepared.effectiveValidationCommand,
+    preflightReport: prepared.preflightReport,
+    sessionHandoff: prepared.sessionHandoff,
+    selectedTaskClaim: prepared.selectedTaskClaim,
+    taskPlanArtifact,
+    structureDefinition,
+    config: prepared.config
+  });
+
+  const prompt = promptRender.prompt;
+  const promptEvidence: RalphPromptEvidence = {
+    ...promptRender.evidence,
+    provenanceId: prepared.provenanceId
+  };
+
+  const promptPath = await input.stateManager.writePrompt(
+    prepared.paths,
+    createPromptFileName(prepared.promptKind, prepared.iteration),
+    prompt
+  );
+  await writePromptArtifacts({
+    paths: artifactPaths,
+    artifactRootDir: prepared.paths.artifactDir,
+    prompt,
+    promptEvidence
+  });
+  await writeContextEnvelope({
+    artifactRootDir: prepared.paths.artifactDir,
+    iteration: prepared.iteration,
+    contextEnvelope: promptRender.contextEnvelope,
+    policySource: input.rolePolicySource ?? 'preset'
+  });
+  const executionPlan: RalphExecutionPlan = {
+    ...prepared.executionPlan,
+    templatePath: promptRender.templatePath,
+    promptPath,
+    promptArtifactPath: artifactPaths.promptPath,
+    promptEvidencePath: artifactPaths.promptEvidencePath,
+    promptHash: hashText(prompt),
+    promptByteLength: utf8ByteLength(prompt),
+    createdAt: new Date().toISOString()
+  };
+  const executionPlanHash = hashJson(executionPlan);
+  await writeExecutionPlanArtifact({
+    paths: artifactPaths,
+    artifactRootDir: prepared.paths.artifactDir,
+    plan: executionPlan
+  });
+  const promptGeneratedAt = new Date().toISOString();
+  const rerendered: PreparedIterationContext = {
+    ...prepared,
+    prompt,
+    promptPath,
+    promptTemplatePath: promptRender.templatePath,
+    promptEvidence,
+    executionPlan,
+    executionPlanHash,
+    phaseSeed: {
+      ...prepared.phaseSeed,
+      promptGeneratedAt
+    }
+  };
+  await input.persistPreparedProvenanceBundle(rerendered);
+  input.logger.info('Rerendered prepared prompt context after planning gate.', {
+    iteration: rerendered.iteration,
+    selectedTaskId: rerendered.selectedTask?.id ?? null,
+    promptPath: rerendered.promptPath
+  });
+  return rerendered;
+}
+
 export type PreparedPrompt = PreparedPromptContext;
 
 export interface PreflightStructureDefinitionGenerationOutcome extends RalphPreflightStructureDefinitionGeneration {}

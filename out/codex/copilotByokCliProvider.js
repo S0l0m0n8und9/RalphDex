@@ -49,7 +49,7 @@ class CopilotByokCliProvider {
     buildLaunchSpec(request, _skipGitCheck) {
         const effectiveProviderType = this.mode === 'foundry-preset' ? 'azure' : this.options.providerType;
         const baseUrl = this.resolveBaseUrl(effectiveProviderType);
-        const model = request.model.trim() || this.options.model.trim();
+        const model = this.resolveModel(request.model, effectiveProviderType);
         const env = {
             COPILOT_PROVIDER_TYPE: effectiveProviderType,
             COPILOT_PROVIDER_BASE_URL: baseUrl
@@ -159,7 +159,7 @@ class CopilotByokCliProvider {
     async summarizeText(prompt, cwd) {
         const effectiveProviderType = this.mode === 'foundry-preset' ? 'azure' : this.options.providerType;
         const baseUrl = this.resolveBaseUrl(effectiveProviderType);
-        const modelId = this.options.model.trim();
+        const modelId = this.resolveModel('', effectiveProviderType);
         const env = {
             COPILOT_PROVIDER_TYPE: effectiveProviderType,
             COPILOT_PROVIDER_BASE_URL: baseUrl
@@ -219,17 +219,29 @@ class CopilotByokCliProvider {
     }
     resolveBaseUrl(effectiveProviderType) {
         const override = this.options.baseUrlOverride.trim();
-        if (override) {
+        if (override && this.mode !== 'foundry-preset') {
             return override;
         }
         if (effectiveProviderType === 'azure') {
             const { resourceName, deployment } = this.options.azure;
             if (!resourceName.trim() || !deployment.trim()) {
-                throw new Error('copilot-byok with providerType "azure" requires both azure.resourceName and azure.deployment, or baseUrlOverride.');
+                throw new Error(this.mode === 'foundry-preset'
+                    ? 'copilot-foundry requires both azure.resourceName and azure.deployment.'
+                    : 'copilot-byok with providerType "azure" requires both azure.resourceName and azure.deployment, or baseUrlOverride.');
             }
             return `https://${resourceName.trim()}.openai.azure.com/openai/deployments/${deployment.trim()}`;
         }
         throw new Error('copilot-byok requires baseUrlOverride when providerType is not "azure".');
+    }
+    resolveModel(requestModel, effectiveProviderType) {
+        const explicitModel = requestModel.trim() || this.options.model.trim();
+        if (explicitModel) {
+            return explicitModel;
+        }
+        if (effectiveProviderType === 'azure') {
+            return this.options.azure.deployment.trim();
+        }
+        return '';
     }
     extractFailureDetail(stderr, lastMessage) {
         const stderrLines = stderr

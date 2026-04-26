@@ -100,11 +100,173 @@ function parsePlanningResponse(text) {
     const suggestedValidationCommand = typeof record.suggestedValidationCommand === 'string' && record.suggestedValidationCommand.trim()
         ? record.suggestedValidationCommand.trim()
         : undefined;
+    const readiness = normalizeTaskReadiness(record.readiness);
+    const readinessReason = typeof record.readinessReason === 'string' && record.readinessReason.trim()
+        ? record.readinessReason.trim()
+        : undefined;
+    const suggestedChildTasks = parseSuggestedChildTasks(record.suggestedChildTasks);
+    const suggestedAcceptance = parseOptionalStringArray(record.suggestedAcceptance);
+    const suggestedConstraints = parseOptionalStringArray(record.suggestedConstraints);
+    const skillsOrInputsUsed = parseOptionalStringArray(record.skillsOrInputsUsed);
+    const atomicity = normalizeTaskAtomicity(record.atomicity);
+    const estimatedTaskCount = typeof record.estimatedTaskCount === 'number' && Number.isFinite(record.estimatedTaskCount)
+        ? Math.max(1, Math.floor(record.estimatedTaskCount))
+        : undefined;
+    const acceptedByRalph = typeof record.acceptedByRalph === 'boolean' ? record.acceptedByRalph : undefined;
+    const nextAction = normalizeTaskPlanNextAction(record.nextAction);
+    const planningDocPath = normalizeNullableString(record.planningDocPath);
+    const planningDocSectionId = normalizeNullableString(record.planningDocSectionId);
+    const planningInput = parsePlanningInput(record.planningInput);
     // Require at minimum reasoning or approach to be non-empty.
-    if (!reasoning && !approach && steps.length === 0) {
+    const hasMeaningfulPlan = Boolean(reasoning || approach || steps.length > 0);
+    if (!hasMeaningfulPlan) {
         return null;
     }
-    return { reasoning, approach, steps, risks, suggestedValidationCommand };
+    return {
+        reasoning,
+        approach,
+        steps,
+        risks,
+        suggestedValidationCommand,
+        readiness: readiness ?? 'ready',
+        readinessReason,
+        atomicity,
+        estimatedTaskCount,
+        acceptedByRalph,
+        nextAction,
+        planningDocPath,
+        planningDocSectionId,
+        ...(planningInput ? { planningInput } : {}),
+        ...(suggestedChildTasks !== undefined ? { suggestedChildTasks } : {}),
+        ...(suggestedAcceptance ? { suggestedAcceptance } : {}),
+        ...(suggestedConstraints ? { suggestedConstraints } : {}),
+        ...(skillsOrInputsUsed ? { skillsOrInputsUsed } : {})
+    };
+}
+function parsePlanningInput(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return undefined;
+    }
+    const record = value;
+    if (typeof record.selectedTaskId !== 'string' || !record.selectedTaskId.trim()) {
+        return undefined;
+    }
+    if (typeof record.taskFingerprint !== 'string' || !record.taskFingerprint.trim()) {
+        return undefined;
+    }
+    return {
+        selectedTaskId: record.selectedTaskId.trim(),
+        taskFingerprint: record.taskFingerprint.trim(),
+        gateMode: typeof record.gateMode === 'string' ? record.gateMode : 'off',
+        mutationCount: typeof record.mutationCount === 'number' && Number.isFinite(record.mutationCount)
+            ? Math.floor(record.mutationCount)
+            : null,
+        createdAt: typeof record.createdAt === 'string' ? record.createdAt : ''
+    };
+}
+function normalizeTaskReadiness(candidate) {
+    if (candidate !== 'ready'
+        && candidate !== 'needs_decomposition'
+        && candidate !== 'blocked'
+        && candidate !== 'needs_human_review') {
+        return undefined;
+    }
+    return candidate;
+}
+function normalizeTaskAtomicity(candidate) {
+    return candidate === 'atomic' || candidate === 'compound' || candidate === 'epic' || candidate === 'unknown'
+        ? candidate
+        : undefined;
+}
+function normalizeTaskPlanNextAction(candidate) {
+    return candidate === 'execute_selected_task'
+        || candidate === 'warn_and_execute'
+        || candidate === 'apply_child_tasks_and_stop'
+        || candidate === 'mark_blocked_and_stop'
+        || candidate === 'request_human_review'
+        || candidate === 'skip_planning'
+        ? candidate
+        : undefined;
+}
+function normalizeNullableString(value) {
+    if (value === null) {
+        return null;
+    }
+    return typeof value === 'string'
+        ? (value.trim() || null)
+        : undefined;
+}
+function parseOptionalStringArray(value) {
+    if (!Array.isArray(value)) {
+        return undefined;
+    }
+    const normalized = value
+        .filter((entry) => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0);
+    return normalized.length > 0 ? normalized : undefined;
+}
+function parseTier(value) {
+    return value === 'simple' || value === 'medium' || value === 'complex'
+        ? value
+        : undefined;
+}
+function parseSuggestedChildTasks(candidate) {
+    if (!Array.isArray(candidate)) {
+        return undefined;
+    }
+    const tasks = candidate
+        .map(parseSuggestedChildTask)
+        .filter((task) => task !== null);
+    return tasks.length > 0 ? tasks : undefined;
+}
+function parseSuggestedChildTask(candidate) {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return null;
+    }
+    const record = candidate;
+    const id = typeof record.id === 'string' ? record.id.trim() : '';
+    const title = typeof record.title === 'string' ? record.title.trim() : '';
+    const parentId = typeof record.parentId === 'string' ? record.parentId.trim() : '';
+    const rationale = typeof record.rationale === 'string' ? record.rationale.trim() : '';
+    if (!id || !title || !parentId || !rationale) {
+        return null;
+    }
+    const dependsOn = Array.isArray(record.dependsOn)
+        ? record.dependsOn
+            .map((dependency) => {
+            if (!dependency || typeof dependency !== 'object' || Array.isArray(dependency)) {
+                return null;
+            }
+            const dependencyRecord = dependency;
+            if (typeof dependencyRecord.taskId !== 'string' || !dependencyRecord.taskId.trim()) {
+                return null;
+            }
+            if (dependencyRecord.reason !== 'blocks_sequence' && dependencyRecord.reason !== 'inherits_parent_dependency') {
+                return null;
+            }
+            return {
+                taskId: dependencyRecord.taskId.trim(),
+                reason: dependencyRecord.reason
+            };
+        })
+            .filter((dependency) => dependency !== null)
+        : [];
+    if (record.validation !== null && record.validation !== undefined && typeof record.validation !== 'string') {
+        return null;
+    }
+    return {
+        id,
+        title,
+        parentId,
+        dependsOn,
+        validation: typeof record.validation === 'string' ? record.validation.trim() : null,
+        rationale,
+        acceptance: parseOptionalStringArray(record.acceptance),
+        constraints: parseOptionalStringArray(record.constraints),
+        context: parseOptionalStringArray(record.context),
+        tier: parseTier(record.tier)
+    };
 }
 /** Writes a task-plan.json artifact under `.ralph/artifacts/<taskId>/`. */
 async function writeTaskPlan(artifactsDir, taskId, plan) {
@@ -145,6 +307,13 @@ function formatTaskPlanContext(plan) {
     }
     if (plan.suggestedValidationCommand) {
         lines.push(`- Suggested validation: ${plan.suggestedValidationCommand}`);
+    }
+    if (plan.readiness && plan.readiness !== 'ready') {
+        lines.push(`- Readiness advisory: ${plan.readiness}${plan.readinessReason ? ` (${plan.readinessReason})` : ''}`);
+    }
+    if (plan.acceptedByRalph) {
+        lines.push('- Plan status: accepted by Ralph readiness gate');
+        lines.push('- Execution rule: follow this accepted plan unless repository evidence shows it is unsafe; explain any divergence in completion report.');
     }
     return lines.join('\n');
 }

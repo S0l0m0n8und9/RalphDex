@@ -12,6 +12,7 @@ import {
   prepareIterationContext,
   PreparedIterationContext,
   PreparedPrompt,
+  rerenderPreparedPromptContext,
 } from './iterationPreparation';
 import {
   DEFAULT_RALPH_AGENT_ID,
@@ -24,7 +25,6 @@ import {
   releaseClaim,
 } from './taskFile';
 import {
-  formatTaskPlanContext,
   parsePlanningResponse,
   readTaskPlan,
   TaskPlanArtifact,
@@ -37,9 +37,8 @@ import {
   parseFailureDiagnosticResponse,
   writeFailureAnalysis
 } from './failureDiagnostics';
-import { hashJson, hashText, utf8ByteLength } from './integrity';
+import { hashText, utf8ByteLength } from './integrity';
 import { shouldRunFailureDiagnostic } from './loopLogic';
-import { writeExecutionPlanArtifact } from './artifactStore';
 import { selectModelForTask } from './complexityScorer';
 import { runHook, HookRunContext } from './hookRunner';
 import { captureCoreState } from './verifier';
@@ -137,7 +136,7 @@ export class RalphIterationEngine {
       rolePolicySource?: 'preset' | 'crew' | 'explicit';
     }
   ): Promise<PreparedPrompt> {
-    let prepared = await prepareIterationContext({
+    const prepared = await prepareIterationContext({
       workspaceFolder,
       progress,
       includeVerifierContext: false,
@@ -388,32 +387,6 @@ export class RalphIterationEngine {
       planningDocPath: path.relative(rootPath, planningDocPath).replace(/\\/g, '/'),
       sectionAnchors
     };
-  }
-
-  private async applyPlanContextToPreparedPrompt(prepared: PreparedIterationContext, plan: TaskPlanArtifact): Promise<void> {
-    const planContext = formatTaskPlanContext(plan);
-    if (!planContext || prepared.prompt.includes(planContext)) {
-      return;
-    }
-
-    prepared.prompt = `${prepared.prompt.trimEnd()}\n\n## Task Plan\n${planContext}\n`;
-    await fs.writeFile(prepared.promptPath, prepared.prompt, 'utf8');
-    if (prepared.executionPlan.promptArtifactPath) {
-      await fs.writeFile(prepared.executionPlan.promptArtifactPath, prepared.prompt, 'utf8');
-    }
-    const promptHash = hashText(prepared.prompt);
-    prepared.executionPlan = {
-      ...prepared.executionPlan,
-      promptHash,
-      promptByteLength: utf8ByteLength(prepared.prompt),
-      promptArtifactPath: prepared.executionPlan.promptArtifactPath ?? prepared.promptPath
-    };
-    prepared.executionPlanHash = hashJson(prepared.executionPlan);
-    await writeExecutionPlanArtifact({
-      paths: this.artifactPersistence.resolvePaths(prepared.paths.artifactDir, prepared.iteration),
-      artifactRootDir: prepared.paths.artifactDir,
-      plan: prepared.executionPlan
-    });
   }
 
   private async evaluatePlanningGate(prepared: PreparedIterationContext): Promise<PlanningGateDecision> {
@@ -878,7 +851,13 @@ export class RalphIterationEngine {
 
       if ((planningGateDecision.outcome === 'proceed' || planningGateDecision.outcome === 'warn_and_proceed')
         && planningGateDecision.plan) {
-        await this.applyPlanContextToPreparedPrompt(prepared, planningGateDecision.plan);
+        prepared = await rerenderPreparedPromptContext({
+          prepared,
+          stateManager: this.stateManager,
+          logger: this.logger,
+          rolePolicySource: options.rolePolicySource,
+          persistPreparedProvenanceBundle: (preparedContext) => persistPreparedProvenanceBundle(preparedContext, this.logger)
+        });
       }
 
       broadcaster?.emitPhase(prepared.iteration, 'prompt', prepared.config.agentId);
