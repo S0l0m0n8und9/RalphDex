@@ -180,6 +180,7 @@ export class RalphIterationEngine {
       '- Are acceptance criteria clear?',
       '- Is this task too broad / greenfield and should be decomposed?',
       '- For greenfield/bootstrap tasks, prefer decomposition into scaffold -> smoke test -> first vertical slice.',
+      '- Use provider-native planning behavior and any available tools/skills, AGENTS.md instructions, Ralph docs/invariants/workflows, structure definitions, existing task context, and validation discovery.',
       '',
       'Respond with ONLY a valid JSON object (no markdown fences) in this schema:',
       '{',
@@ -190,6 +191,13 @@ export class RalphIterationEngine {
       '  "suggestedValidationCommand": "<optional shell command to validate the work>",',
       '  "readiness": "ready" | "needs_decomposition" | "blocked" | "needs_human_review",',
       '  "readinessReason": "<short reason for readiness decision>",',
+      '  "atomicity": "atomic" | "compound" | "epic" | "unknown",',
+      '  "estimatedTaskCount": 1,',
+      '  "acceptedByRalph": false,',
+      '  "nextAction": "execute_selected_task" | "warn_and_execute" | "apply_child_tasks_and_stop" | "mark_blocked_and_stop" | "request_human_review" | "skip_planning",',
+      '  "planningDocPath": "<relative path>" | null,',
+      '  "planningDocSectionId": "<section anchor>" | null,',
+      '  "skillsOrInputsUsed": ["<skills/inputs consulted>"],',
       '  "suggestedChildTasks": [',
       '    {',
       '      "id": "<task id>",',
@@ -277,12 +285,98 @@ export class RalphIterationEngine {
     return findings;
   }
 
+  private isLikelyAtomicTask(task: import('./types').RalphTask): boolean {
+    const combined = `${task.title} ${task.notes ?? ''}`.toLowerCase();
+    const broadSignals = [
+      /\band\b/,
+      /\bthen\b/,
+      /\bplus\b/,
+      /\bplatform\b/,
+      /\bfoundation\b/,
+      /\bend-to-end\b/,
+      /\beverything\b/,
+      /\bfrom\b.+\bthrough\b/,
+      /,/
+    ];
+    if (broadSignals.some((pattern) => pattern.test(combined))) {
+      return false;
+    }
+    return (task.acceptance?.length ?? 0) > 0 && Boolean(task.validation?.trim());
+  }
+
+  private shouldWritePlanningDoc(task: import('./types').RalphTask, plan: TaskPlanArtifact): boolean {
+    if (plan.readiness && plan.readiness !== 'ready') {
+      return true;
+    }
+    if (plan.atomicity === 'compound' || plan.atomicity === 'epic') {
+      return true;
+    }
+    const combined = `${task.title} ${task.notes ?? ''}`.toLowerCase();
+    return /\b(greenfield|bootstrap|architecture|ambiguous|risky)\b/.test(combined);
+  }
+
+  private async writePlanningDoc(
+    rootPath: string,
+    task: import('./types').RalphTask,
+    plan: TaskPlanArtifact
+  ): Promise<{ planningDocPath: string; sectionAnchors: string[] }> {
+    const safeTaskId = task.id.replace(/[^a-zA-Z0-9._-]/g, '-');
+    const plansDir = path.join(rootPath, '.ralph', 'artifacts', 'plans', safeTaskId);
+    await fs.mkdir(plansDir, { recursive: true });
+    const planningDocPath = path.join(plansDir, 'plan.md');
+    const sectionAnchors = (plan.suggestedChildTasks ?? []).map((_, index) => `task-${index + 1}`);
+    const markdown = [
+      `# Plan for ${task.id}: ${task.title}`,
+      '',
+      '## Atomicity Decision',
+      `- Atomicity: ${plan.atomicity ?? 'unknown'}`,
+      `- Readiness: ${plan.readiness ?? 'ready'}`,
+      `- Reason: ${plan.readinessReason ?? 'n/a'}`,
+      '',
+      '## Skills / Inputs Considered',
+      ...(plan.skillsOrInputsUsed?.map((entry) => `- ${entry}`) ?? ['- AGENTS.md / repo conventions / validation discovery']),
+      '',
+      '## Validation Ladder',
+      `- Suggested validation: ${plan.suggestedValidationCommand ?? task.validation ?? 'none provided'}`,
+      '',
+      '## Proposed Breakdown',
+      ...((plan.suggestedChildTasks ?? []).map((child, index) => `### ${sectionAnchors[index]}\n- ${child.id}: ${child.title}`)),
+      '',
+      '## Risks / Non-goals',
+      ...(plan.risks.length > 0 ? plan.risks.map((risk) => `- ${risk}`) : ['- Keep scope bounded to next executable step.'])
+    ].join('\n');
+    await fs.writeFile(planningDocPath, `${markdown}\n`, 'utf8');
+    return {
+      planningDocPath: path.relative(rootPath, planningDocPath).replace(/\\/g, '/'),
+      sectionAnchors
+    };
+  }
+
   private async evaluatePlanningGate(prepared: PreparedIterationContext): Promise<PlanningGateDecision> {
     if (!prepared.selectedTask || !shouldRunInlinePlanningPassForConfig(prepared.config)) {
       return { outcome: 'skipped', plan: null, warnings: [] };
     }
 
     const gateMode = prepared.config.taskReadinessGate;
+    if ((gateMode === 'auto' || gateMode === 'strict') && this.isLikelyAtomicTask(prepared.selectedTask)) {
+      const atomicPlan: TaskPlanArtifact = {
+        reasoning: 'Selected task already appears atomic and executable.',
+        approach: 'Execute directly with existing acceptance + validation.',
+        steps: [prepared.selectedTask.title],
+        risks: [],
+        readiness: 'ready',
+        readinessReason: 'Task has bounded scope, acceptance, and validation.',
+        atomicity: 'atomic',
+        estimatedTaskCount: 1,
+        acceptedByRalph: true,
+        nextAction: 'execute_selected_task',
+        planningDocPath: null,
+        planningDocSectionId: null
+      };
+      await writeTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id, atomicPlan);
+      return { outcome: 'proceed', plan: atomicPlan, warnings: [] };
+    }
+
     let plan = await readTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id);
     if (!plan) {
       this.strategies.configureCliProvider(prepared.config);
@@ -311,22 +405,47 @@ export class RalphIterationEngine {
     }
 
     const warnings: string[] = [];
-    const readiness = plan.readiness ?? 'ready';
+    let normalizedPlan: TaskPlanArtifact = {
+      ...plan,
+      readiness: plan.readiness ?? 'ready',
+      atomicity: plan.atomicity ?? (this.isLikelyAtomicTask(prepared.selectedTask) ? 'atomic' : 'unknown'),
+      estimatedTaskCount: plan.estimatedTaskCount ?? Math.max(1, plan.suggestedChildTasks?.length ?? 1),
+      nextAction: plan.nextAction ?? 'execute_selected_task'
+    };
+    const readiness = normalizedPlan.readiness ?? 'ready';
     const reason = plan.readinessReason?.trim() || 'No readiness reason was provided.';
+    normalizedPlan.acceptedByRalph = readiness === 'ready';
+
+    if (this.shouldWritePlanningDoc(prepared.selectedTask, normalizedPlan)) {
+      const doc = await this.writePlanningDoc(prepared.rootPath, prepared.selectedTask, normalizedPlan);
+      normalizedPlan = {
+        ...normalizedPlan,
+        planningDocPath: doc.planningDocPath,
+        planningDocSectionId: doc.sectionAnchors[0] ?? null
+      };
+    }
+    await writeTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id, normalizedPlan);
 
     if (gateMode === 'warn' && readiness !== 'ready') {
       warnings.push(`Planning readiness warning: ${readiness} (${reason})`);
-      return { outcome: 'warn_and_proceed', plan, warnings };
+      return { outcome: 'warn_and_proceed', plan: normalizedPlan, warnings };
     }
 
     if ((gateMode === 'auto' || gateMode === 'strict') && readiness === 'needs_decomposition') {
-      const filteredChildren = (plan.suggestedChildTasks ?? [])
+      const filteredChildren = (normalizedPlan.suggestedChildTasks ?? [])
         .filter((child) => child.parentId === prepared.selectedTask?.id)
+        .map((child, index) => ({
+          ...child,
+          context: Array.from(new Set([
+            ...(child.context ?? []),
+            ...(normalizedPlan.planningDocPath ? [`${normalizedPlan.planningDocPath}#task-${index + 1}`] : [])
+          ]))
+        }))
         .slice(0, prepared.config.maxGeneratedChildren);
       if (filteredChildren.length > 0) {
         await applySuggestedChildTasksToFile(prepared.paths.taskFilePath, prepared.selectedTask.id, filteredChildren);
         const refreshedPlan: TaskPlanArtifact = {
-          ...plan,
+          ...normalizedPlan,
           suggestedChildTasks: filteredChildren
         };
         await writeTaskPlan(prepared.paths.artifactDir, prepared.selectedTask.id, refreshedPlan);
@@ -339,23 +458,23 @@ export class RalphIterationEngine {
       }
       warnings.push('Planning gate received needs_decomposition but no valid suggestedChildTasks were provided.');
       if (gateMode === 'auto') {
-        return { outcome: 'warn_and_proceed', plan, warnings };
+        return { outcome: 'warn_and_proceed', plan: normalizedPlan, warnings };
       }
     }
 
     if (gateMode === 'auto' && readiness === 'blocked') {
-      return { outcome: 'blocked_and_stop', plan, warnings, summary: `Planning gate blocked execution: ${reason}` };
+      return { outcome: 'blocked_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate blocked execution: ${reason}` };
     }
     if (gateMode === 'auto' && readiness === 'needs_human_review') {
-      return { outcome: 'human_review_and_stop', plan, warnings, summary: `Planning gate requested human review: ${reason}` };
+      return { outcome: 'human_review_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate requested human review: ${reason}` };
     }
 
     if (gateMode === 'strict') {
-      const strictFindings = this.assessStrictReadiness(prepared.selectedTask, plan);
+      const strictFindings = this.assessStrictReadiness(prepared.selectedTask, normalizedPlan);
       if (strictFindings.length > 0) {
         return {
           outcome: readiness === 'needs_human_review' ? 'human_review_and_stop' : 'blocked_and_stop',
-          plan,
+          plan: normalizedPlan,
           warnings: [...warnings, ...strictFindings],
           summary: `Strict readiness gate stopped execution: ${strictFindings.join(' ')}`
         };
@@ -363,8 +482,8 @@ export class RalphIterationEngine {
     }
 
     return warnings.length > 0
-      ? { outcome: 'warn_and_proceed', plan, warnings }
-      : { outcome: 'proceed', plan, warnings: [] };
+      ? { outcome: 'warn_and_proceed', plan: normalizedPlan, warnings }
+      : { outcome: 'proceed', plan: normalizedPlan, warnings: [] };
   }
 
   /**
