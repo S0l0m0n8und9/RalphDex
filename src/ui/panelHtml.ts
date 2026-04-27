@@ -1432,7 +1432,6 @@ function buildQuickActionsSection(state: RalphDashboardState): string {
   return `<div class="dashboard-summary-card">
     <div class="card-title">Quick Actions</div>
     <div class="btn-grid">
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
@@ -1634,10 +1633,8 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
     <div class="dashboard-sidebar-panel">
       <div class="rail-section-label">Quick Actions</div>
       <div class="dashboard-sidebar-actions">
-        <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
-        <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       </div>
     </div>
@@ -1742,7 +1739,6 @@ function buildOverviewTab(state: RalphDashboardState): string {
             <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
             <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
             <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
           </div>
         </div>
       </div>
@@ -1814,7 +1810,10 @@ function buildDiagnosticsTab(state: RalphDashboardState): string {
       ${buildDiagnosisSection(state)}
       ${buildFailureFeedSection(state)}
       ${buildAgentGridSection(state)}
-      ${buildDeadLetterSection(state)}
+      <details data-section="dead-letter-diagnostics">
+        <summary class="settings-section-toggle">Recovery Queue</summary>
+        ${buildDeadLetterSection(state)}
+      </details>
       ${buildCostTickerSection(state)}
       <div class="card">
         <div class="card-title">Preflight</div>
@@ -1846,7 +1845,7 @@ function buildSettingsTab(state: RalphDashboardState): string {
     <div class="card">
       <div class="card-title">Artifacts & Admin</div>
       <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Pipeline Run</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Artifacts</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest Transcript</span><span class="btn-spinner"></span></button>
