@@ -148,15 +148,17 @@ export function buildIterationRow(iter: RalphDashboardIteration): string {
   const agentLabel = iter.agentId ? `<span class="iter-agent">${esc(iter.agentId)}</span>` : '<span class="iter-agent">—</span>';
   const dotColor = CLASSIFICATION_COLOR[iter.classification] ?? 'var(--dim)';
 
-  return `<button type="button" class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}" title="Open iteration artifact">
+  const classText = iter.classification.replace(/_/g, ' ');
+  return `<button type="button" class="iter-row" data-artifact-dir="${esc(iter.artifactDir)}" title="Open iteration artifact" aria-label="Iteration ${iter.iteration}, ${esc(classText)}">
     <span class="iter-num">#${iter.iteration}</span>
     ${agentLabel}
     <span class="iter-task">${esc(taskLabel)}</span>
     <span class="iter-class">
-      <span class="iter-class-dot" style="background:${dotColor};"></span>
-      ${esc(iter.classification.replace(/_/g, ' '))}
+      <span class="iter-class-dot" style="background:${dotColor};" aria-hidden="true"></span>
+      ${esc(classText)}
     </span>
     <span class="iter-cost">—</span>
+    <span class="iter-row-chevron" aria-hidden="true">›</span>
   </button>`;
 }
 
@@ -204,9 +206,7 @@ export function buildDiagnostics(state: RalphDashboardState): string {
 
 export function buildBaseCss(): string {
   return `
-/* Geist Sans and Mono — Nonce-safe inline stack fallback below if @import is blocked by CSP */
-@import url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/style.css");
-@import url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/style.css");
+/* Local font stacks — no external @import; webview CSP blocks remote style-src. */
 
 :root {
   /* UXrefresh Design Tokens */
@@ -220,8 +220,8 @@ export function buildBaseCss(): string {
   --border: rgba(255, 255, 255, 0.08);
   --fg: var(--vscode-foreground, #cccccc);
   --dim: color-mix(in srgb, var(--fg) 55%, transparent);
-  --font-ui: "Geist", var(--vscode-font-family), "Inter", "Outfit", "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", var(--vscode-editor-font-family), "Berkeley Mono", "Cascadia Code", "Courier New", monospace;
+  --font-ui: var(--vscode-font-family, "Segoe UI", "Inter", "Outfit", system-ui, sans-serif);
+  --font-mono: var(--vscode-editor-font-family, "Cascadia Code", "Fira Code", "Courier New", monospace);
 
   /* Glass tokens */
   --glass-bg: rgba(30, 30, 35, 0.35);
@@ -649,6 +649,28 @@ body {
 .btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Iteration row affordance — chevron hint */
+.iter-row-chevron {
+  width: 16px;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--dim);
+  font-size: 10px;
+  transition: color 0.15s ease;
+}
+.iter-row:hover .iter-row-chevron,
+.iter-row:focus-visible .iter-row-chevron {
+  color: var(--accent);
+}
+
+/* Reduced-motion: disable/simplify all animations */
+@media (prefers-reduced-motion: reduce) {
+  .phase-pulse { animation: none; opacity: 1; }
+  .task-row.current.running { animation: none; }
+  .btn-spinner { animation: none; border-top-color: var(--accent); }
+  .task-row, .iter-row, .btn, .phase-step, .status-pill, .pill { transition: none; }
 }
 `;
 }

@@ -517,3 +517,170 @@ test('buildPanelDashboardHtml empty state shows Generate tasks when prdExists is
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'should show openPrdWizard command');
   assert.ok(html.includes('Generate tasks from PRD'), 'should show generate tasks label');
 });
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Dashboard gap hardening tests
+// ---------------------------------------------------------------------------
+
+test('dashboard renders summary/status cards in hero health grid', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    taskCounts: { todo: 2, in_progress: 1, blocked: 0, done: 3 },
+    dashboardSnapshot: populatedDashboardSnapshot()
+  }), 'summary-cards');
+
+  assert.ok(html.includes('hero-health-grid'), 'hero health grid present');
+  assert.ok(html.includes('Progress'), 'progress card');
+  assert.ok(html.includes('Iteration'), 'iteration card');
+  assert.ok(html.includes('Attention'), 'attention card');
+  assert.ok(html.includes('Cost'), 'cost card');
+  assert.ok(html.includes('hero-health-value'), 'values displayed');
+  assert.ok(html.includes('hero-health-sub'), 'secondary metadata');
+});
+
+test('advanced settings are collapsed by default', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot(DEFAULT_CONFIG);
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'collapsed');
+
+  assert.ok(html.includes('settings-advanced-group'), 'advanced group exists');
+  assert.ok(html.includes('Advanced Configuration'), 'advanced toggle label');
+  assert.ok(html.includes('data-section="settings-operator-mode"'), 'operator-mode section present');
+  const advancedMatch = html.match(/<details class="settings-advanced-group"[^>]*>/);
+  assert.ok(advancedMatch, 'advanced details element found');
+  assert.ok(!advancedMatch![0].includes(' open'), 'advanced is collapsed by default');
+});
+
+test('invalid tier thresholds render inline validation', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot({
+    ...DEFAULT_CONFIG,
+    modelTiering: {
+      ...DEFAULT_CONFIG.modelTiering,
+      simpleThreshold: 50,
+      complexThreshold: 30
+    }
+  });
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'tier-invalid');
+
+  assert.ok(html.includes('Simple threshold must be strictly less than complex threshold'), 'validation message shown');
+  assert.ok(html.includes('class="setting-control invalid"'), 'invalid CSS class applied');
+  assert.ok(html.includes('error-text'), 'error text class present');
+});
+
+test('empty task state renders actionable CTAs with addTask and seedTasks commands', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: false }), 'empty-cta');
+
+  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA present');
+  assert.ok(html.includes('ralphCodex.seedTasksFromFeatureRequest'), 'seedTasksFromFeatureRequest CTA present');
+  assert.ok(html.includes('ralphCodex.openPrdWizard'), 'openPrdWizard CTA present');
+  assert.ok(html.includes('Add Task'), 'Add Task button label');
+  assert.ok(html.includes('Seed Tasks'), 'Seed Tasks button label');
+});
+
+test('empty task state with prdExists=true shows Generate from PRD plus addTask', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'empty-prd');
+
+  assert.ok(html.includes('ralphCodex.openPrdWizard'), 'generate from PRD');
+  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA');
+  assert.ok(html.includes('Generate tasks from PRD'), 'PRD generate label');
+});
+
+test('iteration rows expose clickable affordance with chevron and artifact message path', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    recentIterations: [
+      { iteration: 5, taskId: 'T3', taskTitle: 'Test task', classification: 'complete', stopReason: null, artifactDir: '/tmp/iter5' }
+    ]
+  }), 'iter-row-affordance');
+
+  assert.ok(html.includes('iter-row-chevron'), 'chevron affordance present');
+  assert.ok(html.includes('›'), 'chevron character');
+  assert.ok(html.includes('data-artifact-dir'), 'artifact dir data attribute');
+  assert.ok(html.includes('open-iteration-artifact'), 'message path for opening artifacts');
+  assert.ok(html.includes('aria-label="Iteration 5'), 'iteration row aria-label');
+  assert.ok(html.includes('complete'), 'classification text present');
+});
+
+test('reduced-motion CSS exists in base styles', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'reduced-motion');
+
+  assert.ok(html.includes('prefers-reduced-motion: reduce'), 'reduced-motion media query');
+  assert.ok(html.includes('.phase-pulse { animation: none'), 'phase pulse disabled');
+  assert.ok(html.includes('.hero-state-pill.running { animation: none'), 'hero pulse disabled');
+});
+
+test('command buttons use existing command IDs and MessageBridge path', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot(DEFAULT_CONFIG);
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot(), settingsSurface }), 'msg-bridge');
+
+  assert.ok(html.includes('ralphCodex.runRalphLoop'), 'runRalphLoop');
+  assert.ok(html.includes('ralphCodex.runRalphIteration'), 'runRalphIteration');
+  assert.ok(html.includes('ralphCodex.generatePrompt'), 'generatePrompt');
+  assert.ok(html.includes('ralphCodex.showRalphStatus'), 'showRalphStatus');
+  assert.ok(html.includes('ralphCodex.openSettings'), 'openSettings');
+  assert.ok(html.includes('ralphCodex.setProviderSecret'), 'setProviderSecret');
+  assert.ok(html.includes('ralphCodex.clearProviderSecret'), 'clearProviderSecret');
+  assert.ok(html.includes("vscode.postMessage({ type: 'command', command: cmd })"), 'MessageBridge command post');
+});
+
+test('no external @import or CDN font URLs in dashboard output', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'no-cdn');
+
+  assert.ok(!html.includes('@import url'), 'no @import url');
+  assert.ok(!html.includes('cdn.jsdelivr.net'), 'no jsdelivr CDN');
+  assert.ok(!html.includes('fonts.googleapis.com'), 'no Google Fonts CDN');
+  assert.ok(html.includes('var(--vscode-font-family'), 'uses VS Code font family variable');
+  assert.ok(html.includes('var(--vscode-editor-font-family'), 'uses VS Code editor font family variable');
+});
+
+test('empty iteration history shows actionable Run First Iteration CTA', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'empty-iter');
+
+  assert.ok(html.includes('No iterations recorded yet'), 'empty iteration message');
+  assert.ok(html.includes('Run First Iteration'), 'actionable CTA label');
+  assert.ok(html.includes('ralphCodex.runRalphIteration'), 'iteration command');
+});
+
+test('empty agent grid shows actionable CTAs', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'empty-agents');
+
+  assert.ok(html.includes('No durable agent identity records found yet'), 'agent grid empty text');
+  assert.ok(html.includes('ralphCodex.runMultiAgentLoop'), 'multi-agent loop CTA');
+});
+
+test('empty dead-letter shows actionable CTA', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'empty-dl');
+
+  assert.ok(html.includes('No tasks are parked in dead-letter'), 'dead-letter empty text');
+  assert.ok(html.includes('Show Status'), 'show status CTA in dead-letter empty state');
+});
+
+test('provider section includes set/clear secret CTAs', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot(DEFAULT_CONFIG);
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'provider-cta');
+
+  assert.ok(html.includes('ralphCodex.setProviderSecret'), 'set secret CTA');
+  assert.ok(html.includes('ralphCodex.clearProviderSecret'), 'clear secret CTA');
+  assert.ok(html.includes('Set Secret'), 'set secret label');
+  assert.ok(html.includes('Clear Secret'), 'clear secret label');
+});
+
+test('azure-foundry provider with missing endpoint renders inline validation', () => {
+  const settingsSurface = buildSettingsSurfaceSnapshot({
+    ...DEFAULT_CONFIG,
+    cliProvider: 'azure-foundry',
+    azureFoundry: {
+      ...DEFAULT_CONFIG.azureFoundry,
+      endpointUrl: '',
+      auth: { ...DEFAULT_CONFIG.azureFoundry.auth, mode: 'vscode-secret', secretStorageKey: '' }
+    }
+  });
+  const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'azure-validation');
+
+  assert.ok(html.includes('Endpoint URL is required when azure-foundry is the active provider'), 'endpoint validation');
+  assert.ok(html.includes('SecretStorage key is required when auth mode is vscode-secret'), 'secret key validation');
+});
+
+test('sidebar rail shows Add Task CTA when no current task', () => {
+  const html = buildPanelDashboardHtml(defaultState(), 'rail-empty');
+
+  assert.ok(html.includes('No task selected'), 'no task selected message');
+  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA in rail');
+});

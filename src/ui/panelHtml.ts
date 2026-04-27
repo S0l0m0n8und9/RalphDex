@@ -867,6 +867,16 @@ details[open] > .settings-advanced-toggle::before { content: '▾ '; }
   border-color: rgba(245, 158, 11, 0.35);
   color: var(--accent);
   background: rgba(245, 158, 11, 0.08);
+  animation: hero-busy-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes hero-busy-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 10px 2px rgba(245, 158, 11, 0.25); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-state-pill.running { animation: none; }
 }
 
 .hero-state-pill.idle {
@@ -1086,6 +1096,14 @@ function buildSettingsSection(state: RalphDashboardState): string {
   const complexThreshold = Number(getValue('modelTiering.complexThreshold') ?? 0);
   const isTieringInvalid = simpleThreshold >= complexThreshold;
 
+  // Provider-auth cross-validation
+  const azureAuthMode = String(getValue('azureFoundry.auth.mode') ?? '');
+  const azureEndpoint = String(getValue('azureFoundry.endpointUrl') ?? '');
+  const isAzureProvider = currentProvider === 'azure-foundry';
+  const azureEndpointMissing = isAzureProvider && azureEndpoint.trim() === '';
+  const azureSecretKeyMissing = isAzureProvider && azureAuthMode === 'vscode-secret' && String(getValue('azureFoundry.auth.secretStorageKey') ?? '').trim() === '';
+  const azureEnvKeyMissing = isAzureProvider && azureAuthMode === 'env-api-key' && String(getValue('azureFoundry.auth.apiKeyEnvVar') ?? '').trim() === '';
+
   const coreSections = settingsSurface.sections.filter(s => s.id === 'operator-mode' || s.id === 'provider');
   const advancedSections = settingsSurface.sections.filter(s => s.id !== 'operator-mode' && s.id !== 'provider');
 
@@ -1101,7 +1119,9 @@ function buildSettingsSection(state: RalphDashboardState): string {
         <div class="settings-section-desc">${esc(section.description)}</div>
         ${section.id === 'provider' ? `
           <div class="inline-actions" style="grid-column: 1 / -1; margin-top: -2px; margin-bottom: 4px;">
-            <button class="btn" data-command="ralphCodex.testCurrentProviderConnection"><span class="btn-label">${esc(getProviderTestLabel(currentProvider))}</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.testCurrentProviderConnection" aria-label="Test connection for ${esc(currentProvider)} provider"><span class="btn-label">${esc(getProviderTestLabel(currentProvider))}</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.setProviderSecret" aria-label="Set provider secret"><span class="btn-label">Set Secret</span><span class="btn-spinner"></span></button>
+            <button class="btn" data-command="ralphCodex.clearProviderSecret" aria-label="Clear provider secret"><span class="btn-label">Clear Secret</span><span class="btn-spinner"></span></button>
           </div>
         ` : ''}
         ${section.entries.map((entry) => {
@@ -1114,6 +1134,18 @@ function buildSettingsSection(state: RalphDashboardState): string {
           }
           if ((entry.key === 'modelTiering.simpleThreshold' || entry.key === 'modelTiering.complexThreshold') && isTieringInvalid) {
             errorMsg = 'Simple threshold must be strictly less than complex threshold.';
+            isEntryInvalid = true;
+          }
+          if (entry.key === 'azureFoundry.endpointUrl' && azureEndpointMissing) {
+            errorMsg = 'Endpoint URL is required when azure-foundry is the active provider.';
+            isEntryInvalid = true;
+          }
+          if (entry.key === 'azureFoundry.auth.secretStorageKey' && azureSecretKeyMissing) {
+            errorMsg = 'SecretStorage key is required when auth mode is vscode-secret. Use Set Secret to store credentials.';
+            isEntryInvalid = true;
+          }
+          if (entry.key === 'azureFoundry.auth.apiKeyEnvVar' && azureEnvKeyMissing) {
+            errorMsg = 'API key environment variable is required when auth mode is env-api-key.';
             isEntryInvalid = true;
           }
 
@@ -1298,7 +1330,11 @@ function buildAgentGridSection(state: RalphDashboardState): string {
   if (rows.length === 0) {
     return `<div class="dashboard-summary-card">
       <div class="card-title">Agent Grid</div>
-      <div class="empty">No durable agent identity records found yet.</div>
+      <div class="empty" style="font-style:normal;">No durable agent identity records found yet.</div>
+      <div class="inline-actions" style="justify-content:center;">
+        <button class="btn" data-command="ralphCodex.runMultiAgentLoop"><span class="btn-label">Run Multi-Agent Loop</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+      </div>
     </div>`;
   }
 
@@ -1327,7 +1363,10 @@ function buildDeadLetterSection(state: RalphDashboardState): string {
   if (entries.length === 0) {
     return `<div class="dashboard-summary-card">
       <div class="card-title">Dead-Letter</div>
-      <div class="empty">No tasks are parked in dead-letter.</div>
+      <div class="empty" style="font-style:normal;">No tasks are parked in dead-letter.</div>
+      <div class="inline-actions" style="justify-content:center;">
+        <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
+      </div>
     </div>`;
   }
 
@@ -1609,7 +1648,10 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
         ${currentTask
           ? `<div><strong>${esc(currentTask.id)}</strong> · ${esc(currentTask.title)}</div>
              <div class="dashboard-brand-meta">${esc(currentTask.status.replace(/_/g, ' '))}${currentTask.validation ? ` · ${esc(currentTask.validation)}` : ''}</div>`
-          : '<div class="dashboard-brand-meta">No task selected.</div>'}
+          : `<div class="dashboard-brand-meta">No task selected.</div>
+             <div class="inline-actions" style="margin-top:6px;">
+               <button class="btn rail-command" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+             </div>`}
       </div>
     </div>
   </aside>`;
@@ -1658,7 +1700,10 @@ function buildOverviewTab(state: RalphDashboardState): string {
           <div class="history-list">
             ${state.recentIterations.length > 0
               ? state.recentIterations.slice(0, 5).map(buildIterationRow).join('\n')
-              : '<div class="empty">No iterations yet.</div>'}
+              : `<div class="empty" style="font-style:normal;">No iterations recorded yet.</div>
+                 <div class="inline-actions" style="justify-content:center;">
+                   <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run First Iteration</span><span class="btn-spinner"></span></button>
+                 </div>`}
           </div>
         </div>
       </div>
@@ -1679,8 +1724,16 @@ function buildOverviewTab(state: RalphDashboardState): string {
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
                 : state.prdExists
-                  ? '<div class="empty" style="margin-bottom: 6px;">PRD exists but no tasks yet.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>'
-                  : '<div class="empty" style="margin-bottom: 6px;">Start here — define your project scope in the PRD wizard.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>')}
+                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">PRD exists but no tasks yet.</div>
+                     <div class="inline-actions" style="justify-content:center;">
+                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+                     </div>`
+                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">Start here — define your project scope.</div>
+                     <div class="inline-actions" style="justify-content:center;">
+                       <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+                     </div>`)}
         </div>
 
         <div class="card">
@@ -1717,8 +1770,18 @@ function buildWorkTab(state: RalphDashboardState): string {
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
                 : state.prdExists
-                  ? '<div class="empty" style="margin-bottom: 6px;">PRD exists but no tasks yet.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>'
-                  : '<div class="empty" style="margin-bottom: 6px;">Start here — define your project scope in the PRD wizard.</div><button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>')}
+                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">PRD exists but no tasks yet.</div>
+                     <div class="inline-actions" style="justify-content:center;">
+                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
+                     </div>`
+                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">No tasks — start by defining your project scope.</div>
+                     <div class="inline-actions" style="justify-content:center;">
+                       <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
+                     </div>`)}
         ${!allDone && doneTasks.length > 0
           ? `<details data-section="completed-tasks">
               <summary class="completed-toggle">Completed (${doneTasks.length})</summary>
@@ -1732,7 +1795,10 @@ function buildWorkTab(state: RalphDashboardState): string {
         <div class="history-list">
           ${state.recentIterations.length > 0
             ? state.recentIterations.map(buildIterationRow).join('\n')
-            : '<div class="empty">No iterations yet</div>'}
+            : `<div class="empty" style="font-style:normal;">No iterations recorded yet.</div>
+               <div class="inline-actions" style="justify-content:center;">
+                 <button class="btn" data-command="ralphCodex.runRalphIteration"><span class="btn-label">Run First Iteration</span><span class="btn-spinner"></span></button>
+               </div>`}
         </div>
       </div>
 
