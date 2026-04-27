@@ -1328,6 +1328,32 @@ function buildDeadLetterSection(state) {
     </div>
   </div>`;
 }
+function buildDeadLetterRecoveryCard(state) {
+    const entries = state.dashboardSnapshot?.deadLetter.entries ?? [];
+    if (entries.length === 0) {
+        return '';
+    }
+    return `<div class="card dead-letter-recovery-card">
+    <div class="card-title">Dead-Letter Recovery</div>
+    <div class="attention-list">
+      ${entries.slice(0, 3).map((entry) => {
+        const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
+        return `<div class="dead-letter-item">
+          <div><strong>${(0, htmlHelpers_1.esc)(entry.taskId)}</strong> · ${(0, htmlHelpers_1.esc)(entry.taskTitle)}</div>
+          <div class="dead-letter-meta">
+            <div><strong>Attempts</strong> ${entry.recoveryAttemptCount} · <strong>Last category</strong> ${(0, htmlHelpers_1.esc)(latestCategory)}</div>
+            <div><strong>Dead-lettered</strong> ${formatUtc(entry.deadLetteredAt)}</div>
+          </div>
+        </div>`;
+    }).join('\n')}
+    </div>
+    <div class="inline-actions">
+      <button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">Open Failure Diagnosis</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Auto-Recover Task</span><span class="btn-spinner"></span></button>
+    </div>
+  </div>`;
+}
 function buildCostTickerSection(state) {
     const cost = state.dashboardSnapshot?.cost ?? null;
     if (!cost || !cost.hasAnyCostData) {
@@ -1604,6 +1630,8 @@ function buildOverviewTab(state) {
           </div>
         </div>
 
+        ${buildDeadLetterRecoveryCard(state)}
+
         <div class="card">
           <div class="card-title">Recent Activity</div>
           <div class="history-list">
@@ -1708,6 +1736,8 @@ function buildWorkTab(state) {
                </div>`}
         </div>
       </div>
+
+      ${buildDeadLetterRecoveryCard(state)}
 
       ${buildTaskSeedingCard(state)}
     </div>

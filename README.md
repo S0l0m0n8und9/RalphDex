@@ -44,7 +44,7 @@ The Marketplace listing should match what you see after install:
 
 1. The Ralphdex activity-bar icon appears in VS Code.
 2. `Ralphdex: Show Status` opens the dashboard webview with the current task, pipeline, failure, and artifact snapshot.
-3. The Ralphdex sidebar exposes the Dashboard plus the Tasks tree for durable `.ralph/` state, including a compact epic-to-task seeding form that uses the same backlog append pipeline as the command palette.
+3. The Ralphdex sidebar is a compact operator surface for durable `.ralph/` state: simple mode shows run/stop, progress, current work, PRD setup, task seeding, and dashboard access; advanced mode adds compact task triage, recent outputs, and dead-letter attention without cloning the full dashboard.
 4. `Ralphdex: Initialize Workspace` scaffolds `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` for a fresh repo.
 
 For a quick release-candidate demo pass, install the Marketplace build or local VSIX, run `Ralphdex: Show Status`, confirm the dashboard renders, then run `Ralphdex: Initialize Workspace` in a scratch folder and verify the `.ralph/` files are created.
@@ -84,13 +84,15 @@ For a fresh clone, start by installing dependencies and running the validation g
 5. Use `Ralphdex: Show Status` to open the dashboard and inspect the current workspace state.
 6. Use `Ralphdex: Prepare Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run CLI Iteration`, or `Ralphdex: Run CLI Loop` depending on the workflow you want.
 
-For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace`. The command creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and `.ralph/.gitignore`. After initialization, replace the placeholder in `.ralph/prd.md` with the real objective before preparing prompts.
+For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace` or open the PRD wizard. Provider-facing commands such as Prepare Prompt, Open Codex IDE, Run CLI Iteration, Run CLI Loop, Run Multi-Agent Loop, and Run Pipeline now stop and open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
 
 Newly generated Ralph tasks now share one normalization and persistence pipeline across bootstrap commands, PRD generation, decomposition, remediation, and pipeline scaffolding. In practice that means generated tasks should keep the richest producer-supplied shape Ralph knows at creation time, including fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and any derived dependency or mode metadata when those values are available. A generated task may still omit some optional fields when the upstream producer genuinely lacked that information or when the canonical contract leaves the field absent by design. See [docs/invariants.md#normalized-task-contract](docs/invariants.md#normalized-task-contract) for the authoritative field-presence rules.
 
 Use `Ralphdex: Regenerate PRD` when you need Ralphdex to help turn a fuzzy brief or an outdated `.ralph/prd.md` into a reviewable PRD draft plus a reviewable starter backlog before writing durable files. The wizard is intentionally narrow: it is an authoring workflow, not a settings cockpit. It walks through project shape, draft generation, PRD review, task review, and confirm-write, then writes only `.ralph/prd.md` and `.ralph/tasks.json`.
 
 Use `Ralphdex: Add Task`, `Ralphdex: Seed Tasks from Feature Request`, or the dashboard/sidebar seeding form when you already have a stable PRD and need Ralph to append flat backlog tasks for one epic or feature request. Use `Ralphdex: Regenerate PRD` when the product objective or PRD structure itself needs to be rewritten first. The seeding path appends only flat version-2 backlog tasks through the shared normalization boundary; it does not create PRD structure or parent/child task hierarchies. Each seeding attempt also writes a durable artifact under `.ralph/artifacts/task-seeding/task-seeding-<timestamp>.json` so operators can inspect the request, provider launch metadata, generated task drafts, and warnings after the command returns.
+
+The sidebar is for quick operation and compact triage. The dashboard remains the deeper inspection surface for full work history, settings, diagnostics, and artifact review.
 
 The shipped dashboard and sidebar have one production ownership path: shared webview infrastructure lives under `src/webview/`, while the production renderers and VS Code surface adapters live under `src/ui/` in `panelHtml.ts`, `sidebarHtml.ts`, `dashboardPanel.ts`, and `sidebarViewProvider.ts`. The top-level `UXrefresh/` bundle is retained only as a reference-only prototype from the redesign phase and must not be treated as the live implementation.
 
@@ -134,11 +136,12 @@ Ralph separates committed durable state from operator-local runtime evidence:
 For day-to-day loop inspection:
 
 1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
-The dashboard `Work` tab and the sidebar both expose a first-class task-seeding form so operators can turn an epic or feature request into appended backlog tasks without leaving Ralphdex surfaces.
-2. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
-3. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
-4. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
-5. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
+2. The dashboard `Work` tab and the sidebar both expose a task-seeding form so operators can turn an epic or feature request into appended backlog tasks without leaving Ralphdex surfaces.
+3. Dead-letter recovery is surfaced as operational triage in the dashboard overview/work areas and the sidebar advanced mode, with direct requeue, diagnosis, and auto-recover actions where available. Diagnostics still carries deeper technical details.
+4. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
+5. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
+6. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
+7. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 
 Task-seeding artifacts are separate from iteration provenance. Successful and failed seeding attempts write durable evidence under `.ralph/artifacts/task-seeding/`, while the appended tasks themselves still persist only in `.ralph/tasks.json` through the shared version-2 task pipeline.
 

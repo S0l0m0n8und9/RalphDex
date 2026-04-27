@@ -152,26 +152,6 @@ async function rerenderPreparedPromptContext(input) {
 function trustLevelForTarget(promptTarget) {
     return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
 }
-async function maybeSeedObjective(stateManager, paths) {
-    const objectiveText = await stateManager.readObjectiveText(paths);
-    if (!stateManager.isDefaultObjective(objectiveText)) {
-        return objectiveText;
-    }
-    const seededObjective = await vscode.window.showInputBox({
-        prompt: 'Seed the PRD with a short objective for this workspace',
-        placeHolder: 'Example: Harden the VS Code extension starter into a reliable v2 iteration engine'
-    });
-    if (!seededObjective?.trim()) {
-        return objectiveText;
-    }
-    const nextText = [
-        '# Product / project brief',
-        '',
-        seededObjective.trim()
-    ].join('\n');
-    await stateManager.writeObjectiveText(paths, nextText);
-    return `${nextText}\n`;
-}
 async function findLatestHandoffPath(handoffDir, agentId, iteration) {
     // Fast path: check the immediately preceding iteration first
     const directPath = path.join(handoffDir, `${agentId}-${String(iteration - 1).padStart(3, '0')}.json`);
@@ -261,7 +241,7 @@ async function prepareIterationContext(input) {
         });
     }
     const structureDefinitionGeneration = await ensureStructureDefinitionForPreflight(rootPath, config.structureDefinitionPath);
-    const objectiveText = await maybeSeedObjective(stateManager, snapshot.paths);
+    const objectiveText = await stateManager.readObjectiveText(snapshot.paths);
     const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
         ? vscode.window.activeTextEditor.document.uri.fsPath
         : null;

@@ -266,34 +266,6 @@ function trustLevelForTarget(promptTarget: RalphPromptTarget): RalphProvenanceTr
   return promptTarget === 'cliExec' ? 'verifiedCliExecution' : 'preparedPromptOnly';
 }
 
-async function maybeSeedObjective(
-  stateManager: RalphStateManager,
-  paths: ReturnType<RalphStateManager['resolvePaths']>
-): Promise<string> {
-  const objectiveText = await stateManager.readObjectiveText(paths);
-  if (!stateManager.isDefaultObjective(objectiveText)) {
-    return objectiveText;
-  }
-
-  const seededObjective = await vscode.window.showInputBox({
-    prompt: 'Seed the PRD with a short objective for this workspace',
-    placeHolder: 'Example: Harden the VS Code extension starter into a reliable v2 iteration engine'
-  });
-
-  if (!seededObjective?.trim()) {
-    return objectiveText;
-  }
-
-  const nextText = [
-    '# Product / project brief',
-    '',
-    seededObjective.trim()
-  ].join('\n');
-
-  await stateManager.writeObjectiveText(paths, nextText);
-  return `${nextText}\n`;
-}
-
 async function findLatestHandoffPath(
   handoffDir: string,
   agentId: string,
@@ -401,7 +373,7 @@ export async function prepareIterationContext(
     config.structureDefinitionPath
   );
 
-  const objectiveText = await maybeSeedObjective(stateManager, snapshot.paths);
+  const objectiveText = await stateManager.readObjectiveText(snapshot.paths);
   const focusPath = vscode.window.activeTextEditor?.document.uri.scheme === 'file'
     ? vscode.window.activeTextEditor.document.uri.fsPath
     : null;

@@ -86,6 +86,19 @@ async function seedWorkspace(rootPath: string): Promise<void> {
   }, null, 2), 'utf8');
 }
 
+async function seedDefaultPrdWorkspace(rootPath: string): Promise<void> {
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
+    '# Product / project brief',
+    '',
+    'Describe the current objective for Ralph here.',
+    '',
+    '- What should Codex change?',
+    '- What constraints matter?',
+    '- What does "done" look like?'
+  ].join('\n'), 'utf8');
+}
+
 async function writeFailureDiagnosisArtifacts(
   rootPath: string,
   taskId: string,
@@ -217,6 +230,30 @@ async function withMockedRunCliIteration<T>(
     return await action();
   } finally {
     RalphIterationEngine.prototype.runCliIteration = original;
+  }
+}
+
+async function withMockedPreparePrompt<T>(
+  implementation: (
+    workspaceFolder: vscode.WorkspaceFolder,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>,
+    options?: unknown
+  ) => Promise<unknown>,
+  action: () => Promise<T>
+): Promise<T> {
+  const original = RalphIterationEngine.prototype.preparePrompt;
+  RalphIterationEngine.prototype.preparePrompt = function mockedPreparePrompt(
+    workspaceFolder: vscode.WorkspaceFolder,
+    progress?: vscode.Progress<{ message?: string; increment?: number }>,
+    options?: unknown
+  ): Promise<unknown> {
+    return implementation(workspaceFolder, progress, options);
+  } as RalphIterationEngine['preparePrompt'];
+
+  try {
+    return await action();
+  } finally {
+    RalphIterationEngine.prototype.preparePrompt = original;
   }
 }
 
@@ -1665,6 +1702,78 @@ test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on cli
     harness.state.infoMessages.at(-1)?.message ?? '',
     `Prompt ready at ${await readGeneratedPromptName(rootPath)}.`
   );
+});
+
+test('Prompt-start commands open the PRD wizard and skip prompt preparation when PRD is default', async () => {
+  const commands = [
+    'ralphCodex.generatePrompt',
+    'ralphCodex.openCodexAndCopyPrompt'
+  ];
+
+  for (const command of commands) {
+    const rootPath = await makeTempRoot();
+    await seedDefaultPrdWorkspace(rootPath);
+
+    const harness = vscodeTestHarness();
+    harness.reset();
+    harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+    let prepareCalls = 0;
+    await withMockedPreparePrompt(
+      async () => {
+        prepareCalls += 1;
+        throw new Error('preparePrompt should not run without a real PRD');
+      },
+      async () => {
+        activate(createExtensionContext());
+        await vscode.commands.executeCommand(command);
+      }
+    );
+
+    assert.equal(prepareCalls, 0, `${command} should not prepare a provider-facing prompt`);
+    assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
+    assert.match(
+      harness.state.warningMessages.at(-1)?.message ?? '',
+      /RalphDex needs a real PRD before running/i
+    );
+  }
+});
+
+test('Iteration, loop, multi-agent, and pipeline commands open the PRD wizard and skip provider work when PRD is missing', async () => {
+  const commands = [
+    'ralphCodex.runRalphIteration',
+    'ralphCodex.runRalphLoop',
+    'ralphCodex.runMultiAgentLoop',
+    'ralphCodex.runPipeline'
+  ];
+
+  for (const command of commands) {
+    const rootPath = await makeTempRoot();
+
+    const harness = vscodeTestHarness();
+    harness.reset();
+    harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+    let runCalls = 0;
+    await withMockedRunCliIteration(
+      async (workspaceFolderArg, mode) => {
+        runCalls += 1;
+        return createMockRun(workspaceFolderArg.uri.fsPath, mode, null);
+      },
+      async () => {
+        activate(createExtensionContext());
+        await vscode.commands.executeCommand(command);
+      }
+    );
+
+    assert.equal(runCalls, 0, `${command} should not execute provider work`);
+    assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
+    assert.match(
+      harness.state.warningMessages.at(-1)?.message ?? '',
+      /RalphDex needs a real PRD before running/i
+    );
+    await fs.access(path.join(rootPath, '.ralph', 'prd.md'));
+  }
 });
 
 test('Run CLI Loop stops cleanly without auto-reload when no actionable task remains', async () => {

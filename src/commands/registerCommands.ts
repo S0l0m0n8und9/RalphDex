@@ -230,6 +230,18 @@ function summarizeProviderDiagnostics(messages: readonly string[]): string {
   return messages.join(' ');
 }
 
+function isMissingOrDefaultPrd(text: string, stateManager: RalphStateManager): boolean {
+  const trimmed = text.trim();
+  return trimmed.length === 0
+    || stateManager.isDefaultObjective(text)
+    || trimmed === RALPH_PRD_PLACEHOLDER.trim()
+    || (
+      trimmed.includes('Describe the current objective for Ralph here.')
+      && trimmed.includes('What should Codex change?')
+      && trimmed.includes('What constraints matter?')
+    );
+}
+
 async function initializeFreshWorkspace(rootPath: string): Promise<{
   ralphDir: string;
   prdPath: string;
@@ -504,6 +516,32 @@ export function registerCommands(
   const engine = new RalphIterationEngine(stateManager, strategies, logger);
   const activeLoopStops = createActiveLoopStopRegistry();
 
+  async function ensureRealPrdOrOpenWizard(
+    workspaceFolder: vscode.WorkspaceFolder,
+    config: RalphCodexConfig,
+    progress: vscode.Progress<{ message?: string; increment?: number }>
+  ): Promise<boolean> {
+    const snapshot = await stateManager.ensureWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(snapshot.paths.logFilePath);
+
+    const prdText = await stateManager.readObjectiveText(snapshot.paths);
+    if (!isMissingOrDefaultPrd(prdText, stateManager)) {
+      return true;
+    }
+
+    progress.report({ message: 'Opening PRD wizard before provider execution' });
+    await openPrdCreationWizard(panelManager, workspaceFolder, config, snapshot.paths, logger, {
+      mode: 'new',
+      initialObjective: '',
+      initialPrdPreview: prdText,
+      initialStep: 1
+    });
+    void vscode.window.showWarningMessage(
+      'RalphDex needs a real PRD before running. The PRD wizard is open; finish it, then start the command again.'
+    );
+    return false;
+  }
+
   async function loadFocusedDiagnosis(workspaceFolder: vscode.WorkspaceFolder): Promise<DiagnosisSection | null> {
     const status = await collectStatusSnapshot(workspaceFolder, stateManager, logger);
     return buildDashboardSnapshot(status).diagnosis;
@@ -765,6 +803,10 @@ export function registerCommands(
     label: 'Ralphdex: Prepare Prompt',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const prepared = await engine.preparePrompt(workspaceFolder, progress);
       const recordState = await stateManager.recordPrompt(
         prepared.rootPath,
@@ -818,6 +860,10 @@ export function registerCommands(
     label: 'Ralphdex: Open Codex IDE',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const prepared = await engine.preparePrompt(workspaceFolder, progress);
       const strategy = strategies.getPromptHandoffStrategy(prepared.config.preferredHandoffMode);
       const result = await strategy.handoffPrompt?.({
@@ -862,6 +908,9 @@ export function registerCommands(
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
       broadcaster?.emitIterationStart({
         iteration: 0,
@@ -901,6 +950,9 @@ export function registerCommands(
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false,
         configOverrides: {
@@ -952,6 +1004,10 @@ export function registerCommands(
     label: 'Ralph: Run Watchdog Agent',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
+      const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false,
         configOverrides: {
@@ -980,6 +1036,9 @@ export function registerCommands(
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
       const run = await engine.runCliIteration(workspaceFolder, 'singleExec', progress, {
         reachedIterationCap: false,
         configOverrides: {
@@ -1027,9 +1086,12 @@ export function registerCommands(
     label: 'Ralphdex: Run CLI Loop',
     cancellable: true,
     handler: async (progress, token) => {
-      const stopHandle = activeLoopStops.begin();
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
+      const stopHandle = activeLoopStops.begin();
       const previousDiagnosisStamp = await readFocusedDiagnosisArtifactStamp(workspaceFolder, stateManager, logger);
       logger.show(false);
       logger.info('Starting Ralph loop.', {
@@ -1217,9 +1279,12 @@ export function registerCommands(
     label: 'Ralphdex: Run Multi-Agent Loop',
     cancellable: true,
     handler: async (progress, token) => {
-      const stopHandle = activeLoopStops.begin();
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
+      const stopHandle = activeLoopStops.begin();
       const agentCount = config.agentCount;
 
       logger.show(false);
@@ -1387,6 +1452,9 @@ export function registerCommands(
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
       const paths = resolveRalphPaths(workspaceFolder.uri.fsPath, config);
+      if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
+        return;
+      }
 
       progress.report({ message: 'Scaffolding pipeline: decomposing PRD into tasks' });
 

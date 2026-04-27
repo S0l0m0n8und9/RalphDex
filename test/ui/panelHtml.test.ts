@@ -339,6 +339,20 @@ test('buildPanelDashboardHtml renders populated agent, task, dead-letter, and fa
   assert.ok(html.includes('Open Settings'));
 });
 
+test('dashboard surfaces dead-letter recovery outside buried diagnostics', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dl-operational');
+
+  assert.ok(html.includes('dead-letter-recovery-card'), 'operational recovery card is rendered');
+  assert.ok(html.includes('data-section="dead-letter-diagnostics"'), 'diagnostics details may still exist');
+  assert.ok(
+    html.indexOf('dead-letter-recovery-card') < html.indexOf('id="tab-diagnostics"'),
+    'recovery card should appear before the diagnostics tab markup'
+  );
+  assert.ok(html.includes('ralphCodex.requeueDeadLetterTask'), 'requeue action present');
+  assert.ok(html.includes('ralphCodex.openFailureDiagnosis'), 'open failure diagnosis action present');
+  assert.ok(html.includes('ralphCodex.autoRecoverTask'), 'auto recover action present');
+});
+
 test('buildPanelDashboardHtml prefers durable snapshot sections over empty-state placeholder copy when snapshot data exists', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-live');
 
