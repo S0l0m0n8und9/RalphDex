@@ -4238,6 +4238,150 @@ test('taskReadinessGate strict allows atomic shaped task without writing plan.md
   await assert.rejects(() => fs.stat(path.join(rootPath, '.ralph', 'artifacts', 'plans', 'T2', 'plan.md')));
 });
 
+test('taskReadinessGate strict allows clear atomic task when effective validation exists', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T2B',
+        title: 'Add health endpoint',
+        status: 'todo',
+        acceptance: ['GET /health returns 200']
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  let callCount = 0;
+  const { engine } = createEngine([{
+    run: async () => {
+      callCount += 1;
+      return {
+        lastMessage: completionReport({
+          selectedTaskId: 'T2B',
+          requestedStatus: 'in_progress',
+          progressNote: 'Implemented endpoint.'
+        })
+      };
+    }
+  }]);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'strict'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(callCount, 1, 'Strict atomic flow should use the discovered validation command and execute without planner call.');
+  assert.notEqual(run.result.executionStatus, 'skipped');
+  assert.equal(run.result.verification.effectiveValidationCommand, 'npm run test');
+  await assert.rejects(() => fs.stat(path.join(rootPath, '.ralph', 'artifacts', 'plans', 'T2B', 'plan.md')));
+});
+
+test('taskReadinessGate auto does not decompose clear atomic task', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T2D',
+        title: 'Add health endpoint',
+        status: 'todo',
+        acceptance: ['GET /health returns 200'],
+        validation: 'npm test'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  let callCount = 0;
+  const { engine } = createEngine([{
+    run: async () => {
+      callCount += 1;
+      return {
+        lastMessage: completionReport({
+          selectedTaskId: 'T2D',
+          requestedStatus: 'in_progress',
+          progressNote: 'Implemented endpoint.'
+        })
+      };
+    }
+  }]);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'auto'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(callCount, 1, 'Auto atomic flow should execute the implementer without a planning/decomposition call.');
+  assert.notEqual(run.result.stopReason, 'planning_gate_decomposed');
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  assert.equal(taskFile.tasks.some((task) => task.parentId === 'T2D'), false);
+  await assert.rejects(() => fs.stat(path.join(rootPath, '.ralph', 'artifacts', 'plans', 'T2D', 'plan.md')));
+});
+
+test('taskReadinessGate strict stops vague task with no validation path', async () => {
+  const rootPath = await makeTempRoot();
+  await fs.mkdir(path.join(rootPath, '.ralph'), { recursive: true });
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Product\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n', 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
+    version: 2,
+    tasks: [{ id: 'T2C', title: 'Build the app and deploy everything', status: 'todo' }]
+  }, null, 2), 'utf8');
+  await initGitRepo(rootPath);
+
+  let callCount = 0;
+  const { engine } = createEngine([{
+    run: async () => {
+      callCount += 1;
+      return {
+        lastMessage: JSON.stringify({
+          reasoning: 'Planner thinks it can proceed.',
+          approach: 'Do work.',
+          steps: ['work'],
+          risks: [],
+          readiness: 'ready'
+        })
+      };
+    }
+  }]);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'strict'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  assert.equal(callCount, 1, 'Only the planning pass should run.');
+  assert.equal(run.result.executionStatus, 'skipped');
+  assert.equal(run.result.stopReason, 'planning_gate_blocked');
+  assert.match(run.result.summary ?? '', /Planning gate blocked task before provider execution/i);
+});
+
 test('planning gate stop writes iteration and latest result surfaces', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, { version: 2, tasks: [{ id: 'T9', title: 'Huge platform task', status: 'todo' }] });
@@ -4265,6 +4409,32 @@ test('planning gate stop writes iteration and latest result surfaces', async () 
   assert.equal((await fs.stat(iterResult)).isFile(), true);
   assert.equal((await fs.stat(latestResult)).isFile(), true);
   assert.equal((await fs.stat(gateResult)).isFile(), true);
+});
+
+test('planning gate summary wording says before provider execution', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, { version: 2, tasks: [{ id: 'T9B', title: 'Huge platform task', status: 'todo' }] });
+  await initGitRepo(rootPath);
+  const { engine } = createEngine([{
+    run: async () => ({
+      lastMessage: JSON.stringify({
+        reasoning: 'Too broad.',
+        approach: 'Split first.',
+        steps: ['split'],
+        risks: [],
+        readiness: 'needs_decomposition',
+        readinessReason: 'Broad first task.',
+        suggestedChildTasks: [{ id: 'T9B.1', title: 'First slice', parentId: 'T9B', dependsOn: [], validation: 'npm test', rationale: 'bounded' }]
+      })
+    })
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({ planningPass: { enabled: true, mode: 'inline' }, taskReadinessGate: 'auto' });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.match(run.result.summary ?? '', /Planning gate decomposed broad task before provider execution/i);
+  assert.doesNotMatch(run.result.summary ?? '', /failure|verifier|provider execution occurred/i);
 });
 
 test('warn and auto-ready modes inject planning context into implementer prompt', async () => {
@@ -4300,6 +4470,78 @@ test('warn and auto-ready modes inject planning context into implementer prompt'
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
   assert.ok(seenPrompts.some((prompt) => /Readiness advisory/i.test(prompt)));
+});
+
+test('taskReadinessGate warn records deterministic diagnostic and continues', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T10B', title: 'Build the app and tests', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+  const { engine } = createEngine([
+    {
+      run: async () => ({
+        lastMessage: JSON.stringify({
+          reasoning: 'Planner says ready.',
+          approach: 'Proceed.',
+          steps: ['Do work'],
+          risks: [],
+          readiness: 'ready'
+        })
+      })
+    },
+    {
+      run: async () => ({ lastMessage: completionReport({ selectedTaskId: 'T10B', requestedStatus: 'in_progress' }) })
+    }
+  ]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({ planningPass: { enabled: true, mode: 'inline' }, taskReadinessGate: 'warn' });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.notEqual(run.result.executionStatus, 'skipped');
+  assert.ok(run.result.warnings.some((warning) => /Planning gate warning recorded; execution continued/i.test(warning)));
+});
+
+test('greenfield planning decomposition caps children and links plan doc context', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T10C', title: 'Build the app end-to-end', status: 'todo' }]
+  });
+  await fs.rm(path.join(rootPath, 'src'), { recursive: true, force: true });
+  await initGitRepo(rootPath);
+  const { engine } = createEngine([{
+    run: async () => ({
+      lastMessage: JSON.stringify({
+        reasoning: 'Greenfield task is broad.',
+        approach: 'Create the smallest safe sequence.',
+        steps: ['define', 'scaffold', 'smoke'],
+        risks: [],
+        readiness: 'needs_decomposition',
+        readinessReason: 'Greenfield bootstrap risk.',
+        suggestedChildTasks: [
+          { id: 'T10C.1', title: 'Define project envelope', parentId: 'T10C', dependsOn: [], validation: null, rationale: 'Bound conventions.', acceptance: ['Envelope is documented.'] },
+          { id: 'T10C.2', title: 'Create minimal runnable scaffold', parentId: 'T10C', dependsOn: [{ taskId: 'T10C.1', reason: 'blocks_sequence' }], validation: 'npm run test', rationale: 'Make the project runnable.', acceptance: ['Scaffold starts.'] },
+          { id: 'T10C.3', title: 'Add first smoke test', parentId: 'T10C', dependsOn: [{ taskId: 'T10C.2', reason: 'blocks_sequence' }], validation: 'npm run test', rationale: 'Confirm runnable baseline.', acceptance: ['Smoke test passes.'] }
+        ]
+      })
+    })
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'auto',
+    maxGeneratedChildren: 2
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+  const children = taskFile.tasks.filter((task) => task.parentId === 'T10C');
+  assert.equal(children.length, 2);
+  assert.ok(children.every((child) => (child.context ?? []).some((entry) => /artifacts\/plans\/T10C\/plan\.md#task-\d+$/.test(entry))));
 });
 
 test('stale task-plan is ignored for gating and regenerated', async () => {

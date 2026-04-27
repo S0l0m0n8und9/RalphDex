@@ -491,6 +491,32 @@ When `taskReadinessGate != off`, Ralph runs readiness planning even if `planning
 
 Planning-gate stops are pre-execution readiness outcomes, not implementer failures. They persist planning artifacts (including readiness fields) and stop cleanly so the next normal iteration can pick the first actionable child task.
 
+### Greenfield Readiness
+
+Broad first tasks fail because the implementer has to invent project boundaries, create a scaffold, choose validation, write features, add tests, and sometimes document or deploy in one pass. That makes the next execution hard to verify and tends to produce large, low-signal changes. The readiness gate uses deterministic task-shape diagnostics plus planner output to keep only the minimum planning needed before provider execution.
+
+Recommended settings:
+
+- `taskReadinessGate=warn`: observe readiness diagnostics while execution continues.
+- `taskReadinessGate=auto`: trust Ralph to apply valid bounded child tasks when broad greenfield work needs decomposition.
+- `taskReadinessGate=strict`: stop vague or unverifiable starter tasks before provider execution for tight control.
+
+Bad starter tasks:
+
+- "Build the app"
+- "Create platform"
+- "Implement foundation and set up auth, database, routing, tests, and deployment"
+
+Better starter tasks:
+
+- "Define project envelope and conventions"
+- "Create minimal runnable scaffold"
+- "Add first smoke test"
+- "Implement smallest vertical slice"
+- "Promote smoke test to full validation gate"
+
+These are examples, not a required five-step sequence. In `auto` and `strict`, planning should generate only the smallest useful next sequence and stay capped by `ralphCodex.maxGeneratedChildren`.
+
 ### Inline Mode
 
 `ralphCodex.planningPass.mode = 'inline'` (the default when enabled): the implementer agent runs a short planning turn before the main implementation turn. This results in **two LLM calls per task**. Ralph parses the planning response and injects a "Task Plan" context section into the implementation prompt. No extra CLI iteration is required.
@@ -509,7 +535,7 @@ cat .ralph/artifacts/<taskId>/task-plan.json
 
 The artifact contains `reasoning`, `approach`, `steps` (array), `risks` (array), optional `suggestedValidationCommand`, readiness fields (`readiness`, `readinessReason`), and optional decomposition/guardrail suggestions (`suggestedChildTasks`, `suggestedAcceptance`, `suggestedConstraints`). If the file is absent after a dedicated-mode planning iteration, inspect `.ralph/artifacts/latest-summary.md` to confirm the planner agent's iteration ran and completed.
 
-Planning-gate decomposition is pre-execution; repeated-stop remediation decomposition is post-failure recovery. They share the same `RalphSuggestedChildTask` schema and task-file apply path, but occur at different lifecycle phases.
+Planning-gate decomposition is pre-execution: it happens before the implementer provider runs. Repeated-stop remediation decomposition is post-failure recovery: it happens after verifier or progress evidence shows the current task is stuck. They share the same `RalphSuggestedChildTask` schema and task-file apply path, but occur at different lifecycle phases.
 
 When planning-gate decomposition writes child tasks, each child carries a planning-doc backlink via `context[]` (for example `.ralph/artifacts/plans/<taskId>/plan.md#task-1`) so implementation/review passes can trace the decomposition rationale without introducing a new task schema field.
 

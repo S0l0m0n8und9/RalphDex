@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import test from 'node:test';
 import {
+  analyzeTaskShape,
   formatTaskPlanContext,
   parsePlanningResponse,
   readTaskPlan,
@@ -191,4 +192,119 @@ test('formatTaskPlanContext returns empty string for empty plan content', () => 
   };
   const output = formatTaskPlanContext(plan);
   assert.equal(output, '');
+});
+
+// -- deterministic task-shape diagnostics --
+
+test('analyzeTaskShape detects missing acceptance criteria', () => {
+  const result = analyzeTaskShape({
+    task: { id: 'T1', title: 'Add health endpoint', status: 'todo', validation: 'npm test' },
+    effectiveValidationCommand: 'npm test'
+  });
+
+  assert.equal(result.findings.some((finding) => finding.code === 'missing_acceptance'), true);
+  assert.equal(result.recommendedAction, 'warn');
+});
+
+test('analyzeTaskShape detects missing validation command', () => {
+  const result = analyzeTaskShape({
+    task: { id: 'T1', title: 'Add health endpoint', status: 'todo', acceptance: ['GET /health returns 200'] }
+  });
+
+  assert.equal(result.findings.some((finding) => finding.code === 'missing_validation'), true);
+  assert.equal(result.recommendedAction, 'warn');
+});
+
+test('analyzeTaskShape detects broad and compound task titles', () => {
+  const result = analyzeTaskShape({
+    task: {
+      id: 'T1',
+      title: 'Build the app and set up auth/database/routing/tests/deployment',
+      status: 'todo',
+      acceptance: ['App runs'],
+      validation: 'npm test'
+    },
+    effectiveValidationCommand: 'npm test'
+  });
+
+  assert.equal(result.atomicity, 'epic');
+  assert.equal(result.findings.some((finding) => finding.code === 'broad_scope'), true);
+  assert.equal(result.findings.some((finding) => finding.code === 'compound_title'), true);
+  assert.equal(result.recommendedAction, 'decompose');
+});
+
+test('analyzeTaskShape detects greenfield broad first task', () => {
+  const result = analyzeTaskShape({
+    task: {
+      id: 'T1',
+      title: 'Implement foundation',
+      status: 'todo',
+      acceptance: ['Foundation exists'],
+      validation: 'npm test'
+    },
+    effectiveValidationCommand: 'npm test',
+    workspaceScan: {
+      packageJson: { name: 'empty', packageManager: null, hasWorkspaces: false, scriptNames: ['test'], lifecycleCommands: ['npm test'], validationCommands: ['npm test'], testSignals: [] },
+      manifests: ['package.json'],
+      sourceRoots: [],
+      tests: [],
+      projectMarkers: ['package.json'],
+      validationCommands: ['npm test'],
+      packageManagers: ['npm']
+    }
+  });
+
+  assert.equal(result.findings.some((finding) => finding.code === 'greenfield_bootstrap_risk'), true);
+  assert.equal(result.recommendedAction, 'decompose');
+});
+
+test('analyzeTaskShape detects missing package script referenced by validation', () => {
+  const result = analyzeTaskShape({
+    task: {
+      id: 'T1',
+      title: 'Add build check',
+      status: 'todo',
+      acceptance: ['Build check exists'],
+      validation: 'npm run validate'
+    },
+    effectiveValidationCommand: 'npm run validate',
+    workspaceScan: {
+      packageJson: { name: 'demo', packageManager: null, hasWorkspaces: false, scriptNames: ['test'], lifecycleCommands: ['npm test'], validationCommands: ['npm test'], testSignals: [] },
+      manifests: ['package.json'],
+      sourceRoots: ['src'],
+      tests: ['test'],
+      projectMarkers: ['package.json', 'src', 'test'],
+      validationCommands: ['npm test'],
+      packageManagers: ['npm']
+    }
+  });
+
+  assert.equal(result.findings.some((finding) => finding.code === 'missing_package_script'), true);
+  assert.equal(result.recommendedAction, 'block_or_review');
+});
+
+test('analyzeTaskShape does not flag a small existing-repo task with acceptance and validation', () => {
+  const result = analyzeTaskShape({
+    task: {
+      id: 'T1',
+      title: 'Add health endpoint',
+      status: 'todo',
+      acceptance: ['GET /health returns 200'],
+      validation: 'npm test'
+    },
+    effectiveValidationCommand: 'npm test',
+    workspaceScan: {
+      packageJson: { name: 'demo', packageManager: null, hasWorkspaces: false, scriptNames: ['test'], lifecycleCommands: ['npm test'], validationCommands: ['npm test'], testSignals: [] },
+      manifests: ['package.json'],
+      sourceRoots: ['src'],
+      tests: ['test'],
+      projectMarkers: ['package.json', 'src', 'test'],
+      validationCommands: ['npm test'],
+      packageManagers: ['npm']
+    }
+  });
+
+  assert.equal(result.atomicity, 'atomic');
+  assert.deepEqual(result.findings, []);
+  assert.equal(result.recommendedAction, 'execute');
 });
