@@ -240,3 +240,57 @@ test('parseCompletionReport rejects suggestedChildTasks array exceeding size cap
   assert.equal(parsed.status, 'invalid');
   assert.match(parsed.parseError ?? '', /suggestedChildTasks/);
 });
+
+test('parseCompletionReport preserves validationRan when it is a string array', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    JSON.stringify({
+      selectedTaskId: 'T1',
+      requestedStatus: 'done',
+      validationRan: ['npm run compile', '  npm test  ']
+    }),
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.validationRan, 'npm run compile; npm test');
+});
+
+test('parseCompletionReport produces a truthy validationRan from string[] enabling already_satisfied promotion', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    JSON.stringify({
+      selectedTaskId: 'T1',
+      requestedStatus: 'done',
+      progressNote: 'No changes required, task was already satisfied.',
+      validationRan: ['npm run compile', 'npm test']
+    }),
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  // Boolean(validationRan) must be true for OutcomeClassifier to promote complete→already_satisfied
+  assert.ok(Boolean(parsed.report?.validationRan), 'validationRan from array must be truthy');
+});
+
+test('parseCompletionReport ignores invalid validationRan values safely', () => {
+  const invalidValues = [42, true, { cmd: 'npm test' }, null, []];
+  for (const invalid of invalidValues) {
+    const parsed = parseCompletionReport([
+      '```json',
+      JSON.stringify({
+        selectedTaskId: 'T1',
+        requestedStatus: 'done',
+        validationRan: invalid
+      }),
+      '```'
+    ].join('\n'));
+
+    assert.equal(parsed.status, 'parsed', `should parse for validationRan=${JSON.stringify(invalid)}`);
+    assert.equal(
+      parsed.report?.validationRan,
+      undefined,
+      `validationRan should be undefined for invalid value ${JSON.stringify(invalid)}`
+    );
+  }
+});

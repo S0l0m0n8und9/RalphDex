@@ -29,6 +29,19 @@ function isAllowedWatchdogActionType(value) {
 function isAllowedWatchdogActionSeverity(value) {
     return value === 'MEDIUM' || value === 'HIGH' || value === 'CRITICAL';
 }
+function parseValidationRan(value) {
+    if (typeof value === 'string') {
+        return sanitizeCompletionText(value);
+    }
+    if (Array.isArray(value)) {
+        const commands = value
+            .filter((item) => typeof item === 'string')
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0);
+        return commands.length > 0 ? sanitizeCompletionText(commands.join('; ')) : undefined;
+    }
+    return undefined;
+}
 function parseOptionalStringArray(value) {
     if (!Array.isArray(value)) {
         return undefined;
@@ -307,7 +320,7 @@ function parseCompletionReport(lastMessage) {
         requestedStatus: candidate.requestedStatus,
         progressNote: sanitizeCompletionText(typeof candidate.progressNote === 'string' ? candidate.progressNote : undefined),
         blocker: sanitizeCompletionText(typeof candidate.blocker === 'string' ? candidate.blocker : undefined),
-        validationRan: sanitizeCompletionText(typeof candidate.validationRan === 'string' ? candidate.validationRan : undefined),
+        validationRan: parseValidationRan(candidate.validationRan),
         needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
         suggestedChildTasks,
         watchdog_actions: watchdogActions,

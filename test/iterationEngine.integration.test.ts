@@ -1775,6 +1775,57 @@ test('runCliIteration reconciles done when validation passes but gitDiff shows n
   );
 });
 
+test('runCliIteration classifies already_satisfied when validationRan is a string array and no file changes occurred', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Task already complete, array validation evidence provided',
+        status: 'in_progress'
+      }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    verifierModes: ['validationCommand', 'gitDiff', 'taskState'],
+    gitCheckpointMode: 'off'
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = createEngine([
+    {
+      // Agent makes NO file changes — the task was already complete.
+      run: async () => ({
+        stdout: 'all checks pass, nothing to change',
+        lastMessage: completionReport({
+          selectedTaskId: 'T1',
+          requestedStatus: 'done',
+          progressNote: 'No changes required, task was already satisfied.',
+          validationRan: ['npm run compile', 'npm test']
+        }, 'All acceptance criteria already met.')
+      })
+    }
+  ]);
+
+  const summary = await run.engine.runCliIteration(workspaceFolder(rootPath), 'singleExec', progressReporter(), {
+    reachedIterationCap: false
+  });
+
+  const taskFile = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as RalphTaskFile;
+
+  assert.equal(summary.result.completionReportStatus, 'applied');
+  assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
+  assert.equal(
+    summary.result.completionClassification,
+    'already_satisfied',
+    `validationRan array must be preserved so that already_satisfied promotion fires (got ${summary.result.completionClassification})`
+  );
+});
+
 test('runCliIteration does not mark a task done when the completion report requests done but verification fails', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
