@@ -612,6 +612,7 @@ test('command buttons use existing command IDs and MessageBridge path', () => {
 
   assert.ok(html.includes('ralphCodex.runRalphLoop'), 'runRalphLoop');
   assert.ok(html.includes('ralphCodex.runRalphIteration'), 'runRalphIteration');
+  assert.ok(html.includes('ralphCodex.generatePrompt'), 'generatePrompt');
   assert.ok(html.includes('ralphCodex.showRalphStatus'), 'showRalphStatus');
   assert.ok(html.includes('ralphCodex.openSettings'), 'openSettings');
   assert.ok(html.includes('ralphCodex.setProviderSecret'), 'setProviderSecret');
