@@ -6,10 +6,12 @@ import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import {
+  buildTaskSeedingPrompt,
   parseTaskSeedResponse,
   seedTasksFromRequest,
   TaskSeedingError
 } from '../src/ralph/taskSeeder';
+import { reviewGeneratedTaskShape } from '../src/ralph/taskGenerationReview';
 
 test('parseTaskSeedResponse forces todo status, preserves supported fields, and remaps colliding ids deterministically', () => {
   const response = [
@@ -95,7 +97,7 @@ test('seedTasksFromRequest writes a durable seeding artifact and returns append-
           tasks: [
             {
               id: 'T1',
-              title: 'Seed task engine',
+              title: 'Build the app and set up auth/database/routing/tests/deployment',
               status: 'todo',
               suggestedValidationCommand: 'npm run validate',
               acceptance: ['Writes durable artifact']
@@ -145,12 +147,119 @@ test('seedTasksFromRequest writes a durable seeding artifact and returns append-
     assert.ok(Array.isArray(artifact.launchMetadata.args), 'launch args should be persisted');
     assert.equal(artifact.taskDrafts.length, 1);
     assert.equal(artifact.taskDrafts[0]?.id, 'T2');
-    assert.equal(artifact.taskDrafts[0]?.title, 'Seed task engine');
+    assert.equal(artifact.taskDrafts[0]?.title, 'Build the app and set up auth/database/routing/tests/deployment');
     assert.deepEqual(artifact.taskDrafts[0]?.acceptance, ['Writes durable artifact']);
     assert.equal(artifact.taskDrafts[0]?.validation, 'npm run validate');
-    assert.equal(artifact.warnings.length, 1);
+    assert.equal(artifact.warnings.length, 4);
     assert.match(artifact.warnings[0] ?? '', /Remapped seeded task id "T1" to "T2"/);
+    assert.ok(artifact.warnings.some((warning) => /Task T2 "Build the app/.test(warning) && /broad/i.test(warning)));
+    assert.ok(artifact.warnings.some((warning) => /Task T2 "Build the app/.test(warning) && /greenfield/i.test(warning)));
   } finally {
     setProcessRunnerOverride(null);
   }
+});
+
+test('buildTaskSeedingPrompt asks for atomic readiness-shaped flat tasks', () => {
+  const capturedPrompt = buildTaskSeedingPrompt('Seed backlog tasks for prompt quality.');
+
+  assert.match(capturedPrompt, /atomic executable tasks over epics/i);
+  assert.match(capturedPrompt, /Each task should have one concern/i);
+  assert.match(capturedPrompt, /acceptance criteria/i);
+  assert.match(capturedPrompt, /suggestedValidationCommand/i);
+  assert.match(capturedPrompt, /Avoid titles containing "and", "then", "plus", "everything", "platform", "foundation"/i);
+  assert.match(capturedPrompt, /greenfield requests/i);
+  assert.match(capturedPrompt, /Do not blindly emit all five bootstrap tasks/i);
+  assert.match(capturedPrompt, /flat top-level tasks only/i);
+});
+
+test('reviewGeneratedTaskShape emits advisory warnings for broad greenfield tasks without failing', () => {
+  const warnings = reviewGeneratedTaskShape({
+    tasks: [{
+      id: 'T1',
+      title: 'Build the app and set up auth/database/routing/tests/deployment',
+      status: 'todo',
+      validation: 'npm test',
+      acceptance: ['App runs']
+    }],
+    workspaceScan: {
+      packageJson: { name: 'greenfield', packageManager: null, hasWorkspaces: false, scriptNames: ['test'], lifecycleCommands: ['npm test'], validationCommands: ['npm test'], testSignals: [] },
+      manifests: ['package.json'],
+      sourceRoots: [],
+      tests: [],
+      projectMarkers: ['package.json'],
+      validationCommands: ['npm test'],
+      packageManagers: ['npm']
+    }
+  });
+
+  assert.ok(warnings.some((warning) => /Task T1 "Build the app/.test(warning) && /broad/i.test(warning)));
+  assert.ok(warnings.some((warning) => /Task T1 "Build the app/.test(warning) && /greenfield/i.test(warning)));
+});
+
+test('reviewGeneratedTaskShape emits advisory warnings for missing acceptance and missing validation', () => {
+  const warnings = reviewGeneratedTaskShape({
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Add health endpoint',
+        status: 'todo',
+        validation: 'npm test'
+      },
+      {
+        id: 'T2',
+        title: 'Render health endpoint status',
+        status: 'todo',
+        acceptance: ['Status renders for healthy response']
+      }
+    ]
+  });
+
+  assert.ok(warnings.some((warning) => /Task T1 "Add health endpoint"/.test(warning) && /acceptance/i.test(warning)));
+  assert.ok(warnings.some((warning) => /Task T2 "Render health endpoint status"/.test(warning) && /validation/i.test(warning)));
+});
+
+test('reviewGeneratedTaskShape emits advisory warnings for validation scripts missing from package.json', () => {
+  const warnings = reviewGeneratedTaskShape({
+    tasks: [{
+      id: 'T1',
+      title: 'Add validation command wiring',
+      status: 'todo',
+      validation: 'npm run validate',
+      acceptance: ['Validation command is documented']
+    }],
+    workspaceScan: {
+      packageJson: { name: 'missing-script', packageManager: null, hasWorkspaces: false, scriptNames: ['test'], lifecycleCommands: ['npm test'], validationCommands: ['npm test'], testSignals: [] },
+      manifests: ['package.json'],
+      sourceRoots: ['src'],
+      tests: ['test'],
+      projectMarkers: ['package.json', 'src', 'test'],
+      validationCommands: ['npm test'],
+      packageManagers: ['npm']
+    }
+  });
+
+  assert.ok(warnings.some((warning) => /Task T1 "Add validation command wiring"/.test(warning) && /missing package script "validate"/i.test(warning)));
+});
+
+test('parseTaskSeedResponse keeps seeded output flat even when ids look hierarchical', () => {
+  const response = [
+    '```json',
+    JSON.stringify({
+      tasks: [
+        {
+          id: 'T1.1',
+          title: 'Add focused scaffold smoke test',
+          status: 'todo',
+          suggestedValidationCommand: 'npm test',
+          acceptance: ['Smoke test covers scaffold startup']
+        }
+      ]
+    }),
+    '```'
+  ].join('\n');
+
+  const parsed = parseTaskSeedResponse(response);
+
+  assert.equal(parsed.tasks[0]?.id, 'T1.1');
+  assert.equal(parsed.tasks[0]?.parentId, undefined);
 });

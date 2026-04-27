@@ -413,7 +413,7 @@ test('PrdCreationWizardHost: generate falls back to bootstrap draft on generatio
   assert.equal(state.generationState, 'fallback');
   assert.match(state.generationMessage ?? '', /CLI unavailable/);
   assert.match(state.draft.prdText, /Build a deterministic wizard/);
-  assert.equal(state.draft.tasks.length, 2, 'fallback should use bootstrap seed tasks');
+  assert.equal(state.draft.tasks.length, 4, 'fallback should use readiness-shaped bootstrap seed tasks');
 
   host.dispose();
 });
@@ -596,6 +596,51 @@ test('PrdCreationWizardHost: documentation fallback draft stays documentation-on
   assert.equal(state.draft.tasks.length, 2);
   assert.equal(state.draft.tasks[0]?.mode, 'documentation');
   assert.equal(state.draft.tasks[1]?.mode, 'documentation');
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: fallback starter tasks are readiness-shaped bootstrap steps', async () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => {
+      throw new ProjectGenerationError('CLI unavailable');
+    },
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, {
+    type: 'update-field',
+    field: 'objective',
+    value: 'Build a deterministic service for PRD task generation.'
+  });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    draft: PrdWizardDraftBundle;
+    taskReviewFindings?: Array<{ kind: string; message: string }>;
+  };
+
+  assert.equal(state.draft.tasks.length, 4, 'fallback should use the smallest useful bootstrap ladder, not a single build-the-app task');
+  assert.ok(!state.draft.tasks.some((task) => /build the app/i.test(task.title)));
+  for (const task of state.draft.tasks) {
+    assert.ok((task.acceptance ?? []).length > 0, `${task.id} should include acceptance criteria`);
+    assert.ok(task.validation, `${task.id} should include validation guidance`);
+    assert.ok((task.constraints ?? []).length > 0, `${task.id} should include constraints`);
+    assert.ok(task.tier, `${task.id} should include a tier`);
+  }
+
+  const taskMessages = (state.taskReviewFindings ?? []).map((finding) => finding.message);
+  assert.ok(!taskMessages.some((message) => /broad|greenfield|acceptance|validation/i.test(message)));
 
   host.dispose();
 });
@@ -852,6 +897,79 @@ test('PrdCreationWizardHost: task review persists dependencies, notes, and accep
     notes: 'Expanded operator notes.',
     acceptance: ['Acceptance one', 'Acceptance two']
   });
+
+  host.dispose();
+});
+
+test('PrdCreationWizardHost: generated starter tasks preserve readiness fields in review and write', async () => {
+  const webview = makeMockWebview();
+  let writeInput: PrdWizardDraftBundle | null = null;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generateDraft: async () => makeGeneratedDraft({
+      tasks: [
+        {
+          id: 'T1',
+          title: 'Create minimal runnable scaffold',
+          status: 'todo',
+          validation: 'npm test -- scaffold',
+          acceptance: ['Scaffold starts with one command'],
+          constraints: ['Do not add feature routes yet'],
+          context: ['package.json'],
+          tier: 'medium'
+        },
+        {
+          id: 'T2',
+          title: 'Add first smoke test',
+          status: 'todo',
+          dependsOn: ['T1'],
+          validation: 'npm test -- smoke',
+          acceptance: ['Smoke test fails on startup regression'],
+          constraints: ['Keep assertions limited to startup'],
+          tier: 'simple'
+        }
+      ]
+    }),
+    writeDraft: async (draft) => {
+      writeInput = draft;
+      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
+    }
+  });
+
+  webview.posted.length = 0;
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate readiness-shaped starter tasks.' });
+  webviewSends(webview, { type: 'generate-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const generatedState = lastStateMessage(webview).state as {
+    draft: PrdWizardDraftBundle;
+    taskReviewFindings?: Array<{ kind: string; message: string }>;
+  };
+  assert.deepEqual(generatedState.draft.tasks[0], {
+    id: 'T1',
+    title: 'Create minimal runnable scaffold',
+    status: 'todo',
+    validation: 'npm test -- scaffold',
+    acceptance: ['Scaffold starts with one command'],
+    constraints: ['Do not add feature routes yet'],
+    context: ['package.json'],
+    tier: 'medium'
+  });
+  assert.ok(!(generatedState.taskReviewFindings ?? []).some((finding) => /acceptance|validation/i.test(finding.message)));
+
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.ok(writeInput, 'confirm-write should pass generated readiness fields through');
+  const writtenDraft = writeInput as PrdWizardDraftBundle;
+  assert.deepEqual(writtenDraft.tasks[0], generatedState.draft.tasks[0]);
+  assert.deepEqual(writtenDraft.tasks[1]?.dependsOn, ['T1']);
 
   host.dispose();
 });

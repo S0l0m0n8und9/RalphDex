@@ -2417,7 +2417,12 @@ test('Add Task seeds provider-generated backlog tasks and persists a seeding art
       dependsOn: ['T2']
     }
   ]);
-  assert.equal(seedingArtifact.warnings.length, 2);
+  assert.equal(seedingArtifact.warnings.length, 5);
+  assert.ok(seedingArtifact.warnings.some((warning) => /Remapped seeded task id "T1" to "T2"/.test(warning)));
+  assert.ok(seedingArtifact.warnings.some((warning) => /Remapped seeded task id "T2" to "T3"/.test(warning)));
+  assert.ok(seedingArtifact.warnings.some((warning) => /Task T2 "Build task seeding helper"/.test(warning) && /acceptance/i.test(warning)));
+  assert.ok(seedingArtifact.warnings.some((warning) => /Task T3 "Wire Add Task through the seeding helper"/.test(warning) && /acceptance/i.test(warning)));
+  assert.ok(seedingArtifact.warnings.some((warning) => /Task T3 "Wire Add Task through the seeding helper"/.test(warning) && /validation/i.test(warning)));
   assert.deepEqual(harness.state.shownDocuments, [path.join(rootPath, '.ralph', 'tasks.json')]);
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Added 2 seeded task\(s\)/);
 });

@@ -5,6 +5,7 @@ import { SHARED_WEBVIEW_CSS } from './styles';
 import { ProjectGenerationError } from '../ralph/projectGenerator';
 import type { RalphTaskStatus } from '../ralph/types';
 import type { RalphNewTaskInput } from '../ralph/taskNormalization';
+import { reviewGeneratedTaskShape } from '../ralph/taskGenerationReview';
 import { buildBaseCss } from '../ui/htmlHelpers';
 
 export type PrdWizardMode = 'new' | 'regenerate';
@@ -120,13 +121,60 @@ function bootstrapSeedTasks(): PrdWizardTaskDraft[] {
   return [
     {
       id: 'T1',
-      title: 'Expand PRD into a full product requirements document',
-      status: 'todo'
+      title: 'Define project envelope',
+      status: 'todo',
+      notes: 'Convert the objective into a bounded PRD envelope with conventions, non-goals, and a smallest useful first slice.',
+      acceptance: [
+        'PRD records project type, scope, non-goals, and implementation conventions',
+        'PRD identifies the smallest useful vertical slice'
+      ],
+      constraints: ['Do not design the full product backlog in this task'],
+      context: ['.ralph/prd.md'],
+      validation: 'Review .ralph/prd.md for required sections',
+      tier: 'simple'
     },
     {
       id: 'T2',
-      title: 'Create a starter backlog from the expanded PRD',
-      status: 'todo'
+      title: 'Create minimal runnable scaffold',
+      status: 'todo',
+      dependsOn: ['T1'],
+      notes: 'Add only the files and commands needed to run the project shell for the selected stack.',
+      acceptance: [
+        'Repository has a minimal scaffold that starts or builds with one documented command',
+        'No feature behavior beyond the project shell is implemented'
+      ],
+      constraints: ['Avoid authentication, persistence, deployment, or multiple feature routes'],
+      context: ['package.json'],
+      validation: 'Run the scaffold start or build command documented in package.json',
+      tier: 'medium'
+    },
+    {
+      id: 'T3',
+      title: 'Add first smoke test',
+      status: 'todo',
+      dependsOn: ['T2'],
+      notes: 'Create the smallest test that proves the scaffold can start or render its initial shell.',
+      acceptance: [
+        'A smoke test fails when the scaffold startup path breaks',
+        'The smoke test command is documented on the task'
+      ],
+      constraints: ['Do not broaden into full unit or integration coverage yet'],
+      validation: 'Run the smoke test command',
+      tier: 'simple'
+    },
+    {
+      id: 'T4',
+      title: 'Implement smallest vertical slice',
+      status: 'todo',
+      dependsOn: ['T3'],
+      notes: 'Implement the first user-visible or API-visible behavior identified in the PRD envelope.',
+      acceptance: [
+        'The smallest PRD slice is usable end to end',
+        'Smoke test or focused validation covers the slice'
+      ],
+      constraints: ['Stop at one vertical slice and leave later capabilities as separate tasks'],
+      validation: 'Run the focused slice validation command',
+      tier: 'medium'
     }
   ];
 }
@@ -137,13 +185,21 @@ function bootstrapDocumentationSeedTasks(): PrdWizardTaskDraft[] {
       id: 'T1',
       title: 'Document the current repository structure and owned surfaces',
       status: 'todo',
-      mode: 'documentation'
+      mode: 'documentation',
+      acceptance: ['Repository structure documentation names owned source, test, and runtime artifact surfaces'],
+      constraints: ['Do not change source behavior'],
+      validation: 'Review the generated documentation against the current repository tree',
+      tier: 'simple'
     },
     {
       id: 'T2',
       title: 'Document the current workflows, commands, and operational boundaries',
       status: 'todo',
-      mode: 'documentation'
+      mode: 'documentation',
+      acceptance: ['Workflow documentation lists command entry points and operational boundaries'],
+      constraints: ['Do not invent unsupported commands or APIs'],
+      validation: 'Review documented commands against package.json and extension contributions',
+      tier: 'simple'
     }
   ];
 }
@@ -570,6 +626,13 @@ function analyzeTaskReviewFindings(tasks: PrdWizardTaskDraft[]): ReviewFinding[]
       message: 'Task review cannot write an empty task list.'
     });
     return findings;
+  }
+
+  for (const warning of reviewGeneratedTaskShape({ tasks })) {
+    findings.push({
+      kind: 'warning',
+      message: warning
+    });
   }
 
   const duplicatePairs = new Set<string>();

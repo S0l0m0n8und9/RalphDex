@@ -314,6 +314,8 @@ The canonical `RalphTask` interface lives in `src/ralph/types.ts`. The `SUPPORTE
 
 Operator-facing expectation: generated tasks should emerge from any supported producer path with the richest canonical shape that Ralph can prove at creation time, not an artificially reduced `id`/`title`/`status` subset. When a producer knows `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, or derives `dependsOn`/`mode` from a parent or scaffold context, those fields should survive into persisted `tasks.json` through the shared pipeline. Missing fields are still canonical only when the upstream producer genuinely lacked that information, when the field is in the leave-absent category below, or when a minimal producer such as the pipeline-root scaffold intentionally has only a narrower source payload.
 
+Task producers should create executable backlog items, not vague epics. PRD generation, wizard fallback drafts, and task seeding should prefer atomic tasks with acceptance criteria, validation guidance when knowable, constraints, and sequencing dependencies where order matters. The task readiness gate remains the execution-time safety net; generated-task warnings are advisory unless a future generation-review mode explicitly makes them blocking.
+
 ### Producer Entry Points
 
 New tasks enter the system through one of these paths. Every path terminates in `normalizeTask` (directly or via `normalizeNewTask`), which enforces the rules below.

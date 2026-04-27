@@ -1,10 +1,12 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { RalphCodexConfig } from '../config/types';
+import { scanWorkspace } from '../services/workspaceScanner';
 import { stableJson } from './integrity';
 import { normalizeTaskInputsForPersistence } from './taskCreation';
 import type { RalphNewTaskInput } from './taskNormalization';
 import { ProjectGenerationError, runPromptThroughConfiguredProvider } from './projectGenerator';
+import { reviewGeneratedTaskShape } from './taskGenerationReview';
 
 export class TaskSeedingError extends Error {
   public constructor(message: string) {
@@ -59,6 +61,14 @@ Requirements:
 - Each task object must include string fields "id" and "title".
 - Ralph will force every imported task status to "todo", so any emitted status is informational only.
 - Optional fields allowed when useful: "notes", "rationale", "dependsOn", "acceptance", "constraints", "context", "priority", "mode", "tier", and "suggestedValidationCommand".
+- Prefer atomic executable tasks over epics.
+- Each task should have one concern and one directly executable deliverable.
+- Each task should include acceptance criteria.
+- Each task should include suggestedValidationCommand where reasonably knowable.
+- Use constraints to prevent scope creep.
+- Avoid titles containing "and", "then", "plus", "everything", "platform", "foundation", or broad lifecycle bundles unless deliberately producing a planning/research task.
+- For greenfield requests, prefer a small bootstrap ladder: define project envelope and conventions; create minimal runnable scaffold; add first smoke test; implement smallest vertical slice; promote to full validation gate.
+- Do not blindly emit all five bootstrap tasks. Emit only the smallest useful sequence.
 - Keep fields concise, deterministic, and directly useful for autonomous execution.
 - Use flat top-level tasks only. Do not emit child task IDs like T1.1.
 
@@ -209,7 +219,7 @@ export function parseTaskSeedResponse(
   return normalizeSeedTaskIds(tasks, existingTaskIds);
 }
 
-function buildTaskSeedingPrompt(requestText: string): string {
+export function buildTaskSeedingPrompt(requestText: string): string {
   return TASK_SEEDING_PROMPT_TEMPLATE.replace('{REQUEST}', requestText.replace(/<\/request>/gi, '[/request]'));
 }
 
@@ -253,6 +263,14 @@ export async function seedTasksFromRequest(input: {
     throw new TaskSeedingError(error instanceof Error ? error.message : String(error));
   }
 
+  const workspaceScan = await scanWorkspace(input.cwd, path.basename(input.cwd));
+  const taskShapeWarnings = reviewGeneratedTaskShape({
+    tasks: parsed.tasks,
+    workspaceScan,
+    effectiveValidationCommand: workspaceScan.validationCommands[0] ?? null
+  });
+  const warnings = [...parsed.warnings, ...taskShapeWarnings];
+
   const artifact: TaskSeedingArtifact = {
     schemaVersion: 1,
     kind: 'taskSeeding',
@@ -269,13 +287,13 @@ export async function seedTasksFromRequest(input: {
       shell: execution.launchShell
     },
     taskDrafts: parsed.tasks,
-    warnings: parsed.warnings
+    warnings
   };
   const artifactPath = await writeTaskSeedingArtifact(input.artifactRootDir, artifact);
 
   return {
     tasks: parsed.tasks,
-    warnings: parsed.warnings,
+    warnings,
     artifactPath,
     artifact
   };
