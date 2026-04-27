@@ -60,7 +60,7 @@ function formatTrustLevel(value) {
         ? 'verified CLI execution'
         : 'prepared prompt only';
 }
-function artifactReferenceLines(paths, diffSummary) {
+function artifactReferenceLines(paths, diffSummary, hasRemediation) {
     const lines = [
         `- Prompt: ${paths.promptPath}`,
         `- Prompt evidence: ${paths.promptEvidencePath}`,
@@ -69,7 +69,7 @@ function artifactReferenceLines(paths, diffSummary) {
         `- Execution summary: ${paths.executionSummaryPath}`,
         `- Verifier summary: ${paths.verifierSummaryPath}`,
         `- Iteration result: ${paths.iterationResultPath}`,
-        `- Remediation proposal: ${paths.remediationPath}`,
+        `- Remediation proposal: ${hasRemediation ? paths.remediationPath : 'none'}`,
         `- Stdout: ${paths.stdoutPath}`,
         `- Stderr: ${paths.stderrPath}`,
         `- CLI invocation: ${paths.cliInvocationPath}`
@@ -183,7 +183,7 @@ function renderIterationSummary(input) {
         ...diffLines,
         '',
         '## Artifact Paths',
-        ...artifactReferenceLines(paths, diffSummary),
+        ...artifactReferenceLines(paths, diffSummary, result.remediation != null),
         '',
         '## Signals',
         `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,

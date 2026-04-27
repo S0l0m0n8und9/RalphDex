@@ -35,12 +35,15 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaskSeedingError = void 0;
 exports.parseTaskSeedResponse = parseTaskSeedResponse;
+exports.buildTaskSeedingPrompt = buildTaskSeedingPrompt;
 exports.seedTasksFromRequest = seedTasksFromRequest;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const workspaceScanner_1 = require("../services/workspaceScanner");
 const integrity_1 = require("./integrity");
 const taskCreation_1 = require("./taskCreation");
 const projectGenerator_1 = require("./projectGenerator");
+const taskGenerationReview_1 = require("./taskGenerationReview");
 class TaskSeedingError extends Error {
     constructor(message) {
         super(message);
@@ -63,6 +66,14 @@ Requirements:
 - Each task object must include string fields "id" and "title".
 - Ralph will force every imported task status to "todo", so any emitted status is informational only.
 - Optional fields allowed when useful: "notes", "rationale", "dependsOn", "acceptance", "constraints", "context", "priority", "mode", "tier", and "suggestedValidationCommand".
+- Prefer atomic executable tasks over epics.
+- Each task should have one concern and one directly executable deliverable.
+- Each task should include acceptance criteria.
+- Each task should include suggestedValidationCommand where reasonably knowable.
+- Use constraints to prevent scope creep.
+- Avoid titles containing "and", "then", "plus", "everything", "platform", "foundation", or broad lifecycle bundles unless deliberately producing a planning/research task.
+- For greenfield requests, prefer a small bootstrap ladder: define project envelope and conventions; create minimal runnable scaffold; add first smoke test; implement smallest vertical slice; promote to full validation gate.
+- Do not blindly emit all five bootstrap tasks. Emit only the smallest useful sequence.
 - Keep fields concise, deterministic, and directly useful for autonomous execution.
 - Use flat top-level tasks only. Do not emit child task IDs like T1.1.
 
@@ -217,6 +228,13 @@ async function seedTasksFromRequest(input) {
     catch (error) {
         throw new TaskSeedingError(error instanceof Error ? error.message : String(error));
     }
+    const workspaceScan = await (0, workspaceScanner_1.scanWorkspace)(input.cwd, path.basename(input.cwd));
+    const taskShapeWarnings = (0, taskGenerationReview_1.reviewGeneratedTaskShape)({
+        tasks: parsed.tasks,
+        workspaceScan,
+        effectiveValidationCommand: workspaceScan.validationCommands[0] ?? null
+    });
+    const warnings = [...parsed.warnings, ...taskShapeWarnings];
     const artifact = {
         schemaVersion: 1,
         kind: 'taskSeeding',
@@ -233,12 +251,12 @@ async function seedTasksFromRequest(input) {
             shell: execution.launchShell
         },
         taskDrafts: parsed.tasks,
-        warnings: parsed.warnings
+        warnings
     };
     const artifactPath = await writeTaskSeedingArtifact(input.artifactRootDir, artifact);
     return {
         tasks: parsed.tasks,
-        warnings: parsed.warnings,
+        warnings,
         artifactPath,
         artifact
     };

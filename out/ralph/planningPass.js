@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.analyzeTaskShape = analyzeTaskShape;
 exports.isDedicatedPlanningFallbackSingleAgent = isDedicatedPlanningFallbackSingleAgent;
 exports.shouldRequireTaskPlanForSelection = shouldRequireTaskPlanForSelection;
 exports.shouldRunInlinePlanningPassForConfig = shouldRunInlinePlanningPassForConfig;
@@ -42,6 +43,153 @@ exports.readTaskPlan = readTaskPlan;
 exports.formatTaskPlanContext = formatTaskPlanContext;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const BROAD_SCOPE_PATTERNS = [
+    { pattern: /\bbuild\s+the\s+app\b/i, label: 'build the app' },
+    { pattern: /\bcreate\s+(?:the\s+)?platform\b/i, label: 'create platform' },
+    { pattern: /\bimplement\s+foundation\b/i, label: 'implement foundation' },
+    { pattern: /\bfull\s+scaffold\b/i, label: 'full scaffold' },
+    { pattern: /\bend-to-end\b/i, label: 'end-to-end' },
+    { pattern: /\beverything\b/i, label: 'everything' },
+    { pattern: /\bset\s+up\b.*\b(?:auth|authentication)\b.*\b(?:database|routing|tests?|deployment)\b/i, label: 'set up auth/database/routing/tests/deployment' }
+];
+const COMPOUND_SCOPE_PATTERNS = [
+    /\band\b/i,
+    /\bthen\b/i,
+    /\bplus\b/i,
+    /\bfrom\b.+\bthrough\b/i
+];
+function addFinding(findings, finding) {
+    if (findings.some((existing) => existing.code === finding.code && existing.message === finding.message)) {
+        return;
+    }
+    findings.push(finding);
+}
+function hasAcceptance(input) {
+    return (input.task.acceptance ?? []).some((entry) => entry.trim().length > 0)
+        || (input.suggestedAcceptance ?? []).some((entry) => entry.trim().length > 0);
+}
+function selectedValidationCommand(input) {
+    return input.task.validation?.trim()
+        || input.plannerSuggestedValidationCommand?.trim()
+        || input.effectiveValidationCommand?.trim()
+        || null;
+}
+function isLargeCommaSeparatedScope(text) {
+    return text.split(',').filter((part) => part.trim().length > 0).length >= 4;
+}
+function hasPlanningScaffoldImplementationTestDocsDeploymentMix(text) {
+    const groups = [
+        /\b(plan|design|define|conventions?)\b/i,
+        /\b(scaffold|bootstrap|foundation|setup|set up)\b/i,
+        /\b(implement|build|create|add)\b/i,
+        /\b(test|tests|validation|validate)\b/i,
+        /\b(doc|docs|documentation|deploy|deployment)\b/i
+    ];
+    return groups.filter((pattern) => pattern.test(text)).length >= 4;
+}
+function isGreenfieldLike(scan) {
+    if (!scan) {
+        return false;
+    }
+    const sourceRoots = scan.sourceRoots ?? [];
+    const tests = scan.tests ?? [];
+    const projectMarkers = scan.projectMarkers ?? [];
+    const manifests = scan.manifests ?? [];
+    const onlyManifestSignals = projectMarkers.length <= 1 && manifests.length <= 1;
+    return sourceRoots.length === 0 && tests.length === 0 && onlyManifestSignals;
+}
+function packageScriptReferencedBy(command) {
+    const trimmed = command.trim();
+    const npmRun = /^(?:npm|pnpm|bun)\s+run\s+([A-Za-z0-9:_-]+)/.exec(trimmed);
+    if (npmRun) {
+        return npmRun[1];
+    }
+    const npmShortcut = /^(?:npm|pnpm|yarn)\s+(test|build|validate|lint|typecheck)\b/.exec(trimmed);
+    if (npmShortcut) {
+        return npmShortcut[1];
+    }
+    const yarnRun = /^yarn\s+([A-Za-z0-9:_-]+)/.exec(trimmed);
+    if (yarnRun && yarnRun[1] !== 'run') {
+        return yarnRun[1];
+    }
+    return null;
+}
+function analyzeTaskShape(input) {
+    const findings = [];
+    const taskText = `${input.task.title} ${input.task.notes ?? ''}`.trim();
+    const validation = selectedValidationCommand(input);
+    if (!hasAcceptance(input)) {
+        addFinding(findings, {
+            code: 'missing_acceptance',
+            severity: 'warning',
+            message: 'Selected task has no acceptance criteria.'
+        });
+    }
+    if (!validation) {
+        addFinding(findings, {
+            code: 'missing_validation',
+            severity: 'warning',
+            message: 'No task-level, planner-suggested, or effective validation command is available.'
+        });
+    }
+    const broadLabels = BROAD_SCOPE_PATTERNS
+        .filter(({ pattern }) => pattern.test(taskText))
+        .map(({ label }) => label);
+    if (broadLabels.length > 0 || hasPlanningScaffoldImplementationTestDocsDeploymentMix(taskText)) {
+        addFinding(findings, {
+            code: 'broad_scope',
+            severity: 'blocking',
+            message: `Task scope appears broad (${broadLabels.join(', ') || 'multiple lifecycle concerns'}).`
+        });
+    }
+    const compoundSignals = COMPOUND_SCOPE_PATTERNS.some((pattern) => pattern.test(taskText)) || isLargeCommaSeparatedScope(taskText);
+    if (compoundSignals) {
+        addFinding(findings, {
+            code: 'compound_title',
+            severity: 'warning',
+            message: 'Task title or notes appear to combine multiple clauses or scopes.'
+        });
+    }
+    if (isGreenfieldLike(input.workspaceScan) && findings.some((finding) => finding.code === 'broad_scope' || finding.code === 'compound_title')) {
+        addFinding(findings, {
+            code: 'greenfield_bootstrap_risk',
+            severity: 'blocking',
+            message: 'Repository appears greenfield or near-empty while the selected first task is broad.'
+        });
+    }
+    const referencedScript = validation ? packageScriptReferencedBy(validation) : null;
+    const scriptNames = input.workspaceScan?.packageJson?.scriptNames ?? [];
+    if (referencedScript && input.workspaceScan?.packageJson && !scriptNames.includes(referencedScript)) {
+        addFinding(findings, {
+            code: 'missing_package_script',
+            severity: 'blocking',
+            message: `Validation command references missing package script "${referencedScript}".`
+        });
+    }
+    const hasBroad = findings.some((finding) => finding.code === 'broad_scope');
+    const hasCompound = findings.some((finding) => finding.code === 'compound_title');
+    const hasGreenfieldRisk = findings.some((finding) => finding.code === 'greenfield_bootstrap_risk');
+    const hasBlockingValidation = findings.some((finding) => finding.code === 'missing_package_script');
+    const atomicity = hasGreenfieldRisk || hasBroad
+        ? 'epic'
+        : hasCompound
+            ? 'compound'
+            : findings.some((finding) => finding.code === 'missing_acceptance' || finding.code === 'missing_validation')
+                ? 'unknown'
+                : 'atomic';
+    const recommendedAction = hasBlockingValidation
+        ? 'block_or_review'
+        : hasGreenfieldRisk || hasBroad
+            ? 'decompose'
+            : findings.length > 0
+                ? 'warn'
+                : 'execute';
+    return {
+        atomicity,
+        findings,
+        recommendedAction
+    };
+}
 function isImplementerLikeRole(agentRole) {
     return agentRole === 'implementer' || agentRole === 'build';
 }

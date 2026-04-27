@@ -691,7 +691,7 @@ function buildPriorIterationContext(state, includeVerifierFeedback, budget, root
             text: `- Prior validation failure signature: ${formatOptional(prior.verification.validationFailureSignature)}`
         });
     }
-    if (prior.stopReason && (remediationRelevant || prior.completionClassification !== 'complete')) {
+    if (prior.stopReason && (remediationRelevant || (prior.completionClassification !== 'complete' && prior.completionClassification !== 'already_satisfied'))) {
         lineEntries.push({ priority: 90, text: `- Prior stop reason: ${formatOptional(prior.stopReason)}` });
     }
     if (prior.followUpAction !== 'stop' || remediationRelevant) {
@@ -1154,7 +1154,7 @@ function decidePromptKind(state, target, context) {
             reason: 'The previous iteration recorded partial progress, so the next prompt should continue from that durable state.'
         };
     }
-    if (lastIteration?.completionClassification === 'complete'
+    if ((lastIteration?.completionClassification === 'complete' || lastIteration?.completionClassification === 'already_satisfied')
         && lastIteration.stopReason === 'no_actionable_task') {
         return {
             kind: 'iteration',

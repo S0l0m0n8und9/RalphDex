@@ -391,3 +391,100 @@ test('reconcileCompletionReport rejects reviewer proposing suggestedChildTasks (
   assert.equal(result.artifact.rejectionReason, 'policy_violation');
   assert.equal(result.artifact.needsHumanReview, true);
 });
+
+// --- Fix 4: planner_suggested_stronger_validation_not_used warning ---
+
+test('reconcileCompletionReport emits planner_suggested_stronger_validation_not_used when plan suggests superset command', async () => {
+  const ws = await makeTestWorkspace();
+  const taskPlanDir = path.join(ws.artifactDir, TASK_ID);
+  await fs.mkdir(taskPlanDir, { recursive: true });
+  const taskPlanPath = path.join(taskPlanDir, 'task-plan.json');
+  const baseCommand = 'npm run build';
+  const strongerCommand = 'npm run build && npm test';
+
+  // Write a task-plan.json with a suggestedValidationCommand that is a superset
+  await fs.writeFile(taskPlanPath, JSON.stringify({
+    reasoning: 'plan',
+    approach: 'build',
+    steps: [],
+    risks: [],
+    suggestedValidationCommand: strongerCommand
+  }));
+
+  const reportJson = JSON.stringify({
+    selectedTaskId: TASK_ID,
+    requestedStatus: 'in_progress',
+    progressNote: 'Still working'
+  });
+  const lastMessage = `Work in progress.\n\n\`\`\`json\n${reportJson}\n\`\`\``;
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    lastMessage,
+    prepared: {
+      ...makeInput(ws).prepared,
+      validationCommand: baseCommand
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+
+  const hint = result.warnings.find((w) => w.includes('planner_suggested_stronger_validation_not_used'));
+  assert.ok(hint, 'expected planner_suggested_stronger_validation_not_used warning');
+  assert.match(hint ?? '', /npm run build && npm test/);
+});
+
+test('reconcileCompletionReport does not emit planner_suggested_stronger_validation_not_used when commands are identical', async () => {
+  const ws = await makeTestWorkspace();
+  const taskPlanDir = path.join(ws.artifactDir, TASK_ID);
+  await fs.mkdir(taskPlanDir, { recursive: true });
+  const taskPlanPath = path.join(taskPlanDir, 'task-plan.json');
+  const command = 'npm run build';
+
+  await fs.writeFile(taskPlanPath, JSON.stringify({
+    reasoning: 'plan',
+    approach: 'build',
+    steps: [],
+    risks: [],
+    suggestedValidationCommand: command
+  }));
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    prepared: {
+      ...makeInput(ws).prepared,
+      validationCommand: command
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+  const hint = result.warnings.find((w) => w.includes('planner_suggested_stronger_validation_not_used'));
+  assert.equal(hint, undefined);
+});
+
+test('reconcileCompletionReport does not emit planner_suggested_stronger_validation_not_used when plan command is not a superset', async () => {
+  const ws = await makeTestWorkspace();
+  const taskPlanDir = path.join(ws.artifactDir, TASK_ID);
+  await fs.mkdir(taskPlanDir, { recursive: true });
+  const taskPlanPath = path.join(taskPlanDir, 'task-plan.json');
+
+  await fs.writeFile(taskPlanPath, JSON.stringify({
+    reasoning: 'plan',
+    approach: 'build',
+    steps: [],
+    risks: [],
+    suggestedValidationCommand: 'npm test'  // not a superset of 'npm run build'
+  }));
+
+  const input: ReconcileCompletionReportInput = {
+    ...makeInput(ws),
+    prepared: {
+      ...makeInput(ws).prepared,
+      validationCommand: 'npm run build'
+    } as unknown as ReconcileCompletionReportInput['prepared']
+  };
+
+  const result = await reconcileCompletionReport(input);
+  const hint = result.warnings.find((w) => w.includes('planner_suggested_stronger_validation_not_used'));
+  assert.equal(hint, undefined);
+});

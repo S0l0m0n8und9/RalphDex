@@ -124,6 +124,11 @@ Requirements:
 - Tasks must correspond one-to-one with the ## work area sections
 - Output between 5 and 8 tasks. Fewer than 5 leaves the project under-specified; more than 8 creates excessive granularity that hinders autonomous execution and makes the backlog unwieldy for a single agentic loop.
 - Each task must include required fields \`id\` and \`title\`. Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only.
+- Prefer staged, atomic executable tasks over epics. Each task should have one concern, explicit acceptance criteria, and a \`suggestedValidationCommand\` where reasonably knowable.
+- Use \`constraints\` to prevent scope creep. Use \`tier\` when complexity is clear. Use \`context\` for files/modules or PRD sections that should guide execution.
+- Avoid task titles containing "and", "then", "plus", "everything", "platform", "foundation", or broad lifecycle bundles unless the task is deliberately planning or research.
+- For greenfield PRDs, prefer a small bootstrap ladder: define project envelope and conventions; create minimal runnable scaffold; add first smoke test; implement smallest vertical slice; promote to full validation gate. Do not blindly emit all five bootstrap tasks; emit only the smallest useful sequence.
+- Keep flat top-level task output. Do not emit child IDs like T1.1.
 
 ## Good vs bad task formulation
 
@@ -185,6 +190,8 @@ Requirements:
 - Each task must include required fields \`id\` and \`title\`
 - Set "mode" to "documentation" on every task
 - Ralph will force \`status\` to \`todo\` during import, so treat any emitted status as informational only
+- Prefer atomic documentation tasks over broad epics. Each task should have one concern, acceptance criteria, constraints, tier where obvious, context hints where useful, and a \`suggestedValidationCommand\` where reasonably knowable.
+- Keep flat top-level task output. Do not emit child IDs like T1.1.
 
 For each task:
 - Focus on documenting existing modules, workflows, boundaries, commands, architecture, or operational behavior already present in the repo

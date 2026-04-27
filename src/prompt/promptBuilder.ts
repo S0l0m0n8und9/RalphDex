@@ -909,7 +909,7 @@ function buildPriorIterationContext(
       text: `- Prior validation failure signature: ${formatOptional(prior.verification.validationFailureSignature)}`
     });
   }
-  if (prior.stopReason && (remediationRelevant || prior.completionClassification !== 'complete')) {
+  if (prior.stopReason && (remediationRelevant || (prior.completionClassification !== 'complete' && prior.completionClassification !== 'already_satisfied'))) {
     lineEntries.push({ priority: 90, text: `- Prior stop reason: ${formatOptional(prior.stopReason)}` });
   }
   if (prior.followUpAction !== 'stop' || remediationRelevant) {
@@ -1557,7 +1557,7 @@ export function decidePromptKind(
     };
   }
 
-  if (lastIteration?.completionClassification === 'complete'
+  if ((lastIteration?.completionClassification === 'complete' || lastIteration?.completionClassification === 'already_satisfied')
     && lastIteration.stopReason === 'no_actionable_task') {
     return {
       kind: 'iteration',

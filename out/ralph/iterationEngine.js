@@ -125,20 +125,30 @@ class RalphIterationEngine {
      * Runs a lightweight planning CLI turn for the given task and writes task-plan.json.
      * Failures are logged but do not abort the main iteration — the planning pass is best-effort.
      */
-    async runInlinePlanningPass(workspaceRoot, artifactsDir, taskId, taskTitle, taskAcceptance, execStrategy, commandPath, config) {
+    async runInlinePlanningPass(workspaceRoot, artifactsDir, taskId, taskTitle, taskAcceptance, effectiveValidationCommand, diagnostics, workspaceValidationCommands, packageScripts, execStrategy, commandPath, config) {
+        const diagnosticLines = diagnostics.findings.length > 0
+            ? diagnostics.findings.map((finding) => `- ${finding.severity}: ${finding.code}: ${finding.message}`)
+            : ['- none'];
         const planningPrompt = [
             'You are a planning/readiness agent. Analyse the task below and return JSON only.',
             '',
             `Task ID: ${taskId}`,
             `Task Title: ${taskTitle}`,
             taskAcceptance.length > 0 ? `Acceptance criteria:\n${taskAcceptance.map((a) => `- ${a}`).join('\n')}` : '',
+            `Effective validation command: ${effectiveValidationCommand ?? 'none detected'}`,
+            workspaceValidationCommands.length > 0 ? `Discovered validation commands:\n${workspaceValidationCommands.map((command) => `- ${command}`).join('\n')}` : 'Discovered validation commands: none',
+            packageScripts.length > 0 ? `package.json scripts:\n${packageScripts.map((script) => `- ${script}`).join('\n')}` : 'package.json scripts: none detected',
+            'Deterministic task-shape diagnostics:',
+            ...diagnosticLines,
             '',
             'Assess readiness before execution:',
             '- Is the task executable in one bounded iteration?',
             '- Is there a concrete validation command?',
             '- Are acceptance criteria clear?',
             '- Is this task too broad / greenfield and should be decomposed?',
-            '- For greenfield/bootstrap tasks, prefer decomposition into scaffold -> smoke test -> first vertical slice.',
+            '- For greenfield/bootstrap risk, prefer atomic child tasks such as defining project envelope/conventions, creating a minimal runnable scaffold, adding a first smoke test, implementing the smallest vertical slice, or promoting to a full validation gate.',
+            '- Do not blindly generate all possible greenfield children. Generate only the smallest useful next sequence, capped by maxGeneratedChildren.',
+            '- Child task titles must avoid "and", "then", and "plus"; each child needs one concern, acceptance criteria, and validation where reasonably knowable.',
             '- Use provider-native planning behavior and any available tools/skills, AGENTS.md instructions, Ralph docs/invariants/workflows, structure definitions, existing task context, and validation discovery.',
             '',
             'Respond with ONLY a valid JSON object (no markdown fences) in this schema:',
@@ -223,37 +233,27 @@ class RalphIterationEngine {
             return null;
         }
     }
-    assessStrictReadiness(task, plan) {
+    assessStrictReadiness(task, plan, diagnostics) {
         const findings = [];
         const validation = (task.validation ?? plan.suggestedValidationCommand ?? '').trim();
         if (!validation) {
-            findings.push('Selected task is missing a concrete validation command.');
+            const hasEffectiveValidation = !diagnostics.findings.some((finding) => finding.code === 'missing_validation');
+            if (!hasEffectiveValidation) {
+                findings.push('Selected task is missing a concrete validation command.');
+            }
         }
         if ((task.acceptance ?? []).length === 0 && (plan.suggestedAcceptance ?? []).length === 0) {
             findings.push('Selected task has no acceptance criteria.');
+        }
+        for (const finding of diagnostics.findings) {
+            if (finding.code === 'broad_scope' || finding.code === 'greenfield_bootstrap_risk' || finding.code === 'missing_package_script') {
+                findings.push(finding.message);
+            }
         }
         if (plan.readiness && plan.readiness !== 'ready') {
             findings.push(`Planner readiness is ${plan.readiness}.`);
         }
         return findings;
-    }
-    isLikelyAtomicTask(task) {
-        const combined = `${task.title} ${task.notes ?? ''}`.toLowerCase();
-        const broadSignals = [
-            /\band\b/,
-            /\bthen\b/,
-            /\bplus\b/,
-            /\bplatform\b/,
-            /\bfoundation\b/,
-            /\bend-to-end\b/,
-            /\beverything\b/,
-            /\bfrom\b.+\bthrough\b/,
-            /,/
-        ];
-        if (broadSignals.some((pattern) => pattern.test(combined))) {
-            return false;
-        }
-        return (task.acceptance?.length ?? 0) > 0 && Boolean(task.validation?.trim());
     }
     shouldWritePlanningDoc(task, plan) {
         if (plan.readiness && plan.readiness !== 'ready') {
@@ -333,13 +333,18 @@ class RalphIterationEngine {
         }
         const gateMode = prepared.config.taskReadinessGate;
         const planningEnabled = (0, planningPass_1.shouldRunInlinePlanningPassForConfig)(prepared.config);
+        let diagnostics = (0, planningPass_1.analyzeTaskShape)({
+            task: prepared.selectedTask,
+            workspaceScan: prepared.summary,
+            effectiveValidationCommand: prepared.effectiveValidationCommand
+        });
         if (!planningEnabled && gateMode === 'off') {
             return { outcome: 'skipped', plan: null, warnings: [] };
         }
-        if ((gateMode === 'auto' || gateMode === 'strict') && this.isLikelyAtomicTask(prepared.selectedTask)) {
+        if ((gateMode === 'auto' || gateMode === 'strict') && diagnostics.recommendedAction === 'execute') {
             const atomicPlan = {
                 reasoning: 'Selected task already appears atomic and executable.',
-                approach: 'Execute directly with existing acceptance + validation.',
+                approach: 'Execute directly with bounded acceptance and available validation.',
                 steps: [prepared.selectedTask.title],
                 risks: [],
                 readiness: 'ready',
@@ -368,7 +373,7 @@ class RalphIterationEngine {
             if (!execStrategy.runExec) {
                 return { outcome: 'skipped', plan: null, warnings: ['Planning pass strategy does not support exec; skipping readiness gate.'] };
             }
-            plan = await this.runInlinePlanningPass(prepared.rootPath, prepared.paths.artifactDir, prepared.selectedTask.id, prepared.selectedTask.title, prepared.selectedTask.acceptance ?? [], execStrategy, (0, providers_1.getCliCommandPath)(prepared.config), prepared.config);
+            plan = await this.runInlinePlanningPass(prepared.rootPath, prepared.paths.artifactDir, prepared.selectedTask.id, prepared.selectedTask.title, prepared.selectedTask.acceptance ?? [], prepared.effectiveValidationCommand, diagnostics, prepared.summary.validationCommands, prepared.summary.packageJson?.scriptNames ?? [], execStrategy, (0, providers_1.getCliCommandPath)(prepared.config), prepared.config);
         }
         if (!plan) {
             return { outcome: 'skipped', plan: null, warnings: ['Planning pass did not produce a parseable task-plan artifact.'] };
@@ -380,10 +385,18 @@ class RalphIterationEngine {
         let normalizedPlan = {
             ...plan,
             readiness: plan.readiness ?? 'ready',
-            atomicity: plan.atomicity ?? (this.isLikelyAtomicTask(prepared.selectedTask) ? 'atomic' : 'unknown'),
+            atomicity: plan.atomicity ?? diagnostics.atomicity,
             estimatedTaskCount: plan.estimatedTaskCount ?? Math.max(1, plan.suggestedChildTasks?.length ?? 1),
             nextAction: plan.nextAction ?? 'execute_selected_task'
         };
+        diagnostics = (0, planningPass_1.analyzeTaskShape)({
+            task: prepared.selectedTask,
+            workspaceScan: prepared.summary,
+            effectiveValidationCommand: prepared.effectiveValidationCommand,
+            plannerSuggestedValidationCommand: normalizedPlan.suggestedValidationCommand,
+            suggestedAcceptance: normalizedPlan.suggestedAcceptance
+        });
+        normalizedPlan.atomicity = normalizedPlan.atomicity ?? diagnostics.atomicity;
         normalizedPlan.planningInput = this.buildPlanningInput(prepared, gateMode);
         const readiness = normalizedPlan.readiness ?? 'ready';
         const reason = plan.readinessReason?.trim() || 'No readiness reason was provided.';
@@ -397,9 +410,20 @@ class RalphIterationEngine {
             };
         }
         await (0, planningPass_1.writeTaskPlan)(prepared.paths.artifactDir, prepared.selectedTask.id, normalizedPlan);
-        if (gateMode === 'warn' && readiness !== 'ready') {
-            warnings.push(`Planning readiness warning: ${readiness} (${reason})`);
+        const diagnosticWarningSummary = diagnostics.findings.length > 0
+            ? diagnostics.findings.map((finding) => `${finding.code}: ${finding.message}`).join(' ')
+            : '';
+        if (gateMode === 'warn' && (readiness !== 'ready' || diagnostics.findings.length > 0)) {
+            warnings.push(`Planning gate warning recorded; execution continued${diagnosticWarningSummary ? `: ${diagnosticWarningSummary}` : `: ${readiness} (${reason})`}`);
             return { outcome: 'warn_and_proceed', plan: normalizedPlan, warnings };
+        }
+        if ((gateMode === 'auto' || gateMode === 'strict') && diagnostics.recommendedAction === 'block_or_review') {
+            return {
+                outcome: 'blocked_and_stop',
+                plan: normalizedPlan,
+                warnings: [...warnings, ...diagnostics.findings.map((finding) => finding.message)],
+                summary: `Planning gate blocked task before provider execution: ${diagnostics.findings.map((finding) => finding.message).join(' ')}`
+            };
         }
         if ((gateMode === 'auto' || gateMode === 'strict') && readiness === 'needs_decomposition') {
             const filteredChildren = (normalizedPlan.suggestedChildTasks ?? [])
@@ -423,7 +447,7 @@ class RalphIterationEngine {
                     outcome: 'decomposed_and_stop',
                     plan: refreshedPlan,
                     warnings,
-                    summary: `Planning gate decomposed ${prepared.selectedTask.id}: ${reason}`
+                    summary: `Planning gate decomposed broad task before provider execution: ${reason}`
                 };
             }
             warnings.push('Planning gate received needs_decomposition but no valid suggestedChildTasks were provided.');
@@ -432,19 +456,21 @@ class RalphIterationEngine {
             }
         }
         if (gateMode === 'auto' && readiness === 'blocked') {
-            return { outcome: 'blocked_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate blocked execution: ${reason}` };
+            return { outcome: 'blocked_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate blocked task before provider execution: ${reason}` };
         }
         if (gateMode === 'auto' && readiness === 'needs_human_review') {
-            return { outcome: 'human_review_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate requested human review: ${reason}` };
+            return { outcome: 'human_review_and_stop', plan: normalizedPlan, warnings, summary: `Planning gate requested human review before provider execution: ${reason}` };
         }
         if (gateMode === 'strict') {
-            const strictFindings = this.assessStrictReadiness(prepared.selectedTask, normalizedPlan);
+            const strictFindings = this.assessStrictReadiness(prepared.selectedTask, normalizedPlan, diagnostics);
             if (strictFindings.length > 0) {
                 return {
                     outcome: readiness === 'needs_human_review' ? 'human_review_and_stop' : 'blocked_and_stop',
                     plan: normalizedPlan,
                     warnings: [...warnings, ...strictFindings],
-                    summary: `Strict readiness gate stopped execution: ${strictFindings.join(' ')}`
+                    summary: readiness === 'needs_human_review'
+                        ? `Planning gate requested human review before provider execution: ${strictFindings.join(' ')}`
+                        : `Planning gate blocked task before provider execution: ${strictFindings.join(' ')}`
                 };
             }
         }
@@ -892,6 +918,12 @@ class RalphIterationEngine {
                 branchPerTaskWarnings: branchPerTask.warnings
             });
             let result = classified.result;
+            if (planningGateDecision.warnings.length > 0) {
+                result = {
+                    ...result,
+                    warnings: [...planningGateDecision.warnings, ...result.warnings]
+                };
+            }
             const loopEvaluation = this.loopDecisionService.evaluate({
                 prepared,
                 result,

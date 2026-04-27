@@ -74,6 +74,25 @@ function createDiagnostic(category, severity, code, message, details = {}) {
 function relativePath(rootPath, target) {
     return path.relative(rootPath, target) || '.';
 }
+/**
+ * Returns true when the git status snapshot indicates two or more untracked
+ * project files exist outside of the .ralph directory.  This happens in a
+ * greenfield workspace that has not yet committed a baseline, which means
+ * git diff reports zero changes even when the agent writes real code.
+ */
+function hasUntrackedProjectBaseline(status) {
+    if (!status?.available) {
+        return false;
+    }
+    const untrackedNonRalph = status.entries.filter((entry) => {
+        if (entry.status !== '??') {
+            return false;
+        }
+        const normalized = entry.path.replace(/\\/g, '/');
+        return !normalized.startsWith('.ralph/') && normalized !== '.ralph';
+    });
+    return untrackedNonRalph.length >= 2;
+}
 function sectionSummary(category, diagnostics) {
     const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
     const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === 'warning').length;
@@ -229,18 +248,23 @@ function collectCopilotByokReadinessDiagnostics(config) {
     // Mirror the runtime behaviour: copilot-foundry always forces azure regardless of config
     const effectiveProviderType = providerId === 'copilot-foundry' ? 'azure' : cfg.providerType;
     // Check base URL is resolvable
-    if (!cfg.baseUrlOverride.trim()) {
-        if (effectiveProviderType === 'azure') {
-            if (!cfg.azure.resourceName.trim() || !cfg.azure.deployment.trim()) {
-                diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_byok_base_url_missing', `cliProvider is set to ${providerId} but neither ralphCodex.copilotFoundry.baseUrlOverride nor both ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are configured.`));
-            }
-        }
-        else {
-            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_byok_base_url_missing', `cliProvider is set to ${providerId} with providerType "${cfg.providerType}" but ralphCodex.copilotFoundry.baseUrlOverride is not configured. A base URL is required for non-azure provider types.`));
+    const hasOverride = !!cfg.baseUrlOverride.trim();
+    const hasAzureResourceDeployment = !!cfg.azure.resourceName.trim() && !!cfg.azure.deployment.trim();
+    if (effectiveProviderType === 'azure') {
+        const baseUrlResolvable = providerId === 'copilot-foundry'
+            ? hasAzureResourceDeployment
+            : hasOverride || hasAzureResourceDeployment;
+        if (!baseUrlResolvable) {
+            diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_byok_base_url_missing', providerId === 'copilot-foundry'
+                ? 'cliProvider is set to copilot-foundry but ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are not both configured.'
+                : `cliProvider is set to ${providerId} but neither ralphCodex.copilotFoundry.baseUrlOverride nor both ralphCodex.copilotFoundry.azure.resourceName and ralphCodex.copilotFoundry.azure.deployment are configured.`));
         }
     }
-    // Check model is configured
-    if (!cfg.model.trim()) {
+    else if (!hasOverride) {
+        diagnostics.push(createDiagnostic('codexAdapter', 'error', 'copilot_byok_base_url_missing', `cliProvider is set to ${providerId} with providerType "${cfg.providerType}" but ralphCodex.copilotFoundry.baseUrlOverride is not configured. A base URL is required for non-azure provider types.`));
+    }
+    // Check model is configured (for azure, deployment is a fallback model identifier)
+    if (!cfg.model.trim() && !(effectiveProviderType === 'azure' && cfg.azure.deployment.trim())) {
         diagnostics.push(createDiagnostic('codexAdapter', 'warning', 'copilot_byok_model_missing', `cliProvider is set to ${providerId} but ralphCodex.copilotFoundry.model is not configured. COPILOT_MODEL will not be set in the child process environment.`));
     }
     // Check API key env var presence (sync, presence check only — no value read)
@@ -713,6 +737,9 @@ function buildPreflightReport(input) {
     }
     for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
+    }
+    if (hasUntrackedProjectBaseline(input.gitStatusBefore)) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'workspace_has_untracked_baseline', 'Workspace contains untracked project files; git diff may not represent greenfield progress until a baseline commit/checkpoint exists.'));
     }
     for (const diagnostic of input.agentHealthDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('agentHealth', diagnostic.severity, diagnostic.code, diagnostic.message));

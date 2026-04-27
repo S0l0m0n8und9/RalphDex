@@ -6,6 +6,7 @@ import {
   classifyIterationOutcome,
   decideLoopContinuation
 } from '../src/ralph/loopLogic';
+import { reportsAlreadySatisfied } from '../src/ralph/iteration/OutcomeClassifier';
 import { DEFAULT_RALPH_AGENT_ID, RalphIterationResult, RalphPreflightDiagnostic } from '../src/ralph/types';
 
 function iterationResult(overrides: Partial<RalphIterationResult> = {}): RalphIterationResult {
@@ -896,4 +897,34 @@ test('decideLoopContinuation stops on clean backlog exhaustion without drift dia
   assert.equal(decision.shouldContinue, false);
   assert.equal(decision.stopReason, 'no_actionable_task');
   assert.match(decision.message, /No executable Ralph task remains/i);
+});
+
+// --- Fix 2: already_satisfied detection ---
+
+test('reportsAlreadySatisfied returns true for "already satisfied" keyword', () => {
+  assert.equal(reportsAlreadySatisfied('The repository was already satisfied, no changes required.'), true);
+});
+
+test('reportsAlreadySatisfied returns true for "no code changes" phrase', () => {
+  assert.equal(reportsAlreadySatisfied('Validation passed. No code changes were necessary.'), true);
+});
+
+test('reportsAlreadySatisfied returns true for "no changes required" phrase', () => {
+  assert.equal(reportsAlreadySatisfied('npm run validate passed. No changes required.'), true);
+});
+
+test('reportsAlreadySatisfied returns true for "already complete" phrase', () => {
+  assert.equal(reportsAlreadySatisfied('The task is already complete.'), true);
+});
+
+test('reportsAlreadySatisfied returns false for a generic progress note', () => {
+  assert.equal(reportsAlreadySatisfied('Implemented the feature and tests pass.'), false);
+});
+
+test('reportsAlreadySatisfied returns false for undefined progressNote', () => {
+  assert.equal(reportsAlreadySatisfied(undefined), false);
+});
+
+test('reportsAlreadySatisfied returns false for empty string', () => {
+  assert.equal(reportsAlreadySatisfied(''), false);
 });

@@ -2,6 +2,12 @@
 
 All notable changes to Ralphdex are documented here.
 
+## [1.1.2] — 2026-04-27
+
+### Changed
+
+- Prepared the next Marketplace release by incrementing the extension version and refreshing release notes without publishing.
+
 ## [1.1.1] — 2026-04-25
 
 ### Changed

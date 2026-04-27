@@ -8,7 +8,7 @@ import { CodexExecRequest, CodexExecResult } from './types';
 interface CopilotJsonlEvent {
   type?: string;
   result?: string;
-  data?: { content?: string; summary?: string };
+  data?: { content?: string; summary?: string; detailedContent?: string };
 }
 
 export class CopilotByokCliProvider implements CliProvider {
@@ -54,31 +54,85 @@ export class CopilotByokCliProvider implements CliProvider {
       return '';
     }
 
-    const lines = trimmed.split('\n');
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const line = lines[i].trim();
+    // Parse all JSONL lines upfront so we can apply the priority order in a
+    // single pass without rescanning.
+    const events: CopilotJsonlEvent[] = [];
+    let parseBreak = false;
+    for (const rawLine of trimmed.split('\n')) {
+      const line = rawLine.trim();
       if (!line) {
         continue;
       }
-
       try {
-        const parsed = JSON.parse(line) as CopilotJsonlEvent;
-        if (parsed.type === 'assistant.message'
-          && typeof parsed.data?.content === 'string'
-          && parsed.data.content.trim()) {
-          await fs.writeFile(lastMessagePath, parsed.data.content, 'utf8').catch(() => {});
-          return parsed.data.content;
-        }
-
-        if (parsed.type === 'result' && typeof parsed.result === 'string') {
-          await fs.writeFile(lastMessagePath, parsed.result, 'utf8').catch(() => {});
-          return parsed.result;
-        }
+        events.push(JSON.parse(line) as CopilotJsonlEvent);
       } catch {
+        // Non-JSON line — stop trying to parse further lines (matches
+        // original reverse-scan behaviour).
+        parseBreak = true;
         break;
       }
     }
 
+    // Priority 1 & 2: prefer session.task_complete content (detailedContent >
+    // summary).  task_complete carries the authoritative agent summary and is
+    // the last meaningful event in a successful Copilot BYOK session.
+    if (!parseBreak) {
+      for (let i = events.length - 1; i >= 0; i--) {
+        const ev = events[i];
+        if (ev.type !== 'session.task_complete') {
+          continue;
+        }
+        const detailed = typeof ev.data?.detailedContent === 'string' ? ev.data.detailedContent.trim() : '';
+        if (detailed) {
+          await fs.writeFile(lastMessagePath, detailed, 'utf8').catch(() => {});
+          return detailed;
+        }
+        const summary = typeof ev.data?.summary === 'string' ? ev.data.summary.trim() : '';
+        if (summary) {
+          await fs.writeFile(lastMessagePath, summary, 'utf8').catch(() => {});
+          return summary;
+        }
+      }
+
+      // Priority 3: last assistant.message that contains a fenced JSON
+      // completion report block.  Prefer this over a bare assistant.message so
+      // that an intermediate validation-check message (no report block) does
+      // not shadow the actual completion report.
+      for (let i = events.length - 1; i >= 0; i--) {
+        const ev = events[i];
+        if (ev.type === 'assistant.message'
+          && typeof ev.data?.content === 'string'
+          && ev.data.content.trim()
+          && ev.data.content.includes('```json')) {
+          const content = ev.data.content;
+          await fs.writeFile(lastMessagePath, content, 'utf8').catch(() => {});
+          return content;
+        }
+      }
+    }
+
+    // Priority 4: last assistant.message (existing behaviour).
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (ev.type === 'assistant.message'
+        && typeof ev.data?.content === 'string'
+        && ev.data.content.trim()) {
+        const content = ev.data.content;
+        await fs.writeFile(lastMessagePath, content, 'utf8').catch(() => {});
+        return content;
+      }
+    }
+
+    // Priority 5: legacy result event with inline result string.
+    for (let i = events.length - 1; i >= 0; i--) {
+      const ev = events[i];
+      if (ev.type === 'result' && typeof ev.result === 'string') {
+        await fs.writeFile(lastMessagePath, ev.result, 'utf8').catch(() => {});
+        return ev.result;
+      }
+    }
+
+    // Fallback: return raw stdout (older CLI builds without --output-format=json).
     await fs.writeFile(lastMessagePath, trimmed, 'utf8').catch(() => {});
     return trimmed;
   }

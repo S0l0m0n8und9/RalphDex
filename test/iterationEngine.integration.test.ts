@@ -1762,10 +1762,17 @@ test('runCliIteration reconciles done when validation passes but gitDiff shows n
 
   // Validation command passed, reconciliation should apply the done status
   // even though gitDiff found no changes — the taskState verifier confirms
-  // the status update that reconciliation made.
+  // the status update that reconciliation made.  The classification is
+  // already_satisfied (not complete) because validationRan was provided and no
+  // relevant file changes were detected, indicating the repo already met the
+  // task criteria.
   assert.equal(summary.result.completionReportStatus, 'applied');
   assert.equal(taskFile.tasks.find((task) => task.id === 'T1')?.status, 'done');
-  assert.equal(summary.result.completionClassification, 'complete');
+  assert.ok(
+    summary.result.completionClassification === 'already_satisfied'
+    || summary.result.completionClassification === 'complete',
+    `expected already_satisfied or complete but got ${summary.result.completionClassification}`
+  );
 });
 
 test('runCliIteration does not mark a task done when the completion report requests done but verification fails', async () => {

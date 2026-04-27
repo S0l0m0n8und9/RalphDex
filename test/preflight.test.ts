@@ -1776,3 +1776,84 @@ test('buildPreflightReport reports clean ready state when all tasks are done and
   assert.match(report.summary, /Preflight ready/);
   assert.doesNotMatch(report.summary, /task-ledger drift/i);
 });
+
+// --- Fix 3: workspace_has_untracked_baseline diagnostic ---
+
+const minimalPreflightInput = () => ({
+  rootPath: '/workspace',
+  workspaceTrusted: true,
+  config: DEFAULT_CONFIG,
+  taskInspection: inspectTaskFileText(JSON.stringify({ version: 2, tasks: [{ id: 'T1', title: 'Task', status: 'todo' }] }, null, 2)),
+  taskCounts: null,
+  selectedTask: null,
+  taskValidationHint: null,
+  validationCommand: null,
+  normalizedValidationCommandFrom: null,
+  validationCommandReadiness: { command: null, status: 'missing' as const, executable: null },
+  fileStatus
+});
+
+test('buildPreflightReport emits workspace_has_untracked_baseline for 2+ untracked non-.ralph files', () => {
+  const report = buildPreflightReport({
+    ...minimalPreflightInput(),
+    gitStatusBefore: {
+      available: true,
+      raw: '?? src/index.ts\n?? package.json\n?? tsconfig.json',
+      entries: [
+        { status: '??', path: 'src/index.ts' },
+        { status: '??', path: 'package.json' },
+        { status: '??', path: 'tsconfig.json' }
+      ]
+    }
+  });
+
+  assert.ok(report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'), 'expected workspace_has_untracked_baseline warning');
+  assert.ok(report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline' && d.severity === 'warning'));
+});
+
+test('buildPreflightReport does not emit workspace_has_untracked_baseline for only .ralph untracked files', () => {
+  const report = buildPreflightReport({
+    ...minimalPreflightInput(),
+    gitStatusBefore: {
+      available: true,
+      raw: '?? .ralph/state.json\n?? .ralph/prompts/',
+      entries: [
+        { status: '??', path: '.ralph/state.json' },
+        { status: '??', path: '.ralph/prompts/' }
+      ]
+    }
+  });
+
+  assert.ok(!report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'), 'should not emit baseline warning for .ralph-only untracked files');
+});
+
+test('buildPreflightReport does not emit workspace_has_untracked_baseline for a tracked repo with one untracked file', () => {
+  const report = buildPreflightReport({
+    ...minimalPreflightInput(),
+    gitStatusBefore: {
+      available: true,
+      raw: ' M src/index.ts\n?? notes.txt',
+      entries: [
+        { status: 'M', path: 'src/index.ts' },
+        { status: '??', path: 'notes.txt' }
+      ]
+    }
+  });
+
+  assert.ok(!report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'), 'single untracked file should not trigger baseline warning');
+});
+
+test('buildPreflightReport does not emit workspace_has_untracked_baseline when git is unavailable', () => {
+  const report = buildPreflightReport({
+    ...minimalPreflightInput(),
+    gitStatusBefore: { available: false, raw: '', entries: [] }
+  });
+
+  assert.ok(!report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'));
+});
+
+test('buildPreflightReport does not emit workspace_has_untracked_baseline when gitStatusBefore is absent', () => {
+  const report = buildPreflightReport(minimalPreflightInput());
+
+  assert.ok(!report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'));
+});

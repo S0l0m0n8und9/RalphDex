@@ -199,6 +199,7 @@ export type RalphProvenanceBundleStatus = 'prepared' | 'executed' | 'blocked';
 export type RalphIntegrityFailureStage = 'executionPlanHash' | 'promptArtifactHash' | 'stdinPayloadHash';
 export type RalphCompletionClassification =
   | 'complete'
+  | 'already_satisfied'
   | 'partial_progress'
   | 'no_progress'
   | 'blocked'

@@ -210,3 +210,88 @@ test('buildTranscript does not include COPILOT_PROVIDER_API_KEY as a value', () 
   assert.match(transcript, /COPILOT_PROVIDER_API_KEY/);
   assert.match(transcript, /value not logged/);
 });
+
+// --- Fix 1: task_complete extraction ---
+
+test('extractResponseText prefers session.task_complete detailedContent over intermediate assistant message', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-byok-tc-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const completionBlock = '```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```';
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: 'Starting final validation...' } }),
+    JSON.stringify({ type: 'session.task_complete', data: { detailedContent: `Task complete.\n\n${completionBlock}` } })
+  ].join('\n');
+
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const text = await provider.extractResponseText(stdout, '', lastMessagePath);
+
+  // Should return the detailedContent value, not the intermediate assistant message
+  assert.match(text, /Task complete/);
+  assert.match(text, /selectedTaskId/);
+  assert.doesNotMatch(text, /Starting final validation/);
+  assert.equal(await fs.readFile(lastMessagePath, 'utf8'), text);
+});
+
+test('extractResponseText falls back to session.task_complete summary when detailedContent is absent', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-byok-tcs-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const completionBlock = '```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```';
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: 'Starting final validation...' } }),
+    JSON.stringify({ type: 'session.task_complete', data: { summary: `Done.\n\n${completionBlock}` } })
+  ].join('\n');
+
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const text = await provider.extractResponseText(stdout, '', lastMessagePath);
+
+  assert.match(text, /Done/);
+  assert.match(text, /selectedTaskId/);
+  assert.doesNotMatch(text, /Starting final validation/);
+});
+
+test('extractResponseText prefers task_complete over any assistant message', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-byok-tcpref-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const completionBlock = '```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```';
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: `Final message with report.\n\n${completionBlock}` } }),
+    JSON.stringify({ type: 'session.task_complete', data: { detailedContent: 'task_complete content' } })
+  ].join('\n');
+
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const text = await provider.extractResponseText(stdout, '', lastMessagePath);
+
+  assert.equal(text, 'task_complete content');
+});
+
+test('extractResponseText prefers last assistant message with fenced JSON report over one without', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-byok-fenced-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const completionBlock = '```json\n{"selectedTaskId":"T1","requestedStatus":"done"}\n```';
+  // No task_complete event — fall back to fenced-JSON assistant.message priority
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: `Has report.\n\n${completionBlock}` } }),
+    JSON.stringify({ type: 'assistant.message', data: { content: 'Intermediate message without report.' } })
+  ].join('\n');
+
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const text = await provider.extractResponseText(stdout, '', lastMessagePath);
+
+  assert.match(text, /Has report/);
+  assert.match(text, /selectedTaskId/);
+  assert.doesNotMatch(text, /Intermediate message/);
+});
+
+test('extractResponseText falls back to last assistant message when no fenced JSON report exists', async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-byok-nofence-'));
+  const lastMessagePath = path.join(root, 'last-message.md');
+  const stdout = [
+    JSON.stringify({ type: 'assistant.message', data: { content: 'First' } }),
+    JSON.stringify({ type: 'assistant.message', data: { content: 'Last (no JSON block)' } })
+  ].join('\n');
+
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const text = await provider.extractResponseText(stdout, '', lastMessagePath);
+
+  assert.equal(text, 'Last (no JSON block)');
+});

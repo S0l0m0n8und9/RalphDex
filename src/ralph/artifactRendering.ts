@@ -29,7 +29,7 @@ export function formatTrustLevel(value: RalphProvenanceTrustLevel): string {
     : 'prepared prompt only';
 }
 
-export function artifactReferenceLines(paths: RalphIterationArtifactPaths, diffSummary: RalphDiffSummary | null): string[] {
+export function artifactReferenceLines(paths: RalphIterationArtifactPaths, diffSummary: RalphDiffSummary | null, hasRemediation?: boolean): string[] {
   const lines = [
     `- Prompt: ${paths.promptPath}`,
     `- Prompt evidence: ${paths.promptEvidencePath}`,
@@ -38,7 +38,7 @@ export function artifactReferenceLines(paths: RalphIterationArtifactPaths, diffS
     `- Execution summary: ${paths.executionSummaryPath}`,
     `- Verifier summary: ${paths.verifierSummaryPath}`,
     `- Iteration result: ${paths.iterationResultPath}`,
-    `- Remediation proposal: ${paths.remediationPath}`,
+    `- Remediation proposal: ${hasRemediation ? paths.remediationPath : 'none'}`,
     `- Stdout: ${paths.stdoutPath}`,
     `- Stderr: ${paths.stderrPath}`,
     `- CLI invocation: ${paths.cliInvocationPath}`
@@ -164,7 +164,7 @@ export function renderIterationSummary(input: {
     ...diffLines,
     '',
     '## Artifact Paths',
-    ...artifactReferenceLines(paths, diffSummary),
+    ...artifactReferenceLines(paths, diffSummary, result.remediation != null),
     '',
     '## Signals',
     `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,

@@ -12,6 +12,22 @@ function isBacklogExhausted(taskCounts: { todo: number; in_progress: number; blo
   return taskCounts.todo === 0 && taskCounts.in_progress === 0 && taskCounts.blocked === 0;
 }
 
+export function reportsAlreadySatisfied(progressNote: string | undefined): boolean {
+  if (!progressNote) {
+    return false;
+  }
+  const lower = progressNote.toLowerCase();
+  return lower.includes('already satisfied')
+    || lower.includes('already complete')
+    || lower.includes('already done')
+    || lower.includes('no code change')
+    || lower.includes('no source change')
+    || lower.includes('no changes required')
+    || lower.includes('no changes needed')
+    || lower.includes('task is already')
+    || lower.includes('was already');
+}
+
 export interface ClassifyIterationInput {
   prepared: PreparedIterationContext;
   artifactPaths: ReturnType<ArtifactPersistenceService['resolvePaths']>;
@@ -73,6 +89,19 @@ export class OutcomeClassifier {
 
     let completionClassification = outcome.classification;
     let followUpAction = outcome.followUpAction;
+
+    // Promote complete→already_satisfied when the agent explicitly reported
+    // that no source changes were required, provided validation evidence, and
+    // Ralph observed no relevant file changes.  This is strictly evidence-based:
+    // both validationRan and a "no changes" phrase in the progress note are
+    // required so that a casual "nothing to do" message cannot trigger it.
+    if (completionClassification === 'complete'
+      && input.relevantFileChangesForOutcome.length === 0
+      && reportsAlreadySatisfied(input.completionReconciliation.artifact.report?.progressNote)
+      && Boolean(input.completionReconciliation.artifact.report?.validationRan)) {
+      completionClassification = 'already_satisfied';
+    }
+
     if (!input.prepared.selectedTask) {
       if (isBacklogExhausted(afterTaskCounts)) {
         completionClassification = 'complete';

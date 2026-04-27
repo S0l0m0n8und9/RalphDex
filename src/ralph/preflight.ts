@@ -7,6 +7,7 @@ import { CodexCliSupport, CodexIdeCommandSupport } from '../services/codexCliSup
 import { pathExists, readJsonRecord } from '../util/fs';
 import { RalphWorkspaceFileStatus } from './stateManager';
 import { RalphTaskClaimGraphInspection, RalphTaskFileInspection } from './taskFile';
+import type { GitStatusSnapshot } from './verifier';
 import {
   inspectGeneratedArtifactRetention,
   inspectProvenanceBundleRetention,
@@ -59,6 +60,26 @@ function createDiagnostic(
 
 function relativePath(rootPath: string, target: string): string {
   return path.relative(rootPath, target) || '.';
+}
+
+/**
+ * Returns true when the git status snapshot indicates two or more untracked
+ * project files exist outside of the .ralph directory.  This happens in a
+ * greenfield workspace that has not yet committed a baseline, which means
+ * git diff reports zero changes even when the agent writes real code.
+ */
+function hasUntrackedProjectBaseline(status: GitStatusSnapshot | null | undefined): boolean {
+  if (!status?.available) {
+    return false;
+  }
+  const untrackedNonRalph = status.entries.filter((entry) => {
+    if (entry.status !== '??') {
+      return false;
+    }
+    const normalized = entry.path.replace(/\\/g, '/');
+    return !normalized.startsWith('.ralph/') && normalized !== '.ralph';
+  });
+  return untrackedNonRalph.length >= 2;
 }
 
 function sectionSummary(category: RalphPreflightCategory, diagnostics: RalphPreflightDiagnostic[]): string {
@@ -188,6 +209,8 @@ export interface RalphPreflightInput {
   lastSummarizationMode?: RalphSummarizationMode | null;
   /** How the active role policy was determined (preset | crew | explicit). Defaults to 'preset' when absent. */
   rolePolicySource?: 'preset' | 'crew' | 'explicit';
+  /** Git status captured before execution starts; used to detect an untracked-only greenfield baseline. */
+  gitStatusBefore?: GitStatusSnapshot | null;
 }
 
 export interface RalphProviderReadinessInput {
@@ -1100,6 +1123,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
       diagnostic.severity,
       diagnostic.code,
       diagnostic.message
+    ));
+  }
+
+  if (hasUntrackedProjectBaseline(input.gitStatusBefore)) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      'warning',
+      'workspace_has_untracked_baseline',
+      'Workspace contains untracked project files; git diff may not represent greenfield progress until a baseline commit/checkpoint exists.'
     ));
   }
 
