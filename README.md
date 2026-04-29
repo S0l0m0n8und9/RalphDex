@@ -222,22 +222,22 @@ This section lists **core settings** only. Source of truth for the full settings
 |---|---|---|
 | `ralphCodex.agentId` | `"default"` | Identity written into claims and artifacts; set uniquely per concurrent loop |
 | `ralphCodex.agentRole` | `"implementer"` | Role contract for iteration selection/policy (`build`, `review`, `watchdog`, `scm`, `planner`, `implementer`, `reviewer`) |
-| `ralphCodex.agentCount` | `1` | Number of concurrent agent instances |
+| `ralphCodex.agentCount` | `2` | Number of concurrent agent instances |
 
 **Loop behavior**
 
 | Setting | Default | Description |
 |---|---|---|
 | `ralphCodex.ralphIterationCap` | `20` | Maximum CLI iterations for the loop command (operator presets can raise this) |
-| `ralphCodex.autonomyMode` | `"supervised"` | `supervised` or `autonomous` |
+| `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` |
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
-| `ralphCodex.autoReplenishBacklog` | `false` | Continue into backlog replenishment when no actionable task remains |
-| `ralphCodex.autoApplyRemediation` | `[]` | Remediation actions to auto-apply |
-| `ralphCodex.taskReadinessGate` | `"off"` | Planning readiness gate mode: `off`, `warn`, `auto`, or `strict` |
+| `ralphCodex.autoReplenishBacklog` | `true` | Continue into backlog replenishment when no actionable task remains |
+| `ralphCodex.autoApplyRemediation` | `["decompose_task","mark_blocked"]` | Remediation actions to auto-apply |
+| `ralphCodex.taskReadinessGate` | `"auto"` | Planning readiness gate mode: `off`, `warn`, `auto`, or `strict` |
 | `ralphCodex.noProgressThreshold` | `2` | Consecutive no-progress iterations before stopping |
 | `ralphCodex.repeatedFailureThreshold` | `2` | Consecutive identical failure classifications before stopping |
 
-`supervised` is the shipped default. `autonomous` is an explicit operator opt-in that forces the documented auto behaviors at runtime.
+`autonomous` is the shipped default. Switch to `supervised` when you want Ralph to stop forcing backlog replenishment and remediation auto-apply at runtime.
 
 **Execution**
 
@@ -303,7 +303,7 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.preferredHandoffMode` | `"ideCommand"` | Prompt handoff mode: `ideCommand`, `clipboard`, or `cliExec` |
+| `ralphCodex.preferredHandoffMode` | `"clipboard"` | Prompt handoff mode: `ideCommand`, `clipboard`, or `cliExec` |
 | `ralphCodex.openSidebarCommandId` | `"claude.openSidebar"` | VS Code command to open the active AI chat surface |
 | `ralphCodex.newChatCommandId` | `"claude.newChat"` | VS Code command to start a new AI chat session |
 

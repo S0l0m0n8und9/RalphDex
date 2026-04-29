@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "directories": [
+    {
+      "path": ".claude",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": ".ralph",
+      "role": "state",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": ".vscode",
+      "role": "config",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": ".vscode-test",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": ".worktrees",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "docs",
+      "role": "docs",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "media",
+      "role": "assets",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "out",
+      "role": "output",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "out-test",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "prompt-templates",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "scripts",
+      "role": "scripts",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "src",
+      "role": "source",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "test",
+      "role": "test",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": "UXrefresh",
+      "role": "other",
+      "description": "Inferred from directory name."
+    },
+    {
+      "path": ".",
+      "role": "config",
+      "description": "Root-level configuration files."
+    }
+  ]
+}

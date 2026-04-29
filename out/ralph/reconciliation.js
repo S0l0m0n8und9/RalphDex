@@ -316,7 +316,7 @@ async function reconcileCompletionReport(input) {
     // autoCompleteSatisfiedAncestors can produce this state when it marks an ancestor
     // done while a sibling child remains open; parallel runs make the window worse.
     const postReconciliationTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8'));
-    const selectedTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, input.selectedTask.id);
+    let selectedTask = (0, taskFile_1.findTaskById)(postReconciliationTaskFile, input.selectedTask.id);
     const driftDiagnostics = (0, taskFile_1.inspectTaskGraph)(postReconciliationTaskFile)
         .filter((d) => d.severity === 'error' && d.code === 'completed_parent_with_incomplete_descendants');
     for (const diagnostic of driftDiagnostics) {
@@ -352,6 +352,10 @@ async function reconcileCompletionReport(input) {
             }
         }
     }
+    if (requestedStatus === 'done' && selectedTask?.status !== 'done') {
+        warnings.push(`Completion report requested done, but the selected task ended as ${selectedTask?.status ?? 'missing'} after reconciliation.`);
+    }
+    selectedTask = (0, taskFile_1.findTaskById)((0, taskFile_1.parseTaskFile)(await fs.readFile(input.taskFilePath, 'utf8')), input.selectedTask.id);
     if (warnings.length > 0) {
         input.logger.warn('Completion report reconciliation recorded warnings.', {
             selectedTaskId: input.selectedTask.id,

@@ -439,6 +439,26 @@ const CHECKED_CONFIG_DEFAULTS: ReadonlyArray<{
   label: string;
 }> = [
   {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.preferredHandoffMode', 'default'],
+    expectedValue: DEFAULT_CONFIG.preferredHandoffMode,
+    label: 'ralphCodex.preferredHandoffMode'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autonomyMode', 'default'],
+    expectedValue: DEFAULT_CONFIG.autonomyMode,
+    label: 'ralphCodex.autonomyMode'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoReplenishBacklog', 'default'],
+    expectedValue: DEFAULT_CONFIG.autoReplenishBacklog,
+    label: 'ralphCodex.autoReplenishBacklog'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.taskReadinessGate', 'default'],
+    expectedValue: DEFAULT_CONFIG.taskReadinessGate,
+    label: 'ralphCodex.taskReadinessGate'
+  },
+  {
     packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.promptBudgetProfile', 'default'],
     expectedValue: DEFAULT_CONFIG.promptBudgetProfile,
     label: 'ralphCodex.promptBudgetProfile'
@@ -472,6 +492,16 @@ const CHECKED_CONFIG_DEFAULTS: ReadonlyArray<{
     packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.agentCount', 'default'],
     expectedValue: DEFAULT_CONFIG.agentCount,
     label: 'ralphCodex.agentCount'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoWatchdogOnStall', 'default'],
+    expectedValue: DEFAULT_CONFIG.autoWatchdogOnStall,
+    label: 'ralphCodex.autoWatchdogOnStall'
+  },
+  {
+    packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoReviewOnLoopComplete', 'default'],
+    expectedValue: DEFAULT_CONFIG.autoReviewOnLoopComplete,
+    label: 'ralphCodex.autoReviewOnLoopComplete'
   }
 ];
 

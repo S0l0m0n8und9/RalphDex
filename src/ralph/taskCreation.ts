@@ -32,6 +32,17 @@ export function normalizeTaskInputsForPersistence(newTasks: RalphNewTaskInput[])
     tasks: normalizedTasks
   }));
 
+  const duplicateIds = normalizedTasks
+    .map((task) => task.id)
+    .filter((taskId, index, ids) => ids.indexOf(taskId) !== index);
+  if (duplicateIds.length > 0) {
+    const uniqueDuplicates = Array.from(new Set(duplicateIds));
+    if (uniqueDuplicates.length === 1) {
+      throw new Error(`Task id ${uniqueDuplicates[0]} must be unique.`);
+    }
+    throw new Error(`Task ids must be unique: ${uniqueDuplicates.join(', ')}.`);
+  }
+
   return normalizedTasks;
 }
 
@@ -43,6 +54,8 @@ export async function appendNormalizedTasksToFile(
     return;
   }
 
+  const normalizedTasks = normalizeTaskInputsForPersistence(newTasks);
+
   const locked = await withTaskFileLock(tasksPath, undefined, async () => {
     const raw = await fs.readFile(tasksPath, 'utf8');
     if (!raw.trim()) {
@@ -51,9 +64,20 @@ export async function appendNormalizedTasksToFile(
       );
     }
     const taskFile = parseTaskFile(raw);
+    const existingIds = new Set(taskFile.tasks.map((task) => task.id));
+    const collisions = normalizedTasks
+      .map((task) => task.id)
+      .filter((taskId) => taskId.length > 0 && existingIds.has(taskId));
+    if (collisions.length > 0) {
+      const uniqueCollisions = Array.from(new Set(collisions));
+      if (uniqueCollisions.length === 1) {
+        throw new Error(`Task id ${uniqueCollisions[0]} must be unique.`);
+      }
+      throw new Error(`Task ids must be unique: ${uniqueCollisions.join(', ')}.`);
+    }
     const next = bumpMutationCount({
       ...taskFile,
-      tasks: [...taskFile.tasks, ...normalizeTaskInputsForPersistence(newTasks)]
+      tasks: [...taskFile.tasks, ...normalizedTasks]
     });
     const nextText = stringifyTaskFile(next);
     parseTaskFile(nextText);

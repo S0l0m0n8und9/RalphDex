@@ -242,7 +242,7 @@ async function reopenTaskWithMergeBlocker(input) {
                 }
                 : task))
         };
-        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)(nextTaskFile), 'utf8');
+        await fs.writeFile(input.taskFilePath, (0, taskFile_1.stringifyTaskFile)((0, taskFile_1.bumpMutationCount)(nextTaskFile)), 'utf8');
     });
     if (locked.outcome === 'lock_timeout') {
         throw new Error(`Timed out acquiring tasks.json lock at ${locked.lockPath} after ${locked.attempts} attempt(s).`);
@@ -257,6 +257,7 @@ async function reconcileBranchPerTaskScm(input) {
     const warnings = [];
     let parentCompletedAndMerged = false;
     let completedParentTask = null;
+    let selectedTaskAfterScm;
     // Track the branches involved in the most recent merge attempt so the
     // conflict resolver has accurate context if that merge throws.
     let lastMergeSource = selectedClaim.featureBranch;
@@ -369,8 +370,10 @@ async function reconcileBranchPerTaskScm(input) {
                 blocker
             });
             warnings.push(`SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`);
+            const refreshedTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
+            selectedTaskAfterScm = (0, taskFile_1.findTaskById)(refreshedTaskFile, selectedTask.id);
         }
     }
-    return { warnings, parentCompletedAndMerged, parentTask: completedParentTask };
+    return { warnings, parentCompletedAndMerged, parentTask: completedParentTask, selectedTaskAfterScm };
 }
 //# sourceMappingURL=iterationScm.js.map

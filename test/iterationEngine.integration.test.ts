@@ -539,7 +539,12 @@ test('runCliIteration uses branch-per-task SCM with parent integration branches 
   harness.setConfiguration({
     verifierModes: ['validationCommand', 'taskState'],
     gitCheckpointMode: 'off',
-    scmStrategy: 'branch-per-task'
+    scmStrategy: 'branch-per-task',
+    planningPass: {
+      enabled: false,
+      mode: 'inline'
+    },
+    taskReadinessGate: 'off'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
@@ -622,14 +627,17 @@ test('runCliIteration reopens the task when branch-per-task merge hits a conflic
   const run = createEngine([
     {
       run: async () => {
-        await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "feature-branch";\n', 'utf8');
         const gitState = await readFakeGitState(rootPath);
-        gitState.branches.main.files['src/feature.ts'] = 'export const ready = "main-branch";\n';
-        await fs.writeFile(
-          path.join(rootPath, '.git', 'ralph-test-index.json'),
-          `${JSON.stringify(gitState, null, 2)}\n`,
-          'utf8'
-        );
+        if (gitState.currentBranch === 'ralph/T41') {
+          await fs.writeFile(path.join(rootPath, 'src', 'feature.ts'), 'export const ready = "feature-branch";\n', 'utf8');
+          gitState.branches.main.files['src/feature.ts'] = 'export const ready = "main-branch";\n';
+          gitState.branches['ralph/T41'].baseFiles['src/feature.ts'] = 'export const ready = true;\n';
+          await fs.writeFile(
+            path.join(rootPath, '.git', 'ralph-test-index.json'),
+            `${JSON.stringify(gitState, null, 2)}\n`,
+            'utf8'
+          );
+        }
 
         return {
           stdout: 'completed task',
@@ -973,8 +981,11 @@ test('runCliIteration aligns nested execution and verifier roots while keeping R
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     verifierModes: ['validationCommand', 'taskState'],
-    gitCheckpointMode: 'off'
+    gitCheckpointMode: 'off',
+    planningPass: { enabled: false, mode: 'inline' },
+    taskReadinessGate: 'off'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
@@ -1082,8 +1093,11 @@ test('runCliIteration normalizes a legacy task validation command that redundant
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     verifierModes: ['validationCommand', 'taskState'],
-    gitCheckpointMode: 'off'
+    gitCheckpointMode: 'off',
+    planningPass: { enabled: false, mode: 'inline' },
+    taskReadinessGate: 'off'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
@@ -1142,8 +1156,11 @@ test('runCliIteration normalizes a legacy task validation command when the opene
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     verifierModes: ['validationCommand', 'taskState'],
-    gitCheckpointMode: 'off'
+    gitCheckpointMode: 'off',
+    planningPass: { enabled: false, mode: 'inline' },
+    taskReadinessGate: 'off'
   });
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
 
@@ -3326,10 +3343,13 @@ test('runCliIteration does not auto-apply any remediation when autoApplyRemediat
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     verifierModes: ['taskState', 'gitDiff'],
     noProgressThreshold: 2,
     gitCheckpointMode: 'off',
-    autoApplyRemediation: []
+    autoApplyRemediation: [],
+    planningPass: { enabled: false, mode: 'inline' },
+    taskReadinessGate: 'off'
   });
 
   const sharedMemento = new MemoryMemento();
@@ -3415,6 +3435,7 @@ test('runCliIteration does not auto-apply request_human_review remediation regar
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     verifierModes: ['taskState'],
     repeatedFailureThreshold: 2,
     stopOnHumanReviewNeeded: false,
@@ -3957,6 +3978,7 @@ test('runCliIteration writes a structured handoff note on clean termination', as
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     generatedArtifactRetentionCount: 2,
     verifierModes: ['taskState'],
     gitCheckpointMode: 'off',
@@ -4017,6 +4039,7 @@ test('runCliIteration carries the latest handoff into the next prompt and prunes
 
   const harness = vscodeTestHarness();
   harness.setConfiguration({
+    autonomyMode: 'supervised',
     generatedArtifactRetentionCount: 1,
     verifierModes: ['taskState'],
     gitCheckpointMode: 'off',

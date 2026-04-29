@@ -226,6 +226,7 @@ export function classifyIterationOutcome(input: RalphOutcomeInput): RalphOutcome
   const isDocMode = input.taskMode === 'documentation';
   const shouldPromoteToNoProgress = classification === 'partial_progress'
     && !isDocMode
+    && !input.humanReviewNeeded
     && strongNoProgressSignals.has('no_relevant_file_changes')
     && strongNoProgressSignals.has('task_and_progress_state_unchanged')
     && (strongNoProgressSignals.has('same_task_selected_repeatedly')
@@ -533,6 +534,28 @@ export function decideLoopContinuation(input: RalphStopDecisionInput): RalphLoop
         shouldContinue: false,
         stopReason: 'repeated_identical_failure',
         message: `Detected ${repeatedFailureCount} consecutive identical failure classifications.`
+      };
+    }
+  }
+
+  if (
+    input.currentResult.selectedTaskId
+    && (
+      input.currentResult.completionClassification === 'blocked'
+      || input.currentResult.completionClassification === 'needs_human_review'
+    )
+  ) {
+    const repeatedTerminalReviewCount = countTrailingSameTaskClassifications(
+      history,
+      input.currentResult.selectedTaskId,
+      agentId,
+      [input.currentResult.completionClassification]
+    );
+    if (repeatedTerminalReviewCount >= input.repeatedFailureThreshold) {
+      return {
+        shouldContinue: false,
+        stopReason: 'repeated_identical_failure',
+        message: `Detected ${repeatedTerminalReviewCount} consecutive identical failure classifications.`
       };
     }
   }

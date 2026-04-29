@@ -424,6 +424,26 @@ async function validateRepositoryDocs(rootDir) {
  */
 const CHECKED_CONFIG_DEFAULTS = [
     {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.preferredHandoffMode', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.preferredHandoffMode,
+        label: 'ralphCodex.preferredHandoffMode'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autonomyMode', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.autonomyMode,
+        label: 'ralphCodex.autonomyMode'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoReplenishBacklog', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.autoReplenishBacklog,
+        label: 'ralphCodex.autoReplenishBacklog'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.taskReadinessGate', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.taskReadinessGate,
+        label: 'ralphCodex.taskReadinessGate'
+    },
+    {
         packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.promptBudgetProfile', 'default'],
         expectedValue: defaults_1.DEFAULT_CONFIG.promptBudgetProfile,
         label: 'ralphCodex.promptBudgetProfile'
@@ -457,6 +477,16 @@ const CHECKED_CONFIG_DEFAULTS = [
         packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.agentCount', 'default'],
         expectedValue: defaults_1.DEFAULT_CONFIG.agentCount,
         label: 'ralphCodex.agentCount'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoWatchdogOnStall', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.autoWatchdogOnStall,
+        label: 'ralphCodex.autoWatchdogOnStall'
+    },
+    {
+        packageJsonPath: ['contributes', 'configuration', 'properties', 'ralphCodex.autoReviewOnLoopComplete', 'default'],
+        expectedValue: defaults_1.DEFAULT_CONFIG.autoReviewOnLoopComplete,
+        label: 'ralphCodex.autoReviewOnLoopComplete'
     }
 ];
 /**

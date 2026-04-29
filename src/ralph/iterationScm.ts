@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import { toErrorMessage } from '../util/error';
 import { runProcess } from '../services/processRunner';
 import {
+  bumpMutationCount,
   findTaskById,
   parseTaskFile,
   stringifyTaskFile,
@@ -300,7 +301,7 @@ async function reopenTaskWithMergeBlocker(input: {
       ))
     };
 
-    await fs.writeFile(input.taskFilePath, stringifyTaskFile(nextTaskFile), 'utf8');
+    await fs.writeFile(input.taskFilePath, stringifyTaskFile(bumpMutationCount(nextTaskFile)), 'utf8');
   });
 
   if (locked.outcome === 'lock_timeout') {
@@ -314,6 +315,7 @@ export interface BranchPerTaskScmResult {
   warnings: string[];
   parentCompletedAndMerged: boolean;
   parentTask: RalphTask | null;
+  selectedTaskAfterScm?: RalphTask | null;
 }
 
 /**
@@ -345,6 +347,7 @@ export async function reconcileBranchPerTaskScm(input: {
   const warnings: string[] = [];
   let parentCompletedAndMerged = false;
   let completedParentTask: RalphTask | null = null;
+  let selectedTaskAfterScm: RalphTask | null | undefined;
 
   // Track the branches involved in the most recent merge attempt so the
   // conflict resolver has accurate context if that merge throws.
@@ -462,8 +465,10 @@ export async function reconcileBranchPerTaskScm(input: {
       warnings.push(
         `SCM branch-per-task failed for ${selectedTask.id}: ${blocker}`
       );
+      const refreshedTaskFile = parseTaskFile(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
+      selectedTaskAfterScm = findTaskById(refreshedTaskFile, selectedTask.id);
     }
   }
 
-  return { warnings, parentCompletedAndMerged, parentTask: completedParentTask };
+  return { warnings, parentCompletedAndMerged, parentTask: completedParentTask, selectedTaskAfterScm };
 }

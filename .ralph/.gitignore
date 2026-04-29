@@ -6,3 +6,4 @@
 /state.json
 /handoff
 /agents
+.env

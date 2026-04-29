@@ -30,17 +30,29 @@ async function seedValidRepository(rootPath: string): Promise<void> {
               enum: ['validationCommand', 'gitDiff', 'taskState']
             }
           },
+          'ralphCodex.preferredHandoffMode': {
+            default: 'clipboard'
+          },
+          'ralphCodex.autonomyMode': {
+            default: 'autonomous'
+          },
+          'ralphCodex.autoReplenishBacklog': {
+            default: true
+          },
           'ralphCodex.promptBudgetProfile': {
             default: 'codex'
           },
           'ralphCodex.planningPass': {
             default: {
-              enabled: false,
+              enabled: true,
               mode: 'inline'
             }
           },
+          'ralphCodex.taskReadinessGate': {
+            default: 'auto'
+          },
           'ralphCodex.memoryStrategy': {
-            default: 'verbatim'
+            default: 'sliding-window'
           },
           'ralphCodex.memoryWindowSize': {
             default: 10
@@ -49,7 +61,13 @@ async function seedValidRepository(rootPath: string): Promise<void> {
             default: 20
           },
           'ralphCodex.agentCount': {
-            default: 1
+            default: 2
+          },
+          'ralphCodex.autoWatchdogOnStall': {
+            default: true
+          },
+          'ralphCodex.autoReviewOnLoopComplete': {
+            default: true
           }
         }
       }
@@ -859,17 +877,29 @@ test('validateRepositoryDocs reports missing Marketplace dry-run release validat
               enum: ['validationCommand', 'gitDiff', 'taskState']
             }
           },
+          'ralphCodex.preferredHandoffMode': {
+            default: 'clipboard'
+          },
+          'ralphCodex.autonomyMode': {
+            default: 'autonomous'
+          },
+          'ralphCodex.autoReplenishBacklog': {
+            default: true
+          },
           'ralphCodex.promptBudgetProfile': {
             default: 'codex'
           },
           'ralphCodex.planningPass': {
             default: {
-              enabled: false,
+              enabled: true,
               mode: 'inline'
             }
           },
+          'ralphCodex.taskReadinessGate': {
+            default: 'auto'
+          },
           'ralphCodex.memoryStrategy': {
-            default: 'verbatim'
+            default: 'sliding-window'
           },
           'ralphCodex.memoryWindowSize': {
             default: 10
@@ -878,7 +908,13 @@ test('validateRepositoryDocs reports missing Marketplace dry-run release validat
             default: 20
           },
           'ralphCodex.agentCount': {
-            default: 1
+            default: 2
+          },
+          'ralphCodex.autoWatchdogOnStall': {
+            default: true
+          },
+          'ralphCodex.autoReviewOnLoopComplete': {
+            default: true
           }
         }
       }

@@ -58,21 +58,43 @@ function normalizeTaskInputsForPersistence(newTasks) {
         version: 2,
         tasks: normalizedTasks
     }));
+    const duplicateIds = normalizedTasks
+        .map((task) => task.id)
+        .filter((taskId, index, ids) => ids.indexOf(taskId) !== index);
+    if (duplicateIds.length > 0) {
+        const uniqueDuplicates = Array.from(new Set(duplicateIds));
+        if (uniqueDuplicates.length === 1) {
+            throw new Error(`Task id ${uniqueDuplicates[0]} must be unique.`);
+        }
+        throw new Error(`Task ids must be unique: ${uniqueDuplicates.join(', ')}.`);
+    }
     return normalizedTasks;
 }
 async function appendNormalizedTasksToFile(tasksPath, newTasks) {
     if (newTasks.length === 0) {
         return;
     }
+    const normalizedTasks = normalizeTaskInputsForPersistence(newTasks);
     const locked = await (0, taskFile_1.withTaskFileLock)(tasksPath, undefined, async () => {
         const raw = await fs.readFile(tasksPath, 'utf8');
         if (!raw.trim()) {
             throw new Error('Existing tasks.json must not be empty during append; retry after the current writer finishes or reinitialize the workspace.');
         }
         const taskFile = (0, taskFile_1.parseTaskFile)(raw);
+        const existingIds = new Set(taskFile.tasks.map((task) => task.id));
+        const collisions = normalizedTasks
+            .map((task) => task.id)
+            .filter((taskId) => taskId.length > 0 && existingIds.has(taskId));
+        if (collisions.length > 0) {
+            const uniqueCollisions = Array.from(new Set(collisions));
+            if (uniqueCollisions.length === 1) {
+                throw new Error(`Task id ${uniqueCollisions[0]} must be unique.`);
+            }
+            throw new Error(`Task ids must be unique: ${uniqueCollisions.join(', ')}.`);
+        }
         const next = (0, taskFile_1.bumpMutationCount)({
             ...taskFile,
-            tasks: [...taskFile.tasks, ...normalizeTaskInputsForPersistence(newTasks)]
+            tasks: [...taskFile.tasks, ...normalizedTasks]
         });
         const nextText = (0, taskFile_1.stringifyTaskFile)(next);
         (0, taskFile_1.parseTaskFile)(nextText);

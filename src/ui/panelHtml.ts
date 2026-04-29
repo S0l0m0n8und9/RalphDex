@@ -1285,7 +1285,7 @@ function buildRichFailureCard(state: RalphDashboardState): string {
       <p class="rich-failure-block-text">${esc(entry.remediationSummary)}</p>
     </div>` : ''}
     <div class="inline-actions" style="margin-top: 12px; flex-wrap: wrap;">
-      <button class="btn primary" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Auto-recover task</span><span class="btn-spinner"></span></button>
+        <button class="btn primary" data-command="ralphCodex.autoRecoverTask"><span class="btn-label">Recover failed task</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">Open diagnosis</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.skipTask"><span class="btn-label">Skip task</span><span class="btn-spinner"></span></button>
       ${entry.humanReviewRecommended
@@ -1358,25 +1358,28 @@ function buildAgentGridSection(state: RalphDashboardState): string {
   </div>`;
 }
 
-function buildDeadLetterSection(state: RalphDashboardState): string {
-  const entries = state.dashboardSnapshot?.deadLetter.entries ?? [];
-  if (entries.length === 0) {
-    return `<div class="dashboard-summary-card">
-      <div class="card-title">Dead-Letter</div>
+  function buildDeadLetterSection(state: RalphDashboardState): string {
+    const entries = state.dashboardSnapshot?.deadLetter.entries ?? [];
+    if (entries.length === 0) {
+      return `<div class="dashboard-summary-card">
+        <div class="card-title">Dead-Letter</div>
       <div class="empty" style="font-style:normal;">No tasks are parked in dead-letter.</div>
       <div class="inline-actions" style="justify-content:center;">
         <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       </div>
     </div>`;
-  }
+    }
 
-  return `<div class="dashboard-summary-card">
-    <div class="card-title">Dead-Letter</div>
-    <div class="dead-letter-list">
-      ${entries.map((entry) => {
-        const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
-        return `<div class="dead-letter-item">
-          <div><strong>${esc(entry.taskId)}</strong> · ${esc(entry.taskTitle)}</div>
+    return `<div class="dashboard-summary-card">
+      <div class="card-title">Dead-Letter</div>
+      <details data-section="dead-letter-diagnostics">
+        <summary>Dead-letter diagnostics</summary>
+      </details>
+      <div class="dead-letter-list">
+        ${entries.map((entry) => {
+const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
+          return `<div class="dead-letter-item">
+            <div><strong>${esc(entry.taskId)}</strong> · ${esc(entry.taskTitle)}</div>
           <div class="dead-letter-meta">
             <div><strong>Dead-lettered</strong> ${formatUtc(entry.deadLetteredAt)}</div>
             <div><strong>Attempts</strong> ${entry.recoveryAttemptCount} · <strong>Last category</strong> ${esc(latestCategory)}</div>

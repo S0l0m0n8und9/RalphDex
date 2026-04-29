@@ -891,13 +891,51 @@ class RalphIterationEngine {
                     };
                 }
             });
-            const afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
-            const taskStateVerification = await this.verificationRunner.runTaskStateVerification({
+            let afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
+            let taskStateVerification = await this.verificationRunner.runTaskStateVerification({
                 prepared,
                 artifactPaths,
                 completionReconciliation,
                 afterCoreState
             });
+            if (branchPerTask.warnings.some((warning) => warning.includes('SCM branch-per-task failed for '))) {
+                afterCoreState = await (0, verifier_1.captureCoreState)(prepared.paths);
+                taskStateVerification = await this.verificationRunner.runTaskStateVerification({
+                    prepared,
+                    artifactPaths,
+                    completionReconciliation,
+                    afterCoreState
+                });
+            }
+            const branchPerTaskFailed = branchPerTask.warnings.some((warning) => warning.includes('SCM branch-per-task failed for '));
+            const selectedTaskReopened = branchPerTask.selectedTaskStatus === 'in_progress'
+                || taskStateVerification.selectedTaskAfter?.status === 'in_progress';
+            if (branchPerTaskFailed && taskStateVerification.selectedTaskAfter?.status === 'in_progress') {
+                taskStateVerification = {
+                    ...taskStateVerification,
+                    selectedTaskCompleted: false,
+                    selectedTaskBlocked: false,
+                    humanReviewNeeded: false
+                };
+            }
+            if (selectedTaskReopened) {
+                const reopenedSelectedTask = taskStateVerification.selectedTaskAfter
+                    ?? branchPerTask.selectedTask
+                    ?? completionReconciliation.selectedTask;
+                completionReconciliation.selectedTask = reopenedSelectedTask
+                    ? {
+                        ...reopenedSelectedTask,
+                        status: 'in_progress'
+                    }
+                    : completionReconciliation.selectedTask;
+                taskStateVerification = {
+                    ...taskStateVerification,
+                    selectedTaskAfter: completionReconciliation.selectedTask,
+                    selectedTaskCompleted: false,
+                    selectedTaskBlocked: false,
+                    humanReviewNeeded: false
+                };
+            }
             phaseTimestamps.verificationFinishedAt = new Date().toISOString();
             broadcaster?.emitPhase(prepared.iteration, 'classify', prepared.config.agentId);
             const classified = this.outcomeClassifier.classify({
@@ -1032,6 +1070,23 @@ class RalphIterationEngine {
             });
             if (commitWarnings.length > 0) {
                 result.warnings.push(...commitWarnings);
+            }
+            if (selectedTaskReopened && prepared.selectedTask) {
+                const refreshedTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(prepared.paths.taskFilePath, 'utf8'));
+                const refreshedSelectedTask = refreshedTaskFile.tasks.find((task) => task.id === prepared.selectedTask?.id) ?? null;
+                if (refreshedSelectedTask?.status !== 'in_progress') {
+                    await fs.writeFile(prepared.paths.taskFilePath, (0, taskFile_1.stringifyTaskFile)({
+                        ...refreshedTaskFile,
+                        tasks: refreshedTaskFile.tasks.map((task) => (task.id === prepared.selectedTask.id
+                            ? {
+                                ...task,
+                                status: 'in_progress',
+                                blocker: branchPerTask.selectedTask?.blocker ?? task.blocker
+                            }
+                            : task)),
+                        mutationCount: (refreshedTaskFile.mutationCount ?? 0) + 1
+                    }));
+                }
             }
             broadcaster?.emitPhase(prepared.iteration, 'persist', prepared.config.agentId);
             await this.artifactPersistence.persistIterationArtifacts({

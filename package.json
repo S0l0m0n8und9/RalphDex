@@ -598,7 +598,7 @@
             "clipboard",
             "cliExec"
           ],
-          "default": "ideCommand",
+          "default": "clipboard",
           "description": "Preferred way to hand a generated prompt to Codex. IDE command mode uses documented VS Code commands plus clipboard, clipboard mode only copies the prompt, and cliExec is reserved for command-driven runs."
         },
         "ralphCodex.inspectionRootOverride": {
@@ -710,12 +710,12 @@
             "supervised",
             "autonomous"
           ],
-          "default": "supervised",
+          "default": "autonomous",
           "description": "Shorthand for Ralph loop autonomy. 'supervised' leaves the individual autonomy settings untouched; 'autonomous' forces autoApplyRemediation to both decompose_task and mark_blocked, and autoReplenishBacklog on, while preserving hard stops such as blocked preflight, request_human_review, and manual PRD authorship."
         },
         "ralphCodex.autoReplenishBacklog": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Continue the Ralph loop into backlog replenishment when no actionable task remains and preflight found no ledger-drift safety errors."
         },
         "ralphCodex.autoApplyRemediation": {
@@ -727,7 +727,10 @@
               "mark_blocked"
             ]
           },
-          "default": [],
+          "default": [
+            "decompose_task",
+            "mark_blocked"
+          ],
           "description": "Opt-in remediation actions Ralph may auto-apply after repeated-stop evidence. Leave this empty to preserve review-only behavior; set one or both of decompose_task and mark_blocked to allow only those actions."
         },
         "ralphCodex.ralphTaskFilePath": {
@@ -849,7 +852,7 @@
         },
         "ralphCodex.agentCount": {
           "type": "number",
-          "default": 1,
+          "default": 2,
           "minimum": 1,
           "maximum": 20,
           "description": "Number of concurrent Ralph agent instances configured for this workspace. Surfaced in preflight and Show Status so operators can verify the intended parallelism before starting a loop."
@@ -889,7 +892,7 @@
         },
         "ralphCodex.autoWatchdogOnStall": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Automatically run the watchdog agent after a loop stop caused by repeated no-progress or repeated identical failure classification."
         },
         "ralphCodex.autoReviewOnParentDone": {
@@ -899,7 +902,7 @@
         },
         "ralphCodex.autoReviewOnLoopComplete": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Automatically run the review agent when a loop command completes with at least one iteration result."
         },
         "ralphCodex.autoScmOnConflict": {
@@ -937,8 +940,8 @@
             "sliding-window",
             "summary"
           ],
-          "default": "verbatim",
-          "description": "Controls how Ralph manages agent memory across iterations. verbatim (default): the full last-iteration context is included verbatim in every prompt. sliding-window: only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: when iteration count exceeds memorySummaryThreshold, Ralph invokes the configured CLI provider to produce a condensed memory-summary.md that replaces verbatim history in subsequent prompts."
+          "default": "sliding-window",
+          "description": "Controls how Ralph manages agent memory across iterations. verbatim: the full last-iteration context is included verbatim in every prompt. sliding-window (default): only the last memoryWindowSize iterations are included; older entries are dropped to keep prompts compact. summary: when iteration count exceeds memorySummaryThreshold, Ralph invokes the configured CLI provider to produce a condensed memory-summary.md that replaces verbatim history in subsequent prompts."
         },
         "ralphCodex.memoryWindowSize": {
           "type": "number",
@@ -988,10 +991,10 @@
         "ralphCodex.planningPass": {
           "type": "object",
           "default": {
-            "enabled": false,
+            "enabled": true,
             "mode": "inline"
           },
-          "description": "Pre-execution planning pass configuration. enabled (bool, default false): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
+          "description": "Pre-execution planning pass configuration. enabled (bool, default true): when true, a planning turn runs before the main implementer iteration to produce a task-plan.json artifact. mode: 'inline' (implementer runs its own planning prompt turn before execution) or 'dedicated' (a separate planner agent writes task-plan.json; implementer waits for it). In dedicated mode, set agentRole=planner on planning agents and agentRole=implementer on executing agents."
         },
         "ralphCodex.taskReadinessGate": {
           "type": "string",
@@ -1001,7 +1004,7 @@
             "auto",
             "strict"
           ],
-          "default": "off",
+          "default": "auto",
           "description": "Controls whether planning-pass readiness can gate execution. off: never gate. warn: record readiness warnings and continue. auto: stop before provider execution when planner reports blocked/needs_human_review, and auto-apply valid suggestedChildTasks for needs_decomposition. strict: require an executable task shape (bounded scope, validation, acceptance) and stop/decompose before execution when missing."
         },
         "ralphCodex.failureDiagnostics": {

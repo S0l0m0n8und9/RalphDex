@@ -262,7 +262,7 @@ Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique ba
 
 ### Autonomous Loop Mode
 
-`ralphCodex.autonomyMode` is the high-level loop-control shortcut. `supervised` is the default and leaves the underlying loop settings as configured. `autonomous` forces two effective settings at runtime regardless of their stored values: `autoApplyRemediation = ["decompose_task", "mark_blocked"]` and `autoReplenishBacklog = true`.
+`ralphCodex.autonomyMode` is the high-level loop-control shortcut. The extension now defaults to `autonomous`, and that mode forces two effective settings at runtime regardless of their stored values: `autoApplyRemediation = ["decompose_task", "mark_blocked"]` and `autoReplenishBacklog = true`. Switch back to `supervised` when you want the loop to leave those lower-level settings untouched.
 
 Autonomous mode widens what Ralph may do without another click, but it does not remove hard stops. These stops are never automated and still require an operator decision even when autonomy mode is `autonomous`:
 
@@ -478,9 +478,9 @@ That PR creation step is intentionally failure-tolerant:
 
 > **Maturity: beta** — inline mode is stable in single-agent loops; dedicated mode requires manual crew coordination and is less exercised.
 
-The planning pass is an optional pre-execution step that produces a `task-plan.json` artifact before the implementer prompt runs. It is disabled by default — `ralphCodex.planningPass.enabled` defaults to `false`, so no additional LLM cost is incurred unless you explicitly enable it.
+The planning pass is an optional pre-execution step that produces a `task-plan.json` artifact before the implementer prompt runs. It is enabled by default in inline mode — `ralphCodex.planningPass.enabled` defaults to `true`, so each implementer iteration begins with a bounded planning turn unless you explicitly disable it.
 
-`ralphCodex.taskReadinessGate` controls whether planning output is advisory or blocking. Default is `off` (backward-compatible; no automatic task mutation).
+`ralphCodex.taskReadinessGate` controls whether planning output is advisory or blocking. Default is `auto`, which lets Ralph stop before provider execution on blocked or human-review-ready planner outcomes and auto-apply valid bounded decomposition proposals.
 
 When `taskReadinessGate != off`, Ralph runs readiness planning even if `planningPass.enabled` is false, so gate decisions remain explicit and predictable.
 
@@ -545,8 +545,8 @@ When planning-gate decomposition writes child tasks, each child carries a planni
 
 `ralphCodex.memoryStrategy` controls how Ralph manages prior-iteration context across iterations:
 
-- **`verbatim`** (default) — the full last-iteration context is included verbatim in every prompt. Simplest and most predictable; prompt size grows with iteration history.
-- **`sliding-window`** — only the last `ralphCodex.memoryWindowSize` (default 10) iterations are included. Older entries are dropped to keep prompts compact. Good for long loops where full verbatim history would exceed the prompt budget.
+- **`verbatim`** — the full last-iteration context is included verbatim in every prompt. Simplest and most predictable; prompt size grows with iteration history.
+- **`sliding-window`** (default) — only the last `ralphCodex.memoryWindowSize` (default 10) iterations are included. Older entries are dropped to keep prompts compact. Good for long loops where full verbatim history would exceed the prompt budget.
 - **`summary`** — when the iteration count exceeds `ralphCodex.memorySummaryThreshold` (default 20), Ralph invokes the configured CLI provider to produce a condensed `memory-summary.md` that replaces verbatim history in subsequent prompts. Below the threshold, behaves like verbatim. Each summarisation is an additional LLM call; inspect `.ralph/memory-summary.md` for the latest output.
 
 The operator presets select memory strategies automatically: `simple` uses `verbatim`, `multi-agent` uses `sliding-window`, and `hardcore` uses `summary`.

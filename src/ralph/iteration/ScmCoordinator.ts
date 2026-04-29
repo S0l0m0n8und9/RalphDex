@@ -28,6 +28,12 @@ export interface ReconcileBranchPerTaskInput {
 
 export interface ReconcileBranchPerTaskOutput {
   warnings: string[];
+  selectedTaskStatus?: CompletionReconciliationOutcome['selectedTask'] extends infer T
+    ? T extends { status: infer S }
+      ? S
+      : never
+    : never;
+  selectedTask?: CompletionReconciliationOutcome['selectedTask'];
   autoReviewContext?: { parentTaskId: string; parentTaskTitle: string };
 }
 
@@ -50,6 +56,8 @@ export class ScmCoordinator {
 
   public async reconcileBranchPerTask(input: ReconcileBranchPerTaskInput): Promise<ReconcileBranchPerTaskOutput> {
     const warnings: string[] = [];
+    let selectedTaskStatus = input.completionReconciliation.selectedTask?.status;
+    let selectedTask = input.completionReconciliation.selectedTask;
     let autoReviewContext: ReconcileBranchPerTaskOutput['autoReviewContext'];
     if (input.prepared.config.scmStrategy === 'branch-per-task'
       && input.completionReconciliation.selectedTask?.status === 'done'
@@ -86,6 +94,15 @@ export class ScmCoordinator {
         conflictResolver
       });
       warnings.push(...branchScm.warnings);
+      if (branchScm.selectedTaskAfterScm && input.prepared.selectedTask?.id === branchScm.selectedTaskAfterScm.id) {
+        selectedTask = branchScm.selectedTaskAfterScm;
+      } else {
+        const refreshedTaskFile = parseTaskFile(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
+        selectedTask = input.prepared.selectedTask
+          ? refreshedTaskFile.tasks.find((task) => task.id === input.prepared.selectedTask?.id) ?? null
+          : selectedTask;
+      }
+      selectedTaskStatus = selectedTask?.status;
       if (branchScm.parentCompletedAndMerged && branchScm.parentTask) {
         autoReviewContext = {
           parentTaskId: branchScm.parentTask.id,
@@ -96,6 +113,8 @@ export class ScmCoordinator {
 
     return {
       warnings,
+      selectedTaskStatus,
+      selectedTask,
       autoReviewContext
     };
   }

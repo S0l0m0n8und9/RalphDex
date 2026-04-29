@@ -1,4 +1,8 @@
-import { classifyIterationOutcome, classifyVerificationStatus } from '../loopLogic';
+import {
+  classifyIterationOutcome,
+  classifyVerificationStatus,
+  containsHumanReviewMarker
+} from '../loopLogic';
 import type { CompletionReconciliationOutcome } from '../reconciliation';
 import { countTaskStatuses, remainingSubtasks, selectNextTask } from '../taskFile';
 import type { PreparedIterationContext } from '../iterationPreparation';
@@ -74,7 +78,9 @@ export class OutcomeClassifier {
       selectedTaskId: input.prepared.selectedTask?.id ?? null,
       selectedTaskCompleted: input.taskStateVerification.selectedTaskCompleted,
       selectedTaskBlocked: input.taskStateVerification.selectedTaskBlocked,
-      humanReviewNeeded: input.taskStateVerification.humanReviewNeeded,
+      humanReviewNeeded: input.taskStateVerification.humanReviewNeeded
+        || containsHumanReviewMarker(selectedTaskAfter?.blocker)
+        || containsHumanReviewMarker(selectedTaskAfter?.notes),
       remainingSubtaskCount: remainingSubtaskList.length,
       remainingTaskCount,
       executionStatus: input.execution.executionStatus,

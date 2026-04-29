@@ -41,7 +41,9 @@ class OutcomeClassifier {
             selectedTaskId: input.prepared.selectedTask?.id ?? null,
             selectedTaskCompleted: input.taskStateVerification.selectedTaskCompleted,
             selectedTaskBlocked: input.taskStateVerification.selectedTaskBlocked,
-            humanReviewNeeded: input.taskStateVerification.humanReviewNeeded,
+            humanReviewNeeded: input.taskStateVerification.humanReviewNeeded
+                || (0, loopLogic_1.containsHumanReviewMarker)(selectedTaskAfter?.blocker)
+                || (0, loopLogic_1.containsHumanReviewMarker)(selectedTaskAfter?.notes),
             remainingSubtaskCount: remainingSubtaskList.length,
             remainingTaskCount,
             executionStatus: input.execution.executionStatus,

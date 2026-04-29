@@ -32,15 +32,22 @@ test('readConfig preserves individually configured autonomy settings in supervis
   assert.equal(config.autoReplenishBacklog, false);
 });
 
-test('readConfig defaults to supervised safe posture', () => {
+test('readConfig defaults to an agentic autonomous posture without changing provider safety limits', () => {
   const harness = vscodeTestHarness();
   harness.reset();
 
   const config = readConfig(workspaceFolder('C:\\repo'));
 
-  assert.equal(config.autonomyMode, 'supervised');
-  assert.equal(config.autoReplenishBacklog, false);
-  assert.deepEqual(config.autoApplyRemediation, []);
+  assert.equal(config.preferredHandoffMode, 'clipboard');
+  assert.equal(config.autonomyMode, 'autonomous');
+  assert.equal(config.autoReplenishBacklog, true);
+  assert.deepEqual(config.autoApplyRemediation, ['decompose_task', 'mark_blocked']);
+  assert.equal(config.agentCount, 2);
+  assert.equal(config.autoWatchdogOnStall, true);
+  assert.equal(config.autoReviewOnLoopComplete, true);
+  assert.equal(config.memoryStrategy, 'sliding-window');
+  assert.deepEqual(config.planningPass, { enabled: true, mode: 'inline' });
+  assert.equal(config.taskReadinessGate, 'auto');
   assert.equal(config.scmStrategy, 'none');
   assert.equal(config.scmPrOnParentDone, false);
   assert.equal(config.reasoningEffort, 'medium');
@@ -49,7 +56,6 @@ test('readConfig defaults to supervised safe posture', () => {
   assert.equal(config.ralphIterationCap, 20);
   assert.equal(config.claudePermissionMode, 'default');
   assert.equal(config.copilotApprovalMode, 'allow-tools-only');
-  assert.equal(config.taskReadinessGate, 'off');
 });
 
 test('readConfig accepts explicit taskReadinessGate values and falls back safely', () => {
@@ -62,7 +68,7 @@ test('readConfig accepts explicit taskReadinessGate values and falls back safely
   harness.setConfiguration({
     taskReadinessGate: 'invalid-value'
   } as unknown as Record<string, unknown>);
-  assert.equal(readConfig(workspaceFolder('C:\\repo')).taskReadinessGate, 'off');
+  assert.equal(readConfig(workspaceFolder('C:\\repo')).taskReadinessGate, 'auto');
 });
 
 test('readConfig forces the autonomous shorthand overrides regardless of individual settings', () => {
@@ -78,6 +84,19 @@ test('readConfig forces the autonomous shorthand overrides regardless of individ
   assert.equal(config.autonomyMode, 'autonomous');
   assert.deepEqual(config.autoApplyRemediation, ['decompose_task', 'mark_blocked']);
   assert.equal(config.autoReplenishBacklog, true);
+});
+
+test('readConfig preserves an explicit empty remediation list in supervised mode', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    autonomyMode: 'supervised',
+    autoApplyRemediation: []
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.autonomyMode, 'supervised');
+  assert.deepEqual(config.autoApplyRemediation, []);
 });
 
 test('readConfig reads scmStrategy and falls back to none', () => {

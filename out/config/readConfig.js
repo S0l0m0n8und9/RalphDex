@@ -95,7 +95,7 @@ function readEnumArray(config, key, allowed, fallback) {
         return [...fallback];
     }
     const normalized = value.filter((item) => typeof item === 'string' && allowed.includes(item));
-    return normalized.length > 0 ? normalized : [...fallback];
+    return normalized;
 }
 function readPromptBudgetOverrideMap(config, key) {
     const value = config.get(key);

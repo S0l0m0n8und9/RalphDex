@@ -51,6 +51,8 @@ class ScmCoordinator {
     }
     async reconcileBranchPerTask(input) {
         const warnings = [];
+        let selectedTaskStatus = input.completionReconciliation.selectedTask?.status;
+        let selectedTask = input.completionReconciliation.selectedTask;
         let autoReviewContext;
         if (input.prepared.config.scmStrategy === 'branch-per-task'
             && input.completionReconciliation.selectedTask?.status === 'done'
@@ -85,6 +87,16 @@ class ScmCoordinator {
                 conflictResolver
             });
             warnings.push(...branchScm.warnings);
+            if (branchScm.selectedTaskAfterScm && input.prepared.selectedTask?.id === branchScm.selectedTaskAfterScm.id) {
+                selectedTask = branchScm.selectedTaskAfterScm;
+            }
+            else {
+                const refreshedTaskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(input.prepared.paths.taskFilePath, 'utf8'));
+                selectedTask = input.prepared.selectedTask
+                    ? refreshedTaskFile.tasks.find((task) => task.id === input.prepared.selectedTask?.id) ?? null
+                    : selectedTask;
+            }
+            selectedTaskStatus = selectedTask?.status;
             if (branchScm.parentCompletedAndMerged && branchScm.parentTask) {
                 autoReviewContext = {
                     parentTaskId: branchScm.parentTask.id,
@@ -94,6 +106,8 @@ class ScmCoordinator {
         }
         return {
             warnings,
+            selectedTaskStatus,
+            selectedTask,
             autoReviewContext
         };
     }

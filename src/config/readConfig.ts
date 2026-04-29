@@ -129,7 +129,7 @@ function readEnumArray<T extends string>(
   }
 
   const normalized = value.filter((item): item is T => typeof item === 'string' && allowed.includes(item as T));
-  return normalized.length > 0 ? normalized : [...fallback];
+  return normalized;
 }
 
 function readPromptBudgetOverrideMap(
