@@ -129,6 +129,7 @@
     "onCommand:ralphCodex.resetRalphWorkspaceState",
     "onCommand:ralphCodex.runPipeline",
     "onCommand:ralphCodex.openLatestPipelineRun",
+    "onCommand:ralphCodex.openLatestDoctrineProposal",
     "onCommand:ralphCodex.openPrdWizard",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
@@ -255,6 +256,10 @@
       {
         "command": "ralphCodex.openLatestPipelineRun",
         "title": "Ralphdex: Open Latest Pipeline Run"
+      },
+      {
+        "command": "ralphCodex.openLatestDoctrineProposal",
+        "title": "Ralphdex: Open Latest Doctrine Proposal"
       },
       {
         "command": "ralphCodex.openPrdWizard",

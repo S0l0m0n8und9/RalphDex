@@ -509,6 +509,7 @@ test('artifactStore exposes the protected generated-artifact roots explicitly', 
     'latest-execution-plan.json',
     'latest-cli-invocation.json',
     'latest-doctrine-proposal.json',
+    'latest-doctrine-proposal.md',
     'latest-provenance-bundle.json',
     'latest-provenance-failure.json'
   ]);
@@ -551,6 +552,9 @@ test('artifactStore exposes the protected generated-artifact roots explicitly', 
       'iteration',
       'selectedTaskId',
       'selectedTaskTitle'
+    ],
+    'latest-doctrine-proposal.md': [
+      'proposalId (derived from provenanceId or iteration)'
     ],
     'latest-provenance-bundle.json': [
       'artifactDir',
@@ -2450,7 +2454,7 @@ test('writeWatchdogDiagnosticArtifact writes expected JSON to watchdog/ subdir',
   assert.ok(typeof contents.triggeredAt === 'string' && contents.triggeredAt.length > 0);
 });
 
-test('writeDoctrineProposalArtifact persists iteration-local and latest doctrine proposal artifacts', async () => {
+test('writeDoctrineProposalArtifact persists iteration-local, canonical, and latest doctrine proposal artifacts', async () => {
   const artifactRootDir = await makeArtifactRoot();
   const iteration = 12;
   const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
@@ -2480,13 +2484,99 @@ test('writeDoctrineProposalArtifact persists iteration-local and latest doctrine
     proposal
   });
 
-  assert.equal(writtenPath, paths.doctrineProposalPath);
-  const persisted = JSON.parse(await fs.readFile(paths.doctrineProposalPath, 'utf8')) as { kind: string; risk: string };
-  const latest = JSON.parse(await fs.readFile(latestPaths.latestDoctrineProposalPath, 'utf8')) as { proposalId: string };
+  const expectedCanonicalJson = path.join(artifactRootDir, 'doctrine-proposals', `${proposal.proposalId}.json`);
+  const expectedCanonicalMd = path.join(artifactRootDir, 'doctrine-proposals', `${proposal.proposalId}.md`);
 
-  assert.equal(persisted.kind, 'doctrineUpdateProposal');
-  assert.equal(persisted.risk, 'low');
-  assert.equal(latest.proposalId, proposal.proposalId);
+  assert.equal(writtenPath, expectedCanonicalJson);
+
+  const iterationLocal = JSON.parse(await fs.readFile(paths.doctrineProposalPath, 'utf8')) as { kind: string; risk: string };
+  assert.equal(iterationLocal.kind, 'doctrineUpdateProposal');
+  assert.equal(iterationLocal.risk, 'low');
+
+  const canonicalJson = JSON.parse(await fs.readFile(expectedCanonicalJson, 'utf8')) as { kind: string; proposalId: string };
+  assert.equal(canonicalJson.kind, 'doctrineUpdateProposal');
+  assert.equal(canonicalJson.proposalId, proposal.proposalId);
+
+  const canonicalMd = await fs.readFile(expectedCanonicalMd, 'utf8');
+  assert.ok(canonicalMd.includes('# Doctrine Update Proposal'), 'canonical Markdown must have heading');
+  assert.ok(canonicalMd.includes(proposal.proposalId), 'canonical Markdown must include proposal id');
+  assert.ok(canonicalMd.includes('.ralph/doctrine/workflows.md'), 'canonical Markdown must include target file');
+  assert.ok(canonicalMd.includes('Observed workflow note.'), 'canonical Markdown must include proposed text');
+  assert.ok(canonicalMd.includes('Adds durable workflow evidence from the run.'), 'canonical Markdown must include rationale');
+  assert.ok(canonicalMd.includes('package.json'), 'canonical Markdown must include evidence');
+
+  const latestJson = JSON.parse(await fs.readFile(latestPaths.latestDoctrineProposalPath, 'utf8')) as { proposalId: string };
+  assert.equal(latestJson.proposalId, proposal.proposalId);
+
+  const latestMd = await fs.readFile(latestPaths.latestDoctrineProposalMdPath, 'utf8');
+  assert.ok(latestMd.includes(proposal.proposalId), 'latest Markdown must include proposal id');
+});
+
+test('writeDoctrineProposalArtifact Markdown includes risk, protected flag, and approval flag', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 13;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const proposal = createDoctrineProposalArtifact({
+    provenanceId: 'run-i013-cli-20260430T001300Z',
+    iteration,
+    selectedTaskId: 'T179',
+    selectedTaskTitle: 'Protected doctrine update',
+    source: 'completionReport',
+    createdAt: '2026-04-30T00:13:00.000Z',
+    updates: parseDoctrineUpdatesFromCompletionReport([
+      {
+        targetFile: '.ralph/doctrine/invariants.md',
+        operation: 'replaceSection',
+        section: 'Core Invariants',
+        proposedText: '- Tasks must be normalized.',
+        rationale: 'Core normalization invariant observed.',
+        evidence: ['src/ralph/taskNormalization.ts']
+      }
+    ]).updates
+  });
+
+  await writeDoctrineProposalArtifact({ paths, artifactRootDir, proposal });
+
+  const canonicalMd = await fs.readFile(
+    path.join(artifactRootDir, 'doctrine-proposals', `${proposal.proposalId}.md`),
+    'utf8'
+  );
+
+  assert.ok(canonicalMd.includes('**Risk**: high'), 'Markdown must include risk level');
+  assert.ok(canonicalMd.includes('**Protected target**: yes'), 'Markdown must show protected flag');
+  assert.ok(canonicalMd.includes('**Approval required**: yes'), 'Markdown must show approval flag');
+  assert.ok(canonicalMd.includes('Core normalization invariant observed.'), 'Markdown must include rationale');
+  assert.ok(canonicalMd.includes('src/ralph/taskNormalization.ts'), 'Markdown must include evidence');
+});
+
+test('writeDoctrineProposalArtifact does not write to .ralph/doctrine/', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 14;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const proposal = createDoctrineProposalArtifact({
+    provenanceId: 'run-i014-cli-20260430T001400Z',
+    iteration,
+    selectedTaskId: 'T180',
+    selectedTaskTitle: 'No-mutation check',
+    source: 'completionReport',
+    createdAt: '2026-04-30T00:14:00.000Z',
+    updates: parseDoctrineUpdatesFromCompletionReport([
+      {
+        targetFile: '.ralph/doctrine/workflows.md',
+        operation: 'append',
+        section: null,
+        proposedText: 'Note.',
+        rationale: 'Rationale.',
+        evidence: ['some-file.ts']
+      }
+    ]).updates
+  });
+
+  const doctrineDir = path.join(path.dirname(artifactRootDir), 'doctrine');
+  await writeDoctrineProposalArtifact({ paths, artifactRootDir, proposal });
+
+  const doctrineDirExists = await fs.access(doctrineDir).then(() => true).catch(() => false);
+  assert.ok(!doctrineDirExists, 'writeDoctrineProposalArtifact must not create or write to .ralph/doctrine/');
 });
 
 test('cleanupGeneratedArtifacts prunes older watchdog files', async () => {

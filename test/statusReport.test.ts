@@ -435,6 +435,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestCliInvocationPath: '/workspace/.ralph/artifacts/latest-cli-invocation.json',
     latestRemediationPath: null,
     latestDoctrineProposalPath: null,
+    latestDoctrineProposalMdPath: null,
     latestProvenanceBundlePath: '/workspace/.ralph/artifacts/latest-provenance-bundle.json',
     latestProvenanceSummaryPath: '/workspace/.ralph/artifacts/latest-provenance-summary.md',
     latestProvenanceFailurePath: '/workspace/.ralph/artifacts/latest-provenance-failure.json',

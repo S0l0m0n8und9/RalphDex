@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { DoctrineProposalArtifact } from './doctrineProposals';
+import { renderDoctrineProposalMarkdown } from './doctrineProposals';
 import { stableJson } from './integrity';
 import {
   resolveOrchestrationPaths as resolveSupervisorOrchestrationPaths,
@@ -92,9 +93,16 @@ export interface RalphLatestArtifactPaths {
   latestCliInvocationPath: string;
   latestRemediationPath: string;
   latestDoctrineProposalPath: string;
+  latestDoctrineProposalMdPath: string;
   latestProvenanceBundlePath: string;
   latestProvenanceSummaryPath: string;
   latestProvenanceFailurePath: string;
+}
+
+export interface RalphDoctrineProposalCanonicalPaths {
+  directory: string;
+  jsonPath: string;
+  mdPath: string;
 }
 
 export interface RalphLatestArtifactRepairSummary {
@@ -129,6 +137,7 @@ export const PROTECTED_GENERATED_LATEST_POINTER_FILES = [
   'latest-execution-plan.json',
   'latest-cli-invocation.json',
   'latest-doctrine-proposal.json',
+  'latest-doctrine-proposal.md',
   'latest-provenance-bundle.json',
   'latest-provenance-failure.json'
 ] as const;
@@ -171,6 +180,9 @@ export const PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = {
     'iteration',
     'selectedTaskId',
     'selectedTaskTitle'
+  ],
+  'latest-doctrine-proposal.md': [
+    'proposalId (derived from provenanceId or iteration)'
   ],
   'latest-provenance-bundle.json': [
     'artifactDir',
@@ -291,9 +303,22 @@ export function resolveLatestArtifactPaths(artifactRootDir: string): RalphLatest
     latestCliInvocationPath: path.join(artifactRootDir, 'latest-cli-invocation.json'),
     latestRemediationPath: path.join(artifactRootDir, 'latest-remediation.json'),
     latestDoctrineProposalPath: path.join(artifactRootDir, 'latest-doctrine-proposal.json'),
+    latestDoctrineProposalMdPath: path.join(artifactRootDir, 'latest-doctrine-proposal.md'),
     latestProvenanceBundlePath: path.join(artifactRootDir, 'latest-provenance-bundle.json'),
     latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
     latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
+  };
+}
+
+export function resolveDoctrineProposalCanonicalPaths(
+  artifactRootDir: string,
+  proposalId: string
+): RalphDoctrineProposalCanonicalPaths {
+  const directory = path.join(artifactRootDir, 'doctrine-proposals');
+  return {
+    directory,
+    jsonPath: path.join(directory, `${proposalId}.json`),
+    mdPath: path.join(directory, `${proposalId}.md`)
   };
 }
 
@@ -430,12 +455,20 @@ export async function writeDoctrineProposalArtifact(input: {
   await ensureIterationArtifactDirectory(input.paths);
 
   const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+  const canonicalPaths = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.proposal.proposalId);
+  const markdown = renderDoctrineProposalMarkdown(input.proposal);
+  const json = stableJson(input.proposal);
+
+  await fs.mkdir(canonicalPaths.directory, { recursive: true });
   await Promise.all([
-    fs.writeFile(input.paths.doctrineProposalPath, stableJson(input.proposal), 'utf8'),
-    fs.writeFile(latestPaths.latestDoctrineProposalPath, stableJson(input.proposal), 'utf8')
+    fs.writeFile(input.paths.doctrineProposalPath, json, 'utf8'),
+    fs.writeFile(canonicalPaths.jsonPath, json, 'utf8'),
+    fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
+    fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
+    fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
   ]);
 
-  return input.paths.doctrineProposalPath;
+  return canonicalPaths.jsonPath;
 }
 
 export async function writePreflightArtifacts(input: {
@@ -562,11 +595,15 @@ export async function writeIterationArtifacts(input: {
       ? fs.writeFile(latestPaths.latestRemediationPath, stableJson(input.remediationArtifact), 'utf8')
       : fs.rm(latestPaths.latestRemediationPath, { force: true }),
     input.doctrineProposalArtifact
-      ? fs.writeFile(input.paths.doctrineProposalPath, stableJson(input.doctrineProposalArtifact), 'utf8')
-      : Promise.resolve(),
-    input.doctrineProposalArtifact
-      ? fs.writeFile(latestPaths.latestDoctrineProposalPath, stableJson(input.doctrineProposalArtifact), 'utf8')
-      : fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
+      ? writeDoctrineProposalArtifact({
+        paths: input.paths,
+        artifactRootDir: input.artifactRootDir,
+        proposal: input.doctrineProposalArtifact
+      })
+      : Promise.all([
+        fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
+        fs.rm(latestPaths.latestDoctrineProposalMdPath, { force: true })
+      ]),
     input.diffSummary
       ? fs.writeFile(input.paths.diffSummaryPath, stableJson(input.diffSummary), 'utf8')
       : Promise.resolve(),

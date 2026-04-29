@@ -34,6 +34,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseDoctrineUpdatesFromCompletionReport = parseDoctrineUpdatesFromCompletionReport;
+exports.renderDoctrineProposalMarkdown = renderDoctrineProposalMarkdown;
 exports.createDoctrineProposalArtifact = createDoctrineProposalArtifact;
 const path = __importStar(require("path"));
 const doctrine_1 = require("./doctrine");
@@ -225,6 +226,42 @@ function parseDoctrineUpdatesFromCompletionReport(candidate) {
         warnings.push(...parsed.warnings);
     });
     return { updates, warnings };
+}
+function renderDoctrineProposalMarkdown(proposal) {
+    const selectedTask = proposal.selectedTaskId
+        ? `${proposal.selectedTaskId}${proposal.selectedTaskTitle ? ` - ${proposal.selectedTaskTitle}` : ''}`
+        : 'none';
+    const lines = [
+        '# Doctrine Update Proposal',
+        '',
+        `- **Proposal ID**: ${proposal.proposalId}`,
+        `- **Created**: ${proposal.createdAt}`,
+        `- **Risk**: ${proposal.risk}`,
+        `- **Source**: ${proposal.source}`,
+        `- **Status**: ${proposal.status}`,
+        `- **Provenance ID**: ${proposal.provenanceId ?? 'none'}`,
+        `- **Iteration**: ${proposal.iteration ?? 'none'}`,
+        `- **Selected task**: ${selectedTask}`,
+        `- **Updates**: ${proposal.updates.length}`,
+        ''
+    ];
+    if (proposal.warnings.length > 0) {
+        lines.push('## Warnings', '');
+        for (const warning of proposal.warnings) {
+            lines.push(`- ${warning}`);
+        }
+        lines.push('');
+    }
+    lines.push('## Updates', '');
+    for (let i = 0; i < proposal.updates.length; i++) {
+        const update = proposal.updates[i];
+        lines.push(`### Update ${i + 1}: ${update.targetFile}`, '', `- **Target file**: ${update.targetFile}`, `- **Operation**: ${update.operation}`, `- **Section**: ${update.section ?? 'none'}`, `- **Risk**: ${update.risk}`, `- **Protected target**: ${update.protectedTarget ? 'yes' : 'no'}`, `- **Approval required**: ${update.requiresApproval ? 'yes' : 'no'}`, '', '**Proposed text:**', '', '```', update.proposedText, '```', '', `**Rationale:** ${update.rationale}`, '', '**Evidence:**', '');
+        for (const item of update.evidence) {
+            lines.push(`- ${item}`);
+        }
+        lines.push('');
+    }
+    return lines.join('\n');
 }
 function createDoctrineProposalArtifact(input) {
     const risk = input.updates.reduce((current, update) => maxRisk(current, update.risk), 'low');

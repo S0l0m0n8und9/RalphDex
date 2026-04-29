@@ -165,6 +165,22 @@ async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManag
     }
     return true;
 }
+async function openLatestDoctrineProposal(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    if (latestArtifacts.latestDoctrineProposalMdPath) {
+        await openTextFile(latestArtifacts.latestDoctrineProposalMdPath);
+        return true;
+    }
+    if (latestArtifacts.latestDoctrineProposalPath) {
+        await openTextFile(latestArtifacts.latestDoctrineProposalPath);
+        return true;
+    }
+    void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+    return false;
+}
 async function openLatestPipelineRun(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
@@ -362,6 +378,16 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             progress.report({ message: 'Resolving latest Ralph pipeline run artifact' });
             const workspaceFolder = await withWorkspaceFolder();
             await openLatestPipelineRun(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.openLatestDoctrineProposal',
+        label: 'Ralphdex: Open Latest Doctrine Proposal',
+        requiresTrustedWorkspace: false,
+        handler: async (progress) => {
+            progress.report({ message: 'Resolving latest Ralph doctrine proposal artifact' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await openLatestDoctrineProposal(workspaceFolder, stateManager, logger);
         }
     });
     registerCommand(context, logger, {

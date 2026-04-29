@@ -247,6 +247,20 @@ test('package manifest contributes and activates the openLatestPipelineRun comma
   );
 });
 
+test('package manifest contributes and activates the openLatestDoctrineProposal command', async () => {
+  const manifest = await readPackageManifest();
+  const commands = manifest.contributes?.commands ?? [];
+
+  assert.ok(
+    manifest.activationEvents?.includes('onCommand:ralphCodex.openLatestDoctrineProposal'),
+    'package.json must activate on ralphCodex.openLatestDoctrineProposal'
+  );
+  assert.ok(
+    commands.some((entry) => entry.command === 'ralphCodex.openLatestDoctrineProposal' && entry.title === 'Ralphdex: Open Latest Doctrine Proposal'),
+    'package.json must contribute the Open Latest Doctrine Proposal command'
+  );
+});
+
 test('package manifest contributes and activates the regeneratePrd command', async () => {
   const manifest = await readPackageManifest();
   const commands = manifest.contributes?.commands ?? [];

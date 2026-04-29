@@ -41,6 +41,7 @@ exports.resolveOrchestrationPaths = resolveOrchestrationPaths;
 exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
+exports.resolveDoctrineProposalCanonicalPaths = resolveDoctrineProposalCanonicalPaths;
 exports.contextEnvelopePath = contextEnvelopePath;
 exports.planGraphPath = planGraphPath;
 exports.replanDecisionPath = replanDecisionPath;
@@ -57,6 +58,7 @@ exports.writeProvenanceBundle = writeProvenanceBundle;
 exports.writeWatchdogDiagnosticArtifact = writeWatchdogDiagnosticArtifact;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const doctrineProposals_1 = require("./doctrineProposals");
 const integrity_1 = require("./integrity");
 const orchestrationSupervisor_1 = require("./orchestrationSupervisor");
 const artifactRendering_1 = require("./artifactRendering");
@@ -91,6 +93,7 @@ exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = [
     'latest-execution-plan.json',
     'latest-cli-invocation.json',
     'latest-doctrine-proposal.json',
+    'latest-doctrine-proposal.md',
     'latest-provenance-bundle.json',
     'latest-provenance-failure.json'
 ];
@@ -132,6 +135,9 @@ exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = {
         'iteration',
         'selectedTaskId',
         'selectedTaskTitle'
+    ],
+    'latest-doctrine-proposal.md': [
+        'proposalId (derived from provenanceId or iteration)'
     ],
     'latest-provenance-bundle.json': [
         'artifactDir',
@@ -205,9 +211,18 @@ function resolveLatestArtifactPaths(artifactRootDir) {
         latestCliInvocationPath: path.join(artifactRootDir, 'latest-cli-invocation.json'),
         latestRemediationPath: path.join(artifactRootDir, 'latest-remediation.json'),
         latestDoctrineProposalPath: path.join(artifactRootDir, 'latest-doctrine-proposal.json'),
+        latestDoctrineProposalMdPath: path.join(artifactRootDir, 'latest-doctrine-proposal.md'),
         latestProvenanceBundlePath: path.join(artifactRootDir, 'latest-provenance-bundle.json'),
         latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
         latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
+    };
+}
+function resolveDoctrineProposalCanonicalPaths(artifactRootDir, proposalId) {
+    const directory = path.join(artifactRootDir, 'doctrine-proposals');
+    return {
+        directory,
+        jsonPath: path.join(directory, `${proposalId}.json`),
+        mdPath: path.join(directory, `${proposalId}.md`)
     };
 }
 /**
@@ -298,11 +313,18 @@ async function writeCliInvocationArtifact(input) {
 async function writeDoctrineProposalArtifact(input) {
     await ensureIterationArtifactDirectory(input.paths);
     const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+    const canonicalPaths = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.proposal.proposalId);
+    const markdown = (0, doctrineProposals_1.renderDoctrineProposalMarkdown)(input.proposal);
+    const json = (0, integrity_1.stableJson)(input.proposal);
+    await fs.mkdir(canonicalPaths.directory, { recursive: true });
     await Promise.all([
-        fs.writeFile(input.paths.doctrineProposalPath, (0, integrity_1.stableJson)(input.proposal), 'utf8'),
-        fs.writeFile(latestPaths.latestDoctrineProposalPath, (0, integrity_1.stableJson)(input.proposal), 'utf8')
+        fs.writeFile(input.paths.doctrineProposalPath, json, 'utf8'),
+        fs.writeFile(canonicalPaths.jsonPath, json, 'utf8'),
+        fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
+        fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
+        fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
     ]);
-    return input.paths.doctrineProposalPath;
+    return canonicalPaths.jsonPath;
 }
 async function writePreflightArtifacts(input) {
     await fs.mkdir(input.paths.directory, { recursive: true });
@@ -389,11 +411,15 @@ async function writeIterationArtifacts(input) {
             ? fs.writeFile(latestPaths.latestRemediationPath, (0, integrity_1.stableJson)(input.remediationArtifact), 'utf8')
             : fs.rm(latestPaths.latestRemediationPath, { force: true }),
         input.doctrineProposalArtifact
-            ? fs.writeFile(input.paths.doctrineProposalPath, (0, integrity_1.stableJson)(input.doctrineProposalArtifact), 'utf8')
-            : Promise.resolve(),
-        input.doctrineProposalArtifact
-            ? fs.writeFile(latestPaths.latestDoctrineProposalPath, (0, integrity_1.stableJson)(input.doctrineProposalArtifact), 'utf8')
-            : fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
+            ? writeDoctrineProposalArtifact({
+                paths: input.paths,
+                artifactRootDir: input.artifactRootDir,
+                proposal: input.doctrineProposalArtifact
+            })
+            : Promise.all([
+                fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
+                fs.rm(latestPaths.latestDoctrineProposalMdPath, { force: true })
+            ]),
         input.diffSummary
             ? fs.writeFile(input.paths.diffSummaryPath, (0, integrity_1.stableJson)(input.diffSummary), 'utf8')
             : Promise.resolve(),

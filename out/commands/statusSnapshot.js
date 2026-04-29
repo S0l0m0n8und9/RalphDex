@@ -629,6 +629,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
         latestRemediationPath: latestArtifacts.latestRemediationPath,
         latestDoctrineProposalPath: latestArtifacts.latestDoctrineProposalPath,
+        latestDoctrineProposalMdPath: latestArtifacts.latestDoctrineProposalMdPath,
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,

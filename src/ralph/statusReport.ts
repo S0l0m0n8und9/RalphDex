@@ -70,6 +70,7 @@ export interface RalphStatusSnapshot {
   latestCliInvocationPath: string | null;
   latestRemediationPath: string | null;
   latestDoctrineProposalPath: string | null;
+  latestDoctrineProposalMdPath: string | null;
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
@@ -281,6 +282,7 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestCliInvocationPath: string | null;
   latestRemediationPath: string | null;
   latestDoctrineProposalPath: string | null;
+  latestDoctrineProposalMdPath: string | null;
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
@@ -313,6 +315,9 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
       : null,
     latestDoctrineProposalPath: await pathExists(latestPaths.latestDoctrineProposalPath)
       ? latestPaths.latestDoctrineProposalPath
+      : null,
+    latestDoctrineProposalMdPath: await pathExists(latestPaths.latestDoctrineProposalMdPath)
+      ? latestPaths.latestDoctrineProposalMdPath
       : null,
     latestProvenanceBundlePath: await pathExists(latestPaths.latestProvenanceBundlePath)
       ? latestPaths.latestProvenanceBundlePath
@@ -617,9 +622,11 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
       `- Proposed child ${task.id}: ${task.title} | depends on ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => dependency.taskId).join(', ') : 'none'}`
     ),
     `- Doctrine proposal: ${latestDoctrineProposal?.summary ?? 'none'}`,
+    `- Doctrine proposal id: ${latestDoctrineProposal?.proposalId ?? 'none'}`,
     `- Doctrine proposal risk: ${latestDoctrineProposal?.risk ?? 'none'}`,
     `- Doctrine proposal updates: ${latestDoctrineProposal?.updates.length ?? 0}`,
-    `- Doctrine proposal artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
+    `- Doctrine proposal artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalMdPath ?? snapshot.latestDoctrineProposalPath)}`,
+    `- Direct command: Ralphdex: Open Latest Doctrine Proposal`,
     `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,
     `- Prompt: ${relativeFromRoot(snapshot.rootPath, snapshot.promptPath)}`,
     '',
@@ -648,7 +655,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Latest execution plan: ${relativeFromRoot(snapshot.rootPath, snapshot.latestExecutionPlanPath)}`,
     `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
     `- Latest remediation proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
-    `- Latest doctrine proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
+    `- Latest doctrine proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalMdPath ?? snapshot.latestDoctrineProposalPath)}`,
     `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
     `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,

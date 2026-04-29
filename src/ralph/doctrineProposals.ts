@@ -278,6 +278,68 @@ export function parseDoctrineUpdatesFromCompletionReport(candidate: unknown): Pa
   return { updates, warnings };
 }
 
+export function renderDoctrineProposalMarkdown(proposal: DoctrineProposalArtifact): string {
+  const selectedTask = proposal.selectedTaskId
+    ? `${proposal.selectedTaskId}${proposal.selectedTaskTitle ? ` - ${proposal.selectedTaskTitle}` : ''}`
+    : 'none';
+
+  const lines: string[] = [
+    '# Doctrine Update Proposal',
+    '',
+    `- **Proposal ID**: ${proposal.proposalId}`,
+    `- **Created**: ${proposal.createdAt}`,
+    `- **Risk**: ${proposal.risk}`,
+    `- **Source**: ${proposal.source}`,
+    `- **Status**: ${proposal.status}`,
+    `- **Provenance ID**: ${proposal.provenanceId ?? 'none'}`,
+    `- **Iteration**: ${proposal.iteration ?? 'none'}`,
+    `- **Selected task**: ${selectedTask}`,
+    `- **Updates**: ${proposal.updates.length}`,
+    ''
+  ];
+
+  if (proposal.warnings.length > 0) {
+    lines.push('## Warnings', '');
+    for (const warning of proposal.warnings) {
+      lines.push(`- ${warning}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('## Updates', '');
+
+  for (let i = 0; i < proposal.updates.length; i++) {
+    const update = proposal.updates[i];
+    lines.push(
+      `### Update ${i + 1}: ${update.targetFile}`,
+      '',
+      `- **Target file**: ${update.targetFile}`,
+      `- **Operation**: ${update.operation}`,
+      `- **Section**: ${update.section ?? 'none'}`,
+      `- **Risk**: ${update.risk}`,
+      `- **Protected target**: ${update.protectedTarget ? 'yes' : 'no'}`,
+      `- **Approval required**: ${update.requiresApproval ? 'yes' : 'no'}`,
+      '',
+      '**Proposed text:**',
+      '',
+      '```',
+      update.proposedText,
+      '```',
+      '',
+      `**Rationale:** ${update.rationale}`,
+      '',
+      '**Evidence:**',
+      ''
+    );
+    for (const item of update.evidence) {
+      lines.push(`- ${item}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
 export function createDoctrineProposalArtifact(input: {
   provenanceId: string | null;
   iteration: number | null;
