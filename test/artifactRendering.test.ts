@@ -13,6 +13,7 @@ function makePaths(): RalphIterationArtifactPaths {
     executionPlanPath: `${base}/execution-plan.json`,
     cliInvocationPath: `${base}/cli-invocation.json`,
     completionReportPath: `${base}/completion-report.json`,
+    doctrineProposalPath: `${base}/doctrine-proposal.json`,
     stdoutPath: `${base}/stdout.txt`,
     stderrPath: `${base}/stderr.txt`,
     executionSummaryPath: `${base}/execution-summary.json`,

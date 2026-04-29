@@ -2,6 +2,7 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
+import type { DoctrineProposalArtifact } from './doctrineProposals';
 import { EffectiveTierInfo } from './complexityScorer';
 import { deriveRootPolicy } from './rootPolicy';
 import { PipelineRunArtifact } from './pipeline';
@@ -68,6 +69,7 @@ export interface RalphStatusSnapshot {
   latestExecutionPlanPath: string | null;
   latestCliInvocationPath: string | null;
   latestRemediationPath: string | null;
+  latestDoctrineProposalPath: string | null;
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
@@ -80,6 +82,7 @@ export interface RalphStatusSnapshot {
   latestExecutionPlan: RalphExecutionPlan | null;
   latestCliInvocation: RalphCliInvocation | null;
   latestRemediation: RalphLatestRemediationStatus | null;
+  latestDoctrineProposal: DoctrineProposalArtifact | null;
   latestProvenanceBundle: RalphProvenanceBundle | null;
   latestArtifactRepair: RalphLatestArtifactRepairSummary;
   generatedArtifactRetention: RalphGeneratedArtifactRetentionSummary;
@@ -277,6 +280,7 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestExecutionPlanPath: string | null;
   latestCliInvocationPath: string | null;
   latestRemediationPath: string | null;
+  latestDoctrineProposalPath: string | null;
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
@@ -306,6 +310,9 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
       : null,
     latestRemediationPath: await pathExists(latestPaths.latestRemediationPath)
       ? latestPaths.latestRemediationPath
+      : null,
+    latestDoctrineProposalPath: await pathExists(latestPaths.latestDoctrineProposalPath)
+      ? latestPaths.latestDoctrineProposalPath
       : null,
     latestProvenanceBundlePath: await pathExists(latestPaths.latestProvenanceBundlePath)
       ? latestPaths.latestProvenanceBundlePath
@@ -379,6 +386,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
       suggestedChildTasks: []
     }
     : null);
+  const latestDoctrineProposal = snapshot.latestDoctrineProposal;
   const latestProvenance = snapshot.latestProvenanceBundle;
   const lastIntegrity = lastIteration?.executionIntegrity;
   const currentRootPolicy = latestPlan?.rootPolicy ?? deriveRootPolicy(snapshot.workspaceScan);
@@ -608,6 +616,10 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     ...(latestRemediation?.suggestedChildTasks ?? []).map((task) =>
       `- Proposed child ${task.id}: ${task.title} | depends on ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => dependency.taskId).join(', ') : 'none'}`
     ),
+    `- Doctrine proposal: ${latestDoctrineProposal?.summary ?? 'none'}`,
+    `- Doctrine proposal risk: ${latestDoctrineProposal?.risk ?? 'none'}`,
+    `- Doctrine proposal updates: ${latestDoctrineProposal?.updates.length ?? 0}`,
+    `- Doctrine proposal artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
     `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,
     `- Prompt: ${relativeFromRoot(snapshot.rootPath, snapshot.promptPath)}`,
     '',
@@ -636,6 +648,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Latest execution plan: ${relativeFromRoot(snapshot.rootPath, snapshot.latestExecutionPlanPath)}`,
     `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
     `- Latest remediation proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
+    `- Latest doctrine proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
     `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
     `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,

@@ -155,6 +155,71 @@ test('parseCompletionReport accepts watchdog actions when provided', () => {
   ]);
 });
 
+test('parseCompletionReport accepts valid doctrineUpdates when provided', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T27.1",',
+    '  "requestedStatus": "done",',
+    '  "doctrineUpdates": [',
+    '    {',
+    '      "targetFile": ".ralph/doctrine/workflows.md",',
+    '      "operation": "addSectionItem",',
+    '      "section": "Validate",',
+    '      "proposedText": "- Validation command observed: `npm run validate`.",',
+    '      "rationale": "The task verified the canonical validation command.",',
+    '      "evidence": ["package.json scripts"]',
+    '    }',
+    '  ]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.deepEqual(parsed.report?.doctrineUpdates, [
+    {
+      targetFile: '.ralph/doctrine/workflows.md',
+      operation: 'addSectionItem',
+      section: 'Validate',
+      proposedText: '- Validation command observed: `npm run validate`.',
+      rationale: 'The task verified the canonical validation command.',
+      evidence: ['package.json scripts'],
+      requiresApproval: false,
+      protectedTarget: false,
+      risk: 'low'
+    }
+  ]);
+  assert.deepEqual(parsed.warnings, []);
+});
+
+test('parseCompletionReport ignores invalid doctrineUpdates and preserves the rest of the report', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T27.1",',
+    '  "requestedStatus": "done",',
+    '  "progressNote": "Completed the parser update.",',
+    '  "doctrineUpdates": [',
+    '    {',
+    '      "targetFile": ".ralph/doctrine/evidence-index.json",',
+    '      "operation": "append",',
+    '      "section": null,',
+    '      "proposedText": "invalid",',
+    '      "rationale": "invalid",',
+    '      "evidence": ["artifact"]',
+    '    }',
+    '  ]',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.progressNote, 'Completed the parser update.');
+  assert.equal(parsed.report?.doctrineUpdates, undefined);
+  assert.equal(parsed.warnings.length, 1);
+  assert.match(parsed.warnings[0] ?? '', /Ignored invalid doctrineUpdates\[0\]/);
+});
+
 test('parseCompletionReport rejects invalid requestedStatus values', () => {
   const parsed = parseCompletionReport([
     '```json',
@@ -204,7 +269,8 @@ test('parseCompletionReport reports missing when no trailing report block exists
     status: 'missing',
     report: null,
     rawBlock: null,
-    parseError: null
+    parseError: null,
+    warnings: []
   });
 });
 

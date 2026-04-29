@@ -42,6 +42,7 @@ exports.normalizeProvenanceBundle = normalizeProvenanceBundle;
 exports.normalizeLatestRemediation = normalizeLatestRemediation;
 exports.normalizeTaskRemediationArtifact = normalizeTaskRemediationArtifact;
 exports.normalizeCompletionReportArtifact = normalizeCompletionReportArtifact;
+exports.normalizeDoctrineProposalArtifact = normalizeDoctrineProposalArtifact;
 exports.collectStatusSnapshot = collectStatusSnapshot;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
@@ -241,6 +242,38 @@ function normalizeCompletionReportArtifact(candidate) {
         warnings: record.warnings.filter((warning) => typeof warning === 'string')
     };
 }
+function normalizeDoctrineProposalArtifact(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (record.kind !== 'doctrineUpdateProposal'
+        || typeof record.proposalId !== 'string'
+        || !Array.isArray(record.updates)
+        || !Array.isArray(record.warnings)) {
+        return null;
+    }
+    return {
+        schemaVersion: 1,
+        kind: 'doctrineUpdateProposal',
+        proposalId: record.proposalId,
+        createdAt: typeof record.createdAt === 'string' ? record.createdAt : '',
+        provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : null,
+        iteration: typeof record.iteration === 'number' ? record.iteration : null,
+        selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
+        selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,
+        source: record.source === 'completionReport'
+            || record.source === 'manual'
+            || record.source === 'diagnostic'
+            ? record.source
+            : 'unknown',
+        status: 'proposed',
+        risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
+        summary: typeof record.summary === 'string' ? record.summary : '',
+        updates: record.updates,
+        warnings: record.warnings.filter((warning) => typeof warning === 'string')
+    };
+}
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const rawConfig = vscode.workspace.getConfiguration('ralphCodex', workspaceFolder.uri);
@@ -334,11 +367,12 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
     ]);
     const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
     const claimGraph = await (0, taskFile_1.inspectTaskClaimGraph)(inspection.paths.claimFilePath);
-    const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+    const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestDoctrineProposal, latestProvenanceBundle] = await Promise.all([
         readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
         readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
         readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
         readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
+        readJsonArtifact(latestArtifacts.latestDoctrineProposalPath).then(normalizeDoctrineProposalArtifact),
         readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
     ]);
     const currentProvenanceId = latestExecutionPlan?.provenanceId
@@ -594,6 +628,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestExecutionPlanPath: latestArtifacts.latestExecutionPlanPath,
         latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
         latestRemediationPath: latestArtifacts.latestRemediationPath,
+        latestDoctrineProposalPath: latestArtifacts.latestDoctrineProposalPath,
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
@@ -606,6 +641,7 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestExecutionPlan,
         latestCliInvocation,
         latestRemediation,
+        latestDoctrineProposal,
         latestProvenanceBundle,
         latestArtifactRepair: latestArtifacts.repair,
         generatedArtifactRetention,

@@ -45,6 +45,7 @@ import { pathExists } from '../util/fs';
 import { validateRecord } from '../util/validate';
 import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
+import { DoctrineProposalArtifact } from '../ralph/doctrineProposals';
 import { getEffectivePolicy } from '../ralph/rolePolicy';
 import type { ContextEnvelope } from '../ralph/types';
 import { inspectDoctrinePack } from '../ralph/doctrine';
@@ -241,6 +242,41 @@ export function normalizeCompletionReportArtifact(candidate: unknown): Completio
   };
 }
 
+export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineProposalArtifact | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (record.kind !== 'doctrineUpdateProposal'
+    || typeof record.proposalId !== 'string'
+    || !Array.isArray(record.updates)
+    || !Array.isArray(record.warnings)) {
+    return null;
+  }
+
+  return {
+    schemaVersion: 1,
+    kind: 'doctrineUpdateProposal',
+    proposalId: record.proposalId,
+    createdAt: typeof record.createdAt === 'string' ? record.createdAt : '',
+    provenanceId: typeof record.provenanceId === 'string' ? record.provenanceId : null,
+    iteration: typeof record.iteration === 'number' ? record.iteration : null,
+    selectedTaskId: typeof record.selectedTaskId === 'string' ? record.selectedTaskId : null,
+    selectedTaskTitle: typeof record.selectedTaskTitle === 'string' ? record.selectedTaskTitle : null,
+    source: record.source === 'completionReport'
+      || record.source === 'manual'
+      || record.source === 'diagnostic'
+      ? record.source
+      : 'unknown',
+    status: 'proposed',
+    risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
+    summary: typeof record.summary === 'string' ? record.summary : '',
+    updates: record.updates as DoctrineProposalArtifact['updates'],
+    warnings: record.warnings.filter((warning): warning is string => typeof warning === 'string')
+  };
+}
+
 export async function collectStatusSnapshot(
   workspaceFolder: vscode.WorkspaceFolder,
   stateManager: RalphStateManager,
@@ -342,11 +378,12 @@ export async function collectStatusSnapshot(
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
-  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestProvenanceBundle] = await Promise.all([
+  const [latestPromptEvidence, latestExecutionPlan, latestCliInvocation, latestRemediation, latestDoctrineProposal, latestProvenanceBundle] = await Promise.all([
     readJsonArtifact(latestArtifacts.latestPromptEvidencePath).then(normalizePromptEvidence),
     readJsonArtifact(latestArtifacts.latestExecutionPlanPath).then(normalizeExecutionPlan),
     readJsonArtifact(latestArtifacts.latestCliInvocationPath).then(normalizeCliInvocation),
     readJsonArtifact(latestArtifacts.latestRemediationPath).then(normalizeLatestRemediation),
+    readJsonArtifact(latestArtifacts.latestDoctrineProposalPath).then(normalizeDoctrineProposalArtifact),
     readJsonArtifact(latestArtifacts.latestProvenanceBundlePath).then(normalizeProvenanceBundle)
   ]);
   const currentProvenanceId = latestExecutionPlan?.provenanceId
@@ -613,6 +650,7 @@ export async function collectStatusSnapshot(
     latestExecutionPlanPath: latestArtifacts.latestExecutionPlanPath,
     latestCliInvocationPath: latestArtifacts.latestCliInvocationPath,
     latestRemediationPath: latestArtifacts.latestRemediationPath,
+    latestDoctrineProposalPath: latestArtifacts.latestDoctrineProposalPath,
     latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
     latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
     latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
@@ -625,6 +663,7 @@ export async function collectStatusSnapshot(
     latestExecutionPlan,
     latestCliInvocation,
     latestRemediation,
+    latestDoctrineProposal,
     latestProvenanceBundle,
     latestArtifactRepair: latestArtifacts.repair,
     generatedArtifactRetention,

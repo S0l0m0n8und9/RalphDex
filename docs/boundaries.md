@@ -49,9 +49,9 @@ The 2026-03-17 readiness criteria for task ownership, write serialisation, and r
 
 The single-agent CLI iteration/loop runner still exists as a first-class command path, but it now sits alongside shipped multi-agent and pipeline orchestration commands.
 
-Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
+Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status and doctrine updates through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json`, `.ralph/progress.md`, or doctrine proposal artifacts on that path.
 
-The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. Semantic doctrine update proposals, approval flows, auto-apply behavior, and autonomous doctrine rewriting are out of scope for the current tranche.
+The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. This tranche allows structured doctrine update proposals to be persisted as reviewable artifacts, but approval flows, auto-apply behavior, and autonomous doctrine rewriting remain out of scope.
 
 Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded`, `pipelineHumanGates`, and operator presets).
 
@@ -72,6 +72,7 @@ When the repository itself is the Ralph workspace, as in this repo, some `.ralph
 - `.ralph/tasks.json` — task graph and backlog state
 - `.ralph/progress.md` — progress notes across sessions
 - `.ralph/doctrine/` — compact project doctrine skeletons and `evidence-index.json`; protected doctrine files are human-governed and validated structurally
+- `.ralph/artifacts/*/doctrine-proposal.json` plus `.ralph/artifacts/latest-doctrine-proposal.json` — reviewable doctrine update proposals derived from provider output; these artifacts never rewrite doctrine files automatically
 - `.ralph/memory-summary.md` — condensed memory state when using summary memory strategy
 
 The rest of the runtime tree is operator-local runtime state and must not be committed:

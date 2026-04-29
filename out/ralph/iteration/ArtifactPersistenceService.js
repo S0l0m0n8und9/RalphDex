@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ArtifactPersistenceService = void 0;
+const doctrineProposals_1 = require("../doctrineProposals");
 const provenancePersistence_1 = require("../provenancePersistence");
 const artifactStore_1 = require("../artifactStore");
 function summarizeLastMessage(lastMessage, exitCode) {
@@ -23,12 +24,25 @@ class ArtifactPersistenceService {
         });
     }
     async persistIterationArtifacts(input) {
+        const doctrineProposalArtifact = input.completionReport.report?.doctrineUpdates
+            && input.completionReport.report.doctrineUpdates.length > 0
+            ? (0, doctrineProposals_1.createDoctrineProposalArtifact)({
+                provenanceId: input.prepared.provenanceId,
+                iteration: input.prepared.iteration,
+                selectedTaskId: input.prepared.selectedTask?.id ?? null,
+                selectedTaskTitle: input.prepared.selectedTask?.title ?? null,
+                source: 'completionReport',
+                updates: input.completionReport.report.doctrineUpdates,
+                warnings: input.completionReport.warnings.filter((warning) => warning.toLowerCase().includes('doctrine'))
+            })
+            : null;
         await (0, artifactStore_1.writeIterationArtifacts)({
             paths: input.artifactPaths,
             artifactRootDir: input.prepared.paths.artifactDir,
             prompt: input.prepared.prompt,
             promptEvidence: input.prepared.promptEvidence,
             completionReport: input.completionReport,
+            doctrineProposalArtifact,
             stdout: input.stdout,
             stderr: input.stderr,
             executionSummary: {

@@ -48,6 +48,7 @@ const promptBuilder_1 = require("../prompt/promptBuilder");
 const processRunner_1 = require("../services/processRunner");
 const workspaceScanner_1 = require("../services/workspaceScanner");
 const codexCliSupport_1 = require("../services/codexCliSupport");
+const doctrine_1 = require("./doctrine");
 const integrity_1 = require("./integrity");
 const rootPolicy_1 = require("./rootPolicy");
 const contextEnvelopeWriter_1 = require("./contextEnvelopeWriter");
@@ -337,7 +338,7 @@ async function prepareIterationContext(input) {
         newChatCommandId: config.newChatCommandId,
         availableCommands
     });
-    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, lastSummarizationMode] = await Promise.all([
+    const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection, lastSummarizationMode] = await Promise.all([
         (0, preflight_1.inspectPreflightArtifactReadiness)({
             rootPath,
             artifactRootDir: snapshot.paths.artifactDir,
@@ -356,6 +357,7 @@ async function prepareIterationContext(input) {
             staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
         }),
         (0, preflight_1.checkHandoffHealth)({ ralphRoot: snapshot.paths.ralphDir }),
+        (0, doctrine_1.inspectDoctrinePack)(rootPath),
         readLastSummarizationMode(snapshot.paths.memorySummaryPath)
     ]);
     const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
@@ -384,6 +386,7 @@ async function prepareIterationContext(input) {
         ideCommandSupport,
         providerReadinessDiagnostics,
         artifactReadinessDiagnostics,
+        doctrineDiagnostics: doctrineInspection.diagnostics,
         agentHealthDiagnostics,
         sessionHandoff,
         lastSummarizationMode

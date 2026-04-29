@@ -29,12 +29,18 @@ export function formatTrustLevel(value: RalphProvenanceTrustLevel): string {
     : 'prepared prompt only';
 }
 
-export function artifactReferenceLines(paths: RalphIterationArtifactPaths, diffSummary: RalphDiffSummary | null, hasRemediation?: boolean): string[] {
+export function artifactReferenceLines(
+  paths: RalphIterationArtifactPaths,
+  diffSummary: RalphDiffSummary | null,
+  hasRemediation?: boolean,
+  hasDoctrineProposal?: boolean
+): string[] {
   const lines = [
     `- Prompt: ${paths.promptPath}`,
     `- Prompt evidence: ${paths.promptEvidencePath}`,
     `- Execution plan: ${paths.executionPlanPath}`,
     `- Completion report: ${paths.completionReportPath}`,
+    `- Doctrine proposal: ${hasDoctrineProposal ? paths.doctrineProposalPath : 'none'}`,
     `- Execution summary: ${paths.executionSummaryPath}`,
     `- Verifier summary: ${paths.verifierSummaryPath}`,
     `- Iteration result: ${paths.iterationResultPath}`,
@@ -100,6 +106,7 @@ export function renderIterationSummary(input: {
   paths: RalphIterationArtifactPaths;
   verifiers: RalphVerificationResult[];
   diffSummary: RalphDiffSummary | null;
+  hasDoctrineProposal?: boolean;
 }): string {
   const { result, paths, diffSummary, verifiers } = input;
   const verifierLines = verifiers.map((verifier) => {
@@ -164,13 +171,19 @@ export function renderIterationSummary(input: {
     ...diffLines,
     '',
     '## Artifact Paths',
-    ...artifactReferenceLines(paths, diffSummary, result.remediation != null),
+    ...artifactReferenceLines(
+      paths,
+      diffSummary,
+      result.remediation != null,
+      input.hasDoctrineProposal === true
+    ),
     '',
     '## Signals',
     `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,
     `- Remediation action: ${result.remediation?.action ?? 'none'}`,
     `- Remediation evidence: ${result.remediation?.evidence.join(' | ') || 'none'}`,
     `- Remediation proposal artifact: ${result.remediation ? paths.remediationPath : 'none'}`,
+    `- Doctrine proposal artifact: ${input.hasDoctrineProposal ? paths.doctrineProposalPath : 'none'}`,
     `- Completion report status: ${result.completionReportStatus ?? 'none'}`,
     `- Reconciliation warnings: ${result.reconciliationWarnings?.join(' | ') || 'none'}`,
     `- Warnings: ${result.warnings.join(' | ') || 'none'}`,
@@ -325,6 +338,7 @@ export function renderLatestResultSummary(record: Record<string, unknown>): stri
   const stderrPath = typeof record.stderrPath === 'string' ? record.stderrPath : 'none';
   const diffSummaryPath = typeof record.diffSummaryPath === 'string' ? record.diffSummaryPath : 'none';
   const remediationPath = typeof record.remediationPath === 'string' ? record.remediationPath : 'none';
+  const doctrineProposalPath = typeof record.doctrineProposalPath === 'string' ? record.doctrineProposalPath : 'none';
   const completionReportStatus = typeof record.completionReportStatus === 'string' ? record.completionReportStatus : 'none';
   const promptHash = typeof record.promptHash === 'string' ? record.promptHash : 'none';
   const executionPlanHash = typeof record.executionPlanHash === 'string' ? record.executionPlanHash : 'none';
@@ -384,6 +398,7 @@ export function renderLatestResultSummary(record: Record<string, unknown>): stri
     `- Verifier summary: ${verifierSummaryPath}`,
     `- Iteration result: ${iterationResultPath}`,
     `- Remediation proposal: ${remediationPath}`,
+    `- Doctrine proposal: ${doctrineProposalPath}`,
     `- Summary: ${summaryPath}`,
     `- Transcript: ${transcriptPath}`,
     `- Last message: ${lastMessagePath}`,
@@ -404,6 +419,7 @@ export function latestResultFromIteration(input: {
   result: RalphIterationResult;
   paths: RalphIterationArtifactPaths;
   diffSummary: RalphDiffSummary | null;
+  hasDoctrineProposal?: boolean;
 }): Record<string, unknown> {
   return {
     agentId: input.result.agentId ?? null,
@@ -443,6 +459,7 @@ export function latestResultFromIteration(input: {
     verifierSummaryPath: input.paths.verifierSummaryPath,
     iterationResultPath: input.paths.iterationResultPath,
     remediationPath: input.result.remediation ? input.paths.remediationPath : null,
+    doctrineProposalPath: input.hasDoctrineProposal ? input.paths.doctrineProposalPath : null,
     diffSummaryPath: input.diffSummary ? input.paths.diffSummaryPath : null,
     stdoutPath: input.paths.stdoutPath,
     stderrPath: input.paths.stderrPath,

@@ -1,4 +1,5 @@
 import type { WorkspaceScan } from '../services/workspaceInspection';
+import type { DoctrineProposedUpdate } from './doctrineProposals';
 
 export type RalphTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 
@@ -571,6 +572,7 @@ export interface RalphCompletionReport {
   validationRan?: string;
   needsHumanReview?: boolean;
   suggestedChildTasks?: RalphSuggestedChildTask[];
+  doctrineUpdates?: DoctrineProposedUpdate[];
   watchdog_actions?: RalphWatchdogAction[];
   /** Planning-layer: plan text produced by a planner agent. */
   proposedPlan?: string;

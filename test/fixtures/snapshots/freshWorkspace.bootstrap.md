@@ -14,6 +14,7 @@ You are starting a fresh Ralph-guided Codex run inside an existing repository. T
 - Keep architecture thin, deterministic, and file-backed.
 - Make the smallest coherent change that materially advances the selected Ralph task.
 - Prefer the repository's real validation commands when they exist.
+- Do not edit `.ralph/doctrine/*` directly; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.
 - For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
 - Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
 
@@ -23,7 +24,8 @@ You are starting a fresh Ralph-guided Codex run inside an existing repository. T
 3. Implement the smallest coherent improvement that advances the task.
 4. Do not edit `.ralph/tasks.json` or `.ralph/progress.md` for normal task execution; Ralph will reconcile selected-task state from your completion report.
 5. Run the selected validation command when available and report the concrete result.
-6. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, and optional `needsHumanReview`.
+6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.
+7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.
 
 ## Final Response Contract
 - Changed files.

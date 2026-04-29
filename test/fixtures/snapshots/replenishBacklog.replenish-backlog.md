@@ -14,6 +14,7 @@ The durable Ralph backlog is exhausted. Re-inspect the repository, PRD, and rece
 - Keep architecture thin, deterministic, and file-backed.
 - Make the smallest coherent change that materially advances the selected Ralph task.
 - Prefer the repository's real validation commands when they exist.
+- Do not edit `.ralph/doctrine/*` directly; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.
 - For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.
 - Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.
 

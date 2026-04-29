@@ -130,6 +130,13 @@ Repeated-stop remediation is part of the persisted evidence chain, but it is int
 
 That last distinction matters for approval flow. The recommendation can be persisted automatically, and any task-graph mutation still happens only through the bounded proposal-application path. By default that path is operator-triggered through `Apply Latest Task Decomposition Proposal`; when `autoApplyRemediation` explicitly enables `decompose_task`, the loop may invoke the same validated write path automatically at iteration time.
 
+Doctrine update proposals follow the same evidence-first model:
+
+- `doctrine-proposal.json` is written only when the completion report contains valid `doctrineUpdates`
+- `.ralph/artifacts/latest-doctrine-proposal.json` is a stable latest pointer for the newest valid doctrine proposal artifact
+- the artifact records validated target files, risk classification, protected-target flags, approval requirements, and any warnings from proposal parsing
+- the artifact is advisory evidence only; Ralph does not rewrite `.ralph/doctrine/*` from provider output in this tranche
+
 ## Latest Surface Recovery
 
 The latest human-readable surfaces are convenience entry points backed by stronger JSON records.

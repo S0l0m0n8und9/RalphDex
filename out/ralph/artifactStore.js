@@ -50,6 +50,7 @@ exports.ensureIterationArtifactDirectory = ensureIterationArtifactDirectory;
 exports.writePromptArtifacts = writePromptArtifacts;
 exports.writeExecutionPlanArtifact = writeExecutionPlanArtifact;
 exports.writeCliInvocationArtifact = writeCliInvocationArtifact;
+exports.writeDoctrineProposalArtifact = writeDoctrineProposalArtifact;
 exports.writePreflightArtifacts = writePreflightArtifacts;
 exports.writeIterationArtifacts = writeIterationArtifacts;
 exports.writeProvenanceBundle = writeProvenanceBundle;
@@ -89,6 +90,7 @@ exports.PROTECTED_GENERATED_LATEST_POINTER_FILES = [
     'latest-prompt-evidence.json',
     'latest-execution-plan.json',
     'latest-cli-invocation.json',
+    'latest-doctrine-proposal.json',
     'latest-provenance-bundle.json',
     'latest-provenance-failure.json'
 ];
@@ -125,6 +127,12 @@ exports.PROTECTED_GENERATED_LATEST_POINTER_REFERENCES = {
         'lastMessagePath',
         'cliInvocationPath'
     ],
+    'latest-doctrine-proposal.json': [
+        'provenanceId',
+        'iteration',
+        'selectedTaskId',
+        'selectedTaskTitle'
+    ],
     'latest-provenance-bundle.json': [
         'artifactDir',
         'preflightReportPath',
@@ -155,6 +163,7 @@ function resolveIterationArtifactPaths(artifactRootDir, iteration) {
         executionPlanPath: path.join(directory, 'execution-plan.json'),
         cliInvocationPath: path.join(directory, 'cli-invocation.json'),
         completionReportPath: path.join(directory, 'completion-report.json'),
+        doctrineProposalPath: path.join(directory, 'doctrine-proposal.json'),
         stdoutPath: path.join(directory, 'stdout.log'),
         stderrPath: path.join(directory, 'stderr.log'),
         executionSummaryPath: path.join(directory, 'execution-summary.json'),
@@ -195,6 +204,7 @@ function resolveLatestArtifactPaths(artifactRootDir) {
         latestExecutionPlanPath: path.join(artifactRootDir, 'latest-execution-plan.json'),
         latestCliInvocationPath: path.join(artifactRootDir, 'latest-cli-invocation.json'),
         latestRemediationPath: path.join(artifactRootDir, 'latest-remediation.json'),
+        latestDoctrineProposalPath: path.join(artifactRootDir, 'latest-doctrine-proposal.json'),
         latestProvenanceBundlePath: path.join(artifactRootDir, 'latest-provenance-bundle.json'),
         latestProvenanceSummaryPath: path.join(artifactRootDir, 'latest-provenance-summary.md'),
         latestProvenanceFailurePath: path.join(artifactRootDir, 'latest-provenance-failure.json')
@@ -285,6 +295,15 @@ async function writeCliInvocationArtifact(input) {
     ]);
     return latestPaths;
 }
+async function writeDoctrineProposalArtifact(input) {
+    await ensureIterationArtifactDirectory(input.paths);
+    const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+    await Promise.all([
+        fs.writeFile(input.paths.doctrineProposalPath, (0, integrity_1.stableJson)(input.proposal), 'utf8'),
+        fs.writeFile(latestPaths.latestDoctrineProposalPath, (0, integrity_1.stableJson)(input.proposal), 'utf8')
+    ]);
+    return input.paths.doctrineProposalPath;
+}
 async function writePreflightArtifacts(input) {
     await fs.mkdir(input.paths.directory, { recursive: true });
     const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
@@ -340,12 +359,14 @@ async function writeIterationArtifacts(input) {
         result: input.result,
         paths: input.paths,
         verifiers: input.verifierSummary,
-        diffSummary: input.diffSummary
+        diffSummary: input.diffSummary,
+        hasDoctrineProposal: input.doctrineProposalArtifact != null
     });
     const latestResult = (0, artifactRendering_1.latestResultFromIteration)({
         result: input.result,
         paths: input.paths,
-        diffSummary: input.diffSummary
+        diffSummary: input.diffSummary,
+        hasDoctrineProposal: input.doctrineProposalArtifact != null
     });
     await Promise.all([
         fs.writeFile(input.paths.promptPath, `${input.prompt.trimEnd()}\n`, 'utf8'),
@@ -367,6 +388,12 @@ async function writeIterationArtifacts(input) {
         input.remediationArtifact
             ? fs.writeFile(latestPaths.latestRemediationPath, (0, integrity_1.stableJson)(input.remediationArtifact), 'utf8')
             : fs.rm(latestPaths.latestRemediationPath, { force: true }),
+        input.doctrineProposalArtifact
+            ? fs.writeFile(input.paths.doctrineProposalPath, (0, integrity_1.stableJson)(input.doctrineProposalArtifact), 'utf8')
+            : Promise.resolve(),
+        input.doctrineProposalArtifact
+            ? fs.writeFile(latestPaths.latestDoctrineProposalPath, (0, integrity_1.stableJson)(input.doctrineProposalArtifact), 'utf8')
+            : fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
         input.diffSummary
             ? fs.writeFile(input.paths.diffSummaryPath, (0, integrity_1.stableJson)(input.diffSummary), 'utf8')
             : Promise.resolve(),

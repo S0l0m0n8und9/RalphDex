@@ -434,6 +434,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestExecutionPlanPath: '/workspace/.ralph/artifacts/latest-execution-plan.json',
     latestCliInvocationPath: '/workspace/.ralph/artifacts/latest-cli-invocation.json',
     latestRemediationPath: null,
+    latestDoctrineProposalPath: null,
     latestProvenanceBundlePath: '/workspace/.ralph/artifacts/latest-provenance-bundle.json',
     latestProvenanceSummaryPath: '/workspace/.ralph/artifacts/latest-provenance-summary.md',
     latestProvenanceFailurePath: '/workspace/.ralph/artifacts/latest-provenance-failure.json',
@@ -485,6 +486,7 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
       createdAt: '2026-03-07T00:05:00.000Z'
     },
     latestRemediation: null,
+    latestDoctrineProposal: null,
     latestProvenanceBundle: {
       schemaVersion: 1,
       kind: 'provenanceBundle',

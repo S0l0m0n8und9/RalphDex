@@ -1,5 +1,6 @@
 import { Logger } from '../../services/logger';
 import type { CompletionReportArtifact } from '../completionReportParser';
+import { createDoctrineProposalArtifact } from '../doctrineProposals';
 import type { PreparedIterationContext } from '../iterationPreparation';
 import { createProvenanceBundle } from '../provenancePersistence';
 import type { GitStatusSnapshot } from '../verifier';
@@ -68,12 +69,26 @@ export class ArtifactPersistenceService {
   }
 
   public async persistIterationArtifacts(input: PersistIterationArtifactsInput): Promise<void> {
+    const doctrineProposalArtifact = input.completionReport.report?.doctrineUpdates
+      && input.completionReport.report.doctrineUpdates.length > 0
+      ? createDoctrineProposalArtifact({
+        provenanceId: input.prepared.provenanceId,
+        iteration: input.prepared.iteration,
+        selectedTaskId: input.prepared.selectedTask?.id ?? null,
+        selectedTaskTitle: input.prepared.selectedTask?.title ?? null,
+        source: 'completionReport',
+        updates: input.completionReport.report.doctrineUpdates,
+        warnings: input.completionReport.warnings.filter((warning) => warning.toLowerCase().includes('doctrine'))
+      })
+      : null;
+
     await writeIterationArtifacts({
       paths: input.artifactPaths,
       artifactRootDir: input.prepared.paths.artifactDir,
       prompt: input.prepared.prompt,
       promptEvidence: input.prepared.promptEvidence,
       completionReport: input.completionReport,
+      doctrineProposalArtifact,
       stdout: input.stdout,
       stderr: input.stderr,
       executionSummary: {

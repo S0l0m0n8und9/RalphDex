@@ -974,6 +974,7 @@ function buildOperatingRules(agentRole: RalphAgentRole, taskMode?: RalphTaskMode
       '- Keep the review deterministic, file-backed, and evidence-driven.',
       '- Do not make implementation edits; this role reports review findings only.',
       '- Prefer the repository\'s real validation commands when they exist.',
+      '- Do not edit `.ralph/doctrine/*`; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.',
       '- Do not edit `.ralph/tasks.json` or `.ralph/progress.md`; return review results through the structured completion report instead.'
     ];
   }
@@ -986,6 +987,7 @@ function buildOperatingRules(agentRole: RalphAgentRole, taskMode?: RalphTaskMode
       '- Do not make functional code changes unless the task specifically requires it.',
       '- Documentation files (.md, .txt, etc.) are the primary deliverable.',
       '- Verify documentation accuracy by reading the code it describes.',
+      '- Do not edit `.ralph/doctrine/*` directly; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.',
       '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
       '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
     ];
@@ -997,6 +999,7 @@ function buildOperatingRules(agentRole: RalphAgentRole, taskMode?: RalphTaskMode
     '- Keep architecture thin, deterministic, and file-backed.',
     '- Make the smallest coherent change that materially advances the selected Ralph task.',
     '- Prefer the repository\'s real validation commands when they exist.',
+    '- Do not edit `.ralph/doctrine/*` directly; propose doctrine changes through `doctrineUpdates` in the structured completion report instead.',
     '- For normal CLI task execution, do not edit `.ralph/tasks.json` or `.ralph/progress.md` directly; return the structured completion report instead.',
     '- Update durable Ralph progress/tasks only when the prompt explicitly targets backlog replenishment.'
   ];
@@ -1122,7 +1125,8 @@ function buildExecutionContract(target: RalphPromptTarget, kind: RalphPromptKind
         '3. Inspect changed files since the last completed task and identify missing test coverage, documentation gaps, or invariant violations.',
         '4. Do not make code changes. Emit proposed follow-up tasks in `suggestedChildTasks` instead of editing files or the task ledger.',
         '5. Set `requestedStatus` to `done` when no gaps are found; otherwise keep the task open with `in_progress` or `blocked` and explain why.',
-        '6. End with a fenced `json` completion report block using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `suggestedChildTasks`.'
+        '6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.',
+        '7. End with a fenced `json` completion report block using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, optional `suggestedChildTasks`, and optional `doctrineUpdates`.'
       ];
     }
 
@@ -1146,7 +1150,8 @@ function buildExecutionContract(target: RalphPromptTarget, kind: RalphPromptKind
 
     if (target === 'cliExec') {
       docContract.push('5. Verify the documentation is accurate by cross-referencing the code it describes.');
-      docContract.push('6. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, and optional `needsHumanReview`.');
+      docContract.push('6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.');
+      docContract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
     } else {
       docContract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');
       docContract.push('6. End with the concrete next step a human can verify or run in the IDE.');
@@ -1164,7 +1169,8 @@ function buildExecutionContract(target: RalphPromptTarget, kind: RalphPromptKind
 
   if (target === 'cliExec') {
     contract.push('5. Run the selected validation command when available and report the concrete result.');
-    contract.push('6. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, and optional `needsHumanReview`.');
+    contract.push('6. Do not rewrite `.ralph/doctrine/*`; when the run discovered durable doctrine facts, emit them as optional `doctrineUpdates` proposals instead.');
+    contract.push('7. End with a fenced `json` completion report block for the selected task using `selectedTaskId`, `requestedStatus`, optional `progressNote`, optional `blocker`, optional `validationRan`, optional `needsHumanReview`, and optional `doctrineUpdates`.');
   } else {
     contract.push('5. If a blocker needs human judgment, surface it plainly instead of burying it.');
     contract.push('6. End with the concrete next step a human can verify or run in the IDE.');

@@ -60,12 +60,13 @@ function formatTrustLevel(value) {
         ? 'verified CLI execution'
         : 'prepared prompt only';
 }
-function artifactReferenceLines(paths, diffSummary, hasRemediation) {
+function artifactReferenceLines(paths, diffSummary, hasRemediation, hasDoctrineProposal) {
     const lines = [
         `- Prompt: ${paths.promptPath}`,
         `- Prompt evidence: ${paths.promptEvidencePath}`,
         `- Execution plan: ${paths.executionPlanPath}`,
         `- Completion report: ${paths.completionReportPath}`,
+        `- Doctrine proposal: ${hasDoctrineProposal ? paths.doctrineProposalPath : 'none'}`,
         `- Execution summary: ${paths.executionSummaryPath}`,
         `- Verifier summary: ${paths.verifierSummaryPath}`,
         `- Iteration result: ${paths.iterationResultPath}`,
@@ -183,13 +184,14 @@ function renderIterationSummary(input) {
         ...diffLines,
         '',
         '## Artifact Paths',
-        ...artifactReferenceLines(paths, diffSummary, result.remediation != null),
+        ...artifactReferenceLines(paths, diffSummary, result.remediation != null, input.hasDoctrineProposal === true),
         '',
         '## Signals',
         `- No-progress signals: ${result.noProgressSignals.join(', ') || 'none'}`,
         `- Remediation action: ${result.remediation?.action ?? 'none'}`,
         `- Remediation evidence: ${result.remediation?.evidence.join(' | ') || 'none'}`,
         `- Remediation proposal artifact: ${result.remediation ? paths.remediationPath : 'none'}`,
+        `- Doctrine proposal artifact: ${input.hasDoctrineProposal ? paths.doctrineProposalPath : 'none'}`,
         `- Completion report status: ${result.completionReportStatus ?? 'none'}`,
         `- Reconciliation warnings: ${result.reconciliationWarnings?.join(' | ') || 'none'}`,
         `- Warnings: ${result.warnings.join(' | ') || 'none'}`,
@@ -339,6 +341,7 @@ function renderLatestResultSummary(record) {
     const stderrPath = typeof record.stderrPath === 'string' ? record.stderrPath : 'none';
     const diffSummaryPath = typeof record.diffSummaryPath === 'string' ? record.diffSummaryPath : 'none';
     const remediationPath = typeof record.remediationPath === 'string' ? record.remediationPath : 'none';
+    const doctrineProposalPath = typeof record.doctrineProposalPath === 'string' ? record.doctrineProposalPath : 'none';
     const completionReportStatus = typeof record.completionReportStatus === 'string' ? record.completionReportStatus : 'none';
     const promptHash = typeof record.promptHash === 'string' ? record.promptHash : 'none';
     const executionPlanHash = typeof record.executionPlanHash === 'string' ? record.executionPlanHash : 'none';
@@ -397,6 +400,7 @@ function renderLatestResultSummary(record) {
         `- Verifier summary: ${verifierSummaryPath}`,
         `- Iteration result: ${iterationResultPath}`,
         `- Remediation proposal: ${remediationPath}`,
+        `- Doctrine proposal: ${doctrineProposalPath}`,
         `- Summary: ${summaryPath}`,
         `- Transcript: ${transcriptPath}`,
         `- Last message: ${lastMessagePath}`,
@@ -451,6 +455,7 @@ function latestResultFromIteration(input) {
         verifierSummaryPath: input.paths.verifierSummaryPath,
         iterationResultPath: input.paths.iterationResultPath,
         remediationPath: input.result.remediation ? input.paths.remediationPath : null,
+        doctrineProposalPath: input.hasDoctrineProposal ? input.paths.doctrineProposalPath : null,
         diffSummaryPath: input.diffSummary ? input.paths.diffSummaryPath : null,
         stdoutPath: input.paths.stdoutPath,
         stderrPath: input.paths.stderrPath,

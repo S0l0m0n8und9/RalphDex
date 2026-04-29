@@ -55,7 +55,7 @@ async function reconcileCompletionReport(input) {
         report: parsed.report,
         rawBlock: parsed.rawBlock,
         parseError: parsed.parseError,
-        warnings: []
+        warnings: [...parsed.warnings]
     };
     if (!input.selectedTask || input.prepared.promptKind === 'replenish-backlog') {
         artifactBase.status = 'missing';
@@ -70,10 +70,10 @@ async function reconcileCompletionReport(input) {
     }
     if (parsed.status !== 'parsed' || !parsed.report) {
         const warnings = parsed.status === 'invalid' && parsed.parseError
-            ? [parsed.parseError]
+            ? [...parsed.warnings, parsed.parseError]
             : parsed.status === 'missing'
-                ? ['No completion report JSON block was found at the end of the Codex last message.']
-                : [];
+                ? [...parsed.warnings, 'No completion report JSON block was found at the end of the Codex last message.']
+                : [...parsed.warnings];
         artifactBase.warnings = warnings;
         return {
             artifact: {
@@ -87,7 +87,7 @@ async function reconcileCompletionReport(input) {
             warnings
         };
     }
-    const warnings = [];
+    const warnings = [...parsed.warnings];
     if (parsed.report.selectedTaskId !== input.selectedTask.id) {
         warnings.push(`Completion report selectedTaskId ${parsed.report.selectedTaskId} did not match the selected task ${input.selectedTask.id}.`);
         return {

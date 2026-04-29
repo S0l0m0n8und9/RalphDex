@@ -154,6 +154,9 @@ async function resolveLatestStatusArtifacts(paths) {
         latestRemediationPath: await (0, fs_1.pathExists)(latestPaths.latestRemediationPath)
             ? latestPaths.latestRemediationPath
             : null,
+        latestDoctrineProposalPath: await (0, fs_1.pathExists)(latestPaths.latestDoctrineProposalPath)
+            ? latestPaths.latestDoctrineProposalPath
+            : null,
         latestProvenanceBundlePath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceBundlePath)
             ? latestPaths.latestProvenanceBundlePath
             : null,
@@ -219,6 +222,7 @@ function buildStatusReport(snapshot) {
             suggestedChildTasks: []
         }
         : null);
+    const latestDoctrineProposal = snapshot.latestDoctrineProposal;
     const latestProvenance = snapshot.latestProvenanceBundle;
     const lastIntegrity = lastIteration?.executionIntegrity;
     const currentRootPolicy = latestPlan?.rootPolicy ?? (0, rootPolicy_1.deriveRootPolicy)(snapshot.workspaceScan);
@@ -423,6 +427,10 @@ function buildStatusReport(snapshot) {
         `- Remediation artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
         `- Remediation proposed child tasks: ${latestRemediation?.suggestedChildTasks?.length ?? 0}`,
         ...(latestRemediation?.suggestedChildTasks ?? []).map((task) => `- Proposed child ${task.id}: ${task.title} | depends on ${task.dependsOn.length > 0 ? task.dependsOn.map((dependency) => dependency.taskId).join(', ') : 'none'}`),
+        `- Doctrine proposal: ${latestDoctrineProposal?.summary ?? 'none'}`,
+        `- Doctrine proposal risk: ${latestDoctrineProposal?.risk ?? 'none'}`,
+        `- Doctrine proposal updates: ${latestDoctrineProposal?.updates.length ?? 0}`,
+        `- Doctrine proposal artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
         `- Summary: ${lastIteration?.summary ?? 'No recorded iteration.'}`,
         `- Prompt: ${relativeFromRoot(snapshot.rootPath, snapshot.promptPath)}`,
         '',
@@ -451,6 +459,7 @@ function buildStatusReport(snapshot) {
         `- Latest execution plan: ${relativeFromRoot(snapshot.rootPath, snapshot.latestExecutionPlanPath)}`,
         `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
         `- Latest remediation proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
+        `- Latest doctrine proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalPath)}`,
         `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
         `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
         `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,

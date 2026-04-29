@@ -8,12 +8,15 @@ import {
   PROTECTED_GENERATED_LATEST_POINTER_FILES,
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
+  resolveLatestArtifactPaths,
   resolveIterationArtifactPaths,
   resolveProvenanceBundlePaths,
+  writeDoctrineProposalArtifact,
   writeProvenanceBundle,
   writeWatchdogDiagnosticArtifact
 } from '../src/ralph/artifactStore';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
+import { createDoctrineProposalArtifact, parseDoctrineUpdatesFromCompletionReport } from '../src/ralph/doctrineProposals';
 import {
   RalphIntegrityFailure,
   RalphPersistedPreflightReport,
@@ -505,6 +508,7 @@ test('artifactStore exposes the protected generated-artifact roots explicitly', 
     'latest-prompt-evidence.json',
     'latest-execution-plan.json',
     'latest-cli-invocation.json',
+    'latest-doctrine-proposal.json',
     'latest-provenance-bundle.json',
     'latest-provenance-failure.json'
   ]);
@@ -541,6 +545,12 @@ test('artifactStore exposes the protected generated-artifact roots explicitly', 
       'transcriptPath',
       'lastMessagePath',
       'cliInvocationPath'
+    ],
+    'latest-doctrine-proposal.json': [
+      'provenanceId',
+      'iteration',
+      'selectedTaskId',
+      'selectedTaskTitle'
     ],
     'latest-provenance-bundle.json': [
       'artifactDir',
@@ -2438,6 +2448,45 @@ test('writeWatchdogDiagnosticArtifact writes expected JSON to watchdog/ subdir',
   assert.equal(contents.actionCount, 1);
   assert.deepEqual(contents.actions, actions);
   assert.ok(typeof contents.triggeredAt === 'string' && contents.triggeredAt.length > 0);
+});
+
+test('writeDoctrineProposalArtifact persists iteration-local and latest doctrine proposal artifacts', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 12;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+  const proposal = createDoctrineProposalArtifact({
+    provenanceId: 'run-i012-cli-20260430T001200Z',
+    iteration,
+    selectedTaskId: 'T178',
+    selectedTaskTitle: 'Persist doctrine proposals',
+    source: 'completionReport',
+    createdAt: '2026-04-30T00:12:00.000Z',
+    updates: parseDoctrineUpdatesFromCompletionReport([
+      {
+        targetFile: '.ralph/doctrine/workflows.md',
+        operation: 'append',
+        section: null,
+        proposedText: 'Observed workflow note.',
+        rationale: 'Adds durable workflow evidence from the run.',
+        evidence: ['package.json']
+      }
+    ]).updates
+  });
+
+  const writtenPath = await writeDoctrineProposalArtifact({
+    paths,
+    artifactRootDir,
+    proposal
+  });
+
+  assert.equal(writtenPath, paths.doctrineProposalPath);
+  const persisted = JSON.parse(await fs.readFile(paths.doctrineProposalPath, 'utf8')) as { kind: string; risk: string };
+  const latest = JSON.parse(await fs.readFile(latestPaths.latestDoctrineProposalPath, 'utf8')) as { proposalId: string };
+
+  assert.equal(persisted.kind, 'doctrineUpdateProposal');
+  assert.equal(persisted.risk, 'low');
+  assert.equal(latest.proposalId, proposal.proposalId);
 });
 
 test('cleanupGeneratedArtifacts prunes older watchdog files', async () => {

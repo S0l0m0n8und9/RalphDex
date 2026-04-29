@@ -1,4 +1,8 @@
 import {
+  DoctrineProposedUpdate,
+  parseDoctrineUpdatesFromCompletionReport
+} from './doctrineProposals';
+import {
   RalphCompletionReport,
   RalphCompletionReportRequestedStatus,
   RalphReviewOutcome,
@@ -29,6 +33,7 @@ export interface ParsedCompletionReport {
   report: RalphCompletionReport | null;
   rawBlock: string | null;
   parseError: string | null;
+  warnings: string[];
 }
 
 export function sanitizeCompletionText(value: string | undefined, maximumLength = 400): string | undefined {
@@ -317,7 +322,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'missing',
       report: null,
       rawBlock: null,
-      parseError: null
+      parseError: null,
+      warnings: []
     };
   }
 
@@ -328,7 +334,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'missing',
       report: null,
       rawBlock: null,
-      parseError: null
+      parseError: null,
+      warnings: []
     };
   }
 
@@ -344,7 +351,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'invalid',
       report: null,
       rawBlock,
-      parseError: error instanceof Error ? error.message : String(error)
+      parseError: error instanceof Error ? error.message : String(error),
+      warnings: []
     };
   }
 
@@ -353,7 +361,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'invalid',
       report: null,
       rawBlock,
-      parseError: 'Completion report requires a non-empty selectedTaskId string.'
+      parseError: 'Completion report requires a non-empty selectedTaskId string.',
+      warnings: []
     };
   }
   if (typeof candidate.requestedStatus !== 'string' || !isAllowedCompletionStatus(candidate.requestedStatus)) {
@@ -361,7 +370,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'invalid',
       report: null,
       rawBlock,
-      parseError: 'Completion report requestedStatus must be one of done, blocked, or in_progress.'
+      parseError: 'Completion report requestedStatus must be one of done, blocked, or in_progress.',
+      warnings: []
     };
   }
   if (candidate.needsHumanReview !== undefined && typeof candidate.needsHumanReview !== 'boolean') {
@@ -369,7 +379,8 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'invalid',
       report: null,
       rawBlock,
-      parseError: 'Completion report needsHumanReview must be a boolean when provided.'
+      parseError: 'Completion report needsHumanReview must be a boolean when provided.',
+      warnings: []
     };
   }
   const suggestedChildTasks = parseSuggestedChildTasks(candidate.suggestedChildTasks);
@@ -378,9 +389,11 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       status: 'invalid',
       report: null,
       rawBlock,
-      parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.'
+      parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.',
+      warnings: []
     };
   }
+  const doctrineUpdates = parseDoctrineUpdatesFromCompletionReport(candidate.doctrineUpdates);
   const watchdogActions = parseWatchdogActions(candidate.watchdog_actions);
 
   const report: RalphCompletionReport = {
@@ -391,6 +404,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     validationRan: parseValidationRan(candidate.validationRan),
     needsHumanReview: typeof candidate.needsHumanReview === 'boolean' ? candidate.needsHumanReview : undefined,
     suggestedChildTasks,
+    doctrineUpdates: doctrineUpdates.updates.length > 0 ? doctrineUpdates.updates as DoctrineProposedUpdate[] : undefined,
     watchdog_actions: watchdogActions,
     proposedPlan: sanitizeCompletionText(typeof candidate.proposedPlan === 'string' ? candidate.proposedPlan : undefined, 4000),
     reviewOutcome: isAllowedReviewOutcome(candidate.reviewOutcome) ? candidate.reviewOutcome : undefined,
@@ -401,6 +415,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     status: 'parsed',
     report,
     rawBlock,
-    parseError: null
+    parseError: null,
+    warnings: doctrineUpdates.warnings
   };
 }
