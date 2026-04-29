@@ -11,6 +11,7 @@ import { runProcess } from '../services/processRunner';
 import { scanWorkspace, scanWorkspaceCached } from '../services/workspaceScanner';
 import { inspectCliSupport, inspectIdeCommandSupport } from '../services/codexCliSupport';
 import { RalphStateManager } from './stateManager';
+import { inspectDoctrinePack } from './doctrine';
 import { createProvenanceId, hashJson, hashText, utf8ByteLength } from './integrity';
 import { deriveRootPolicy } from './rootPolicy';
 import { writeContextEnvelope } from './contextEnvelopeWriter';
@@ -478,7 +479,7 @@ export async function prepareIterationContext(
     newChatCommandId: config.newChatCommandId,
     availableCommands
   });
-  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, lastSummarizationMode] = await Promise.all([
+  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection, lastSummarizationMode] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath,
       artifactRootDir: snapshot.paths.artifactDir,
@@ -497,6 +498,7 @@ export async function prepareIterationContext(
       staleLockThresholdMs: config.staleLockThresholdMinutes * 60 * 1000
     }),
     checkHandoffHealth({ ralphRoot: snapshot.paths.ralphDir }),
+    inspectDoctrinePack(rootPath),
     readLastSummarizationMode(snapshot.paths.memorySummaryPath)
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
@@ -526,6 +528,7 @@ export async function prepareIterationContext(
     ideCommandSupport,
     providerReadinessDiagnostics,
     artifactReadinessDiagnostics,
+    doctrineDiagnostics: doctrineInspection.diagnostics,
     agentHealthDiagnostics,
     sessionHandoff,
     lastSummarizationMode
