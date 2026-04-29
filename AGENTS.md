@@ -47,6 +47,7 @@ Ralphdex is a VS Code extension that:
 - `src/ralph/reviewPolicy.ts`: review-agent file-change anomaly detection and policy enforcement
 - `src/ralph/reconciliation.ts`: completion-report reconciliation into task-state updates and warnings
 - `src/ralph/preflight.ts`: deterministic preflight diagnostics and blocking behavior
+- `src/ralph/doctrine.ts`: deterministic doctrine pack scaffolding and structural validation
 - `src/ralph/taskFile.ts`: task schema, normalization, and deterministic selection
 - `src/ralph/verifier.ts`: verifier behavior and git-aware summaries
 - `src/ralph/loopLogic.ts`: outcome classification and stop decisions

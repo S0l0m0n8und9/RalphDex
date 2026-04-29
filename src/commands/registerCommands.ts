@@ -62,6 +62,7 @@ import {
 import { collectStatusSnapshot } from './statusSnapshot';
 import { buildDashboardSnapshot, type DiagnosisSection } from '../webview/dashboardSnapshot';
 import { autoApplyMarkBlockedRemediation } from '../ralph/taskDecomposition';
+import { createDoctrinePack } from '../ralph/doctrine';
 
 interface RegisteredCommandSpec {
   commandId: string;
@@ -248,6 +249,8 @@ async function initializeFreshWorkspace(rootPath: string): Promise<{
   tasksPath: string;
   progressPath: string;
   gitignorePath: string;
+  doctrineDir: string;
+  doctrineCreatedPaths: string[];
 }> {
   const ralphDir = path.join(rootPath, '.ralph');
   const prdPath = path.join(ralphDir, 'prd.md');
@@ -272,13 +275,16 @@ async function initializeFreshWorkspace(rootPath: string): Promise<{
   if (!(await pathExists(gitignorePath))) {
     await fs.writeFile(gitignorePath, `${RALPH_GITIGNORE_CONTENT}\n`, 'utf8');
   }
+  const doctrine = await createDoctrinePack(rootPath);
 
   return {
     ralphDir,
     prdPath,
     tasksPath,
     progressPath,
-    gitignorePath
+    gitignorePath,
+    doctrineDir: doctrine.doctrineDir,
+    doctrineCreatedPaths: doctrine.createdPaths
   };
 }
 
@@ -681,7 +687,9 @@ export function registerCommands(
         prdPath: result.prdPath,
         tasksPath: result.tasksPath,
         progressPath: result.progressPath,
-        gitignorePath: result.gitignorePath
+        gitignorePath: result.gitignorePath,
+        doctrineDir: result.doctrineDir,
+        doctrineCreatedPaths: result.doctrineCreatedPaths
       });
 
       // Read config to know which CLI provider to use for generation
@@ -755,7 +763,9 @@ export function registerCommands(
           prdPath: result.prdPath,
           tasksPath: result.tasksPath,
           progressPath: result.progressPath,
-          gitignorePath: result.gitignorePath
+          gitignorePath: result.gitignorePath,
+          doctrineDir: result.doctrineDir,
+          doctrineCreatedPaths: result.doctrineCreatedPaths
         });
       }
 

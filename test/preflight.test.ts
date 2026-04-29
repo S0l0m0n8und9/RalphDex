@@ -1811,6 +1811,25 @@ test('buildPreflightReport emits workspace_has_untracked_baseline for 2+ untrack
   assert.ok(report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline' && d.severity === 'warning'));
 });
 
+test('buildPreflightReport surfaces doctrine health as a non-blocking workspace diagnostic', () => {
+  const report = buildPreflightReport({
+    ...minimalPreflightInput(),
+    doctrineDiagnostics: [{
+      severity: 'warning',
+      code: 'doctrine_required_file_missing',
+      message: 'Doctrine health: incomplete. Missing required doctrine file .ralph/doctrine/risks.md.'
+    }]
+  });
+
+  assert.equal(report.ready, true);
+  assert.ok(report.diagnostics.some((d) =>
+    d.category === 'workspaceRuntime'
+    && d.code === 'doctrine_required_file_missing'
+    && d.severity === 'warning'
+  ));
+  assert.match(renderPreflightReport(report), /Doctrine health: incomplete/);
+});
+
 test('buildPreflightReport does not emit workspace_has_untracked_baseline for only .ralph untracked files', () => {
   const report = buildPreflightReport({
     ...minimalPreflightInput(),

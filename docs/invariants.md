@@ -16,6 +16,7 @@ These paths are stable parts of the product contract:
 - objective text: `ralphCodex.prdPath`, default `.ralph/prd.md`
 - progress log: `ralphCodex.progressPath`, default `.ralph/progress.md`
 - task graph: `ralphCodex.ralphTaskFilePath`, default `.ralph/tasks.json`
+- doctrine pack: `.ralph/doctrine/`
 - runtime state: `.ralph/state.json`, mirrored to VS Code `workspaceState`
 - generated prompts: `.ralph/prompts/`
 - CLI transcripts and last messages: `.ralph/runs/`
@@ -23,7 +24,27 @@ These paths are stable parts of the product contract:
 - run-level provenance bundles: `.ralph/artifacts/runs/<provenance-id>/`
 - extension log: `.ralph/logs/extension.log`
 
-`resetRuntimeState()` may remove generated runtime state and artifacts, but it must preserve the durable PRD, progress log, and task file.
+`resetRuntimeState()` may remove generated runtime state and artifacts, but it must preserve the durable PRD, progress log, task file, and doctrine pack.
+
+## Doctrine Pack Invariants
+
+Fresh workspace initialization creates a compact doctrine skeleton under `.ralph/doctrine/`:
+
+- `project-profile.md`
+- `invariants.md`
+- `boundaries.md`
+- `workflows.md`
+- `agents.md`
+- `decisions.md`
+- `risks.md`
+- `open-questions.md`
+- `evidence-index.json`
+
+Initialization is non-destructive: existing doctrine files are never overwritten, and a partially existing doctrine folder is completed by creating only missing files. `.ralph/prd.md` remains the initialization guard for active Ralph workspaces.
+
+The protected doctrine files are `.ralph/doctrine/invariants.md`, `.ralph/doctrine/boundaries.md`, and `.ralph/doctrine/agents.md`. In this tranche Ralph only scaffolds these files and validates required headings plus the minimal `evidence-index.json` shape. Providers must not rewrite protected doctrine during normal task execution, and there is no semantic doctrine updater, approval workflow, auto-apply behavior, or autonomous doctrine rewriting.
+
+Doctrine does not replace the active Ralph state files. `.ralph/prd.md` remains the product objective, `.ralph/tasks.json` remains the executable task graph, and `.ralph/progress.md` remains the progress log. Doctrine validation health is warning-level preflight/status context unless a future tranche explicitly defines stronger gates.
 
 ## Task Graph Invariants
 

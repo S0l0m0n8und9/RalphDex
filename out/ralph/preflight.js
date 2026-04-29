@@ -738,6 +738,9 @@ function buildPreflightReport(input) {
     for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
         diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
     }
+    for (const diagnostic of input.doctrineDiagnostics ?? []) {
+        diagnostics.push(createDiagnostic('workspaceRuntime', diagnostic.severity, diagnostic.code, diagnostic.message));
+    }
     if (hasUntrackedProjectBaseline(input.gitStatusBefore)) {
         diagnostics.push(createDiagnostic('workspaceRuntime', 'warning', 'workspace_has_untracked_baseline', 'Workspace contains untracked project files; git diff may not represent greenfield progress until a baseline commit/checkpoint exists.'));
     }

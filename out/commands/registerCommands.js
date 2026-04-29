@@ -64,6 +64,7 @@ const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
 const dashboardSnapshot_1 = require("../webview/dashboardSnapshot");
 const taskDecomposition_1 = require("../ralph/taskDecomposition");
+const doctrine_1 = require("../ralph/doctrine");
 function createActiveLoopStopRegistry() {
     let nextSessionId = 1;
     const cancelledSessionIds = new Set();
@@ -206,12 +207,15 @@ async function initializeFreshWorkspace(rootPath) {
     if (!(await (0, fs_1.pathExists)(gitignorePath))) {
         await fs.writeFile(gitignorePath, `${RALPH_GITIGNORE_CONTENT}\n`, 'utf8');
     }
+    const doctrine = await (0, doctrine_1.createDoctrinePack)(rootPath);
     return {
         ralphDir,
         prdPath,
         tasksPath,
         progressPath,
-        gitignorePath
+        gitignorePath,
+        doctrineDir: doctrine.doctrineDir,
+        doctrineCreatedPaths: doctrine.createdPaths
     };
 }
 /**
@@ -504,7 +508,9 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 prdPath: result.prdPath,
                 tasksPath: result.tasksPath,
                 progressPath: result.progressPath,
-                gitignorePath: result.gitignorePath
+                gitignorePath: result.gitignorePath,
+                doctrineDir: result.doctrineDir,
+                doctrineCreatedPaths: result.doctrineCreatedPaths
             });
             // Read config to know which CLI provider to use for generation
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -565,7 +571,9 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                     prdPath: result.prdPath,
                     tasksPath: result.tasksPath,
                     progressPath: result.progressPath,
-                    gitignorePath: result.gitignorePath
+                    gitignorePath: result.gitignorePath,
+                    doctrineDir: result.doctrineDir,
+                    doctrineCreatedPaths: result.doctrineCreatedPaths
                 });
             }
             await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {

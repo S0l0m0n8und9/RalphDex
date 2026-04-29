@@ -40,7 +40,11 @@ For Marketplace release validation, use `npm run publish:dry-run` from the repo 
 2. Run `Ralphdex: Initialize Workspace`.
 3. Replace the placeholder comment in `.ralph/prd.md` with the real repository objective before using any prompt or CLI workflow.
 
-This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
+This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and the lightweight doctrine pack under `.ralph/doctrine/`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
+
+The doctrine pack is deterministic scaffold only. It creates compact Markdown skeletons for project profile, invariants, boundaries, workflows, agents, decisions, risks, and open questions, plus a valid `.ralph/doctrine/evidence-index.json`. Existing doctrine files are never overwritten; if `.ralph/doctrine/` already exists before initialization, Ralph creates only missing files. The protected doctrine files are `.ralph/doctrine/invariants.md`, `.ralph/doctrine/boundaries.md`, and `.ralph/doctrine/agents.md`.
+
+This tranche does not add agent-authored doctrine updates, approval workflows, semantic memory mutation, prompt injection of doctrine content, autonomous doctrine rewriting, or auto-apply behavior. Preflight/status surfaces only validate that the skeleton exists, required headings are present, and `evidence-index.json` has the expected minimal shape. Missing or malformed doctrine is reported as a warning-level workspace diagnostic, not as a task-selection blocker.
 
 That initial `tasks.json` now enters the same shared task-creation pipeline used by later PRD generation, decomposition, remediation, and pipeline scaffolding. Generated tasks should therefore preserve the richest fields the bootstrap or AI source already knows instead of being reduced to a title-only starter shape. Optional fields may still be absent when the source objective did not provide them yet; [docs/invariants.md#normalized-task-contract](invariants.md#normalized-task-contract) is the authoritative contract.
 

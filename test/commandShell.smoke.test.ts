@@ -489,11 +489,45 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   assert.match(tasksJson.tasks[1].notes, /create 10 actionable tasks/i);
   assert.ok(Array.isArray(tasksJson.tasks[1].acceptance), 'T2 should keep acceptance criteria');
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
+  for (const fileName of [
+    'project-profile.md',
+    'invariants.md',
+    'boundaries.md',
+    'workflows.md',
+    'agents.md',
+    'decisions.md',
+    'risks.md',
+    'open-questions.md',
+    'evidence-index.json'
+  ]) {
+    await fs.access(path.join(rootPath, '.ralph', 'doctrine', fileName));
+  }
+  const evidenceIndex = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'doctrine', 'evidence-index.json'), 'utf8'));
+  assert.equal(evidenceIndex.schemaVersion, 1);
+  assert.equal(evidenceIndex.doctrineRoot, '.ralph/doctrine');
+  assert.deepEqual(evidenceIndex.evidence, []);
   assert.deepEqual(harness.state.shownDocuments, [
     path.join(rootPath, '.ralph', 'prd.md'),
     path.join(rootPath, '.ralph', 'tasks.json')
   ]);
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Ralph workspace ready/);
+});
+
+test('Initialize Workspace completes a partial doctrine pack without overwriting existing doctrine files', async () => {
+  const rootPath = await makeTempRoot();
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  await fs.writeFile(path.join(doctrineDir, 'agents.md'), '# Custom Agents\n\nHuman-owned rules.\n', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeWorkspace');
+
+  assert.equal(await fs.readFile(path.join(doctrineDir, 'agents.md'), 'utf8'), '# Custom Agents\n\nHuman-owned rules.\n');
+  await fs.access(path.join(doctrineDir, 'project-profile.md'));
+  await fs.access(path.join(doctrineDir, 'evidence-index.json'));
 });
 
 test('Initialize Workspace aborts with a warning when .ralph/prd.md already exists', async () => {
@@ -2661,7 +2695,18 @@ test('Seed Tasks from Feature Request reports id collisions discovered at persis
   harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
   harness.setInputBoxValue('Seed tasks for a concurrent collision case.');
 
-  setProcessRunnerOverride(async (_command, _args, _options) => {
+  setProcessRunnerOverride(async (_command, _args, options) => {
+    if (options.cwd !== rootPath) {
+      return {
+        code: 0,
+        stdout: JSON.stringify({
+          type: 'result',
+          result: '```json\n{"tasks":[]}\n```',
+          num_turns: 1
+        }),
+        stderr: ''
+      };
+    }
     await fs.writeFile(tasksPath, concurrentTasksText, 'utf8');
     return {
       code: 0,

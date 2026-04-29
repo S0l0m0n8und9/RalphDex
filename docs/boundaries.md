@@ -51,6 +51,8 @@ The single-agent CLI iteration/loop runner still exists as a first-class command
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json` or `.ralph/progress.md` on that path.
 
+The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. Semantic doctrine update proposals, approval flows, auto-apply behavior, and autonomous doctrine rewriting are out of scope for the current tranche.
+
 Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded`, `pipelineHumanGates`, and operator presets).
 
 It does not:
@@ -69,6 +71,7 @@ When the repository itself is the Ralph workspace, as in this repo, some `.ralph
 - `.ralph/prd.md` — product objective and requirements
 - `.ralph/tasks.json` — task graph and backlog state
 - `.ralph/progress.md` — progress notes across sessions
+- `.ralph/doctrine/` — compact project doctrine skeletons and `evidence-index.json`; protected doctrine files are human-governed and validated structurally
 - `.ralph/memory-summary.md` — condensed memory state when using summary memory strategy
 
 The rest of the runtime tree is operator-local runtime state and must not be committed:
@@ -81,7 +84,7 @@ The rest of the runtime tree is operator-local runtime state and must not be com
 - `.ralph/agents/` — per-agent history metadata per session
 - `.ralph/handoff/` — session clean-stop handoff notes
 
-This distinction keeps the durable project brief, task graph, progress log, and condensed memory reviewable in version control while leaving machine-local execution state, logs, prompts, transcripts, and generated evidence out of the committed source tree.
+This distinction keeps the durable project brief, task graph, progress log, doctrine skeletons, and condensed memory reviewable in version control while leaving machine-local execution state, logs, prompts, transcripts, and generated evidence out of the committed source tree.
 
 ## Workspace And Runtime Boundary
 

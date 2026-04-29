@@ -203,6 +203,7 @@ export interface RalphPreflightInput {
   ideCommandSupport?: CodexIdeCommandSupport | null;
   providerReadinessDiagnostics?: RalphPreflightDiagnostic[];
   artifactReadinessDiagnostics?: RalphPreflightExternalDiagnostic[];
+  doctrineDiagnostics?: RalphPreflightExternalDiagnostic[];
   agentHealthDiagnostics?: RalphPreflightExternalDiagnostic[];
   sessionHandoff?: RalphPromptSessionHandoff | null;
   /** Summarization mode from the most recent iteration; used to emit an info diagnostic when fallback is active. */
@@ -1118,6 +1119,15 @@ export function buildPreflightReport(input: RalphPreflightInput): RalphPreflight
   }
 
   for (const diagnostic of input.artifactReadinessDiagnostics ?? []) {
+    diagnostics.push(createDiagnostic(
+      'workspaceRuntime',
+      diagnostic.severity,
+      diagnostic.code,
+      diagnostic.message
+    ));
+  }
+
+  for (const diagnostic of input.doctrineDiagnostics ?? []) {
     diagnostics.push(createDiagnostic(
       'workspaceRuntime',
       diagnostic.severity,

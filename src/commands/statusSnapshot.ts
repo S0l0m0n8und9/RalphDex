@@ -47,6 +47,7 @@ import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
 import { getEffectivePolicy } from '../ralph/rolePolicy';
 import type { ContextEnvelope } from '../ralph/types';
+import { inspectDoctrinePack } from '../ralph/doctrine';
 
 export async function readJsonArtifact(target: string | null): Promise<unknown | null> {
   if (!target) {
@@ -319,7 +320,7 @@ export async function collectStatusSnapshot(
     command: validationCommand,
     rootPath: rootPolicy.verificationRootPath
   });
-  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics] = await Promise.all([
+  const [artifactReadinessDiagnostics, staleStateDiagnostics, handoffHealthDiagnostics, doctrineInspection] = await Promise.all([
     inspectPreflightArtifactReadiness({
       rootPath: workspaceFolder.uri.fsPath,
       artifactRootDir: inspection.paths.artifactDir,
@@ -336,7 +337,8 @@ export async function collectStatusSnapshot(
       artifactDir: inspection.paths.artifactDir,
       staleClaimTtlMs: config.watchdogStaleTtlMs
     }),
-    checkHandoffHealth({ ralphRoot: inspection.paths.ralphDir })
+    checkHandoffHealth({ ralphRoot: inspection.paths.ralphDir }),
+    inspectDoctrinePack(workspaceFolder.uri.fsPath)
   ]);
   const agentHealthDiagnostics = [...staleStateDiagnostics, ...handoffHealthDiagnostics];
   const claimGraph = await inspectTaskClaimGraph(inspection.paths.claimFilePath);
@@ -396,6 +398,7 @@ export async function collectStatusSnapshot(
     ideCommandSupport,
     providerReadinessDiagnostics,
     artifactReadinessDiagnostics,
+    doctrineDiagnostics: doctrineInspection.diagnostics,
     agentHealthDiagnostics,
     rolePolicySource
   });
