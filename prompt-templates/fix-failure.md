@@ -35,6 +35,8 @@ Focus first on the concrete failure or no-progress signal carried forward from t
 
 {{task_plan_context}}
 
+{{doctrine_context}}
+
 ## Task Focus
 {{task_context}}
 

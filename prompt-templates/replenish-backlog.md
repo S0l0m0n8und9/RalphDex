@@ -28,6 +28,8 @@
 
 {{structure_context}}
 
+{{doctrine_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

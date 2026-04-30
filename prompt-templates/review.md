@@ -21,6 +21,8 @@ Do not implement fixes in this run. Inspect the done task's artifacts, acceptanc
 
 {{structure_context}}
 
+{{doctrine_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

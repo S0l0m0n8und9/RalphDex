@@ -23,6 +23,7 @@ import {
   RalphWorkspaceState
 } from '../ralph/types';
 import { StructureDefinition } from '../ralph/structureDefinition';
+import { DoctrineContext } from '../ralph/doctrine';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import {
   type PromptSectionName,
@@ -93,6 +94,8 @@ export interface PromptGenerationInput {
   taskPlanArtifact?: TaskPlanArtifact | null;
   /** Repo structure definition loaded from structure.json, when available. Injected after the repo context section. */
   structureDefinition?: StructureDefinition | null;
+  /** Doctrine context collected from .ralph/doctrine, when available. Injected after the task plan section. */
+  doctrineContext?: DoctrineContext | null;
   config: PromptConfig;
 }
 
@@ -1057,6 +1060,41 @@ function buildStructureContext(definition: StructureDefinition | null | undefine
   return lines.join('\n');
 }
 
+const DOCTRINE_PROMPT_PRIORITY = [
+  'boundaries.md',
+  'invariants.md',
+  'agents.md',
+  'workflows.md',
+  'project-profile.md',
+  'open-questions.md'
+];
+
+function buildDoctrineContextSection(ctx: DoctrineContext | null | undefined): string[] {
+  if (!ctx || ctx.entries.length === 0) {
+    return [];
+  }
+
+  const priorityIndex = new Map(DOCTRINE_PROMPT_PRIORITY.map((name, i) => [name, i]));
+  const sorted = [...ctx.entries].sort((a, b) => {
+    const ai = priorityIndex.get(a.fileName) ?? DOCTRINE_PROMPT_PRIORITY.length;
+    const bi = priorityIndex.get(b.fileName) ?? DOCTRINE_PROMPT_PRIORITY.length;
+    return ai - bi;
+  });
+
+  const lines: string[] = ['## Project Doctrine Context'];
+  for (const entry of sorted) {
+    const labels = [
+      entry.isProtected ? '[protected]' : '',
+      entry.truncated ? '[truncated]' : ''
+    ].filter(Boolean).join(' ');
+    const header = labels ? `### ${entry.fileName} ${labels}` : `### ${entry.fileName}`;
+    lines.push(header);
+    lines.push(entry.content.trim());
+  }
+
+  return lines;
+}
+
 function buildExecutionContract(target: RalphPromptTarget, kind: RalphPromptKind, agentRole: RalphAgentRole, taskMode?: RalphTaskMode): string[] {
   if (kind === 'replenish-backlog') {
     const contract = [
@@ -1725,6 +1763,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       budgetPolicy.runtimeDetail
     ),
     taskPlanContext: taskPlanContextLines,
+    doctrineContext: buildDoctrineContextSection(input.doctrineContext),
     taskContext: buildTaskContext({
       kind: input.kind,
       agentRole,
@@ -1781,6 +1820,8 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
         return '- Omitted by prompt budget policy because recent progress did not fit within the target prompt budget.';
       case 'priorIterationContext':
         return '- Omitted by prompt budget policy after the current failure/task context was kept.';
+      case 'doctrineContext':
+        return '- Omitted by prompt budget policy after core root and task context were captured in prompt evidence.';
       default:
         return '- Omitted by prompt budget policy.';
     }
@@ -1796,6 +1837,7 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
     structure_context: structureContext,
     runtime_context: placeholderFor('runtimeContext'),
     task_plan_context: placeholderFor('taskPlanContext'),
+    doctrine_context: placeholderFor('doctrineContext'),
     task_context: placeholderFor('taskContext'),
     progress_context: placeholderFor('progressContext'),
     prior_iteration_context: placeholderFor('priorIterationContext'),
@@ -1874,6 +1916,18 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       runtimeContext: sectionBodies.runtimeContext,
       ...(taskPlanContextLines.length > 0 ? { taskPlanContext: taskPlanContextLines } : {}),
       ...(structureContext ? { structureContext } : {}),
+      ...(input.doctrineContext && input.doctrineContext.entries.length > 0
+        ? {
+            doctrineContext: {
+              includedFiles: input.doctrineContext.entries.map((e) => ({
+                relativePath: e.relativePath,
+                isProtected: e.isProtected,
+                truncated: e.truncated
+              })),
+              budgetExceeded: input.doctrineContext.budgetExceeded
+            }
+          }
+        : {}),
       taskContext: sectionBodies.taskContext,
       progressContext: sectionBodies.progressContext,
       priorIterationContext: sectionBodies.priorIterationContext,

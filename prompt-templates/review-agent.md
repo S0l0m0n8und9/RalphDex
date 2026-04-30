@@ -21,6 +21,8 @@ Do not implement fixes in this run. Run the validation command when available, i
 
 {{structure_context}}
 
+{{doctrine_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

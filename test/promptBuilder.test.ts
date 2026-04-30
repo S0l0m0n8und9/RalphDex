@@ -277,6 +277,7 @@ async function createTemplateDir(): Promise<string> {
     '{{repo_context}}',
     'Strategy:',
     '{{strategy_context}}',
+    '{{doctrine_context}}',
     'Task:',
     '{{task_context}}',
     'Prior:',
@@ -1255,18 +1256,18 @@ test('buildPrompt prepends session handoff context ahead of prior iteration evid
 test('buildPrompt records the prompt-budget matrix for each prompt kind and target', async () => {
   const templateDir = await createTemplateDir();
   const expectedPolicies = [
-    ['bootstrap', 'cliExec', 'bootstrap:cliExec', 2100, 'broad objective, expanded repo scan, standard runtime pointers', ['priorIterationContext']],
-    ['bootstrap', 'ideHandoff', 'bootstrap:ideHandoff', 1500, 'broad objective, lighter runtime and repo detail for human review', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
-    ['iteration', 'cliExec', 'iteration:cliExec', 1600, 'selected task plus compact repo/runtime context', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
-    ['iteration', 'ideHandoff', 'iteration:ideHandoff', 1000, 'selected task plus compact review-oriented context', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']],
-    ['continue-progress', 'cliExec', 'continue-progress:cliExec', 1600, 'selected task plus compact recent progress and prior iteration state', ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']],
-    ['continue-progress', 'ideHandoff', 'continue-progress:ideHandoff', 1000, 'selected task plus compact carry-forward state for human review', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']],
-    ['fix-failure', 'cliExec', 'fix-failure:cliExec', 1700, 'failure signature, blocker, remediation, validation context', ['runtimeContext', 'repoContext', 'progressContext']],
-    ['fix-failure', 'ideHandoff', 'fix-failure:ideHandoff', 1100, 'failure signature and blocker summary for manual inspection', ['runtimeContext', 'repoContext', 'progressContext']],
-    ['human-review-handoff', 'cliExec', 'human-review-handoff:cliExec', 1500, 'blocker, remediation, and current task state over broad history', ['runtimeContext', 'repoContext', 'progressContext']],
-    ['human-review-handoff', 'ideHandoff', 'human-review-handoff:ideHandoff', 1100, 'blocker and review decision points over broad history', ['runtimeContext', 'repoContext', 'progressContext']],
-    ['replenish-backlog', 'cliExec', 'replenish-backlog:cliExec', 1800, 'PRD, backlog counts, and expanded repo/runtime context for task generation', ['priorIterationContext']],
-    ['replenish-backlog', 'ideHandoff', 'replenish-backlog:ideHandoff', 1300, 'PRD, backlog counts, and explicit next-task generation context', ['priorIterationContext']]
+    ['bootstrap', 'cliExec', 'bootstrap:cliExec', 2100, 'broad objective, expanded repo scan, standard runtime pointers', ['priorIterationContext', 'doctrineContext']],
+    ['bootstrap', 'ideHandoff', 'bootstrap:ideHandoff', 1500, 'broad objective, lighter runtime and repo detail for human review', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']],
+    ['iteration', 'cliExec', 'iteration:cliExec', 1600, 'selected task plus compact repo/runtime context', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']],
+    ['iteration', 'ideHandoff', 'iteration:ideHandoff', 1000, 'selected task plus compact review-oriented context', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext', 'doctrineContext']],
+    ['continue-progress', 'cliExec', 'continue-progress:cliExec', 1600, 'selected task plus compact recent progress and prior iteration state', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']],
+    ['continue-progress', 'ideHandoff', 'continue-progress:ideHandoff', 1000, 'selected task plus compact carry-forward state for human review', ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext', 'doctrineContext']],
+    ['fix-failure', 'cliExec', 'fix-failure:cliExec', 1700, 'failure signature, blocker, remediation, validation context', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']],
+    ['fix-failure', 'ideHandoff', 'fix-failure:ideHandoff', 1100, 'failure signature and blocker summary for manual inspection', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']],
+    ['human-review-handoff', 'cliExec', 'human-review-handoff:cliExec', 1500, 'blocker, remediation, and current task state over broad history', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']],
+    ['human-review-handoff', 'ideHandoff', 'human-review-handoff:ideHandoff', 1100, 'blocker and review decision points over broad history', ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']],
+    ['replenish-backlog', 'cliExec', 'replenish-backlog:cliExec', 1800, 'PRD, backlog counts, and expanded repo/runtime context for task generation', ['priorIterationContext', 'doctrineContext']],
+    ['replenish-backlog', 'ideHandoff', 'replenish-backlog:ideHandoff', 1300, 'PRD, backlog counts, and explicit next-task generation context', ['priorIterationContext', 'doctrineContext']]
   ] as const;
 
   for (const [kind, target, policyName, targetTokens, minimumContextBias, optionalSections] of expectedPolicies) {
@@ -1555,12 +1556,14 @@ test('buildPrompt can omit progress context for oversized continue-progress CLI 
     'runtimeContext',
     'repoContext',
     'progressContext',
+    'doctrineContext',
     'priorIterationContext'
   ]);
   assert.deepEqual(render.evidence.promptBudget?.omissionOrder, [
     'runtimeContext',
     'repoContext',
     'progressContext',
+    'doctrineContext',
     'priorIterationContext'
   ]);
   assert.ok(render.evidence.promptBudget?.omittedSections.includes('progressContext'));
@@ -2697,4 +2700,169 @@ test('buildPrompt routes implementer role to standard iteration template', async
   });
 
   assert.equal(render.templatePath, path.join(templateDir, 'iteration.md'));
+});
+
+// ---------------------------------------------------------------------------
+// Doctrine context injection
+// ---------------------------------------------------------------------------
+
+test('buildPrompt includes doctrine context section when doctrineContext has entries', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Task selected.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: { todo: 1, in_progress: 1, blocked: 0, done: 2 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Doctrine test', status: 'in_progress' }] },
+    selectedTask: { id: 'T1', title: 'Doctrine test', status: 'in_progress' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ready.', diagnostics: [] },
+    doctrineContext: {
+      entries: [
+        {
+          fileName: 'boundaries.md',
+          relativePath: '.ralph/doctrine/boundaries.md',
+          content: '# Doctrine Boundaries\n\n## Explicit Non-Goals\n\n- No GitHub Actions integration.',
+          isProtected: true,
+          truncated: false
+        },
+        {
+          fileName: 'invariants.md',
+          relativePath: '.ralph/doctrine/invariants.md',
+          content: '# Doctrine Invariants\n\n## Invariants\n\n- All state is file-backed.',
+          isProtected: true,
+          truncated: false
+        }
+      ],
+      totalChars: 140,
+      budgetChars: 8000,
+      budgetExceeded: false
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.match(render.prompt, /## Project Doctrine Context/);
+  assert.match(render.prompt, /### boundaries\.md \[protected\]/);
+  assert.match(render.prompt, /No GitHub Actions integration\./);
+  assert.match(render.prompt, /### invariants\.md \[protected\]/);
+  assert.match(render.prompt, /All state is file-backed\./);
+  assert.ok(render.evidence.inputs.doctrineContext, 'doctrineContext should appear in evidence inputs');
+  assert.deepEqual(render.evidence.inputs.doctrineContext?.includedFiles.map((f) => f.relativePath), [
+    '.ralph/doctrine/boundaries.md',
+    '.ralph/doctrine/invariants.md'
+  ]);
+  assert.equal(render.evidence.inputs.doctrineContext?.budgetExceeded, false);
+});
+
+test('buildPrompt omits doctrine context section when doctrineContext is null', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Task selected.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: { todo: 1, in_progress: 1, blocked: 0, done: 2 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'No doctrine test', status: 'in_progress' }] },
+    selectedTask: { id: 'T1', title: 'No doctrine test', status: 'in_progress' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ready.', diagnostics: [] },
+    doctrineContext: null,
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  assert.doesNotMatch(render.prompt, /## Project Doctrine Context/);
+  assert.equal(render.evidence.inputs.doctrineContext, undefined);
+});
+
+test('buildPrompt respects priority order in doctrine context section', async () => {
+  const templateDir = await createTemplateDir();
+
+  const render = await buildPrompt({
+    kind: 'iteration',
+    target: 'cliExec',
+    iteration: 2,
+    selectionReason: 'Task selected.',
+    objectiveText: '# Product / project brief\n\nShip better prompts.',
+    progressText: '# Progress\n\n- Prompt builder exists.\n',
+    taskCounts: { todo: 1, in_progress: 1, blocked: 0, done: 2 },
+    summary,
+    state: workspaceState(),
+    paths,
+    taskFile: { version: 2, tasks: [{ id: 'T1', title: 'Doctrine priority test', status: 'in_progress' }] },
+    selectedTask: { id: 'T1', title: 'Doctrine priority test', status: 'in_progress' },
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null,
+    preflightReport: { ready: true, summary: 'Preflight ready.', diagnostics: [] },
+    doctrineContext: {
+      entries: [
+        {
+          fileName: 'open-questions.md',
+          relativePath: '.ralph/doctrine/open-questions.md',
+          content: '# Open Questions',
+          isProtected: false,
+          truncated: false
+        },
+        {
+          fileName: 'boundaries.md',
+          relativePath: '.ralph/doctrine/boundaries.md',
+          content: '# Boundaries',
+          isProtected: true,
+          truncated: false
+        },
+        {
+          fileName: 'agents.md',
+          relativePath: '.ralph/doctrine/agents.md',
+          content: '# Agents',
+          isProtected: true,
+          truncated: false
+        }
+      ],
+      totalChars: 50,
+      budgetChars: 8000,
+      budgetExceeded: false
+    },
+    config: {
+      promptTemplateDirectory: templateDir,
+      promptIncludeVerifierFeedback: true,
+      promptPriorContextBudget: 8
+    }
+  });
+
+  const prompt = render.prompt;
+  const boundariesPos = prompt.indexOf('### boundaries.md');
+  const agentsPos = prompt.indexOf('### agents.md');
+  const openQuestionsPos = prompt.indexOf('### open-questions.md');
+
+  assert.ok(boundariesPos > 0, 'boundaries.md must appear in prompt');
+  assert.ok(agentsPos > boundariesPos, 'agents.md must appear after boundaries.md');
+  assert.ok(openQuestionsPos > agentsPos, 'open-questions.md must appear after agents.md');
 });

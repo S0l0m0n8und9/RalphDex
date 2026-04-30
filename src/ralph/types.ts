@@ -411,6 +411,10 @@ export interface RalphPromptEvidence {
     runtimeContext: string[];
     taskPlanContext?: string[];
     structureContext?: string;
+    doctrineContext?: {
+      includedFiles: Array<{ relativePath: string; isProtected: boolean; truncated: boolean }>;
+      budgetExceeded: boolean;
+    };
     taskContext: string[];
     progressContext: string[];
     priorIterationContext: string[];

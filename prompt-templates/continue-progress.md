@@ -35,6 +35,8 @@ Assume some useful work already landed in the repository. Build on that durable 
 
 {{task_plan_context}}
 
+{{doctrine_context}}
+
 ## Task Focus
 {{task_context}}
 

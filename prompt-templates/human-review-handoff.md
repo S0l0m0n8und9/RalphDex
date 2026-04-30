@@ -35,6 +35,8 @@ Treat the prior blocker as real until the repository proves otherwise. Keep the 
 
 {{task_plan_context}}
 
+{{doctrine_context}}
+
 ## Task Focus
 {{task_context}}
 

@@ -823,6 +823,36 @@ function buildStructureContext(definition) {
     }
     return lines.join('\n');
 }
+const DOCTRINE_PROMPT_PRIORITY = [
+    'boundaries.md',
+    'invariants.md',
+    'agents.md',
+    'workflows.md',
+    'project-profile.md',
+    'open-questions.md'
+];
+function buildDoctrineContextSection(ctx) {
+    if (!ctx || ctx.entries.length === 0) {
+        return [];
+    }
+    const priorityIndex = new Map(DOCTRINE_PROMPT_PRIORITY.map((name, i) => [name, i]));
+    const sorted = [...ctx.entries].sort((a, b) => {
+        const ai = priorityIndex.get(a.fileName) ?? DOCTRINE_PROMPT_PRIORITY.length;
+        const bi = priorityIndex.get(b.fileName) ?? DOCTRINE_PROMPT_PRIORITY.length;
+        return ai - bi;
+    });
+    const lines = ['## Project Doctrine Context'];
+    for (const entry of sorted) {
+        const labels = [
+            entry.isProtected ? '[protected]' : '',
+            entry.truncated ? '[truncated]' : ''
+        ].filter(Boolean).join(' ');
+        const header = labels ? `### ${entry.fileName} ${labels}` : `### ${entry.fileName}`;
+        lines.push(header);
+        lines.push(entry.content.trim());
+    }
+    return lines;
+}
 function buildExecutionContract(target, kind, agentRole, taskMode) {
     if (kind === 'replenish-backlog') {
         const contract = [
@@ -1259,6 +1289,7 @@ async function buildPrompt(input) {
         repoContext: buildRepoContext(input.summary, input.kind, input.target, input.selectedTask, budgetPolicy.repoDetail),
         runtimeContext: buildRuntimeContext(input.state, input.paths, input.iteration, input.target, budgetPolicy.runtimeDetail),
         taskPlanContext: taskPlanContextLines,
+        doctrineContext: buildDoctrineContextSection(input.doctrineContext),
         taskContext: buildTaskContext({
             kind: input.kind,
             agentRole,
@@ -1311,6 +1342,8 @@ async function buildPrompt(input) {
                 return '- Omitted by prompt budget policy because recent progress did not fit within the target prompt budget.';
             case 'priorIterationContext':
                 return '- Omitted by prompt budget policy after the current failure/task context was kept.';
+            case 'doctrineContext':
+                return '- Omitted by prompt budget policy after core root and task context were captured in prompt evidence.';
             default:
                 return '- Omitted by prompt budget policy.';
         }
@@ -1325,6 +1358,7 @@ async function buildPrompt(input) {
         structure_context: structureContext,
         runtime_context: placeholderFor('runtimeContext'),
         task_plan_context: placeholderFor('taskPlanContext'),
+        doctrine_context: placeholderFor('doctrineContext'),
         task_context: placeholderFor('taskContext'),
         progress_context: placeholderFor('progressContext'),
         prior_iteration_context: placeholderFor('priorIterationContext'),
@@ -1398,6 +1432,18 @@ async function buildPrompt(input) {
             runtimeContext: sectionBodies.runtimeContext,
             ...(taskPlanContextLines.length > 0 ? { taskPlanContext: taskPlanContextLines } : {}),
             ...(structureContext ? { structureContext } : {}),
+            ...(input.doctrineContext && input.doctrineContext.entries.length > 0
+                ? {
+                    doctrineContext: {
+                        includedFiles: input.doctrineContext.entries.map((e) => ({
+                            relativePath: e.relativePath,
+                            isProtected: e.isProtected,
+                            truncated: e.truncated
+                        })),
+                        budgetExceeded: input.doctrineContext.budgetExceeded
+                    }
+                }
+                : {}),
             taskContext: sectionBodies.taskContext,
             progressContext: sectionBodies.progressContext,
             priorIterationContext: sectionBodies.priorIterationContext,

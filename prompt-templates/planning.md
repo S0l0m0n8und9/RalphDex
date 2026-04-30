@@ -21,6 +21,8 @@ Do not implement code changes in this run. Analyse the selected task, decompose 
 
 {{structure_context}}
 
+{{doctrine_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

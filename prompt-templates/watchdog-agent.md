@@ -21,6 +21,8 @@ You are the Ralph watchdog agent. Interpret the mechanical health signals Ralph 
 
 {{structure_context}}
 
+{{doctrine_context}}
+
 ## Ralph Runtime Context
 {{runtime_context}}
 

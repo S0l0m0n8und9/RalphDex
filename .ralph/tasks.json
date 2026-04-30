@@ -5026,11 +5026,11 @@
     {
       "id": "T-DOCTRINE-CONTEXT-002",
       "title": "Inject compact read-only doctrine context into generated prompts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T-DOCTRINE-CONTEXT-001"
       ],
-      "notes": "This is read-only injection only. Do not add semantic matching yet; use deterministic priority and budget rules.",
+      "notes": "Injected compact read-only doctrine context into all 11 prompt templates; added doctrineContext to PromptSectionName, all 12 CODEX budget policy optionalSectionOrder arrays, PromptGenerationInput, and evidence inputs; implemented buildDoctrineContextSection with priority ordering; wired collectDoctrineContext into both prepareIterationContext and rerenderPreparedPromptContext; added 3 tests coveri",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -5057,7 +5057,8 @@
         "src/ralph/types.ts",
         "test/promptBuilder.test.ts",
         "test/iterationPreparation.test.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T-DOCTRINE-CONTEXT-003",
@@ -5126,5 +5127,5 @@
       ]
     }
   ],
-  "mutationCount": 229
+  "mutationCount": 230
 }

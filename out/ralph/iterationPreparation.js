@@ -66,9 +66,10 @@ const EMPTY_GIT_STATUS = {
 async function rerenderPreparedPromptContext(input) {
     const { prepared } = input;
     const artifactPaths = (0, artifactStore_1.resolveIterationArtifactPaths)(prepared.paths.artifactDir, prepared.iteration);
-    const [taskPlanArtifact, structureDefinition] = await Promise.all([
+    const [taskPlanArtifact, structureDefinition, doctrineContext] = await Promise.all([
         prepared.selectedTask ? (0, planningPass_1.readTaskPlan)(prepared.paths.artifactDir, prepared.selectedTask.id) : Promise.resolve(null),
-        readStructureDefinition(path.join(prepared.rootPath, prepared.config.structureDefinitionPath))
+        readStructureDefinition(path.join(prepared.rootPath, prepared.config.structureDefinitionPath)),
+        (0, doctrine_1.collectDoctrineContext)(prepared.rootPath)
     ]);
     const promptRender = await (0, promptBuilder_1.buildPrompt)({
         kind: prepared.promptKind,
@@ -92,6 +93,7 @@ async function rerenderPreparedPromptContext(input) {
         selectedTaskClaim: prepared.selectedTaskClaim,
         taskPlanArtifact,
         structureDefinition,
+        doctrineContext,
         config: prepared.config
     });
     const prompt = promptRender.prompt;
@@ -445,9 +447,11 @@ async function prepareIterationContext(input) {
     // the implementer prompt regardless of whether planningPass.enabled is true so
     // that plans produced by dedicated planner agents are always surfaced.
     // Read structure.json when available — informs the agent of the defined directory layout.
-    const [taskPlanArtifact, structureDefinition] = await Promise.all([
+    // Read doctrine context when available — injects compact project doctrine into the prompt.
+    const [taskPlanArtifact, structureDefinition, doctrineContext] = await Promise.all([
         selectedTask ? (0, planningPass_1.readTaskPlan)(snapshot.paths.artifactDir, selectedTask.id) : Promise.resolve(null),
-        readStructureDefinition(structureDefinitionGeneration.path)
+        readStructureDefinition(structureDefinitionGeneration.path),
+        (0, doctrine_1.collectDoctrineContext)(rootPath)
     ]);
     const promptRender = await (0, promptBuilder_1.buildPrompt)({
         kind: promptKind,
@@ -471,6 +475,7 @@ async function prepareIterationContext(input) {
         selectedTaskClaim,
         taskPlanArtifact,
         structureDefinition,
+        doctrineContext,
         config
     });
     const prompt = promptRender.prompt;

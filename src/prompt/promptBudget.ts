@@ -10,6 +10,7 @@ export type PromptSectionName =
   | 'taskPlanContext'
   | 'taskContext'
   | 'progressContext'
+  | 'doctrineContext'
   | 'priorIterationContext'
   | 'operatingRules'
   | 'executionContract'
@@ -55,7 +56,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'expanded',
     runtimeDetail: 'standard',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['priorIterationContext']
+    optionalSectionOrder: ['priorIterationContext', 'doctrineContext']
   },
   'bootstrap:ideHandoff': {
     name: 'bootstrap:ideHandoff',
@@ -69,7 +70,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'standard',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']
   },
   'iteration:cliExec': {
     name: 'iteration:cliExec',
@@ -83,7 +84,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']
   },
   'iteration:ideHandoff': {
     name: 'iteration:ideHandoff',
@@ -97,7 +98,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext', 'doctrineContext']
   },
   'replenish-backlog:cliExec': {
     name: 'replenish-backlog:cliExec',
@@ -111,7 +112,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'expanded',
     runtimeDetail: 'standard',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['priorIterationContext']
+    optionalSectionOrder: ['priorIterationContext', 'doctrineContext']
   },
   'replenish-backlog:ideHandoff': {
     name: 'replenish-backlog:ideHandoff',
@@ -125,7 +126,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'expanded',
     runtimeDetail: 'standard',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['priorIterationContext']
+    optionalSectionOrder: ['priorIterationContext', 'doctrineContext']
   },
   'fix-failure:cliExec': {
     name: 'fix-failure:cliExec',
@@ -139,7 +140,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'standard',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']
   },
   'fix-failure:ideHandoff': {
     name: 'fix-failure:ideHandoff',
@@ -153,7 +154,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']
   },
   'continue-progress:cliExec': {
     name: 'continue-progress:cliExec',
@@ -167,7 +168,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'priorIterationContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext', 'priorIterationContext']
   },
   'continue-progress:ideHandoff': {
     name: 'continue-progress:ideHandoff',
@@ -181,7 +182,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'priorIterationContext', 'progressContext', 'doctrineContext']
   },
   'human-review-handoff:cliExec': {
     name: 'human-review-handoff:cliExec',
@@ -195,7 +196,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']
   },
   'human-review-handoff:ideHandoff': {
     name: 'human-review-handoff:ideHandoff',
@@ -209,7 +210,7 @@ export const CODEX_PROMPT_BUDGET_POLICIES: Record<PromptBudgetPolicyKey, PromptB
     repoDetail: 'minimal',
     runtimeDetail: 'minimal',
     requiredSections: REQUIRED_PROMPT_SECTIONS,
-    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext']
+    optionalSectionOrder: ['runtimeContext', 'repoContext', 'progressContext', 'doctrineContext']
   }
 };
 

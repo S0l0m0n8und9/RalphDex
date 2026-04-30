@@ -33,6 +33,8 @@
 
 {{task_plan_context}}
 
+{{doctrine_context}}
+
 ## Task Focus
 {{task_context}}
 
