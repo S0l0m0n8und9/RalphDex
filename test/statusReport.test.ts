@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import test from 'node:test';
+import type { RalphPaths } from '../src/ralph/pathResolver';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
-import { buildStatusReport, EffectiveTierInfo, RalphStatusSnapshot } from '../src/ralph/statusReport';
+import { buildStatusReport, EffectiveTierInfo, RalphStatusSnapshot, resolveLatestStatusArtifacts } from '../src/ralph/statusReport';
 import { RalphTaskClaimGraphInspection } from '../src/ralph/taskFile';
 import { RalphHandoff, RalphPromptEvidence } from '../src/ralph/types';
 
@@ -1404,4 +1408,30 @@ test('buildStatusReport omits Re-planning section when replanArtifacts is empty'
   const report = buildStatusReport(snapshot({ replanArtifacts: [] }));
 
   assert.doesNotMatch(report, /## Re-planning/);
+});
+
+test('resolveLatestStatusArtifacts returns latestDoctrineProposalMdPath when both proposal files exist', async () => {
+  const artifactDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-status-doctrine-md-'));
+  const paths = { artifactDir } as unknown as RalphPaths;
+  const mdPath = path.join(artifactDir, 'latest-doctrine-proposal.md');
+  const jsonPath = path.join(artifactDir, 'latest-doctrine-proposal.json');
+  await fs.writeFile(mdPath, '# Doctrine Update Proposal\n', 'utf8');
+  await fs.writeFile(jsonPath, '{"kind":"doctrineUpdateProposal"}', 'utf8');
+
+  const latestArtifacts = await resolveLatestStatusArtifacts(paths);
+
+  assert.equal(latestArtifacts.latestDoctrineProposalMdPath, mdPath, 'must return .md path when file exists');
+  assert.equal(latestArtifacts.latestDoctrineProposalPath, jsonPath, 'must return .json path when file exists');
+});
+
+test('resolveLatestStatusArtifacts returns null latestDoctrineProposalMdPath when only JSON proposal exists', async () => {
+  const artifactDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-status-doctrine-json-'));
+  const paths = { artifactDir } as unknown as RalphPaths;
+  const jsonPath = path.join(artifactDir, 'latest-doctrine-proposal.json');
+  await fs.writeFile(jsonPath, '{"kind":"doctrineUpdateProposal"}', 'utf8');
+
+  const latestArtifacts = await resolveLatestStatusArtifacts(paths);
+
+  assert.equal(latestArtifacts.latestDoctrineProposalMdPath, null, 'must return null when .md does not exist');
+  assert.equal(latestArtifacts.latestDoctrineProposalPath, jsonPath, 'must return .json path as fallback');
 });

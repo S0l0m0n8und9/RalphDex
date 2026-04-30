@@ -2549,6 +2549,20 @@ test('writeDoctrineProposalArtifact Markdown includes risk, protected flag, and 
   assert.ok(canonicalMd.includes('src/ralph/taskNormalization.ts'), 'Markdown must include evidence');
 });
 
+test('doctrine-proposals directory and latest doctrine pointer files are absent when writeDoctrineProposalArtifact is not called', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+  const doctrineProposalDir = path.join(artifactRootDir, 'doctrine-proposals');
+
+  const dirExists = await fs.access(doctrineProposalDir).then(() => true).catch(() => false);
+  const latestJsonExists = await fs.access(latestPaths.latestDoctrineProposalPath).then(() => true).catch(() => false);
+  const latestMdExists = await fs.access(latestPaths.latestDoctrineProposalMdPath).then(() => true).catch(() => false);
+
+  assert.ok(!dirExists, 'doctrine-proposals/ must not exist when no proposal was written');
+  assert.ok(!latestJsonExists, 'latest-doctrine-proposal.json must not exist when no proposal was written');
+  assert.ok(!latestMdExists, 'latest-doctrine-proposal.md must not exist when no proposal was written');
+});
+
 test('writeDoctrineProposalArtifact does not write to .ralph/doctrine/', async () => {
   const artifactRootDir = await makeArtifactRoot();
   const iteration = 14;
