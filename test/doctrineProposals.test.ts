@@ -3,8 +3,10 @@ import test from 'node:test';
 import {
   createDoctrineProposalArtifact,
   parseDoctrineUpdatesFromCompletionReport,
-  renderDoctrineProposalMarkdown
+  renderDoctrineProposalMarkdown,
+  renderDoctrineProposalReviewMarkdown
 } from '../src/ralph/doctrineProposals';
+import type { DoctrineProposalReviewArtifact } from '../src/ralph/doctrineProposals';
 
 test('parseDoctrineUpdatesFromCompletionReport classifies protected and low-risk doctrine updates deterministically', () => {
   const parsed = parseDoctrineUpdatesFromCompletionReport([
@@ -173,4 +175,115 @@ test('parseDoctrineUpdatesFromCompletionReport with absent doctrineUpdates produ
 
   assert.equal(parsed.updates.length, 0);
   assert.equal(parsed.warnings.length, 0);
+});
+
+test('createDoctrineProposalArtifact creates artifact with proposed status by default', () => {
+  const artifact = createDoctrineProposalArtifact({
+    provenanceId: 'run-i003-cli-20260430T000300Z',
+    iteration: 3,
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    source: 'completionReport',
+    updates: parseDoctrineUpdatesFromCompletionReport([{
+      targetFile: '.ralph/doctrine/workflows.md',
+      operation: 'append',
+      section: null,
+      proposedText: 'Workflow note.',
+      rationale: 'Test.',
+      evidence: ['src/foo.ts']
+    }]).updates
+  });
+
+  assert.equal(artifact.status, 'proposed');
+  assert.equal(artifact.reviewedAt, undefined);
+  assert.equal(artifact.reviewAction, undefined);
+  assert.equal(artifact.appliedUpdateIndexes, undefined);
+  assert.equal(artifact.rejectedUpdateIndexes, undefined);
+});
+
+test('renderDoctrineProposalReviewMarkdown includes all required review fields for applied action', () => {
+  const review: DoctrineProposalReviewArtifact = {
+    schemaVersion: 1,
+    kind: 'doctrineProposalReview',
+    proposalId: 'doctrine-proposal-run-i001-cli-20260430T000000Z',
+    action: 'applied',
+    reviewedAt: '2026-04-30T01:00:00.000Z',
+    reviewedBy: 'operator',
+    risk: 'low',
+    selectedTaskId: 'T001',
+    provenanceId: 'run-i001-cli-20260430T000000Z',
+    appliedUpdateIndexes: [0],
+    rejectedUpdateIndexes: [],
+    filesChanged: ['.ralph/doctrine/workflows.md'],
+    warnings: [],
+    errors: [],
+    reviewNotes: null
+  };
+
+  const md = renderDoctrineProposalReviewMarkdown(review);
+
+  assert.ok(md.includes('# Doctrine Proposal Review'), 'must have top-level heading');
+  assert.ok(md.includes(review.proposalId), 'must include proposal id');
+  assert.ok(md.includes('**Action**: Applied'), 'must include action label');
+  assert.ok(md.includes('2026-04-30T01:00:00.000Z'), 'must include reviewedAt');
+  assert.ok(md.includes('**Reviewed by**: operator'), 'must include reviewedBy');
+  assert.ok(md.includes('**Risk**: low'), 'must include risk');
+  assert.ok(md.includes('.ralph/doctrine/workflows.md'), 'must include files changed');
+  assert.ok(md.includes('**Applied updates**: 1'), 'must include applied update numbers');
+  assert.ok(md.includes('**Rejected updates**: none'), 'must indicate no rejected updates');
+  assert.ok(!md.includes('## Warnings'), 'must not include empty warnings section');
+  assert.ok(!md.includes('## Errors'), 'must not include empty errors section');
+});
+
+test('renderDoctrineProposalReviewMarkdown includes rejected action label and review notes', () => {
+  const review: DoctrineProposalReviewArtifact = {
+    schemaVersion: 1,
+    kind: 'doctrineProposalReview',
+    proposalId: 'doctrine-proposal-run-i002-cli-20260430T000200Z',
+    action: 'rejected',
+    reviewedAt: '2026-04-30T02:00:00.000Z',
+    reviewedBy: 'operator',
+    risk: 'high',
+    selectedTaskId: null,
+    provenanceId: 'run-i002-cli-20260430T000200Z',
+    appliedUpdateIndexes: [],
+    rejectedUpdateIndexes: [0, 1],
+    filesChanged: [],
+    warnings: [],
+    errors: [],
+    reviewNotes: 'Contradicts agreed invariants.'
+  };
+
+  const md = renderDoctrineProposalReviewMarkdown(review);
+
+  assert.ok(md.includes('**Action**: Rejected'), 'must show Rejected label');
+  assert.ok(md.includes('**Rejected updates**: 1, 2'), 'must list rejected update numbers (1-indexed)');
+  assert.ok(md.includes('Contradicts agreed invariants.'), 'must include review notes');
+  assert.ok(md.includes('**Files changed**: none'), 'must show no files changed on rejection');
+});
+
+test('renderDoctrineProposalReviewMarkdown includes partiallyApplied label and warning/error sections', () => {
+  const review: DoctrineProposalReviewArtifact = {
+    schemaVersion: 1,
+    kind: 'doctrineProposalReview',
+    proposalId: 'doctrine-proposal-run-i003-cli-20260430T000300Z',
+    action: 'partiallyApplied',
+    reviewedAt: '2026-04-30T03:00:00.000Z',
+    reviewedBy: 'operator',
+    risk: 'medium',
+    selectedTaskId: 'T003',
+    provenanceId: 'run-i003-cli-20260430T000300Z',
+    appliedUpdateIndexes: [0],
+    rejectedUpdateIndexes: [1],
+    filesChanged: ['.ralph/doctrine/decisions.md'],
+    warnings: ['Update 2: text already present.'],
+    errors: [],
+    reviewNotes: null
+  };
+
+  const md = renderDoctrineProposalReviewMarkdown(review);
+
+  assert.ok(md.includes('**Action**: Partially Applied'), 'must show Partially Applied label');
+  assert.ok(md.includes('## Warnings'), 'must include warnings section');
+  assert.ok(md.includes('Update 2: text already present.'), 'must include warning text');
 });

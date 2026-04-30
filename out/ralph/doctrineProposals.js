@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseDoctrineUpdatesFromCompletionReport = parseDoctrineUpdatesFromCompletionReport;
 exports.renderDoctrineProposalMarkdown = renderDoctrineProposalMarkdown;
 exports.createDoctrineProposalArtifact = createDoctrineProposalArtifact;
+exports.renderDoctrineProposalReviewMarkdown = renderDoctrineProposalReviewMarkdown;
 const path = __importStar(require("path"));
 const doctrine_1 = require("./doctrine");
 const ALLOWED_OPERATIONS = new Set(['append', 'replaceSection', 'addSectionItem']);
@@ -283,5 +284,43 @@ function createDoctrineProposalArtifact(input) {
         updates: input.updates,
         warnings: input.warnings ?? []
     };
+}
+function renderDoctrineProposalReviewMarkdown(review) {
+    const actionLabel = review.action === 'applied'
+        ? 'Applied'
+        : review.action === 'rejected'
+            ? 'Rejected'
+            : 'Partially Applied';
+    const lines = [
+        '# Doctrine Proposal Review',
+        '',
+        `- **Proposal ID**: ${review.proposalId}`,
+        `- **Action**: ${actionLabel}`,
+        `- **Reviewed at**: ${review.reviewedAt}`,
+        `- **Reviewed by**: ${review.reviewedBy}`,
+        `- **Risk**: ${review.risk}`,
+        `- **Provenance ID**: ${review.provenanceId ?? 'none'}`,
+        `- **Selected task**: ${review.selectedTaskId ?? 'none'}`,
+        `- **Applied updates**: ${review.appliedUpdateIndexes.length > 0 ? review.appliedUpdateIndexes.map((i) => i + 1).join(', ') : 'none'}`,
+        `- **Rejected updates**: ${review.rejectedUpdateIndexes.length > 0 ? review.rejectedUpdateIndexes.map((i) => i + 1).join(', ') : 'none'}`,
+        `- **Files changed**: ${review.filesChanged.length > 0 ? review.filesChanged.join(', ') : 'none'}`,
+        `- **Review notes**: ${review.reviewNotes ?? 'none'}`,
+        ''
+    ];
+    if (review.warnings.length > 0) {
+        lines.push('## Warnings', '');
+        for (const warning of review.warnings) {
+            lines.push(`- ${warning}`);
+        }
+        lines.push('');
+    }
+    if (review.errors.length > 0) {
+        lines.push('## Errors', '');
+        for (const error of review.errors) {
+            lines.push(`- ${error}`);
+        }
+        lines.push('');
+    }
+    return lines.join('\n');
 }
 //# sourceMappingURL=doctrineProposals.js.map

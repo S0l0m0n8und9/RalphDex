@@ -42,6 +42,9 @@ exports.resolveIterationArtifactPaths = resolveIterationArtifactPaths;
 exports.resolveProvenanceBundlePaths = resolveProvenanceBundlePaths;
 exports.resolveLatestArtifactPaths = resolveLatestArtifactPaths;
 exports.resolveDoctrineProposalCanonicalPaths = resolveDoctrineProposalCanonicalPaths;
+exports.resolveDoctrineProposalReviewPaths = resolveDoctrineProposalReviewPaths;
+exports.writeDoctrineProposalReviewArtifact = writeDoctrineProposalReviewArtifact;
+exports.writeUpdatedDoctrineProposalArtifact = writeUpdatedDoctrineProposalArtifact;
 exports.contextEnvelopePath = contextEnvelopePath;
 exports.planGraphPath = planGraphPath;
 exports.replanDecisionPath = replanDecisionPath;
@@ -230,6 +233,43 @@ function resolveDoctrineProposalCanonicalPaths(artifactRootDir, proposalId) {
         jsonPath: path.join(directory, `${proposalId}.json`),
         mdPath: path.join(directory, `${proposalId}.md`)
     };
+}
+function resolveDoctrineProposalReviewPaths(artifactRootDir, proposalId) {
+    if (!proposalId || proposalId.trim() === '') {
+        throw new Error('proposalId must not be empty');
+    }
+    if (proposalId.includes('/') || proposalId.includes('\\') || proposalId.includes('..')) {
+        throw new Error(`proposalId contains unsafe path characters: ${proposalId}`);
+    }
+    const directory = path.join(artifactRootDir, 'doctrine-proposals');
+    return {
+        directory,
+        reviewJsonPath: path.join(directory, `${proposalId}.review.json`),
+        reviewMdPath: path.join(directory, `${proposalId}.review.md`)
+    };
+}
+async function writeDoctrineProposalReviewArtifact(input) {
+    const reviewPaths = resolveDoctrineProposalReviewPaths(input.artifactRootDir, input.review.proposalId);
+    const markdown = (0, doctrineProposals_1.renderDoctrineProposalReviewMarkdown)(input.review);
+    await fs.mkdir(reviewPaths.directory, { recursive: true });
+    await Promise.all([
+        fs.writeFile(reviewPaths.reviewJsonPath, (0, integrity_1.stableJson)(input.review), 'utf8'),
+        fs.writeFile(reviewPaths.reviewMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+    ]);
+    return { reviewJsonPath: reviewPaths.reviewJsonPath, reviewMdPath: reviewPaths.reviewMdPath };
+}
+async function writeUpdatedDoctrineProposalArtifact(input) {
+    const canonicalPaths = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.proposal.proposalId);
+    const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+    const markdown = (0, doctrineProposals_1.renderDoctrineProposalMarkdown)(input.proposal);
+    const json = (0, integrity_1.stableJson)(input.proposal);
+    await fs.mkdir(canonicalPaths.directory, { recursive: true });
+    await Promise.all([
+        fs.writeFile(canonicalPaths.jsonPath, json, 'utf8'),
+        fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
+        fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
+        fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+    ]);
 }
 /**
  * Returns the path where a context envelope for `iterationId` should be written.

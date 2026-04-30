@@ -1,7 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { DoctrineProposalArtifact } from './doctrineProposals';
-import { renderDoctrineProposalMarkdown } from './doctrineProposals';
+import type { DoctrineProposalArtifact, DoctrineProposalReviewArtifact } from './doctrineProposals';
+import { renderDoctrineProposalMarkdown, renderDoctrineProposalReviewMarkdown } from './doctrineProposals';
 import { stableJson } from './integrity';
 import {
   resolveOrchestrationPaths as resolveSupervisorOrchestrationPaths,
@@ -103,6 +103,12 @@ export interface RalphDoctrineProposalCanonicalPaths {
   directory: string;
   jsonPath: string;
   mdPath: string;
+}
+
+export interface RalphDoctrineProposalReviewPaths {
+  directory: string;
+  reviewJsonPath: string;
+  reviewMdPath: string;
 }
 
 export interface RalphLatestArtifactRepairSummary {
@@ -326,6 +332,58 @@ export function resolveDoctrineProposalCanonicalPaths(
     jsonPath: path.join(directory, `${proposalId}.json`),
     mdPath: path.join(directory, `${proposalId}.md`)
   };
+}
+
+export function resolveDoctrineProposalReviewPaths(
+  artifactRootDir: string,
+  proposalId: string
+): RalphDoctrineProposalReviewPaths {
+  if (!proposalId || proposalId.trim() === '') {
+    throw new Error('proposalId must not be empty');
+  }
+  if (proposalId.includes('/') || proposalId.includes('\\') || proposalId.includes('..')) {
+    throw new Error(`proposalId contains unsafe path characters: ${proposalId}`);
+  }
+  const directory = path.join(artifactRootDir, 'doctrine-proposals');
+  return {
+    directory,
+    reviewJsonPath: path.join(directory, `${proposalId}.review.json`),
+    reviewMdPath: path.join(directory, `${proposalId}.review.md`)
+  };
+}
+
+export async function writeDoctrineProposalReviewArtifact(input: {
+  artifactRootDir: string;
+  review: DoctrineProposalReviewArtifact;
+}): Promise<{ reviewJsonPath: string; reviewMdPath: string }> {
+  const reviewPaths = resolveDoctrineProposalReviewPaths(input.artifactRootDir, input.review.proposalId);
+  const markdown = renderDoctrineProposalReviewMarkdown(input.review);
+
+  await fs.mkdir(reviewPaths.directory, { recursive: true });
+  await Promise.all([
+    fs.writeFile(reviewPaths.reviewJsonPath, stableJson(input.review), 'utf8'),
+    fs.writeFile(reviewPaths.reviewMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+  ]);
+
+  return { reviewJsonPath: reviewPaths.reviewJsonPath, reviewMdPath: reviewPaths.reviewMdPath };
+}
+
+export async function writeUpdatedDoctrineProposalArtifact(input: {
+  artifactRootDir: string;
+  proposal: DoctrineProposalArtifact;
+}): Promise<void> {
+  const canonicalPaths = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, input.proposal.proposalId);
+  const latestPaths = resolveLatestArtifactPaths(input.artifactRootDir);
+  const markdown = renderDoctrineProposalMarkdown(input.proposal);
+  const json = stableJson(input.proposal);
+
+  await fs.mkdir(canonicalPaths.directory, { recursive: true });
+  await Promise.all([
+    fs.writeFile(canonicalPaths.jsonPath, json, 'utf8'),
+    fs.writeFile(canonicalPaths.mdPath, `${markdown.trimEnd()}\n`, 'utf8'),
+    fs.writeFile(latestPaths.latestDoctrineProposalPath, json, 'utf8'),
+    fs.writeFile(latestPaths.latestDoctrineProposalMdPath, `${markdown.trimEnd()}\n`, 'utf8')
+  ]);
 }
 
 /**

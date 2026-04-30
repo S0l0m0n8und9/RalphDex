@@ -45,6 +45,8 @@ const cliActivity_1 = require("../services/cliActivity");
 const statusSnapshot_1 = require("./statusSnapshot");
 const pipeline_1 = require("../ralph/pipeline");
 const deadLetter_1 = require("../ralph/deadLetter");
+const artifactStore_1 = require("../ralph/artifactStore");
+const doctrineProposalApply_1 = require("../ralph/doctrineProposalApply");
 // ---------------------------------------------------------------------------
 // Small utilities duplicated from registerCommands.ts to avoid coupling
 // ---------------------------------------------------------------------------
@@ -292,6 +294,170 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
     void vscode.window.showInformationMessage(`Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`);
     return true;
 }
+function normalizeDoctrineProposalArtifact(raw) {
+    if (typeof raw !== 'object' || raw === null) {
+        return null;
+    }
+    const record = raw;
+    if (record.kind !== 'doctrineUpdateProposal' || typeof record.proposalId !== 'string') {
+        return null;
+    }
+    return raw;
+}
+async function applyLatestDoctrineProposal(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
+    const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+    if (!proposal) {
+        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        return false;
+    }
+    if (proposal.status !== 'proposed') {
+        void vscode.window.showWarningMessage(`The latest doctrine proposal "${proposal.proposalId}" has already been ${proposal.status}. No further action taken.`);
+        return false;
+    }
+    const protectedTargets = (0, doctrineProposalApply_1.detectProtectedTargets)(proposal);
+    const hasProtected = protectedTargets.length > 0;
+    const targetFiles = Array.from(new Set(proposal.updates.map((u) => u.targetFile))).join(', ');
+    const summary = [
+        `Proposal ID: ${proposal.proposalId}`,
+        `Risk: ${proposal.risk}`,
+        `Updates: ${proposal.updates.length}`,
+        `Protected targets: ${hasProtected ? protectedTargets.join(', ') : 'none'}`,
+        `Target files: ${targetFiles}`
+    ].join('\n');
+    if (hasProtected) {
+        const protectedConfirm = await vscode.window.showWarningMessage(`This doctrine proposal targets protected doctrine files (${protectedTargets.join(', ')}). These files govern invariants, boundaries, or agent rules and require extra care.\n\n${summary}`, { modal: true }, 'Apply Protected Doctrine Proposal');
+        if (protectedConfirm !== 'Apply Protected Doctrine Proposal') {
+            return false;
+        }
+    }
+    else {
+        const confirmed = await vscode.window.showWarningMessage(`Apply doctrine proposal to ${proposal.updates.length} update(s)?\n\n${summary}`, { modal: true }, 'Apply Proposal');
+        if (confirmed !== 'Apply Proposal') {
+            return false;
+        }
+    }
+    const applicationResult = await (0, doctrineProposalApply_1.applyDoctrineProposal)({
+        proposal,
+        rootPath: workspaceFolder.uri.fsPath
+    });
+    const reviewedAt = new Date().toISOString();
+    const review = {
+        schemaVersion: 1,
+        kind: 'doctrineProposalReview',
+        proposalId: proposal.proposalId,
+        action: applicationResult.action,
+        reviewedAt,
+        reviewedBy: 'operator',
+        risk: proposal.risk,
+        selectedTaskId: proposal.selectedTaskId,
+        provenanceId: proposal.provenanceId,
+        appliedUpdateIndexes: applicationResult.appliedUpdateIndexes,
+        rejectedUpdateIndexes: applicationResult.rejectedUpdateIndexes,
+        filesChanged: applicationResult.filesChanged,
+        warnings: applicationResult.warnings,
+        errors: applicationResult.errors,
+        reviewNotes: null
+    };
+    const updatedProposal = {
+        ...proposal,
+        status: applicationResult.action,
+        reviewedAt,
+        reviewedBy: 'operator',
+        reviewAction: applicationResult.action,
+        appliedUpdateIndexes: applicationResult.appliedUpdateIndexes,
+        rejectedUpdateIndexes: applicationResult.rejectedUpdateIndexes,
+        applicationWarnings: applicationResult.warnings
+    };
+    const [reviewPaths] = await Promise.all([
+        (0, artifactStore_1.writeDoctrineProposalReviewArtifact)({ artifactRootDir: inspection.paths.artifactDir, review }),
+        (0, artifactStore_1.writeUpdatedDoctrineProposalArtifact)({ artifactRootDir: inspection.paths.artifactDir, proposal: updatedProposal })
+    ]);
+    logger.info('Applied doctrine proposal.', {
+        proposalId: proposal.proposalId,
+        action: applicationResult.action,
+        appliedCount: applicationResult.appliedUpdateIndexes.length,
+        rejectedCount: applicationResult.rejectedUpdateIndexes.length,
+        filesChanged: applicationResult.filesChanged,
+        reviewJsonPath: reviewPaths.reviewJsonPath
+    });
+    await openTextFile(reviewPaths.reviewMdPath);
+    const actionLabel = applicationResult.action === 'applied'
+        ? `Applied all ${applicationResult.appliedUpdateIndexes.length} update(s).`
+        : applicationResult.action === 'partiallyApplied'
+            ? `Applied ${applicationResult.appliedUpdateIndexes.length} update(s); ${applicationResult.rejectedUpdateIndexes.length} failed.`
+            : 'No updates were applied.';
+    void vscode.window.showInformationMessage(`Doctrine proposal ${proposal.proposalId}: ${actionLabel}`);
+    return true;
+}
+async function rejectLatestDoctrineProposal(workspaceFolder, stateManager, logger) {
+    const config = (0, readConfig_1.readConfig)(workspaceFolder);
+    const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
+    await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
+    const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
+    const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
+    const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+    if (!proposal) {
+        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        return false;
+    }
+    if (proposal.status !== 'proposed') {
+        void vscode.window.showWarningMessage(`The latest doctrine proposal "${proposal.proposalId}" has already been ${proposal.status}. No further action taken.`);
+        return false;
+    }
+    const confirmed = await vscode.window.showWarningMessage(`Reject doctrine proposal "${proposal.proposalId}"? This will mark the proposal as rejected. No doctrine files will be modified.`, { modal: true }, 'Reject Proposal');
+    if (confirmed !== 'Reject Proposal') {
+        return false;
+    }
+    const reviewNotes = (await vscode.window.showInputBox({
+        prompt: 'Optional: enter a brief rejection note (or leave blank)',
+        placeHolder: 'e.g. Proposal contradicts agreed invariants'
+    }))?.trim() ?? null;
+    const reviewedAt = new Date().toISOString();
+    const review = {
+        schemaVersion: 1,
+        kind: 'doctrineProposalReview',
+        proposalId: proposal.proposalId,
+        action: 'rejected',
+        reviewedAt,
+        reviewedBy: 'operator',
+        risk: proposal.risk,
+        selectedTaskId: proposal.selectedTaskId,
+        provenanceId: proposal.provenanceId,
+        appliedUpdateIndexes: [],
+        rejectedUpdateIndexes: proposal.updates.map((_, i) => i),
+        filesChanged: [],
+        warnings: [],
+        errors: [],
+        reviewNotes: reviewNotes || null
+    };
+    const updatedProposal = {
+        ...proposal,
+        status: 'rejected',
+        reviewedAt,
+        reviewedBy: 'operator',
+        reviewAction: 'rejected',
+        appliedUpdateIndexes: [],
+        rejectedUpdateIndexes: proposal.updates.map((_, i) => i),
+        reviewNotes: reviewNotes || null
+    };
+    const [reviewPaths] = await Promise.all([
+        (0, artifactStore_1.writeDoctrineProposalReviewArtifact)({ artifactRootDir: inspection.paths.artifactDir, review }),
+        (0, artifactStore_1.writeUpdatedDoctrineProposalArtifact)({ artifactRootDir: inspection.paths.artifactDir, proposal: updatedProposal })
+    ]);
+    logger.info('Rejected doctrine proposal.', {
+        proposalId: proposal.proposalId,
+        reviewJsonPath: reviewPaths.reviewJsonPath,
+        reviewNotes
+    });
+    await openTextFile(reviewPaths.reviewMdPath);
+    void vscode.window.showInformationMessage(`Doctrine proposal "${proposal.proposalId}" rejected. No doctrine files were modified.`);
+    return true;
+}
 // ---------------------------------------------------------------------------
 // Public registration entry point
 // ---------------------------------------------------------------------------
@@ -388,6 +554,24 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             progress.report({ message: 'Resolving latest Ralph doctrine proposal artifact' });
             const workspaceFolder = await withWorkspaceFolder();
             await openLatestDoctrineProposal(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.applyLatestDoctrineProposal',
+        label: 'Ralphdex: Apply Latest Doctrine Proposal',
+        handler: async (progress) => {
+            progress.report({ message: 'Applying the latest doctrine proposal' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await applyLatestDoctrineProposal(workspaceFolder, stateManager, logger);
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.rejectLatestDoctrineProposal',
+        label: 'Ralphdex: Reject Latest Doctrine Proposal',
+        handler: async (progress) => {
+            progress.report({ message: 'Rejecting the latest doctrine proposal' });
+            const workspaceFolder = await withWorkspaceFolder();
+            await rejectLatestDoctrineProposal(workspaceFolder, stateManager, logger);
         }
     });
     registerCommand(context, logger, {

@@ -51,7 +51,19 @@ The single-agent CLI iteration/loop runner still exists as a first-class command
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status and doctrine updates through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json`, `.ralph/progress.md`, or doctrine proposal artifacts on that path.
 
-The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. This tranche allows structured doctrine update proposals to be persisted as reviewable artifacts, but approval flows, auto-apply behavior, and autonomous doctrine rewriting remain out of scope.
+The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. Structured doctrine update proposals are persisted as reviewable artifacts under `.ralph/artifacts/doctrine-proposals/`. Doctrine files may only be changed by an explicit operator command (`Ralphdex: Apply Latest Doctrine Proposal`). No provider completion report, normal iteration, loop, or prompt preparation path may directly apply doctrine changes. Auto-apply behavior and autonomous doctrine rewriting are explicitly out of scope.
+
+**Doctrine proposal lifecycle:**
+
+1. Provider output may include a `doctrineUpdates` block in its completion report JSON.
+2. RalphDex validates, classifies (risk, protected target), and persists the proposal as a reviewable artifact — no doctrine files are written.
+3. The operator inspects the proposal via `Ralphdex: Open Latest Doctrine Proposal`.
+4. The operator explicitly applies or rejects the proposal via `Ralphdex: Apply Latest Doctrine Proposal` or `Ralphdex: Reject Latest Doctrine Proposal`.
+5. Apply shows a modal confirmation summary. Updates targeting protected doctrine require the extra label `Apply Protected Doctrine Proposal`.
+6. Reject asks for optional review notes and marks the proposal rejected without touching any doctrine file.
+7. Both commands write a review artifact (`.review.json` + `.review.md`) and update the canonical proposal JSON/Markdown with the new status.
+
+Proposal status lifecycle: `proposed` → `applied` | `rejected` | `partiallyApplied`.
 
 Autonomy mode does not change the principal-agent model. The operator remains the principal, and `autonomyMode` only changes a bounded set of loop defaults. Blocking preflight diagnostics and explicit task/provenance contracts remain enforced; hard stops and human-review behavior follow the configured gates (`stopOnHumanReviewNeeded`, `pipelineHumanGates`, and operator presets).
 

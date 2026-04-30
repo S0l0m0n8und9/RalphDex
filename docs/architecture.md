@@ -26,7 +26,8 @@ Related docs:
 - `src/ralph/taskFile.ts`: explicit task-schema parsing, normalization, deterministic selection, graph diagnostics, and task-claim file coordination
 - `src/ralph/preflight.ts`: categorized readiness diagnostics before CLI execution
 - `src/ralph/doctrine.ts`: deterministic `.ralph/doctrine/` scaffold creation and lightweight structural validation
-- `src/ralph/doctrineProposals.ts`: doctrine-update proposal validation, risk classification, and artifact shaping without mutating doctrine files
+- `src/ralph/doctrineProposals.ts`: doctrine-update proposal validation, risk classification, artifact shaping, and review artifact types — does not mutate doctrine files
+- `src/ralph/doctrineProposalApply.ts`: deterministic doctrine Markdown mutation for apply operations (`append`, `addSectionItem`, `replaceSection`) — called only from explicit operator commands, never from the iteration loop
 - `src/ralph/iterationEngine.ts`: thin Ralph loop orchestration and phase sequencing
 - `src/ralph/iteration/`: single-responsibility iteration services (`IterationExecutor`, `VerificationRunner`, `OutcomeClassifier`, `RemediationCoordinator`, `ScmCoordinator`, `ArtifactPersistenceService`, `LoopDecisionService`)
 - `src/ralph/cliOutputFormatter.ts`: claude stream-json event parsing and log-label formatting

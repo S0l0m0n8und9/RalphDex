@@ -9,14 +9,18 @@ import {
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
   resolveDoctrineProposalCanonicalPaths,
+  resolveDoctrineProposalReviewPaths,
   resolveLatestArtifactPaths,
   resolveIterationArtifactPaths,
   resolveProvenanceBundlePaths,
   writeDoctrineProposalArtifact,
+  writeDoctrineProposalReviewArtifact,
+  writeUpdatedDoctrineProposalArtifact,
   writeIterationArtifacts,
   writeProvenanceBundle,
   writeWatchdogDiagnosticArtifact
 } from '../src/ralph/artifactStore';
+import type { DoctrineProposalReviewArtifact } from '../src/ralph/doctrineProposals';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { createDoctrineProposalArtifact, parseDoctrineUpdatesFromCompletionReport } from '../src/ralph/doctrineProposals';
 import type {
@@ -2783,4 +2787,157 @@ test('resolveDoctrineProposalCanonicalPaths accepts normal generated proposal ID
     canonicalPaths.mdPath.endsWith('doctrine-proposal-run-i001-cli-20260430T000000Z.md'),
     'Markdown path must end with proposalId.md'
   );
+});
+
+test('resolveDoctrineProposalReviewPaths throws for empty proposal ID', () => {
+  assert.throws(
+    () => resolveDoctrineProposalReviewPaths('/tmp/artifacts', ''),
+    /empty|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalReviewPaths throws for proposal IDs containing path separators', () => {
+  assert.throws(
+    () => resolveDoctrineProposalReviewPaths('/tmp/artifacts', 'foo/bar'),
+    /unsafe|path.*separator|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalReviewPaths throws for .. proposal ID', () => {
+  assert.throws(
+    () => resolveDoctrineProposalReviewPaths('/tmp/artifacts', '..'),
+    /unsafe|empty|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalReviewPaths returns .review.json and .review.md paths for valid ID', () => {
+  const proposalId = 'doctrine-proposal-run-i001-cli-20260430T000000Z';
+  const reviewPaths = resolveDoctrineProposalReviewPaths('/tmp/artifacts', proposalId);
+
+  assert.ok(reviewPaths.reviewJsonPath.endsWith(`${proposalId}.review.json`), 'review JSON path must use .review.json suffix');
+  assert.ok(reviewPaths.reviewMdPath.endsWith(`${proposalId}.review.md`), 'review Markdown path must use .review.md suffix');
+  assert.ok(reviewPaths.directory.includes('doctrine-proposals'), 'review paths must live in doctrine-proposals directory');
+});
+
+test('writeDoctrineProposalReviewArtifact persists review JSON and Markdown under doctrine-proposals/', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const proposalId = 'doctrine-proposal-run-i017-cli-20260430T001700Z';
+
+  const review: DoctrineProposalReviewArtifact = {
+    schemaVersion: 1,
+    kind: 'doctrineProposalReview',
+    proposalId,
+    action: 'applied',
+    reviewedAt: '2026-04-30T00:17:00.000Z',
+    reviewedBy: 'operator',
+    risk: 'low',
+    selectedTaskId: 'T181',
+    provenanceId: 'run-i017-cli-20260430T001700Z',
+    appliedUpdateIndexes: [0],
+    rejectedUpdateIndexes: [],
+    filesChanged: ['.ralph/doctrine/workflows.md'],
+    warnings: [],
+    errors: [],
+    reviewNotes: null
+  };
+
+  const { reviewJsonPath, reviewMdPath } = await writeDoctrineProposalReviewArtifact({ artifactRootDir, review });
+
+  const expectedJsonPath = path.join(artifactRootDir, 'doctrine-proposals', `${proposalId}.review.json`);
+  const expectedMdPath = path.join(artifactRootDir, 'doctrine-proposals', `${proposalId}.review.md`);
+
+  assert.equal(reviewJsonPath, expectedJsonPath);
+  assert.equal(reviewMdPath, expectedMdPath);
+
+  const json = JSON.parse(await fs.readFile(reviewJsonPath, 'utf8')) as { kind: string; action: string };
+  assert.equal(json.kind, 'doctrineProposalReview');
+  assert.equal(json.action, 'applied');
+
+  const md = await fs.readFile(reviewMdPath, 'utf8');
+  assert.ok(md.includes('# Doctrine Proposal Review'), 'review Markdown must have heading');
+  assert.ok(md.includes(proposalId), 'review Markdown must include proposal id');
+  assert.ok(md.includes('**Action**: Applied'), 'review Markdown must include action');
+});
+
+test('writeDoctrineProposalReviewArtifact persists review JSON and Markdown for rejected proposal', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const proposalId = 'doctrine-proposal-run-i018-cli-20260430T001800Z';
+
+  const review: DoctrineProposalReviewArtifact = {
+    schemaVersion: 1,
+    kind: 'doctrineProposalReview',
+    proposalId,
+    action: 'rejected',
+    reviewedAt: '2026-04-30T00:18:00.000Z',
+    reviewedBy: 'operator',
+    risk: 'high',
+    selectedTaskId: null,
+    provenanceId: 'run-i018-cli-20260430T001800Z',
+    appliedUpdateIndexes: [],
+    rejectedUpdateIndexes: [0],
+    filesChanged: [],
+    warnings: [],
+    errors: [],
+    reviewNotes: 'Contradicts agreed boundaries.'
+  };
+
+  const { reviewJsonPath, reviewMdPath } = await writeDoctrineProposalReviewArtifact({ artifactRootDir, review });
+
+  const json = JSON.parse(await fs.readFile(reviewJsonPath, 'utf8')) as { action: string; reviewNotes: string };
+  assert.equal(json.action, 'rejected');
+  assert.equal(json.reviewNotes, 'Contradicts agreed boundaries.');
+
+  const md = await fs.readFile(reviewMdPath, 'utf8');
+  assert.ok(md.includes('**Action**: Rejected'), 'review Markdown must show Rejected');
+  assert.ok(md.includes('Contradicts agreed boundaries.'), 'review Markdown must include review notes');
+});
+
+test('writeUpdatedDoctrineProposalArtifact updates canonical JSON/Markdown and latest pointers with new status', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 19;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+
+  const proposal = createDoctrineProposalArtifact({
+    provenanceId: 'run-i019-cli-20260430T001900Z',
+    iteration,
+    selectedTaskId: 'T182',
+    selectedTaskTitle: 'Update canonical proposal',
+    source: 'completionReport',
+    createdAt: '2026-04-30T00:19:00.000Z',
+    updates: parseDoctrineUpdatesFromCompletionReport([{
+      targetFile: '.ralph/doctrine/workflows.md',
+      operation: 'append',
+      section: null,
+      proposedText: 'Update canonical test.',
+      rationale: 'Test.',
+      evidence: ['src/foo.ts']
+    }]).updates
+  });
+
+  await writeDoctrineProposalArtifact({ paths, artifactRootDir, proposal });
+
+  const updatedProposal = {
+    ...proposal,
+    status: 'applied' as const,
+    reviewedAt: '2026-04-30T01:19:00.000Z',
+    reviewedBy: 'operator' as const,
+    reviewAction: 'applied' as const,
+    appliedUpdateIndexes: [0],
+    rejectedUpdateIndexes: []
+  };
+
+  await writeUpdatedDoctrineProposalArtifact({ artifactRootDir, proposal: updatedProposal });
+
+  const canonicalJson = JSON.parse(
+    await fs.readFile(path.join(artifactRootDir, 'doctrine-proposals', `${proposal.proposalId}.json`), 'utf8')
+  ) as { status: string; reviewAction: string };
+  assert.equal(canonicalJson.status, 'applied', 'canonical JSON must reflect applied status');
+  assert.equal(canonicalJson.reviewAction, 'applied', 'canonical JSON must reflect reviewAction');
+
+  const latestJson = JSON.parse(await fs.readFile(latestPaths.latestDoctrineProposalPath, 'utf8')) as { status: string };
+  assert.equal(latestJson.status, 'applied', 'latest pointer JSON must reflect applied status');
+
+  const latestMd = await fs.readFile(latestPaths.latestDoctrineProposalMdPath, 'utf8');
+  assert.ok(latestMd.includes('**Status**: applied'), 'latest pointer Markdown must reflect applied status');
 });

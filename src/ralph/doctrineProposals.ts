@@ -8,6 +8,8 @@ import {
 export type DoctrineProposalSource = 'completionReport' | 'manual' | 'diagnostic' | 'unknown';
 export type DoctrineProposalRisk = 'low' | 'medium' | 'high';
 export type DoctrineProposalOperation = 'append' | 'replaceSection' | 'addSectionItem';
+export type DoctrineProposalStatus = 'proposed' | 'applied' | 'rejected' | 'partiallyApplied';
+export type DoctrineReviewAction = 'applied' | 'rejected' | 'partiallyApplied';
 
 export interface DoctrineProposedUpdate {
   targetFile: string;
@@ -31,11 +33,36 @@ export interface DoctrineProposalArtifact {
   selectedTaskId: string | null;
   selectedTaskTitle: string | null;
   source: DoctrineProposalSource;
-  status: 'proposed';
+  status: DoctrineProposalStatus;
   risk: DoctrineProposalRisk;
   summary: string;
   updates: DoctrineProposedUpdate[];
   warnings: string[];
+  reviewedAt?: string;
+  reviewedBy?: 'operator';
+  reviewAction?: DoctrineReviewAction;
+  appliedUpdateIndexes?: number[];
+  rejectedUpdateIndexes?: number[];
+  reviewNotes?: string | null;
+  applicationWarnings?: string[];
+}
+
+export interface DoctrineProposalReviewArtifact {
+  schemaVersion: 1;
+  kind: 'doctrineProposalReview';
+  proposalId: string;
+  action: DoctrineReviewAction;
+  reviewedAt: string;
+  reviewedBy: 'operator';
+  risk: DoctrineProposalRisk;
+  selectedTaskId: string | null;
+  provenanceId: string | null;
+  appliedUpdateIndexes: number[];
+  rejectedUpdateIndexes: number[];
+  filesChanged: string[];
+  warnings: string[];
+  errors: string[];
+  reviewNotes: string | null;
 }
 
 export interface ParsedDoctrineProposalUpdates {
@@ -368,10 +395,53 @@ export function createDoctrineProposalArtifact(input: {
     selectedTaskId: input.selectedTaskId,
     selectedTaskTitle: input.selectedTaskTitle,
     source: input.source,
-    status: 'proposed',
+    status: 'proposed' as DoctrineProposalStatus,
     risk,
     summary: summarizeProposalUpdates(input.updates),
     updates: input.updates,
     warnings: input.warnings ?? []
   };
+}
+
+export function renderDoctrineProposalReviewMarkdown(review: DoctrineProposalReviewArtifact): string {
+  const actionLabel = review.action === 'applied'
+    ? 'Applied'
+    : review.action === 'rejected'
+      ? 'Rejected'
+      : 'Partially Applied';
+
+  const lines: string[] = [
+    '# Doctrine Proposal Review',
+    '',
+    `- **Proposal ID**: ${review.proposalId}`,
+    `- **Action**: ${actionLabel}`,
+    `- **Reviewed at**: ${review.reviewedAt}`,
+    `- **Reviewed by**: ${review.reviewedBy}`,
+    `- **Risk**: ${review.risk}`,
+    `- **Provenance ID**: ${review.provenanceId ?? 'none'}`,
+    `- **Selected task**: ${review.selectedTaskId ?? 'none'}`,
+    `- **Applied updates**: ${review.appliedUpdateIndexes.length > 0 ? review.appliedUpdateIndexes.map((i) => i + 1).join(', ') : 'none'}`,
+    `- **Rejected updates**: ${review.rejectedUpdateIndexes.length > 0 ? review.rejectedUpdateIndexes.map((i) => i + 1).join(', ') : 'none'}`,
+    `- **Files changed**: ${review.filesChanged.length > 0 ? review.filesChanged.join(', ') : 'none'}`,
+    `- **Review notes**: ${review.reviewNotes ?? 'none'}`,
+    ''
+  ];
+
+  if (review.warnings.length > 0) {
+    lines.push('## Warnings', '');
+    for (const warning of review.warnings) {
+      lines.push(`- ${warning}`);
+    }
+    lines.push('');
+  }
+
+  if (review.errors.length > 0) {
+    lines.push('## Errors', '');
+    for (const error of review.errors) {
+      lines.push(`- ${error}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
 }
