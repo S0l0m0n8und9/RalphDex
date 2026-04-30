@@ -445,11 +445,17 @@ async function applyLatestDoctrineProposal(
   const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
 
   const rawProposal = await readJsonArtifact(latestArtifacts.latestDoctrineProposalPath);
-  const proposal = normalizeDoctrineProposalArtifact(rawProposal);
-
-  if (!proposal) {
+  if (!rawProposal) {
     void vscode.window.showInformationMessage(
       'No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.'
+    );
+    return false;
+  }
+
+  const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+  if (!proposal) {
+    void vscode.window.showWarningMessage(
+      'The latest doctrine proposal artifact is malformed and cannot be applied. Check the artifact file for errors.'
     );
     return false;
   }
@@ -564,11 +570,17 @@ async function rejectLatestDoctrineProposal(
   const latestArtifacts = await resolveLatestStatusArtifacts(inspection.paths);
 
   const rawProposal = await readJsonArtifact(latestArtifacts.latestDoctrineProposalPath);
-  const proposal = normalizeDoctrineProposalArtifact(rawProposal);
-
-  if (!proposal) {
+  if (!rawProposal) {
     void vscode.window.showInformationMessage(
       'No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.'
+    );
+    return false;
+  }
+
+  const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+  if (!proposal) {
+    void vscode.window.showWarningMessage(
+      'The latest doctrine proposal artifact is malformed and cannot be rejected. Check the artifact file for errors.'
     );
     return false;
   }

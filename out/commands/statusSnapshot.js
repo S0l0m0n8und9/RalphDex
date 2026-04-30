@@ -251,27 +251,37 @@ function normalizeDoctrineProposedUpdate(candidate) {
     }
     const u = candidate;
     if (typeof u.targetFile !== 'string'
+        || !u.targetFile.trim()
         || typeof u.operation !== 'string'
         || !VALID_OPERATIONS.has(u.operation)
         || typeof u.proposedText !== 'string'
+        || !u.proposedText.trim()
         || typeof u.rationale !== 'string'
+        || !u.rationale.trim()
         || !Array.isArray(u.evidence)
+        || u.evidence.length === 0
+        || !u.evidence.every((e) => typeof e === 'string' && e.trim() !== '')
         || typeof u.requiresApproval !== 'boolean'
         || typeof u.protectedTarget !== 'boolean'
         || typeof u.risk !== 'string'
         || !VALID_RISKS.has(u.risk)) {
         return null;
     }
-    const section = u.section === null || u.section === undefined ? null
-        : typeof u.section === 'string' ? u.section
-            : null;
+    const operation = u.operation;
+    const needsSection = operation === 'addSectionItem' || operation === 'replaceSection';
+    const section = needsSection
+        ? (typeof u.section === 'string' && u.section.trim() ? u.section : null)
+        : (typeof u.section === 'string' ? u.section : null);
+    if (needsSection && section === null) {
+        return null;
+    }
     return {
         targetFile: u.targetFile,
-        operation: u.operation,
+        operation,
         section,
         proposedText: u.proposedText,
         rationale: u.rationale,
-        evidence: u.evidence.filter((e) => typeof e === 'string'),
+        evidence: u.evidence,
         requiresApproval: u.requiresApproval,
         protectedTarget: u.protectedTarget,
         risk: u.risk
@@ -284,9 +294,15 @@ function normalizeDoctrineProposalArtifact(candidate) {
     const record = candidate;
     if (record.kind !== 'doctrineUpdateProposal'
         || typeof record.proposalId !== 'string'
-        || !record.proposalId
+        || !record.proposalId.trim()
         || !Array.isArray(record.updates)
-        || !Array.isArray(record.warnings)) {
+        || record.updates.length === 0
+        || !Array.isArray(record.warnings)
+        || !record.warnings.every((w) => typeof w === 'string')
+        || typeof record.status !== 'string'
+        || !VALID_PROPOSAL_STATUSES.has(record.status)
+        || typeof record.risk !== 'string'
+        || !VALID_RISKS.has(record.risk)) {
         return null;
     }
     const normalizedUpdates = [];
@@ -297,9 +313,6 @@ function normalizeDoctrineProposalArtifact(candidate) {
         }
         normalizedUpdates.push(normalized);
     }
-    const status = VALID_PROPOSAL_STATUSES.has(String(record.status))
-        ? record.status
-        : 'proposed';
     return {
         schemaVersion: 1,
         kind: 'doctrineUpdateProposal',
@@ -314,11 +327,11 @@ function normalizeDoctrineProposalArtifact(candidate) {
             || record.source === 'diagnostic'
             ? record.source
             : 'unknown',
-        status,
-        risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
+        status: record.status,
+        risk: record.risk,
         summary: typeof record.summary === 'string' ? record.summary : '',
         updates: normalizedUpdates,
-        warnings: record.warnings.filter((warning) => typeof warning === 'string'),
+        warnings: record.warnings,
         ...(typeof record.reviewedAt === 'string' ? { reviewedAt: record.reviewedAt } : {}),
         ...(record.reviewedBy === 'operator' ? { reviewedBy: 'operator' } : {}),
         ...(record.reviewAction === 'applied' || record.reviewAction === 'rejected' || record.reviewAction === 'partiallyApplied'

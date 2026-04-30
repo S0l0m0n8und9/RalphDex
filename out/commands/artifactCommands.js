@@ -300,9 +300,13 @@ async function applyLatestDoctrineProposal(workspaceFolder, stateManager, logger
     await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
     const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
     const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
+    if (!rawProposal) {
+        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        return false;
+    }
     const proposal = (0, statusSnapshot_1.normalizeDoctrineProposalArtifact)(rawProposal);
     if (!proposal) {
-        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        void vscode.window.showWarningMessage('The latest doctrine proposal artifact is malformed and cannot be applied. Check the artifact file for errors.');
         return false;
     }
     if (proposal.status !== 'proposed') {
@@ -390,9 +394,13 @@ async function rejectLatestDoctrineProposal(workspaceFolder, stateManager, logge
     await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
     const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
     const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
+    if (!rawProposal) {
+        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        return false;
+    }
     const proposal = (0, statusSnapshot_1.normalizeDoctrineProposalArtifact)(rawProposal);
     if (!proposal) {
-        void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
+        void vscode.window.showWarningMessage('The latest doctrine proposal artifact is malformed and cannot be rejected. Check the artifact file for errors.');
         return false;
     }
     if (proposal.status !== 'proposed') {

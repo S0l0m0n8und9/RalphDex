@@ -340,6 +340,116 @@ test('rejectLatestDoctrineProposal writes review artifacts and does not modify d
 });
 
 // ---------------------------------------------------------------------------
+// apply: malformed proposal artifact — warns, does not mutate, does not write review
+// ---------------------------------------------------------------------------
+
+async function writeMalformedLatestProposal(artifactDir: string): Promise<void> {
+  const doctrineProposalsDir = path.join(artifactDir, 'doctrine-proposals');
+  await fs.mkdir(doctrineProposalsDir, { recursive: true });
+  const jsonPath = path.join(artifactDir, 'latest-doctrine-proposal.json');
+  // Valid JSON but fails normalization: invalid status value
+  await fs.writeFile(jsonPath, JSON.stringify({
+    kind: 'doctrineUpdateProposal',
+    proposalId: 'prop-invalid-status-001',
+    status: 'NOT_A_VALID_STATUS',
+    risk: 'low',
+    updates: [{
+      targetFile: '.ralph/doctrine/workflows.md',
+      operation: 'append',
+      section: null,
+      proposedText: '- Something.',
+      rationale: 'Reason.',
+      evidence: ['src/foo.ts'],
+      requiresApproval: false,
+      protectedTarget: false,
+      risk: 'low'
+    }],
+    warnings: []
+  }), 'utf8');
+}
+
+test('applyLatestDoctrineProposal shows warning for malformed proposal artifact', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  await writeDoctrineFile(doctrineDir, 'workflows.md', WORKFLOWS_INITIAL);
+  await writeMalformedLatestProposal(artifactDir);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestDoctrineProposal');
+
+  const allWarnings = harness.state.warningMessages.map((m) => m.message).join('\n');
+  assert.match(allWarnings, /malformed/i, 'warning must mention malformed artifact');
+});
+
+test('applyLatestDoctrineProposal does not write review artifacts for malformed proposal', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  await writeDoctrineFile(doctrineDir, 'workflows.md', WORKFLOWS_INITIAL);
+  await writeMalformedLatestProposal(artifactDir);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestDoctrineProposal');
+
+  const reviewFiles = await fs.readdir(path.join(artifactDir, 'doctrine-proposals')).catch(() => []);
+  const reviewJsonFiles = reviewFiles.filter((f) => f.endsWith('.review.json'));
+  assert.equal(reviewJsonFiles.length, 0, 'review artifact must not be written for malformed proposal');
+});
+
+test('applyLatestDoctrineProposal does not mutate doctrine files for malformed proposal', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  await writeDoctrineFile(doctrineDir, 'workflows.md', WORKFLOWS_INITIAL);
+  await writeMalformedLatestProposal(artifactDir);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.applyLatestDoctrineProposal');
+
+  const workflowsContent = await fs.readFile(path.join(doctrineDir, 'workflows.md'), 'utf8');
+  assert.equal(workflowsContent, WORKFLOWS_INITIAL, 'doctrine file must not be modified for malformed proposal');
+});
+
+// ---------------------------------------------------------------------------
+// reject: malformed proposal artifact — warns, does not write review
+// ---------------------------------------------------------------------------
+
+test('rejectLatestDoctrineProposal shows warning for malformed proposal artifact', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  await writeDoctrineFile(doctrineDir, 'workflows.md', WORKFLOWS_INITIAL);
+  await writeMalformedLatestProposal(artifactDir);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.rejectLatestDoctrineProposal');
+
+  const allWarnings = harness.state.warningMessages.map((m) => m.message).join('\n');
+  assert.match(allWarnings, /malformed/i, 'warning must mention malformed artifact');
+});
+
+test('rejectLatestDoctrineProposal does not write review artifacts for malformed proposal', async () => {
+  const { rootPath, artifactDir, doctrineDir } = await makeWorkspace();
+  await writeDoctrineFile(doctrineDir, 'workflows.md', WORKFLOWS_INITIAL);
+  await writeMalformedLatestProposal(artifactDir);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.rejectLatestDoctrineProposal');
+
+  const reviewFiles = await fs.readdir(path.join(artifactDir, 'doctrine-proposals')).catch(() => []);
+  const reviewJsonFiles = reviewFiles.filter((f) => f.endsWith('.review.json'));
+  assert.equal(reviewJsonFiles.length, 0, 'review artifact must not be written for malformed proposal');
+});
+
+// ---------------------------------------------------------------------------
 // manifest contributions: commands registered
 // ---------------------------------------------------------------------------
 

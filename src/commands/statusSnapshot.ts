@@ -252,27 +252,37 @@ function normalizeDoctrineProposedUpdate(candidate: unknown): DoctrineProposalAr
   }
   const u = candidate as Record<string, unknown>;
   if (typeof u.targetFile !== 'string'
+    || !u.targetFile.trim()
     || typeof u.operation !== 'string'
     || !VALID_OPERATIONS.has(u.operation)
     || typeof u.proposedText !== 'string'
+    || !u.proposedText.trim()
     || typeof u.rationale !== 'string'
+    || !u.rationale.trim()
     || !Array.isArray(u.evidence)
+    || u.evidence.length === 0
+    || !(u.evidence as unknown[]).every((e) => typeof e === 'string' && (e as string).trim() !== '')
     || typeof u.requiresApproval !== 'boolean'
     || typeof u.protectedTarget !== 'boolean'
     || typeof u.risk !== 'string'
     || !VALID_RISKS.has(u.risk)) {
     return null;
   }
-  const section = u.section === null || u.section === undefined ? null
-    : typeof u.section === 'string' ? u.section
-    : null;
+  const operation = u.operation as DoctrineProposalArtifact['updates'][number]['operation'];
+  const needsSection = operation === 'addSectionItem' || operation === 'replaceSection';
+  const section = needsSection
+    ? (typeof u.section === 'string' && u.section.trim() ? u.section : null)
+    : (typeof u.section === 'string' ? u.section : null);
+  if (needsSection && section === null) {
+    return null;
+  }
   return {
     targetFile: u.targetFile,
-    operation: u.operation as DoctrineProposalArtifact['updates'][number]['operation'],
+    operation,
     section,
     proposedText: u.proposedText,
     rationale: u.rationale,
-    evidence: (u.evidence as unknown[]).filter((e): e is string => typeof e === 'string'),
+    evidence: u.evidence as string[],
     requiresApproval: u.requiresApproval,
     protectedTarget: u.protectedTarget,
     risk: u.risk as DoctrineProposalArtifact['updates'][number]['risk']
@@ -287,9 +297,15 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
   const record = candidate as Record<string, unknown>;
   if (record.kind !== 'doctrineUpdateProposal'
     || typeof record.proposalId !== 'string'
-    || !record.proposalId
+    || !record.proposalId.trim()
     || !Array.isArray(record.updates)
-    || !Array.isArray(record.warnings)) {
+    || record.updates.length === 0
+    || !Array.isArray(record.warnings)
+    || !(record.warnings as unknown[]).every((w) => typeof w === 'string')
+    || typeof record.status !== 'string'
+    || !VALID_PROPOSAL_STATUSES.has(record.status)
+    || typeof record.risk !== 'string'
+    || !VALID_RISKS.has(record.risk)) {
     return null;
   }
 
@@ -301,10 +317,6 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
     }
     normalizedUpdates.push(normalized);
   }
-
-  const status: DoctrineProposalStatus = VALID_PROPOSAL_STATUSES.has(String(record.status))
-    ? record.status as DoctrineProposalStatus
-    : 'proposed';
 
   return {
     schemaVersion: 1,
@@ -320,11 +332,11 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
       || record.source === 'diagnostic'
       ? record.source
       : 'unknown',
-    status,
-    risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
+    status: record.status as DoctrineProposalStatus,
+    risk: record.risk as DoctrineProposalArtifact['risk'],
     summary: typeof record.summary === 'string' ? record.summary : '',
     updates: normalizedUpdates,
-    warnings: record.warnings.filter((warning): warning is string => typeof warning === 'string'),
+    warnings: record.warnings as string[],
     ...(typeof record.reviewedAt === 'string' ? { reviewedAt: record.reviewedAt } : {}),
     ...(record.reviewedBy === 'operator' ? { reviewedBy: 'operator' as const } : {}),
     ...(record.reviewAction === 'applied' || record.reviewAction === 'rejected' || record.reviewAction === 'partiallyApplied'
