@@ -25,6 +25,7 @@ import {
   collectStatusSnapshot,
   firstExistingPath,
   normalizeCliInvocation,
+  normalizeDoctrineProposalArtifact,
   normalizeProvenanceBundle,
   normalizeTaskRemediationArtifact,
   readJsonArtifact
@@ -431,17 +432,6 @@ async function resolveStaleTaskClaim(
     `Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`
   );
   return true;
-}
-
-function normalizeDoctrineProposalArtifact(raw: unknown): DoctrineProposalArtifact | null {
-  if (typeof raw !== 'object' || raw === null) {
-    return null;
-  }
-  const record = raw as Record<string, unknown>;
-  if (record.kind !== 'doctrineUpdateProposal' || typeof record.proposalId !== 'string') {
-    return null;
-  }
-  return raw as DoctrineProposalArtifact;
 }
 
 async function applyLatestDoctrineProposal(

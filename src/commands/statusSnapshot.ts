@@ -26,7 +26,7 @@ import type {
   ReplanDecisionArtifact
 } from '../ralph/types';
 import { resolveLatestHandoffPath } from '../ralph/handoffManager';
-import { contextEnvelopePath, inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention, planGraphPath } from '../ralph/artifactStore';
+import { contextEnvelopePath, inspectGeneratedArtifactRetention, inspectProvenanceBundleRetention, planGraphPath, resolveDoctrineProposalReviewPaths } from '../ralph/artifactStore';
 import {
   captureGitStatus,
   chooseValidationCommand,
@@ -45,7 +45,7 @@ import { pathExists } from '../util/fs';
 import { validateRecord } from '../util/validate';
 import { scanWorkspaceCached } from '../services/workspaceScanner';
 import { CompletionReportArtifact } from '../ralph/completionReportParser';
-import { DoctrineProposalArtifact } from '../ralph/doctrineProposals';
+import { DoctrineProposalArtifact, DoctrineProposalStatus } from '../ralph/doctrineProposals';
 import { getEffectivePolicy } from '../ralph/rolePolicy';
 import type { ContextEnvelope } from '../ralph/types';
 import { inspectDoctrinePack } from '../ralph/doctrine';
@@ -242,6 +242,43 @@ export function normalizeCompletionReportArtifact(candidate: unknown): Completio
   };
 }
 
+const VALID_PROPOSAL_STATUSES = new Set<string>(['proposed', 'applied', 'rejected', 'partiallyApplied']);
+const VALID_OPERATIONS = new Set<string>(['append', 'replaceSection', 'addSectionItem']);
+const VALID_RISKS = new Set<string>(['low', 'medium', 'high']);
+
+function normalizeDoctrineProposedUpdate(candidate: unknown): DoctrineProposalArtifact['updates'][number] | null {
+  if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+    return null;
+  }
+  const u = candidate as Record<string, unknown>;
+  if (typeof u.targetFile !== 'string'
+    || typeof u.operation !== 'string'
+    || !VALID_OPERATIONS.has(u.operation)
+    || typeof u.proposedText !== 'string'
+    || typeof u.rationale !== 'string'
+    || !Array.isArray(u.evidence)
+    || typeof u.requiresApproval !== 'boolean'
+    || typeof u.protectedTarget !== 'boolean'
+    || typeof u.risk !== 'string'
+    || !VALID_RISKS.has(u.risk)) {
+    return null;
+  }
+  const section = u.section === null || u.section === undefined ? null
+    : typeof u.section === 'string' ? u.section
+    : null;
+  return {
+    targetFile: u.targetFile,
+    operation: u.operation as DoctrineProposalArtifact['updates'][number]['operation'],
+    section,
+    proposedText: u.proposedText,
+    rationale: u.rationale,
+    evidence: (u.evidence as unknown[]).filter((e): e is string => typeof e === 'string'),
+    requiresApproval: u.requiresApproval,
+    protectedTarget: u.protectedTarget,
+    risk: u.risk as DoctrineProposalArtifact['updates'][number]['risk']
+  };
+}
+
 export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineProposalArtifact | null {
   if (typeof candidate !== 'object' || candidate === null) {
     return null;
@@ -250,10 +287,24 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
   const record = candidate as Record<string, unknown>;
   if (record.kind !== 'doctrineUpdateProposal'
     || typeof record.proposalId !== 'string'
+    || !record.proposalId
     || !Array.isArray(record.updates)
     || !Array.isArray(record.warnings)) {
     return null;
   }
+
+  const normalizedUpdates: DoctrineProposalArtifact['updates'] = [];
+  for (const update of record.updates) {
+    const normalized = normalizeDoctrineProposedUpdate(update);
+    if (!normalized) {
+      return null;
+    }
+    normalizedUpdates.push(normalized);
+  }
+
+  const status: DoctrineProposalStatus = VALID_PROPOSAL_STATUSES.has(String(record.status))
+    ? record.status as DoctrineProposalStatus
+    : 'proposed';
 
   return {
     schemaVersion: 1,
@@ -269,11 +320,28 @@ export function normalizeDoctrineProposalArtifact(candidate: unknown): DoctrineP
       || record.source === 'diagnostic'
       ? record.source
       : 'unknown',
-    status: 'proposed',
+    status,
     risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
     summary: typeof record.summary === 'string' ? record.summary : '',
-    updates: record.updates as DoctrineProposalArtifact['updates'],
-    warnings: record.warnings.filter((warning): warning is string => typeof warning === 'string')
+    updates: normalizedUpdates,
+    warnings: record.warnings.filter((warning): warning is string => typeof warning === 'string'),
+    ...(typeof record.reviewedAt === 'string' ? { reviewedAt: record.reviewedAt } : {}),
+    ...(record.reviewedBy === 'operator' ? { reviewedBy: 'operator' as const } : {}),
+    ...(record.reviewAction === 'applied' || record.reviewAction === 'rejected' || record.reviewAction === 'partiallyApplied'
+      ? { reviewAction: record.reviewAction as DoctrineProposalArtifact['reviewAction'] }
+      : {}),
+    ...(Array.isArray(record.appliedUpdateIndexes)
+      ? { appliedUpdateIndexes: (record.appliedUpdateIndexes as unknown[]).filter((i): i is number => typeof i === 'number') }
+      : {}),
+    ...(Array.isArray(record.rejectedUpdateIndexes)
+      ? { rejectedUpdateIndexes: (record.rejectedUpdateIndexes as unknown[]).filter((i): i is number => typeof i === 'number') }
+      : {}),
+    ...(typeof record.reviewNotes === 'string' || record.reviewNotes === null
+      ? { reviewNotes: record.reviewNotes as string | null }
+      : {}),
+    ...(Array.isArray(record.applicationWarnings)
+      ? { applicationWarnings: (record.applicationWarnings as unknown[]).filter((w): w is string => typeof w === 'string') }
+      : {})
   };
 }
 
@@ -390,6 +458,26 @@ export async function collectStatusSnapshot(
     ?? latestProvenanceBundle?.provenanceId
     ?? inspection.state.lastIteration?.provenanceId
     ?? null;
+
+  let latestDoctrineReviewJsonPath: string | null = null;
+  let latestDoctrineReviewMdPath: string | null = null;
+  if (latestDoctrineProposal?.proposalId) {
+    try {
+      const reviewPaths = resolveDoctrineProposalReviewPaths(inspection.paths.artifactDir, latestDoctrineProposal.proposalId);
+      const [reviewJsonExists, reviewMdExists] = await Promise.all([
+        pathExists(reviewPaths.reviewJsonPath),
+        pathExists(reviewPaths.reviewMdPath)
+      ]);
+      if (reviewJsonExists) {
+        latestDoctrineReviewJsonPath = reviewPaths.reviewJsonPath;
+      }
+      if (reviewMdExists) {
+        latestDoctrineReviewMdPath = reviewPaths.reviewMdPath;
+      }
+    } catch {
+      // unsafe proposalId — skip review path resolution
+    }
+  }
 
   // Derive rolePolicySource from the most recent context-envelope artifact (iteration - 1).
   let rolePolicySource: 'preset' | 'crew' | 'explicit' = 'preset';
@@ -652,6 +740,8 @@ export async function collectStatusSnapshot(
     latestRemediationPath: latestArtifacts.latestRemediationPath,
     latestDoctrineProposalPath: latestArtifacts.latestDoctrineProposalPath,
     latestDoctrineProposalMdPath: latestArtifacts.latestDoctrineProposalMdPath,
+    latestDoctrineReviewJsonPath,
+    latestDoctrineReviewMdPath,
     latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
     latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
     latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,

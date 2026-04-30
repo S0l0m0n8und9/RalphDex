@@ -242,6 +242,41 @@ function normalizeCompletionReportArtifact(candidate) {
         warnings: record.warnings.filter((warning) => typeof warning === 'string')
     };
 }
+const VALID_PROPOSAL_STATUSES = new Set(['proposed', 'applied', 'rejected', 'partiallyApplied']);
+const VALID_OPERATIONS = new Set(['append', 'replaceSection', 'addSectionItem']);
+const VALID_RISKS = new Set(['low', 'medium', 'high']);
+function normalizeDoctrineProposedUpdate(candidate) {
+    if (typeof candidate !== 'object' || candidate === null || Array.isArray(candidate)) {
+        return null;
+    }
+    const u = candidate;
+    if (typeof u.targetFile !== 'string'
+        || typeof u.operation !== 'string'
+        || !VALID_OPERATIONS.has(u.operation)
+        || typeof u.proposedText !== 'string'
+        || typeof u.rationale !== 'string'
+        || !Array.isArray(u.evidence)
+        || typeof u.requiresApproval !== 'boolean'
+        || typeof u.protectedTarget !== 'boolean'
+        || typeof u.risk !== 'string'
+        || !VALID_RISKS.has(u.risk)) {
+        return null;
+    }
+    const section = u.section === null || u.section === undefined ? null
+        : typeof u.section === 'string' ? u.section
+            : null;
+    return {
+        targetFile: u.targetFile,
+        operation: u.operation,
+        section,
+        proposedText: u.proposedText,
+        rationale: u.rationale,
+        evidence: u.evidence.filter((e) => typeof e === 'string'),
+        requiresApproval: u.requiresApproval,
+        protectedTarget: u.protectedTarget,
+        risk: u.risk
+    };
+}
 function normalizeDoctrineProposalArtifact(candidate) {
     if (typeof candidate !== 'object' || candidate === null) {
         return null;
@@ -249,10 +284,22 @@ function normalizeDoctrineProposalArtifact(candidate) {
     const record = candidate;
     if (record.kind !== 'doctrineUpdateProposal'
         || typeof record.proposalId !== 'string'
+        || !record.proposalId
         || !Array.isArray(record.updates)
         || !Array.isArray(record.warnings)) {
         return null;
     }
+    const normalizedUpdates = [];
+    for (const update of record.updates) {
+        const normalized = normalizeDoctrineProposedUpdate(update);
+        if (!normalized) {
+            return null;
+        }
+        normalizedUpdates.push(normalized);
+    }
+    const status = VALID_PROPOSAL_STATUSES.has(String(record.status))
+        ? record.status
+        : 'proposed';
     return {
         schemaVersion: 1,
         kind: 'doctrineUpdateProposal',
@@ -267,11 +314,28 @@ function normalizeDoctrineProposalArtifact(candidate) {
             || record.source === 'diagnostic'
             ? record.source
             : 'unknown',
-        status: 'proposed',
+        status,
         risk: record.risk === 'medium' || record.risk === 'high' ? record.risk : 'low',
         summary: typeof record.summary === 'string' ? record.summary : '',
-        updates: record.updates,
-        warnings: record.warnings.filter((warning) => typeof warning === 'string')
+        updates: normalizedUpdates,
+        warnings: record.warnings.filter((warning) => typeof warning === 'string'),
+        ...(typeof record.reviewedAt === 'string' ? { reviewedAt: record.reviewedAt } : {}),
+        ...(record.reviewedBy === 'operator' ? { reviewedBy: 'operator' } : {}),
+        ...(record.reviewAction === 'applied' || record.reviewAction === 'rejected' || record.reviewAction === 'partiallyApplied'
+            ? { reviewAction: record.reviewAction }
+            : {}),
+        ...(Array.isArray(record.appliedUpdateIndexes)
+            ? { appliedUpdateIndexes: record.appliedUpdateIndexes.filter((i) => typeof i === 'number') }
+            : {}),
+        ...(Array.isArray(record.rejectedUpdateIndexes)
+            ? { rejectedUpdateIndexes: record.rejectedUpdateIndexes.filter((i) => typeof i === 'number') }
+            : {}),
+        ...(typeof record.reviewNotes === 'string' || record.reviewNotes === null
+            ? { reviewNotes: record.reviewNotes }
+            : {}),
+        ...(Array.isArray(record.applicationWarnings)
+            ? { applicationWarnings: record.applicationWarnings.filter((w) => typeof w === 'string') }
+            : {})
     };
 }
 async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
@@ -379,6 +443,26 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         ?? latestProvenanceBundle?.provenanceId
         ?? inspection.state.lastIteration?.provenanceId
         ?? null;
+    let latestDoctrineReviewJsonPath = null;
+    let latestDoctrineReviewMdPath = null;
+    if (latestDoctrineProposal?.proposalId) {
+        try {
+            const reviewPaths = (0, artifactStore_1.resolveDoctrineProposalReviewPaths)(inspection.paths.artifactDir, latestDoctrineProposal.proposalId);
+            const [reviewJsonExists, reviewMdExists] = await Promise.all([
+                (0, fs_1.pathExists)(reviewPaths.reviewJsonPath),
+                (0, fs_1.pathExists)(reviewPaths.reviewMdPath)
+            ]);
+            if (reviewJsonExists) {
+                latestDoctrineReviewJsonPath = reviewPaths.reviewJsonPath;
+            }
+            if (reviewMdExists) {
+                latestDoctrineReviewMdPath = reviewPaths.reviewMdPath;
+            }
+        }
+        catch {
+            // unsafe proposalId — skip review path resolution
+        }
+    }
     // Derive rolePolicySource from the most recent context-envelope artifact (iteration - 1).
     let rolePolicySource = 'preset';
     const prevIteration = inspection.state.nextIteration - 1;
@@ -630,6 +714,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestRemediationPath: latestArtifacts.latestRemediationPath,
         latestDoctrineProposalPath: latestArtifacts.latestDoctrineProposalPath,
         latestDoctrineProposalMdPath: latestArtifacts.latestDoctrineProposalMdPath,
+        latestDoctrineReviewJsonPath,
+        latestDoctrineReviewMdPath,
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,

@@ -71,6 +71,8 @@ export interface RalphStatusSnapshot {
   latestRemediationPath: string | null;
   latestDoctrineProposalPath: string | null;
   latestDoctrineProposalMdPath: string | null;
+  latestDoctrineReviewJsonPath: string | null;
+  latestDoctrineReviewMdPath: string | null;
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
@@ -627,6 +629,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Doctrine proposal risk: ${latestDoctrineProposal?.risk ?? 'none'}`,
     `- Doctrine proposal updates: ${latestDoctrineProposal?.updates.length ?? 0}`,
     `- Doctrine proposal artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalMdPath ?? snapshot.latestDoctrineProposalPath)}`,
+    `- Doctrine proposal review: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineReviewMdPath ?? snapshot.latestDoctrineReviewJsonPath)}`,
     `- Direct command: Ralphdex: Open Latest Doctrine Proposal`,
     `- Direct command: Ralphdex: Apply Latest Doctrine Proposal`,
     `- Direct command: Ralphdex: Reject Latest Doctrine Proposal`,
@@ -659,6 +662,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Latest CLI invocation: ${relativeFromRoot(snapshot.rootPath, snapshot.latestCliInvocationPath)}`,
     `- Latest remediation proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestRemediationPath)}`,
     `- Latest doctrine proposal: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineProposalMdPath ?? snapshot.latestDoctrineProposalPath)}`,
+    `- Latest doctrine proposal review: ${relativeFromRoot(snapshot.rootPath, snapshot.latestDoctrineReviewMdPath ?? snapshot.latestDoctrineReviewJsonPath)}`,
     `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
     `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,

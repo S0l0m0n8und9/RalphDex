@@ -294,23 +294,13 @@ async function resolveStaleTaskClaim(workspaceFolder, stateManager, logger) {
     void vscode.window.showInformationMessage(`Marked stale claim for ${resolved.resolvedClaim.claim.taskId} held by ${resolved.resolvedClaim.claim.agentId}/${resolved.resolvedClaim.claim.provenanceId} as ${resolved.resolvedClaim.claim.status}.`);
     return true;
 }
-function normalizeDoctrineProposalArtifact(raw) {
-    if (typeof raw !== 'object' || raw === null) {
-        return null;
-    }
-    const record = raw;
-    if (record.kind !== 'doctrineUpdateProposal' || typeof record.proposalId !== 'string') {
-        return null;
-    }
-    return raw;
-}
 async function applyLatestDoctrineProposal(workspaceFolder, stateManager, logger) {
     const config = (0, readConfig_1.readConfig)(workspaceFolder);
     const inspection = await stateManager.inspectWorkspace(workspaceFolder.uri.fsPath, config);
     await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
     const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
     const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
-    const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+    const proposal = (0, statusSnapshot_1.normalizeDoctrineProposalArtifact)(rawProposal);
     if (!proposal) {
         void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
         return false;
@@ -400,7 +390,7 @@ async function rejectLatestDoctrineProposal(workspaceFolder, stateManager, logge
     await logger.setWorkspaceLogFile(inspection.paths.logFilePath);
     const latestArtifacts = await (0, statusReport_1.resolveLatestStatusArtifacts)(inspection.paths);
     const rawProposal = await (0, statusSnapshot_1.readJsonArtifact)(latestArtifacts.latestDoctrineProposalPath);
-    const proposal = normalizeDoctrineProposalArtifact(rawProposal);
+    const proposal = (0, statusSnapshot_1.normalizeDoctrineProposalArtifact)(rawProposal);
     if (!proposal) {
         void vscode.window.showInformationMessage('No doctrine proposal exists yet. Run a CLI iteration that produces doctrine updates, then try again.');
         return false;

@@ -83,6 +83,7 @@ function findSectionBoundaries(lines, section) {
     }
     return { headingIndex, bodyStart: headingIndex + 1, bodyEnd };
 }
+const APPEND_SECTION_HEADING = '## Applied Doctrine Updates';
 async function applyAppend(filePath, proposedText) {
     let existing;
     try {
@@ -91,7 +92,29 @@ async function applyAppend(filePath, proposedText) {
     catch {
         return { warning: null, error: `Failed to read doctrine file: ${filePath}` };
     }
-    const newContent = ensureSingleTrailingNewline(`${existing.trimEnd()}\n\n${proposedText}`);
+    const trimmedProposed = proposedText.trim();
+    if (existing.includes(trimmedProposed)) {
+        return { warning: `Proposed text already present in ${path.basename(filePath)} — skipped.`, error: null };
+    }
+    let newContent;
+    if (existing.includes(APPEND_SECTION_HEADING)) {
+        // Insert inside existing section, before the next ## heading or at end
+        const lines = existing.split('\n');
+        const sectionIdx = lines.findIndex((l) => l.trim() === APPEND_SECTION_HEADING);
+        let insertAt = lines.length;
+        for (let i = sectionIdx + 1; i < lines.length; i++) {
+            if (lines[i].startsWith('## ')) {
+                insertAt = i;
+                break;
+            }
+        }
+        const insertLines = trimmedProposed.split('\n');
+        lines.splice(insertAt, 0, ...insertLines, '');
+        newContent = ensureSingleTrailingNewline(lines.join('\n'));
+    }
+    else {
+        newContent = ensureSingleTrailingNewline(`${existing.trimEnd()}\n\n${APPEND_SECTION_HEADING}\n\n${trimmedProposed}`);
+    }
     try {
         await fs.writeFile(filePath, newContent, 'utf8');
     }
