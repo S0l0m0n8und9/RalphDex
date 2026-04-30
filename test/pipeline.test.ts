@@ -277,6 +277,30 @@ test('readLatestPipelineArtifact returns the most recent artifact', async () => 
 // Phase checkpoint: scaffoldPipelineRun
 // ---------------------------------------------------------------------------
 
+test('scaffoldPipelineRun respects maxChildTasks from config and generates more than the default 3-section limit', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-scaffold-maxtasks-test-'));
+  try {
+    const prdPath = path.join(tmpDir, 'prd.md');
+    const taskFilePath = path.join(tmpDir, 'tasks.json');
+    const artifactDir = path.join(tmpDir, 'artifacts');
+
+    const sections = ['## A', '## B', '## C', '## D', '## E', '## F', '## G', '## H'];
+    await fs.writeFile(prdPath, sections.join('\n') + '\n', 'utf8');
+    await fs.writeFile(taskFilePath, JSON.stringify({ version: 2, tasks: [] }, null, 2) + '\n', 'utf8');
+
+    // Without maxChildTasks the default cap of 3 applies.
+    const defaultResult = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir: path.join(artifactDir, 'default'), ralphDir: path.dirname(artifactDir) });
+    assert.equal(defaultResult.childTaskIds.length, 3, 'absent maxChildTasks should default to 3');
+
+    // Passing maxChildTasks = 8 (the agentic DEFAULT_CONFIG.maxGeneratedChildren value) allows more children.
+    await fs.writeFile(taskFilePath, JSON.stringify({ version: 2, tasks: [] }, null, 2) + '\n', 'utf8');
+    const agenticResult = await scaffoldPipelineRun({ prdPath, taskFilePath, artifactDir: path.join(artifactDir, 'agentic'), ralphDir: path.dirname(artifactDir), maxChildTasks: 8 });
+    assert.equal(agenticResult.childTaskIds.length, 8, 'maxChildTasks = 8 should generate all 8 children');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test('scaffoldPipelineRun sets phase scaffold on the written artifact', async () => {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-scaffold-phase-test-'));
   try {

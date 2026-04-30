@@ -56,6 +56,7 @@ test('readConfig defaults to an agentic autonomous posture without changing prov
   assert.equal(config.ralphIterationCap, 20);
   assert.equal(config.claudePermissionMode, 'default');
   assert.equal(config.copilotApprovalMode, 'allow-tools-only');
+  assert.equal(config.maxGeneratedChildren, 8);
 });
 
 test('readConfig accepts explicit taskReadinessGate values and falls back safely', () => {

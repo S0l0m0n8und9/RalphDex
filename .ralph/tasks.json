@@ -4948,7 +4948,8 @@
     {
       "id": "T190",
       "title": "Refresh tests for new default behavior",
-      "status": "todo",
+      "status": "done",
+      "notes": "Added maxGeneratedChildren assertion to agentic defaults readConfig test; added scaffoldPipelineRun maxChildTasks end-to-end test in pipeline.test.ts.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -4964,7 +4965,8 @@
         "test/",
         "src/ralph/iteration/LoopDecisionService.ts",
         "src/ralph/taskFile.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T191",
@@ -5127,5 +5129,5 @@
       ]
     }
   ],
-  "mutationCount": 230
+  "mutationCount": 231
 }
