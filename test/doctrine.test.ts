@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  collectDoctrineContext,
   createDoctrinePack,
   DOCTRINE_MARKDOWN_FILES,
   inspectDoctrinePack,
@@ -98,4 +99,60 @@ test('inspectDoctrinePack detects invalid evidence-index JSON', async () => {
 
   assert.equal(inspection.health, 'invalid evidence index');
   assert.ok(inspection.diagnostics.some((diagnostic) => diagnostic.code === 'doctrine_evidence_index_invalid'));
+});
+
+test('collectDoctrineContext returns entries for all files when all are present and budget not exceeded', async () => {
+  const rootPath = await makeTempRoot();
+  await createDoctrinePack(rootPath, { generatedAt: GENERATED_AT });
+
+  const ctx = await collectDoctrineContext(rootPath);
+
+  assert.equal(ctx.entries.length, DOCTRINE_MARKDOWN_FILES.length);
+  assert.ok(ctx.entries.every((e) => !e.truncated));
+  assert.ok(ctx.totalChars <= ctx.budgetChars);
+  assert.equal(ctx.budgetExceeded, false);
+  const protectedNames = new Set(PROTECTED_DOCTRINE_FILES as readonly string[]);
+  for (const entry of ctx.entries) {
+    assert.equal(entry.isProtected, protectedNames.has(entry.fileName));
+    assert.equal(entry.relativePath, `.ralph/doctrine/${entry.fileName}`);
+  }
+});
+
+test('collectDoctrineContext returns empty entries when doctrine directory is missing', async () => {
+  const rootPath = await makeTempRoot();
+
+  const ctx = await collectDoctrineContext(rootPath);
+
+  assert.equal(ctx.entries.length, 0);
+  assert.equal(ctx.totalChars, 0);
+  assert.equal(ctx.budgetExceeded, false);
+});
+
+test('collectDoctrineContext returns only existing files when doctrine is partial', async () => {
+  const rootPath = await makeTempRoot();
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  await fs.writeFile(path.join(doctrineDir, 'project-profile.md'), '# Project Profile\n', 'utf8');
+  await fs.writeFile(path.join(doctrineDir, 'invariants.md'), '# Invariants\n', 'utf8');
+
+  const ctx = await collectDoctrineContext(rootPath);
+
+  assert.equal(ctx.entries.length, 2);
+  assert.ok(ctx.entries.some((e) => e.fileName === 'project-profile.md'));
+  assert.ok(ctx.entries.some((e) => e.fileName === 'invariants.md'));
+});
+
+test('collectDoctrineContext truncates files when budget is exceeded', async () => {
+  const rootPath = await makeTempRoot();
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  const longContent = 'x'.repeat(500);
+  await fs.writeFile(path.join(doctrineDir, 'project-profile.md'), longContent, 'utf8');
+  await fs.writeFile(path.join(doctrineDir, 'invariants.md'), longContent, 'utf8');
+
+  // budget of 100 chars → each file gets 50 chars (floor(100/8))
+  const ctx = await collectDoctrineContext(rootPath, 100);
+
+  assert.ok(ctx.entries.every((e) => e.truncated));
+  assert.ok(ctx.totalChars <= ctx.budgetChars);
 });

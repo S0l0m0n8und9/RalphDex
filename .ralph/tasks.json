@@ -4990,8 +4990,8 @@
     {
       "id": "T-DOCTRINE-CONTEXT-001",
       "title": "Add read-only doctrine context collection for prompt preparation",
-      "status": "todo",
-      "notes": "Implement collection only. Do not inject doctrine into prompts yet; that should be a separate task after the collector is tested.",
+      "status": "done",
+      "notes": "Added DoctrineContextEntry/DoctrineContext types, DOCTRINE_CONTEXT_BUDGET_CHARS constant, and collectDoctrineContext() to src/ralph/doctrine.ts; added 4 tests in test/doctrine.test.ts covering all-healthy, missing-dir, partial, and budget-truncation scenarios.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -5020,7 +5020,8 @@
         "src/ralph/types.ts",
         "docs/workflows.md",
         "docs/boundaries.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T-DOCTRINE-CONTEXT-002",
@@ -5125,5 +5126,5 @@
       ]
     }
   ],
-  "mutationCount": 228
+  "mutationCount": 229
 }

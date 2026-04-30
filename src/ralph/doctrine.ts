@@ -306,6 +306,57 @@ const TEMPLATE_CONTENT: Record<DoctrineMarkdownFile, string> = {
   ].join('\n')
 };
 
+export const DOCTRINE_CONTEXT_BUDGET_CHARS = 8000;
+
+export interface DoctrineContextEntry {
+  fileName: string;
+  relativePath: string;
+  content: string;
+  isProtected: boolean;
+  truncated: boolean;
+}
+
+export interface DoctrineContext {
+  entries: DoctrineContextEntry[];
+  totalChars: number;
+  budgetChars: number;
+  budgetExceeded: boolean;
+}
+
+export async function collectDoctrineContext(
+  rootPath: string,
+  budgetChars: number = DOCTRINE_CONTEXT_BUDGET_CHARS
+): Promise<DoctrineContext> {
+  const targetDir = doctrineDir(rootPath);
+
+  if (!(await pathExists(targetDir))) {
+    return { entries: [], totalChars: 0, budgetChars, budgetExceeded: false };
+  }
+
+  const perFileBudget = Math.floor(budgetChars / DOCTRINE_MARKDOWN_FILES.length);
+  const protectedSet = new Set<string>(PROTECTED_DOCTRINE_FILES);
+  const entries: DoctrineContextEntry[] = [];
+
+  for (const fileName of DOCTRINE_MARKDOWN_FILES) {
+    const filePath = path.join(targetDir, fileName);
+    if (!(await pathExists(filePath))) {
+      continue;
+    }
+    const raw = await fs.readFile(filePath, 'utf8');
+    const truncated = raw.length > perFileBudget;
+    entries.push({
+      fileName,
+      relativePath: relativeDoctrineFile(fileName),
+      content: truncated ? raw.slice(0, perFileBudget) : raw,
+      isProtected: protectedSet.has(fileName),
+      truncated
+    });
+  }
+
+  const totalChars = entries.reduce((sum, e) => sum + e.content.length, 0);
+  return { entries, totalChars, budgetChars, budgetExceeded: totalChars >= budgetChars };
+}
+
 function doctrineDir(rootPath: string): string {
   return path.join(rootPath, '.ralph', 'doctrine');
 }

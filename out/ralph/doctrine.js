@@ -33,7 +33,8 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PROTECTED_DOCTRINE_FILES = exports.DOCTRINE_MARKDOWN_FILES = exports.DOCTRINE_ROOT_RELATIVE = void 0;
+exports.DOCTRINE_CONTEXT_BUDGET_CHARS = exports.PROTECTED_DOCTRINE_FILES = exports.DOCTRINE_MARKDOWN_FILES = exports.DOCTRINE_ROOT_RELATIVE = void 0;
+exports.collectDoctrineContext = collectDoctrineContext;
 exports.createDoctrinePack = createDoctrinePack;
 exports.inspectDoctrinePack = inspectDoctrinePack;
 const fs = __importStar(require("fs/promises"));
@@ -311,6 +312,33 @@ const TEMPLATE_CONTENT = {
         ''
     ].join('\n')
 };
+exports.DOCTRINE_CONTEXT_BUDGET_CHARS = 8000;
+async function collectDoctrineContext(rootPath, budgetChars = exports.DOCTRINE_CONTEXT_BUDGET_CHARS) {
+    const targetDir = doctrineDir(rootPath);
+    if (!(await (0, fs_1.pathExists)(targetDir))) {
+        return { entries: [], totalChars: 0, budgetChars, budgetExceeded: false };
+    }
+    const perFileBudget = Math.floor(budgetChars / exports.DOCTRINE_MARKDOWN_FILES.length);
+    const protectedSet = new Set(exports.PROTECTED_DOCTRINE_FILES);
+    const entries = [];
+    for (const fileName of exports.DOCTRINE_MARKDOWN_FILES) {
+        const filePath = path.join(targetDir, fileName);
+        if (!(await (0, fs_1.pathExists)(filePath))) {
+            continue;
+        }
+        const raw = await fs.readFile(filePath, 'utf8');
+        const truncated = raw.length > perFileBudget;
+        entries.push({
+            fileName,
+            relativePath: relativeDoctrineFile(fileName),
+            content: truncated ? raw.slice(0, perFileBudget) : raw,
+            isProtected: protectedSet.has(fileName),
+            truncated
+        });
+    }
+    const totalChars = entries.reduce((sum, e) => sum + e.content.length, 0);
+    return { entries, totalChars, budgetChars, budgetExceeded: totalChars >= budgetChars };
+}
 function doctrineDir(rootPath) {
     return path.join(rootPath, '.ralph', 'doctrine');
 }
