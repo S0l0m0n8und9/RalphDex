@@ -8,20 +8,86 @@ import {
   PROTECTED_GENERATED_LATEST_POINTER_FILES,
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
   PROTECTED_GENERATED_STATE_ROOT_REFERENCES,
+  resolveDoctrineProposalCanonicalPaths,
   resolveLatestArtifactPaths,
   resolveIterationArtifactPaths,
   resolveProvenanceBundlePaths,
   writeDoctrineProposalArtifact,
+  writeIterationArtifacts,
   writeProvenanceBundle,
   writeWatchdogDiagnosticArtifact
 } from '../src/ralph/artifactStore';
 import { deriveRootPolicy } from '../src/ralph/rootPolicy';
 import { createDoctrineProposalArtifact, parseDoctrineUpdatesFromCompletionReport } from '../src/ralph/doctrineProposals';
-import {
+import type {
   RalphIntegrityFailure,
+  RalphIterationResult,
   RalphPersistedPreflightReport,
+  RalphPromptEvidence,
   RalphProvenanceBundle
 } from '../src/ralph/types';
+
+function makeMinimalIterationResult(artifactDir: string, iteration: number): RalphIterationResult {
+  return {
+    schemaVersion: 1,
+    iteration,
+    selectedTaskId: null,
+    selectedTaskTitle: null,
+    promptKind: 'cli-exec',
+    promptPath: '',
+    artifactDir,
+    adapterUsed: 'test',
+    executionIntegrity: null,
+    executionStatus: 'success',
+    verificationStatus: 'passed',
+    completionClassification: 'done',
+    followUpAction: 'continue',
+    startedAt: '2026-01-01T00:00:00.000Z',
+    finishedAt: '2026-01-01T00:00:01.000Z',
+    phaseTimestamps: {
+      inspectStartedAt: '',
+      inspectFinishedAt: '',
+      taskSelectedAt: '',
+      promptGeneratedAt: '',
+      resultCollectedAt: '',
+      verificationFinishedAt: '',
+      classifiedAt: ''
+    },
+    summary: 'Minimal test iteration',
+    warnings: [],
+    errors: [],
+    execution: { exitCode: null, message: undefined },
+    verification: {
+      taskValidationHint: null,
+      effectiveValidationCommand: null,
+      normalizedValidationCommandFrom: null,
+      primaryCommand: null,
+      validationFailureSignature: null,
+      verifiers: []
+    },
+    backlog: { remainingTaskCount: 0, actionableTaskAvailable: false },
+    diffSummary: null,
+    noProgressSignals: [],
+    remediation: null,
+    stopReason: null
+  } as unknown as RalphIterationResult;
+}
+
+function makeMinimalPromptEvidence(iteration: number): RalphPromptEvidence {
+  return {
+    schemaVersion: 1,
+    iteration,
+    kind: 'cli-exec',
+    target: 'codex',
+    templatePath: '',
+    selectionReason: 'test',
+    selectedTaskId: null,
+    taskValidationHint: null,
+    effectiveValidationCommand: null,
+    normalizedValidationCommandFrom: null,
+    validationCommand: null
+  } as unknown as RalphPromptEvidence;
+}
 
 async function makeArtifactRoot(): Promise<string> {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-artifact-store-'));
@@ -2615,4 +2681,106 @@ test('cleanupGeneratedArtifacts prunes older watchdog files', async () => {
   assert.deepEqual(retention.deletedWatchdogFiles, ['default-009.json', 'default-008.json']);
   assert.deepEqual(retention.retainedWatchdogFiles, ['default-010.json']);
   assert.deepEqual(await fs.readdir(watchdogDir), ['default-010.json']);
+});
+
+test('writeIterationArtifacts with null doctrineProposalArtifact does not delete existing latest doctrine pointer files', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 15;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+
+  await fs.writeFile(latestPaths.latestDoctrineProposalPath, '{"kind":"doctrineUpdateProposal"}', 'utf8');
+  await fs.writeFile(latestPaths.latestDoctrineProposalMdPath, '# Doctrine Update Proposal\n', 'utf8');
+
+  await writeIterationArtifacts({
+    paths,
+    artifactRootDir,
+    prompt: 'Test prompt',
+    promptEvidence: makeMinimalPromptEvidence(iteration),
+    completionReport: {},
+    doctrineProposalArtifact: null,
+    stdout: '',
+    stderr: '',
+    executionSummary: {},
+    verifierSummary: [],
+    diffSummary: null,
+    result: makeMinimalIterationResult(artifactRootDir, iteration)
+  });
+
+  const jsonStillExists = await fs.access(latestPaths.latestDoctrineProposalPath).then(() => true).catch(() => false);
+  const mdStillExists = await fs.access(latestPaths.latestDoctrineProposalMdPath).then(() => true).catch(() => false);
+
+  assert.ok(jsonStillExists, 'latest-doctrine-proposal.json must be preserved when iteration has no doctrine proposal');
+  assert.ok(mdStillExists, 'latest-doctrine-proposal.md must be preserved when iteration has no doctrine proposal');
+});
+
+test('writeIterationArtifacts with no doctrineProposalArtifact on a fresh artifact root does not create latest doctrine pointer files', async () => {
+  const artifactRootDir = await makeArtifactRoot();
+  const iteration = 16;
+  const paths = resolveIterationArtifactPaths(artifactRootDir, iteration);
+  const latestPaths = resolveLatestArtifactPaths(artifactRootDir);
+
+  await writeIterationArtifacts({
+    paths,
+    artifactRootDir,
+    prompt: 'Test prompt',
+    promptEvidence: makeMinimalPromptEvidence(iteration),
+    completionReport: {},
+    stdout: '',
+    stderr: '',
+    executionSummary: {},
+    verifierSummary: [],
+    diffSummary: null,
+    result: makeMinimalIterationResult(artifactRootDir, iteration)
+  });
+
+  const jsonExists = await fs.access(latestPaths.latestDoctrineProposalPath).then(() => true).catch(() => false);
+  const mdExists = await fs.access(latestPaths.latestDoctrineProposalMdPath).then(() => true).catch(() => false);
+
+  assert.ok(!jsonExists, 'latest-doctrine-proposal.json must not be created when no doctrine proposal was written');
+  assert.ok(!mdExists, 'latest-doctrine-proposal.md must not be created when no doctrine proposal was written');
+});
+
+test('resolveDoctrineProposalCanonicalPaths throws for proposal IDs containing a forward slash', () => {
+  assert.throws(
+    () => resolveDoctrineProposalCanonicalPaths('/tmp/artifacts', 'doctrine-proposal-../escape'),
+    /unsafe|path.*separator|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalCanonicalPaths throws for proposal IDs containing a backslash', () => {
+  assert.throws(
+    () => resolveDoctrineProposalCanonicalPaths('/tmp/artifacts', 'doctrine-proposal-foo\\bar'),
+    /unsafe|path.*separator|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalCanonicalPaths throws for proposal IDs consisting of only ..', () => {
+  assert.throws(
+    () => resolveDoctrineProposalCanonicalPaths('/tmp/artifacts', '..'),
+    /unsafe|empty|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalCanonicalPaths throws for empty proposal IDs', () => {
+  assert.throws(
+    () => resolveDoctrineProposalCanonicalPaths('/tmp/artifacts', ''),
+    /empty|invalid/i
+  );
+});
+
+test('resolveDoctrineProposalCanonicalPaths accepts normal generated proposal IDs', () => {
+  const canonicalPaths = resolveDoctrineProposalCanonicalPaths(
+    '/tmp/artifacts',
+    'doctrine-proposal-run-i001-cli-20260430T000000Z'
+  );
+
+  assert.ok(
+    canonicalPaths.jsonPath.endsWith('doctrine-proposal-run-i001-cli-20260430T000000Z.json'),
+    'JSON path must end with proposalId.json'
+  );
+  assert.ok(
+    canonicalPaths.mdPath.endsWith('doctrine-proposal-run-i001-cli-20260430T000000Z.md'),
+    'Markdown path must end with proposalId.md'
+  );
 });

@@ -218,6 +218,12 @@ function resolveLatestArtifactPaths(artifactRootDir) {
     };
 }
 function resolveDoctrineProposalCanonicalPaths(artifactRootDir, proposalId) {
+    if (!proposalId || proposalId.trim() === '') {
+        throw new Error('proposalId must not be empty');
+    }
+    if (proposalId.includes('/') || proposalId.includes('\\') || proposalId.includes('..')) {
+        throw new Error(`proposalId contains unsafe path characters: ${proposalId}`);
+    }
     const directory = path.join(artifactRootDir, 'doctrine-proposals');
     return {
         directory,
@@ -416,10 +422,7 @@ async function writeIterationArtifacts(input) {
                 artifactRootDir: input.artifactRootDir,
                 proposal: input.doctrineProposalArtifact
             })
-            : Promise.all([
-                fs.rm(latestPaths.latestDoctrineProposalPath, { force: true }),
-                fs.rm(latestPaths.latestDoctrineProposalMdPath, { force: true })
-            ]),
+            : Promise.resolve(),
         input.diffSummary
             ? fs.writeFile(input.paths.diffSummaryPath, (0, integrity_1.stableJson)(input.diffSummary), 'utf8')
             : Promise.resolve(),
