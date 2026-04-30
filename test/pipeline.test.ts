@@ -38,10 +38,17 @@ test('parsePrdSections falls back to placeholder when no headings', () => {
   assert.deepEqual(sections, ['Implement PRD objective']);
 });
 
-test('parsePrdSections returns at most 3 sections', () => {
+test('parsePrdSections returns at most 3 sections with default limit', () => {
   const prd = '## A\n## B\n## C\n## D\n## E\n';
   const sections = parsePrdSections(prd);
   assert.equal(sections.length, 3);
+});
+
+test('parsePrdSections respects a custom maxChildTasks limit', () => {
+  const prd = '## A\n## B\n## C\n## D\n## E\n## F\n## G\n## H\n## I\n';
+  const sections = parsePrdSections(prd, 8);
+  assert.equal(sections.length, 8);
+  assert.deepEqual(sections, ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
 });
 
 test('buildPipelineRootTask creates a todo task with the correct id', () => {

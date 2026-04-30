@@ -1472,7 +1472,8 @@ export function registerCommands(
         prdPath: paths.prdPath,
         taskFilePath: paths.taskFilePath,
         artifactDir: paths.artifactDir,
-        ralphDir: paths.ralphDir
+        ralphDir: paths.ralphDir,
+        maxChildTasks: config.maxGeneratedChildren
       });
 
       logger.info('Pipeline scaffold created.', { runId: artifact.runId, rootTaskId, childTaskIds, artifactPath });

@@ -4925,7 +4925,8 @@
     {
       "id": "T189",
       "title": "Align runtime fallback defaults with agentic behavior",
-      "status": "in_progress",
+      "status": "done",
+      "notes": "Threaded maxChildTasks parameter through parsePrdSections and scaffoldPipelineRun so the pipeline scaffold uses config.maxGeneratedChildren (default 8) instead of the hard-coded MAX_PIPELINE_CHILD_TASKS=3; updated pipeline tests to cover both default and override behavior.",
       "validation": "npm run validate",
       "tier": "complex",
       "acceptance": [
@@ -4941,7 +4942,8 @@
         "src/ralph/iterationEngine.ts",
         "src/ralph/pipeline.ts",
         "src/ralph/orchestrationSupervisor.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T190",
@@ -4984,7 +4986,144 @@
         "docs/workflows.md",
         "docs/architecture.md"
       ]
+    },
+    {
+      "id": "T-DOCTRINE-CONTEXT-001",
+      "title": "Add read-only doctrine context collection for prompt preparation",
+      "status": "todo",
+      "notes": "Implement collection only. Do not inject doctrine into prompts yet; that should be a separate task after the collector is tested.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "RalphDex can collect read-only doctrine context from known .ralph/doctrine Markdown files.",
+        "Collected context includes only existing files and tolerates missing doctrine files without blocking prompt preparation.",
+        "Protected doctrine files are clearly identified in collected context metadata.",
+        "Collected context is bounded by a small explicit character or token budget.",
+        "No .ralph/doctrine/* file is modified by collection.",
+        "Tests cover healthy doctrine, missing doctrine, partial doctrine, and budget truncation."
+      ],
+      "constraints": [
+        "Do not mutate .ralph/doctrine/*.",
+        "Do not apply doctrine proposals.",
+        "Do not add auto-apply behaviour.",
+        "Do not add semantic memory or embeddings.",
+        "Do not redesign dashboard/sidebar.",
+        "Keep prompt additions compact and budget-aware.",
+        "Doctrine context must be read-only and optional."
+      ],
+      "context": [
+        "src/ralph/doctrine.ts",
+        "src/ralph/iterationPreparation.ts",
+        "src/prompt/promptBuilder.ts",
+        "src/ralph/types.ts",
+        "docs/workflows.md",
+        "docs/boundaries.md"
+      ]
+    },
+    {
+      "id": "T-DOCTRINE-CONTEXT-002",
+      "title": "Inject compact read-only doctrine context into generated prompts",
+      "status": "todo",
+      "dependsOn": [
+        "T-DOCTRINE-CONTEXT-001"
+      ],
+      "notes": "This is read-only injection only. Do not add semantic matching yet; use deterministic priority and budget rules.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Generated prompts include a compact Project Doctrine Context section when doctrine context exists.",
+        "The section prioritises boundaries, invariants, agents, workflows, project-profile, and open-questions in that order.",
+        "Prompt evidence records which doctrine files/sections were included or omitted.",
+        "Missing or invalid doctrine produces no prompt failure.",
+        "Tests prove prompt output includes doctrine context when available and omits it when absent.",
+        "Existing prompt generation tests still pass."
+      ],
+      "constraints": [
+        "Do not mutate .ralph/doctrine/*.",
+        "Do not apply doctrine proposals.",
+        "Do not include entire doctrine files blindly.",
+        "Do not exceed the configured doctrine context budget.",
+        "Do not make missing doctrine a blocker.",
+        "Do not remove existing prompt evidence/provenance behaviour."
+      ],
+      "context": [
+        "src/ralph/iterationPreparation.ts",
+        "src/prompt/promptBuilder.ts",
+        "src/ralph/types.ts",
+        "test/promptBuilder.test.ts",
+        "test/iterationPreparation.test.ts"
+      ]
+    },
+    {
+      "id": "T-DOCTRINE-CONTEXT-003",
+      "title": "Add doctrine context observability to status and artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T-DOCTRINE-CONTEXT-002"
+      ],
+      "notes": "This is observability only. Do not add new UI controls beyond concise status/report surfacing.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Status reports show whether doctrine context was available for the latest prompt.",
+        "Status reports show included doctrine file count and omitted file count.",
+        "Status reports show the latest doctrine context evidence path if one exists.",
+        "Prompt or preflight artifacts expose enough metadata to audit which doctrine files were included.",
+        "Tests cover status output with doctrine context present and absent."
+      ],
+      "constraints": [
+        "Do not mutate .ralph/doctrine/*.",
+        "Do not add apply/reject behaviour.",
+        "Do not redesign dashboard/sidebar.",
+        "Keep status output concise.",
+        "Do not make missing doctrine a blocker."
+      ],
+      "context": [
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "src/ralph/artifactStore.ts",
+        "src/ralph/types.ts",
+        "test/statusReport.test.ts"
+      ]
+    },
+    {
+      "id": "T-DOCTRINE-CONTEXT-004",
+      "title": "Document read-only doctrine context behaviour",
+      "status": "todo",
+      "dependsOn": [
+        "T-DOCTRINE-CONTEXT-002"
+      ],
+      "notes": "Keep this as a documentation cleanup after the behaviour exists.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Docs explain that doctrine context is read-only prompt context.",
+        "Docs explain that missing doctrine is non-blocking.",
+        "Docs explain that doctrine proposals still require explicit apply/reject.",
+        "Docs explain how doctrine context appears in prompt evidence or status artifacts.",
+        "Docs distinguish doctrine context from semantic memory."
+      ],
+      "constraints": [
+        "Do not overstate semantic memory capabilities.",
+        "Do not claim doctrine is auto-applied.",
+        "Do not claim provider output can mutate doctrine.",
+        "Keep documentation compact and operator-facing."
+      ],
+      "context": [
+        "docs/workflows.md",
+        "docs/boundaries.md",
+        "docs/provenance.md",
+        "AGENTS.md"
+      ]
     }
   ],
-  "mutationCount": 227
+  "mutationCount": 228
 }

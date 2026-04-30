@@ -77,11 +77,11 @@ const MAX_PIPELINE_CHILD_TASKS = 3;
  * Falls back to level-1 headings, then to a single placeholder.
  * Returns at most MAX_PIPELINE_CHILD_TASKS segments.
  */
-export function parsePrdSections(prdText: string): string[] {
+export function parsePrdSections(prdText: string, maxChildTasks: number = MAX_PIPELINE_CHILD_TASKS): string[] {
   const h2 = [...prdText.matchAll(/^##\s+(.+)$/gm)]
     .map((m) => m[1].trim())
     .filter((t) => t.length > 0)
-    .slice(0, MAX_PIPELINE_CHILD_TASKS);
+    .slice(0, maxChildTasks);
 
   if (h2.length >= 1) {
     return h2;
@@ -90,7 +90,7 @@ export function parsePrdSections(prdText: string): string[] {
   const h1 = [...prdText.matchAll(/^#\s+(.+)$/gm)]
     .map((m) => m[1].trim())
     .filter((t) => t.length > 0)
-    .slice(0, MAX_PIPELINE_CHILD_TASKS);
+    .slice(0, maxChildTasks);
 
   if (h1.length >= 1) {
     return h1;
@@ -188,13 +188,14 @@ export async function scaffoldPipelineRun(input: {
   taskFilePath: string;
   artifactDir: string;
   ralphDir: string;
+  maxChildTasks?: number;
 }): Promise<{ artifact: PipelineRunArtifact; artifactPath: string; rootTaskId: string; childTaskIds: string[] }> {
   const prdText = await fs.readFile(input.prdPath, 'utf8');
   const prdHash = hashText(prdText);
   const runId = buildPipelineRunId();
   const rootTaskId = `Tpipe-${runId.replace(/^pipeline-/, '')}`;
 
-  const sections = parsePrdSections(prdText);
+  const sections = parsePrdSections(prdText, input.maxChildTasks);
   const rootTask = buildPipelineRootTask(rootTaskId, runId);
   const childTasks = buildPipelineChildTasks(runId, rootTaskId, sections);
   const childTaskIds = childTasks.map((t) => t.id);

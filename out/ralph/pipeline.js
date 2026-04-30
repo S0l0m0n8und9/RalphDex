@@ -80,18 +80,18 @@ const MAX_PIPELINE_CHILD_TASKS = 3;
  * Falls back to level-1 headings, then to a single placeholder.
  * Returns at most MAX_PIPELINE_CHILD_TASKS segments.
  */
-function parsePrdSections(prdText) {
+function parsePrdSections(prdText, maxChildTasks = MAX_PIPELINE_CHILD_TASKS) {
     const h2 = [...prdText.matchAll(/^##\s+(.+)$/gm)]
         .map((m) => m[1].trim())
         .filter((t) => t.length > 0)
-        .slice(0, MAX_PIPELINE_CHILD_TASKS);
+        .slice(0, maxChildTasks);
     if (h2.length >= 1) {
         return h2;
     }
     const h1 = [...prdText.matchAll(/^#\s+(.+)$/gm)]
         .map((m) => m[1].trim())
         .filter((t) => t.length > 0)
-        .slice(0, MAX_PIPELINE_CHILD_TASKS);
+        .slice(0, maxChildTasks);
     if (h1.length >= 1) {
         return h1;
     }
@@ -172,7 +172,7 @@ async function scaffoldPipelineRun(input) {
     const prdHash = (0, integrity_1.hashText)(prdText);
     const runId = buildPipelineRunId();
     const rootTaskId = `Tpipe-${runId.replace(/^pipeline-/, '')}`;
-    const sections = parsePrdSections(prdText);
+    const sections = parsePrdSections(prdText, input.maxChildTasks);
     const rootTask = buildPipelineRootTask(rootTaskId, runId);
     const childTasks = buildPipelineChildTasks(runId, rootTaskId, sections);
     const childTaskIds = childTasks.map((t) => t.id);
