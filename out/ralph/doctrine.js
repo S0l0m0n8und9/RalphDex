@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DOCTRINE_CONTEXT_BUDGET_CHARS = exports.PROTECTED_DOCTRINE_FILES = exports.DOCTRINE_MARKDOWN_FILES = exports.DOCTRINE_ROOT_RELATIVE = void 0;
+exports.DOCTRINE_CONTEXT_BUDGET_CHARS = exports.PROTECTED_DOCTRINE_FILES = exports.DOCTRINE_MARKDOWN_FILES = exports.DOCTRINE_REPAIR_COMMAND_LABEL = exports.DOCTRINE_ROOT_RELATIVE = void 0;
 exports.collectDoctrineContext = collectDoctrineContext;
 exports.createDoctrinePack = createDoctrinePack;
 exports.inspectDoctrinePack = inspectDoctrinePack;
@@ -41,6 +41,7 @@ const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const fs_1 = require("../util/fs");
 exports.DOCTRINE_ROOT_RELATIVE = '.ralph/doctrine';
+exports.DOCTRINE_REPAIR_COMMAND_LABEL = 'Ralphdex: Initialize Doctrine Pack';
 exports.DOCTRINE_MARKDOWN_FILES = [
     'project-profile.md',
     'invariants.md',
@@ -345,6 +346,9 @@ function doctrineDir(rootPath) {
 function relativeDoctrineFile(fileName) {
     return `${exports.DOCTRINE_ROOT_RELATIVE}/${fileName}`;
 }
+function withDoctrineRepairGuidance(message) {
+    return `${message} Run "${exports.DOCTRINE_REPAIR_COMMAND_LABEL}" to scaffold or repair doctrine files.`;
+}
 function markdownHeadings(text) {
     const headings = new Set();
     for (const line of text.split(/\r?\n/)) {
@@ -431,7 +435,7 @@ async function inspectDoctrinePack(rootPath) {
             diagnostics: [{
                     severity: 'warning',
                     code: 'doctrine_directory_missing',
-                    message: 'Doctrine health: missing. .ralph/doctrine has not been created for this workspace.'
+                    message: withDoctrineRepairGuidance('Doctrine health: missing. .ralph/doctrine has not been created for this workspace.')
                 }]
         };
     }
@@ -442,7 +446,7 @@ async function inspectDoctrinePack(rootPath) {
                 severity: 'warning',
                 code: 'doctrine_required_file_missing',
                 file: relativeDoctrineFile(fileName),
-                message: `Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile(fileName)}.`
+                message: withDoctrineRepairGuidance(`Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile(fileName)}.`)
             });
             continue;
         }
@@ -454,7 +458,7 @@ async function inspectDoctrinePack(rootPath) {
                     severity: 'warning',
                     code: 'doctrine_required_heading_missing',
                     file: relativeDoctrineFile(fileName),
-                    message: `Doctrine health: incomplete. ${relativeDoctrineFile(fileName)} is missing required heading "## ${requiredHeading}".`
+                    message: withDoctrineRepairGuidance(`Doctrine health: incomplete. ${relativeDoctrineFile(fileName)} is missing required heading "## ${requiredHeading}".`)
                 });
             }
         }
@@ -465,7 +469,7 @@ async function inspectDoctrinePack(rootPath) {
             severity: 'warning',
             code: 'doctrine_required_file_missing',
             file: relativeDoctrineFile('evidence-index.json'),
-            message: `Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile('evidence-index.json')}.`
+            message: withDoctrineRepairGuidance(`Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile('evidence-index.json')}.`)
         });
     }
     else {
@@ -476,7 +480,7 @@ async function inspectDoctrinePack(rootPath) {
                     severity: 'warning',
                     code: 'doctrine_evidence_index_invalid',
                     file: relativeDoctrineFile('evidence-index.json'),
-                    message: 'Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json does not have the expected minimal shape.'
+                    message: withDoctrineRepairGuidance('Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json does not have the expected minimal shape.')
                 });
             }
         }
@@ -485,7 +489,7 @@ async function inspectDoctrinePack(rootPath) {
                 severity: 'warning',
                 code: 'doctrine_evidence_index_invalid',
                 file: relativeDoctrineFile('evidence-index.json'),
-                message: 'Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json is not valid JSON.'
+                message: withDoctrineRepairGuidance('Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json is not valid JSON.')
             });
         }
     }

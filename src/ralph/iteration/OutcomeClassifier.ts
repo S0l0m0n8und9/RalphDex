@@ -3,6 +3,7 @@ import {
   classifyVerificationStatus,
   containsHumanReviewMarker
 } from '../loopLogic';
+import type { CodexReasoningEffort } from '../../config/types';
 import type { CompletionReconciliationOutcome } from '../reconciliation';
 import { countTaskStatuses, remainingSubtasks, selectNextTask } from '../taskFile';
 import type { PreparedIterationContext } from '../iterationPreparation';
@@ -46,6 +47,7 @@ export interface ClassifyIterationInput {
   taskStateVerification: TaskStateVerification;
   afterCoreState: RalphCoreStateSnapshot;
   selectedModel: string;
+  selectedReasoningEffort: CodexReasoningEffort;
   effectiveTier: string;
   branchPerTaskWarnings: string[];
 }
@@ -157,7 +159,7 @@ export class OutcomeClassifier {
         promptTarget: input.prepared.executionPlan.promptTarget,
         rootPolicy: input.prepared.rootPolicy,
         templatePath: input.prepared.executionPlan.templatePath,
-        reasoningEffort: input.prepared.config.reasoningEffort,
+        reasoningEffort: input.selectedReasoningEffort,
         taskValidationHint: input.prepared.taskValidationHint,
         effectiveValidationCommand: input.prepared.effectiveValidationCommand,
         normalizedValidationCommandFrom: input.prepared.normalizedValidationCommandFrom,

@@ -100,7 +100,13 @@ function selectModelForTask(input) {
             : input.task.tier === 'complex' ? input.tiering.complex
                 : input.tiering.medium;
         const score = { score: 0, signals: [{ name: 'explicit', contribution: 0 }] };
-        return { model: tierConfig.model, provider: tierConfig.provider, score, tier: input.task.tier };
+        return {
+            model: tierConfig.model,
+            provider: tierConfig.provider,
+            reasoningEffort: tierConfig.reasoningEffort,
+            score,
+            tier: input.task.tier
+        };
     }
     const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
     let tier;
@@ -117,7 +123,13 @@ function selectModelForTask(input) {
         tier = input.tiering.medium;
         tierName = 'medium';
     }
-    return { model: tier.model, provider: tier.provider, score, tier: tierName };
+    return {
+        model: tier.model,
+        provider: tier.provider,
+        reasoningEffort: tier.reasoningEffort,
+        score,
+        tier: tierName
+    };
 }
 /**
  * Derives the effective tier for a task without committing to a specific model.

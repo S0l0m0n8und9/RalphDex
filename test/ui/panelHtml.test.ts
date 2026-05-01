@@ -291,6 +291,19 @@ test('buildPanelDashboardHtml renders empty dashboard summary sections when no d
   assert.ok(html.includes('Common Actions'));
 });
 
+test('buildPanelDashboardHtml diagnostics tab surfaces doctrine repair guidance from preflight diagnostics', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    preflightReady: false,
+    diagnostics: [{
+      severity: 'warning',
+      message: 'Doctrine health: missing. .ralph/doctrine has not been created for this workspace. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+    }]
+  }), 'diag-doctrine');
+
+  assert.ok(html.includes('Ralphdex: Initialize Doctrine Pack'));
+  assert.ok(html.includes('Doctrine health: missing.'));
+});
+
 test('buildPanelDashboardHtml renders accessible task and history controls with persisted tabs', () => {
   const html = buildPanelDashboardHtml(defaultState({
     tasks: [{

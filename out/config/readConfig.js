@@ -183,6 +183,7 @@ function readAzureFoundryConfig(raw, fallback) {
     };
 }
 const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
+const CODEX_REASONING_EFFORTS = ['medium', 'high'];
 function readTierConfig(raw, fallback) {
     // Accept a plain string (backward-compat: old flat `simpleModel` format).
     if (typeof raw === 'string' && raw.trim()) {
@@ -198,7 +199,14 @@ function readTierConfig(raw, fallback) {
     const provider = typeof record.provider === 'string' && CLI_PROVIDER_IDS.includes(record.provider)
         ? record.provider
         : undefined;
-    return provider ? { provider, model } : { model };
+    const reasoningEffort = typeof record.reasoningEffort === 'string' && CODEX_REASONING_EFFORTS.includes(record.reasoningEffort)
+        ? record.reasoningEffort
+        : undefined;
+    return {
+        ...(provider ? { provider } : {}),
+        ...(reasoningEffort ? { reasoningEffort } : {}),
+        model
+    };
 }
 function readModelTiering(config, fallback) {
     const raw = config.get('modelTiering');

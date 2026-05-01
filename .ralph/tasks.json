@@ -5168,19 +5168,21 @@
     {
       "id": "T194",
       "title": "Surface doctrine-repair guidance in status and dashboard flows when doctrine is missing or incomplete",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T193"
       ],
-      "notes": "Doctrine health already appears as a warning, but established workspaces need an obvious recovery path. Update status and UI surfaces so missing or incomplete doctrine points operators at the new repair command without upgrading doctrine health into a blocking error.",
+      "notes": "Surfaced doctrine-repair guidance in durable dashboard diagnostics by projecting preflight diagnostics through dashboard snapshot + host state, and added regression tests to keep the guidance visible in Show Status/dashboard flows.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
         "Show Status and related diagnostics name the doctrine repair command or an equally explicit next step when doctrine is missing or incomplete.",
         "The dashboard or settings/diagnostics flow exposes the same repair path without requiring operators to inspect source code or hidden commands.",
         "Doctrine remains warning-level only: missing doctrine still does not block task selection or CLI launch by itself.",
+        "Replace any operator-facing “Ralphdex: Bootstrap Ralph Workspace” wording with the shipped command name “Ralphdex: Initialize Workspace”, unless there is an actual contributed command with the Bootstrap title.",
         "npm run validate passes."
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T195",
@@ -5199,7 +5201,297 @@
         "README.md and the focused owning workflow docs explain how established workspaces adopt doctrine after the fact and how that differs from Initialize Workspace.",
         "npm run validate passes."
       ]
+    },
+    {
+      "id": "T196",
+      "title": "Add per-tier execution profiles for model tiering",
+      "status": "todo",
+      "dependsOn": [
+        "T195"
+      ],
+      "notes": "Extend model tiering from model/provider selection into a full execution-profile selection contract covering model, provider, reasoning effort, provenance, docs, and tests. Preserve existing global reasoningEffort as the backwards-compatible fallback.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "tier": "complex",
+      "acceptance": [
+        "Model tiering resolves an execution profile rather than only a model/provider pair.",
+        "Each simple, medium, and complex tier can optionally specify reasoningEffort.",
+        "Global ralphCodex.reasoningEffort remains the fallback when a tier omits reasoningEffort.",
+        "Existing modelTiering settings without reasoningEffort continue to load and execute without migration.",
+        "Selected model, provider, tier, score, and reasoningEffort are visible in runtime evidence."
+      ],
+      "constraints": [
+        "Do not remove the existing global ralphCodex.reasoningEffort setting.",
+        "Do not change task-complexity scoring thresholds except where required by tests or docs.",
+        "Do not introduce a fourth persisted RalphTask tier in this tranche.",
+        "Do not break legacy string-form tier configuration.",
+        "Do not silently widen provider-specific command arguments beyond currently supported providers."
+      ],
+      "context": [
+        "src/config/types.ts",
+        "src/config/readConfig.ts",
+        "src/config/defaults.ts",
+        "src/ralph/complexityScorer.ts",
+        "src/ralph/iterationEngine.ts",
+        "src/codex/types.ts",
+        "docs/model-tiering.md",
+        "package.json",
+        "test/complexityScorer.test.ts"
+      ]
+    },
+    {
+      "id": "T196.1",
+      "title": "Extend model-tier config with optional reasoning effort",
+      "status": "in_progress",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196"
+      ],
+      "notes": "Add reasoningEffort to RalphModelTierConfig and keep the global reasoningEffort field as the fallback contract. The type surface should represent a tier execution profile while remaining backwards compatible with existing settings.",
+      "validation": "npm test -- --runTestsByPath test/complexityScorer.test.ts",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "RalphModelTierConfig includes optional reasoningEffort.",
+        "The allowed reasoning effort values match the provider-facing CodexReasoningEffort type used by CodexExecRequest.",
+        "Global RalphCodexConfig.reasoningEffort remains present and documented as fallback.",
+        "No existing modelTiering config shape is made invalid by the type change."
+      ],
+      "constraints": [
+        "Do not remove provider or model from RalphModelTierConfig.",
+        "Do not require every tier to specify reasoningEffort.",
+        "Do not change unrelated provider config types."
+      ],
+      "context": [
+        "src/config/types.ts",
+        "src/codex/types.ts"
+      ]
+    },
+    {
+      "id": "T196.2",
+      "title": "Read per-tier reasoning settings with legacy-safe fallback",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.1"
+      ],
+      "notes": "Update config parsing so simple, medium, and complex tier objects may include reasoningEffort. Invalid values must fall back safely. Existing string-form tier config must still resolve to a model-only tier profile.",
+      "validation": "npm test -- --runTestsByPath test/readConfig.test.ts test/complexityScorer.test.ts",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "readTierConfig reads reasoningEffort from object-form tier settings.",
+        "Invalid per-tier reasoningEffort values are ignored or replaced with a safe fallback.",
+        "String-form tier values still produce model-only tier config.",
+        "Flat legacy simpleModel, mediumModel, and complexModel settings still work where currently supported.",
+        "Tests cover object-form tier config with and without reasoningEffort."
+      ],
+      "constraints": [
+        "Do not make reasoningEffort mandatory in settings.",
+        "Do not treat invalid tier reasoning as a hard config failure unless existing config-reader policy already does so.",
+        "Do not change unrelated readConfig behaviour."
+      ],
+      "context": [
+        "src/config/readConfig.ts",
+        "src/config/defaults.ts",
+        "src/config/types.ts",
+        "test/readConfig.test.ts"
+      ]
+    },
+    {
+      "id": "T196.3",
+      "title": "Resolve model tiering to an execution profile",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.1",
+        "T196.2"
+      ],
+      "notes": "Update selectModelForTask so it returns the resolved reasoningEffort alongside model, provider, tier, and score. Tier reasoning should override global reasoning only when explicitly configured.",
+      "validation": "npm test -- --runTestsByPath test/complexityScorer.test.ts",
+      "priority": "high",
+      "tier": "medium",
+      "acceptance": [
+        "selectModelForTask returns reasoningEffort as part of its result.",
+        "Tier-level reasoningEffort takes precedence over global reasoningEffort.",
+        "Global reasoningEffort is used when the selected tier omits reasoningEffort.",
+        "Explicit task tier selection uses that tier's configured reasoningEffort.",
+        "Disabled model tiering still returns the fallback model and global reasoningEffort."
+      ],
+      "constraints": [
+        "Do not change existing complexity score signal weights.",
+        "Do not change simpleThreshold or complexThreshold defaults in this task.",
+        "Do not remove score or tier from the resolver result."
+      ],
+      "context": [
+        "src/ralph/complexityScorer.ts",
+        "src/config/types.ts",
+        "test/complexityScorer.test.ts"
+      ]
+    },
+    {
+      "id": "T196.4",
+      "title": "Wire selected tier reasoning into main CLI execution",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.3"
+      ],
+      "notes": "Ensure the selected execution profile's reasoningEffort is passed into the main provider execution request instead of always using the global config value after model-tier selection.",
+      "validation": "npm test -- --runTestsByPath test/iterationEngine.test.ts test/cliExecStrategy.test.ts",
+      "priority": "high",
+      "tier": "complex",
+      "acceptance": [
+        "Main CLI iteration uses the selected tier reasoningEffort.",
+        "The selected model and selected reasoningEffort come from the same resolved execution profile.",
+        "No main execution path reverts to global reasoningEffort after selecting a tier that specifies reasoningEffort.",
+        "Tests prove a medium or complex tier can override global reasoningEffort."
+      ],
+      "constraints": [
+        "Do not change provider execution semantics beyond the selected reasoningEffort value.",
+        "Do not modify planning or failure-diagnostic execution in this task unless required to keep compilation green.",
+        "Do not change sandboxMode or approvalMode routing."
+      ],
+      "context": [
+        "src/ralph/iterationEngine.ts",
+        "src/ralph/iteration/IterationExecutor.ts",
+        "src/codex/types.ts",
+        "test/iterationEngine.test.ts",
+        "test/cliExecStrategy.test.ts"
+      ]
+    },
+    {
+      "id": "T196.5",
+      "title": "Define reasoning policy for planning and diagnostic turns",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.3"
+      ],
+      "notes": "Decide and implement whether inline planning and failure-diagnostic turns use global reasoningEffort, a utility reasoning profile, or the selected task tier's reasoning profile. Make the policy explicit and evidence-backed.",
+      "validation": "npm test -- --runTestsByPath test/iterationEngine.test.ts test/failureDiagnostics.test.ts",
+      "priority": "normal",
+      "tier": "medium",
+      "acceptance": [
+        "Inline planning pass reasoningEffort behaviour is explicit and tested.",
+        "Failure-diagnostic reasoningEffort behaviour is explicit and tested.",
+        "The implementation avoids accidentally inheriting an implementation-tier reasoning level where a utility/global profile is intended.",
+        "The chosen policy is documented in code comments or docs where operators will encounter it."
+      ],
+      "constraints": [
+        "Do not introduce a utilityModel setting unless the task explicitly justifies and tests it.",
+        "Do not hide planning or diagnostic reasoning behaviour inside unrelated execution wiring.",
+        "Do not make diagnostic turns more expensive by default without an explicit rationale."
+      ],
+      "context": [
+        "src/ralph/iterationEngine.ts",
+        "src/ralph/planningPass.ts",
+        "src/ralph/failureDiagnostics.ts",
+        "docs/model-tiering.md"
+      ]
+    },
+    {
+      "id": "T196.6",
+      "title": "Persist selected reasoning effort in iteration evidence",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.4"
+      ],
+      "notes": "Extend runtime evidence so selected reasoning effort is inspectable alongside selected model and effective tier. This should support later calibration of model-tier outcomes.",
+      "validation": "npm test -- --runTestsByPath test/provenancePersistence.test.ts test/iterationEngine.test.ts",
+      "priority": "normal",
+      "tier": "medium",
+      "acceptance": [
+        "RalphIterationResult records selectedReasoningEffort or an equivalent explicit field.",
+        "CLI invocation evidence records the actual reasoningEffort passed to the provider.",
+        "Execution integrity summaries retain reasoningEffort evidence.",
+        "Provenance or verifier summaries expose enough data to correlate task tier, selected model, and selected reasoningEffort."
+      ],
+      "constraints": [
+        "Do not rename existing selectedModel or effectiveTier fields unless all consumers are updated.",
+        "Do not duplicate conflicting reasoning fields with different meanings.",
+        "Do not claim reasoning effort was applied when the provider does not support or emit it."
+      ],
+      "context": [
+        "src/ralph/types.ts",
+        "src/ralph/provenancePersistence.ts",
+        "src/ralph/iterationEngine.ts",
+        "src/codex/types.ts",
+        "test/provenancePersistence.test.ts"
+      ]
+    },
+    {
+      "id": "T196.7",
+      "title": "Update settings schema and operator docs for per-tier reasoning",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.2",
+        "T196.3",
+        "T196.6"
+      ],
+      "notes": "Expose per-tier reasoningEffort in the VS Code configuration schema and update model-tiering documentation with the execution-profile contract, fallback semantics, examples, and calibration guidance.",
+      "validation": "npm run check:docs && npm test -- --runTestsByPath test/settingsSurface.test.ts",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "package.json configuration schema permits reasoningEffort under modelTiering.simple, modelTiering.medium, and modelTiering.complex.",
+        "docs/model-tiering.md describes model tiering as execution-profile selection.",
+        "Docs explain fallback from tier reasoningEffort to global reasoningEffort.",
+        "Docs include a Codex-oriented example with simple and medium using gpt-5.3-codex and complex using gpt-5.5.",
+        "Docs avoid recommending mini as the default implementation tier unless scoped to utility or low-risk work."
+      ],
+      "constraints": [
+        "Do not document unsupported reasoning values as generally safe across all providers.",
+        "Do not remove legacy examples unless they are replaced with backwards-compatible equivalents.",
+        "Do not overstate cost savings without measured calibration evidence."
+      ],
+      "context": [
+        "package.json",
+        "docs/model-tiering.md",
+        "docs/prompt-calibration.md",
+        "src/config/settingsSurface.ts",
+        "test/settingsSurface.test.ts"
+      ]
+    },
+    {
+      "id": "T196.8",
+      "title": "Add end-to-end regression coverage for per-tier reasoning selection",
+      "status": "todo",
+      "parentId": "T196",
+      "dependsOn": [
+        "T196.4",
+        "T196.5",
+        "T196.6",
+        "T196.7"
+      ],
+      "notes": "Add integration-level coverage proving per-tier reasoning survives config reading, model selection, execution request construction, and evidence persistence.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "tier": "complex",
+      "acceptance": [
+        "A simple-tier task can select one reasoningEffort while a complex-tier task selects another.",
+        "A tier without reasoningEffort falls back to global reasoningEffort.",
+        "Execution request construction uses the resolved reasoningEffort.",
+        "Persisted evidence records the resolved reasoningEffort.",
+        "All existing model-tiering and provider conformance tests pass."
+      ],
+      "constraints": [
+        "Do not rely on a live provider call for the regression test.",
+        "Do not make tests brittle against exact provider CLI output unless that output is already part of the contract.",
+        "Do not skip existing provider conformance coverage."
+      ],
+      "context": [
+        "test/complexityScorer.test.ts",
+        "test/iterationEngine.test.ts",
+        "test/providerFactory.conformance.test.ts",
+        "test/cliExecStrategy.test.ts",
+        "src/ralph/complexityScorer.ts",
+        "src/ralph/iterationEngine.ts"
+      ]
     }
   ],
-  "mutationCount": 237
+  "mutationCount": 238
 }

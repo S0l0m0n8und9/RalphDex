@@ -14,7 +14,7 @@
  */
 
 import { RalphCompletionClassification, RalphIterationResult, RalphTask, RalphTaskFile, RalphTaskTier } from './types';
-import { CliProviderId, RalphModelTieringConfig } from '../config/types';
+import { CliProviderId, CodexReasoningEffort, RalphModelTieringConfig } from '../config/types';
 
 export interface ComplexityScore {
   /** Total complexity score (sum of all signals). */
@@ -119,7 +119,7 @@ export function selectModelForTask(input: {
   iterationHistory: RalphIterationResult[];
   tiering: RalphModelTieringConfig;
   fallbackModel: string;
-}): { model: string; provider?: CliProviderId; score: ComplexityScore | null; tier: string } {
+}): { model: string; provider?: CliProviderId; reasoningEffort?: CodexReasoningEffort; score: ComplexityScore | null; tier: string } {
   if (!input.tiering.enabled) {
     return { model: input.fallbackModel, score: null, tier: 'default' };
   }
@@ -129,12 +129,18 @@ export function selectModelForTask(input: {
       : input.task.tier === 'complex' ? input.tiering.complex
       : input.tiering.medium;
     const score: ComplexityScore = { score: 0, signals: [{ name: 'explicit', contribution: 0 }] };
-    return { model: tierConfig.model, provider: tierConfig.provider, score, tier: input.task.tier };
+    return {
+      model: tierConfig.model,
+      provider: tierConfig.provider,
+      reasoningEffort: tierConfig.reasoningEffort,
+      score,
+      tier: input.task.tier
+    };
   }
 
   const score = scoreTaskComplexity(input.task, input.taskFile, input.iterationHistory);
 
-  let tier: { model: string; provider?: CliProviderId };
+  let tier: { model: string; provider?: CliProviderId; reasoningEffort?: CodexReasoningEffort };
   let tierName: string;
   if (score.score < input.tiering.simpleThreshold) {
     tier = input.tiering.simple;
@@ -147,7 +153,13 @@ export function selectModelForTask(input: {
     tierName = 'medium';
   }
 
-  return { model: tier.model, provider: tier.provider, score, tier: tierName };
+  return {
+    model: tier.model,
+    provider: tier.provider,
+    reasoningEffort: tier.reasoningEffort,
+    score,
+    tier: tierName
+  };
 }
 
 /** Resolved complexity tier with the source that determined it. */

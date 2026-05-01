@@ -319,7 +319,7 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
         throw new Error('PRD Creation Wizard is unavailable because the panel manager was not initialized.');
     }
     if (!(await (0, fs_1.pathExists)(paths.ralphDir))) {
-        void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Bootstrap Ralph Workspace" first.');
+        void vscode.window.showErrorMessage('No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.');
         return;
     }
     prdCreationWizardPanel_1.PrdCreationWizardPanel.createOrReveal(panelManager, {
@@ -526,7 +526,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     }
     registerCommand(context, logger, {
         commandId: 'ralphCodex.initializeWorkspace',
-        label: 'Ralphdex: Bootstrap Ralph Workspace',
+        label: 'Ralphdex: Initialize Workspace',
         handler: async (progress) => {
             progress.report({ message: 'Creating a fresh .ralph workspace scaffold' });
             const workspaceFolder = await withWorkspaceFolder();
@@ -602,7 +602,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 const relativeMissing = missingWorkspaceFiles
                     .map((targetPath) => path.relative(workspaceFolder.uri.fsPath, targetPath) || path.basename(targetPath))
                     .join(', ');
-                void vscode.window.showWarningMessage(`Doctrine pack initialization requires an established Ralph workspace. Missing: ${relativeMissing}. Run "Ralphdex: Bootstrap Ralph Workspace" first.`);
+                void vscode.window.showWarningMessage(`Doctrine pack initialization requires an established Ralph workspace. Missing: ${relativeMissing}. Run "Ralphdex: Initialize Workspace" first.`);
                 return;
             }
             const result = await (0, doctrine_1.createDoctrinePack)(workspaceFolder.uri.fsPath);
@@ -1282,7 +1282,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
             const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
             if (!(await (0, fs_1.pathExists)(paths.prdPath))) {
-                void vscode.window.showErrorMessage('No .ralph/prd.md found. Run "Ralphdex: Bootstrap Ralph Workspace" first.');
+                void vscode.window.showErrorMessage('No .ralph/prd.md found. Run "Ralphdex: Initialize Workspace" first.');
                 return;
             }
             const currentPrdText = await fs.readFile(paths.prdPath, 'utf8');

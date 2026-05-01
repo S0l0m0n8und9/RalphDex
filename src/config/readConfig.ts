@@ -254,6 +254,7 @@ function readAzureFoundryConfig(raw: unknown, fallback: AzureFoundryConfig): Azu
 }
 
 const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
+const CODEX_REASONING_EFFORTS: readonly CodexReasoningEffort[] = ['medium', 'high'];
 
 
 function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
@@ -273,8 +274,15 @@ function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphMode
   const provider = typeof record.provider === 'string' && CLI_PROVIDER_IDS.includes(record.provider as CliProviderId)
     ? (record.provider as CliProviderId)
     : undefined;
+  const reasoningEffort = typeof record.reasoningEffort === 'string' && CODEX_REASONING_EFFORTS.includes(record.reasoningEffort as CodexReasoningEffort)
+    ? (record.reasoningEffort as CodexReasoningEffort)
+    : undefined;
 
-  return provider ? { provider, model } : { model };
+  return {
+    ...(provider ? { provider } : {}),
+    ...(reasoningEffort ? { reasoningEffort } : {}),
+    model
+  };
 }
 
 function readModelTiering(

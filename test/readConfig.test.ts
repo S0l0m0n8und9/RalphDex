@@ -304,3 +304,38 @@ test('readConfig does not override modelTiering.enabled when enableModelTiering 
     'modelTiering.enabled should not be overridden when enableModelTiering is absent'
   );
 });
+
+test('readConfig accepts optional per-tier reasoningEffort override values', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    modelTiering: {
+      simple: { model: 'claude-haiku-4-5', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet-4-6' },
+      complex: { model: 'claude-opus-4-6', reasoningEffort: 'medium' }
+    }
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.modelTiering.simple.reasoningEffort, 'high');
+  assert.equal(config.modelTiering.medium.reasoningEffort, undefined);
+  assert.equal(config.modelTiering.complex.reasoningEffort, 'medium');
+});
+
+test('readConfig ignores invalid per-tier reasoningEffort values and preserves legacy tier string shapes', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    modelTiering: {
+      simpleModel: 'legacy-simple-model',
+      medium: { model: 'claude-sonnet-4-6', reasoningEffort: 'invalid' },
+      complex: { model: 'claude-opus-4-6', reasoningEffort: 'high' }
+    }
+  } as unknown as Record<string, unknown>);
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+
+  assert.equal(config.modelTiering.simple.model, 'legacy-simple-model');
+  assert.equal(config.modelTiering.simple.reasoningEffort, undefined);
+  assert.equal(config.modelTiering.medium.reasoningEffort, undefined);
+  assert.equal(config.modelTiering.complex.reasoningEffort, 'high');
+});

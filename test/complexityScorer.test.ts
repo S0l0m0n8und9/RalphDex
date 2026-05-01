@@ -212,13 +212,13 @@ test('selectModelForTask returns per-tier provider when specified', () => {
   const taskFile = makeTaskFile([task]);
   const tiering: RalphModelTieringConfig = {
     enabled: true,
-    simple: { provider: 'copilot', model: 'gpt-5.4-mini' },
+    simple: { provider: 'copilot', model: 'gpt-5.4-mini', reasoningEffort: 'high' },
     medium: { model: 'claude-sonnet' },
     complex: { provider: 'copilot', model: 'gpt-5.4' },
     simpleThreshold: 2,
     complexThreshold: 6
   };
-  const { model, provider } = selectModelForTask({
+  const { model, provider, reasoningEffort } = selectModelForTask({
     task,
     taskFile,
     iterationHistory: [],
@@ -227,6 +227,7 @@ test('selectModelForTask returns per-tier provider when specified', () => {
   });
   assert.equal(model, 'gpt-5.4-mini');
   assert.equal(provider, 'copilot');
+  assert.equal(reasoningEffort, 'high');
 });
 
 test('selectModelForTask uses explicit tier without calling scoreTaskComplexity', () => {
@@ -278,7 +279,7 @@ test('selectModelForTask ignores tier field when modelTiering.enabled is false',
   assert.equal(score, null);
 });
 
-test('selectModelForTask returns undefined provider when tier has no override', () => {
+test('selectModelForTask returns undefined provider and reasoning effort when tier has no overrides', () => {
   const task = makeTask({ title: 'Medium complexity work here that is fine' });
   const taskFile = makeTaskFile([task]);
   // Score for this task will be 0 (no validation, children, blocker note, failures, or title adjustment) → simple tier
@@ -290,7 +291,7 @@ test('selectModelForTask returns undefined provider when tier has no override', 
     simpleThreshold: 2,
     complexThreshold: 6
   };
-  const { provider } = selectModelForTask({
+  const { provider, reasoningEffort } = selectModelForTask({
     task,
     taskFile,
     iterationHistory: [],
@@ -298,4 +299,5 @@ test('selectModelForTask returns undefined provider when tier has no override', 
     fallbackModel: 'claude-sonnet'
   });
   assert.equal(provider, undefined);
+  assert.equal(reasoningEffort, undefined);
 });

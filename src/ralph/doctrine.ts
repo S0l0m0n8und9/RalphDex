@@ -30,6 +30,7 @@ export interface DoctrineInspection {
 }
 
 export const DOCTRINE_ROOT_RELATIVE = '.ralph/doctrine';
+export const DOCTRINE_REPAIR_COMMAND_LABEL = 'Ralphdex: Initialize Doctrine Pack';
 
 export const DOCTRINE_MARKDOWN_FILES = [
   'project-profile.md',
@@ -367,6 +368,10 @@ function relativeDoctrineFile(fileName: string): string {
   return `${DOCTRINE_ROOT_RELATIVE}/${fileName}`;
 }
 
+function withDoctrineRepairGuidance(message: string): string {
+  return `${message} Run "${DOCTRINE_REPAIR_COMMAND_LABEL}" to scaffold or repair doctrine files.`;
+}
+
 function markdownHeadings(text: string): Set<string> {
   const headings = new Set<string>();
   for (const line of text.split(/\r?\n/)) {
@@ -464,7 +469,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
       diagnostics: [{
         severity: 'warning',
         code: 'doctrine_directory_missing',
-        message: 'Doctrine health: missing. .ralph/doctrine has not been created for this workspace.'
+        message: withDoctrineRepairGuidance('Doctrine health: missing. .ralph/doctrine has not been created for this workspace.')
       }]
     };
   }
@@ -476,7 +481,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
         severity: 'warning',
         code: 'doctrine_required_file_missing',
         file: relativeDoctrineFile(fileName),
-        message: `Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile(fileName)}.`
+        message: withDoctrineRepairGuidance(`Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile(fileName)}.`)
       });
       continue;
     }
@@ -489,7 +494,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
           severity: 'warning',
           code: 'doctrine_required_heading_missing',
           file: relativeDoctrineFile(fileName),
-          message: `Doctrine health: incomplete. ${relativeDoctrineFile(fileName)} is missing required heading "## ${requiredHeading}".`
+          message: withDoctrineRepairGuidance(`Doctrine health: incomplete. ${relativeDoctrineFile(fileName)} is missing required heading "## ${requiredHeading}".`)
         });
       }
     }
@@ -501,7 +506,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
       severity: 'warning',
       code: 'doctrine_required_file_missing',
       file: relativeDoctrineFile('evidence-index.json'),
-      message: `Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile('evidence-index.json')}.`
+      message: withDoctrineRepairGuidance(`Doctrine health: incomplete. Missing required doctrine file ${relativeDoctrineFile('evidence-index.json')}.`)
     });
   } else {
     try {
@@ -511,7 +516,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
           severity: 'warning',
           code: 'doctrine_evidence_index_invalid',
           file: relativeDoctrineFile('evidence-index.json'),
-          message: 'Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json does not have the expected minimal shape.'
+          message: withDoctrineRepairGuidance('Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json does not have the expected minimal shape.')
         });
       }
     } catch {
@@ -519,7 +524,7 @@ export async function inspectDoctrinePack(rootPath: string): Promise<DoctrineIns
         severity: 'warning',
         code: 'doctrine_evidence_index_invalid',
         file: relativeDoctrineFile('evidence-index.json'),
-        message: 'Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json is not valid JSON.'
+        message: withDoctrineRepairGuidance('Doctrine health: invalid evidence index. .ralph/doctrine/evidence-index.json is not valid JSON.')
       });
     }
   }

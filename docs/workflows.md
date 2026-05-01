@@ -66,7 +66,7 @@ Doctrine repair stays narrow on purpose:
 - missing doctrine Markdown files are scaffolded from the deterministic templates
 - `.ralph/doctrine/evidence-index.json` is created when missing and rewritten only when its JSON or minimal shape is invalid
 
-If the core Ralph files are missing, the command stops and points the operator back to `Ralphdex: Bootstrap Ralph Workspace` instead of guessing how much of the workspace should be initialized.
+If the core Ralph files are missing, the command stops and points the operator back to `Ralphdex: Initialize Workspace` instead of guessing how much of the workspace should be initialized.
 
 ## Regenerate Or Author A PRD
 
@@ -264,7 +264,7 @@ Ralph also compacts high-volume inputs before omission:
 
 When quota pressure matters, inspect `latest-prompt-evidence.json` first. The `promptBudget` block records the selected policy name, target token budget, minimum-context bias, estimated token count and range, whether the final prompt actually landed within target, the token delta from that target, which sections are always required, which sections are optional for that policy, the fixed omission order for optional sections, the sections that survived, and any sections Ralph omitted to stay compact.
 
-For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasoningEffort` defaults to `medium`; raise it to `high` only as an explicit escalation for architecture-heavy work, hard debugging, or remediation-heavy retries where the additional token cost is justified.
+For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasoningEffort` defaults to `medium`; raise it to `high` only as an explicit escalation for architecture-heavy work, hard debugging, or remediation-heavy retries where the additional token cost is justified. When model tiering is enabled, each tier may optionally override this via `ralphCodex.modelTiering.<tier>.reasoningEffort`; tiers that omit it keep the global fallback.
 
 ## Run The Ralph Loop
 

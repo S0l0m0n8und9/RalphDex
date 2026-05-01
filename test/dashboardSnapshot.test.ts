@@ -36,6 +36,7 @@ function minimalSnapshot(
       | 'latestFailureAnalysisPath'
       | 'recoveryStatePath'
       | 'latestProvenanceBundle'
+      | 'preflightReport'
       | 'orchestration'
       | 'replanArtifacts'
       | 'fanInRecord'
@@ -57,6 +58,11 @@ function minimalSnapshot(
     latestFailureAnalysisPath: null,
     recoveryStatePath: null,
     latestProvenanceBundle: null,
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready: no blocking diagnostics.',
+      diagnostics: []
+    },
     orchestration: undefined,
     replanArtifacts: undefined,
     fanInRecord: undefined,
@@ -149,6 +155,9 @@ test('buildDashboardSnapshot: empty Ralph workspace returns null/empty sections'
   assert.strictEqual(result.quickActions.hasDeadLetterEntries, false);
   assert.strictEqual(result.quickActions.hasBlockedTasks, false);
   assert.strictEqual(result.quickActions.canAttemptLoop, false); // no selected task
+  assert.strictEqual(result.preflight?.ready, true);
+  assert.strictEqual(result.preflight?.summary, 'Preflight ready: no blocking diagnostics.');
+  assert.deepEqual(result.preflight?.diagnostics, []);
 });
 
 // ---------------------------------------------------------------------------
@@ -293,6 +302,27 @@ test('buildDashboardSnapshot: canAttemptLoop is true when trusted and task selec
   });
   const result = buildDashboardSnapshot(snapshot);
   assert.strictEqual(result.quickActions.canAttemptLoop, true);
+});
+
+test('buildDashboardSnapshot: preflight diagnostics carry doctrine repair guidance', () => {
+  const snapshot = minimalSnapshot({
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready with warnings.',
+      diagnostics: [{
+        category: 'workspaceRuntime',
+        severity: 'warning',
+        code: 'doctrine_directory_missing',
+        message: 'Doctrine health: missing. .ralph/doctrine has not been created for this workspace. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+      }]
+    }
+  });
+  const result = buildDashboardSnapshot(snapshot);
+
+  assert.strictEqual(result.preflight?.ready, true);
+  assert.strictEqual(result.preflight?.summary, 'Preflight ready with warnings.');
+  assert.equal(result.preflight?.diagnostics.length, 1);
+  assert.ok(result.preflight?.diagnostics[0]?.message.includes('Ralphdex: Initialize Doctrine Pack'));
 });
 
 test('buildDashboardSnapshot: deadLetterEntries undefined treated as empty', () => {

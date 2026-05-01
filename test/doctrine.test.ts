@@ -6,6 +6,7 @@ import test from 'node:test';
 import {
   collectDoctrineContext,
   createDoctrinePack,
+  DOCTRINE_REPAIR_COMMAND_LABEL,
   DOCTRINE_MARKDOWN_FILES,
   inspectDoctrinePack,
   PROTECTED_DOCTRINE_FILES
@@ -131,6 +132,7 @@ test('inspectDoctrinePack detects a missing required doctrine file', async () =>
 
   assert.equal(inspection.health, 'incomplete');
   assert.ok(inspection.diagnostics.some((diagnostic) => diagnostic.code === 'doctrine_required_file_missing'));
+  assert.ok(inspection.diagnostics.some((diagnostic) => diagnostic.message.includes(DOCTRINE_REPAIR_COMMAND_LABEL)));
 });
 
 test('inspectDoctrinePack detects a missing required heading', async () => {

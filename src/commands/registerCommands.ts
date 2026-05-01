@@ -430,7 +430,7 @@ async function openPrdCreationWizard(
 
   if (!(await pathExists(paths.ralphDir))) {
     void vscode.window.showErrorMessage(
-      'No .ralph directory found. Run "Ralphdex: Bootstrap Ralph Workspace" first.'
+      'No .ralph directory found. Run "Ralphdex: Initialize Workspace" first.'
     );
     return;
   }
@@ -713,7 +713,7 @@ export function registerCommands(
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.initializeWorkspace',
-    label: 'Ralphdex: Bootstrap Ralph Workspace',
+    label: 'Ralphdex: Initialize Workspace',
     handler: async (progress) => {
       progress.report({ message: 'Creating a fresh .ralph workspace scaffold' });
       const workspaceFolder = await withWorkspaceFolder();
@@ -807,7 +807,7 @@ export function registerCommands(
           .map((targetPath) => path.relative(workspaceFolder.uri.fsPath, targetPath) || path.basename(targetPath))
           .join(', ');
         void vscode.window.showWarningMessage(
-          `Doctrine pack initialization requires an established Ralph workspace. Missing: ${relativeMissing}. Run "Ralphdex: Bootstrap Ralph Workspace" first.`
+          `Doctrine pack initialization requires an established Ralph workspace. Missing: ${relativeMissing}. Run "Ralphdex: Initialize Workspace" first.`
         );
         return;
       }
@@ -1615,7 +1615,7 @@ export function registerCommands(
 
       if (!(await pathExists(paths.prdPath))) {
         void vscode.window.showErrorMessage(
-          'No .ralph/prd.md found. Run "Ralphdex: Bootstrap Ralph Workspace" first.'
+          'No .ralph/prd.md found. Run "Ralphdex: Initialize Workspace" first.'
         );
         return;
       }

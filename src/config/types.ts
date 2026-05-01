@@ -52,6 +52,8 @@ export interface RalphModelTierConfig {
   provider?: CliProviderId;
   /** Model identifier passed to the CLI via --model. */
   model: string;
+  /** Optional per-tier reasoning effort override. Omit to fall back to global `ralphCodex.reasoningEffort`. */
+  reasoningEffort?: CodexReasoningEffort;
 }
 
 /**

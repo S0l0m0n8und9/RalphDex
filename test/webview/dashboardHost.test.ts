@@ -350,6 +350,50 @@ test('DashboardHost: snapshot completion renders are not dropped inside the debo
   broadcaster.dispose();
 });
 
+test('DashboardHost: refreshDashboardSnapshot applies preflight diagnostics from durable snapshot', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+
+  await withMonotonicDateNow(async () => {
+    new DashboardHost(
+      wv as unknown as import('vscode').Webview,
+      broadcaster,
+      ((state: {
+        preflightReady: boolean;
+        preflightSummary: string;
+        diagnostics: Array<{ severity: string; message: string }>;
+      }) => (
+        `<html>${state.preflightReady}:${state.preflightSummary}:${state.diagnostics[0]?.message ?? 'none'}</html>`
+      )) as never,
+      async () => ({
+        workspaceName: 'snapshot-one',
+        taskBoard: { counts: null, deadLetterCount: 0, selectedTaskId: null, selectedTaskTitle: null, nextIteration: 1 },
+        agentGrid: { rows: [] },
+        diagnosis: null,
+        failureFeed: { entries: [] },
+        deadLetter: { entries: [] },
+        quickActions: { hasDeadLetterEntries: false, hasBlockedTasks: false, canAttemptLoop: false },
+        cost: { executionCostUsd: null, diagnosticCostUsd: null, promptCacheStats: null, hasAnyCostData: false },
+        preflight: {
+          ready: true,
+          summary: 'Preflight ready with warnings.',
+          diagnostics: [{
+            severity: 'warning',
+            message: 'Doctrine health: missing. .ralph/doctrine has not been created for this workspace. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+          }]
+        }
+      }) as never
+    );
+
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  assert.ok(wv.html.includes('Preflight ready with warnings.'));
+  assert.ok(wv.html.includes('Ralphdex: Initialize Doctrine Pack'));
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: open-iteration-artifact opens the iteration summary path', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

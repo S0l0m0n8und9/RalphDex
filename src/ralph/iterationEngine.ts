@@ -911,7 +911,13 @@ export class RalphIterationEngine {
 
       // Model tiering: select the appropriate model (and optional provider override)
       // based on task complexity. Adopted from Ruflo's smart task-routing pattern.
-      const { model: selectedModel, provider: selectedProvider, score: complexityScore, tier: effectiveTier } = prepared.selectedTask
+      const {
+        model: selectedModel,
+        provider: selectedProvider,
+        reasoningEffort: selectedTierReasoningEffort,
+        score: complexityScore,
+        tier: effectiveTier
+      } = prepared.selectedTask
         ? selectModelForTask({
           task: prepared.selectedTask,
           taskFile: prepared.beforeCoreState.taskFile,
@@ -919,13 +925,21 @@ export class RalphIterationEngine {
           tiering: prepared.config.modelTiering,
           fallbackModel: prepared.config.model
         })
-        : { model: prepared.config.model, provider: undefined as CliProviderId | undefined, score: null, tier: 'default' as const };
+        : {
+          model: prepared.config.model,
+          provider: undefined as CliProviderId | undefined,
+          reasoningEffort: undefined,
+          score: null,
+          tier: 'default' as const
+        };
+      const selectedReasoningEffort = selectedTierReasoningEffort ?? prepared.config.reasoningEffort;
 
       if (complexityScore !== null) {
         this.logger.info('Model tiering selected model for task.', {
           taskId: prepared.selectedTask?.id ?? null,
           model: selectedModel,
           provider: selectedProvider ?? prepared.config.cliProvider,
+          reasoningEffort: selectedReasoningEffort,
           complexityScore: complexityScore.score,
           signals: complexityScore.signals
         });
@@ -972,6 +986,7 @@ export class RalphIterationEngine {
         prepared,
         mode,
         selectedModel,
+        selectedReasoningEffort,
         selectedProvider,
         effectiveProvider,
         effectiveCommandPath,
@@ -1119,6 +1134,7 @@ export class RalphIterationEngine {
         taskStateVerification,
         afterCoreState,
         selectedModel,
+        selectedReasoningEffort,
         effectiveTier,
         branchPerTaskWarnings: branchPerTask.warnings
       });

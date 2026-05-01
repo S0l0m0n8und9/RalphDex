@@ -127,6 +127,12 @@ export interface QuickActionsSection {
   canAttemptLoop: boolean;
 }
 
+export interface DashboardPreflightSection {
+  ready: boolean;
+  summary: string;
+  diagnostics: Array<{ severity: string; message: string }>;
+}
+
 // ---------------------------------------------------------------------------
 // Top-level dashboard snapshot
 // ---------------------------------------------------------------------------
@@ -140,6 +146,7 @@ export interface DashboardSnapshot {
   deadLetter: DeadLetterSection;
   quickActions: QuickActionsSection;
   cost: DashboardCostSection;
+  preflight?: DashboardPreflightSection;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,6 +178,18 @@ export function buildDashboardSnapshot(
     deadLetter: buildDeadLetter(snapshot),
     quickActions: buildQuickActions(snapshot),
     cost: buildCostSection(snapshot),
+    preflight: buildPreflightSection(snapshot),
+  };
+}
+
+function buildPreflightSection(snapshot: RalphStatusSnapshot): DashboardPreflightSection {
+  return {
+    ready: snapshot.preflightReport.ready,
+    summary: snapshot.preflightReport.summary,
+    diagnostics: snapshot.preflightReport.diagnostics.map((diagnostic) => ({
+      severity: diagnostic.severity,
+      message: diagnostic.message
+    }))
   };
 }
 

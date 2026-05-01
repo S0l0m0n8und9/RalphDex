@@ -38,6 +38,17 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
         deadLetter: buildDeadLetter(snapshot),
         quickActions: buildQuickActions(snapshot),
         cost: buildCostSection(snapshot),
+        preflight: buildPreflightSection(snapshot),
+    };
+}
+function buildPreflightSection(snapshot) {
+    return {
+        ready: snapshot.preflightReport.ready,
+        summary: snapshot.preflightReport.summary,
+        diagnostics: snapshot.preflightReport.diagnostics.map((diagnostic) => ({
+            severity: diagnostic.severity,
+            message: diagnostic.message
+        }))
     };
 }
 function buildCostSection(snapshot) {

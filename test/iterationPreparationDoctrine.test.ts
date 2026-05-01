@@ -120,7 +120,10 @@ test('prepareIterationContext includes missing doctrine warning in prepare-promp
     && diagnostic.severity === 'warning'
     && diagnostic.code === 'doctrine_directory_missing'
   ));
-  assert.match(prepared.preflightSummaryText, /- warning: Doctrine health: missing\. \.ralph\/doctrine has not been created for this workspace\./);
+  assert.match(
+    prepared.preflightSummaryText,
+    /- warning: Doctrine health: missing\. \.ralph\/doctrine has not been created for this workspace\. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files\./
+  );
 
   const persisted = JSON.parse(
     await fs.readFile(path.join(rootPath, '.ralph', 'artifacts', 'iteration-001', 'preflight-report.json'), 'utf8')
@@ -147,7 +150,10 @@ test('prepareIterationContext includes missing doctrine warning in CLI preflight
     && diagnostic.severity === 'warning'
     && diagnostic.code === 'doctrine_directory_missing'
   ));
-  assert.match(prepared.preflightSummaryText, /- warning: Doctrine health: missing\. \.ralph\/doctrine has not been created for this workspace\./);
+  assert.match(
+    prepared.preflightSummaryText,
+    /- warning: Doctrine health: missing\. \.ralph\/doctrine has not been created for this workspace\. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files\./
+  );
 });
 
 test('prepareIterationContext reports healthy doctrine as info and does not create a warning', async () => {

@@ -291,6 +291,9 @@ export class DashboardHost implements vscode.Disposable {
       this.latestState = {
         ...this.latestState,
         dashboardSnapshot: snapshot,
+        preflightReady: snapshot?.preflight?.ready ?? this.latestState.preflightReady,
+        preflightSummary: snapshot?.preflight?.summary ?? this.latestState.preflightSummary,
+        diagnostics: snapshot?.preflight?.diagnostics ?? this.latestState.diagnostics,
         snapshotStatus: { phase: 'ready', errorMessage: null }
       };
       this.fullRender(true);

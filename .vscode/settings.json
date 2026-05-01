@@ -6,7 +6,7 @@
     "ralphCodex.cliProvider": "codex",
     "ralphCodex.promptBudgetProfile": "codex",
     "ralphCodex.ralphIterationCap": 15,
-    "ralphCodex.model": "gpt-5.4",
+    "ralphCodex.model": "gpt-5.3-codex",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,
     "ralphCodex.scmStrategy": "commit-on-done",
@@ -19,7 +19,7 @@
             "provider": "codex"
         },
         "medium": {
-            "model": "gpt-5.4",
+            "model": "gpt-5.3-codex",
             "provider": "codex"
         },
         "complex": {

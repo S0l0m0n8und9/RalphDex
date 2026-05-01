@@ -1,6 +1,6 @@
 import * as fs from 'fs/promises';
 import { getCliCommandPath } from '../../config/providers';
-import type { CliProviderId } from '../../config/types';
+import type { CliProviderId, CodexReasoningEffort } from '../../config/types';
 import type { CodexExecResult } from '../../codex/types';
 import type { CodexStrategyRegistry } from '../../codex/providerFactory';
 import { Logger } from '../../services/logger';
@@ -21,6 +21,7 @@ export interface IterationExecutorInput {
   prepared: PreparedIterationContext;
   mode: 'handoff' | 'singleExec' | 'loop';
   selectedModel: string;
+  selectedReasoningEffort: CodexReasoningEffort;
   selectedProvider: CliProviderId | undefined;
   effectiveProvider: CliProviderId;
   effectiveCommandPath: string;
@@ -154,7 +155,7 @@ export class IterationExecutor {
         transcriptPath: input.runArtifacts.transcriptPath,
         lastMessagePath: input.runArtifacts.lastMessagePath,
         model: input.selectedModel,
-        reasoningEffort: input.prepared.config.reasoningEffort,
+        reasoningEffort: input.selectedReasoningEffort,
         sandboxMode: input.prepared.config.sandboxMode,
         approvalMode: input.prepared.config.approvalMode,
         timeoutMs: input.prepared.config.cliExecutionTimeoutMs > 0 ? input.prepared.config.cliExecutionTimeoutMs : undefined,
@@ -236,7 +237,7 @@ export class IterationExecutor {
         iteration: input.prepared.iteration,
         commandPath: usedCommandPath,
         args: execResult.args,
-        reasoningEffort: input.prepared.config.reasoningEffort,
+        reasoningEffort: input.selectedReasoningEffort,
         workspaceRoot: input.prepared.rootPath,
         rootPolicy: input.prepared.rootPolicy,
         promptArtifactPath: verifiedPlan.promptArtifactPath,

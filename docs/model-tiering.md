@@ -45,20 +45,22 @@ Override the thresholds by setting `simpleThreshold` and `complexThreshold` in `
 
 ## Model And Provider Configuration
 
-Each tier can specify a `model` string and an optional `provider` override:
+Each tier can specify a `model` string plus optional `provider` and `reasoningEffort` overrides:
 
 ```json
 "ralphCodex.modelTiering": {
   "enabled": true,
-  "simple":  { "provider": "copilot", "model": "claude-opus-4-6" },
+  "simple":  { "provider": "copilot", "model": "claude-opus-4-6", "reasoningEffort": "medium" },
   "medium":  { "provider": "claude", "model": "claude-sonnet-4-6" },
-  "complex": { "provider": "claude", "model": "claude-opus-4-6" },
+  "complex": { "provider": "claude", "model": "claude-opus-4-6", "reasoningEffort": "high" },
   "simpleThreshold": 2,
   "complexThreshold": 6
 }
 ```
 
 Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `provider` to route a specific tier through a different CLI provider (e.g. `"copilot"` for simple tasks, `"claude"` for complex).
+
+Omitting `reasoningEffort` uses the global default (`ralphCodex.reasoningEffort`). Allowed tier override values match the provider-facing execution contract: `"medium"` and `"high"`.
 
 Source of truth for shipped defaults is `package.json` (`contributes.configuration.properties.ralphCodex.modelTiering`).
 
