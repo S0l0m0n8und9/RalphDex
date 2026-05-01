@@ -379,3 +379,4 @@
 - Added selectedReasoningEffort to RalphIterationResult and wired it through OutcomeClassifier and planning-gate paths, completing the evidence persistence chain. All 8 subtasks (T196.1–T196.8) are now satisfied: config type, read/validate, resolve profile, CLI wiring, planning/diagnostic policy, evidence persistence, schema/docs, and regression coverage.
 - Completed T196.5 (documented planning/diagnostic reasoning policy with comments and docs, added 2 integration tests) and T196.8 (added 3 integration tests proving per-tier reasoning survives config→selection→execution→evidence with fallback). All 8 subtasks T196.1–T196.8 are now implemented and verified.
 - Hardened provider fallback: ENOENT now resets model to workspace default; conformance and integration tests added; docs updated.
+- Per-tier provider fallback now uses full workspace-default execution profile including reasoning effort

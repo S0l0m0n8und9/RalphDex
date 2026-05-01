@@ -5534,11 +5534,11 @@
     {
       "id": "T198",
       "title": "Make per-tier provider fallback use the full workspace-default execution profile",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T197"
       ],
-      "notes": "T197 fixed provider/model mismatch. This follow-up closes the remaining profile-coherence gap for reasoningEffort.",
+      "notes": "Per-tier provider fallback now uses full workspace-default execution profile including reasoning effort",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -5564,8 +5564,9 @@
         "test/iterationEngine.integration.test.ts",
         "test/providerFactory.conformance.test.ts",
         "docs/model-tiering.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 244
+  "mutationCount": 245
 }

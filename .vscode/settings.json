@@ -6,14 +6,14 @@
     "ralphCodex.cliProvider": "copilot",
     "ralphCodex.promptBudgetProfile": "claude",
     "ralphCodex.ralphIterationCap": 15,
-    "ralphCodex.model": "gpt-5.3-codex",
+    "ralphCodex.model": "auto",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,
     "ralphCodex.scmStrategy": "commit-on-done",
     "ralphCodex.scmPrOnParentDone": false,
     "ralphCodex.enableModelTiering": true,
     "ralphCodex.modelTiering": {
-        "enabled": true,
+        "enabled": false,
         "simple": {
             "model": "gpt-5.3-codex",
             "provider": "copilot"
