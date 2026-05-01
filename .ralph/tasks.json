@@ -5187,12 +5187,12 @@
     {
       "id": "T195",
       "title": "Cover and document doctrine-pack adoption for pre-existing Ralph workspaces",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T193",
         "T194"
       ],
-      "notes": "Lock the new doctrine-adoption workflow with focused regression coverage and operator docs so mature workspaces can adopt doctrine safely after bootstrap-era initialization.",
+      "notes": "Added focused regression coverage for doctrine-pack adoption in established workspaces (partial repair without overwrite, valid evidence-index preservation) and for incomplete-doctrine dashboard guidance; full validate gate passes.",
       "validation": "npm run validate",
       "tier": "simple",
       "acceptance": [
@@ -5200,7 +5200,8 @@
         "Tests cover the status or dashboard guidance that points operators to the repair flow when doctrine is missing or incomplete.",
         "README.md and the focused owning workflow docs explain how established workspaces adopt doctrine after the fact and how that differs from Initialize Workspace.",
         "npm run validate passes."
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T196",
@@ -5493,5 +5494,5 @@
       ]
     }
   ],
-  "mutationCount": 238
+  "mutationCount": 239
 }

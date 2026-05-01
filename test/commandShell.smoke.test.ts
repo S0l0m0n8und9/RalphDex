@@ -599,6 +599,35 @@ test('Initialize Doctrine Pack preserves existing doctrine files and repairs an 
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Repaired:/);
 });
 
+test('Initialize Doctrine Pack completes a partial doctrine pack without overwriting existing doctrine files or a valid evidence index', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  await fs.writeFile(path.join(doctrineDir, 'agents.md'), '# Custom Agents\n\nHuman-owned rules.\n', 'utf8');
+  const evidenceIndexPath = path.join(doctrineDir, 'evidence-index.json');
+  const existingEvidenceIndex = JSON.stringify({
+    schemaVersion: 1,
+    generatedAt: '2026-04-01T00:00:00.000Z',
+    doctrineRoot: '.ralph/doctrine',
+    evidence: [{ id: 'E-1', title: 'Retain history' }]
+  }, null, 2);
+  await fs.writeFile(evidenceIndexPath, `${existingEvidenceIndex}\n`, 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeDoctrinePack');
+
+  assert.equal(await fs.readFile(path.join(doctrineDir, 'agents.md'), 'utf8'), '# Custom Agents\n\nHuman-owned rules.\n');
+  assert.equal(await fs.readFile(evidenceIndexPath, 'utf8'), `${existingEvidenceIndex}\n`);
+  await fs.access(path.join(doctrineDir, 'risks.md'));
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Created:/);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Already present:/);
+  assert.doesNotMatch(harness.state.infoMessages.at(-1)?.message ?? '', /Repaired:/);
+});
+
 test('Show Ralph Status routes through the dashboard and writes raw report to output channel', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);

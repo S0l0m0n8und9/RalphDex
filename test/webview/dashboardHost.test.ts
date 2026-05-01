@@ -394,6 +394,51 @@ test('DashboardHost: refreshDashboardSnapshot applies preflight diagnostics from
   broadcaster.dispose();
 });
 
+test('DashboardHost: refreshDashboardSnapshot applies incomplete-doctrine diagnostics from durable snapshot', async () => {
+  const wv = makeMockWebview();
+  const broadcaster = new IterationBroadcaster();
+
+  await withMonotonicDateNow(async () => {
+    new DashboardHost(
+      wv as unknown as import('vscode').Webview,
+      broadcaster,
+      ((state: {
+        preflightReady: boolean;
+        preflightSummary: string;
+        diagnostics: Array<{ severity: string; message: string }>;
+      }) => (
+        `<html>${state.preflightReady}:${state.preflightSummary}:${state.diagnostics[0]?.message ?? 'none'}</html>`
+      )) as never,
+      async () => ({
+        workspaceName: 'snapshot-two',
+        taskBoard: { counts: null, deadLetterCount: 0, selectedTaskId: null, selectedTaskTitle: null, nextIteration: 1 },
+        agentGrid: { rows: [] },
+        diagnosis: null,
+        failureFeed: { entries: [] },
+        deadLetter: { entries: [] },
+        quickActions: { hasDeadLetterEntries: false, hasBlockedTasks: false, canAttemptLoop: false },
+        cost: { executionCostUsd: null, diagnosticCostUsd: null, promptCacheStats: null, hasAnyCostData: false },
+        preflight: {
+          ready: false,
+          summary: 'Preflight warnings require doctrine repair.',
+          diagnostics: [{
+            severity: 'warning',
+            message: 'Doctrine health: incomplete. Missing required doctrine file .ralph/doctrine/risks.md. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+          }]
+        }
+      }) as never
+    );
+
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  assert.ok(wv.html.includes('Preflight warnings require doctrine repair.'));
+  assert.ok(wv.html.includes('Doctrine health: incomplete.'));
+  assert.ok(wv.html.includes('Ralphdex: Initialize Doctrine Pack'));
+
+  broadcaster.dispose();
+});
+
 test('DashboardHost: open-iteration-artifact opens the iteration summary path', async () => {
   const wv = makeMockWebview();
   const broadcaster = new IterationBroadcaster();

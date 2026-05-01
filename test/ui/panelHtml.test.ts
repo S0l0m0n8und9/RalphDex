@@ -304,6 +304,20 @@ test('buildPanelDashboardHtml diagnostics tab surfaces doctrine repair guidance 
   assert.ok(html.includes('Doctrine health: missing.'));
 });
 
+test('buildPanelDashboardHtml diagnostics tab surfaces doctrine repair guidance for incomplete doctrine packs', () => {
+  const html = buildPanelDashboardHtml(defaultState({
+    preflightReady: false,
+    diagnostics: [{
+      severity: 'warning',
+      message: 'Doctrine health: incomplete. Missing required doctrine file .ralph/doctrine/risks.md. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+    }]
+  }), 'diag-doctrine-incomplete');
+
+  assert.ok(html.includes('Ralphdex: Initialize Doctrine Pack'));
+  assert.ok(html.includes('Doctrine health: incomplete.'));
+  assert.ok(html.includes('.ralph/doctrine/risks.md'));
+});
+
 test('buildPanelDashboardHtml renders accessible task and history controls with persisted tabs', () => {
   const html = buildPanelDashboardHtml(defaultState({
     tasks: [{
