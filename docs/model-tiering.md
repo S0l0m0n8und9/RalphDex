@@ -62,6 +62,19 @@ Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `
 
 Omitting `reasoningEffort` uses the global default (`ralphCodex.reasoningEffort`). The selected execution profile recorded for an iteration therefore includes the selected provider, model, tier, score, and resolved reasoning effort. Allowed tier override values match the provider-facing execution contract: `"medium"` and `"high"`.
 
+### Provider fallback when a per-tier command is missing
+
+If a per-tier `provider` is configured but its CLI command is not found (ENOENT), Ralph falls back to the workspace-default execution profile for that iteration:
+
+- **Provider**: reverts to `ralphCodex.cliProvider`
+- **Model**: reverts to `ralphCodex.model` — the workspace-default model, *not* the tier-specific model
+
+This prevents a provider-specific model ID (e.g. `claude-opus-4-6`) from being forwarded to a different provider that does not recognise it (e.g. `codex`).
+
+Ralph records a warning in the iteration execution warnings when a per-tier fallback occurs, identifying both the failed provider and the fallback provider/model. If the fallback also fails, the iteration fails normally.
+
+To suppress the warning, either install the missing CLI or remove the `provider` override from the tier configuration.
+
 ### Reasoning effort for planning and diagnostic turns
 
 Planning passes (inline and dedicated) and failure-diagnostic turns always use the global `ralphCodex.reasoningEffort` setting, not the tier-specific override. These are utility turns whose cost and behaviour should remain stable regardless of the implementation tier selected for the task. Only the main implementation execution uses the tier-resolved reasoning effort.

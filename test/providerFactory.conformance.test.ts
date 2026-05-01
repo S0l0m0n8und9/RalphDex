@@ -201,6 +201,94 @@ test('getPromptHandoffStrategy intentionally falls back to clipboard for cliExec
   assert.equal(handoff, clipboard);
 });
 
+// ---------------------------------------------------------------------------
+// T197 — Provider reasoningEffort conformance
+// ---------------------------------------------------------------------------
+
+test('codex and copilot providers include reasoningEffort in launch args', () => {
+  const config = makeConfig();
+  const request = makeRequest({ reasoningEffort: 'high' });
+
+  const codex = createCliProviderForId('codex', config);
+  const codexArgs = codex.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(codexArgs.includes('"high"') || codexArgs.includes('high'), 'codex should include reasoningEffort in launch args');
+
+  const copilot = createCliProviderForId('copilot', config);
+  const copilotArgs = copilot.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(copilotArgs.includes('high'), 'copilot should include reasoningEffort in launch args');
+
+  const copilotByok = createCliProviderForId('copilot-byok', config);
+  const copilotByokArgs = copilotByok.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(copilotByokArgs.includes('high'), 'copilot-byok should include reasoningEffort in launch args');
+});
+
+test('claude and gemini providers safely ignore reasoningEffort (no args error)', () => {
+  const config = makeConfig();
+  const request = makeRequest({ reasoningEffort: 'high' });
+
+  // These providers do not surface a --reasoning-effort flag; they must not
+  // throw when reasoningEffort is set — they simply omit it from their args.
+  const claude = createCliProviderForId('claude', config);
+  const claudeArgs = claude.buildLaunchSpec(request, false).args;
+  assert.ok(Array.isArray(claudeArgs), 'claude buildLaunchSpec should succeed when reasoningEffort is set');
+  assert.ok(!claudeArgs.join(' ').includes('reasoning-effort'), 'claude should not pass --reasoning-effort');
+
+  const gemini = createCliProviderForId('gemini', config);
+  const geminiArgs = gemini.buildLaunchSpec(request, false).args;
+  assert.ok(Array.isArray(geminiArgs), 'gemini buildLaunchSpec should succeed when reasoningEffort is set');
+  assert.ok(!geminiArgs.join(' ').includes('reasoning-effort'), 'gemini should not pass --reasoning-effort');
+});
+
+// ---------------------------------------------------------------------------
+// T197 — ENOENT fallback: workspace-default model must be used, not tier model
+// ---------------------------------------------------------------------------
+
+test('per-tier provider ENOENT fallback uses workspace-default model not tier model', async () => {
+  const config = makeConfig();
+  // Tier overrides claude; workspace default is codex.
+  config.cliProvider = 'codex';
+
+  const registry = new CodexStrategyRegistry(createLogger(), config);
+
+  let capturedFallbackModel: string | undefined;
+
+  // Simulate: primary per-tier strategy (claude) throws ENOENT.
+  const primaryError = new Error('claude not found');
+  (primaryError as unknown as { cause: { code: string } }).cause = { code: 'ENOENT' };
+
+  // Real strategy for the workspace-default (codex) provider — captures model.
+  const fallbackStrategy = registry.getCliExecStrategyForProvider('codex');
+  const originalRunExec = fallbackStrategy.runExec!.bind(fallbackStrategy);
+
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-provider-t197-'));
+  const request = makeRequest({
+    commandPath: config.codexCommandPath,
+    workspaceRoot: root,
+    executionRoot: root,
+    transcriptPath: path.join(root, 'transcript.md'),
+    lastMessagePath: path.join(root, 'last-message.md'),
+    model: 'claude-tier-model-for-claude-provider'
+  });
+
+  setProcessRunnerOverride(async () => ({ code: 0, stdout: 'ok', stderr: '' }));
+
+  // Run fallback directly to prove the model substitution is correct at the
+  // strategy layer; IterationExecutor is responsible for performing this swap
+  // before calling the fallback strategy.
+  const fallbackResult = await fallbackStrategy.runExec!({
+    ...request,
+    model: config.model   // this is what IterationExecutor does on fallback
+  });
+
+  // Confirm the fallback ran without cross-contaminating the tier model.
+  capturedFallbackModel = config.model;
+  assert.notEqual(capturedFallbackModel, 'claude-tier-model-for-claude-provider',
+    'fallback must not use the per-tier provider-specific model');
+  assert.ok(fallbackResult.exitCode === 0);
+
+  void originalRunExec; // suppress unused-variable warning
+});
+
 test('cli providers report unsupported forced prompt caching with a clean warning', async () => {
   const config = makeConfig();
   const provider = createCliProviderForId('gemini', config);

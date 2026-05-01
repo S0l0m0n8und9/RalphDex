@@ -202,10 +202,13 @@ export class IterationExecutor {
             throw primaryError;
           }
           usedCommandPath = getCliCommandPath(input.prepared.config);
-          fallbackWarning = `Per-tier provider "${input.selectedProvider}" not found; fell back to workspace default "${input.prepared.config.cliProvider}".`;
+          // Use the workspace-default model so a provider-specific tier model is not
+          // sent to a different fallback provider (e.g. a claude model ID to codex).
+          fallbackWarning = `Per-tier provider "${input.selectedProvider}" not found; fell back to workspace default "${input.prepared.config.cliProvider}" with model "${input.prepared.config.model}".`;
           claudeLineBuffer = '';
           execResult = await fallbackStrategy.runExec({
             ...baseExecRequest,
+            model: input.prepared.config.model,
             commandPath: usedCommandPath,
             onStdoutChunk: makeStdoutChunk(input.prepared.config.cliProvider)
           });

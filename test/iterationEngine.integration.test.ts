@@ -4953,3 +4953,157 @@ test('different tiers select different reasoning efforts in the same backlog', a
   assert.equal(capturedEfforts[1].model, 'claude-sonnet', 'second task should route to medium-tier model');
   assert.equal(capturedEfforts[1].reasoningEffort, 'medium', 'medium-tier task should fall back to global reasoning effort (medium)');
 });
+
+// ---------------------------------------------------------------------------
+// T197 — Provider fallback semantics
+// ---------------------------------------------------------------------------
+
+/**
+ * Strategy registry variant: throws an ENOENT-shaped error for a specified
+ * "missing" provider ID; otherwise captures the exec request for assertion.
+ */
+class MockStrategyRegistryWithEnoentTier {
+  public fallbackModel: string | undefined;
+  public fallbackWarningIssued = false;
+
+  private readonly enoentProviderId: string;
+  private readonly successMessage: string;
+
+  public constructor(enoentProviderId: string, successMessage: string) {
+    this.enoentProviderId = enoentProviderId;
+    this.successMessage = successMessage;
+  }
+
+  public configureCliProvider(): void {}
+
+  public getCliExecStrategyForProvider(providerId?: string): { runExec: (request: CodexExecRequest) => Promise<CodexExecResult> } {
+    if (providerId === this.enoentProviderId) {
+      return {
+        runExec: async () => {
+          const cause = new Error('command not found');
+          (cause as unknown as Record<string, unknown>)['code'] = 'ENOENT';
+          throw new Error(`${this.enoentProviderId} CLI was not found`, { cause });
+        }
+      };
+    }
+
+    const successMessage = this.successMessage;
+    const registry = this;
+    return {
+      runExec: async (request: CodexExecRequest): Promise<CodexExecResult> => {
+        registry.fallbackModel = request.model;
+        await fs.mkdir(path.dirname(request.transcriptPath), { recursive: true });
+        await fs.writeFile(request.transcriptPath, `# Transcript\n\n${successMessage}\n`, 'utf8');
+        await fs.writeFile(request.lastMessagePath, `${successMessage}\n`, 'utf8');
+        return {
+          strategy: 'cliExec',
+          success: true,
+          message: successMessage,
+          warnings: [],
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+          args: [],
+          stdinHash: hashText(request.prompt),
+          transcriptPath: request.transcriptPath,
+          lastMessagePath: request.lastMessagePath,
+          lastMessage: successMessage
+        };
+      }
+    };
+  }
+
+  public getActiveCliProvider(): undefined {
+    return undefined;
+  }
+}
+
+function createEngineWithRegistry(
+  registry: MockStrategyRegistryWithEnoentTier,
+  workspaceState = new MemoryMemento()
+): { engine: RalphIterationEngine; stateManager: RalphStateManager } {
+  const logger = createLogger();
+  const stateManager = new RalphStateManager(workspaceState, logger);
+  const engine = new RalphIterationEngine(stateManager, registry as never, logger);
+  return { engine, stateManager };
+}
+
+test('per-tier provider ENOENT falls back to workspace default using workspace-default model', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T50', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const successMessage = completionReport({ selectedTaskId: 'T50', requestedStatus: 'done' });
+  const registry = new MockStrategyRegistryWithEnoentTier('claude', successMessage);
+
+  const { engine } = createEngineWithRegistry(registry);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    model: 'workspace-default-model',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { provider: 'claude' as const, model: 'claude-specific-tier-model' },
+      medium: { model: 'claude-sonnet', provider: 'claude' as const },
+      complex: { model: 'claude-opus', provider: 'claude' as const },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(run.result.executionStatus, 'succeeded', 'execution should succeed via fallback');
+  assert.ok(
+    run.result.warnings.some((w: string) => /per-tier provider/i.test(w)),
+    `expected per-tier fallback warning but got: ${JSON.stringify(run.result.warnings)}`
+  );
+  assert.notEqual(registry.fallbackModel, 'claude-specific-tier-model',
+    'fallback must not pass the per-tier claude model to the codex provider');
+  assert.equal(registry.fallbackModel, 'workspace-default-model',
+    'fallback must use the workspace-default model');
+});
+
+test('per-tier provider ENOENT warning includes both provider name and fallback model', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T51', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const successMessage = completionReport({ selectedTaskId: 'T51', requestedStatus: 'done' });
+  const registry = new MockStrategyRegistryWithEnoentTier('claude', successMessage);
+
+  const { engine } = createEngineWithRegistry(registry);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    model: 'ws-default',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { provider: 'claude' as const, model: 'claude-haiku' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  const fallbackWarning = run.result.warnings.find((w: string) => /per-tier provider/i.test(w));
+  assert.ok(fallbackWarning, 'expected a per-tier fallback warning');
+  assert.ok(/claude/i.test(fallbackWarning!), 'warning should mention the per-tier provider');
+  assert.ok(/codex/i.test(fallbackWarning!), 'warning should mention the fallback provider');
+  assert.ok(/ws-default/i.test(fallbackWarning!), 'warning should mention the fallback model');
+});

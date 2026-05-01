@@ -5362,7 +5362,7 @@
     {
       "id": "T196.5",
       "title": "Define reasoning policy for planning and diagnostic turns",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.3"
@@ -5392,7 +5392,7 @@
     {
       "id": "T196.6",
       "title": "Persist selected reasoning effort in iteration evidence",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.4"
@@ -5423,7 +5423,7 @@
     {
       "id": "T196.7",
       "title": "Update settings schema and operator docs for per-tier reasoning",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.2",
@@ -5458,7 +5458,7 @@
     {
       "id": "T196.8",
       "title": "Add end-to-end regression coverage for per-tier reasoning selection",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.4",
@@ -5490,7 +5490,47 @@
         "src/ralph/complexityScorer.ts",
         "src/ralph/iterationEngine.ts"
       ]
+    },
+    {
+      "id": "T197",
+      "title": "Harden provider fallback semantics for per-tier execution profiles",
+      "status": "done",
+      "dependsOn": [
+        "T196"
+      ],
+      "notes": "Hardened provider fallback: ENOENT now resets model to workspace default; conformance and integration tests added; docs updated.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "If a per-tier provider command is missing, RalphDex either fails clearly or falls back to a coherent workspace-default execution profile.",
+        "Fallback behaviour is documented in docs/model-tiering.md.",
+        "Tests cover a per-tier provider override whose command is missing.",
+        "Tests prove fallback does not pass a provider-specific tier model to a different provider unless explicitly intended and documented.",
+        "Provider conformance tests prove reasoningEffort is either consumed intentionally or ignored safely for each supported provider.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change model-tier scoring thresholds.",
+        "Do not remove per-tier provider override support.",
+        "Do not remove per-tier reasoningEffort support.",
+        "Do not silently combine a provider-specific model with a different fallback provider.",
+        "Do not add live provider calls to tests."
+      ],
+      "context": [
+        "src/ralph/iteration/IterationExecutor.ts",
+        "src/ralph/complexityScorer.ts",
+        "src/codex/providerFactory.ts",
+        "src/codex/codexCliProvider.ts",
+        "src/codex/claudeCliProvider.ts",
+        "src/codex/copilotCliProvider.ts",
+        "test/iterationEngine.integration.test.ts",
+        "test/providerFactory.conformance.test.ts",
+        "docs/model-tiering.md"
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 243
+  "mutationCount": 244
 }
