@@ -1,5 +1,6 @@
 import type { WorkspaceScan } from '../services/workspaceInspection';
 import type { DoctrineProposedUpdate } from './doctrineProposals';
+import type { CodexReasoningEffort } from '../config/types';
 
 export type RalphTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 
@@ -470,7 +471,7 @@ export interface RalphCliInvocation {
   iteration: number;
   commandPath: string;
   args: string[];
-  reasoningEffort?: string | null;
+  reasoningEffort: CodexReasoningEffort;
   workspaceRoot: string;
   rootPolicy: RalphRootPolicy;
   promptArtifactPath: string;

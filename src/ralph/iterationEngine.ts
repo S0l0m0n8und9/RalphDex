@@ -936,7 +936,7 @@ export class RalphIterationEngine {
           score: null,
           tier: 'default' as const
         };
-      const selectedReasoningEffort = selectedTierReasoningEffort ?? prepared.config.reasoningEffort;
+      let selectedReasoningEffort = selectedTierReasoningEffort ?? prepared.config.reasoningEffort;
 
       if (complexityScore !== null) {
         this.logger.info('Model tiering selected model for task.', {
@@ -1001,6 +1001,13 @@ export class RalphIterationEngine {
       });
       phaseTimestamps.executionStartedAt = execution.executionStartedAt;
       phaseTimestamps.executionFinishedAt = execution.executionFinishedAt;
+
+      // If the executor fell back due to a missing per-tier provider, the invocation
+      // will reflect the workspace-default reasoning effort. Update selectedReasoningEffort
+      // to match what was actually used so OutcomeClassifier records the true execution profile.
+      if (execution.invocation && execution.invocation.reasoningEffort !== selectedReasoningEffort) {
+        selectedReasoningEffort = execution.invocation.reasoningEffort;
+      }
 
       // Run afterIteration / onFailure hooks (adopted from Ruflo's hook system).
       if (shouldExecutePrompt) {

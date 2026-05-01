@@ -5530,6 +5530,41 @@
         "docs/model-tiering.md"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T198",
+      "title": "Make per-tier provider fallback use the full workspace-default execution profile",
+      "status": "in_progress",
+      "dependsOn": [
+        "T197"
+      ],
+      "notes": "T197 fixed provider/model mismatch. This follow-up closes the remaining profile-coherence gap for reasoningEffort.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "simple",
+      "acceptance": [
+        "When a per-tier provider command is missing and RalphDex falls back to the workspace default provider, the fallback execution uses ralphCodex.model and ralphCodex.reasoningEffort.",
+        "The fallback warning names the fallback provider, fallback model, and fallback reasoning effort.",
+        "cli-invocation.json records the actual fallback reasoning effort used.",
+        "iteration-result.json executionIntegrity.reasoningEffort records the actual fallback reasoning effort used.",
+        "Tests prove a per-tier provider override with high reasoning falls back to workspace default medium reasoning when the workspace default is medium.",
+        "Docs clarify that ENOENT fallback reverts provider, model, and reasoning effort to the workspace defaults.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change model-tier scoring thresholds.",
+        "Do not remove per-tier provider overrides.",
+        "Do not remove per-tier reasoningEffort support.",
+        "Do not add live provider calls to tests.",
+        "Do not silently mix tier-specific execution fields with fallback provider fields."
+      ],
+      "context": [
+        "src/ralph/iteration/IterationExecutor.ts",
+        "test/iterationEngine.integration.test.ts",
+        "test/providerFactory.conformance.test.ts",
+        "docs/model-tiering.md"
+      ]
     }
   ],
   "mutationCount": 244

@@ -5070,7 +5070,7 @@ test('per-tier provider ENOENT falls back to workspace default using workspace-d
     'fallback must use the workspace-default model');
 });
 
-test('per-tier provider ENOENT warning includes both provider name and fallback model', async () => {
+test('per-tier provider ENOENT warning includes provider name, fallback model, and fallback reasoning effort', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath, {
     version: 2,
@@ -5086,11 +5086,12 @@ test('per-tier provider ENOENT warning includes both provider name and fallback 
   harness.setConfiguration({
     cliProvider: 'codex',
     model: 'ws-default',
+    reasoningEffort: 'medium',
     planningPass: { enabled: false },
     taskReadinessGate: 'off',
     modelTiering: {
       enabled: true,
-      simple: { provider: 'claude' as const, model: 'claude-haiku' },
+      simple: { provider: 'claude' as const, model: 'claude-haiku', reasoningEffort: 'high' },
       medium: { model: 'claude-sonnet' },
       complex: { model: 'claude-opus' },
       simpleThreshold: 2,
@@ -5106,4 +5107,45 @@ test('per-tier provider ENOENT warning includes both provider name and fallback 
   assert.ok(/claude/i.test(fallbackWarning!), 'warning should mention the per-tier provider');
   assert.ok(/codex/i.test(fallbackWarning!), 'warning should mention the fallback provider');
   assert.ok(/ws-default/i.test(fallbackWarning!), 'warning should mention the fallback model');
+  assert.ok(/medium/i.test(fallbackWarning!), 'warning should mention the fallback reasoning effort');
+});
+
+test('per-tier provider ENOENT falls back to workspace-default reasoning effort', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T52', title: 'Complex task that needs high reasoning', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const successMessage = completionReport({ selectedTaskId: 'T52', requestedStatus: 'done' });
+  const registry = new MockStrategyRegistryWithEnoentTier('claude', successMessage);
+
+  const { engine } = createEngineWithRegistry(registry);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    model: 'workspace-default-model',
+    reasoningEffort: 'medium',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { provider: 'claude' as const, model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet', reasoningEffort: 'high' },
+      complex: { model: 'claude-opus', reasoningEffort: 'high' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(run.result.executionStatus, 'succeeded', 'execution should succeed via fallback');
+  // When per-tier provider falls back, the selected reasoning effort should update to the workspace default
+  assert.equal(run.result.selectedReasoningEffort, 'medium',
+    'selectedReasoningEffort should be workspace default (medium) after per-tier fallback');
+  assert.equal(run.result.executionIntegrity?.reasoningEffort, 'medium',
+    'executionIntegrity.reasoningEffort should be workspace default (medium) after per-tier fallback');
 });

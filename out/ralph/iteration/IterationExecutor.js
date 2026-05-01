@@ -156,6 +156,7 @@ class IterationExecutor {
             let execResult;
             let usedCommandPath = input.effectiveCommandPath;
             let fallbackWarning;
+            let usedReasoningEffort = input.selectedReasoningEffort;
             try {
                 execResult = await execStrategy.runExec({
                     ...baseExecRequest,
@@ -169,20 +170,24 @@ class IterationExecutor {
                     this.logger.warn('Per-tier provider not found; falling back to workspace default.', {
                         failedProvider: input.selectedProvider,
                         fallbackProvider: input.prepared.config.cliProvider,
-                        model: input.selectedModel
+                        model: input.selectedModel,
+                        reasoningEffort: input.selectedReasoningEffort
                     });
                     const fallbackStrategy = this.strategies.getCliExecStrategyForProvider(input.prepared.config.cliProvider);
                     if (!fallbackStrategy.runExec) {
                         throw primaryError;
                     }
                     usedCommandPath = (0, providers_1.getCliCommandPath)(input.prepared.config);
-                    // Use the workspace-default model so a provider-specific tier model is not
-                    // sent to a different fallback provider (e.g. a claude model ID to codex).
-                    fallbackWarning = `Per-tier provider "${input.selectedProvider}" not found; fell back to workspace default "${input.prepared.config.cliProvider}" with model "${input.prepared.config.model}".`;
+                    usedReasoningEffort = input.prepared.config.reasoningEffort;
+                    // Use the workspace-default model and reasoning effort so a provider-specific
+                    // tier configuration is not sent to a different fallback provider (e.g. a claude
+                    // model ID or high reasoning effort to codex).
+                    fallbackWarning = `Per-tier provider "${input.selectedProvider}" not found; fell back to workspace default "${input.prepared.config.cliProvider}" with model "${input.prepared.config.model}" and reasoning effort "${input.prepared.config.reasoningEffort}".`;
                     claudeLineBuffer = '';
                     execResult = await fallbackStrategy.runExec({
                         ...baseExecRequest,
                         model: input.prepared.config.model,
+                        reasoningEffort: input.prepared.config.reasoningEffort,
                         commandPath: usedCommandPath,
                         onStdoutChunk: makeStdoutChunk(input.prepared.config.cliProvider)
                     });
@@ -212,7 +217,7 @@ class IterationExecutor {
                 iteration: input.prepared.iteration,
                 commandPath: usedCommandPath,
                 args: execResult.args,
-                reasoningEffort: input.selectedReasoningEffort,
+                reasoningEffort: usedReasoningEffort,
                 workspaceRoot: input.prepared.rootPath,
                 rootPolicy: input.prepared.rootPolicy,
                 promptArtifactPath: verifiedPlan.promptArtifactPath,

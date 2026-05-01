@@ -68,10 +68,15 @@ If a per-tier `provider` is configured but its CLI command is not found (ENOENT)
 
 - **Provider**: reverts to `ralphCodex.cliProvider`
 - **Model**: reverts to `ralphCodex.model` — the workspace-default model, *not* the tier-specific model
+- **Reasoning effort**: reverts to `ralphCodex.reasoningEffort` — the workspace-default reasoning effort, *not* the tier-specific override
 
-This prevents a provider-specific model ID (e.g. `claude-opus-4-6`) from being forwarded to a different provider that does not recognise it (e.g. `codex`).
+This prevents a provider-specific model ID (e.g. `claude-opus-4-6`) or tier-specific reasoning effort (e.g. `"high"`) from being forwarded to a different provider that may not recognise them or support the same configurations (e.g. forwarding `"high"` reasoning to `codex`, which may only support `"medium"`).
 
-Ralph records a warning in the iteration execution warnings when a per-tier fallback occurs, identifying both the failed provider and the fallback provider/model. If the fallback also fails, the iteration fails normally.
+Ralph records a warning in the iteration execution warnings when a per-tier fallback occurs, identifying the failed provider, fallback provider, fallback model, and fallback reasoning effort. If the fallback also fails, the iteration fails normally.
+
+Ralph also records the actual reasoning effort used (including fallback values) in:
+- `cli-invocation.json`: the `reasoningEffort` field captures the actual reasoning effort passed to the CLI
+- `iteration-result.json`: the `executionIntegrity.reasoningEffort` field captures the reasoning effort for the main implementation turn
 
 To suppress the warning, either install the missing CLI or remove the `provider` override from the tier configuration.
 
