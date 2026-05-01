@@ -230,6 +230,7 @@ This section lists **core settings** only. Source of truth for the full settings
 |---|---|---|
 | `ralphCodex.ralphIterationCap` | `20` | Maximum CLI iterations for the loop command (operator presets can raise this) |
 | `ralphCodex.autonomyMode` | `"autonomous"` | `supervised` or `autonomous` |
+| `ralphCodex.planningPass` | `{"enabled":true,"mode":"inline"}` | Pre-execution planning pass defaults used by iteration commands |
 | `ralphCodex.stopOnHumanReviewNeeded` | `true` | Stop the loop on `needs_human_review` classification |
 | `ralphCodex.autoReplenishBacklog` | `true` | Continue into backlog replenishment when no actionable task remains |
 | `ralphCodex.autoApplyRemediation` | `["decompose_task","mark_blocked"]` | Remediation actions to auto-apply |
@@ -281,7 +282,7 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 
 | Setting | Default | Description |
 |---|---|---|
-| `ralphCodex.memoryStrategy` | `"verbatim"` | Iteration memory strategy: `verbatim`, `sliding-window`, or `summary` |
+| `ralphCodex.memoryStrategy` | `"sliding-window"` | Iteration memory strategy: `verbatim`, `sliding-window`, or `summary` |
 
 **Model tiering**
 

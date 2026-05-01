@@ -4971,7 +4971,8 @@
     {
       "id": "T191",
       "title": "Update docs for agentic defaults",
-      "status": "todo",
+      "status": "done",
+      "notes": "Aligned docs with shipped agentic defaults: corrected planning pass default to enabled inline, corrected memoryStrategy default to sliding-window, and reinforced package.json as authoritative for exact defaults/enums.",
       "validation": "npm run check:docs",
       "tier": "simple",
       "acceptance": [
@@ -4987,7 +4988,8 @@
         "README.md",
         "docs/workflows.md",
         "docs/architecture.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T-DOCTRINE-CONTEXT-001",
@@ -5129,5 +5131,5 @@
       ]
     }
   ],
-  "mutationCount": 231
+  "mutationCount": 232
 }

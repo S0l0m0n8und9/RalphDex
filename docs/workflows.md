@@ -268,6 +268,8 @@ Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique ba
 
 `ralphCodex.autonomyMode` is the high-level loop-control shortcut. The extension now defaults to `autonomous`, and that mode forces two effective settings at runtime regardless of their stored values: `autoApplyRemediation = ["decompose_task", "mark_blocked"]` and `autoReplenishBacklog = true`. Switch back to `supervised` when you want the loop to leave those lower-level settings untouched.
 
+Exact default values and allowed enums remain authoritative in `package.json` (`contributes.configuration.properties`); this workflow doc focuses on operator behavior and decision paths.
+
 Autonomous mode widens what Ralph may do without another click, but it does not remove hard stops. These stops are never automated and still require an operator decision even when autonomy mode is `autonomous`:
 
 - `needs_human_review` outcomes still stop the loop and surface `request_human_review` as the next action instead of auto-continuing
