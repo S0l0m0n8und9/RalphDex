@@ -5102,11 +5102,11 @@
     {
       "id": "T-DOCTRINE-CONTEXT-004",
       "title": "Document read-only doctrine context behaviour",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T-DOCTRINE-CONTEXT-002"
       ],
-      "notes": "Keep this as a documentation cleanup after the behaviour exists.",
+      "notes": "Updated workflows, boundaries, and provenance docs to describe doctrine context as optional read-only prompt input, non-blocking doctrine health diagnostics, explicit doctrine proposal apply/reject gates, doctrine context observability in prompt evidence/status, and clear separation from memory strategy.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "documentation",
@@ -5129,8 +5129,9 @@
         "docs/boundaries.md",
         "docs/provenance.md",
         "AGENTS.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 233
+  "mutationCount": 234
 }

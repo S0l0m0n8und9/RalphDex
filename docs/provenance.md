@@ -40,6 +40,7 @@ Prompt generation also persists `prompt-evidence.json`, which records:
 - compact structured inputs used to render the prompt
 - prompt byte length plus prompt-budget accounting when budgeting is active
 - the exact repo-context snapshot used for rendering, including inspected root selection, any manual inspection-root override status, and concise empty-field evidence
+- doctrine-context observability when doctrine input is present (`includedFiles`, `omittedFiles`, included/omitted counts, and truncation/budget flags)
 
 When prompt budgeting applies, the evidence also records:
 
@@ -136,6 +137,8 @@ Doctrine update proposals follow the same evidence-first model:
 - `.ralph/artifacts/latest-doctrine-proposal.json` is a stable latest pointer for the newest valid doctrine proposal artifact
 - the artifact records validated target files, risk classification, protected-target flags, approval requirements, and any warnings from proposal parsing
 - the artifact is advisory evidence only; Ralph does not rewrite `.ralph/doctrine/*` from provider output in this tranche
+
+Doctrine prompt context is separate from doctrine proposals. Context injection is read-only prompt shaping evidence; proposal artifacts are operator-reviewed mutation requests that still require explicit apply/reject commands.
 
 ## Latest Surface Recovery
 

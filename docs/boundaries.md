@@ -51,7 +51,9 @@ The single-agent CLI iteration/loop runner still exists as a first-class command
 
 Durable `.ralph` state remains control-plane-owned during normal CLI task execution. The model may propose selected-task status and doctrine updates through the structured completion report, but Ralph is the only component that persists `.ralph/tasks.json`, `.ralph/progress.md`, or doctrine proposal artifacts on that path.
 
-The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. Structured doctrine update proposals are persisted as reviewable artifacts under `.ralph/artifacts/doctrine-proposals/`. Doctrine files may only be changed by an explicit operator command (`Ralphdex: Apply Latest Doctrine Proposal`). No provider completion report, normal iteration, loop, or prompt preparation path may directly apply doctrine changes. Auto-apply behavior and autonomous doctrine rewriting are explicitly out of scope.
+The project doctrine pack under `.ralph/doctrine/` is scaffolded and mechanically validated only. Prompt preparation may read doctrine files and inject a compact `Project Doctrine Context` block, but that context is strictly read-only and optional. Protected doctrine files (`invariants.md`, `boundaries.md`, and `agents.md`) are not provider-writable during normal task execution. Structured doctrine update proposals are persisted as reviewable artifacts under `.ralph/artifacts/doctrine-proposals/`. Doctrine files may only be changed by an explicit operator command (`Ralphdex: Apply Latest Doctrine Proposal`). No provider completion report, normal iteration, loop, or prompt preparation path may directly apply doctrine changes. Auto-apply behavior and autonomous doctrine rewriting are explicitly out of scope.
+
+Missing or malformed doctrine is treated as a preflight/status warning, not an automatic block on task selection or CLI launch.
 
 **Doctrine proposal lifecycle:**
 
@@ -86,6 +88,8 @@ When the repository itself is the Ralph workspace, as in this repo, some `.ralph
 - `.ralph/doctrine/` — compact project doctrine skeletons and `evidence-index.json`; protected doctrine files are human-governed and validated structurally
 - `.ralph/artifacts/*/doctrine-proposal.json` plus `.ralph/artifacts/latest-doctrine-proposal.json` — reviewable doctrine update proposals derived from provider output; these artifacts never rewrite doctrine files automatically
 - `.ralph/memory-summary.md` — condensed memory state when using summary memory strategy
+
+Doctrine context and memory are separate mechanisms. Doctrine context is read-only prompt input sourced from `.ralph/doctrine/*.md`; memory strategy controls prior-iteration carry-forward and optional summarization into `.ralph/memory-summary.md`.
 
 The rest of the runtime tree is operator-local runtime state and must not be committed:
 
