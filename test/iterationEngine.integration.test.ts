@@ -4723,3 +4723,233 @@ test('auto ready injects accepted-plan execution rule into implementer prompt', 
   };
   assert.equal(latestBundle.promptHash, hashText(implementerPrompt));
 });
+
+// ---------------------------------------------------------------------------
+// T196.5 — Planning and diagnostic turns use global reasoning effort
+// ---------------------------------------------------------------------------
+
+test('inline planning pass uses global reasoning effort, not tier override', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T20', title: 'Implement auth check and then add logging', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  let planningReasoningEffort: string | undefined;
+  let implementerReasoningEffort: string | undefined;
+  const { engine } = createEngine([
+    {
+      run: async (request) => {
+        planningReasoningEffort = request.reasoningEffort;
+        return {
+          lastMessage: JSON.stringify({
+            reasoning: 'Ready task',
+            approach: 'execute',
+            steps: ['go'],
+            risks: [],
+            readiness: 'ready'
+          })
+        };
+      }
+    },
+    {
+      run: async (request) => {
+        implementerReasoningEffort = request.reasoningEffort;
+        return { lastMessage: completionReport({ selectedTaskId: 'T20', requestedStatus: 'in_progress' }) };
+      }
+    }
+  ]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'auto',
+    reasoningEffort: 'medium',
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus', reasoningEffort: 'high' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(planningReasoningEffort, 'medium', 'planning pass should use global reasoning effort');
+  assert.equal(implementerReasoningEffort, 'high', 'implementer should use tier-resolved reasoning effort');
+});
+
+test('planning gate stop result records global reasoning effort', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T21', title: 'Build the app end-to-end scaffold plus deployment', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const { engine } = createEngine([
+    {
+      run: async () => ({
+        lastMessage: JSON.stringify({
+          reasoning: 'Too broad',
+          approach: 'decompose',
+          steps: [],
+          risks: ['scope'],
+          readiness: 'needs_decomposition',
+          suggestedChildTasks: [
+            { id: 'T21.1', title: 'Define conventions', parentId: 'T21', dependsOn: [], validation: null, rationale: 'scope' }
+          ]
+        })
+      })
+    }
+  ]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    planningPass: { enabled: true, mode: 'inline' },
+    taskReadinessGate: 'auto',
+    reasoningEffort: 'medium',
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet', reasoningEffort: 'high' },
+      complex: { model: 'claude-opus', reasoningEffort: 'high' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(run.result.selectedReasoningEffort, 'medium', 'planning gate result should record global reasoning, not tier override');
+  assert.equal(run.result.effectiveTier, 'planning_gate');
+});
+
+// ---------------------------------------------------------------------------
+// T196.8 — End-to-end per-tier reasoning selection and evidence persistence
+// ---------------------------------------------------------------------------
+
+test('per-tier reasoning effort survives config through execution and evidence', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T30', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  let capturedReasoningEffort: string | undefined;
+  const { engine } = createEngine([{
+    run: async (request) => {
+      capturedReasoningEffort = request.reasoningEffort;
+      return { lastMessage: completionReport({ selectedTaskId: 'T30', requestedStatus: 'done' }) };
+    }
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    reasoningEffort: 'medium',
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(capturedReasoningEffort, 'high', 'exec request should carry tier-specific reasoning effort');
+  assert.equal(run.result.selectedReasoningEffort, 'high', 'iteration result should record tier reasoning effort');
+  assert.equal(run.result.effectiveTier, 'simple');
+});
+
+test('tier without reasoning effort falls back to global in execution and evidence', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T31', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  let capturedReasoningEffort: string | undefined;
+  const { engine } = createEngine([{
+    run: async (request) => {
+      capturedReasoningEffort = request.reasoningEffort;
+      return { lastMessage: completionReport({ selectedTaskId: 'T31', requestedStatus: 'done' }) };
+    }
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    reasoningEffort: 'medium',
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(capturedReasoningEffort, 'medium', 'exec request should fall back to global reasoning effort');
+  assert.equal(run.result.selectedReasoningEffort, 'medium', 'iteration result should record global fallback');
+});
+
+test('different tiers select different reasoning efforts in the same backlog', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [
+      { id: 'T40', title: 'Fix typo', status: 'todo' },
+      { id: 'T41', title: 'Implement complex feature with children and validation', status: 'todo', validation: 'npm test', acceptance: ['works'] }
+    ]
+  });
+  await initGitRepo(rootPath);
+
+  const capturedEfforts: Array<{ model: string; reasoningEffort: string }> = [];
+  const sharedMemento = new MemoryMemento();
+
+  const firstEngine = createEngine([{
+    run: async (request) => {
+      capturedEfforts.push({ model: request.model, reasoningEffort: request.reasoningEffort });
+      return { lastMessage: completionReport({ selectedTaskId: 'T40', requestedStatus: 'done' }) };
+    }
+  }], sharedMemento);
+
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    reasoningEffort: 'medium',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus', reasoningEffort: 'high' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  await firstEngine.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  const secondEngine = createEngine([{
+    run: async (request) => {
+      capturedEfforts.push({ model: request.model, reasoningEffort: request.reasoningEffort });
+      return { lastMessage: completionReport({ selectedTaskId: 'T41', requestedStatus: 'done' }) };
+    }
+  }], sharedMemento);
+  await secondEngine.engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+
+  assert.equal(capturedEfforts.length, 2, `expected 2 exec calls but got ${capturedEfforts.length}`);
+  assert.equal(capturedEfforts[0].model, 'claude-haiku', 'first task should route to simple-tier model');
+  assert.equal(capturedEfforts[0].reasoningEffort, 'high', 'simple-tier task should use tier reasoning effort (high)');
+  assert.equal(capturedEfforts[1].model, 'claude-sonnet', 'second task should route to medium-tier model');
+  assert.equal(capturedEfforts[1].reasoningEffort, 'medium', 'medium-tier task should fall back to global reasoning effort (medium)');
+});

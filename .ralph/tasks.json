@@ -5210,7 +5210,7 @@
       "dependsOn": [
         "T195"
       ],
-      "notes": "Added selectedReasoningEffort to RalphIterationResult and wired it through OutcomeClassifier and planning-gate paths, completing the evidence persistence chain. All 8 subtasks (T196.1–T196.8) are now satisfied: config type, read/validate, resolve profile, CLI wiring, planning/diagnostic policy, evidence persistence, schema/docs, and regression coverage.",
+      "notes": "Completed T196.5 (documented planning/diagnostic reasoning policy with comments and docs, added 2 integration tests) and T196.8 (added 3 integration tests proving per-tier reasoning survives config→selection→execution→evidence with fallback). All 8 subtasks T196.1–T196.8 are now implemented and verified.",
       "validation": "npm run validate",
       "priority": "high",
       "tier": "complex",
@@ -5244,7 +5244,7 @@
     {
       "id": "T196.1",
       "title": "Extend model-tier config with optional reasoning effort",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "notes": "Add reasoningEffort to RalphModelTierConfig and keep the global reasoningEffort field as the fallback contract. The type surface should represent a tier execution profile while remaining backwards compatible with existing settings.",
       "validation": "npm test -- --runTestsByPath test/complexityScorer.test.ts",
@@ -5269,7 +5269,7 @@
     {
       "id": "T196.2",
       "title": "Read per-tier reasoning settings with legacy-safe fallback",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.1"
@@ -5300,7 +5300,7 @@
     {
       "id": "T196.3",
       "title": "Resolve model tiering to an execution profile",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.1",
@@ -5331,7 +5331,7 @@
     {
       "id": "T196.4",
       "title": "Wire selected tier reasoning into main CLI execution",
-      "status": "todo",
+      "status": "done",
       "parentId": "T196",
       "dependsOn": [
         "T196.3"
@@ -5492,5 +5492,5 @@
       ]
     }
   ],
-  "mutationCount": 242
+  "mutationCount": 243
 }

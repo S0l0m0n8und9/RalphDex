@@ -62,6 +62,10 @@ Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `
 
 Omitting `reasoningEffort` uses the global default (`ralphCodex.reasoningEffort`). The selected execution profile recorded for an iteration therefore includes the selected provider, model, tier, score, and resolved reasoning effort. Allowed tier override values match the provider-facing execution contract: `"medium"` and `"high"`.
 
+### Reasoning effort for planning and diagnostic turns
+
+Planning passes (inline and dedicated) and failure-diagnostic turns always use the global `ralphCodex.reasoningEffort` setting, not the tier-specific override. These are utility turns whose cost and behaviour should remain stable regardless of the implementation tier selected for the task. Only the main implementation execution uses the tier-resolved reasoning effort.
+
 Source of truth for shipped defaults is `package.json` (`contributes.configuration.properties.ralphCodex.modelTiering`).
 
 ## Expected Cost Savings

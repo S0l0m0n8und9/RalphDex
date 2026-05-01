@@ -192,6 +192,7 @@ class RalphIterationEngine {
         const lastMessagePath = path.join(taskArtifactDir, 'task-plan-last-message.txt');
         await fs.writeFile(promptPath, planningPrompt, 'utf8');
         try {
+            // Planning turns use global reasoning effort, not the tier-specific override.
             const execResult = await execStrategy.runExec({
                 commandPath,
                 workspaceRoot,
@@ -532,6 +533,7 @@ class RalphIterationEngine {
             const transcriptPath = path.join(taskArtifactDir, 'failure-diagnostic-transcript.json');
             const lastMessagePath = path.join(taskArtifactDir, 'failure-diagnostic-last-message.txt');
             await fs.writeFile(promptPath, diagnosticPrompt, 'utf8');
+            // Diagnostic turns use global reasoning effort, not the tier-specific override.
             const execResult = await execStrategy.runExec({
                 commandPath: (0, providers_1.getCliCommandPath)(config),
                 workspaceRoot,

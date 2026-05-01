@@ -245,6 +245,7 @@ export class RalphIterationEngine {
     await fs.writeFile(promptPath, planningPrompt, 'utf8');
 
     try {
+      // Planning turns use global reasoning effort, not the tier-specific override.
       const execResult = await execStrategy.runExec({
         commandPath,
         workspaceRoot,
@@ -651,6 +652,7 @@ export class RalphIterationEngine {
 
       await fs.writeFile(promptPath, diagnosticPrompt, 'utf8');
 
+      // Diagnostic turns use global reasoning effort, not the tier-specific override.
       const execResult = await (execStrategy as { runExec: (req: import('../codex/types').CodexExecRequest) => Promise<import('../codex/types').CodexExecResult> }).runExec({
         commandPath: getCliCommandPath(config),
         workspaceRoot,
