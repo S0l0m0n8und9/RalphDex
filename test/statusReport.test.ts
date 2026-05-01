@@ -166,6 +166,49 @@ const latestPromptEvidence: RalphPromptEvidence = {
     repoContext: [],
     repoContextSnapshot: workspaceScan,
     runtimeContext: [],
+    doctrineContext: {
+      includedCount: 2,
+      omittedCount: 6,
+      includedFiles: [
+        {
+          relativePath: '.ralph/doctrine/boundaries.md',
+          isProtected: true,
+          truncated: false
+        },
+        {
+          relativePath: '.ralph/doctrine/invariants.md',
+          isProtected: true,
+          truncated: false
+        }
+      ],
+      omittedFiles: [
+        {
+          relativePath: '.ralph/doctrine/project-profile.md',
+          isProtected: false
+        },
+        {
+          relativePath: '.ralph/doctrine/workflows.md',
+          isProtected: false
+        },
+        {
+          relativePath: '.ralph/doctrine/agents.md',
+          isProtected: true
+        },
+        {
+          relativePath: '.ralph/doctrine/decisions.md',
+          isProtected: false
+        },
+        {
+          relativePath: '.ralph/doctrine/risks.md',
+          isProtected: false
+        },
+        {
+          relativePath: '.ralph/doctrine/open-questions.md',
+          isProtected: false
+        }
+      ],
+      budgetExceeded: false
+    },
     taskContext: [],
     progressContext: [],
     priorIterationContext: [],
@@ -1170,6 +1213,32 @@ test('buildStatusReport distinguishes verified CLI execution provenance from pre
 
   assert.match(report, /- Trust level: verified CLI execution/);
   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+});
+
+test('buildStatusReport surfaces doctrine context observability when latest prompt evidence includes doctrine metadata', () => {
+  const report = buildStatusReport(snapshot());
+
+  assert.match(report, /- Doctrine context available: yes/);
+  assert.match(report, /- Doctrine files included: 2/);
+  assert.match(report, /- Doctrine files omitted: 6/);
+  assert.match(report, /- Doctrine context evidence: \.ralph\/artifacts\/latest-prompt-evidence\.json/);
+});
+
+test('buildStatusReport surfaces absent doctrine context without treating missing prompt evidence as doctrine evidence', () => {
+  const report = buildStatusReport(snapshot({
+    latestPromptEvidence: {
+      ...latestPromptEvidence,
+      inputs: {
+        ...latestPromptEvidence.inputs,
+        doctrineContext: undefined
+      }
+    }
+  }));
+
+  assert.match(report, /- Doctrine context available: no/);
+  assert.match(report, /- Doctrine files included: 0/);
+  assert.match(report, /- Doctrine files omitted: 0/);
+  assert.match(report, /- Doctrine context evidence: none/);
 });
 
 test('buildStatusReport surfaces inspection-root override state', () => {

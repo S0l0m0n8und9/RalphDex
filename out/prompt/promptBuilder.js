@@ -51,6 +51,7 @@ const rootPolicy_1 = require("../ralph/rootPolicy");
 const fs_1 = require("../util/fs");
 const taskFile_1 = require("../ralph/taskFile");
 const planningPass_1 = require("../ralph/planningPass");
+const doctrine_1 = require("../ralph/doctrine");
 const promptBudget_1 = require("./promptBudget");
 __exportStar(require("./promptBudget"), exports);
 const DEFAULT_TEMPLATE_DIR_CANDIDATES = [
@@ -113,6 +114,9 @@ function compactList(values, limit) {
     const visible = values.slice(0, limit);
     const remaining = values.length - visible.length;
     return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
+}
+function relativeDoctrinePath(fileName) {
+    return `${doctrine_1.DOCTRINE_ROOT_RELATIVE}/${fileName}`;
 }
 function taskKeywords(task) {
     return [
@@ -1434,11 +1438,21 @@ async function buildPrompt(input) {
             ...(structureContext ? { structureContext } : {}),
             ...(input.doctrineContext && input.doctrineContext.entries.length > 0
                 ? {
+                    // Persist both included and omitted doctrine-file metadata so status
+                    // can report prompt-time doctrine availability without re-scanning.
                     doctrineContext: {
+                        includedCount: input.doctrineContext.entries.length,
+                        omittedCount: doctrine_1.DOCTRINE_MARKDOWN_FILES.length - input.doctrineContext.entries.length,
                         includedFiles: input.doctrineContext.entries.map((e) => ({
                             relativePath: e.relativePath,
                             isProtected: e.isProtected,
                             truncated: e.truncated
+                        })),
+                        omittedFiles: doctrine_1.DOCTRINE_MARKDOWN_FILES
+                            .filter((fileName) => !input.doctrineContext?.entries.some((entry) => entry.fileName === fileName))
+                            .map((fileName) => ({
+                            relativePath: relativeDoctrinePath(fileName),
+                            isProtected: new Set(doctrine_1.PROTECTED_DOCTRINE_FILES).has(fileName)
                         })),
                         budgetExceeded: input.doctrineContext.budgetExceeded
                     }

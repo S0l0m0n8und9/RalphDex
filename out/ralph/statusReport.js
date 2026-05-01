@@ -37,6 +37,7 @@ exports.resolveLatestStatusArtifacts = resolveLatestStatusArtifacts;
 exports.buildStatusReport = buildStatusReport;
 const path = __importStar(require("path"));
 const fs_1 = require("../util/fs");
+const doctrine_1 = require("./doctrine");
 const rootPolicy_1 = require("./rootPolicy");
 const artifactStore_1 = require("./artifactStore");
 function relativeFromRoot(rootPath, target) {
@@ -75,6 +76,25 @@ function formatPromptBudgetSummary(promptEvidence) {
         ? `within target (${budget.budgetDeltaTokens >= 0 ? '+' : ''}${budget.budgetDeltaTokens})`
         : `over target (+${budget.budgetDeltaTokens})`;
     return `${budget.policyName} | ${budget.budgetMode} | target ${budget.targetTokens} | est ${budget.estimatedTokens} (${budget.estimatedTokenRange.min}-${budget.estimatedTokenRange.max}) | ${budgetOutcome}`;
+}
+function doctrineContextSummary(promptEvidence, latestPromptEvidencePath) {
+    const doctrineContext = promptEvidence?.inputs.doctrineContext;
+    if (!doctrineContext) {
+        return {
+            available: 'no',
+            includedCount: 0,
+            omittedCount: 0,
+            evidencePath: null
+        };
+    }
+    const includedCount = doctrineContext.includedCount ?? doctrineContext.includedFiles.length;
+    const omittedCount = doctrineContext.omittedCount ?? Math.max(0, doctrine_1.DOCTRINE_MARKDOWN_FILES.length - includedCount);
+    return {
+        available: 'yes',
+        includedCount,
+        omittedCount,
+        evidencePath: latestPromptEvidencePath
+    };
 }
 function formatProvenanceTrustLevel(trustLevel) {
     if (trustLevel === 'verifiedCliExecution') {
@@ -227,6 +247,7 @@ function buildStatusReport(snapshot) {
         : null);
     const latestDoctrineProposal = snapshot.latestDoctrineProposal;
     const latestProvenance = snapshot.latestProvenanceBundle;
+    const doctrineSummary = doctrineContextSummary(latestPromptEvidence, snapshot.latestPromptEvidencePath);
     const lastIntegrity = lastIteration?.executionIntegrity;
     const currentRootPolicy = latestPlan?.rootPolicy ?? (0, rootPolicy_1.deriveRootPolicy)(snapshot.workspaceScan);
     const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
@@ -269,6 +290,10 @@ function buildStatusReport(snapshot) {
         `- Current prompt omission order: ${compactList(latestPromptEvidence?.promptBudget?.omissionOrder ?? [], 6)}`,
         `- Current prompt selected sections: ${compactList(latestPromptEvidence?.promptBudget?.selectedSections ?? [], 6)}`,
         `- Current prompt omitted sections: ${compactList(latestPromptEvidence?.promptBudget?.omittedSections ?? [], 6)}`,
+        `- Doctrine context available: ${doctrineSummary.available}`,
+        `- Doctrine files included: ${doctrineSummary.includedCount}`,
+        `- Doctrine files omitted: ${doctrineSummary.omittedCount}`,
+        `- Doctrine context evidence: ${relativeFromRoot(snapshot.rootPath, doctrineSummary.evidencePath)}`,
         `- Current reasoning effort: ${currentReasoningEffort}`,
         `- Memory strategy: ${latestPromptEvidence?.memoryObservability?.memoryStrategy ?? 'none'}`,
         `- Memory history depth: ${latestPromptEvidence?.memoryObservability?.historyDepth ?? 'none'}`,

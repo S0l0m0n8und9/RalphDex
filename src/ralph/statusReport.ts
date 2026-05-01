@@ -2,6 +2,7 @@ import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import { pathExists } from '../util/fs';
+import { DOCTRINE_MARKDOWN_FILES } from './doctrine';
 import type { DoctrineProposalArtifact } from './doctrineProposals';
 import { EffectiveTierInfo } from './complexityScorer';
 import { deriveRootPolicy } from './rootPolicy';
@@ -203,6 +204,35 @@ function formatPromptBudgetSummary(promptEvidence: RalphPromptEvidence | null): 
   return `${budget.policyName} | ${budget.budgetMode} | target ${budget.targetTokens} | est ${budget.estimatedTokens} (${budget.estimatedTokenRange.min}-${budget.estimatedTokenRange.max}) | ${budgetOutcome}`;
 }
 
+function doctrineContextSummary(
+  promptEvidence: RalphPromptEvidence | null,
+  latestPromptEvidencePath: string | null
+): {
+  available: 'yes' | 'no';
+  includedCount: number;
+  omittedCount: number;
+  evidencePath: string | null;
+} {
+  const doctrineContext = promptEvidence?.inputs.doctrineContext;
+  if (!doctrineContext) {
+    return {
+      available: 'no',
+      includedCount: 0,
+      omittedCount: 0,
+      evidencePath: null
+    };
+  }
+
+  const includedCount = doctrineContext.includedCount ?? doctrineContext.includedFiles.length;
+  const omittedCount = doctrineContext.omittedCount ?? Math.max(0, DOCTRINE_MARKDOWN_FILES.length - includedCount);
+  return {
+    available: 'yes',
+    includedCount,
+    omittedCount,
+    evidencePath: latestPromptEvidencePath
+  };
+}
+
 function formatProvenanceTrustLevel(trustLevel: RalphProvenanceBundle['trustLevel'] | null | undefined): string {
   if (trustLevel === 'verifiedCliExecution') {
     return 'verified CLI execution';
@@ -395,6 +425,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     : null);
   const latestDoctrineProposal = snapshot.latestDoctrineProposal;
   const latestProvenance = snapshot.latestProvenanceBundle;
+  const doctrineSummary = doctrineContextSummary(latestPromptEvidence, snapshot.latestPromptEvidencePath);
   const lastIntegrity = lastIteration?.executionIntegrity;
   const currentRootPolicy = latestPlan?.rootPolicy ?? deriveRootPolicy(snapshot.workspaceScan);
   const lastRootPolicy = lastIntegrity?.rootPolicy ?? snapshot.latestCliInvocation?.rootPolicy ?? null;
@@ -438,6 +469,10 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Current prompt omission order: ${compactList(latestPromptEvidence?.promptBudget?.omissionOrder ?? [], 6)}`,
     `- Current prompt selected sections: ${compactList(latestPromptEvidence?.promptBudget?.selectedSections ?? [], 6)}`,
     `- Current prompt omitted sections: ${compactList(latestPromptEvidence?.promptBudget?.omittedSections ?? [], 6)}`,
+    `- Doctrine context available: ${doctrineSummary.available}`,
+    `- Doctrine files included: ${doctrineSummary.includedCount}`,
+    `- Doctrine files omitted: ${doctrineSummary.omittedCount}`,
+    `- Doctrine context evidence: ${relativeFromRoot(snapshot.rootPath, doctrineSummary.evidencePath)}`,
     `- Current reasoning effort: ${currentReasoningEffort}`,
     `- Memory strategy: ${latestPromptEvidence?.memoryObservability?.memoryStrategy ?? 'none'}`,
     `- Memory history depth: ${latestPromptEvidence?.memoryObservability?.historyDepth ?? 'none'}`,

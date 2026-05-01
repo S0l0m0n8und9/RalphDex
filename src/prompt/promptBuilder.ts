@@ -23,7 +23,12 @@ import {
   RalphWorkspaceState
 } from '../ralph/types';
 import { StructureDefinition } from '../ralph/structureDefinition';
-import { DoctrineContext } from '../ralph/doctrine';
+import {
+  DOCTRINE_MARKDOWN_FILES,
+  DOCTRINE_ROOT_RELATIVE,
+  PROTECTED_DOCTRINE_FILES,
+  DoctrineContext
+} from '../ralph/doctrine';
 import { WorkspaceScan } from '../services/workspaceInspection';
 import {
   type PromptSectionName,
@@ -175,6 +180,10 @@ function compactList(values: string[], limit: number): string {
   const visible = values.slice(0, limit);
   const remaining = values.length - visible.length;
   return remaining > 0 ? `${visible.join(', ')} (+${remaining} more)` : visible.join(', ');
+}
+
+function relativeDoctrinePath(fileName: string): string {
+  return `${DOCTRINE_ROOT_RELATIVE}/${fileName}`;
 }
 
 function taskKeywords(task: RalphTask | null): string {
@@ -1918,12 +1927,22 @@ export async function buildPrompt(input: PromptGenerationInput): Promise<PromptR
       ...(structureContext ? { structureContext } : {}),
       ...(input.doctrineContext && input.doctrineContext.entries.length > 0
         ? {
+            // Persist both included and omitted doctrine-file metadata so status
+            // can report prompt-time doctrine availability without re-scanning.
             doctrineContext: {
+              includedCount: input.doctrineContext.entries.length,
+              omittedCount: DOCTRINE_MARKDOWN_FILES.length - input.doctrineContext.entries.length,
               includedFiles: input.doctrineContext.entries.map((e) => ({
                 relativePath: e.relativePath,
                 isProtected: e.isProtected,
                 truncated: e.truncated
               })),
+              omittedFiles: DOCTRINE_MARKDOWN_FILES
+                .filter((fileName) => !input.doctrineContext?.entries.some((entry) => entry.fileName === fileName))
+                .map((fileName) => ({
+                  relativePath: relativeDoctrinePath(fileName),
+                  isProtected: new Set<string>(PROTECTED_DOCTRINE_FILES).has(fileName)
+                })),
               budgetExceeded: input.doctrineContext.budgetExceeded
             }
           }

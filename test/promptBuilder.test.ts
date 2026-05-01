@@ -2761,9 +2761,19 @@ test('buildPrompt includes doctrine context section when doctrineContext has ent
   assert.match(render.prompt, /### invariants\.md \[protected\]/);
   assert.match(render.prompt, /All state is file-backed\./);
   assert.ok(render.evidence.inputs.doctrineContext, 'doctrineContext should appear in evidence inputs');
+  assert.equal(render.evidence.inputs.doctrineContext?.includedCount, 2);
+  assert.equal(render.evidence.inputs.doctrineContext?.omittedCount, 6);
   assert.deepEqual(render.evidence.inputs.doctrineContext?.includedFiles.map((f) => f.relativePath), [
     '.ralph/doctrine/boundaries.md',
     '.ralph/doctrine/invariants.md'
+  ]);
+  assert.deepEqual(render.evidence.inputs.doctrineContext?.omittedFiles.map((f) => f.relativePath), [
+    '.ralph/doctrine/project-profile.md',
+    '.ralph/doctrine/workflows.md',
+    '.ralph/doctrine/agents.md',
+    '.ralph/doctrine/decisions.md',
+    '.ralph/doctrine/risks.md',
+    '.ralph/doctrine/open-questions.md'
   ]);
   assert.equal(render.evidence.inputs.doctrineContext?.budgetExceeded, false);
 });
