@@ -244,6 +244,44 @@ function createEngine(
   return { engine, stateManager };
 }
 
+function iterationArtifactDir(rootPath: string, iteration: number): string {
+  return path.join(rootPath, '.ralph', 'artifacts', `iteration-${String(iteration).padStart(3, '0')}`);
+}
+
+async function readExecutionProfileArtifacts(rootPath: string, iteration: number): Promise<{
+  cliInvocation: {
+    commandPath: string;
+    selectedProvider?: string | null;
+    selectedModel?: string | null;
+    effectiveTier?: string | null;
+    reasoningEffort: string;
+    fallbackWarning?: string | null;
+  };
+  iterationResult: {
+    selectedProvider?: string;
+    selectedModel?: string;
+    selectedReasoningEffort?: string;
+    effectiveTier?: string;
+    fallbackWarning?: string | null;
+    warnings: string[];
+    executionIntegrity: {
+      selectedProvider?: string | null;
+      selectedModel?: string | null;
+      effectiveTier?: string | null;
+      reasoningEffort?: string | null;
+      fallbackWarning?: string | null;
+    } | null;
+  };
+}> {
+  const artifactDir = iterationArtifactDir(rootPath, iteration);
+  const [cliInvocation, iterationResult] = await Promise.all([
+    fs.readFile(path.join(artifactDir, 'cli-invocation.json'), 'utf8').then((content) => JSON.parse(content)),
+    fs.readFile(path.join(artifactDir, 'iteration-result.json'), 'utf8').then((content) => JSON.parse(content))
+  ]);
+
+  return { cliInvocation, iterationResult };
+}
+
 test.beforeEach(() => {
   const harness = vscodeTestHarness();
   harness.reset();
@@ -5148,4 +5186,191 @@ test('per-tier provider ENOENT falls back to workspace-default reasoning effort'
     'selectedReasoningEffort should be workspace default (medium) after per-tier fallback');
   assert.equal(run.result.executionIntegrity?.reasoningEffort, 'medium',
     'executionIntegrity.reasoningEffort should be workspace default (medium) after per-tier fallback');
+});
+
+// ---------------------------------------------------------------------------
+// T200 — Execution-profile evidence consistency
+// ---------------------------------------------------------------------------
+
+test('execution-profile evidence stays aligned for non-fallback tier execution', async () => {
+  const rootPath = await makeTempRoot();
+  const claudeCommandPath = process.env.ComSpec ?? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe');
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T60', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const { engine } = createEngine([{
+    run: async () => ({ lastMessage: completionReport({ selectedTaskId: 'T60', requestedStatus: 'done' }) })
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    claudeCommandPath,
+    model: 'workspace-default-model',
+    reasoningEffort: 'medium',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { provider: 'claude' as const, model: 'claude-tier-model', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+  const { cliInvocation, iterationResult } = await readExecutionProfileArtifacts(rootPath, 1);
+
+  assert.equal(cliInvocation.commandPath, claudeCommandPath);
+  assert.equal(cliInvocation.selectedProvider, 'claude');
+  assert.equal(cliInvocation.selectedModel, 'claude-tier-model');
+  assert.equal(cliInvocation.effectiveTier, 'simple');
+  assert.equal(cliInvocation.reasoningEffort, 'high');
+  assert.equal(cliInvocation.fallbackWarning, null);
+
+  assert.equal(run.result.selectedProvider, 'claude');
+  assert.equal(run.result.selectedModel, 'claude-tier-model');
+  assert.equal(run.result.selectedReasoningEffort, 'high');
+  assert.equal(run.result.effectiveTier, 'simple');
+  assert.equal(run.result.fallbackWarning, null);
+
+  assert.equal(iterationResult.selectedProvider, 'claude');
+  assert.equal(iterationResult.selectedModel, 'claude-tier-model');
+  assert.equal(iterationResult.selectedReasoningEffort, 'high');
+  assert.equal(iterationResult.effectiveTier, 'simple');
+  assert.equal(iterationResult.fallbackWarning, null);
+  assert.equal(iterationResult.executionIntegrity?.selectedProvider, 'claude');
+  assert.equal(iterationResult.executionIntegrity?.selectedModel, 'claude-tier-model');
+  assert.equal(iterationResult.executionIntegrity?.effectiveTier, 'simple');
+  assert.equal(iterationResult.executionIntegrity?.reasoningEffort, 'high');
+  assert.equal(iterationResult.executionIntegrity?.fallbackWarning, null);
+});
+
+test('execution-profile evidence stays aligned after per-tier provider fallback', async () => {
+  const rootPath = await makeTempRoot();
+  const claudeCommandPath = process.env.ComSpec ?? path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'cmd.exe');
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T61', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const successMessage = completionReport({ selectedTaskId: 'T61', requestedStatus: 'done' });
+  const registry = new MockStrategyRegistryWithEnoentTier('claude', successMessage);
+  const { engine } = createEngineWithRegistry(registry);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    claudeCommandPath,
+    model: 'workspace-default-model',
+    reasoningEffort: 'medium',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: true,
+      simple: { provider: 'claude' as const, model: 'claude-tier-model', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+  const { cliInvocation, iterationResult } = await readExecutionProfileArtifacts(rootPath, 1);
+  const fallbackWarning = run.result.fallbackWarning;
+
+  assert.equal(cliInvocation.commandPath, process.execPath);
+  assert.equal(cliInvocation.selectedProvider, 'codex');
+  assert.equal(cliInvocation.selectedModel, 'workspace-default-model');
+  assert.equal(cliInvocation.effectiveTier, 'simple');
+  assert.equal(cliInvocation.reasoningEffort, 'medium');
+  assert.equal(cliInvocation.fallbackWarning, fallbackWarning);
+
+  assert.equal(run.result.selectedProvider, 'codex');
+  assert.equal(run.result.selectedModel, 'workspace-default-model');
+  assert.equal(run.result.selectedReasoningEffort, 'medium');
+  assert.equal(run.result.effectiveTier, 'simple');
+  assert.equal(run.result.warnings.includes(fallbackWarning ?? ''), true);
+
+  assert.equal(iterationResult.selectedProvider, 'codex');
+  assert.equal(iterationResult.selectedModel, 'workspace-default-model');
+  assert.equal(iterationResult.selectedReasoningEffort, 'medium');
+  assert.equal(iterationResult.effectiveTier, 'simple');
+  assert.equal(iterationResult.fallbackWarning, fallbackWarning);
+  assert.equal(iterationResult.executionIntegrity?.selectedProvider, 'codex');
+  assert.equal(iterationResult.executionIntegrity?.selectedModel, 'workspace-default-model');
+  assert.equal(iterationResult.executionIntegrity?.effectiveTier, 'simple');
+  assert.equal(iterationResult.executionIntegrity?.reasoningEffort, 'medium');
+  assert.equal(iterationResult.executionIntegrity?.fallbackWarning, fallbackWarning);
+  assert.ok(/claude/i.test(fallbackWarning ?? ''));
+  assert.ok(/codex/i.test(fallbackWarning ?? ''));
+  assert.ok(/workspace-default-model/i.test(fallbackWarning ?? ''));
+  assert.ok(/medium/i.test(fallbackWarning ?? ''));
+});
+
+test('execution-profile evidence stays aligned when model tiering is disabled', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath, {
+    version: 2,
+    tasks: [{ id: 'T62', title: 'Fix typo', status: 'todo' }]
+  });
+  await initGitRepo(rootPath);
+
+  const { engine } = createEngine([{
+    run: async () => ({ lastMessage: completionReport({ selectedTaskId: 'T62', requestedStatus: 'done' }) })
+  }]);
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    cliProvider: 'codex',
+    codexCommandPath: process.execPath,
+    model: 'workspace-default-model',
+    reasoningEffort: 'medium',
+    planningPass: { enabled: false },
+    taskReadinessGate: 'off',
+    modelTiering: {
+      enabled: false,
+      simple: { model: 'claude-haiku', reasoningEffort: 'high' },
+      medium: { model: 'claude-sonnet' },
+      complex: { model: 'claude-opus' },
+      simpleThreshold: 2,
+      complexThreshold: 6
+    }
+  });
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  const run = await engine.runCliIteration(workspaceFolder(rootPath), 'loop', progressReporter(), { reachedIterationCap: false });
+  const { cliInvocation, iterationResult } = await readExecutionProfileArtifacts(rootPath, 1);
+
+  assert.equal(cliInvocation.commandPath, process.execPath);
+  assert.equal(cliInvocation.selectedProvider, 'codex');
+  assert.equal(cliInvocation.selectedModel, 'workspace-default-model');
+  assert.equal(cliInvocation.effectiveTier, 'default');
+  assert.equal(cliInvocation.reasoningEffort, 'medium');
+  assert.equal(cliInvocation.fallbackWarning, null);
+
+  assert.equal(run.result.selectedProvider, 'codex');
+  assert.equal(run.result.selectedModel, 'workspace-default-model');
+  assert.equal(run.result.selectedReasoningEffort, 'medium');
+  assert.equal(run.result.effectiveTier, 'default');
+  assert.equal(run.result.fallbackWarning, null);
+
+  assert.equal(iterationResult.selectedProvider, 'codex');
+  assert.equal(iterationResult.selectedModel, 'workspace-default-model');
+  assert.equal(iterationResult.selectedReasoningEffort, 'medium');
+  assert.equal(iterationResult.effectiveTier, 'default');
+  assert.equal(iterationResult.fallbackWarning, null);
+  assert.equal(iterationResult.executionIntegrity?.selectedProvider, 'codex');
+  assert.equal(iterationResult.executionIntegrity?.selectedModel, 'workspace-default-model');
+  assert.equal(iterationResult.executionIntegrity?.effectiveTier, 'default');
+  assert.equal(iterationResult.executionIntegrity?.reasoningEffort, 'medium');
+  assert.equal(iterationResult.executionIntegrity?.fallbackWarning, null);
 });

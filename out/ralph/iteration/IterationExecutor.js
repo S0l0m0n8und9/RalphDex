@@ -66,6 +66,7 @@ class IterationExecutor {
         let invocation;
         let executionStartedAt;
         let executionFinishedAt;
+        let fallbackWarning;
         this.strategies.configureCliProvider(input.prepared.config);
         const execStrategy = this.strategies.getCliExecStrategyForProvider(input.selectedProvider);
         if (!execStrategy.runExec) {
@@ -88,6 +89,7 @@ class IterationExecutor {
                 lastMessagePath,
                 lastMessage,
                 invocation,
+                fallbackWarning: undefined,
                 promptCacheStats,
                 executionCostUsd,
                 executionStartedAt: executionStartedAt ?? new Date().toISOString(),
@@ -154,8 +156,9 @@ class IterationExecutor {
                 }
                 : (chunk) => this.logger.info('codex stdout', { iteration: input.prepared.iteration, chunk });
             let execResult;
+            let usedProvider = input.effectiveProvider;
             let usedCommandPath = input.effectiveCommandPath;
-            let fallbackWarning;
+            let usedModel = input.selectedModel;
             let usedReasoningEffort = input.selectedReasoningEffort;
             try {
                 execResult = await execStrategy.runExec({
@@ -178,6 +181,8 @@ class IterationExecutor {
                         throw primaryError;
                     }
                     usedCommandPath = (0, providers_1.getCliCommandPath)(input.prepared.config);
+                    usedProvider = input.prepared.config.cliProvider;
+                    usedModel = input.prepared.config.model;
                     usedReasoningEffort = input.prepared.config.reasoningEffort;
                     // Use the workspace-default model and reasoning effort so a provider-specific
                     // tier configuration is not sent to a different fallback provider (e.g. a claude
@@ -217,7 +222,11 @@ class IterationExecutor {
                 iteration: input.prepared.iteration,
                 commandPath: usedCommandPath,
                 args: execResult.args,
+                selectedProvider: usedProvider,
+                selectedModel: usedModel,
+                effectiveTier: input.effectiveTier,
                 reasoningEffort: usedReasoningEffort,
+                fallbackWarning: fallbackWarning ?? null,
                 workspaceRoot: input.prepared.rootPath,
                 rootPolicy: input.prepared.rootPolicy,
                 promptArtifactPath: verifiedPlan.promptArtifactPath,
@@ -264,6 +273,7 @@ class IterationExecutor {
             lastMessagePath,
             lastMessage,
             invocation,
+            fallbackWarning,
             promptCacheStats,
             executionCostUsd,
             executionStartedAt: executionStartedAt ?? new Date().toISOString(),

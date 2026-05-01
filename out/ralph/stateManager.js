@@ -221,7 +221,13 @@ function normalizeExecutionIntegrity(candidate) {
         promptTarget: record.promptTarget,
         rootPolicy: normalizeRootPolicy(record.rootPolicy),
         templatePath: record.templatePath,
+        selectedProvider: typeof record.selectedProvider === 'string'
+            ? record.selectedProvider
+            : null,
+        selectedModel: typeof record.selectedModel === 'string' ? record.selectedModel : null,
+        effectiveTier: typeof record.effectiveTier === 'string' ? record.effectiveTier : null,
         reasoningEffort: typeof record.reasoningEffort === 'string' ? record.reasoningEffort : null,
+        fallbackWarning: typeof record.fallbackWarning === 'string' ? record.fallbackWarning : null,
         taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
         effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
             ? record.effectiveValidationCommand
@@ -295,7 +301,12 @@ function iterationFromRunRecord(run) {
         diffSummary: null,
         noProgressSignals: [],
         remediation: null,
-        stopReason: null
+        stopReason: null,
+        selectedProvider: undefined,
+        selectedModel: undefined,
+        selectedReasoningEffort: undefined,
+        effectiveTier: undefined,
+        fallbackWarning: null
     };
 }
 function normalizeTaskRemediation(candidate) {
@@ -437,7 +448,14 @@ function normalizeIterationResult(candidate) {
         reconciliationWarnings: Array.isArray(record.reconciliationWarnings)
             ? record.reconciliationWarnings.filter((item) => typeof item === 'string')
             : undefined,
-        stopReason: typeof record.stopReason === 'string' ? record.stopReason : null
+        stopReason: typeof record.stopReason === 'string' ? record.stopReason : null,
+        selectedProvider: typeof record.selectedProvider === 'string' ? record.selectedProvider : undefined,
+        selectedModel: typeof record.selectedModel === 'string' ? record.selectedModel : undefined,
+        selectedReasoningEffort: typeof record.selectedReasoningEffort === 'string'
+            ? record.selectedReasoningEffort
+            : undefined,
+        effectiveTier: typeof record.effectiveTier === 'string' ? record.effectiveTier : undefined,
+        fallbackWarning: typeof record.fallbackWarning === 'string' ? record.fallbackWarning : null
     };
 }
 function normalizeWorkspaceState(candidate) {

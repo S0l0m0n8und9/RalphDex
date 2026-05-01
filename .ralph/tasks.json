@@ -5566,6 +5566,659 @@
         "docs/model-tiering.md"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T199",
+      "title": "Audit RalphDex command surfaces for stale or redundant operator actions",
+      "status": "in_progress",
+      "dependsOn": [
+        "T198"
+      ],
+      "notes": "Audit-only. Intended to prepare UX simplification without premature removal.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Create a concise audit artifact under .ralph/artifacts/audits/ listing contributed commands, activation events, dashboard/sidebar surfaces, and docs references.",
+        "Flag stale, duplicated, confusing, or low-value operator actions.",
+        "Specifically check dead-letter, pipeline, prepare prompt, add task, seed task, doctrine proposal, and doctrine repair surfaces.",
+        "Recommend keep/remove/merge/rename for each questionable surface.",
+        "Do not make behaviour changes in this task.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not remove commands.",
+        "Do not redesign the dashboard.",
+        "Do not change provider execution.",
+        "Do not change task-state mutation behaviour.",
+        "Produce an audit artifact before proposing changes."
+      ],
+      "context": [
+        "package.json",
+        "src/commands",
+        "src/ui",
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "README.md",
+        "docs/workflows.md"
+      ]
+    },
+    {
+      "id": "T200",
+      "title": "Add regression tests for provider execution-profile evidence consistency",
+      "status": "blocked",
+      "dependsOn": [
+        "T198"
+      ],
+      "notes": "Locks down the execution-profile evidence contract after T198.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Tests prove selected provider, model, tier, reasoning effort, and fallback warning are reflected consistently across cli-invocation, iteration-result, and executionIntegrity.",
+        "Tests cover non-fallback tier execution.",
+        "Tests cover fallback execution after missing per-tier provider command.",
+        "Tests cover disabled model tiering using workspace default model and reasoning effort.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change runtime behaviour unless a test exposes a clear mismatch.",
+        "Do not add live provider calls.",
+        "Do not change model-tier scoring thresholds.",
+        "Do not change provider fallback policy."
+      ],
+      "context": [
+        "src/ralph/iteration/IterationExecutor.ts",
+        "src/ralph/iteration/OutcomeClassifier.ts",
+        "src/ralph/types.ts",
+        "test/iterationEngine.integration.test.ts",
+        "test/providerFactory.conformance.test.ts"
+      ]
+    },
+    {
+      "id": "T201",
+      "title": "Review documentation for shipped feature drift",
+      "status": "todo",
+      "dependsOn": [
+        "T198"
+      ],
+      "notes": "Low-risk drift cleanup after rapid feature movement.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Docs no longer imply obsolete command names or removed orchestration concepts.",
+        "Model-tiering docs match package.json schema.",
+        "Doctrine docs describe the completed lifecycle without overstating semantic memory.",
+        "Provider docs distinguish supported, beta, and experimental paths clearly.",
+        "README command list matches package.json contributed commands.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not rewrite docs wholesale.",
+        "Do not add roadmap promises.",
+        "Do not claim unimplemented capabilities.",
+        "Prefer small corrections and drift fixes."
+      ],
+      "context": [
+        "README.md",
+        "docs/workflows.md",
+        "docs/model-tiering.md",
+        "docs/boundaries.md",
+        "docs/invariants.md",
+        "docs/provenance.md",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T202",
+      "title": "Add non-blocking provider readiness diagnostics inventory",
+      "status": "todo",
+      "dependsOn": [
+        "T198"
+      ],
+      "notes": "Reframes Azure work as provider-readiness quality rather than an Azure-specific horizon.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Document the readiness checks currently performed for each provider.",
+        "Add tests or fixtures proving missing command diagnostics are consistent across codex, claude, copilot, gemini, copilot-foundry, and azure-foundry where applicable.",
+        "Status/preflight wording clearly distinguishes missing command, missing environment variable, missing configured endpoint/deployment, and unsupported feature.",
+        "No provider execution behaviour changes.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change provider execution.",
+        "Do not add live network calls.",
+        "Do not require provider CLIs to be installed for tests.",
+        "Diagnostics must be warning/info-level unless an existing preflight blocker already applies.",
+        "Do not make Azure the centre of the task."
+      ],
+      "context": [
+        "src/ralph/preflight.ts",
+        "src/config/providers.ts",
+        "src/config/types.ts",
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "docs/model-tiering.md"
+      ]
+    },
+    {
+      "id": "T203",
+      "title": "Add artifact consistency checks for latest pointers",
+      "status": "todo",
+      "dependsOn": [
+        "T198"
+      ],
+      "notes": "Improves trust in RalphDex artifact-heavy status and review flows.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Add a deterministic check that latest artifact pointers resolve to existing files where expected.",
+        "Cover latest summary, latest result, latest prompt evidence, latest CLI invocation, latest provenance bundle, latest doctrine proposal, and latest doctrine review when present.",
+        "Missing optional latest artifacts are reported as absent, not failure.",
+        "Broken pointers are surfaced as warnings in status or a dedicated audit artifact.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not delete artifacts.",
+        "Do not change retention policy.",
+        "Do not change runtime execution.",
+        "Diagnostics should be non-blocking."
+      ],
+      "context": [
+        "src/ralph/artifactStore.ts",
+        "src/ralph/provenancePersistence.ts",
+        "src/commands/artifactCommands.ts",
+        "test/artifactStore.test.ts",
+        "test/commandShell.smoke.test.ts"
+      ]
+    },
+    {
+      "id": "T204",
+      "title": "Generate a post-doctrine phase completion report",
+      "status": "todo",
+      "dependsOn": [
+        "T199",
+        "T200",
+        "T201",
+        "T203"
+      ],
+      "notes": "Useful checkpoint after the doctrine and execution-profile phases.",
+      "validation": "npm run validate",
+      "priority": "low",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Create a concise report under .ralph/artifacts/reports/ summarising the completed doctrine phase, model-tiering follow-up state, remaining risks, and recommended next horizon.",
+        "Identify whether provider-readiness, dashboard simplification, marketplace readiness, or evaluation harness work should be next.",
+        "Report references concrete files/tasks/commits where possible.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not invent future roadmap scope.",
+        "Do not mark unfinished tasks complete.",
+        "Do not make code changes.",
+        "Use evidence from committed files only."
+      ],
+      "context": [
+        ".ralph/prd.md",
+        ".ralph/progress.md",
+        ".ralph/tasks.json",
+        "docs/workflows.md",
+        "docs/boundaries.md",
+        "docs/model-tiering.md"
+      ]
+    },
+    {
+      "id": "T205",
+      "title": "Map first-run UX and identify onboarding friction",
+      "status": "todo",
+      "dependsOn": [
+        "T199"
+      ],
+      "notes": "Audit-first task before changing first-run UX.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Create .ralph/artifacts/audits/first-run-ux.md describing the current first-run journey from install to first successful CLI iteration.",
+        "Identify confusing, duplicated, or hidden actions in sidebar, dashboard, command palette, and README.",
+        "Recommend a target first-run flow with no more than five visible operator steps.",
+        "Classify recommendations as low-risk copy change, medium-risk surface consolidation, or high-risk behaviour change.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not redesign UI in this task.",
+        "Do not remove commands.",
+        "Do not change initialization behaviour.",
+        "Produce an audit artifact and proposed flow only."
+      ],
+      "context": [
+        "README.md",
+        "package.json",
+        "src/commands",
+        "src/ui",
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "media"
+      ]
+    },
+    {
+      "id": "T206",
+      "title": "Simplify first-run status guidance without changing execution behaviour",
+      "status": "todo",
+      "dependsOn": [
+        "T205"
+      ],
+      "notes": "First implementation step for UX simplification; no layout redesign.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "When no workspace is initialized, status/dashboard guidance points to Ralphdex: Initialize Workspace as the primary action.",
+        "When workspace is initialized but doctrine is missing, guidance points to Ralphdex: Initialize Doctrine Pack as a secondary repair action.",
+        "When tasks exist and provider readiness passes, guidance points to Ralphdex: Run CLI Iteration.",
+        "Status output avoids duplicate/conflicting setup messages.",
+        "Tests cover uninitialized, initialized-without-doctrine, and ready-to-run states.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change provider execution.",
+        "Do not change task selection.",
+        "Do not remove commands.",
+        "Do not redesign the dashboard.",
+        "Keep guidance concise and action-oriented."
+      ],
+      "context": [
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "src/ui",
+        "README.md",
+        "docs/workflows.md",
+        "test/statusReport.test.ts"
+      ]
+    },
+    {
+      "id": "T207",
+      "title": "Consolidate dashboard and sidebar action duplication",
+      "status": "todo",
+      "dependsOn": [
+        "T205",
+        "T206"
+      ],
+      "notes": "Directly addresses earlier UI duplication concerns.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Dashboard/sidebar no longer show the same primary actions in multiple adjacent places.",
+        "Add Task and Seed Tasks remain accessible but are not repeated everywhere.",
+        "Run/Prepare/Status actions are grouped by operator intent.",
+        "Tests or snapshots cover the primary dashboard/sidebar action layout.",
+        "README or docs mention the simplified action grouping if user-visible.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not remove command palette commands.",
+        "Do not remove Add Task or Seed Tasks functionality.",
+        "Do not change execution behaviour.",
+        "Do not introduce a large dashboard redesign.",
+        "Prefer grouping and context-sensitive visibility over deletion."
+      ],
+      "context": [
+        "src/ui",
+        "src/commands",
+        "package.json",
+        "test/dashboard",
+        "test/commandShell.smoke.test.ts"
+      ]
+    },
+    {
+      "id": "T208",
+      "title": "Add first-run readiness checklist to dashboard diagnostics",
+      "status": "todo",
+      "dependsOn": [
+        "T206"
+      ],
+      "notes": "Improves first-run clarity without changing behaviour.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Dashboard diagnostics can show a compact first-run checklist: workspace initialized, tasks present, provider ready, doctrine optional/healthy, validation command detected.",
+        "Checklist uses existing preflight/status data where possible.",
+        "Checklist distinguishes blocker, warning, and complete states.",
+        "Tests cover incomplete and complete readiness checklist states.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not block execution based on checklist state.",
+        "Do not change provider execution.",
+        "Do not add new settings.",
+        "Keep checklist compact."
+      ],
+      "context": [
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "src/ui",
+        "test/statusReport.test.ts"
+      ]
+    },
+    {
+      "id": "T209",
+      "title": "Create live provider dogfooding runbook and evidence contract",
+      "status": "todo",
+      "dependsOn": [
+        "T198",
+        "T202"
+      ],
+      "notes": "Manual runbook only. No live provider calls in CI/tests.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Add a live-provider dogfooding runbook covering codex, claude, copilot, gemini, and foundry-backed providers where available.",
+        "Define what evidence must be captured for a dogfood run: provider, model, reasoning effort, command path, prompt evidence, cli invocation, result, validation, and warnings.",
+        "Define redaction rules for transcripts and last-message artifacts before sharing.",
+        "Define pass/fail criteria for manual provider dogfooding.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not run live providers in automated tests.",
+        "Do not commit secrets.",
+        "Do not require Azure-specific setup.",
+        "Document opt-in manual dogfooding only."
+      ],
+      "context": [
+        "docs/workflows.md",
+        "docs/model-tiering.md",
+        "docs/provenance.md",
+        "README.md",
+        ".ralph/artifacts"
+      ]
+    },
+    {
+      "id": "T210",
+      "title": "Add opt-in live provider smoke command plan",
+      "status": "todo",
+      "dependsOn": [
+        "T209"
+      ],
+      "notes": "Design-first. Avoid accidentally adding flaky live-provider automation.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Produce a design note under .ralph/artifacts/design/live-provider-smoke.md for an explicit opt-in provider smoke command.",
+        "The design defines command name, safety prompts, provider selection, evidence output, timeout behaviour, and failure handling.",
+        "The design explains why smoke runs are excluded from npm run validate.",
+        "No runtime behaviour changes are made unless already trivial and fully tested.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not implement the command yet if the design is not bounded.",
+        "Do not add network calls to automated tests.",
+        "Do not store secrets.",
+        "Do not make smoke runs part of normal validation."
+      ],
+      "context": [
+        "src/commands",
+        "src/ralph/iterationEngine.ts",
+        "src/codex/providerFactory.ts",
+        "docs/workflows.md",
+        "package.json"
+      ]
+    },
+    {
+      "id": "T211",
+      "title": "Dogfood pipeline and loop flows with local mock provider evidence",
+      "status": "todo",
+      "dependsOn": [
+        "T200",
+        "T203"
+      ],
+      "notes": "Keeps pipeline dogfooding local and deterministic.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Add or update tests proving pipeline/loop dogfood paths produce inspectable prompt, execution, result, and provenance artifacts.",
+        "Document which pipeline paths are actively supported versus legacy/experimental.",
+        "If pipeline commands are stale or redundant, record that in an audit artifact rather than deleting them.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Use local mock providers only.",
+        "Do not run live providers.",
+        "Do not change pipeline semantics unless a concrete defect is found.",
+        "Do not revive obsolete pipeline UI claims."
+      ],
+      "context": [
+        "src/ralph/iterationEngine.ts",
+        "src/ralph/pipeline",
+        "src/commands",
+        "test/iterationEngine.integration.test.ts",
+        "test/pipeline",
+        ".ralph/artifacts"
+      ]
+    },
+    {
+      "id": "T212",
+      "title": "Prepare marketplace readiness checklist",
+      "status": "todo",
+      "dependsOn": [
+        "T201",
+        "T205"
+      ],
+      "notes": "Marketplace prep without feature changes.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Create docs/marketplace-readiness.md or equivalent checklist covering package metadata, README clarity, screenshots/media, changelog, tags, license, privacy/security docs, and known limitations.",
+        "Identify missing marketplace assets or stale claims.",
+        "Confirm README top-level positioning matches current shipped behaviour.",
+        "Confirm command names in README match package.json.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not change extension behaviour.",
+        "Do not invent unsupported feature claims.",
+        "Do not add marketing copy that conflicts with docs or package metadata."
+      ],
+      "context": [
+        "README.md",
+        "package.json",
+        "CHANGELOG.md",
+        "media",
+        "docs",
+        ".vscodeignore"
+      ]
+    },
+    {
+      "id": "T213",
+      "title": "Add security and data-handling documentation for harness use",
+      "status": "todo",
+      "dependsOn": [
+        "T201",
+        "T209"
+      ],
+      "notes": "Important for marketplace credibility and safe harness adoption.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "documentation",
+      "tier": "medium",
+      "acceptance": [
+        "Add or update security documentation explaining what RalphDex reads, writes, executes, and sends to provider CLIs.",
+        "Document secret-handling boundaries and state that RalphDex must not log/store secret values.",
+        "Document transcript/provenance artifact sensitivity and redaction expectations.",
+        "Document untrusted workspace limitations and provider trust assumptions.",
+        "Document risks from third-party CLI providers and extension execution.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not claim formal security certification.",
+        "Do not claim providers cannot exfiltrate data.",
+        "Be explicit about trust boundaries.",
+        "Do not include secrets or environment-specific values."
+      ],
+      "context": [
+        "README.md",
+        "docs/boundaries.md",
+        "docs/provenance.md",
+        "docs/workflows.md",
+        "package.json",
+        "src/codex",
+        "src/services"
+      ]
+    },
+    {
+      "id": "T214",
+      "title": "Define offline evaluation harness contract",
+      "status": "todo",
+      "dependsOn": [
+        "T200",
+        "T204"
+      ],
+      "notes": "Contract-first step for evaluation harness work.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Create a design artifact under .ralph/artifacts/design/evaluation-harness.md defining evaluation inputs, fixture shape, expected outputs, scoring dimensions, and pass/fail semantics.",
+        "Evaluation dimensions include task selection correctness, prompt evidence completeness, provider execution-profile evidence, reconciliation outcome, verifier outcome, and artifact consistency.",
+        "Define at least three initial offline fixture scenarios.",
+        "Recommend whether evaluation harness should live under test/evals, scripts/evals, or src/ralph/evaluation.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not call live providers.",
+        "Do not require external services.",
+        "Do not make evals part of normal validation yet.",
+        "Do not create a broad benchmark framework before defining the contract."
+      ],
+      "context": [
+        "src/ralph",
+        "test",
+        "docs/workflows.md",
+        ".ralph/artifacts"
+      ]
+    },
+    {
+      "id": "T215",
+      "title": "Implement baseline offline evaluation harness fixtures",
+      "status": "todo",
+      "dependsOn": [
+        "T214"
+      ],
+      "notes": "First implementation step after the eval contract.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Add baseline offline evaluation fixtures for: simple successful task, failed task with fallback/retry evidence, and doctrine-context prompt inclusion.",
+        "Add a script or test entry point that can run the fixtures locally.",
+        "Evaluation output includes a concise JSON or Markdown report.",
+        "The harness records pass/fail per evaluation dimension, not just process exit code.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not call live providers.",
+        "Do not require network access.",
+        "Do not make eval failures block npm run validate unless explicitly isolated and stable.",
+        "Keep fixtures small and deterministic."
+      ],
+      "context": [
+        "test",
+        "scripts",
+        "src/ralph",
+        ".ralph/artifacts/design/evaluation-harness.md"
+      ]
+    },
+    {
+      "id": "T216",
+      "title": "Add evaluation report summary to status artifacts",
+      "status": "todo",
+      "dependsOn": [
+        "T215"
+      ],
+      "notes": "Makes evaluation harness visible without making it mandatory.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Status can report the latest offline evaluation summary when one exists.",
+        "Status distinguishes no evaluation run, latest passing run, and latest failing run.",
+        "Status links to the latest evaluation report artifact path.",
+        "Tests cover absent/passing/failing evaluation summary states.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not run evaluations automatically during normal status generation.",
+        "Do not block execution based on evaluation results.",
+        "Do not redesign dashboard/sidebar.",
+        "Keep status output concise."
+      ],
+      "context": [
+        "src/commands/statusSnapshot.ts",
+        "src/ralph/statusReport.ts",
+        "test/statusReport.test.ts",
+        ".ralph/artifacts/evals"
+      ]
+    },
+    {
+      "id": "T217",
+      "title": "Create release-quality checkpoint report",
+      "status": "todo",
+      "dependsOn": [
+        "T212",
+        "T213",
+        "T215"
+      ],
+      "notes": "Checkpoint after the expanded overnight-safe batch.",
+      "validation": "npm run validate",
+      "priority": "low",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Create a concise report under .ralph/artifacts/reports/release-quality-checkpoint.md.",
+        "Summarise readiness across UX, provider dogfooding, marketplace metadata, security/data handling, and evaluation harness.",
+        "List remaining blockers before a public release push.",
+        "Recommend the next bounded task slice.",
+        "npm run validate passes."
+      ],
+      "constraints": [
+        "Do not make code changes.",
+        "Do not invent release claims.",
+        "Do not mark incomplete marketplace/security/evaluation work complete."
+      ],
+      "context": [
+        "README.md",
+        "docs/marketplace-readiness.md",
+        "docs/boundaries.md",
+        ".ralph/artifacts/reports",
+        ".ralph/tasks.json",
+        ".ralph/progress.md"
+      ]
     }
   ],
   "mutationCount": 245

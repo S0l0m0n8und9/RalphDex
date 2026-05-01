@@ -3,7 +3,7 @@ import {
   classifyVerificationStatus,
   containsHumanReviewMarker
 } from '../loopLogic';
-import type { CodexReasoningEffort } from '../../config/types';
+import type { CliProviderId, CodexReasoningEffort } from '../../config/types';
 import type { CompletionReconciliationOutcome } from '../reconciliation';
 import { countTaskStatuses, remainingSubtasks, selectNextTask } from '../taskFile';
 import type { PreparedIterationContext } from '../iterationPreparation';
@@ -46,6 +46,7 @@ export interface ClassifyIterationInput {
   completionReconciliation: CompletionReconciliationOutcome;
   taskStateVerification: TaskStateVerification;
   afterCoreState: RalphCoreStateSnapshot;
+  selectedProvider: CliProviderId;
   selectedModel: string;
   selectedReasoningEffort: CodexReasoningEffort;
   effectiveTier: string;
@@ -159,7 +160,11 @@ export class OutcomeClassifier {
         promptTarget: input.prepared.executionPlan.promptTarget,
         rootPolicy: input.prepared.rootPolicy,
         templatePath: input.prepared.executionPlan.templatePath,
+        selectedProvider: input.selectedProvider,
+        selectedModel: input.selectedModel,
+        effectiveTier: input.effectiveTier,
         reasoningEffort: input.selectedReasoningEffort,
+        fallbackWarning: input.execution.fallbackWarning ?? null,
         taskValidationHint: input.prepared.taskValidationHint,
         effectiveValidationCommand: input.prepared.effectiveValidationCommand,
         normalizedValidationCommandFrom: input.prepared.normalizedValidationCommandFrom,
@@ -216,9 +221,11 @@ export class OutcomeClassifier {
       completionReportStatus: input.completionReconciliation.artifact.status,
       reconciliationWarnings: input.completionReconciliation.warnings,
       stopReason: null,
+      selectedProvider: input.selectedProvider,
       selectedModel: input.selectedModel,
       selectedReasoningEffort: input.selectedReasoningEffort,
-      effectiveTier: input.effectiveTier
+      effectiveTier: input.effectiveTier,
+      fallbackWarning: input.execution.fallbackWarning ?? null
     };
 
     return {

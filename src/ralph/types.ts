@@ -1,6 +1,6 @@
 import type { WorkspaceScan } from '../services/workspaceInspection';
 import type { DoctrineProposedUpdate } from './doctrineProposals';
-import type { CodexReasoningEffort } from '../config/types';
+import type { CliProviderId, CodexReasoningEffort } from '../config/types';
 
 export type RalphTaskStatus = 'todo' | 'in_progress' | 'blocked' | 'done';
 
@@ -471,7 +471,11 @@ export interface RalphCliInvocation {
   iteration: number;
   commandPath: string;
   args: string[];
+  selectedProvider?: CliProviderId | null;
+  selectedModel?: string | null;
+  effectiveTier?: string | null;
   reasoningEffort: CodexReasoningEffort;
+  fallbackWarning?: string | null;
   workspaceRoot: string;
   rootPolicy: RalphRootPolicy;
   promptArtifactPath: string;
@@ -488,7 +492,11 @@ export interface RalphExecutionIntegritySummary {
   promptTarget: RalphPromptTarget;
   rootPolicy: RalphRootPolicy | null;
   templatePath: string;
+  selectedProvider?: CliProviderId | null;
+  selectedModel?: string | null;
+  effectiveTier?: string | null;
   reasoningEffort?: string | null;
+  fallbackWarning?: string | null;
   taskValidationHint: string | null;
   effectiveValidationCommand: string | null;
   normalizedValidationCommandFrom: string | null;
@@ -650,9 +658,11 @@ export interface RalphIterationResult {
   completionReportStatus?: RalphCompletionReportStatus;
   reconciliationWarnings?: string[];
   stopReason: RalphStopReason | null;
+  selectedProvider?: CliProviderId;
   selectedModel?: string;
   selectedReasoningEffort?: import('../config/types').CodexReasoningEffort;
   effectiveTier?: string;
+  fallbackWarning?: string | null;
 }
 
 export interface RalphIntegrityFailure {

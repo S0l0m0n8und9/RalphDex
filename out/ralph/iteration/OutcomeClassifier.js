@@ -116,7 +116,11 @@ class OutcomeClassifier {
                 promptTarget: input.prepared.executionPlan.promptTarget,
                 rootPolicy: input.prepared.rootPolicy,
                 templatePath: input.prepared.executionPlan.templatePath,
+                selectedProvider: input.selectedProvider,
+                selectedModel: input.selectedModel,
+                effectiveTier: input.effectiveTier,
                 reasoningEffort: input.selectedReasoningEffort,
+                fallbackWarning: input.execution.fallbackWarning ?? null,
                 taskValidationHint: input.prepared.taskValidationHint,
                 effectiveValidationCommand: input.prepared.effectiveValidationCommand,
                 normalizedValidationCommandFrom: input.prepared.normalizedValidationCommandFrom,
@@ -173,9 +177,11 @@ class OutcomeClassifier {
             completionReportStatus: input.completionReconciliation.artifact.status,
             reconciliationWarnings: input.completionReconciliation.warnings,
             stopReason: null,
+            selectedProvider: input.selectedProvider,
             selectedModel: input.selectedModel,
             selectedReasoningEffort: input.selectedReasoningEffort,
-            effectiveTier: input.effectiveTier
+            effectiveTier: input.effectiveTier,
+            fallbackWarning: input.execution.fallbackWarning ?? null
         };
         return {
             result,

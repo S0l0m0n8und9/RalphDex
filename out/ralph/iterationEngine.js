@@ -798,6 +798,8 @@ class RalphIterationEngine {
             const effectiveCommandPath = selectedProvider
                 ? (0, providers_1.getCliCommandPathForProvider)(selectedProvider, prepared.config)
                 : (0, providers_1.getCliCommandPath)(prepared.config);
+            let selectedProviderForResult = effectiveProvider;
+            let selectedModelForResult = selectedModel;
             const shouldExecutePrompt = prepared.selectedTask !== null || prepared.promptKind === 'replenish-backlog';
             // Keep strategy support checks before hook execution.
             this.strategies.configureCliProvider(prepared.config);
@@ -830,6 +832,7 @@ class RalphIterationEngine {
                 mode,
                 selectedModel,
                 selectedReasoningEffort,
+                effectiveTier,
                 selectedProvider,
                 effectiveProvider,
                 effectiveCommandPath,
@@ -845,6 +848,12 @@ class RalphIterationEngine {
             // to match what was actually used so OutcomeClassifier records the true execution profile.
             if (execution.invocation && execution.invocation.reasoningEffort !== selectedReasoningEffort) {
                 selectedReasoningEffort = execution.invocation.reasoningEffort;
+            }
+            if (execution.invocation?.selectedProvider) {
+                selectedProviderForResult = execution.invocation.selectedProvider;
+            }
+            if (execution.invocation?.selectedModel) {
+                selectedModelForResult = execution.invocation.selectedModel;
             }
             // Run afterIteration / onFailure hooks (adopted from Ruflo's hook system).
             if (shouldExecutePrompt) {
@@ -970,7 +979,8 @@ class RalphIterationEngine {
                 completionReconciliation,
                 taskStateVerification,
                 afterCoreState,
-                selectedModel,
+                selectedProvider: selectedProviderForResult,
+                selectedModel: selectedModelForResult,
                 selectedReasoningEffort,
                 effectiveTier,
                 branchPerTaskWarnings: branchPerTask.warnings

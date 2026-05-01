@@ -22,6 +22,7 @@ export interface IterationExecutorInput {
   mode: 'handoff' | 'singleExec' | 'loop';
   selectedModel: string;
   selectedReasoningEffort: CodexReasoningEffort;
+  effectiveTier: string;
   selectedProvider: CliProviderId | undefined;
   effectiveProvider: CliProviderId;
   effectiveCommandPath: string;
@@ -44,6 +45,7 @@ export interface IterationExecutionResult {
   lastMessagePath: string | undefined;
   lastMessage: string;
   invocation: RalphCliInvocation | undefined;
+  fallbackWarning: string | undefined;
   promptCacheStats: PromptCacheStats | null;
   executionCostUsd: number | null;
   executionStartedAt: string;
@@ -74,6 +76,7 @@ export class IterationExecutor {
     let invocation: RalphCliInvocation | undefined;
     let executionStartedAt: string | undefined;
     let executionFinishedAt: string | undefined;
+    let fallbackWarning: string | undefined;
 
     this.strategies.configureCliProvider(input.prepared.config);
     const execStrategy = this.strategies.getCliExecStrategyForProvider(input.selectedProvider);
@@ -98,6 +101,7 @@ export class IterationExecutor {
         lastMessagePath,
         lastMessage,
         invocation,
+        fallbackWarning: undefined,
         promptCacheStats,
         executionCostUsd,
         executionStartedAt: executionStartedAt ?? new Date().toISOString(),
@@ -179,8 +183,9 @@ export class IterationExecutor {
           : (chunk: string) => this.logger.info('codex stdout', { iteration: input.prepared.iteration, chunk });
 
       let execResult: CodexExecResult;
+      let usedProvider = input.effectiveProvider;
       let usedCommandPath = input.effectiveCommandPath;
-      let fallbackWarning: string | undefined;
+      let usedModel = input.selectedModel;
       let usedReasoningEffort = input.selectedReasoningEffort;
 
       try {
@@ -204,6 +209,8 @@ export class IterationExecutor {
             throw primaryError;
           }
           usedCommandPath = getCliCommandPath(input.prepared.config);
+          usedProvider = input.prepared.config.cliProvider;
+          usedModel = input.prepared.config.model;
           usedReasoningEffort = input.prepared.config.reasoningEffort;
           // Use the workspace-default model and reasoning effort so a provider-specific
           // tier configuration is not sent to a different fallback provider (e.g. a claude
@@ -245,7 +252,11 @@ export class IterationExecutor {
         iteration: input.prepared.iteration,
         commandPath: usedCommandPath,
         args: execResult.args,
+        selectedProvider: usedProvider,
+        selectedModel: usedModel,
+        effectiveTier: input.effectiveTier,
         reasoningEffort: usedReasoningEffort,
+        fallbackWarning: fallbackWarning ?? null,
         workspaceRoot: input.prepared.rootPath,
         rootPolicy: input.prepared.rootPolicy,
         promptArtifactPath: verifiedPlan.promptArtifactPath,
@@ -290,12 +301,13 @@ export class IterationExecutor {
       exitCode,
       stdinHash,
       transcriptPath,
-      lastMessagePath,
-      lastMessage,
-      invocation,
-      promptCacheStats,
-      executionCostUsd,
-      executionStartedAt: executionStartedAt ?? new Date().toISOString(),
+        lastMessagePath,
+        lastMessage,
+        invocation,
+        fallbackWarning,
+        promptCacheStats,
+        executionCostUsd,
+        executionStartedAt: executionStartedAt ?? new Date().toISOString(),
       executionFinishedAt: executionFinishedAt ?? executionStartedAt ?? new Date().toISOString()
     };
   }

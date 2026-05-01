@@ -252,7 +252,13 @@ function normalizeExecutionIntegrity(candidate: unknown): RalphExecutionIntegrit
     promptTarget: record.promptTarget as RalphExecutionIntegritySummary['promptTarget'],
     rootPolicy: normalizeRootPolicy(record.rootPolicy),
     templatePath: record.templatePath,
+    selectedProvider: typeof record.selectedProvider === 'string'
+      ? record.selectedProvider as RalphExecutionIntegritySummary['selectedProvider']
+      : null,
+    selectedModel: typeof record.selectedModel === 'string' ? record.selectedModel : null,
+    effectiveTier: typeof record.effectiveTier === 'string' ? record.effectiveTier : null,
     reasoningEffort: typeof record.reasoningEffort === 'string' ? record.reasoningEffort : null,
+    fallbackWarning: typeof record.fallbackWarning === 'string' ? record.fallbackWarning : null,
     taskValidationHint: typeof record.taskValidationHint === 'string' ? record.taskValidationHint : null,
     effectiveValidationCommand: typeof record.effectiveValidationCommand === 'string'
       ? record.effectiveValidationCommand
@@ -327,7 +333,12 @@ function iterationFromRunRecord(run: RalphRunRecord): RalphIterationResult {
     diffSummary: null,
     noProgressSignals: [],
     remediation: null,
-    stopReason: null
+    stopReason: null,
+    selectedProvider: undefined,
+    selectedModel: undefined,
+    selectedReasoningEffort: undefined,
+    effectiveTier: undefined,
+    fallbackWarning: null
   };
 }
 
@@ -476,7 +487,14 @@ function normalizeIterationResult(candidate: unknown): RalphIterationResult | nu
     reconciliationWarnings: Array.isArray(record.reconciliationWarnings)
       ? record.reconciliationWarnings.filter((item): item is string => typeof item === 'string')
       : undefined,
-    stopReason: typeof record.stopReason === 'string' ? record.stopReason as RalphIterationResult['stopReason'] : null
+    stopReason: typeof record.stopReason === 'string' ? record.stopReason as RalphIterationResult['stopReason'] : null,
+    selectedProvider: typeof record.selectedProvider === 'string' ? record.selectedProvider as RalphIterationResult['selectedProvider'] : undefined,
+    selectedModel: typeof record.selectedModel === 'string' ? record.selectedModel : undefined,
+    selectedReasoningEffort: typeof record.selectedReasoningEffort === 'string'
+      ? record.selectedReasoningEffort as RalphIterationResult['selectedReasoningEffort']
+      : undefined,
+    effectiveTier: typeof record.effectiveTier === 'string' ? record.effectiveTier : undefined,
+    fallbackWarning: typeof record.fallbackWarning === 'string' ? record.fallbackWarning : null
   };
 }
 
