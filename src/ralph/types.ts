@@ -650,6 +650,7 @@ export interface RalphIterationResult {
   reconciliationWarnings?: string[];
   stopReason: RalphStopReason | null;
   selectedModel?: string;
+  selectedReasoningEffort?: import('../config/types').CodexReasoningEffort;
   effectiveTier?: string;
 }
 

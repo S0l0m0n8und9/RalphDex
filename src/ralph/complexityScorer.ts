@@ -119,9 +119,15 @@ export function selectModelForTask(input: {
   iterationHistory: RalphIterationResult[];
   tiering: RalphModelTieringConfig;
   fallbackModel: string;
+  fallbackReasoningEffort?: CodexReasoningEffort;
 }): { model: string; provider?: CliProviderId; reasoningEffort?: CodexReasoningEffort; score: ComplexityScore | null; tier: string } {
   if (!input.tiering.enabled) {
-    return { model: input.fallbackModel, score: null, tier: 'default' };
+    return {
+      model: input.fallbackModel,
+      reasoningEffort: input.fallbackReasoningEffort,
+      score: null,
+      tier: 'default'
+    };
   }
 
   if (input.task.tier) {
@@ -132,7 +138,7 @@ export function selectModelForTask(input: {
     return {
       model: tierConfig.model,
       provider: tierConfig.provider,
-      reasoningEffort: tierConfig.reasoningEffort,
+      reasoningEffort: tierConfig.reasoningEffort ?? input.fallbackReasoningEffort,
       score,
       tier: input.task.tier
     };
@@ -156,7 +162,7 @@ export function selectModelForTask(input: {
   return {
     model: tier.model,
     provider: tier.provider,
-    reasoningEffort: tier.reasoningEffort,
+    reasoningEffort: tier.reasoningEffort ?? input.fallbackReasoningEffort,
     score,
     tier: tierName
   };

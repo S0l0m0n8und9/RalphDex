@@ -3,10 +3,10 @@
     "kiro-codex-ide.codex.steeringPath": ".",
     "kiro-codex-ide.codex.specsPath": ".ralph",
     "ralphCodex.agentCount": 1,
-    "ralphCodex.cliProvider": "codex",
-    "ralphCodex.promptBudgetProfile": "codex",
+    "ralphCodex.cliProvider": "claude",
+    "ralphCodex.promptBudgetProfile": "claude",
     "ralphCodex.ralphIterationCap": 15,
-    "ralphCodex.model": "gpt-5.3-codex",
+    "ralphCodex.model": "claude-haiku-4-5",
     "ralphCodex.agentId": "build",
     "ralphCodex.claudeMaxTurns": 125,
     "ralphCodex.scmStrategy": "commit-on-done",
@@ -15,16 +15,16 @@
     "ralphCodex.modelTiering": {
         "enabled": true,
         "simple": {
-            "model": "gpt-5.3-codex",
-            "provider": "codex"
+            "model": "claude-haiku-4-5",
+            "provider": "claude"
         },
         "medium": {
-            "model": "gpt-5.3-codex",
-            "provider": "codex"
+            "model": "claude-sonnet-4-6",
+            "provider": "claude"
         },
         "complex": {
-            "model": "gpt-5.5",
-            "provider": "codex"
+            "model": "claude-opus-4-6",
+            "provider": "claude"
         }
     },
     "sarif-viewer.connectToGithubCodeScanning": "off",
@@ -32,5 +32,6 @@
     "ralphCodex.copilotFoundry": {
         "baseUrlOverride": "https://me-me3mef6a-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-5.4",
         "model": "gpt-5.4"
-    }
+    },
+    "ralphCodex.taskReadinessGate": "auto"
 }

@@ -30,9 +30,9 @@ Historical note: some older docs and settings discussions refer to these thresho
 
 | Score range | Tier | Default model |
 |---|---|---|
-| `score < simpleThreshold` (default: 2) | simple | `provider: copilot`, `model: claude-opus-4-6` |
-| `simpleThreshold ≤ score < complexThreshold` | medium | `claude-sonnet-4-6` |
-| `score ≥ complexThreshold` (default: 6) | complex | `claude-opus-4-6` |
+| `score < simpleThreshold` (default: 3) | simple | `provider: claude`, `model: claude-haiku-4-5` |
+| `simpleThreshold <= score < complexThreshold` | medium | `provider: claude`, `model: claude-sonnet-4-6` |
+| `score ≥ complexThreshold` (default: 6) | complex | `provider: claude`, `model: claude-opus-4-6` |
 
 Override the thresholds by setting `simpleThreshold` and `complexThreshold` in `ralphCodex.modelTiering`:
 
@@ -50,17 +50,17 @@ Each tier can specify a `model` string plus optional `provider` and `reasoningEf
 ```json
 "ralphCodex.modelTiering": {
   "enabled": true,
-  "simple":  { "provider": "copilot", "model": "claude-opus-4-6", "reasoningEffort": "medium" },
-  "medium":  { "provider": "claude", "model": "claude-sonnet-4-6" },
-  "complex": { "provider": "claude", "model": "claude-opus-4-6", "reasoningEffort": "high" },
-  "simpleThreshold": 2,
+  "simple":  { "provider": "codex", "model": "gpt-5.3-codex", "reasoningEffort": "medium" },
+  "medium":  { "provider": "codex", "model": "gpt-5.3-codex" },
+  "complex": { "provider": "codex", "model": "gpt-5.5", "reasoningEffort": "high" },
+  "simpleThreshold": 3,
   "complexThreshold": 6
 }
 ```
 
 Omitting `provider` uses the workspace default (`ralphCodex.cliProvider`). Set `provider` to route a specific tier through a different CLI provider (e.g. `"copilot"` for simple tasks, `"claude"` for complex).
 
-Omitting `reasoningEffort` uses the global default (`ralphCodex.reasoningEffort`). Allowed tier override values match the provider-facing execution contract: `"medium"` and `"high"`.
+Omitting `reasoningEffort` uses the global default (`ralphCodex.reasoningEffort`). The selected execution profile recorded for an iteration therefore includes the selected provider, model, tier, score, and resolved reasoning effort. Allowed tier override values match the provider-facing execution contract: `"medium"` and `"high"`.
 
 Source of truth for shipped defaults is `package.json` (`contributes.configuration.properties.ralphCodex.modelTiering`).
 

@@ -174,6 +174,7 @@ class OutcomeClassifier {
             reconciliationWarnings: input.completionReconciliation.warnings,
             stopReason: null,
             selectedModel: input.selectedModel,
+            selectedReasoningEffort: input.selectedReasoningEffort,
             effectiveTier: input.effectiveTier
         };
         return {

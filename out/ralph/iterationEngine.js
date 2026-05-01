@@ -690,6 +690,7 @@ class RalphIterationEngine {
                     completionReportStatus: 'missing',
                     stopReason,
                     selectedModel: prepared.config.model,
+                    selectedReasoningEffort: prepared.config.reasoningEffort,
                     effectiveTier: 'planning_gate'
                 };
                 const loopDecision = {
@@ -767,12 +768,13 @@ class RalphIterationEngine {
                     taskFile: prepared.beforeCoreState.taskFile,
                     iterationHistory: prepared.state.iterationHistory,
                     tiering: prepared.config.modelTiering,
-                    fallbackModel: prepared.config.model
+                    fallbackModel: prepared.config.model,
+                    fallbackReasoningEffort: prepared.config.reasoningEffort
                 })
                 : {
                     model: prepared.config.model,
                     provider: undefined,
-                    reasoningEffort: undefined,
+                    reasoningEffort: prepared.config.reasoningEffort,
                     score: null,
                     tier: 'default'
                 };

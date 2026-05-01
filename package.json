@@ -1001,7 +1001,135 @@
             "simpleThreshold": 3,
             "complexThreshold": 6
           },
-          "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (objects with model string, optional provider, and optional reasoningEffort), simpleThreshold (int, default 3 — tasks below this use the simple model), complexThreshold (int, default 6 — tasks at or above this use the complex model). When a tier omits reasoningEffort, Ralph falls back to global ralphCodex.reasoningEffort. ralphCodex.enableModelTiering is a convenience toggle for the enabled field. Override ralphCodex.complexityTierThresholds via simpleThreshold and complexThreshold here."
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable complexity-based model tiering."
+            },
+            "simple": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "codex",
+                        "claude",
+                        "copilot",
+                        "copilot-byok",
+                        "copilot-foundry",
+                        "azure-foundry",
+                        "gemini"
+                      ],
+                      "description": "Optional CLI provider override for the simple tier."
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Model identifier for the simple tier."
+                    },
+                    "reasoningEffort": {
+                      "type": "string",
+                      "enum": [
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Optional reasoning effort override for the simple tier."
+                    }
+                  }
+                }
+              ]
+            },
+            "medium": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "codex",
+                        "claude",
+                        "copilot",
+                        "copilot-byok",
+                        "copilot-foundry",
+                        "azure-foundry",
+                        "gemini"
+                      ],
+                      "description": "Optional CLI provider override for the medium tier."
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Model identifier for the medium tier."
+                    },
+                    "reasoningEffort": {
+                      "type": "string",
+                      "enum": [
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Optional reasoning effort override for the medium tier."
+                    }
+                  }
+                }
+              ]
+            },
+            "complex": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "enum": [
+                        "codex",
+                        "claude",
+                        "copilot",
+                        "copilot-byok",
+                        "copilot-foundry",
+                        "azure-foundry",
+                        "gemini"
+                      ],
+                      "description": "Optional CLI provider override for the complex tier."
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Model identifier for the complex tier."
+                    },
+                    "reasoningEffort": {
+                      "type": "string",
+                      "enum": [
+                        "medium",
+                        "high"
+                      ],
+                      "description": "Optional reasoning effort override for the complex tier."
+                    }
+                  }
+                }
+              ]
+            },
+            "simpleThreshold": {
+              "type": "number",
+              "default": 3,
+              "description": "Complexity score below which Ralph selects the simple tier."
+            },
+            "complexThreshold": {
+              "type": "number",
+              "default": 6,
+              "description": "Complexity score at or above which Ralph selects the complex tier."
+            }
+          },
+          "description": "Full model tiering configuration. Fields: enabled (bool), simple/medium/complex (legacy model string or object with model string, optional provider, and optional reasoningEffort), simpleThreshold (int, default 3), complexThreshold (int, default 6). When a tier omits reasoningEffort, Ralph falls back to global ralphCodex.reasoningEffort. ralphCodex.enableModelTiering is a convenience toggle for the enabled field."
         },
         "ralphCodex.prdGenerationTemplate": {
           "type": "string",

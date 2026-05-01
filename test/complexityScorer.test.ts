@@ -230,6 +230,22 @@ test('selectModelForTask returns per-tier provider when specified', () => {
   assert.equal(reasoningEffort, 'high');
 });
 
+test('selectModelForTask uses global reasoning effort when selected tier omits an override', () => {
+  const task = makeTask({ title: 'Fix typo' });
+  const taskFile = makeTaskFile([task]);
+  const { model, reasoningEffort } = selectModelForTask({
+    task,
+    taskFile,
+    iterationHistory: [],
+    tiering: DEFAULT_TIERING,
+    fallbackModel: 'claude-sonnet',
+    fallbackReasoningEffort: 'medium'
+  });
+
+  assert.equal(model, DEFAULT_TIERING.simple.model);
+  assert.equal(reasoningEffort, 'medium');
+});
+
 test('selectModelForTask uses explicit tier without calling scoreTaskComplexity', () => {
   // Task has attributes that would score high (validation + blocker) but tier is forced to simple
   const task = makeTask({ tier: 'simple', validation: 'npm test', blocker: 'waiting' });

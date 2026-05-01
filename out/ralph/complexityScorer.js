@@ -93,7 +93,12 @@ function scoreTaskComplexity(task, taskFile, iterationHistory) {
  */
 function selectModelForTask(input) {
     if (!input.tiering.enabled) {
-        return { model: input.fallbackModel, score: null, tier: 'default' };
+        return {
+            model: input.fallbackModel,
+            reasoningEffort: input.fallbackReasoningEffort,
+            score: null,
+            tier: 'default'
+        };
     }
     if (input.task.tier) {
         const tierConfig = input.task.tier === 'simple' ? input.tiering.simple
@@ -103,7 +108,7 @@ function selectModelForTask(input) {
         return {
             model: tierConfig.model,
             provider: tierConfig.provider,
-            reasoningEffort: tierConfig.reasoningEffort,
+            reasoningEffort: tierConfig.reasoningEffort ?? input.fallbackReasoningEffort,
             score,
             tier: input.task.tier
         };
@@ -126,7 +131,7 @@ function selectModelForTask(input) {
     return {
         model: tier.model,
         provider: tier.provider,
-        reasoningEffort: tier.reasoningEffort,
+        reasoningEffort: tier.reasoningEffort ?? input.fallbackReasoningEffort,
         score,
         tier: tierName
     };
