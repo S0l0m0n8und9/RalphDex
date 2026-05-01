@@ -106,6 +106,30 @@ function createdPathSummary(rootPath, createdPaths) {
         .join(', ');
     return `Initialized or repaired Ralph workspace paths: ${labels}.`;
 }
+function summarizeRelativePaths(rootPath, targetPaths) {
+    if (targetPaths.length === 0) {
+        return null;
+    }
+    return targetPaths
+        .map((target) => path.relative(rootPath, target) || path.basename(target))
+        .join(', ');
+}
+function buildDoctrinePackMessage(rootPath, result) {
+    const messageParts = ['Doctrine pack ready.'];
+    const created = summarizeRelativePaths(rootPath, result.createdPaths);
+    const existing = summarizeRelativePaths(rootPath, result.existingPaths);
+    const repaired = summarizeRelativePaths(rootPath, result.repairedPaths);
+    if (created) {
+        messageParts.push(`Created: ${created}.`);
+    }
+    if (repaired) {
+        messageParts.push(`Repaired: ${repaired}.`);
+    }
+    if (existing) {
+        messageParts.push(`Already present: ${existing}.`);
+    }
+    return messageParts.join(' ');
+}
 const RALPH_GITIGNORE_CONTENT = [
     '/artifacts',
     '/done-task-audit*.md',
@@ -217,6 +241,16 @@ async function initializeFreshWorkspace(rootPath) {
         doctrineDir: doctrine.doctrineDir,
         doctrineCreatedPaths: doctrine.createdPaths
     };
+}
+async function findMissingRalphWorkspaceFiles(paths) {
+    const requiredPaths = [paths.prdPath, paths.taskFilePath, paths.progressPath];
+    const missingPaths = [];
+    for (const targetPath of requiredPaths) {
+        if (!(await (0, fs_1.pathExists)(targetPath))) {
+            missingPaths.push(targetPath);
+        }
+    }
+    return missingPaths;
 }
 /**
  * Return two self-bootstrapping seed tasks that guide Ralph through expanding
@@ -553,6 +587,33 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             await openTextFile(result.prdPath);
             await openTextFile(result.tasksPath);
             void vscode.window.showInformationMessage(`Ralph workspace ready. Review prd.md and tasks.json — refine them with your AI assistant before running your first loop.`, 'Got it');
+        }
+    });
+    registerCommand(context, logger, {
+        commandId: 'ralphCodex.initializeDoctrinePack',
+        label: 'Ralphdex: Initialize Doctrine Pack',
+        handler: async (progress) => {
+            const workspaceFolder = await withWorkspaceFolder();
+            const config = (0, readConfig_1.readConfig)(workspaceFolder);
+            const paths = (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config);
+            progress.report({ message: 'Scaffolding or repairing the Ralph doctrine pack' });
+            const missingWorkspaceFiles = await findMissingRalphWorkspaceFiles(paths);
+            if (missingWorkspaceFiles.length > 0) {
+                const relativeMissing = missingWorkspaceFiles
+                    .map((targetPath) => path.relative(workspaceFolder.uri.fsPath, targetPath) || path.basename(targetPath))
+                    .join(', ');
+                void vscode.window.showWarningMessage(`Doctrine pack initialization requires an established Ralph workspace. Missing: ${relativeMissing}. Run "Ralphdex: Bootstrap Ralph Workspace" first.`);
+                return;
+            }
+            const result = await (0, doctrine_1.createDoctrinePack)(workspaceFolder.uri.fsPath);
+            logger.info('Initialized or repaired the Ralph doctrine pack.', {
+                rootPath: workspaceFolder.uri.fsPath,
+                doctrineDir: result.doctrineDir,
+                doctrineCreatedPaths: result.createdPaths,
+                doctrineExistingPaths: result.existingPaths,
+                doctrineRepairedPaths: result.repairedPaths
+            });
+            void vscode.window.showInformationMessage(buildDoctrinePackMessage(workspaceFolder.uri.fsPath, result));
         }
     });
     registerCommand(context, logger, {

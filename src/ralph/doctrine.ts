@@ -18,6 +18,8 @@ export interface DoctrineCreateOptions {
 export interface DoctrineCreationResult {
   doctrineDir: string;
   createdPaths: string[];
+  existingPaths: string[];
+  repairedPaths: string[];
 }
 
 export interface DoctrineInspection {
@@ -387,18 +389,31 @@ function evidenceIndexHasMinimalShape(candidate: unknown): boolean {
     && Array.isArray(record.evidence);
 }
 
+function buildEvidenceIndex(generatedAt: string) {
+  return {
+    schemaVersion: 1,
+    generatedAt,
+    doctrineRoot: DOCTRINE_ROOT_RELATIVE,
+    evidence: []
+  };
+}
+
 export async function createDoctrinePack(
   rootPath: string,
   options: DoctrineCreateOptions = {}
 ): Promise<DoctrineCreationResult> {
   const targetDir = doctrineDir(rootPath);
   const createdPaths: string[] = [];
+  const existingPaths: string[] = [];
+  const repairedPaths: string[] = [];
+  const generatedAt = options.generatedAt ?? new Date().toISOString();
 
   await fs.mkdir(targetDir, { recursive: true });
 
   for (const fileName of DOCTRINE_MARKDOWN_FILES) {
     const targetPath = path.join(targetDir, fileName);
     if (await pathExists(targetPath)) {
+      existingPaths.push(targetPath);
       continue;
     }
     await fs.writeFile(targetPath, TEMPLATE_CONTENT[fileName], 'utf8');
@@ -407,19 +422,33 @@ export async function createDoctrinePack(
 
   const evidenceIndexPath = path.join(targetDir, 'evidence-index.json');
   if (!(await pathExists(evidenceIndexPath))) {
-    const evidenceIndex = {
-      schemaVersion: 1,
-      generatedAt: options.generatedAt ?? new Date().toISOString(),
-      doctrineRoot: DOCTRINE_ROOT_RELATIVE,
-      evidence: []
-    };
+    const evidenceIndex = buildEvidenceIndex(generatedAt);
     await fs.writeFile(evidenceIndexPath, `${JSON.stringify(evidenceIndex, null, 2)}\n`, 'utf8');
     createdPaths.push(evidenceIndexPath);
+  } else {
+    let repairEvidenceIndex = false;
+
+    try {
+      const parsed = JSON.parse(await fs.readFile(evidenceIndexPath, 'utf8'));
+      repairEvidenceIndex = !evidenceIndexHasMinimalShape(parsed);
+    } catch {
+      repairEvidenceIndex = true;
+    }
+
+    if (repairEvidenceIndex) {
+      const evidenceIndex = buildEvidenceIndex(generatedAt);
+      await fs.writeFile(evidenceIndexPath, `${JSON.stringify(evidenceIndex, null, 2)}\n`, 'utf8');
+      repairedPaths.push(evidenceIndexPath);
+    } else {
+      existingPaths.push(evidenceIndexPath);
+    }
   }
 
   return {
     doctrineDir: targetDir,
-    createdPaths
+    createdPaths,
+    existingPaths,
+    repairedPaths
   };
 }
 

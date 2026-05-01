@@ -69,6 +69,7 @@ Ralphdex is a VS Code extension that:
 - `Ralphdex: Run CLI Loop`
 - `Ralphdex: Run Multi-Agent Loop`
 - `Ralphdex: Show Status`
+- `Ralphdex: Initialize Doctrine Pack`
 - `Ralphdex: Open Latest Ralph Summary`
 - `Ralphdex: Open Latest Provenance Bundle`
 - `Ralphdex: Open Latest Prompt Evidence`

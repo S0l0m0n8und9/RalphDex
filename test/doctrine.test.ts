@@ -51,6 +51,7 @@ test('createDoctrinePack does not overwrite existing doctrine files', async () =
 
   assert.equal(await fs.readFile(protectedPath, 'utf8'), '# Existing doctrine\n\nOperator-owned content.\n');
   assert.ok(!result.createdPaths.includes(protectedPath));
+  assert.ok(result.existingPaths.includes(protectedPath));
   await fs.access(path.join(doctrineDir, 'project-profile.md'));
 });
 
@@ -63,9 +64,62 @@ test('createDoctrinePack completes a partially existing doctrine folder', async 
   const result = await createDoctrinePack(rootPath, { generatedAt: GENERATED_AT });
 
   assert.equal(result.createdPaths.length, DOCTRINE_MARKDOWN_FILES.length);
+  assert.ok(result.existingPaths.includes(path.join(doctrineDir, 'project-profile.md')));
   await fs.access(path.join(doctrineDir, 'evidence-index.json'));
   await fs.access(path.join(doctrineDir, 'risks.md'));
   assert.equal(await fs.readFile(path.join(doctrineDir, 'project-profile.md'), 'utf8'), '# Existing profile\n');
+});
+
+test('createDoctrinePack repairs an invalid evidence index without overwriting doctrine markdown files', async () => {
+  const rootPath = await makeTempRoot();
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  const agentsPath = path.join(doctrineDir, 'agents.md');
+  const evidenceIndexPath = path.join(doctrineDir, 'evidence-index.json');
+  await fs.writeFile(agentsPath, [
+    '# Custom Agents',
+    '',
+    '## Purpose',
+    '',
+    'Human-owned rules.',
+    '',
+    '## Source Of Truth',
+    '',
+    '- Human review.',
+    '',
+    '## Protected Status',
+    '',
+    '- Protected: yes.',
+    '',
+    '## Working Rules',
+    '',
+    '- Stay deterministic.',
+    '',
+    '## Provider Boundaries',
+    '',
+    '- Providers must not rewrite this file.',
+    '',
+    '## Prompt Context Rules',
+    '',
+    '- Keep context compact.',
+    ''
+  ].join('\n'), 'utf8');
+  await fs.writeFile(evidenceIndexPath, '{not json', 'utf8');
+
+  const result = await createDoctrinePack(rootPath, { generatedAt: GENERATED_AT });
+
+  assert.match(await fs.readFile(agentsPath, 'utf8'), /## Working Rules/);
+  assert.ok(result.existingPaths.includes(agentsPath));
+  assert.ok(result.repairedPaths.includes(evidenceIndexPath));
+
+  const evidenceIndex = JSON.parse(await fs.readFile(evidenceIndexPath, 'utf8'));
+  assert.equal(evidenceIndex.schemaVersion, 1);
+  assert.equal(evidenceIndex.generatedAt, GENERATED_AT);
+  assert.equal(evidenceIndex.doctrineRoot, '.ralph/doctrine');
+  assert.deepEqual(evidenceIndex.evidence, []);
+
+  const inspection = await inspectDoctrinePack(rootPath);
+  assert.equal(inspection.health, 'healthy');
 });
 
 test('inspectDoctrinePack detects a missing required doctrine file', async () => {

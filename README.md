@@ -86,6 +86,8 @@ For a fresh clone, start by installing dependencies and running the validation g
 
 For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace` or open the PRD wizard. Provider-facing commands such as Prepare Prompt, Open Codex IDE, Run CLI Iteration, Run CLI Loop, Run Multi-Agent Loop, and Run Pipeline now stop and open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
 
+For an established Ralph workspace that already has `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` but is missing `.ralph/doctrine/`, use `Ralphdex: Initialize Doctrine Pack`. That command only scaffolds missing doctrine files and repairs an invalid `evidence-index.json`; it does not rerun workspace bootstrap or act like cleanup/reset.
+
 Newly generated Ralph tasks now share one normalization and persistence pipeline across bootstrap commands, PRD generation, decomposition, remediation, and pipeline scaffolding. In practice that means generated tasks should keep the richest producer-supplied shape Ralph knows at creation time, including fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and any derived dependency or mode metadata when those values are available. A generated task may still omit some optional fields when the upstream producer genuinely lacked that information or when the canonical contract leaves the field absent by design. See [docs/invariants.md#normalized-task-contract](docs/invariants.md#normalized-task-contract) for the authoritative field-presence rules.
 
 Use `Ralphdex: Regenerate PRD` when you need Ralphdex to help turn a fuzzy brief or an outdated `.ralph/prd.md` into a reviewable PRD draft plus a reviewable starter backlog before writing durable files. The wizard is intentionally narrow: it is an authoring workflow, not a settings cockpit. It walks through project shape, draft generation, PRD review, task review, and confirm-write, then writes only `.ralph/prd.md` and `.ralph/tasks.json`.
@@ -154,6 +156,7 @@ Source of truth: `package.json` (`contributes.commands`) is authoritative for sh
 Current command surface:
 
 - `Ralphdex: Initialize Workspace`
+- `Ralphdex: Initialize Doctrine Pack`
 - `Ralphdex: Add Task`
 - `Ralphdex: Seed Tasks from Feature Request`
 - `Ralphdex: Prepare Prompt`

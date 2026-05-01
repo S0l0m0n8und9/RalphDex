@@ -52,6 +52,22 @@ That initial `tasks.json` now enters the same shared task-creation pipeline used
 
 The safety guard is intentionally narrow: if `.ralph/prd.md` already exists, Ralph warns and aborts instead of overwriting the current workspace state. That keeps initialization for clean clones separate from runtime cleanup or reset flows on an active workspace.
 
+## Initialize Or Repair A Doctrine Pack For An Established Workspace
+
+1. Confirm the workspace already has the durable Ralph files: `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md`.
+2. Run `Ralphdex: Initialize Doctrine Pack`.
+3. Review the notification summary to see which doctrine files were created, which were already present, and whether `.ralph/doctrine/evidence-index.json` was repaired.
+
+This command is the explicit adoption path for workspaces that predate doctrine support. It does not rerun workspace bootstrap, it does not rewrite `.ralph/prd.md`, `.ralph/tasks.json`, or `.ralph/progress.md`, and it is not part of runtime cleanup or reset.
+
+Doctrine repair stays narrow on purpose:
+
+- existing doctrine Markdown files are preserved as operator-owned content
+- missing doctrine Markdown files are scaffolded from the deterministic templates
+- `.ralph/doctrine/evidence-index.json` is created when missing and rewritten only when its JSON or minimal shape is invalid
+
+If the core Ralph files are missing, the command stops and points the operator back to `Ralphdex: Bootstrap Ralph Workspace` instead of guessing how much of the workspace should be initialized.
+
 ## Regenerate Or Author A PRD
 
 1. Run `Ralphdex: Regenerate PRD`.

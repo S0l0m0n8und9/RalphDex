@@ -5150,11 +5150,11 @@
     {
       "id": "T193",
       "title": "Add an explicit doctrine-pack scaffold or repair command for established Ralph workspaces",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T192"
       ],
-      "notes": "Existing workspaces that predate doctrine support currently get warning-level diagnostics but no dedicated repair path. Add an operator-invoked command such as Ralphdex: Initialize Doctrine Pack that creates missing doctrine files and evidence-index.json without overwriting existing doctrine content.",
+      "notes": "Added an explicit `Ralphdex: Initialize Doctrine Pack` command for established workspaces, extended doctrine scaffolding to report created/existing/repaired paths and repair invalid evidence-index.json, added command/unit coverage, and updated operator docs to keep doctrine repair separate from bootstrap and cleanup/reset flows.",
       "validation": "npm run validate",
       "tier": "medium",
       "acceptance": [
@@ -5162,7 +5162,8 @@
         "The command preserves existing doctrine files and only creates missing files plus a valid evidence-index.json.",
         "The command reports what it created versus what was already present and does not treat doctrine scaffolding as normal runtime cleanup or reset.",
         "npm run validate passes."
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T194",
@@ -5200,5 +5201,5 @@
       ]
     }
   ],
-  "mutationCount": 236
+  "mutationCount": 237
 }

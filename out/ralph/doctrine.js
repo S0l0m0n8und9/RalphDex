@@ -365,13 +365,25 @@ function evidenceIndexHasMinimalShape(candidate) {
         && record.doctrineRoot === exports.DOCTRINE_ROOT_RELATIVE
         && Array.isArray(record.evidence);
 }
+function buildEvidenceIndex(generatedAt) {
+    return {
+        schemaVersion: 1,
+        generatedAt,
+        doctrineRoot: exports.DOCTRINE_ROOT_RELATIVE,
+        evidence: []
+    };
+}
 async function createDoctrinePack(rootPath, options = {}) {
     const targetDir = doctrineDir(rootPath);
     const createdPaths = [];
+    const existingPaths = [];
+    const repairedPaths = [];
+    const generatedAt = options.generatedAt ?? new Date().toISOString();
     await fs.mkdir(targetDir, { recursive: true });
     for (const fileName of exports.DOCTRINE_MARKDOWN_FILES) {
         const targetPath = path.join(targetDir, fileName);
         if (await (0, fs_1.pathExists)(targetPath)) {
+            existingPaths.push(targetPath);
             continue;
         }
         await fs.writeFile(targetPath, TEMPLATE_CONTENT[fileName], 'utf8');
@@ -379,18 +391,33 @@ async function createDoctrinePack(rootPath, options = {}) {
     }
     const evidenceIndexPath = path.join(targetDir, 'evidence-index.json');
     if (!(await (0, fs_1.pathExists)(evidenceIndexPath))) {
-        const evidenceIndex = {
-            schemaVersion: 1,
-            generatedAt: options.generatedAt ?? new Date().toISOString(),
-            doctrineRoot: exports.DOCTRINE_ROOT_RELATIVE,
-            evidence: []
-        };
+        const evidenceIndex = buildEvidenceIndex(generatedAt);
         await fs.writeFile(evidenceIndexPath, `${JSON.stringify(evidenceIndex, null, 2)}\n`, 'utf8');
         createdPaths.push(evidenceIndexPath);
     }
+    else {
+        let repairEvidenceIndex = false;
+        try {
+            const parsed = JSON.parse(await fs.readFile(evidenceIndexPath, 'utf8'));
+            repairEvidenceIndex = !evidenceIndexHasMinimalShape(parsed);
+        }
+        catch {
+            repairEvidenceIndex = true;
+        }
+        if (repairEvidenceIndex) {
+            const evidenceIndex = buildEvidenceIndex(generatedAt);
+            await fs.writeFile(evidenceIndexPath, `${JSON.stringify(evidenceIndex, null, 2)}\n`, 'utf8');
+            repairedPaths.push(evidenceIndexPath);
+        }
+        else {
+            existingPaths.push(evidenceIndexPath);
+        }
+    }
     return {
         doctrineDir: targetDir,
-        createdPaths
+        createdPaths,
+        existingPaths,
+        repairedPaths
     };
 }
 async function inspectDoctrinePack(rootPath) {

@@ -310,6 +310,7 @@ test('activate registers the key Ralph commands', async () => {
 
   assert.ok(commands.includes('ralphCodex.generatePrompt'));
   assert.ok(commands.includes('ralphCodex.initializeWorkspace'));
+  assert.ok(commands.includes('ralphCodex.initializeDoctrinePack'));
   assert.ok(commands.includes('ralphCodex.runRalphIteration'));
   assert.ok(commands.includes('ralphCodex.runRalphLoop'));
   assert.ok(commands.includes('ralphCodex.runReviewAgent'));
@@ -544,6 +545,58 @@ test('Initialize Workspace aborts with a warning when .ralph/prd.md already exis
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'), '{"sentinel":true}\n');
   assert.equal(harness.state.shownDocuments.length, 0);
   assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /\.ralph\/prd\.md already exists/);
+});
+
+test('Initialize Doctrine Pack scaffolds doctrine for an established Ralph workspace without reopening bootstrap', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeDoctrinePack');
+
+  for (const fileName of [
+    'project-profile.md',
+    'invariants.md',
+    'boundaries.md',
+    'workflows.md',
+    'agents.md',
+    'decisions.md',
+    'risks.md',
+    'open-questions.md',
+    'evidence-index.json'
+  ]) {
+    await fs.access(path.join(rootPath, '.ralph', 'doctrine', fileName));
+  }
+
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Doctrine pack ready\./);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Created:/);
+});
+
+test('Initialize Doctrine Pack preserves existing doctrine files and repairs an invalid evidence index', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  const doctrineDir = path.join(rootPath, '.ralph', 'doctrine');
+  await fs.mkdir(doctrineDir, { recursive: true });
+  await fs.writeFile(path.join(doctrineDir, 'agents.md'), '# Custom Agents\n\nHuman-owned rules.\n', 'utf8');
+  await fs.writeFile(path.join(doctrineDir, 'evidence-index.json'), '{not json', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  activate(createExtensionContext());
+  await vscode.commands.executeCommand('ralphCodex.initializeDoctrinePack');
+
+  assert.equal(await fs.readFile(path.join(doctrineDir, 'agents.md'), 'utf8'), '# Custom Agents\n\nHuman-owned rules.\n');
+  const evidenceIndex = JSON.parse(await fs.readFile(path.join(doctrineDir, 'evidence-index.json'), 'utf8'));
+  assert.equal(evidenceIndex.schemaVersion, 1);
+  assert.equal(evidenceIndex.doctrineRoot, '.ralph/doctrine');
+  assert.deepEqual(evidenceIndex.evidence, []);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Already present:/);
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Repaired:/);
 });
 
 test('Show Ralph Status routes through the dashboard and writes raw report to output channel', async () => {

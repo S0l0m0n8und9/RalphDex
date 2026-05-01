@@ -42,6 +42,8 @@ Fresh workspace initialization creates a compact doctrine skeleton under `.ralph
 
 Initialization is non-destructive: existing doctrine files are never overwritten, and a partially existing doctrine folder is completed by creating only missing files. `.ralph/prd.md` remains the initialization guard for active Ralph workspaces.
 
+Established workspaces adopt the same skeleton through the explicit `Ralphdex: Initialize Doctrine Pack` command. That command requires the existing durable Ralph files (`.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`), preserves existing doctrine Markdown files, creates only missing doctrine Markdown files, and repairs `evidence-index.json` only when it is missing or structurally invalid. This doctrine repair path is separate from fresh bootstrap and separate from runtime cleanup/reset flows.
+
 The protected doctrine files are `.ralph/doctrine/invariants.md`, `.ralph/doctrine/boundaries.md`, and `.ralph/doctrine/agents.md`. Ralph scaffolds these files and validates required headings plus the minimal `evidence-index.json` shape. Providers must not rewrite protected doctrine during normal task execution. They may emit bounded `doctrineUpdates` proposals in the completion report, which Ralph validates and persists as reviewable artifacts only. There is still no semantic doctrine auto-updater, approval workflow, auto-apply behavior, or autonomous doctrine rewriting.
 
 Doctrine does not replace the active Ralph state files. `.ralph/prd.md` remains the product objective, `.ralph/tasks.json` remains the executable task graph, and `.ralph/progress.md` remains the progress log. Doctrine validation health is warning-level preflight/status context unless a future tranche explicitly defines stronger gates.

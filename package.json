@@ -132,6 +132,7 @@
     "onCommand:ralphCodex.openLatestDoctrineProposal",
     "onCommand:ralphCodex.applyLatestDoctrineProposal",
     "onCommand:ralphCodex.rejectLatestDoctrineProposal",
+    "onCommand:ralphCodex.initializeDoctrinePack",
     "onCommand:ralphCodex.openPrdWizard",
     "onCommand:ralphCodex.regeneratePrd",
     "onCommand:ralphCodex.requeueDeadLetterTask",
@@ -158,6 +159,10 @@
       {
         "command": "ralphCodex.generatePrompt",
         "title": "Ralphdex: Prepare Prompt"
+      },
+      {
+        "command": "ralphCodex.initializeDoctrinePack",
+        "title": "Ralphdex: Initialize Doctrine Pack"
       },
       {
         "command": "ralphCodex.openCodexAndCopyPrompt",
