@@ -5131,7 +5131,74 @@
         "AGENTS.md"
       ],
       "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T192",
+      "title": "Advance prd.md to record the shipped doctrine-context and agentic-default tranche and define the next doctrine-adoption horizon",
+      "status": "done",
+      "notes": "Updated .ralph/prd.md to record the shipped doctrine-context and agentic-default tranche in past tense, replaced the stale Azure-focused active horizon, and defined a bounded doctrine-adoption/operator self-service horizon grounded in this workspace state (.ralph/doctrine/ missing).",
+      "validation": "npm run check:docs",
+      "tier": "simple",
+      "acceptance": [
+        "The PRD records the completed doctrine-context and agentic-default work in past tense with no stale future-tense wording.",
+        "The next delivery horizon is explicitly bounded to doctrine adoption and operator self-service for established workspaces rather than broad new feature planning.",
+        "The new horizon is grounded in current repo state, including that this workspace still lacks a committed .ralph/doctrine pack while doctrine-context support is already shipped.",
+        "npm run check:docs passes."
+      ],
+      "lastVerifierResult": "passed"
+    },
+    {
+      "id": "T193",
+      "title": "Add an explicit doctrine-pack scaffold or repair command for established Ralph workspaces",
+      "status": "todo",
+      "dependsOn": [
+        "T192"
+      ],
+      "notes": "Existing workspaces that predate doctrine support currently get warning-level diagnostics but no dedicated repair path. Add an operator-invoked command such as Ralphdex: Initialize Doctrine Pack that creates missing doctrine files and evidence-index.json without overwriting existing doctrine content.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "An existing workspace with .ralph/prd.md, .ralph/tasks.json, and .ralph/progress.md but no .ralph/doctrine can scaffold the doctrine pack without rerunning Initialize Workspace.",
+        "The command preserves existing doctrine files and only creates missing files plus a valid evidence-index.json.",
+        "The command reports what it created versus what was already present and does not treat doctrine scaffolding as normal runtime cleanup or reset.",
+        "npm run validate passes."
+      ]
+    },
+    {
+      "id": "T194",
+      "title": "Surface doctrine-repair guidance in status and dashboard flows when doctrine is missing or incomplete",
+      "status": "todo",
+      "dependsOn": [
+        "T193"
+      ],
+      "notes": "Doctrine health already appears as a warning, but established workspaces need an obvious recovery path. Update status and UI surfaces so missing or incomplete doctrine points operators at the new repair command without upgrading doctrine health into a blocking error.",
+      "validation": "npm run validate",
+      "tier": "medium",
+      "acceptance": [
+        "Show Status and related diagnostics name the doctrine repair command or an equally explicit next step when doctrine is missing or incomplete.",
+        "The dashboard or settings/diagnostics flow exposes the same repair path without requiring operators to inspect source code or hidden commands.",
+        "Doctrine remains warning-level only: missing doctrine still does not block task selection or CLI launch by itself.",
+        "npm run validate passes."
+      ]
+    },
+    {
+      "id": "T195",
+      "title": "Cover and document doctrine-pack adoption for pre-existing Ralph workspaces",
+      "status": "todo",
+      "dependsOn": [
+        "T193",
+        "T194"
+      ],
+      "notes": "Lock the new doctrine-adoption workflow with focused regression coverage and operator docs so mature workspaces can adopt doctrine safely after bootstrap-era initialization.",
+      "validation": "npm run validate",
+      "tier": "simple",
+      "acceptance": [
+        "Tests cover doctrine-pack scaffolding in an already-initialized workspace, including partial-pack repair and no-overwrite behavior.",
+        "Tests cover the status or dashboard guidance that points operators to the repair flow when doctrine is missing or incomplete.",
+        "README.md and the focused owning workflow docs explain how established workspaces adopt doctrine after the fact and how that differs from Initialize Workspace.",
+        "npm run validate passes."
+      ]
     }
   ],
-  "mutationCount": 234
+  "mutationCount": 236
 }

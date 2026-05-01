@@ -752,46 +752,44 @@ The production dashboard and sidebar now render through the shared `src/webview/
 
 ### Next delivery horizon
 
-With the UI ownership boundary settled and the prototype bundle demoted to reference-only status, the next delivery horizon should move to the remaining Azure-backed execution risk rather than additional dashboard redesign work.
+With the UI ownership boundary settled, the previously planned Azure hardening tranche has now been superseded by completed doctrine-context and agentic-default delivery work.
 
-**1. Azure-backed provider/auth hardening across both execution paths**
+**Completed tranche (shipped): doctrine-context + agentic defaults**
 
-The next immediate priority is to close the remaining gap between “functional” and “operator-safe” for both Azure-backed providers: RalphDex's direct `azure-foundry` HTTPS path and the `copilot-foundry` Azure BYOK path. Concrete work:
+- Agentic default posture is now the shipped baseline across manifest/runtime/docs, with default-sensitive tests and validator coverage enforcing alignment.
+- Doctrine context is now shipped as optional, read-only prompt input with bounded inclusion, non-blocking doctrine-health diagnostics, and status/prompt-evidence observability.
+- Doctrine proposal handling is shipped as reviewable artifact persistence plus explicit apply/reject operator gates; no autonomous doctrine mutation path was added.
 
-- Harden the shared Azure auth contract around the supported secure sources (`az-bearer`, `env-api-key`, `vscode-secret`) so both providers fail deterministically, surface the same redacted readiness evidence, and avoid provider-specific ambiguity.
-- Upgrade readiness and connection diagnostics so missing Azure tenant/subscription/resource/deployment metadata is reported concretely for both providers before loop execution, not only after launch attempts fail.
-- Make the remaining operator-facing auth path gaps explicit in status, settings, and connection-test surfaces so Azure-backed runs can be configured without inspecting source code.
+### Next delivery horizon
 
-Acceptance criteria:
-- `azure-foundry` and `copilot-foundry` each have a documented, deterministic auth-readiness contract grounded in the shared resolver and preflight surfaces.
-- Missing or inconsistent Azure config is surfaced with provider-specific diagnostics before execution.
-- Operator-visible status/connection surfaces identify the active Azure-backed path, auth source metadata, and unresolved readiness gaps without exposing secrets.
+Doctrine-context support is already shipped, but established workspaces can still lack a committed doctrine pack. In this workspace, `.ralph/doctrine/` is currently missing, so the next horizon is a bounded doctrine-adoption slice focused on operator self-service rather than new platform expansion.
 
-**2. Azure-backed operator workflow validation**
+**1. Doctrine-pack scaffold/repair command for established workspaces**
 
-The repo already documents both Azure-backed providers as beta and functional, but the remaining work is to prove the operational workflow end to end instead of relying on configuration shape alone. Concrete work:
-
-- Validate `Ralphdex: Test Current Provider Connection`, provider status output, and secure secret-management commands against both Azure-backed providers so the documented setup path matches the shipped behavior.
-- Tighten docs around the live configuration workflow for endpoint/resource metadata, deployment selection, Azure CLI login expectations, and SecretStorage usage.
-- Record the expected maturity boundary clearly: the shipped dashboard/sidebar are stable production surfaces, while Azure-backed execution remains the active hardening frontier.
+Add an explicit command-path that scaffolds or repairs `.ralph/doctrine/` in-place for existing repositories without re-initializing unrelated Ralph state.
 
 Acceptance criteria:
-- Docs and operator-facing commands describe the same Azure setup and readiness flow.
-- SecretStorage-backed and environment-backed auth paths are both represented in the documented operator workflow.
-- `npm run check:docs` passes with the updated Azure-backed guidance.
+- Operators can create/repair missing doctrine files and `evidence-index.json` from command surfaces.
+- Existing doctrine files are preserved; only missing or structurally invalid files are repaired deterministically.
+- `npm run validate` passes with focused command + doctrine tests.
 
-**3. Azure-backed regression and verification depth**
+**2. Operator-facing doctrine-repair guidance in status/dashboard**
 
-Once the auth/readiness workflow is deterministic, the next tranche is proving it with the same rigor as the rest of RalphDex's execution stack. Concrete work:
-
-- Expand regression coverage around Azure-backed preflight, connection testing, provider launch shaping, and failure messaging so auth or metadata drift is caught by the normal validation gate.
-- Add or tighten lightweight verification artifacts that show which Azure-backed path was exercised, what auth source type was selected, and whether prompt-caching or direct-HTTPS behavior was actually active where expected.
-- Keep the scope limited to provider/auth hardening and verification evidence; do not reopen the now-settled UI ownership work unless a concrete Azure workflow requires a surface change.
+Surface actionable doctrine-adoption guidance when doctrine health is missing/incomplete, including direct links or commands to run repair/scaffold.
 
 Acceptance criteria:
-- Azure-backed provider/auth regressions are covered by targeted tests rather than manual inspection alone.
-- Provenance and validation surfaces make it clear which Azure-backed execution path ran and what readiness state applied.
-- `npm run validate` remains the authoritative gate for Azure-backed execution changes.
+- `Show Status` and dashboard surfaces distinguish warning-level doctrine health from hard blockers.
+- Missing doctrine produces concrete repair guidance instead of generic warnings.
+- `npm run validate` passes with regression coverage for the new guidance.
+
+**3. Doctrine-adoption migration docs + verification guardrails**
+
+Document the established-workspace adoption path and lock it with docs validation and targeted regression tests.
+
+Acceptance criteria:
+- Workflows/architecture docs describe doctrine adoption for already-initialized repositories.
+- Docs validation fails on drift between documented doctrine-adoption behavior and command surface.
+- `npm run check:docs` passes.
 
 ### Design principles and scope boundaries
 
