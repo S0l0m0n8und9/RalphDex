@@ -6,7 +6,7 @@
 |---|---|---|---|---|---|---|
 | Activity Bar container (`Ralphdex`) | `package.json` → `viewsContainers.activitybar` id `ralphCodex` | RalphDex root container | Open RalphDex control center | None severe | Keep as single extension root surface | Keep |
 | Sidebar webview (`ralphCodex.dashboard`) | `package.json` view id `ralphCodex.dashboard`; `src/ui/sidebarViewProvider.ts`; `src/ui/sidebarHtml.ts`; shared `src/webview/dashboardHost.ts` | Compact + advanced launcher/triage | Quick status + start/stop + jump to detail | Duplicates rich dashboard actions and setup actions; advanced controls leak into compact surface | Compact surface only: live status, run/stop, selected task summary, open dashboard | Change |
-| Dashboard editor panel | `src/ui/dashboardPanel.ts`; `src/ui/panelHtml.ts`; shared `src/webview/dashboardHost.ts` | Rich dashboard and operations | Diagnose, recover, inspect artifacts, tune settings | Repeated CTAs and overlaps with command palette/tree views | Single rich control plane UI for diagnostics/recovery/evidence/settings entry | Keep + tighten |
+| Dashboard editor panel | `src/ui/dashboardPanel.ts`; `src/ui/panelHtml.ts`; shared `src/webview/dashboardHost.ts` | Rich dashboard and operations | Diagnose, recover, inspect artifacts, tune settings | Repeated CTAs and overlaps with command palette/tree views | Single rich dashboard UI for diagnostics and recovery, evidence, and settings entry | Keep + tighten |
 | Tasks tree (`ralphCodex.tasks`) | `package.json` tree view; `src/ui/taskTreeView.ts` | Task board and details via native tree | Browse/triage tasks in VS Code-native affordances | Jargon-heavy label `Dead-Letter Queue` | Keep as canonical task browsing surface; simplify user labels | Keep + rename labels |
 | Logs tree (`ralphCodex.logs`) | `package.json` tree view | Log navigation | Open logs/transcripts fast | Role is unclear relative to output/document artifact commands | Make secondary/optional shortcuts; prefer output + open-document commands as primary log/evidence path | Change (de-emphasize) |
 | Status bar actions | `src/ui/statusBarItem.ts` | Global quick actions | Run most common actions quickly | Elevates `Prepare Prompt` as top-level even for non-handoff users | Keep lightweight status + dashboard entry; remove non-primary actions from status bar | Change |
@@ -29,7 +29,7 @@ Rule: every command has exactly one primary home; optional secondary homes are s
 | `ralphCodex.stopLoop` | Ralphdex: Stop Loop | Sidebar/panel/palette | Sidebar compact | Dashboard, palette | Keep | Pair with run |
 | `ralphCodex.runRalphIteration` | Ralphdex: Run CLI Iteration | Panel/palette | Dashboard | Palette | `Run Single Iteration` | Advanced |
 | `ralphCodex.runMultiAgentLoop` | Ralphdex: Run Multi-Agent Loop | Sidebar/panel/palette | Dashboard | Palette | Keep (advanced) | Keep out compact sidebar |
-| `ralphCodex.runPipeline` | Ralphdex: Run Pipeline | Panel/palette | Dashboard | Palette | Rename label to `Run End-to-End Flow` | Preserve ID for compatibility |
+| `ralphCodex.runPipeline` | Ralphdex: Run Pipeline | Panel/palette | Dashboard | Palette | Rename label to `Run Full Workflow` or `Run End-to-End Pass` | Preserve ID for compatibility |
 | `ralphCodex.generatePrompt` | Ralphdex: Prepare Prompt | Sidebar/panel/status/palette | Dashboard | Palette | `Prepare IDE Prompt` | Secondary workflow |
 | `ralphCodex.openCodexAndCopyPrompt` | Ralphdex: Open Codex IDE | Palette | Dashboard | Palette | `Open IDE Chat with Prompt` | Clarify handoff intent |
 | `ralphCodex.openPrdWizard` | Ralphdex: Open PRD Wizard | Sidebar/panel/palette | First-run setup state | Palette, dashboard setup | Keep | Primary no-PRD route |
@@ -46,7 +46,7 @@ Rule: every command has exactly one primary home; optional secondary homes are s
 | `ralphCodex.openLatestPromptEvidence` | Ralphdex: Open Latest Prompt Evidence | Palette | Logs/artifacts section | Dashboard links | Keep | Advanced evidence |
 | `ralphCodex.openLatestProvenanceBundle` | Ralphdex: Open Latest Provenance Bundle | Palette | Dashboard diagnostics | Palette | Keep | Advanced evidence |
 | `ralphCodex.revealLatestProvenanceBundleDirectory` | Ralphdex: Reveal Latest Provenance Bundle Directory | Palette | Dashboard diagnostics | Palette | Keep | Filesystem jump |
-| `ralphCodex.openLatestPipelineRun` | Ralphdex: Open Latest Pipeline Run | Palette | Dashboard diagnostics | Palette | `Open Latest Flow Report` | Jargon cleanup |
+| `ralphCodex.openLatestPipelineRun` | Ralphdex: Open Latest Pipeline Run | Palette | Dashboard diagnostics | Palette | `Open Latest Run Report` | Jargon cleanup |
 | `ralphCodex.initializeDoctrinePack` | Ralphdex: Initialize Doctrine Pack | Palette | Dashboard maintenance/setup | Palette | Optional: `Initialize Project Rules Pack` | Advanced/internal concept |
 | `ralphCodex.openLatestDoctrineProposal` | Ralphdex: Open Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Open Latest Rules Proposal` | Advanced |
 | `ralphCodex.applyLatestDoctrineProposal` | Ralphdex: Apply Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Apply Latest Rules Proposal` | Guarded action |
@@ -108,7 +108,7 @@ Use user-intent grouping while preserving existing setting keys for compatibilit
 
 | Term | Visible usage status | Decision |
 |---|---|---|
-| pipeline | User-facing command labels and docs | Rename user-facing labels (`Flow` / `End-to-End Run`) while preserving IDs |
+| pipeline | User-facing command labels and docs | Rename user-facing labels (`Full Workflow` / `End-to-End Pass`) while preserving IDs |
 | dead-letter / dead letter | Task tree group + requeue command label | Rename user-facing to `Recovery Queue` / `Requeue Recovery Task` |
 | prepare prompt | Primary user command/CTA label | Rename to `Prepare IDE Prompt` |
 | control plane | Mostly technical docs | Hide from primary UX; keep in architecture docs |
@@ -119,56 +119,61 @@ Use user-intent grouping while preserving existing setting keys for compatibilit
 
 ## 6) Follow-up implementation issues mapped to #38–#44
 
-### #38 — Sidebar compact contract
-- **Objective:** enforce compact-only sidebar behavior.
-- **Scope boundary:** `src/ui/sidebarHtml.ts`, `src/ui/sidebarViewProvider.ts`, `src/webview/dashboardHost.ts`.
-- **Acceptance criteria:** sidebar only shows status, run/stop, selected task summary, open-dashboard CTA.
-- **Tests/evidence:** webview render snapshots for compact states; command wiring checks.
-- **Stop condition:** no advanced actions duplicated in sidebar.
+### #38 — Audit and reduce sidebar/dashboard duplication
+- **Objective:** inventory and remove duplicated actions/content between compact sidebar and rich dashboard.
+- **Scope boundary:** `src/ui/sidebarHtml.ts`, `src/ui/panelHtml.ts`, `src/webview/dashboardHost.ts`, UX docs.
+- **Acceptance criteria:** each user job has one primary home; compact sidebar retains only compact-run concerns.
+- **Tests/evidence:** command-to-surface checklist, UI fixture updates, before/after screenshots.
+- **Stop condition:** duplication matrix is resolved and documented.
 
-### #39 — Dashboard de-duplication and IA cleanup
-- **Objective:** dashboard becomes sole rich UX surface.
-- **Scope boundary:** `src/ui/panelHtml.ts`, `src/ui/dashboardPanel.ts`, `src/webview/dashboardHost.ts`.
-- **Acceptance criteria:** single ownership of diagnostics/recovery/settings/artifacts; remove duplicate nav buttons.
-- **Tests/evidence:** panel UI snapshots + command-surface checklist.
-- **Stop condition:** each user job appears once in dashboard IA.
+### #39 — Implement first-run and no-PRD readiness flow
+- **Objective:** ship deterministic setup routing for clean workspace, missing/default PRD, missing tasks, missing provider/auth, blocked preflight, and ready states.
+- **Scope boundary:** gating and UX messaging only; no provider execution redesign.
+- **Likely files:** `src/commands/registerCommands.ts`, `src/ui/sidebarHtml.ts`, `src/ui/panelHtml.ts`, `src/webview/dashboardHost.ts`.
+- **Acceptance criteria:** run-entry commands block with explicit reason + setup CTA when not ready.
+- **Tests/evidence:** command-shell smoke tests and state-fixture coverage for each readiness branch.
+- **Stop condition:** no ambiguous first-run/no-PRD behavior remains.
 
-### #40 — Command title and placement contract
-- **Objective:** align command labels to user language and publish primary-home mapping.
-- **Scope boundary:** `package.json` command titles + docs updates.
-- **Likely files:** `package.json`, `README.md`, `docs/workflows.md`.
-- **Acceptance criteria:** all command IDs preserved; user labels updated; one primary home per command documented.
-- **Tests/evidence:** manifest tests, docs check.
-- **Stop condition:** no unresolved duplicate labels/homes.
+### #40 — Regroup settings by user intent
+- **Objective:** present settings by user intent groups (Provider, Model/Reasoning, Run Behaviour, Prompt/Memory, Security/Approvals, Paths/Artifacts, Advanced Internals).
+- **Scope boundary:** keep existing setting keys for compatibility; regroup labels and docs only.
+- **Likely files:** `package.json`, `src/config/settingsSurface.ts`, README/docs settings sections.
+- **Acceptance criteria:** intent-grouped settings are visible in UI/docs and mapped to existing keys.
+- **Tests/evidence:** settings-surface snapshots + docs checks.
+- **Stop condition:** operators can locate key settings without module-level knowledge.
 
-### #41 — Settings grouping by user intent
-- **Objective:** restructure settings presentation by intent.
-- **Scope boundary:** no key rename; metadata/grouping and settings UI presentation only.
-- **Likely files:** `package.json`, `src/config/settingsSurface.ts`, docs settings sections.
-- **Acceptance criteria:** 7 target groups visible and documented.
-- **Tests/evidence:** settings-surface snapshot tests, docs check.
-- **Stop condition:** operator can locate provider/model/run/security knobs quickly.
+### #41 — Remove stale or misleading UI language
+- **Objective:** replace or hide stale user-facing terms (pipeline, dead-letter, prepare prompt, orchestration jargon where unnecessary).
+- **Scope boundary:** user-facing labels/tooltips/messages/docs only; internal IDs/artifact schemas unchanged.
+- **Likely files:** `package.json`, `src/ui/*.ts`, `src/commands/registerCommands.ts`, README/docs.
+- **Acceptance criteria:** language table decisions are fully applied with approved replacements.
+- **Tests/evidence:** deterministic string audit + UI screenshots.
+- **Stop condition:** compact surfaces and primary actions use clear operator language.
 
-### #42 — First-run/no-PRD state machine implementation
-- **Objective:** deterministic setup flow across clean/no-PRD/no-tasks/no-provider/preflight-blocked states.
-- **Scope boundary:** gating + UX messaging; no backend execution semantics change.
-- **Likely files:** `src/commands/registerCommands.ts`, `src/webview/dashboardHost.ts`, `src/ui/panelHtml.ts`, `src/ui/sidebarHtml.ts`.
-- **Acceptance criteria:** all run entry points route correctly with clear reason and CTA.
-- **Tests/evidence:** command-shell smoke tests for each state branch.
-- **Stop condition:** no ambiguous first-run path remains.
+### #42 — Create UI state fixture catalogue
+- **Objective:** codify canonical UI states (empty/setup, blocked, running, failure, recovery, ready, advanced diagnostics) as reusable fixtures.
+- **Scope boundary:** test fixtures and documentation that define state contracts; no visual redesign required.
+- **Likely files:** `test/ui/*`, `test/webview/*`, docs UX/state catalogue.
+- **Acceptance criteria:** fixture catalogue exists and is referenced by UI tests.
+- **Tests/evidence:** fixture-driven snapshot coverage for sidebar and dashboard states.
+- **Stop condition:** future UI changes must map to named fixtures.
 
-### #43 — User-facing terminology pass
-- **Objective:** apply keep/rename/hide/remove taxonomy to visible terms.
-- **Scope boundary:** strings/tooltips/labels/docs only; internal IDs and artifact structures unchanged.
-- **Likely files:** `package.json`, `src/ui/*.ts`, `src/commands/registerCommands.ts`, `README.md`.
-- **Acceptance criteria:** stale terms replaced or hidden per table.
-- **Tests/evidence:** deterministic string grep audit + UI snapshots.
-- **Stop condition:** compact surfaces no longer expose stale jargon.
+### #43 — Add screenshot and evidence requirements for UI changes
+- **Objective:** require repeatable screenshot/evidence artifacts for every perceptible UI change.
+- **Scope boundary:** contribution/testing docs, PR checklist rules, and automation hooks where practical.
+- **Likely files:** `docs/testing.md`, contributor docs, CI/check scripts as needed.
+- **Acceptance criteria:** PR guidance explicitly requires screenshots mapped to fixture states.
+- **Tests/evidence:** docs checks and at least one validated example path.
+- **Stop condition:** UI PRs cannot merge without visual evidence requirements satisfied.
 
-### #44 — Logs and artifacts surface discipline
-- **Objective:** prefer native output/document evidence surfaces over dashboard log chrome.
-- **Scope boundary:** view emphasis and links; avoid backend artifact model changes.
-- **Likely files:** `src/ui/panelHtml.ts`, `src/commands/artifactCommands.ts`, `package.json` (view/menu contributions), docs.
-- **Acceptance criteria:** clear primary path to summary/transcript/evidence docs from dashboard/tasks.
-- **Tests/evidence:** smoke tests for open-latest commands + manual UX path verification.
-- **Stop condition:** users can reliably answer “what happened?” through native surfaces.
+### #44 — Add visual and accessibility test harness for webview UI
+- **Objective:** establish automated visual regression + accessibility checks for sidebar/dashboard webviews.
+- **Scope boundary:** test harness, fixtures, and CI wiring; minimal production UI logic changes only as needed for testability.
+- **Likely files:** `test/ui/*`, `test/webview/*`, test scripts, docs/testing updates.
+- **Acceptance criteria:** harness runs in CI and checks representative fixture states for visual drift and baseline accessibility issues.
+- **Tests/evidence:** passing automated harness output + documented local run command.
+- **Stop condition:** webview UI changes are constrained by automated evidence, not manual inspection alone.
+
+## Evidence-harness priority note
+
+Issues **#42–#44 are not optional polish**. They are the evidence harness that constrains future UI changes and makes UX iterations safe, reviewable, and regression-resistant.
