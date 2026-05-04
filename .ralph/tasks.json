@@ -6274,12 +6274,12 @@
     {
       "id": "T219",
       "title": "Capture a baseline manual dogfood evidence record for the primary provider path",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T209",
         "T217"
       ],
-      "notes": "T217 reported no persisted dogfood evidence records. Create one durable evidence artifact following the runbook contract so release readiness has real live-provider evidence.",
+      "notes": "Captured baseline manual dogfood evidence from live codex invocation artifacts (iteration 425) and persisted .ralph/artifacts/dogfood-evidence/dogfood-evidence-codex-2026-05-04.json with redacted relative artifact references. Evidence outcome recorded as failed because verifier gitDiff reported no relevant workspace changes, while execution and validation-command verifier passed.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -6300,7 +6300,8 @@
         "src/ralph/types.ts",
         ".ralph/artifacts/latest-cli-invocation.json",
         ".ralph/artifacts/latest-result.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T220",
