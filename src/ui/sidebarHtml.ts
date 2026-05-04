@@ -68,6 +68,13 @@ body {
   border-color: color-mix(in srgb, var(--bad) 40%, var(--border));
 }
 
+.btn-setup {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  color: var(--warn);
+  border-color: color-mix(in srgb, var(--warn) 48%, var(--border));
+  font-weight: 600;
+}
+
 .btn-spinner {
   display: none;
   width: 10px;
@@ -150,6 +157,10 @@ body {
   color: var(--dim);
 }
 
+.sidebar-status-text.warn {
+  color: var(--warn);
+}
+
 .open-dashboard {
   display: block;
   width: 100%;
@@ -202,6 +213,14 @@ function buildCurrentTaskCard(state: RalphDashboardState): string {
   const blockedCount = taskBoard?.counts?.blocked ?? 0;
   const recoveryCount = taskBoard?.deadLetterCount ?? 0;
 
+  if (!state.prdExists && !id && !taskBoard) {
+    return `<div class="current-task-card blocked">
+      <div class="current-task-kicker">Setup Required</div>
+      <div class="current-task-title">Create a PRD before running RalphDex.</div>
+      <div class="current-task-meta">The PRD wizard will create the objective and starting backlog.</div>
+    </div>`;
+  }
+
   return `<div class="current-task-card${blockedCount > 0 || recoveryCount > 0 ? ' blocked' : ''}">
     <div class="current-task-kicker">Current Work</div>
     ${id ? `<div class="current-task-id">Selected ${esc(id)}</div>` : ''}
@@ -216,6 +235,34 @@ function buildCurrentTaskCard(state: RalphDashboardState): string {
     ${agentRow ? `<div class="current-task-meta">${esc(agentRow.agentId)}</div>` : ''}
     ${!id && !taskBoard ? '<div class="current-task-empty">No task selected</div>' : ''}
   </div>`;
+}
+
+function buildRunControl(state: RalphDashboardState): string {
+  if (state.loopState === 'running') {
+    return `<button class="btn btn-danger" data-command="ralphCodex.stopLoop"><span class="btn-label">■ Stop Loop</span><span class="btn-spinner"></span></button>`;
+  }
+
+  if (!state.prdExists) {
+    return `<button class="btn btn-setup" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>`;
+  }
+
+  return `<button class="btn btn-primary" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>`;
+}
+
+function buildSidebarStatusText(state: RalphDashboardState, stateLabel: string): string {
+  if (state.loopState === 'running') {
+    return `<div class="sidebar-status-text">Ralph is working — ${esc(stateLabel)}</div>`;
+  }
+
+  if (!state.prdExists) {
+    return '<div class="sidebar-status-text warn">PRD required before running</div>';
+  }
+
+  if (!state.preflightReady) {
+    return `<div class="sidebar-status-text warn">Readiness blocked — ${esc(state.preflightSummary)}</div>`;
+  }
+
+  return '<div class="sidebar-status-text">Ready to start</div>';
 }
 
 export function buildDashboardHtml(state: RalphDashboardState, nonce: string): string {
@@ -258,15 +305,11 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
   ${state.taskCounts ? buildProgressBar(state.taskCounts) : ''}
 
   <div class="sidebar-status">
-    ${isRunning
-      ? `<div class="sidebar-status-text">Ralph is working — ${esc(stateLabel)}</div>`
-      : `<div class="sidebar-status-text">Ready to start</div>`}
+    ${buildSidebarStatusText(state, stateLabel)}
   </div>
 
   <div class="sidebar-run-controls">
-    ${isRunning
-      ? `<button class="btn btn-danger" data-command="ralphCodex.stopLoop"><span class="btn-label">■ Stop Loop</span><span class="btn-spinner"></span></button>`
-      : `<button class="btn btn-primary" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>`}
+    ${buildRunControl(state)}
   </div>
 
   ${buildCurrentTaskCard(state)}
@@ -285,7 +328,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
         el.disabled = true;
         vscode.postMessage({ type: 'command', command: cmd });
         var t = setTimeout(function() { resetButton(el); }, 10000);
-        ackTimeouts.set(el, t);
+        ackTimeouts.set(el);
       }
 
       function resetButton(el) {
