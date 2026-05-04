@@ -5749,14 +5749,14 @@
     {
       "id": "T204",
       "title": "Generate a post-doctrine phase completion report",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T199",
         "T200",
         "T201",
         "T203"
       ],
-      "notes": "Useful checkpoint after the doctrine and execution-profile phases.",
+      "notes": "Created .ralph/artifacts/reports/post-doctrine-phase-completion-report-2026-05-04.md with evidence-backed doctrine-phase summary, model-tiering follow-up status, remaining risks, and a single next-horizon recommendation (evaluation harness starting at T214).",
       "validation": "npm run validate",
       "priority": "low",
       "mode": "documentation",
@@ -5780,7 +5780,8 @@
         "docs/workflows.md",
         "docs/boundaries.md",
         "docs/model-tiering.md"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T205",
@@ -6235,5 +6236,5 @@
       ]
     }
   ],
-  "mutationCount": 259
+  "mutationCount": 260
 }
