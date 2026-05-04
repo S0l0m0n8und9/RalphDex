@@ -29,7 +29,7 @@ test.beforeEach(() => {
   vscodeTestHarness().reset();
 });
 
-test('task tree provider separates active and dead-letter tasks and surfaces artifact-backed details', async () => {
+test('task tree provider separates active and recovery-queue tasks and surfaces artifact-backed details', async () => {
   const rootPath = await makeTempRoot();
   const ralphDir = path.join(rootPath, '.ralph');
   const artifactsDir = path.join(ralphDir, 'artifacts');
@@ -53,7 +53,7 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
       },
       {
         id: 'T2',
-        title: 'Recover dead-letter task',
+        title: 'Recover parked task',
         status: 'blocked',
         blocker: 'Needs operator requeue'
       }
@@ -79,7 +79,7 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
         schemaVersion: 1,
         kind: 'deadLetterEntry',
         taskId: 'T2',
-        taskTitle: 'Recover dead-letter task',
+        taskTitle: 'Recover parked task',
         deadLetteredAt: '2026-04-12T10:00:00.000Z',
         recoveryAttemptCount: 3,
         diagnosticHistory: [
@@ -135,9 +135,9 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
   assert.equal(rootItems.length, 5);
 
   const todoGroup = rootItems.find((item: TreeItemLike) => item.label === 'To Do');
-  const deadLetterGroup = rootItems.find((item: TreeItemLike) => item.label === 'Dead-Letter Queue');
+  const recoveryGroup = rootItems.find((item: TreeItemLike) => item.label === 'Recovery Queue');
   assert.ok(todoGroup);
-  assert.ok(deadLetterGroup);
+  assert.ok(recoveryGroup);
 
   const activeTasks = await provider.getChildren(todoGroup);
   assert.equal(activeTasks.length, 1);
@@ -154,14 +154,26 @@ test('task tree provider separates active and dead-letter tasks and surfaces art
   assert.ok(staleClaimAction);
   assert.equal(staleClaimAction?.command?.command, 'ralphCodex.resolveStaleTaskClaim');
 
-  const deadLetterTasks = await provider.getChildren(deadLetterGroup);
-  assert.equal(deadLetterTasks.length, 1);
-  assert.equal(deadLetterTasks[0]?.label, 'T2');
-  assert.match(String(deadLetterTasks[0]?.description ?? ''), /dead-letter/);
+  const recoveryTasks = await provider.getChildren(recoveryGroup);
+  assert.equal(recoveryTasks.length, 1);
+  assert.equal(recoveryTasks[0]?.label, 'T2');
+  assert.match(String(recoveryTasks[0]?.description ?? ''), /recovery queue/);
 
-  const deadLetterDetails = await provider.getChildren(deadLetterTasks[0]);
-  assert.ok(deadLetterDetails.some((item: TreeItemLike) => item.label === 'Dead-letter summary'));
-  const requeueAction = deadLetterDetails.find((item: TreeItemLike) => item.label === 'Requeue dead-letter task');
+  const recoveryDetails = await provider.getChildren(recoveryTasks[0]);
+  assert.ok(recoveryDetails.some((item: TreeItemLike) => item.label === 'Recovery summary'));
+  const requeueAction = recoveryDetails.find((item: TreeItemLike) => item.label === 'Requeue recovery task');
   assert.ok(requeueAction);
   assert.equal(requeueAction?.command?.command, 'ralphCodex.requeueDeadLetterTask');
+  assert.equal(requeueAction?.command?.title, 'Requeue Recovery Task');
+
+  const renderedCopy = [
+    ...rootItems,
+    ...activeTasks,
+    ...activeDetails,
+    ...recoveryTasks,
+    ...recoveryDetails
+  ].map((item: TreeItemLike) => `${String(item.label ?? '')} ${String(item.description ?? '')} ${item.command?.title ?? ''}`).join('\n');
+  assert.ok(!renderedCopy.includes('Dead-Letter'));
+  assert.ok(!renderedCopy.includes('Dead-letter'));
+  assert.ok(!renderedCopy.includes('dead-letter'));
 });
