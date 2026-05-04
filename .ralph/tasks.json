@@ -5925,12 +5925,12 @@
     {
       "id": "T209",
       "title": "Create live provider dogfooding runbook and evidence contract",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T198",
         "T202"
       ],
-      "notes": "Manual runbook only. No live provider calls in CI/tests.",
+      "notes": "Rewrote docs/dogfooding-runbook.md with code-verified provider runbook, evidence contract, redaction policy, and pass/fail criteria; aligned DogfoodEvidenceRecord with promptEvidencePath; added runbook to README doc map.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "documentation",
@@ -5954,7 +5954,8 @@
         "docs/provenance.md",
         "README.md",
         ".ralph/artifacts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T210",
@@ -6228,5 +6229,5 @@
       ]
     }
   ],
-  "mutationCount": 252
+  "mutationCount": 253
 }

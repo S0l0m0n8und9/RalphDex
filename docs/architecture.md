@@ -9,6 +9,7 @@ Related docs:
 - [Verifier](verifier.md)
 - [Boundaries](boundaries.md)
 - [Structure Definition](structure-definition.md)
+- [Dogfooding Runbook](dogfooding-runbook.md) — live provider testing and evidence contract
 
 ## Entry Point
 

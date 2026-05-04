@@ -387,3 +387,4 @@
 - Fixed 3 command title prefixes and 5 obsolete Initialize Workspace references; clarified model-tiering threshold drift in calibration and assessment sections
 - Created docs/marketplace-readiness.md with comprehensive pre-publication checklist; corrected stale command reference and added 5 missing commands to README; npm run validate passes with 1277 tests
 - Added 21 tests proving missing-command diagnostic consistency across all 7 providers; fixed inspectCliSupport configKey for gemini (was codexCommandPath) and copilot-byok (was codexCommandPath); npm run validate 1300/1300 pass.
+- Rewrote docs/dogfooding-runbook.md with code-verified provider runbook, evidence contract, redaction policy, and pass/fail criteria; aligned DogfoodEvidenceRecord with promptEvidencePath; added runbook to README doc map.

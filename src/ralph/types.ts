@@ -1025,3 +1025,68 @@ export interface ReplanDecisionArtifact {
   };
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Live provider dogfooding evidence contract
+// ---------------------------------------------------------------------------
+
+/**
+ * Token usage breakdown for a provider invocation.
+ * Only fields that are applicable for the provider should be populated.
+ */
+export interface DogfoodTokenUsage {
+  /** Tokens consumed by the input prompt. */
+  inputTokens: number;
+  /** Tokens produced in the response. */
+  outputTokens: number;
+  /** Tokens read from prompt cache (if applicable). Omit if N/A. */
+  cacheReadTokens?: number;
+  /** Tokens used to create a cache entry (if applicable). Omit if N/A. */
+  cacheCreationTokens?: number;
+}
+
+/**
+ * Durable evidence record from a live provider dogfooding run.
+ * Captures all metadata needed to evaluate provider behavior, cost, and compatibility.
+ * See docs/dogfooding-runbook.md for redaction rules before sharing.
+ */
+export interface DogfoodEvidenceRecord {
+  /** Unique identifier for this dogfooding run. Format: dogfood-[provider]-[iso-date]-[counter]. */
+  dogfoodRunId: string;
+  /** ISO 8601 timestamp when the dogfooding run completed. */
+  timestamp: string;
+  /** Ralph task ID that was selected for this dogfooding iteration. */
+  selectedTaskId: string;
+  /** CLI provider ID: 'codex' | 'claude' | 'copilot' | 'copilot-byok' | 'copilot-foundry' | 'azure-foundry' | 'gemini'. */
+  provider: CliProviderId;
+  /** Model identifier passed to or used by the CLI (e.g., 'claude-opus-4-6', 'gpt-5-codex'). */
+  model: string;
+  /** Reasoning effort level used: 'medium' | 'high'. */
+  reasoningEffort: CodexReasoningEffort;
+  /** Absolute path to the CLI executable invoked. */
+  commandPath: string;
+  /** Path to the persisted prompt artifact used in this run. */
+  promptPath: string;
+  /** Path to the persisted prompt evidence artifact used in this run. */
+  promptEvidencePath: string;
+  /** Full CLI invocation command with sensitive arguments redacted. */
+  cliInvocation: string;
+  /** Total execution time in milliseconds from CLI start to completion. */
+  executionDurationMs: number;
+  /** Token usage breakdown for this invocation. */
+  tokenUsage: DogfoodTokenUsage;
+  /** Exit code from the CLI process (0 = success, non-zero = failure). */
+  exitCode: number;
+  /** Path to the final iteration-result.json artifact for this run. */
+  resultPath: string;
+  /** Path to the full CLI transcript or log artifact (if persisted). */
+  transcriptPath: string;
+  /** Validation command that was run post-iteration (optional). */
+  validationRan?: string;
+  /** Result of validation command: 'PASS' | 'FAIL' | 'SKIPPED' (optional). */
+  validationResult?: string;
+  /** Array of non-fatal warnings (e.g., model deprecated, fallback used). Optional. */
+  warnings?: string[];
+  /** Array of blocking errors or unexpected behavior. Empty if iteration succeeded. Optional. */
+  blockers?: string[];
+}
