@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveLatestStatusArtifacts = resolveLatestStatusArtifacts;
 exports.buildStatusReport = buildStatusReport;
+const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 const fs_1 = require("../util/fs");
 const doctrine_1 = require("./doctrine");
@@ -149,9 +150,110 @@ function latestClaimResolutionSummary(snapshot) {
     }
     return `${resolvedClaim.taskId} ${resolvedClaim.agentId}/${resolvedClaim.provenanceId} -> ${resolvedClaim.status} at ${resolvedClaim.resolvedAt} because ${resolvedClaim.resolutionReason}`;
 }
+function normalizeOfflineEvaluationSummary(candidate) {
+    if (typeof candidate !== 'object' || candidate === null) {
+        return null;
+    }
+    const record = candidate;
+    if (typeof record.ranAt !== 'string'
+        || (record.overallOutcome !== 'pass' && record.overallOutcome !== 'fail')
+        || typeof record.fixturesEvaluated !== 'number'
+        || typeof record.fixturesPassed !== 'number'
+        || typeof record.fixturesFailed !== 'number'
+        || typeof record.expectationMatches !== 'number'
+        || typeof record.expectationMismatches !== 'number') {
+        return null;
+    }
+    return {
+        ranAt: record.ranAt,
+        overallOutcome: record.overallOutcome,
+        fixturesEvaluated: record.fixturesEvaluated,
+        fixturesPassed: record.fixturesPassed,
+        fixturesFailed: record.fixturesFailed,
+        expectationMatches: record.expectationMatches,
+        expectationMismatches: record.expectationMismatches
+    };
+}
+async function resolveLatestOfflineEvaluationReport(artifactRootDir) {
+    const evalRootDir = path.join(artifactRootDir, 'evals');
+    if (!await (0, fs_1.pathExists)(evalRootDir)) {
+        return {
+            latestOfflineEvaluationReportPath: null,
+            latestOfflineEvaluationSummary: null
+        };
+    }
+    const jsonPaths = [];
+    const pending = [evalRootDir];
+    while (pending.length > 0) {
+        const currentDir = pending.pop();
+        let entries;
+        try {
+            entries = await fs.readdir(currentDir, { withFileTypes: true });
+        }
+        catch {
+            continue;
+        }
+        entries.sort((left, right) => left.name.localeCompare(right.name));
+        for (const entry of entries) {
+            const fullPath = path.join(currentDir, entry.name);
+            if (entry.isDirectory()) {
+                pending.push(fullPath);
+                continue;
+            }
+            if (entry.isFile() && entry.name.endsWith('.json')) {
+                jsonPaths.push(fullPath);
+            }
+        }
+    }
+    if (jsonPaths.length === 0) {
+        return {
+            latestOfflineEvaluationReportPath: null,
+            latestOfflineEvaluationSummary: null
+        };
+    }
+    const candidates = [];
+    for (const reportPath of jsonPaths.sort((left, right) => left.localeCompare(right))) {
+        try {
+            const raw = await fs.readFile(reportPath, 'utf8');
+            const parsed = JSON.parse(raw);
+            const summary = normalizeOfflineEvaluationSummary(parsed);
+            if (!summary) {
+                continue;
+            }
+            const ranAtMs = Date.parse(summary.ranAt);
+            const sortTimeMs = Number.isFinite(ranAtMs) ? ranAtMs : 0;
+            candidates.push({
+                reportPath,
+                summary,
+                sortTimeMs
+            });
+        }
+        catch {
+            // Ignore malformed or unreadable reports.
+        }
+    }
+    if (candidates.length === 0) {
+        return {
+            latestOfflineEvaluationReportPath: null,
+            latestOfflineEvaluationSummary: null
+        };
+    }
+    candidates.sort((left, right) => {
+        if (left.sortTimeMs !== right.sortTimeMs) {
+            return right.sortTimeMs - left.sortTimeMs;
+        }
+        return right.reportPath.localeCompare(left.reportPath);
+    });
+    const latest = candidates[0];
+    return {
+        latestOfflineEvaluationReportPath: latest.reportPath,
+        latestOfflineEvaluationSummary: latest.summary
+    };
+}
 async function resolveLatestStatusArtifacts(paths) {
     const repair = await (0, artifactStore_1.repairLatestArtifactSurfaces)(paths.artifactDir);
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(paths.artifactDir);
+    const latestOfflineEvaluation = await resolveLatestOfflineEvaluationReport(paths.artifactDir);
     return {
         latestSummaryPath: await (0, fs_1.pathExists)(latestPaths.latestSummaryPath) ? latestPaths.latestSummaryPath : null,
         latestResultPath: await (0, fs_1.pathExists)(latestPaths.latestResultPath) ? latestPaths.latestResultPath : null,
@@ -189,6 +291,8 @@ async function resolveLatestStatusArtifacts(paths) {
         latestProvenanceFailurePath: await (0, fs_1.pathExists)(latestPaths.latestProvenanceFailurePath)
             ? latestPaths.latestProvenanceFailurePath
             : null,
+        latestOfflineEvaluationReportPath: latestOfflineEvaluation.latestOfflineEvaluationReportPath,
+        latestOfflineEvaluationSummary: latestOfflineEvaluation.latestOfflineEvaluationSummary,
         repair
     };
 }
@@ -521,6 +625,17 @@ function buildStatusReport(snapshot) {
         `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
         `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
         `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
+        `- Latest offline evaluation: ${snapshot.latestOfflineEvaluationSummary === null
+            ? 'none'
+            : snapshot.latestOfflineEvaluationSummary.overallOutcome === 'pass'
+                ? 'passing'
+                : 'failing'}`,
+        `- Latest offline evaluation ran at: ${snapshot.latestOfflineEvaluationSummary?.ranAt ?? 'none'}`,
+        `- Latest offline evaluation fixtures: ${snapshot.latestOfflineEvaluationSummary === null
+            ? 'none'
+            : `${snapshot.latestOfflineEvaluationSummary.fixturesEvaluated} (${snapshot.latestOfflineEvaluationSummary.fixturesPassed} pass / ${snapshot.latestOfflineEvaluationSummary.fixturesFailed} fail)`}`,
+        `- Latest offline evaluation expectation mismatches: ${snapshot.latestOfflineEvaluationSummary?.expectationMismatches ?? 'none'}`,
+        `- Latest offline evaluation report: ${relativeFromRoot(snapshot.rootPath, snapshot.latestOfflineEvaluationReportPath)}`,
         `- Latest artifact repairs this status run: ${compactList(snapshot.latestArtifactRepair.repairedLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
         `- Latest artifact paths still stale: ${compactList(snapshot.latestArtifactRepair.staleLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
         '- Direct command: Ralphdex: Open Latest Ralph Summary',

@@ -732,6 +732,8 @@ async function collectStatusSnapshot(workspaceFolder, stateManager, logger) {
         latestProvenanceBundlePath: latestArtifacts.latestProvenanceBundlePath,
         latestProvenanceSummaryPath: latestArtifacts.latestProvenanceSummaryPath,
         latestProvenanceFailurePath: latestArtifacts.latestProvenanceFailurePath,
+        latestOfflineEvaluationReportPath: latestArtifacts.latestOfflineEvaluationReportPath,
+        latestOfflineEvaluationSummary: latestArtifacts.latestOfflineEvaluationSummary,
         artifactDir: inspection.paths.artifactDir,
         stateFilePath: inspection.paths.stateFilePath,
         progressPath: inspection.paths.progressPath,

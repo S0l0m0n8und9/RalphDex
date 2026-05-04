@@ -6173,11 +6173,11 @@
     {
       "id": "T216",
       "title": "Add evaluation report summary to status artifacts",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T215"
       ],
-      "notes": "Makes evaluation harness visible without making it mandatory.",
+      "notes": "Added offline evaluation summary surfacing to status artifacts: status now resolves the latest valid report in .ralph/artifacts/evals, distinguishes none/passing/failing, includes concise fixture/mismatch metrics, and links the latest report path. Added tests for absent/passing/failing states.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -6200,7 +6200,8 @@
         "src/ralph/statusReport.ts",
         "test/statusReport.test.ts",
         ".ralph/artifacts/evals"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T217",
@@ -6238,5 +6239,5 @@
       ]
     }
   ],
-  "mutationCount": 262
+  "mutationCount": 263
 }

@@ -488,6 +488,8 @@ function snapshot(overrides: Partial<RalphStatusSnapshot> = {}): RalphStatusSnap
     latestProvenanceBundlePath: '/workspace/.ralph/artifacts/latest-provenance-bundle.json',
     latestProvenanceSummaryPath: '/workspace/.ralph/artifacts/latest-provenance-summary.md',
     latestProvenanceFailurePath: '/workspace/.ralph/artifacts/latest-provenance-failure.json',
+    latestOfflineEvaluationReportPath: null,
+    latestOfflineEvaluationSummary: null,
     artifactDir: '/workspace/.ralph/artifacts',
     stateFilePath: '/workspace/.ralph/state.json',
     progressPath: '/workspace/.ralph/progress.md',
@@ -1213,6 +1215,56 @@ test('buildStatusReport distinguishes verified CLI execution provenance from pre
 
   assert.match(report, /- Trust level: verified CLI execution/);
   assert.match(report, /CLI run with plan, prompt artifact, and stdin payload provenance verification/);
+});
+
+test('buildStatusReport reports no offline evaluation when no report is available', () => {
+  const report = buildStatusReport(snapshot({
+    latestOfflineEvaluationReportPath: null,
+    latestOfflineEvaluationSummary: null
+  }));
+
+  assert.match(report, /- Latest offline evaluation: none/);
+  assert.match(report, /- Latest offline evaluation report: none/);
+});
+
+test('buildStatusReport reports a passing offline evaluation summary with report path', () => {
+  const report = buildStatusReport(snapshot({
+    latestOfflineEvaluationReportPath: '/workspace/.ralph/artifacts/evals/offline-eval-2026-05-04T02-30-00Z.json',
+    latestOfflineEvaluationSummary: {
+      ranAt: '2026-05-04T02:30:00.000Z',
+      overallOutcome: 'pass',
+      fixturesEvaluated: 3,
+      fixturesPassed: 3,
+      fixturesFailed: 0,
+      expectationMatches: 3,
+      expectationMismatches: 0
+    }
+  }));
+
+  assert.match(report, /- Latest offline evaluation: passing/);
+  assert.match(report, /- Latest offline evaluation fixtures: 3 \(3 pass \/ 0 fail\)/);
+  assert.match(report, /- Latest offline evaluation expectation mismatches: 0/);
+  assert.match(report, /- Latest offline evaluation report: \.ralph\/artifacts\/evals\/offline-eval-2026-05-04T02-30-00Z\.json/);
+});
+
+test('buildStatusReport reports a failing offline evaluation summary with report path', () => {
+  const report = buildStatusReport(snapshot({
+    latestOfflineEvaluationReportPath: '/workspace/.ralph/artifacts/evals/offline-eval-2026-05-04T02-45-00Z.json',
+    latestOfflineEvaluationSummary: {
+      ranAt: '2026-05-04T02:45:00.000Z',
+      overallOutcome: 'fail',
+      fixturesEvaluated: 3,
+      fixturesPassed: 2,
+      fixturesFailed: 1,
+      expectationMatches: 2,
+      expectationMismatches: 1
+    }
+  }));
+
+  assert.match(report, /- Latest offline evaluation: failing/);
+  assert.match(report, /- Latest offline evaluation fixtures: 3 \(2 pass \/ 1 fail\)/);
+  assert.match(report, /- Latest offline evaluation expectation mismatches: 1/);
+  assert.match(report, /- Latest offline evaluation report: \.ralph\/artifacts\/evals\/offline-eval-2026-05-04T02-45-00Z\.json/);
 });
 
 test('buildStatusReport surfaces doctrine context observability when latest prompt evidence includes doctrine metadata', () => {

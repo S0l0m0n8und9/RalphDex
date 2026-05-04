@@ -1,3 +1,4 @@
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import { RalphCodexConfig } from '../config/types';
 import { WorkspaceScan } from '../services/workspaceInspection';
@@ -50,6 +51,16 @@ export interface RalphLatestRemediationStatus {
   suggestedChildTasks?: RalphSuggestedChildTask[];
 }
 
+export interface RalphOfflineEvaluationSummary {
+  ranAt: string;
+  overallOutcome: 'pass' | 'fail';
+  fixturesEvaluated: number;
+  fixturesPassed: number;
+  fixturesFailed: number;
+  expectationMatches: number;
+  expectationMismatches: number;
+}
+
 export interface RalphStatusSnapshot {
   workspaceName: string;
   rootPath: string;
@@ -77,6 +88,8 @@ export interface RalphStatusSnapshot {
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
+  latestOfflineEvaluationReportPath: string | null;
+  latestOfflineEvaluationSummary: RalphOfflineEvaluationSummary | null;
   artifactDir: string;
   stateFilePath: string;
   progressPath: string;
@@ -303,6 +316,122 @@ function latestClaimResolutionSummary(snapshot: RalphStatusSnapshot): string {
   return `${resolvedClaim.taskId} ${resolvedClaim.agentId}/${resolvedClaim.provenanceId} -> ${resolvedClaim.status} at ${resolvedClaim.resolvedAt} because ${resolvedClaim.resolutionReason}`;
 }
 
+function normalizeOfflineEvaluationSummary(candidate: unknown): RalphOfflineEvaluationSummary | null {
+  if (typeof candidate !== 'object' || candidate === null) {
+    return null;
+  }
+
+  const record = candidate as Record<string, unknown>;
+  if (typeof record.ranAt !== 'string'
+    || (record.overallOutcome !== 'pass' && record.overallOutcome !== 'fail')
+    || typeof record.fixturesEvaluated !== 'number'
+    || typeof record.fixturesPassed !== 'number'
+    || typeof record.fixturesFailed !== 'number'
+    || typeof record.expectationMatches !== 'number'
+    || typeof record.expectationMismatches !== 'number') {
+    return null;
+  }
+
+  return {
+    ranAt: record.ranAt,
+    overallOutcome: record.overallOutcome,
+    fixturesEvaluated: record.fixturesEvaluated,
+    fixturesPassed: record.fixturesPassed,
+    fixturesFailed: record.fixturesFailed,
+    expectationMatches: record.expectationMatches,
+    expectationMismatches: record.expectationMismatches
+  };
+}
+
+async function resolveLatestOfflineEvaluationReport(
+  artifactRootDir: string
+): Promise<{ latestOfflineEvaluationReportPath: string | null; latestOfflineEvaluationSummary: RalphOfflineEvaluationSummary | null }> {
+  const evalRootDir = path.join(artifactRootDir, 'evals');
+  if (!await pathExists(evalRootDir)) {
+    return {
+      latestOfflineEvaluationReportPath: null,
+      latestOfflineEvaluationSummary: null
+    };
+  }
+
+  const jsonPaths: string[] = [];
+  const pending: string[] = [evalRootDir];
+  while (pending.length > 0) {
+    const currentDir = pending.pop()!;
+    let entries: Array<{ name: string; isDirectory(): boolean; isFile(): boolean }>;
+    try {
+      entries = await fs.readdir(currentDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    entries.sort((left, right) => left.name.localeCompare(right.name));
+
+    for (const entry of entries) {
+      const fullPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(fullPath);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith('.json')) {
+        jsonPaths.push(fullPath);
+      }
+    }
+  }
+
+  if (jsonPaths.length === 0) {
+    return {
+      latestOfflineEvaluationReportPath: null,
+      latestOfflineEvaluationSummary: null
+    };
+  }
+
+  const candidates: Array<{
+    reportPath: string;
+    summary: RalphOfflineEvaluationSummary;
+    sortTimeMs: number;
+  }> = [];
+
+  for (const reportPath of jsonPaths.sort((left, right) => left.localeCompare(right))) {
+    try {
+      const raw = await fs.readFile(reportPath, 'utf8');
+      const parsed = JSON.parse(raw) as unknown;
+      const summary = normalizeOfflineEvaluationSummary(parsed);
+      if (!summary) {
+        continue;
+      }
+      const ranAtMs = Date.parse(summary.ranAt);
+      const sortTimeMs = Number.isFinite(ranAtMs) ? ranAtMs : 0;
+      candidates.push({
+        reportPath,
+        summary,
+        sortTimeMs
+      });
+    } catch {
+      // Ignore malformed or unreadable reports.
+    }
+  }
+
+  if (candidates.length === 0) {
+    return {
+      latestOfflineEvaluationReportPath: null,
+      latestOfflineEvaluationSummary: null
+    };
+  }
+
+  candidates.sort((left, right) => {
+    if (left.sortTimeMs !== right.sortTimeMs) {
+      return right.sortTimeMs - left.sortTimeMs;
+    }
+    return right.reportPath.localeCompare(left.reportPath);
+  });
+
+  const latest = candidates[0];
+  return {
+    latestOfflineEvaluationReportPath: latest.reportPath,
+    latestOfflineEvaluationSummary: latest.summary
+  };
+}
+
 export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestSummaryPath: string | null;
   latestResultPath: string | null;
@@ -318,10 +447,13 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
   latestProvenanceBundlePath: string | null;
   latestProvenanceSummaryPath: string | null;
   latestProvenanceFailurePath: string | null;
+  latestOfflineEvaluationReportPath: string | null;
+  latestOfflineEvaluationSummary: RalphOfflineEvaluationSummary | null;
   repair: RalphLatestArtifactRepairSummary;
 }> {
   const repair = await repairLatestArtifactSurfaces(paths.artifactDir);
   const latestPaths = resolveLatestArtifactPaths(paths.artifactDir);
+  const latestOfflineEvaluation = await resolveLatestOfflineEvaluationReport(paths.artifactDir);
 
   return {
     latestSummaryPath: await pathExists(latestPaths.latestSummaryPath) ? latestPaths.latestSummaryPath : null,
@@ -360,6 +492,8 @@ export async function resolveLatestStatusArtifacts(paths: RalphPaths): Promise<{
     latestProvenanceFailurePath: await pathExists(latestPaths.latestProvenanceFailurePath)
       ? latestPaths.latestProvenanceFailurePath
       : null,
+    latestOfflineEvaluationReportPath: latestOfflineEvaluation.latestOfflineEvaluationReportPath,
+    latestOfflineEvaluationSummary: latestOfflineEvaluation.latestOfflineEvaluationSummary,
     repair
   };
 }
@@ -731,6 +865,17 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Latest provenance bundle: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceBundlePath)}`,
     `- Latest provenance summary: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceSummaryPath)}`,
     `- Latest provenance failure: ${relativeFromRoot(snapshot.rootPath, snapshot.latestProvenanceFailurePath)}`,
+    `- Latest offline evaluation: ${snapshot.latestOfflineEvaluationSummary === null
+      ? 'none'
+      : snapshot.latestOfflineEvaluationSummary.overallOutcome === 'pass'
+        ? 'passing'
+        : 'failing'}`,
+    `- Latest offline evaluation ran at: ${snapshot.latestOfflineEvaluationSummary?.ranAt ?? 'none'}`,
+    `- Latest offline evaluation fixtures: ${snapshot.latestOfflineEvaluationSummary === null
+      ? 'none'
+      : `${snapshot.latestOfflineEvaluationSummary.fixturesEvaluated} (${snapshot.latestOfflineEvaluationSummary.fixturesPassed} pass / ${snapshot.latestOfflineEvaluationSummary.fixturesFailed} fail)`}`,
+    `- Latest offline evaluation expectation mismatches: ${snapshot.latestOfflineEvaluationSummary?.expectationMismatches ?? 'none'}`,
+    `- Latest offline evaluation report: ${relativeFromRoot(snapshot.rootPath, snapshot.latestOfflineEvaluationReportPath)}`,
     `- Latest artifact repairs this status run: ${compactList(snapshot.latestArtifactRepair.repairedLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
     `- Latest artifact paths still stale: ${compactList(snapshot.latestArtifactRepair.staleLatestArtifactPaths.map((target) => relativeFromRoot(snapshot.rootPath, target)), 4)}`,
     '- Direct command: Ralphdex: Open Latest Ralph Summary',
