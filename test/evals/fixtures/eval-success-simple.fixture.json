@@ -1,0 +1,62 @@
+{
+  "id": "eval-success-simple",
+  "description": "Simple successful task with complete local evidence.",
+  "inputs": {
+    "task": {
+      "id": "T215",
+      "title": "Implement baseline offline evaluation harness fixtures"
+    },
+    "promptEvidence": {
+      "promptKind": "iteration",
+      "promptPath": ".ralph/prompts/iteration-215.prompt.md",
+      "promptHash": "sha256:eval-success-simple"
+    },
+    "executionProfile": {
+      "provider": "codex",
+      "commandPath": "codex",
+      "startedAt": "2026-05-04T00:00:00.000Z",
+      "endedAt": "2026-05-04T00:00:05.000Z",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "succeeded"
+        }
+      ]
+    },
+    "completionReport": {
+      "selectedTaskId": "T215",
+      "requestedStatus": "in_progress"
+    },
+    "verifierSummary": {
+      "outcome": "pass",
+      "blocking": false
+    },
+    "artifactIndex": {
+      "latestIterationId": 215,
+      "references": [
+        {
+          "path": ".ralph/artifacts/latest-summary.md",
+          "exists": true,
+          "iterationId": 215
+        },
+        {
+          "path": ".ralph/artifacts/latest-result.json",
+          "exists": true,
+          "iterationId": 215
+        }
+      ]
+    }
+  },
+  "expected": {
+    "outcome": "pass",
+    "dimensionResults": {
+      "taskSelectionCorrectness": "pass",
+      "promptEvidenceCompleteness": "pass",
+      "executionProfileEvidence": "pass",
+      "reconciliationOutcome": "pass",
+      "verifierOutcome": "pass",
+      "artifactConsistency": "pass"
+    },
+    "requiredFindings": []
+  }
+}

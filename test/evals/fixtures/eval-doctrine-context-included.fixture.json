@@ -1,0 +1,71 @@
+{
+  "id": "eval-doctrine-context-included",
+  "description": "Prompt evidence includes doctrine context observability metadata.",
+  "inputs": {
+    "task": {
+      "id": "T217",
+      "title": "Confirm doctrine context observability fields are complete"
+    },
+    "promptEvidence": {
+      "promptKind": "iteration",
+      "promptPath": ".ralph/prompts/iteration-217.prompt.md",
+      "promptHash": "sha256:eval-doctrine-context-included",
+      "doctrineContext": {
+        "includedFiles": [
+          "project-profile.md",
+          "invariants.md"
+        ],
+        "omittedFiles": [
+          "risk-register.md"
+        ],
+        "includedCount": 2,
+        "omittedCount": 1,
+        "truncated": false
+      }
+    },
+    "executionProfile": {
+      "provider": "codex",
+      "commandPath": "codex",
+      "startedAt": "2026-05-04T00:02:00.000Z",
+      "endedAt": "2026-05-04T00:02:03.000Z",
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "succeeded"
+        }
+      ]
+    },
+    "completionReport": {
+      "selectedTaskId": "T217",
+      "requestedStatus": "in_progress"
+    },
+    "verifierSummary": {
+      "outcome": "pass",
+      "blocking": false
+    },
+    "artifactIndex": {
+      "latestIterationId": 217,
+      "references": [
+        {
+          "path": ".ralph/artifacts/latest-prompt-evidence.json",
+          "exists": true,
+          "iterationId": 217
+        }
+      ]
+    }
+  },
+  "expected": {
+    "outcome": "pass",
+    "dimensionResults": {
+      "taskSelectionCorrectness": "pass",
+      "promptEvidenceCompleteness": "pass",
+      "executionProfileEvidence": "pass",
+      "reconciliationOutcome": "pass",
+      "verifierOutcome": "pass",
+      "artifactConsistency": "pass"
+    },
+    "requiredFindings": [
+      "doctrine_context_present"
+    ]
+  }
+}

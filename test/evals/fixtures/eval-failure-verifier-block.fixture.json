@@ -1,0 +1,65 @@
+{
+  "id": "eval-failure-verifier-block",
+  "description": "Verifier-blocked run with explicit retry and fallback metadata.",
+  "inputs": {
+    "task": {
+      "id": "T216",
+      "title": "Retry a failing command with fallback evidence capture"
+    },
+    "promptEvidence": {
+      "promptKind": "fix-failure",
+      "promptPath": ".ralph/prompts/fix-failure-216.prompt.md",
+      "promptHash": "sha256:eval-failure-verifier-block"
+    },
+    "executionProfile": {
+      "provider": "codex",
+      "commandPath": "codex",
+      "startedAt": "2026-05-04T00:01:00.000Z",
+      "endedAt": "2026-05-04T00:01:12.000Z",
+      "fallbackUsed": true,
+      "attempts": [
+        {
+          "attempt": 1,
+          "status": "timeout"
+        },
+        {
+          "attempt": 2,
+          "status": "failed"
+        }
+      ]
+    },
+    "completionReport": {
+      "selectedTaskId": "T216",
+      "requestedStatus": "done"
+    },
+    "verifierSummary": {
+      "outcome": "fail",
+      "blocking": true,
+      "reason": "validation_failed"
+    },
+    "artifactIndex": {
+      "latestIterationId": 216,
+      "references": [
+        {
+          "path": ".ralph/artifacts/latest-summary.md",
+          "exists": true,
+          "iterationId": 216
+        }
+      ]
+    }
+  },
+  "expected": {
+    "outcome": "fail",
+    "dimensionResults": {
+      "taskSelectionCorrectness": "pass",
+      "promptEvidenceCompleteness": "pass",
+      "executionProfileEvidence": "pass",
+      "reconciliationOutcome": "fail",
+      "verifierOutcome": "fail",
+      "artifactConsistency": "pass"
+    },
+    "requiredFindings": [
+      "fallback_retry_evidence_present"
+    ]
+  }
+}

@@ -396,3 +396,4 @@
 - Expanded local mock pipeline dogfood evidence checks to assert inspectable latest prompt/execution/result/provenance artifacts and run-bundle surfaces; documented pipeline support-status and added a no-deletion pipeline command audit artifact.
 - Created .ralph/artifacts/reports/post-doctrine-phase-completion-report-2026-05-04.md with evidence-backed doctrine-phase summary, model-tiering follow-up status, remaining risks, and a single next-horizon recommendation (evaluation harness starting at T214).
 - Created .ralph/artifacts/design/evaluation-harness.md defining offline evaluation inputs, fixture contract, expected output schema, six required scoring dimensions, pass/fail semantics, and initial fixture scenarios; recommended test/evals as the first implementation location.
+- Implemented baseline offline evaluation harness fixtures, evaluator, and local runner; added per-dimension pass/fail reporting and verified with full validate.

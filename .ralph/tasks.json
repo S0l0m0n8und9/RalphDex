@@ -6140,11 +6140,11 @@
     {
       "id": "T215",
       "title": "Implement baseline offline evaluation harness fixtures",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T214"
       ],
-      "notes": "First implementation step after the eval contract.",
+      "notes": "Implemented baseline offline evaluation harness fixtures, evaluator, and local runner; added per-dimension pass/fail reporting and verified with full validate.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -6167,7 +6167,8 @@
         "scripts",
         "src/ralph",
         ".ralph/artifacts/design/evaluation-harness.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T216",
@@ -6237,5 +6238,5 @@
       ]
     }
   ],
-  "mutationCount": 261
+  "mutationCount": 262
 }
