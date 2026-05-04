@@ -5895,11 +5895,11 @@
     {
       "id": "T208",
       "title": "Add first-run readiness checklist to dashboard diagnostics",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T206"
       ],
-      "notes": "Improves first-run clarity without changing behaviour.",
+      "notes": "Added a compact first-run readiness checklist to dashboard diagnostics using existing preflight/status signals (workspace initialized, tasks present, provider ready, doctrine optional/healthy, validation command detected), with blocker/warning/complete states; added tests for incomplete and complete checklist states plus diagnostics rendering.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5922,7 +5922,8 @@
         "src/ralph/statusReport.ts",
         "src/ui",
         "test/statusReport.test.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T209",
@@ -6232,5 +6233,5 @@
       ]
     }
   ],
-  "mutationCount": 256
+  "mutationCount": 257
 }

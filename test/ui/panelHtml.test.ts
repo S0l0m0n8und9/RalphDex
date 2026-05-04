@@ -319,6 +319,56 @@ test('buildPanelDashboardHtml diagnostics tab surfaces doctrine repair guidance 
   assert.ok(html.includes('.ralph/doctrine/risks.md'));
 });
 
+test('buildPanelDashboardHtml diagnostics tab renders first-run readiness checklist with state labels', () => {
+  const dashboardSnapshot = populatedDashboardSnapshot();
+  dashboardSnapshot.preflight = {
+    ready: false,
+    summary: 'Preflight blocked.',
+    diagnostics: [],
+    firstRunChecklist: [
+      {
+        id: 'workspace_initialized',
+        label: 'Workspace initialized',
+        status: 'blocker',
+        detail: 'Missing Ralph workspace files.'
+      },
+      {
+        id: 'tasks_present',
+        label: 'Tasks present',
+        status: 'warning',
+        detail: 'No tasks yet.'
+      },
+      {
+        id: 'provider_ready',
+        label: 'Provider ready',
+        status: 'complete',
+        detail: 'CLI path verified.'
+      },
+      {
+        id: 'doctrine_optional_healthy',
+        label: 'Doctrine optional/healthy',
+        status: 'complete',
+        detail: 'No doctrine issues detected.'
+      },
+      {
+        id: 'validation_command_detected',
+        label: 'Validation command detected',
+        status: 'complete',
+        detail: 'Validation command executable confirmed.'
+      }
+    ]
+  };
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot }), 'diag-checklist');
+
+  assert.ok(html.includes('First-Run Readiness'));
+  assert.ok(html.includes('Workspace initialized'));
+  assert.ok(html.includes('Tasks present'));
+  assert.ok(html.includes('Provider ready'));
+  assert.ok(html.includes('status-pill bad'));
+  assert.ok(html.includes('status-pill warn'));
+  assert.ok(html.includes('status-pill ok'));
+});
+
 test('buildPanelDashboardHtml renders accessible task and history controls with persisted tabs', () => {
   const html = buildPanelDashboardHtml(defaultState({
     tasks: [{

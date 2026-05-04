@@ -325,6 +325,86 @@ test('buildDashboardSnapshot: preflight diagnostics carry doctrine repair guidan
   assert.ok(result.preflight?.diagnostics[0]?.message.includes('Ralphdex: Initialize Doctrine Pack'));
 });
 
+test('buildDashboardSnapshot: first-run readiness checklist marks blockers and warnings from preflight/task signals', () => {
+  const snapshot = minimalSnapshot({
+    taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: null,
+    preflightReport: {
+      ready: false,
+      summary: 'Preflight blocked.',
+      diagnostics: [
+        {
+          category: 'workspaceRuntime',
+          severity: 'warning',
+          code: 'ralph_files_missing',
+          message: 'Missing Ralph workspace files: PRD, progress log, task file.'
+        },
+        {
+          category: 'codexAdapter',
+          severity: 'error',
+          code: 'codex_cli_missing',
+          message: 'Codex CLI command could not be resolved from PATH.'
+        },
+        {
+          category: 'validationVerifier',
+          severity: 'warning',
+          code: 'validation_command_missing',
+          message: 'Validation-command verifier is enabled but no validation command was selected.'
+        },
+        {
+          category: 'workspaceRuntime',
+          severity: 'warning',
+          code: 'doctrine_directory_missing',
+          message: 'Doctrine health: missing.'
+        }
+      ]
+    }
+  });
+
+  const result = buildDashboardSnapshot(snapshot);
+  assert.ok(result.preflight, 'preflight section should exist');
+  const checklist = result.preflight!.firstRunChecklist;
+
+  assert.equal(checklist.length, 5);
+  assert.equal(checklist.find((item) => item.id === 'workspace_initialized')?.status, 'blocker');
+  assert.equal(checklist.find((item) => item.id === 'tasks_present')?.status, 'warning');
+  assert.equal(checklist.find((item) => item.id === 'provider_ready')?.status, 'blocker');
+  assert.equal(checklist.find((item) => item.id === 'doctrine_optional_healthy')?.status, 'warning');
+  assert.equal(checklist.find((item) => item.id === 'validation_command_detected')?.status, 'warning');
+});
+
+test('buildDashboardSnapshot: first-run readiness checklist marks complete states when prerequisites are healthy', () => {
+  const snapshot = minimalSnapshot({
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+    selectedTask: { id: 'T1', title: 'Implement feature', status: 'todo' } as RalphStatusSnapshot['selectedTask'],
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: [
+        {
+          category: 'codexAdapter',
+          severity: 'info',
+          code: 'codex_cli_path_verified',
+          message: 'CLI path verified.'
+        },
+        {
+          category: 'validationVerifier',
+          severity: 'info',
+          code: 'validation_command_executable_confirmed',
+          message: 'Validation command executable token was confirmed.'
+        }
+      ]
+    }
+  });
+
+  const result = buildDashboardSnapshot(snapshot);
+  assert.ok(result.preflight, 'preflight section should exist');
+  const checklist = result.preflight!.firstRunChecklist;
+
+  assert.equal(checklist.length, 5);
+  assert.equal(checklist.every((item) => item.status === 'complete'), true);
+});
+
 test('buildDashboardSnapshot: deadLetterEntries undefined treated as empty', () => {
   const snapshot = minimalSnapshot({ deadLetterEntries: undefined });
   const result = buildDashboardSnapshot(snapshot);

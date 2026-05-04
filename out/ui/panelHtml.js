@@ -1681,6 +1681,30 @@ function buildOverviewTab(state) {
     </div>
   </div>`;
 }
+function buildFirstRunReadinessSection(state) {
+    const checklist = state.dashboardSnapshot?.preflight?.firstRunChecklist ?? [];
+    if (checklist.length === 0) {
+        return '';
+    }
+    return `<div class="dashboard-summary-card">
+    <div class="card-title">First-Run Readiness</div>
+    <div class="task-summary-list">
+      ${checklist.map((item) => {
+        const badgeClass = item.status === 'blocker' ? 'bad' : item.status === 'warning' ? 'warn' : 'ok';
+        const badgeLabel = item.status === 'blocker' ? 'blocker' : item.status === 'warning' ? 'warning' : 'complete';
+        return `<div class="dead-letter-item">
+          <div style="display:flex; justify-content:space-between; gap:8px; align-items:flex-start;">
+            <strong>${(0, htmlHelpers_1.esc)(item.label)}</strong>
+            <span class="status-pill ${badgeClass}">${badgeLabel}</span>
+          </div>
+          <div class="dead-letter-meta" style="margin-top:6px;">
+            <div>${(0, htmlHelpers_1.esc)(item.detail)}</div>
+          </div>
+        </div>`;
+    }).join('\n')}
+    </div>
+  </div>`;
+}
 function buildWorkTab(state) {
     const { activeTasks, doneTasks, allDone } = buildTaskCollections(state);
     const total = state.taskCounts
@@ -1741,6 +1765,7 @@ function buildWorkTab(state) {
 function buildDiagnosticsTab(state) {
     return `<div class="diagnostics-shell">
     <div class="diagnostics-grid">
+      ${buildFirstRunReadinessSection(state)}
       ${buildTaskBoardSection(state)}
       ${buildDiagnosisSection(state)}
       ${buildFailureFeedSection(state)}

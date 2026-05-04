@@ -42,14 +42,98 @@ function buildDashboardSnapshot(snapshot, agentSummaries = null) {
     };
 }
 function buildPreflightSection(snapshot) {
+    const diagnostics = snapshot.preflightReport.diagnostics;
     return {
         ready: snapshot.preflightReport.ready,
         summary: snapshot.preflightReport.summary,
-        diagnostics: snapshot.preflightReport.diagnostics.map((diagnostic) => ({
+        diagnostics: diagnostics.map((diagnostic) => ({
             severity: diagnostic.severity,
             message: diagnostic.message
-        }))
+        })),
+        firstRunChecklist: buildFirstRunChecklist(snapshot)
     };
+}
+const DOCTRINE_HEALTH_CODES = new Set([
+    'doctrine_directory_missing',
+    'doctrine_required_file_missing',
+    'doctrine_required_heading_missing',
+    'doctrine_evidence_index_invalid'
+]);
+const CHECKLIST_STATUS_BY_SEVERITY = {
+    error: 'blocker',
+    warning: 'warning',
+    info: 'complete'
+};
+function buildFirstRunChecklist(snapshot) {
+    const diagnostics = snapshot.preflightReport.diagnostics;
+    const workspaceMissing = diagnostics.find((diagnostic) => diagnostic.code === 'ralph_files_missing') ?? null;
+    const providerDiagnostics = diagnostics.filter((diagnostic) => diagnostic.category === 'codexAdapter');
+    const doctrineDiagnostics = diagnostics.filter((diagnostic) => DOCTRINE_HEALTH_CODES.has(diagnostic.code));
+    const validationDiagnostics = diagnostics.filter((diagnostic) => diagnostic.category === 'validationVerifier');
+    const totalTasks = snapshot.taskCounts
+        ? snapshot.taskCounts.todo + snapshot.taskCounts.in_progress + snapshot.taskCounts.blocked + snapshot.taskCounts.done
+        : 0;
+    const tasksPresent = snapshot.selectedTask !== null || totalTasks > 0;
+    const highestProviderSeverity = highestSeverity(providerDiagnostics);
+    const highestDoctrineSeverity = highestSeverity(doctrineDiagnostics);
+    const highestValidationSeverity = highestSeverity(validationDiagnostics);
+    return [
+        {
+            id: 'workspace_initialized',
+            label: 'Workspace initialized',
+            status: workspaceMissing ? 'blocker' : 'complete',
+            detail: workspaceMissing
+                ? workspaceMissing.message
+                : 'Required Ralph workspace files were detected.'
+        },
+        {
+            id: 'tasks_present',
+            label: 'Tasks present',
+            status: tasksPresent ? 'complete' : 'warning',
+            detail: tasksPresent
+                ? `Task graph loaded (${totalTasks} task${totalTasks === 1 ? '' : 's'}).`
+                : 'No tasks are available yet; create or seed tasks before iterating.'
+        },
+        {
+            id: 'provider_ready',
+            label: 'Provider ready',
+            status: highestProviderSeverity ? CHECKLIST_STATUS_BY_SEVERITY[highestProviderSeverity] : 'complete',
+            detail: providerDiagnostics[0]?.message ?? 'No provider readiness blockers were detected.'
+        },
+        {
+            id: 'doctrine_optional_healthy',
+            label: 'Doctrine optional/healthy',
+            status: highestDoctrineSeverity ? CHECKLIST_STATUS_BY_SEVERITY[highestDoctrineSeverity] : 'complete',
+            detail: doctrineDiagnostics[0]?.message ?? 'No doctrine health issues were detected.'
+        },
+        {
+            id: 'validation_command_detected',
+            label: 'Validation command detected',
+            status: determineValidationChecklistStatus(validationDiagnostics, highestValidationSeverity),
+            detail: validationDiagnostics[0]?.message ?? 'Validation command readiness has not been reported yet.'
+        }
+    ];
+}
+function determineValidationChecklistStatus(validationDiagnostics, highestValidationSeverity) {
+    if (validationDiagnostics.some((diagnostic) => diagnostic.code === 'validation_command_missing')) {
+        return 'warning';
+    }
+    if (!highestValidationSeverity) {
+        return 'warning';
+    }
+    return CHECKLIST_STATUS_BY_SEVERITY[highestValidationSeverity];
+}
+function highestSeverity(diagnostics) {
+    if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) {
+        return 'error';
+    }
+    if (diagnostics.some((diagnostic) => diagnostic.severity === 'warning')) {
+        return 'warning';
+    }
+    if (diagnostics.some((diagnostic) => diagnostic.severity === 'info')) {
+        return 'info';
+    }
+    return null;
 }
 function buildCostSection(snapshot) {
     const bundle = snapshot.latestProvenanceBundle;
