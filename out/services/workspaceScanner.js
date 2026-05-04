@@ -283,14 +283,43 @@ function scanCacheKey(rootPath, override, focusPath) {
 function clearScanCache() {
     scanCache.clear();
 }
+async function readPackageJsonFileStamp(rootPath) {
+    const packageJsonPath = path.join(rootPath, 'package.json');
+    try {
+        const stats = await fs.stat(packageJsonPath);
+        if (!stats.isFile()) {
+            return null;
+        }
+        return {
+            mtimeMs: stats.mtimeMs,
+            size: stats.size
+        };
+    }
+    catch {
+        return null;
+    }
+}
+function packageJsonStampsEqual(left, right) {
+    if (left === null || right === null) {
+        return left === right;
+    }
+    return left.mtimeMs === right.mtimeMs && left.size === right.size;
+}
 async function scanWorkspaceCached(workspaceRootPath, workspaceName, options = {}) {
     const key = scanCacheKey(workspaceRootPath, options.inspectionRootOverride, options.focusPath);
     const cached = scanCache.get(key);
     if (cached) {
-        return cached;
+        const currentPackageJsonStamp = await readPackageJsonFileStamp(cached.scan.rootPath);
+        if (packageJsonStampsEqual(cached.packageJsonStamp, currentPackageJsonStamp)) {
+            return cached.scan;
+        }
     }
     const result = await scanWorkspace(workspaceRootPath, workspaceName, options);
-    scanCache.set(key, result);
+    const packageJsonStamp = await readPackageJsonFileStamp(result.rootPath);
+    scanCache.set(key, {
+        scan: result,
+        packageJsonStamp
+    });
     return result;
 }
 async function scanWorkspace(workspaceRootPath, workspaceName = path.basename(workspaceRootPath), options = {}) {

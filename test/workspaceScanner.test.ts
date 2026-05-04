@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import test from 'node:test';
-import { scanWorkspace } from '../src/services/workspaceScanner';
+import { clearScanCache, scanWorkspace, scanWorkspaceCached } from '../src/services/workspaceScanner';
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-codex-scan-'));
@@ -148,4 +148,33 @@ test('scanWorkspace reports invalid inspection-root overrides and falls back to 
   });
   assert.match(summary.rootSelection.summary, /Ignored inspection-root override \.\.\/outside-workspace/);
   assert.match(summary.rootSelection.summary, /Using child ralph-codex-vscode-starter because the workspace root had no shallow repo markers/);
+});
+
+test('scanWorkspaceCached refreshes when package.json scripts change', async () => {
+  clearScanCache();
+  const rootPath = await makeTempRoot();
+  const packageJsonPath = path.join(rootPath, 'package.json');
+  await fs.writeFile(packageJsonPath, JSON.stringify({
+    name: 'cache-demo',
+    scripts: {
+      test: 'node --test'
+    }
+  }, null, 2), 'utf8');
+
+  const initial = await scanWorkspaceCached(rootPath, 'cache-demo');
+  assert.equal(initial.packageJson?.scriptNames.includes('test:offline-evals'), false);
+
+  await fs.writeFile(packageJsonPath, JSON.stringify({
+    name: 'cache-demo',
+    scripts: {
+      test: 'node --test',
+      'test:offline-evals': 'node ./scripts/run-offline-evals.js'
+    }
+  }, null, 2), 'utf8');
+  const future = new Date(Date.now() + 2000);
+  await fs.utimes(packageJsonPath, future, future);
+
+  const refreshed = await scanWorkspaceCached(rootPath, 'cache-demo');
+  assert.equal(refreshed.packageJson?.scriptNames.includes('test:offline-evals'), true);
+  assert.ok(refreshed.validationCommands.includes('npm run test:offline-evals'));
 });
