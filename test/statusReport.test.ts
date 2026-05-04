@@ -1481,6 +1481,85 @@ test('buildStatusReport omits Re-planning section when replanArtifacts is empty'
   assert.doesNotMatch(report, /## Re-planning/);
 });
 
+// ---------------------------------------------------------------------------
+// First-run guidance (T206)
+// ---------------------------------------------------------------------------
+
+test('buildStatusReport shows Initialize Workspace as primary next action when workspace files are missing', () => {
+  const report = buildStatusReport(snapshot({
+    taskCounts: null,
+    selectedTask: null,
+    preflightReport: {
+      ready: false,
+      summary: 'Preflight blocked.',
+      diagnostics: [
+        {
+          category: 'workspaceRuntime',
+          severity: 'warning',
+          code: 'ralph_files_missing',
+          message: 'Missing Ralph workspace files: PRD, progress log, task file.'
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /## Next Action/);
+  assert.match(report, /- Primary: Ralphdex: Initialize Workspace/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Initialize Doctrine Pack/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Run CLI Iteration/);
+});
+
+test('buildStatusReport shows Initialize Doctrine Pack as primary next action when doctrine is missing', () => {
+  const report = buildStatusReport(snapshot({
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: [
+        {
+          category: 'workspaceRuntime',
+          severity: 'warning',
+          code: 'doctrine_directory_missing',
+          message: 'Doctrine health: missing. Run "Ralphdex: Initialize Doctrine Pack" to scaffold or repair doctrine files.'
+        }
+      ]
+    }
+  }));
+
+  assert.match(report, /## Next Action/);
+  assert.match(report, /- Primary: Ralphdex: Initialize Doctrine Pack/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Initialize Workspace/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Run CLI Iteration/);
+});
+
+test('buildStatusReport shows Run CLI Iteration as primary next action when preflight is ready and a task is selected', () => {
+  const report = buildStatusReport(snapshot({
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    }
+  }));
+
+  assert.match(report, /## Next Action/);
+  assert.match(report, /- Primary: Ralphdex: Run CLI Iteration/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Initialize Workspace/);
+  assert.doesNotMatch(report, /- Primary: Ralphdex: Initialize Doctrine Pack/);
+});
+
+test('buildStatusReport omits Next Action section when no clear first-run state applies', () => {
+  const report = buildStatusReport(snapshot({
+    selectedTask: null,
+    taskCounts: { todo: 0, in_progress: 0, blocked: 1, done: 5 },
+    preflightReport: {
+      ready: true,
+      summary: 'Preflight ready.',
+      diagnostics: []
+    }
+  }));
+
+  assert.doesNotMatch(report, /## Next Action/);
+});
+
 test('resolveLatestStatusArtifacts returns latestDoctrineProposalMdPath when both proposal files exist', async () => {
   const artifactDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-status-doctrine-md-'));
   const paths = { artifactDir } as unknown as RalphPaths;

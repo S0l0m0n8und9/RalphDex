@@ -5608,7 +5608,7 @@
     {
       "id": "T200",
       "title": "Add regression tests for provider execution-profile evidence consistency",
-      "status": "blocked",
+      "status": "todo",
       "dependsOn": [
         "T198"
       ],
@@ -5817,11 +5817,11 @@
     {
       "id": "T206",
       "title": "Simplify first-run status guidance without changing execution behaviour",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T205"
       ],
-      "notes": "First implementation step for UX simplification; no layout redesign.",
+      "notes": "Added state-aware ## Next Action guidance to buildStatusReport; 4 new tests cover uninitialized/doctrine-missing/ready-to-run/no-guidance states; npm run validate passes.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -5848,7 +5848,8 @@
         "README.md",
         "docs/workflows.md",
         "test/statusReport.test.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T207",
@@ -6223,5 +6224,5 @@
       ]
     }
   ],
-  "mutationCount": 247
+  "mutationCount": 248
 }

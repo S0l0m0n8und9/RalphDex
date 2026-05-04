@@ -382,3 +382,4 @@
 - Per-tier provider fallback now uses full workspace-default execution profile including reasoning effort
 - Created .ralph/artifacts/audits/T199-command-surface-audit.md covering all 40 contributed commands, activation events, dashboard/sidebar surfaces, and docs references; flagged 7 actionable items (F1–F7) with keep/remove/merge/rename recommendations; no behaviour changes made.
 - Created .ralph/artifacts/audits/T205-first-run-ux.md: first-run journey map, friction inventory (sidebar/dashboard/palette/README), target 5-step flow, 8 risk-classified recommendations; npm run validate passes (1273 tests).
+- Added state-aware ## Next Action guidance to buildStatusReport; 4 new tests cover uninitialized/doctrine-missing/ready-to-run/no-guidance states; npm run validate passes.

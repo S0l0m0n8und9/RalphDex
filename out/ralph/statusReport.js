@@ -218,6 +218,25 @@ function formatTierSuffix(tierInfo) {
     }
     return ` [tier: ${tierInfo.tier} (scored, score=${tierInfo.score})]`;
 }
+const DOCTRINE_MISSING_CODES = new Set([
+    'doctrine_directory_missing',
+    'doctrine_required_file_missing',
+    'doctrine_required_heading_missing',
+    'doctrine_evidence_index_invalid'
+]);
+function buildFirstRunGuidance(snapshot) {
+    const codes = snapshot.preflightReport.diagnostics.map((d) => d.code);
+    if (codes.includes('ralph_files_missing')) {
+        return 'Ralphdex: Initialize Workspace';
+    }
+    if (codes.some((code) => DOCTRINE_MISSING_CODES.has(code))) {
+        return 'Ralphdex: Initialize Doctrine Pack';
+    }
+    if (snapshot.preflightReport.ready && snapshot.selectedTask !== null) {
+        return 'Ralphdex: Run CLI Iteration';
+    }
+    return null;
+}
 function buildStatusReport(snapshot) {
     const renderDiagnostic = (diagnostic) => `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
     const lastIteration = snapshot.lastIteration;
@@ -265,9 +284,13 @@ function buildStatusReport(snapshot) {
     const scan = snapshot.workspaceScan;
     const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
     const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
+    const firstRunGuidance = buildFirstRunGuidance(snapshot);
     return [
         `# Ralph Status: ${snapshot.workspaceName}`,
         '',
+        ...(firstRunGuidance !== null
+            ? ['## Next Action', `- Primary: ${firstRunGuidance}`, '']
+            : []),
         '## Loop',
         `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
         `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,

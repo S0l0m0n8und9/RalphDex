@@ -395,6 +395,31 @@ function formatTierSuffix(tierInfo: EffectiveTierInfo | null): string {
   return ` [tier: ${tierInfo.tier} (scored, score=${tierInfo.score})]`;
 }
 
+const DOCTRINE_MISSING_CODES = new Set([
+  'doctrine_directory_missing',
+  'doctrine_required_file_missing',
+  'doctrine_required_heading_missing',
+  'doctrine_evidence_index_invalid'
+]);
+
+function buildFirstRunGuidance(snapshot: RalphStatusSnapshot): string | null {
+  const codes = snapshot.preflightReport.diagnostics.map((d) => d.code);
+
+  if (codes.includes('ralph_files_missing')) {
+    return 'Ralphdex: Initialize Workspace';
+  }
+
+  if (codes.some((code) => DOCTRINE_MISSING_CODES.has(code))) {
+    return 'Ralphdex: Initialize Doctrine Pack';
+  }
+
+  if (snapshot.preflightReport.ready && snapshot.selectedTask !== null) {
+    return 'Ralphdex: Run CLI Iteration';
+  }
+
+  return null;
+}
+
 export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const renderDiagnostic = (diagnostic: RalphStatusSnapshot['preflightReport']['diagnostics'][number]): string =>
     `- ${diagnostic.severity} [${diagnostic.code}]: ${diagnostic.message}`;
@@ -444,9 +469,14 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
   const recentIterations = snapshot.iterationHistory.slice(-3).reverse().map(formatRecentIteration);
   const recentRuns = snapshot.runHistory.slice(-3).reverse().map(formatRecentRun);
 
+  const firstRunGuidance = buildFirstRunGuidance(snapshot);
+
   return [
     `# Ralph Status: ${snapshot.workspaceName}`,
     '',
+    ...(firstRunGuidance !== null
+      ? ['## Next Action', `- Primary: ${firstRunGuidance}`, '']
+      : []),
     '## Loop',
     `- Planning pass enabled: ${snapshot.planningPassEnabled} (${snapshot.planningPassEnabledSource})`,
     `- Prompt budget profile: ${snapshot.promptBudgetProfile} (${snapshot.promptBudgetProfileSource})`,
