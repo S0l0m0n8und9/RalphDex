@@ -6306,13 +6306,13 @@
     {
       "id": "T220",
       "title": "Refresh marketplace-readiness findings to match current command surface and evidence state",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T212",
         "T218",
         "T219"
       ],
-      "notes": "docs/marketplace-readiness.md still reports stale README command mismatches that no longer exist. Re-audit against package.json/README and update findings to reflect current truth plus newly captured release evidence artifacts.",
+      "notes": "Refreshed marketplace-readiness findings to match current README/package command surface and current persisted evidence artifacts. Replaced stale mismatch claims with a single real delta (missing 'Ralphdex: Stop Loop' in README), added date-stamped offline-eval/dogfood evidence status, and aligned summary language with boundaries/security/dogfooding contracts.",
       "validation": "npm run check:docs",
       "priority": "normal",
       "mode": "documentation",
@@ -6334,7 +6334,8 @@
         "package.json",
         ".ralph/artifacts/evals",
         ".ralph/artifacts/dogfood-evidence"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T221",
@@ -6370,5 +6371,5 @@
       ]
     }
   ],
-  "mutationCount": 266
+  "mutationCount": 267
 }
