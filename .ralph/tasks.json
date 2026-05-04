@@ -5963,11 +5963,11 @@
     {
       "id": "T210",
       "title": "Add opt-in live provider smoke command plan",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T209"
       ],
-      "notes": "Design-first. Avoid accidentally adding flaky live-provider automation.",
+      "notes": "Created .ralph/artifacts/design/live-provider-smoke.md with bounded opt-in command design covering command surface, safety prompts, provider selection, evidence output, timeout behavior, failure handling, and rationale for excluding smoke runs from npm run validate. No runtime behavior changes were made.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5991,7 +5991,8 @@
         "src/codex/providerFactory.ts",
         "docs/workflows.md",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T211",
@@ -6233,5 +6234,5 @@
       ]
     }
   ],
-  "mutationCount": 257
+  "mutationCount": 258
 }
