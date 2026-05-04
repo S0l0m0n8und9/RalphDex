@@ -12,6 +12,8 @@ import {
   inspectGeneratedArtifactRetention,
   inspectProvenanceBundleRetention,
   PROTECTED_GENERATED_LATEST_POINTER_REFERENCES,
+  resolveDoctrineProposalCanonicalPaths,
+  resolveDoctrineProposalReviewPaths,
   resolveLatestArtifactPaths
 } from './artifactStore';
 import {
@@ -806,10 +808,12 @@ export async function inspectPreflightArtifactReadiness(
     latestPromptEvidenceRecord,
     latestExecutionPlanRecord,
     latestCliInvocationRecord,
+    latestDoctrineProposalRecord,
     latestProvenanceBundleRecord,
     latestProvenanceFailureRecord,
     latestSummaryExists,
     latestPreflightSummaryExists,
+    latestDoctrineProposalMdExists,
     latestProvenanceSummaryExists,
     generatedArtifactRetention,
     provenanceBundleRetention
@@ -819,10 +823,12 @@ export async function inspectPreflightArtifactReadiness(
     readJsonRecord(latestPaths.latestPromptEvidencePath),
     readJsonRecord(latestPaths.latestExecutionPlanPath),
     readJsonRecord(latestPaths.latestCliInvocationPath),
+    readJsonRecord(latestPaths.latestDoctrineProposalPath),
     readJsonRecord(latestPaths.latestProvenanceBundlePath),
     readJsonRecord(latestPaths.latestProvenanceFailurePath),
     pathExists(latestPaths.latestSummaryPath),
     pathExists(latestPaths.latestPreflightSummaryPath),
+    pathExists(latestPaths.latestDoctrineProposalMdPath),
     pathExists(latestPaths.latestProvenanceSummaryPath),
     inspectGeneratedArtifactRetention({
       artifactRootDir: input.artifactRootDir,
@@ -843,6 +849,12 @@ export async function inspectPreflightArtifactReadiness(
   }
   if (latestPreflightRecord && !latestPreflightSummaryExists) {
     staleLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+  }
+  if (latestDoctrineProposalRecord && !latestDoctrineProposalMdExists) {
+    staleLatestArtifactPaths.push(latestPaths.latestDoctrineProposalMdPath);
+  }
+  if (!latestDoctrineProposalRecord && latestDoctrineProposalMdExists) {
+    staleLatestArtifactPaths.push(latestPaths.latestDoctrineProposalPath);
   }
   if (latestProvenanceBundleRecord && !latestProvenanceSummaryExists) {
     staleLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
@@ -921,6 +933,52 @@ export async function inspectPreflightArtifactReadiness(
       `latest-prompt-evidence.json -> ${basenameList(input.rootPath, missingPromptEvidenceTargets)}`
     );
   }
+
+  const doctrineProposalId = typeof latestDoctrineProposalRecord?.proposalId === 'string'
+    ? latestDoctrineProposalRecord.proposalId.trim()
+    : '';
+  if (doctrineProposalId.length > 0) {
+    try {
+      const proposalPaths = resolveDoctrineProposalCanonicalPaths(input.artifactRootDir, doctrineProposalId);
+      const reviewPaths = resolveDoctrineProposalReviewPaths(input.artifactRootDir, doctrineProposalId);
+      const [
+        canonicalJsonExists,
+        canonicalMdExists,
+        reviewJsonExists,
+        reviewMdExists
+      ] = await Promise.all([
+        pathExists(proposalPaths.jsonPath),
+        pathExists(proposalPaths.mdPath),
+        pathExists(reviewPaths.reviewJsonPath),
+        pathExists(reviewPaths.reviewMdPath)
+      ]);
+
+      const missingDoctrineTargets: string[] = [];
+      if (!canonicalJsonExists) {
+        missingDoctrineTargets.push(proposalPaths.jsonPath);
+      }
+      if (!canonicalMdExists) {
+        missingDoctrineTargets.push(proposalPaths.mdPath);
+      }
+      if (reviewJsonExists !== reviewMdExists) {
+        if (!reviewJsonExists) {
+          missingDoctrineTargets.push(reviewPaths.reviewJsonPath);
+        }
+        if (!reviewMdExists) {
+          missingDoctrineTargets.push(reviewPaths.reviewMdPath);
+        }
+      }
+
+      if (missingDoctrineTargets.length > 0) {
+        missingPointerTargets.push(
+          `latest-doctrine-proposal.json -> ${basenameList(input.rootPath, missingDoctrineTargets)}`
+        );
+      }
+    } catch {
+      missingPointerTargets.push('latest-doctrine-proposal.json -> invalid proposal id');
+    }
+  }
+
   if (missingPointerTargets.length > 0) {
     diagnostics.push({
       severity: 'warning',

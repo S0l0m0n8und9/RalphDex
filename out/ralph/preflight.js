@@ -503,16 +503,18 @@ async function checkStaleState(input) {
 async function inspectPreflightArtifactReadiness(input) {
     const diagnostics = [];
     const latestPaths = (0, artifactStore_1.resolveLatestArtifactPaths)(input.artifactRootDir);
-    const [latestResultRecord, latestPreflightRecord, latestPromptEvidenceRecord, latestExecutionPlanRecord, latestCliInvocationRecord, latestProvenanceBundleRecord, latestProvenanceFailureRecord, latestSummaryExists, latestPreflightSummaryExists, latestProvenanceSummaryExists, generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
+    const [latestResultRecord, latestPreflightRecord, latestPromptEvidenceRecord, latestExecutionPlanRecord, latestCliInvocationRecord, latestDoctrineProposalRecord, latestProvenanceBundleRecord, latestProvenanceFailureRecord, latestSummaryExists, latestPreflightSummaryExists, latestDoctrineProposalMdExists, latestProvenanceSummaryExists, generatedArtifactRetention, provenanceBundleRetention] = await Promise.all([
         (0, fs_1.readJsonRecord)(latestPaths.latestResultPath),
         (0, fs_1.readJsonRecord)(latestPaths.latestPreflightReportPath),
         (0, fs_1.readJsonRecord)(latestPaths.latestPromptEvidencePath),
         (0, fs_1.readJsonRecord)(latestPaths.latestExecutionPlanPath),
         (0, fs_1.readJsonRecord)(latestPaths.latestCliInvocationPath),
+        (0, fs_1.readJsonRecord)(latestPaths.latestDoctrineProposalPath),
         (0, fs_1.readJsonRecord)(latestPaths.latestProvenanceBundlePath),
         (0, fs_1.readJsonRecord)(latestPaths.latestProvenanceFailurePath),
         (0, fs_1.pathExists)(latestPaths.latestSummaryPath),
         (0, fs_1.pathExists)(latestPaths.latestPreflightSummaryPath),
+        (0, fs_1.pathExists)(latestPaths.latestDoctrineProposalMdPath),
         (0, fs_1.pathExists)(latestPaths.latestProvenanceSummaryPath),
         (0, artifactStore_1.inspectGeneratedArtifactRetention)({
             artifactRootDir: input.artifactRootDir,
@@ -532,6 +534,12 @@ async function inspectPreflightArtifactReadiness(input) {
     }
     if (latestPreflightRecord && !latestPreflightSummaryExists) {
         staleLatestArtifactPaths.push(latestPaths.latestPreflightSummaryPath);
+    }
+    if (latestDoctrineProposalRecord && !latestDoctrineProposalMdExists) {
+        staleLatestArtifactPaths.push(latestPaths.latestDoctrineProposalMdPath);
+    }
+    if (!latestDoctrineProposalRecord && latestDoctrineProposalMdExists) {
+        staleLatestArtifactPaths.push(latestPaths.latestDoctrineProposalPath);
     }
     if (latestProvenanceBundleRecord && !latestProvenanceSummaryExists) {
         staleLatestArtifactPaths.push(latestPaths.latestProvenanceSummaryPath);
@@ -595,6 +603,42 @@ async function inspectPreflightArtifactReadiness(input) {
     const missingPromptEvidenceTargets = (await Promise.all(promptEvidenceTargets.map(async (targetPath) => await (0, fs_1.pathExists)(targetPath) ? null : targetPath))).filter((value) => value !== null);
     if (missingPromptEvidenceTargets.length > 0) {
         missingPointerTargets.push(`latest-prompt-evidence.json -> ${basenameList(input.rootPath, missingPromptEvidenceTargets)}`);
+    }
+    const doctrineProposalId = typeof latestDoctrineProposalRecord?.proposalId === 'string'
+        ? latestDoctrineProposalRecord.proposalId.trim()
+        : '';
+    if (doctrineProposalId.length > 0) {
+        try {
+            const proposalPaths = (0, artifactStore_1.resolveDoctrineProposalCanonicalPaths)(input.artifactRootDir, doctrineProposalId);
+            const reviewPaths = (0, artifactStore_1.resolveDoctrineProposalReviewPaths)(input.artifactRootDir, doctrineProposalId);
+            const [canonicalJsonExists, canonicalMdExists, reviewJsonExists, reviewMdExists] = await Promise.all([
+                (0, fs_1.pathExists)(proposalPaths.jsonPath),
+                (0, fs_1.pathExists)(proposalPaths.mdPath),
+                (0, fs_1.pathExists)(reviewPaths.reviewJsonPath),
+                (0, fs_1.pathExists)(reviewPaths.reviewMdPath)
+            ]);
+            const missingDoctrineTargets = [];
+            if (!canonicalJsonExists) {
+                missingDoctrineTargets.push(proposalPaths.jsonPath);
+            }
+            if (!canonicalMdExists) {
+                missingDoctrineTargets.push(proposalPaths.mdPath);
+            }
+            if (reviewJsonExists !== reviewMdExists) {
+                if (!reviewJsonExists) {
+                    missingDoctrineTargets.push(reviewPaths.reviewJsonPath);
+                }
+                if (!reviewMdExists) {
+                    missingDoctrineTargets.push(reviewPaths.reviewMdPath);
+                }
+            }
+            if (missingDoctrineTargets.length > 0) {
+                missingPointerTargets.push(`latest-doctrine-proposal.json -> ${basenameList(input.rootPath, missingDoctrineTargets)}`);
+            }
+        }
+        catch {
+            missingPointerTargets.push('latest-doctrine-proposal.json -> invalid proposal id');
+        }
     }
     if (missingPointerTargets.length > 0) {
         diagnostics.push({

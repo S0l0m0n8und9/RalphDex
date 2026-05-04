@@ -5715,11 +5715,11 @@
     {
       "id": "T203",
       "title": "Add artifact consistency checks for latest pointers",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T198"
       ],
-      "notes": "Improves trust in RalphDex artifact-heavy status and review flows.",
+      "notes": "Added deterministic, non-blocking preflight consistency checks for latest doctrine proposal/review pointers (including absent-vs-broken behavior), and added focused tests for optional absence and broken review pointer warnings.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5743,7 +5743,8 @@
         "src/commands/artifactCommands.ts",
         "test/artifactStore.test.ts",
         "test/commandShell.smoke.test.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T204",
@@ -6230,5 +6231,5 @@
       ]
     }
   ],
-  "mutationCount": 254
+  "mutationCount": 255
 }

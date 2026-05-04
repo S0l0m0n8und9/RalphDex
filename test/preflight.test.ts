@@ -477,6 +477,80 @@ test('inspectPreflightArtifactReadiness reports stale latest surfaces and missin
   assert.ok(report.diagnostics.some((diagnostic) => diagnostic.code === 'latest_artifact_pointer_targets_missing'));
 });
 
+test('inspectPreflightArtifactReadiness treats missing latest doctrine artifacts as absent', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const stateFilePath = path.join(rootPath, '.ralph', 'state.json');
+  await createDirectories([
+    path.dirname(stateFilePath),
+    artifactRootDir,
+    promptDir,
+    runDir
+  ]);
+  await writeUtf8Files([
+    [stateFilePath, JSON.stringify({ version: 2, runHistory: [], iterationHistory: [] })]
+  ]);
+
+  const diagnostics = await inspectPreflightArtifactReadiness({
+    rootPath,
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    generatedArtifactRetentionCount: 25,
+    provenanceBundleRetentionCount: 25
+  });
+
+  assert.equal(
+    diagnostics.some((diagnostic) =>
+      diagnostic.code === 'latest_artifact_pointer_targets_missing'
+      || diagnostic.code === 'latest_artifact_surfaces_stale'),
+    false
+  );
+});
+
+test('inspectPreflightArtifactReadiness warns when latest doctrine review pointers are broken', async () => {
+  const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
+  const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
+  const promptDir = path.join(rootPath, '.ralph', 'prompts');
+  const runDir = path.join(rootPath, '.ralph', 'runs');
+  const stateFilePath = path.join(rootPath, '.ralph', 'state.json');
+  const proposalId = 'doctrine-proposal-run-i017-cli-20260430T001700Z';
+  const doctrineProposalDir = path.join(artifactRootDir, 'doctrine-proposals');
+
+  await createDirectories([
+    path.dirname(stateFilePath),
+    artifactRootDir,
+    promptDir,
+    runDir,
+    doctrineProposalDir
+  ]);
+  await writeUtf8Files([
+    [stateFilePath, JSON.stringify({ version: 2, runHistory: [], iterationHistory: [] })],
+    [path.join(artifactRootDir, 'latest-doctrine-proposal.json'), JSON.stringify({ proposalId })],
+    [path.join(artifactRootDir, 'latest-doctrine-proposal.md'), '# Doctrine proposal\n'],
+    [path.join(doctrineProposalDir, `${proposalId}.json`), JSON.stringify({ proposalId })],
+    [path.join(doctrineProposalDir, `${proposalId}.md`), '# Canonical doctrine proposal\n'],
+    [path.join(doctrineProposalDir, `${proposalId}.review.json`), JSON.stringify({ proposalId, kind: 'doctrineProposalReview' })]
+  ]);
+
+  const diagnostics = await inspectPreflightArtifactReadiness({
+    rootPath,
+    artifactRootDir,
+    promptDir,
+    runDir,
+    stateFilePath,
+    generatedArtifactRetentionCount: 25,
+    provenanceBundleRetentionCount: 25
+  });
+
+  const pointerDiagnostic = diagnostics.find((diagnostic) => diagnostic.code === 'latest_artifact_pointer_targets_missing');
+  assert.ok(pointerDiagnostic, 'expected missing-pointer warning');
+  assert.match(pointerDiagnostic.message, /\.review\.md/);
+});
+
 test('inspectPreflightArtifactReadiness warns when retention cleanup is disabled or roots overlap', async () => {
   const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-preflight-'));
   const artifactRootDir = path.join(rootPath, '.ralph', 'artifacts');
