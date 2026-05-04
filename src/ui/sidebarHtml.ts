@@ -328,7 +328,7 @@ export function buildDashboardHtml(state: RalphDashboardState, nonce: string): s
         el.disabled = true;
         vscode.postMessage({ type: 'command', command: cmd });
         var t = setTimeout(function() { resetButton(el); }, 10000);
-        ackTimeouts.set(el);
+        ackTimeouts.set(el, t);
       }
 
       function resetButton(el) {
