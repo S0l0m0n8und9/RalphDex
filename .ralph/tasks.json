@@ -6238,7 +6238,135 @@
         ".ralph/progress.md"
       ],
       "lastVerifierResult": "failed"
+    },
+    {
+      "id": "T218",
+      "title": "Generate a persisted offline evaluation report artifact for the current branch state",
+      "status": "todo",
+      "dependsOn": [
+        "T216",
+        "T217"
+      ],
+      "notes": "Release checkpoint T217 identified missing persisted offline-eval evidence in this workspace. Produce a durable report under .ralph/artifacts/evals so status and release docs can reference real branch evidence.",
+      "validation": "npm run test:offline-evals -- --report-path .ralph/artifacts/evals/offline-eval-latest.json",
+      "priority": "high",
+      "mode": "default",
+      "tier": "simple",
+      "acceptance": [
+        "Run npm run test:offline-evals with --report-path targeting .ralph/artifacts/evals/offline-eval-latest.json.",
+        "Ensure the generated report file exists and includes per-dimension outcomes plus expectationMismatches.",
+        "Confirm Show Status can resolve the latest offline evaluation artifact path from the persisted report.",
+        "Capture a concise progress note linking the report artifact path."
+      ],
+      "constraints": [
+        "Do not call live providers.",
+        "Do not modify evaluator semantics in this task.",
+        "Keep artifacts deterministic and repository-local under .ralph/artifacts/evals."
+      ],
+      "context": [
+        "scripts/run-offline-evals.js",
+        "test/evals/cli.ts",
+        "src/ralph/statusReport.ts",
+        ".ralph/artifacts/evals"
+      ]
+    },
+    {
+      "id": "T219",
+      "title": "Capture a baseline manual dogfood evidence record for the primary provider path",
+      "status": "todo",
+      "dependsOn": [
+        "T209",
+        "T217"
+      ],
+      "notes": "T217 reported no persisted dogfood evidence records. Create one durable evidence artifact following the runbook contract so release readiness has real live-provider evidence.",
+      "validation": "npm run validate",
+      "priority": "high",
+      "mode": "default",
+      "tier": "medium",
+      "acceptance": [
+        "Execute one manual live-provider iteration for the primary configured provider path using docs/dogfooding-runbook.md.",
+        "Persist .ralph/artifacts/dogfood-evidence/dogfood-evidence-<provider>-<yyyy-mm-dd>.json with required contract fields (provider, model, reasoningEffort, commandPath, promptEvidencePath, cliInvocation, result, validation, warnings).",
+        "Record pass/fail outcome and blockers in the evidence record.",
+        "Apply runbook redaction rules before sharing or committing any transcript-adjacent content."
+      ],
+      "constraints": [
+        "Do not add live-provider execution to automated tests.",
+        "Do not commit secrets or unredacted sensitive values.",
+        "Do not change provider execution behavior in this task."
+      ],
+      "context": [
+        "docs/dogfooding-runbook.md",
+        "src/ralph/types.ts",
+        ".ralph/artifacts/latest-cli-invocation.json",
+        ".ralph/artifacts/latest-result.json"
+      ]
+    },
+    {
+      "id": "T220",
+      "title": "Refresh marketplace-readiness findings to match current command surface and evidence state",
+      "status": "todo",
+      "dependsOn": [
+        "T212",
+        "T218",
+        "T219"
+      ],
+      "notes": "docs/marketplace-readiness.md still reports stale README command mismatches that no longer exist. Re-audit against package.json/README and update findings to reflect current truth plus newly captured release evidence artifacts.",
+      "validation": "npm run check:docs",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Update docs/marketplace-readiness.md so command-surface findings match current package.json and README command lists.",
+        "Replace stale mismatch claims with an accurate gap summary grounded in current repo state.",
+        "Include current status of persisted offline-eval and dogfood evidence artifacts as release-readiness inputs.",
+        "Keep marketplace claims aligned with implemented behavior and documented trust boundaries."
+      ],
+      "constraints": [
+        "Do not invent marketplace feature claims.",
+        "Do not modify runtime code paths for this documentation task.",
+        "Keep the checklist evidence-backed and date-stamped."
+      ],
+      "context": [
+        "docs/marketplace-readiness.md",
+        "README.md",
+        "package.json",
+        ".ralph/artifacts/evals",
+        ".ralph/artifacts/dogfood-evidence"
+      ]
+    },
+    {
+      "id": "T221",
+      "title": "Publish a post-evidence release checkpoint report",
+      "status": "todo",
+      "dependsOn": [
+        "T218",
+        "T219",
+        "T220"
+      ],
+      "notes": "After evidence sync and marketplace checklist refresh, produce an updated release checkpoint artifact that replaces T217 blocker assumptions with current pass/fail readiness evidence.",
+      "validation": "npm run validate",
+      "priority": "normal",
+      "mode": "documentation",
+      "tier": "simple",
+      "acceptance": [
+        "Create a new report under .ralph/artifacts/reports/ summarizing release readiness with current evidence.",
+        "Explicitly reassess prior T217 blockers using the newly persisted eval and dogfood artifacts plus refreshed marketplace-readiness findings.",
+        "List any remaining release blockers and one bounded next recommendation.",
+        "Record the report path in .ralph/progress.md."
+      ],
+      "constraints": [
+        "Do not claim release readiness without evidence references.",
+        "Do not broaden scope into unrelated roadmap planning.",
+        "Keep the report concise and evidence-linked."
+      ],
+      "context": [
+        ".ralph/artifacts/reports/release-quality-checkpoint.md",
+        ".ralph/artifacts/evals",
+        ".ralph/artifacts/dogfood-evidence",
+        "docs/marketplace-readiness.md",
+        ".ralph/progress.md"
+      ]
     }
   ],
-  "mutationCount": 264
+  "mutationCount": 265
 }
