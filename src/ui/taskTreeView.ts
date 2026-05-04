@@ -53,7 +53,7 @@ class TaskGroupItem extends TaskTreeNode {
         label = 'Done';
         state = vscode.TreeItemCollapsibleState.Collapsed;
         break;
-      case 'dead-letter': label = 'Dead-Letter Queue'; break;
+      case 'dead-letter': label = 'Recovery Queue'; break;
     }
     super(label, state);
     this.description = String(count);
@@ -113,7 +113,7 @@ function describeTask(input: {
   const parts: string[] = [];
 
   if (input.groupKind === 'dead-letter') {
-    parts.push('dead-letter');
+    parts.push('recovery queue');
   }
 
   if (input.task) {
@@ -240,7 +240,7 @@ export class RalphTaskTreeDataProvider implements vscode.TreeDataProvider<TaskTr
 
   private buildDeadLetterRows(snapshot: TaskTreeSnapshot): TaskTreeNode[] {
     if (snapshot.deadLetterOrder.length === 0) {
-      return [new MessageItem('No tasks are parked in dead-letter.')];
+      return [new MessageItem('No tasks are parked in the recovery queue.')];
     }
 
     return snapshot.deadLetterOrder.map((taskId) => {
@@ -344,15 +344,15 @@ export class RalphTaskTreeDataProvider implements vscode.TreeDataProvider<TaskTr
     if (deadLetterEntry) {
       const lastDiagnostic = deadLetterEntry.diagnosticHistory[deadLetterEntry.diagnosticHistory.length - 1];
       details.push(new DetailItem(
-        'Dead-letter summary',
+        'Recovery summary',
         `${deadLetterEntry.deadLetteredAt} | attempts: ${deadLetterEntry.recoveryAttemptCount}${lastDiagnostic ? ` | last: ${lastDiagnostic.rootCauseCategory}` : ''}`
       ));
       details.push(new DetailItem(
-        'Requeue dead-letter task',
+        'Requeue recovery task',
         'Run the supported requeue command.',
         {
           command: 'ralphCodex.requeueDeadLetterTask',
-          title: 'Requeue Dead-Letter Task'
+          title: 'Requeue Recovery Task'
         }
       ));
     }
