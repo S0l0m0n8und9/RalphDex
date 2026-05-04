@@ -208,6 +208,13 @@ This command is the supported end-to-end pipeline path. It does not bypass the n
 
 Pipeline scaffolding follows the same generated-task invariant as every other producer path. The pipeline-root task is intentionally sparse because the scaffold only knows the PRD title and notes at that point, but the section-derived child tasks still persist through the shared normalization boundary so sequential dependencies, inherited fields, and any richer producer-supplied metadata are preserved instead of being stripped by a pipeline-specific write path.
 
+Pipeline support status (snapshot: 2026-05-04):
+
+- supported operator commands: `Ralphdex: Run Pipeline` and `Ralphdex: Open Latest Pipeline Run`
+- experimental execution profiles: `claude` and `custom` prompt-budget profiles are still experimental for production calibration; `codex` remains the calibrated baseline
+- legacy command surface: no deprecated pipeline-specific commands are currently contributed in `package.json`
+- command-surface audit artifact: [docs/pipeline-command-audit.md](pipeline-command-audit.md)
+
 ## Prompt Budgeting And Quota Control
 
 > **Maturity: stable** (`codex` profile) / **experimental** (`claude` and `custom` profiles) — only the built-in `codex` matrix is calibrated for production use. The `claude` profile is a higher-context deterministic policy matrix that still requires calibration before production use. The `custom` profile exposes per-policy overrides for operators who measure their own token targets.

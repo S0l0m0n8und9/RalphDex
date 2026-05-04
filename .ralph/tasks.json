@@ -5997,12 +5997,12 @@
     {
       "id": "T211",
       "title": "Dogfood pipeline and loop flows with local mock provider evidence",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T200",
         "T203"
       ],
-      "notes": "Keeps pipeline dogfooding local and deterministic.",
+      "notes": "Expanded local mock pipeline dogfood evidence checks to assert inspectable latest prompt/execution/result/provenance artifacts and run-bundle surfaces; documented pipeline support-status and added a no-deletion pipeline command audit artifact.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -6026,7 +6026,8 @@
         "test/iterationEngine.integration.test.ts",
         "test/pipeline",
         ".ralph/artifacts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T212",
@@ -6234,5 +6235,5 @@
       ]
     }
   ],
-  "mutationCount": 258
+  "mutationCount": 259
 }

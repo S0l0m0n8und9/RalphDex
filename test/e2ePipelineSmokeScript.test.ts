@@ -34,9 +34,16 @@ function runSmokeScript(env: NodeJS.ProcessEnv): Promise<{ code: number; stdout:
 }
 
 function parseTrailingJson(stdout: string): Record<string, unknown> {
-  const start = stdout.lastIndexOf('{');
-  assert.notEqual(start, -1, 'Expected the smoke script to emit a trailing JSON summary.');
-  return JSON.parse(stdout.slice(start));
+  const lines = stdout.split(/\r?\n/);
+  let startLine = -1;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (lines[i] === '{') {
+      startLine = i;
+      break;
+    }
+  }
+  assert.notEqual(startLine, -1, 'Expected the smoke script to emit a trailing JSON summary.');
+  return JSON.parse(lines.slice(startLine).join('\n'));
 }
 
 test('run-e2e-pipeline-smoke reports review and SCM command execution in the success summary', async () => {
@@ -71,6 +78,37 @@ test('run-e2e-pipeline-smoke reports review and SCM command execution in the suc
     summary.prUrl,
     PIPELINE_SMOKE_PR_URL,
     'Success summary must preserve the SCM PR URL extracted from the pipeline artifact.'
+  );
+  const evidence = summary.evidence as Record<string, unknown>;
+  assert.ok(evidence && typeof evidence === 'object', 'Success summary must include an evidence section.');
+  for (const key of [
+    'latestPromptPath',
+    'latestCliInvocationPath',
+    'latestCliInvocationArtifactPath',
+    'latestResultPath',
+    'latestProvenanceBundlePath',
+    'iterationPromptPath',
+    'iterationCliInvocationPath',
+    'iterationResultPath',
+    'runBundlePath'
+  ]) {
+    assert.equal(typeof evidence[key], 'string', `Evidence field ${key} must be present.`);
+    assert.ok((evidence[key] as string).length > 0, `Evidence field ${key} must not be empty.`);
+  }
+  assert.equal(
+    evidence.iterationPromptPath,
+    evidence.latestResultPromptPath,
+    'Pipeline smoke summary must align latest-result prompt path with iteration prompt path.'
+  );
+  assert.equal(
+    evidence.iterationCliInvocationPath,
+    evidence.latestCliInvocationArtifactPath,
+    'Pipeline smoke summary must align latest CLI invocation artifact with iteration artifact.'
+  );
+  assert.match(
+    evidence.latestCliInvocationPath as string,
+    /latest-cli-invocation\.json$/i,
+    'Pipeline smoke summary must include the stable latest CLI invocation pointer path.'
   );
 });
 

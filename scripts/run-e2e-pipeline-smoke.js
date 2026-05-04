@@ -225,6 +225,58 @@ async function main() {
     // SCM phase: PR URL extracted
     assert.equal(artifact.prUrl, PIPELINE_SMOKE_PR_URL, 'SCM phase must extract the PR URL.');
 
+    // Loop evidence phase: latest pointers and run bundle must stay inspectable
+    const artifactsDir = path.join(rootPath, '.ralph', 'artifacts');
+    const latestPromptPath = path.join(artifactsDir, 'latest-prompt.md');
+    const latestCliInvocationPath = path.join(artifactsDir, 'latest-cli-invocation.json');
+    const latestResultPath = path.join(artifactsDir, 'latest-result.json');
+    const latestProvenanceBundlePath = path.join(artifactsDir, 'latest-provenance-bundle.json');
+
+    await Promise.all([
+      fsp.access(latestPromptPath),
+      fsp.access(latestCliInvocationPath),
+      fsp.access(latestResultPath),
+      fsp.access(latestProvenanceBundlePath)
+    ]);
+
+    const latestCliInvocation = JSON.parse(await fsp.readFile(latestCliInvocationPath, 'utf8'));
+    const latestResult = JSON.parse(await fsp.readFile(latestResultPath, 'utf8'));
+    const latestProvenanceBundle = JSON.parse(await fsp.readFile(latestProvenanceBundlePath, 'utf8'));
+
+    assert.equal(typeof latestResult.promptPath, 'string', 'latest-result must expose promptPath.');
+    assert.equal(typeof latestResult.artifactDir, 'string', 'latest-result must expose artifactDir.');
+    assert.equal(typeof latestCliInvocation.promptArtifactPath, 'string', 'latest CLI invocation must expose promptArtifactPath.');
+    assert.equal(
+      path.resolve(latestCliInvocation.promptArtifactPath),
+      path.resolve(latestResult.promptPath),
+      'latest CLI invocation promptArtifactPath must match latest-result promptPath.'
+    );
+
+    const iterationPromptPath = latestResult.promptPath;
+    const iterationCliInvocationPath = path.join(latestResult.artifactDir, 'cli-invocation.json');
+    const iterationResultPath = path.join(latestResult.artifactDir, 'iteration-result.json');
+    await Promise.all([
+      fsp.access(iterationPromptPath),
+      fsp.access(iterationCliInvocationPath),
+      fsp.access(iterationResultPath)
+    ]);
+
+    assert.equal(typeof latestProvenanceBundle.provenanceId, 'string', 'latest provenance bundle must expose provenanceId.');
+    const runBundlePath = path.join(artifactsDir, 'runs', latestProvenanceBundle.provenanceId);
+    await Promise.all([
+      fsp.access(runBundlePath),
+      fsp.access(path.join(runBundlePath, 'prompt.md')),
+      fsp.access(path.join(runBundlePath, 'execution-plan.json')),
+      fsp.access(path.join(runBundlePath, 'cli-invocation.json')),
+      fsp.access(path.join(runBundlePath, 'iteration-result.json'))
+    ]);
+    assert.equal(typeof latestProvenanceBundle.cliInvocationPath, 'string', 'latest provenance bundle must expose cliInvocationPath.');
+    assert.equal(
+      path.resolve(latestProvenanceBundle.cliInvocationPath),
+      path.resolve(path.join(runBundlePath, 'cli-invocation.json')),
+      'latest provenance bundle must point at the run-bundle CLI invocation artifact.'
+    );
+
     // Final state: pipeline completed successfully
     assert.equal(artifact.status, 'complete', 'Pipeline must reach status: complete.');
     assert.equal(artifact.phase, 'done', 'Pipeline must reach phase: done.');
@@ -250,6 +302,18 @@ async function main() {
       rootTaskId: artifact.rootTaskId,
       decomposedTaskIds: artifact.decomposedTaskIds,
       prUrl: artifact.prUrl,
+      evidence: {
+        latestPromptPath,
+        latestCliInvocationPath,
+        latestCliInvocationArtifactPath: iterationCliInvocationPath,
+        latestResultPath,
+        latestProvenanceBundlePath,
+        latestResultPromptPath: latestResult.promptPath,
+        iterationPromptPath,
+        iterationCliInvocationPath,
+        iterationResultPath,
+        runBundlePath
+      },
       phaseCommands: harness.state.executedCommands
         .map((entry) => entry.command)
         .filter((command) => [
