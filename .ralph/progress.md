@@ -385,3 +385,4 @@
 - Added state-aware ## Next Action guidance to buildStatusReport; 4 new tests cover uninitialized/doctrine-missing/ready-to-run/no-guidance states; npm run validate passes.
 - Three regression tests for provider execution-profile evidence consistency are already in test/iterationEngine.integration.test.ts (lines 5195–5376), covering non-fallback tier, per-tier ENOENT fallback, and disabled tiering scenarios. npm run validate passes: 1277 tests, 0 failures.
 - Fixed 3 command title prefixes and 5 obsolete Initialize Workspace references; clarified model-tiering threshold drift in calibration and assessment sections
+- Created docs/marketplace-readiness.md with comprehensive pre-publication checklist; corrected stale command reference and added 5 missing commands to README; npm run validate passes with 1277 tests

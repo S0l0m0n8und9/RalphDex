@@ -6025,12 +6025,12 @@
     {
       "id": "T212",
       "title": "Prepare marketplace readiness checklist",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T201",
         "T205"
       ],
-      "notes": "Marketplace prep without feature changes.",
+      "notes": "Created docs/marketplace-readiness.md with comprehensive pre-publication checklist; corrected stale command reference and added 5 missing commands to README; npm run validate passes with 1277 tests",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "documentation",
@@ -6054,7 +6054,8 @@
         "media",
         "docs",
         ".vscodeignore"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T213",
@@ -6226,5 +6227,5 @@
       ]
     }
   ],
-  "mutationCount": 250
+  "mutationCount": 251
 }

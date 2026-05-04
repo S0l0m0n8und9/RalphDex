@@ -155,7 +155,6 @@ Source of truth: `package.json` (`contributes.commands`) is authoritative for sh
 
 Current command surface:
 
-- `Ralphdex: Initialize Workspace`
 - `Ralphdex: Initialize Doctrine Pack`
 - `Ralphdex: Add Task`
 - `Ralphdex: Seed Tasks from Feature Request`
@@ -184,12 +183,17 @@ Current command surface:
 - `Ralphdex: Open Dashboard`
 - `Ralphdex: Run Pipeline`
 - `Ralphdex: Open Latest Pipeline Run`
+- `Ralphdex: Open Latest Doctrine Proposal`
+- `Ralphdex: Apply Latest Doctrine Proposal`
+- `Ralphdex: Reject Latest Doctrine Proposal`
+- `Ralphdex: Open PRD Wizard`
 - `Ralphdex: Regenerate PRD`
 - `Ralphdex: Requeue Dead-Letter Task`
 - `Ralphdex: Show Sidebar`
 - `Ralphdex: Show Tasks`
 - `Ralphdex: Set Provider Secret`
 - `Ralphdex: Clear Provider Secret`
+- `Ralphdex: Open RalphDex Settings`
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 
