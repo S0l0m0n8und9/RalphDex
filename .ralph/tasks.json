@@ -6106,12 +6106,12 @@
     {
       "id": "T214",
       "title": "Define offline evaluation harness contract",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T200",
         "T204"
       ],
-      "notes": "Contract-first step for evaluation harness work.",
+      "notes": "Created .ralph/artifacts/design/evaluation-harness.md defining offline evaluation inputs, fixture contract, expected output schema, six required scoring dimensions, pass/fail semantics, and initial fixture scenarios; recommended test/evals as the first implementation location.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -6134,7 +6134,8 @@
         "test",
         "docs/workflows.md",
         ".ralph/artifacts"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T215",
@@ -6236,5 +6237,5 @@
       ]
     }
   ],
-  "mutationCount": 260
+  "mutationCount": 261
 }
