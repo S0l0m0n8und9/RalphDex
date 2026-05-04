@@ -425,11 +425,13 @@ function buildDashboardHtml(state, nonce) {
       <button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">▸ Run Loop</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.runMultiAgentLoop"><span class="btn-label">▸ Multi</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.runRalphIteration"><span class="btn-label">▸ Iteration</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">⎙ Prompt</span><span class="btn-spinner"></span></button>
     </div>
 
-    <div class="section-label" style="margin-top: 10px;">Quick Actions</div>
+    <div class="section-label" style="margin-top: 10px;">Prepare &amp; Inspect</div>
     <div class="quick-actions">
+      <button class="quick-action" data-command="ralphCodex.generatePrompt">
+        <span>Prepare Prompt</span><span class="quick-shortcut">⎙</span>
+      </button>
       <button class="quick-action" data-command="ralphCodex.showRalphStatus">
         <span>Show Status</span><span class="quick-shortcut">◫</span>
       </button>

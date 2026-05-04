@@ -139,11 +139,12 @@ For day-to-day loop inspection:
 
 1. `Ralphdex: Show Status` opens or focuses the dashboard with a fresh snapshot covering the selected task, recent history, and stale surfaces. The raw status report is also written to the `Ralphdex` output channel for audit and debugging.
 2. The dashboard `Work` tab and the sidebar both expose a task-seeding form so operators can turn an epic or feature request into appended backlog tasks without leaving Ralphdex surfaces.
-3. Dead-letter recovery is surfaced as operational triage in the dashboard overview/work areas and the sidebar advanced mode, with direct requeue, diagnosis, and auto-recover actions where available. Diagnostics still carries deeper technical details.
-4. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
-5. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
-6. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
-7. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
+3. Dashboard actions are grouped by intent: run controls stay in the Overview hero (and sidebar Run tab), while prompt/status/artifact shortcuts are grouped under `Prepare & Inspect` in the rail/sidebar.
+4. Dead-letter recovery is surfaced as operational triage in the dashboard overview/work areas and the sidebar advanced mode, with direct requeue, diagnosis, and auto-recover actions where available. Diagnostics still carries deeper technical details.
+5. `Ralphdex: Open Latest Ralph Summary` for the newest outcome summary as a text artifact.
+6. `Ralphdex: Open Latest Prompt Evidence` and `Ralphdex: Open Latest CLI Transcript` to inspect what Ralph prepared and what the provider returned.
+7. `Ralphdex: Open Failure Diagnosis` to jump straight to the dashboard diagnostics tab for the selected task's persisted recovery context.
+8. `Ralphdex: Open Latest Provenance Bundle` or `Ralphdex: Reveal Latest Provenance Bundle Directory` for the full persisted proof set.
 
 Task-seeding artifacts are separate from iteration provenance. Successful and failed seeding attempts write durable evidence under `.ralph/artifacts/task-seeding/`, while the appended tasks themselves still persist only in `.ralph/tasks.json` through the shared version-2 task pipeline.
 

@@ -1628,6 +1628,7 @@ function buildHeroCard(state: RalphDashboardState): string {
       </div>
       <div class="hero-actions">
         <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
       </div>
     </div>
@@ -1663,7 +1664,7 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
     </div>
 
     <div class="dashboard-sidebar-panel">
-      <div class="rail-section-label">Quick Actions</div>
+      <div class="rail-section-label">Prepare &amp; Inspect</div>
       <div class="dashboard-sidebar-actions">
         <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
@@ -1769,15 +1770,6 @@ function buildOverviewTab(state: RalphDashboardState): string {
                      </div>`)}
         </div>
 
-        <div class="card">
-          <div class="card-title">Common Actions</div>
-          <div class="btn-grid">
-            <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
-            <button class="btn" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
-          </div>
-        </div>
       </div>
     </div>
   </div>`;

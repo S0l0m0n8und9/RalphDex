@@ -190,8 +190,11 @@ test('buildDashboardHtml renders sidebar task-seeding affordance and latest resu
 test('buildDashboardHtml preserves live status, orchestration, task, and settings shortcuts', () => {
   const html = buildDashboardHtml(defaultState(), 'sidebar-actions');
 
+  assert.ok(html.includes('Loop Controls'));
+  assert.ok(html.includes('Prepare &amp; Inspect'));
   assert.ok(html.includes('ralphCodex.showRalphStatus'));
   assert.ok(!html.includes('ralphCodex.showMultiAgentStatus'));
+  assert.ok(html.includes('ralphCodex.generatePrompt'));
   assert.ok(html.includes('ralphCodex.showTasks'));
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
   assert.ok(html.includes('ralphCodex.openSettings'));

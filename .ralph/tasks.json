@@ -5858,12 +5858,12 @@
     {
       "id": "T207",
       "title": "Consolidate dashboard and sidebar action duplication",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T205",
         "T206"
       ],
-      "notes": "Directly addresses earlier UI duplication concerns.",
+      "notes": "Consolidated duplicated dashboard/sidebar primary actions by intent: run controls centralized to primary run sections, prompt/status/artifact shortcuts grouped under Prepare & Inspect, tests and README updated, and full validation passed on re-run.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5889,7 +5889,8 @@
         "package.json",
         "test/dashboard",
         "test/commandShell.smoke.test.ts"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T208",
@@ -6231,5 +6232,5 @@
       ]
     }
   ],
-  "mutationCount": 255
+  "mutationCount": 256
 }

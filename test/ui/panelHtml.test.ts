@@ -288,7 +288,8 @@ test('buildPanelDashboardHtml renders empty dashboard summary sections when no d
   assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
   assert.ok(html.includes('No durable agent identity records found yet.'));
   assert.ok(html.includes('No tasks are parked in dead-letter.'));
-  assert.ok(html.includes('Common Actions'));
+  assert.ok(!html.includes('Common Actions'));
+  assert.ok(html.includes('Prepare &amp; Inspect'));
 });
 
 test('buildPanelDashboardHtml diagnostics tab surfaces doctrine repair guidance from preflight diagnostics', () => {
