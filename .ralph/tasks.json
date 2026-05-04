@@ -6340,13 +6340,13 @@
     {
       "id": "T221",
       "title": "Publish a post-evidence release checkpoint report",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T218",
         "T219",
         "T220"
       ],
-      "notes": "After evidence sync and marketplace checklist refresh, produce an updated release checkpoint artifact that replaces T217 blocker assumptions with current pass/fail readiness evidence.",
+      "notes": "Published a new evidence-linked release checkpoint report at .ralph/artifacts/reports/release-quality-checkpoint-post-evidence-2026-05-04.md, explicitly reassessed T217 blockers against persisted eval/dogfood/marketplace evidence, and recorded the report path in .ralph/progress.md.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "documentation",
@@ -6368,8 +6368,9 @@
         ".ralph/artifacts/dogfood-evidence",
         "docs/marketplace-readiness.md",
         ".ralph/progress.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     }
   ],
-  "mutationCount": 267
+  "mutationCount": 268
 }
