@@ -1,5 +1,15 @@
 # Issue #37 UX Surface Contract Audit
 
+## Contract status and scope
+
+This document is the planning contract for Issue #37: it defines where RalphDex user-facing capabilities should live across the VS Code surfaces.
+
+It is **not** an implementation record for Issues #38–#44. Those follow-up issues remain the implementation path for sidebar/dashboard consolidation, first-run readiness, settings regrouping, stale language cleanup, UI fixtures, screenshot evidence, and visual/accessibility testing.
+
+Internal command IDs, configuration keys, artifact paths, and schema names should be preserved for compatibility unless a later implementation issue explicitly scopes a migration. User-facing label changes in this document are recommendations until the corresponding implementation issue applies them.
+
+Command matrix coverage was reconciled against `package.json` `contributes.commands` at the time of this audit. Every contributed command is listed below, including navigation aliases and high-impact mutation commands.
+
 ## 1) Surface inventory
 
 | Surface | Current files / entry points | Current purpose | Actual user job | Problems | Recommended purpose | Keep/change/remove |
@@ -17,48 +27,49 @@
 
 ## 2) Command placement matrix
 
-Rule: every command has exactly one primary home; optional secondary homes are shortcuts.
+Rule: every contributed command has exactly one primary home. Optional secondary homes are shortcuts, not competing ownership.
 
 | Command ID | Current title | Current surfaces | Recommended primary home | Secondary homes | User-facing label recommendation | Notes/risk |
 |---|---|---|---|---|---|---|
-| `ralphCodex.showSidebar` | Ralphdex: Show Sidebar | Palette | Palette | — | Keep | Utility navigation command |
-| `ralphCodex.openDashboard` | Ralphdex: Open Dashboard | Sidebar/panel/palette | Sidebar compact CTA | Palette, status bar | Keep | Canonical transition to rich surface |
-| `ralphCodex.showDashboard` | Ralphdex: Show Dashboard | Palette, links | Palette/internal focus alias | — | Rename to `Focus Dashboard` or hide | Duplicative with `openDashboard` |
-| `ralphCodex.showRalphStatus` | Ralphdex: Show Status | Palette | Palette | Dashboard refresh affordance | Keep | Snapshot and audit entry |
-| `ralphCodex.runRalphLoop` | Ralphdex: Run CLI Loop | Sidebar/panel/palette | Sidebar compact | Dashboard actions, palette | `Run Loop` | Primary execution button |
-| `ralphCodex.stopLoop` | Ralphdex: Stop Loop | Sidebar/panel/palette | Sidebar compact | Dashboard, palette | Keep | Pair with run |
-| `ralphCodex.runRalphIteration` | Ralphdex: Run CLI Iteration | Panel/palette | Dashboard | Palette | `Run Single Iteration` | Advanced |
-| `ralphCodex.runMultiAgentLoop` | Ralphdex: Run Multi-Agent Loop | Sidebar/panel/palette | Dashboard | Palette | Keep (advanced) | Keep out compact sidebar |
-| `ralphCodex.runPipeline` | Ralphdex: Run Pipeline | Panel/palette | Dashboard | Palette | Rename label to `Run Full Workflow` or `Run End-to-End Pass` | Preserve ID for compatibility |
-| `ralphCodex.generatePrompt` | Ralphdex: Prepare Prompt | Sidebar/panel/status/palette | Dashboard | Palette | `Prepare IDE Prompt` | Secondary workflow |
-| `ralphCodex.openCodexAndCopyPrompt` | Ralphdex: Open Codex IDE | Palette | Dashboard | Palette | `Open IDE Chat with Prompt` | Clarify handoff intent |
+| `ralphCodex.addTask` | Ralphdex: Add Task | Palette | Tasks tree/header | Palette | Keep | Native task workflow |
+| `ralphCodex.seedTasksFromFeatureRequest` | Ralphdex: Seed Tasks from Feature Request | Sidebar/panel/palette | Dashboard work tab | Palette | `Seed Backlog from Feature` | Avoid duplicate sidebar and dashboard forms |
+| `ralphCodex.generatePrompt` | Ralphdex: Prepare Prompt | Sidebar/panel/status/palette | Dashboard | Palette | `Prepare IDE Prompt` | Secondary handoff workflow, not primary run path |
+| `ralphCodex.initializeDoctrinePack` | Ralphdex: Initialize Doctrine Pack | Palette | Dashboard maintenance/setup | Palette | Optional: `Initialize Project Rules Pack` | Advanced project-governance concept |
+| `ralphCodex.openCodexAndCopyPrompt` | Ralphdex: Open Codex IDE | Palette | Dashboard | Palette | `Open IDE Chat with Prompt` | Clarify handoff intent; command ID can remain Codex-specific for compatibility |
+| `ralphCodex.runRalphIteration` | Ralphdex: Run CLI Iteration | Panel/palette | Dashboard | Palette | `Run Single Iteration` | Advanced execution action |
+| `ralphCodex.runReviewAgent` | Ralphdex: Run Review Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert action; keep out compact sidebar |
+| `ralphCodex.runWatchdogAgent` | Ralphdex: Run Watchdog Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert recovery action; keep out compact sidebar |
+| `ralphCodex.runScmAgent` | Ralphdex: Run SCM Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert SCM action; keep out compact sidebar |
+| `ralphCodex.runRalphLoop` | Ralphdex: Run CLI Loop | Sidebar/panel/palette | Sidebar compact | Dashboard actions, palette | `Run Loop` | Primary execution button when workspace is ready |
+| `ralphCodex.stopLoop` | Ralphdex: Stop Loop | Sidebar/panel/palette | Sidebar compact | Dashboard, palette | Keep | Pair with primary run control |
+| `ralphCodex.runMultiAgentLoop` | Ralphdex: Run Multi-Agent Loop | Sidebar/panel/palette | Dashboard | Palette | Keep (advanced) | Keep out compact sidebar unless advanced mode is explicitly enabled |
+| `ralphCodex.showRalphStatus` | Ralphdex: Show Status | Palette | Palette | Dashboard refresh affordance | Keep | Snapshot and audit entry; not a duplicate dashboard opener |
+| `ralphCodex.openFailureDiagnosis` | Ralphdex: Open Failure Diagnosis | Palette/dashboard | Dashboard diagnostics | Task tree link, palette | Keep | Deep diagnostics path |
+| `ralphCodex.autoRecoverTask` | Ralphdex: Auto-Recover Task | Palette/dashboard | Dashboard diagnostics | Palette | Keep | Advanced recovery; make preconditions clear |
+| `ralphCodex.skipTask` | Ralphdex: Skip Task | Palette/dashboard | Dashboard diagnostics | Palette | Consider `Mark Task Blocked` | High-impact task-state mutation; require clear confirmation/copy |
+| `ralphCodex.openLatestRalphSummary` | Ralphdex: Open Latest Ralph Summary | Palette | Logs/artifacts section | Dashboard links | `Open Latest Run Summary` | Document-first evidence surface |
+| `ralphCodex.openLatestProvenanceBundle` | Ralphdex: Open Latest Provenance Bundle | Palette | Dashboard diagnostics | Palette | Keep | Advanced evidence path |
+| `ralphCodex.openLatestPromptEvidence` | Ralphdex: Open Latest Prompt Evidence | Palette | Logs/artifacts section | Dashboard links | Keep | Advanced evidence path |
+| `ralphCodex.openLatestCliTranscript` | Ralphdex: Open Latest CLI Transcript | Palette | Logs/artifacts section | Dashboard links | Keep | Native document path for provider output |
+| `ralphCodex.applyLatestTaskDecompositionProposal` | Ralphdex: Apply Latest Task Decomposition Proposal | Palette | Dashboard diagnostics / task recovery area | Palette | `Apply Task Decomposition Proposal` | High-impact task graph mutation; keep operator-confirmed and avoid compact-sidebar placement |
+| `ralphCodex.resolveStaleTaskClaim` | Ralphdex: Resolve Stale Task Claim | Palette | Tasks diagnostics/context | Dashboard diagnostics, palette | Keep | Advanced maintenance |
+| `ralphCodex.revealLatestProvenanceBundleDirectory` | Ralphdex: Reveal Latest Provenance Bundle Directory | Palette | Dashboard diagnostics | Palette | Keep | Filesystem jump for advanced inspection |
+| `ralphCodex.cleanupRalphRuntimeArtifacts` | Ralphdex: Cleanup Runtime Artifacts | Palette | Dashboard maintenance | Palette | `Clean Up Old Run Artifacts` | Advanced maintenance; safe cleanup wording matters |
+| `ralphCodex.resetRalphWorkspaceState` | Ralphdex: Reset Runtime State | Palette | Dashboard maintenance danger zone | Palette | Keep + danger text | High-impact reset; require clear confirmation |
+| `ralphCodex.showDashboard` | Ralphdex: Show Dashboard | Palette, links | Palette/internal focus alias | — | Rename to `Focus Dashboard` or hide | Navigation alias; avoid competing with `openDashboard` |
+| `ralphCodex.openDashboard` | Ralphdex: Open Dashboard | Sidebar/panel/palette | Sidebar compact CTA | Palette, status bar | Keep | Canonical transition from compact surface to rich surface |
+| `ralphCodex.runPipeline` | Ralphdex: Run Pipeline | Panel/palette | Dashboard | Palette | `Run Full Workflow` or `Run End-to-End Pass` | Preserve command ID; rename user-facing label away from implementation jargon |
+| `ralphCodex.openLatestPipelineRun` | Ralphdex: Open Latest Pipeline Run | Palette | Dashboard diagnostics | Palette | `Open Latest Run Report` | Jargon cleanup; preserve artifact schema/ID |
+| `ralphCodex.openLatestDoctrineProposal` | Ralphdex: Open Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Open Latest Rules Proposal` | Advanced governance action |
+| `ralphCodex.applyLatestDoctrineProposal` | Ralphdex: Apply Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Apply Latest Rules Proposal` | Guarded high-impact project-rules mutation |
+| `ralphCodex.rejectLatestDoctrineProposal` | Ralphdex: Reject Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Reject Latest Rules Proposal` | Guarded governance action |
 | `ralphCodex.openPrdWizard` | Ralphdex: Open PRD Wizard | Sidebar/panel/palette | First-run setup state | Palette, dashboard setup | Keep | Primary no-PRD route |
 | `ralphCodex.regeneratePrd` | Ralphdex: Regenerate PRD | Panel/palette | Dashboard setup section | Palette | Keep | Authoring action |
-| `ralphCodex.showTasks` | Ralphdex: Show Tasks | Sidebar/panel/palette | Tasks tree | Palette | Keep | Navigation helper |
-| `ralphCodex.addTask` | Ralphdex: Add Task | Palette | Tasks tree/header | Palette | Keep | Native task workflow |
-| `ralphCodex.seedTasksFromFeatureRequest` | Ralphdex: Seed Tasks from Feature Request | Sidebar/panel/palette | Dashboard work tab | Palette | `Seed Backlog from Feature` | Avoid duplicate forms |
-| `ralphCodex.requeueDeadLetterTask` | Ralphdex: Requeue Dead-Letter Task | Palette | Tasks recovery group | Dashboard diagnostics, palette | `Requeue Recovery Task` | Rename user-facing jargon |
-| `ralphCodex.autoRecoverTask` | Ralphdex: Auto-Recover Task | Palette/dashboard | Dashboard diagnostics | Palette | Keep | Advanced recovery |
-| `ralphCodex.skipTask` | Ralphdex: Skip Task | Palette/dashboard | Dashboard diagnostics | Palette | Consider `Mark Task Blocked` | High-impact action |
-| `ralphCodex.openFailureDiagnosis` | Ralphdex: Open Failure Diagnosis | Palette/dashboard | Dashboard diagnostics | Task tree link | Keep | Deep diagnostics |
-| `ralphCodex.openLatestRalphSummary` | Ralphdex: Open Latest Ralph Summary | Palette | Logs/artifacts section | Dashboard links | `Open Latest Run Summary` | Document-first surface |
-| `ralphCodex.openLatestCliTranscript` | Ralphdex: Open Latest CLI Transcript | Palette | Logs/artifacts section | Dashboard links | Keep | Native document path |
-| `ralphCodex.openLatestPromptEvidence` | Ralphdex: Open Latest Prompt Evidence | Palette | Logs/artifacts section | Dashboard links | Keep | Advanced evidence |
-| `ralphCodex.openLatestProvenanceBundle` | Ralphdex: Open Latest Provenance Bundle | Palette | Dashboard diagnostics | Palette | Keep | Advanced evidence |
-| `ralphCodex.revealLatestProvenanceBundleDirectory` | Ralphdex: Reveal Latest Provenance Bundle Directory | Palette | Dashboard diagnostics | Palette | Keep | Filesystem jump |
-| `ralphCodex.openLatestPipelineRun` | Ralphdex: Open Latest Pipeline Run | Palette | Dashboard diagnostics | Palette | `Open Latest Run Report` | Jargon cleanup |
-| `ralphCodex.initializeDoctrinePack` | Ralphdex: Initialize Doctrine Pack | Palette | Dashboard maintenance/setup | Palette | Optional: `Initialize Project Rules Pack` | Advanced/internal concept |
-| `ralphCodex.openLatestDoctrineProposal` | Ralphdex: Open Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Open Latest Rules Proposal` | Advanced |
-| `ralphCodex.applyLatestDoctrineProposal` | Ralphdex: Apply Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Apply Latest Rules Proposal` | Guarded action |
-| `ralphCodex.rejectLatestDoctrineProposal` | Ralphdex: Reject Latest Doctrine Proposal | Palette | Dashboard diagnostics | Palette | `Reject Latest Rules Proposal` | Guarded action |
-| `ralphCodex.resolveStaleTaskClaim` | Ralphdex: Resolve Stale Task Claim | Palette | Tasks diagnostics/context | Dashboard diagnostics | Keep | Advanced maintenance |
-| `ralphCodex.cleanupRalphRuntimeArtifacts` | Ralphdex: Cleanup Runtime Artifacts | Palette | Dashboard maintenance | Palette | `Clean Up Old Run Artifacts` | Advanced maintenance |
-| `ralphCodex.resetRalphWorkspaceState` | Ralphdex: Reset Runtime State | Palette | Dashboard maintenance (danger zone) | Palette | Keep + danger text | High-impact |
-| `ralphCodex.runReviewAgent` | Ralphdex: Run Review Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert action |
-| `ralphCodex.runWatchdogAgent` | Ralphdex: Run Watchdog Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert action |
-| `ralphCodex.runScmAgent` | Ralphdex: Run SCM Agent | Palette | Dashboard advanced diagnostics | Palette | Keep | Expert action |
-| `ralphCodex.setProviderSecret` | Ralphdex: Set Provider Secret | Palette | Settings/security docs flow | Palette | Keep | Keep out compact surfaces |
-| `ralphCodex.clearProviderSecret` | Ralphdex: Clear Provider Secret | Palette | Settings/security docs flow | Palette | Keep | Keep out compact surfaces |
+| `ralphCodex.requeueDeadLetterTask` | Ralphdex: Requeue Dead-Letter Task | Palette | Tasks recovery group | Dashboard diagnostics, palette | `Requeue Recovery Task` | Rename user-facing jargon; preserve ID |
+| `ralphCodex.showSidebar` | Ralphdex: Show Sidebar | Palette | Palette | — | Keep | Utility navigation command |
+| `ralphCodex.setProviderSecret` | Ralphdex: Set Provider Secret | Palette | Settings/security flow | Palette | Keep | Keep out compact surfaces; sensitive setup action |
+| `ralphCodex.clearProviderSecret` | Ralphdex: Clear Provider Secret | Palette | Settings/security flow | Palette | Keep | Keep out compact surfaces; sensitive setup action |
+| `ralphCodex.showTasks` | Ralphdex: Show Tasks | Sidebar/panel/palette | Tasks tree | Palette | Keep | Navigation helper; not a task mutation |
 | `ralphCodex.openSettings` | Ralphdex: Open RalphDex Settings | Sidebar/panel/palette | Dashboard settings entry | Palette | Keep | Single settings doorway |
 
 ## 3) Settings grouping proposal
@@ -74,7 +85,7 @@ Use user-intent grouping while preserving existing setting keys for compatibilit
 4. **Prompt and memory**
    - prompt-context inclusion/budgets/profiles, prompt caching, clipboard copy, memory strategy/window/summary thresholds.
 5. **Security and approvals**
-   - codex approval/sandbox settings, claude/cpilot permission posture, trust-related constraints.
+   - codex approval/sandbox settings, claude/copilot permission posture, trust-related constraints.
 6. **Paths and artifacts**
    - PRD/task/progress/template path knobs and artifact retention/cleanup controls.
 7. **Advanced internals**
@@ -84,7 +95,7 @@ Use user-intent grouping while preserving existing setting keys for compatibilit
 
 ### A. Clean workspace
 - Sidebar: setup-only state with one clear CTA (`Open PRD Wizard`).
-- Disable run controls until setup done.
+- Disable run controls until setup is complete.
 
 ### B. PRD missing/default
 - On run-related commands (`Run Loop`, `Run Iteration`, `Run Multi-Agent Loop`, `Run Pipeline`, `Prepare Prompt`, `Open Codex IDE`): block execution and route to PRD wizard with explicit reason.
