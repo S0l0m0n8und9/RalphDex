@@ -131,29 +131,38 @@ test('buildDashboardHtml shows phase indicator when running', () => {
   assert.ok(html.includes('execute'));
 });
 
-test('buildDashboardHtml keeps all buttons enabled during running state for parallel launches', () => {
+test('buildDashboardHtml keeps compact sidebar buttons enabled during running state', () => {
   const html = buildDashboardHtml(defaultState({ loopState: 'running' }), 'n5');
-  // Sidebar buttons stay enabled — claims handle contention.
   const disabledButtons = (html.match(/<button[^>]*disabled[^>]*>/g) ?? []).length;
   assert.equal(disabledButtons, 0, `Expected 0 disabled buttons, got ${disabledButtons}`);
 });
 
-test('buildDashboardHtml renders agent and action button grids', () => {
-  const html = buildDashboardHtml(defaultState(), 'n6');
-  assert.ok(html.includes('ralphCodex.runRalphLoop'));
-  assert.ok(html.includes('ralphCodex.runReviewAgent'));
-  assert.ok(html.includes('ralphCodex.runWatchdogAgent'));
-  assert.ok(html.includes('ralphCodex.runScmAgent'));
-  assert.ok(html.includes('ralphCodex.runRalphIteration'));
-  assert.ok(html.includes('ralphCodex.generatePrompt'));
-  assert.ok(html.includes('ralphCodex.openPrdWizard'));
-  assert.ok(!html.includes('ralphCodex.initializeWorkspace'));
+test('buildDashboardHtml keeps sidebar focused on compact run and dashboard navigation', () => {
+  const html = buildDashboardHtml(defaultState(), 'sidebar-actions');
+
+  assert.ok(html.includes('data-command="ralphCodex.runRalphLoop"'));
+  assert.ok(html.includes('data-command="ralphCodex.openDashboard"'));
+  assert.ok(html.includes('Run Loop'));
+  assert.ok(html.includes('Open Dashboard'));
+
+  assert.ok(!html.includes('ralphCodex.runMultiAgentLoop'));
+  assert.ok(!html.includes('ralphCodex.runRalphIteration'));
+  assert.ok(!html.includes('ralphCodex.runReviewAgent'));
+  assert.ok(!html.includes('ralphCodex.runWatchdogAgent'));
+  assert.ok(!html.includes('ralphCodex.runScmAgent'));
+  assert.ok(!html.includes('ralphCodex.generatePrompt'));
+  assert.ok(!html.includes('ralphCodex.openPrdWizard'));
+  assert.ok(!html.includes('ralphCodex.showTasks'));
+  assert.ok(!html.includes('ralphCodex.openLatestPipelineRun'));
+  assert.ok(!html.includes('ralphCodex.openSettings'));
 });
 
-test('buildDashboardHtml includes Open Dashboard button', () => {
-  const html = buildDashboardHtml(defaultState(), 'n7');
-  assert.ok(html.includes('ralphCodex.openDashboard'));
-  assert.ok(html.includes('Open Dashboard'));
+test('buildDashboardHtml renders stop control when loop is running', () => {
+  const html = buildDashboardHtml(defaultState({ loopState: 'running' }), 'running-actions');
+
+  assert.ok(html.includes('data-command="ralphCodex.stopLoop"'));
+  assert.ok(html.includes('Stop Loop'));
+  assert.ok(!html.includes('data-command="ralphCodex.runRalphLoop"'));
 });
 
 test('buildDashboardHtml renders header with workspace name and state', () => {
@@ -169,92 +178,40 @@ test('buildDashboardHtml includes command-ack message handler', () => {
   assert.ok(html.includes('resetButton'));
 });
 
-test('buildDashboardHtml renders sidebar task-seeding affordance and latest result copy', () => {
-  const html = buildDashboardHtml(defaultState({
-    taskSeeding: {
-      phase: 'success',
-      requestText: 'Seed a sidebar epic',
-      createdTaskCount: 4,
-      message: 'Seeded 4 task(s).',
-      artifactPath: '.ralph/artifacts/task-seeding/sidebar.json'
-    }
-  }), 'seed-sidebar');
+test('buildDashboardHtml omits sidebar task-seeding hooks because seeding belongs in dashboard/tasks flow', () => {
+  const html = buildDashboardHtml(defaultState(), 'seed-sidebar');
 
-  assert.ok(html.includes('Seed Tasks'));
-  assert.ok(html.includes('data-seed-request'));
-  assert.ok(html.includes("type: 'seed-tasks'"));
-  assert.ok(html.includes('Seeded 4 task(s).'));
-  assert.ok(html.includes('ralphCodex.showTasks'));
+  assert.ok(!html.includes('Seed Tasks'));
+  assert.ok(!html.includes('data-seed-request'));
+  assert.ok(!html.includes("type: 'seed-tasks'"));
+  assert.ok(!html.includes('data-seed-submit'));
 });
 
-test('buildDashboardHtml preserves live status, orchestration, task, and settings shortcuts', () => {
-  const html = buildDashboardHtml(defaultState(), 'sidebar-actions');
-
-  assert.ok(html.includes('Loop Controls'));
-  assert.ok(html.includes('Prepare &amp; Inspect'));
-  assert.ok(html.includes('ralphCodex.showRalphStatus'));
-  assert.ok(!html.includes('ralphCodex.showMultiAgentStatus'));
-  assert.ok(html.includes('ralphCodex.generatePrompt'));
-  assert.ok(html.includes('ralphCodex.showTasks'));
-  assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
-  assert.ok(html.includes('ralphCodex.openSettings'));
-  assert.ok(html.includes('ralphCodex.openDashboard'));
-});
-
-test('buildDashboardHtml exposes Open PRD wizard in simple mode with the existing command binding', () => {
-  const html = buildDashboardHtml(defaultState(), 'simple-prd-wizard');
-
-  assert.ok(html.includes('Open PRD wizard'));
-  assert.ok(html.includes('data-command="ralphCodex.openPrdWizard"'));
-});
-
-test('buildDashboardHtml omits orchestration tab wiring from sidebar navigation', () => {
+test('buildDashboardHtml omits sidebar tab navigation and advanced orchestration controls', () => {
   const html = buildDashboardHtml(defaultState(), 'sidebar-tabs');
 
-  assert.ok(html.includes('data-sidebar-tab="run"'));
-  assert.ok(html.includes('data-sidebar-tab="agents"'));
-  assert.ok(html.includes('data-sidebar-tab="seed"'));
-  assert.ok(!html.includes('data-sidebar-tab="orchestration"'));
+  assert.ok(!html.includes('data-sidebar-tab="run"'));
+  assert.ok(!html.includes('data-sidebar-tab="agents"'));
+  assert.ok(!html.includes('data-sidebar-tab="seed"'));
   assert.ok(!html.includes('data-sidebar-panel="orchestration"'));
   assert.ok(!html.includes('>Orchestration<'));
+  assert.ok(!html.includes('Agent Roles'));
+  assert.ok(!html.includes('Prepare &amp; Inspect'));
 });
 
-test('buildDashboardHtml keeps refreshed sidebar routing bound to live commands and typed seed-task hooks', () => {
-  const html = buildDashboardHtml(defaultState({
-    taskSeeding: {
-      phase: 'submitting',
-      requestText: 'Seed the refreshed dashboard regression contract',
-      createdTaskCount: null,
-      message: 'Seeding tasks from sidebar request...',
-      artifactPath: null
-    }
-  }), 'sidebar-routing');
-
-  assert.ok(html.includes('data-command="ralphCodex.runRalphLoop"'));
-  assert.ok(html.includes('data-command="ralphCodex.runMultiAgentLoop"'));
-  assert.ok(html.includes('data-command="ralphCodex.runRalphIteration"'));
-  assert.ok(html.includes('data-command="ralphCodex.showRalphStatus"'));
-  assert.ok(!html.includes('data-command="ralphCodex.showMultiAgentStatus"'));
-  assert.ok(html.includes('data-command="ralphCodex.openLatestPipelineRun"'));
-  assert.ok(html.includes('data-command="ralphCodex.openSettings"'));
-  assert.ok(html.includes('data-command="ralphCodex.showTasks"'));
-  assert.ok(html.includes('data-command="ralphCodex.openDashboard"'));
-  assert.ok(html.includes('data-seed-request="sidebar"'));
-  assert.ok(html.includes('data-seed-submit="sidebar"'));
-  assert.ok(html.includes("vscode.postMessage({ type: 'seed-tasks', requestText: requestText, source: source })"));
-  assert.ok(html.includes("document.querySelectorAll('[data-seed-submit=\"' + msg.source + '\"]')"));
-});
-
-test('buildDashboardHtml surfaces live durable snapshot summary signals in the refreshed sidebar', () => {
+test('buildDashboardHtml surfaces live durable snapshot summary signals with recovery queue language', () => {
   const html = buildDashboardHtml(defaultState({
     dashboardSnapshot: populatedDashboardSnapshot()
   }), 'sidebar-snapshot');
 
+  assert.ok(html.includes('Current Work'));
   assert.ok(html.includes('Selected T110'));
   assert.ok(html.includes('Surface dashboard sections'));
   assert.ok(html.includes('Blocked 1'));
-  assert.ok(html.includes('Dead-Letter 1'));
+  assert.ok(html.includes('Recovery Queue 1'));
   assert.ok(html.includes('validation_mismatch'));
-  assert.ok(html.includes('Recover failed task'));
+  assert.ok(html.includes('Recovery: Recover failed task'));
   assert.ok(html.includes('agent-alpha'));
+  assert.ok(!html.includes('Dead-Letter'));
+  assert.ok(!html.includes('Dead-letter'));
 });
