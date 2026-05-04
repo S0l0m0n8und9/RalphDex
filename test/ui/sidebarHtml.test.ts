@@ -23,7 +23,7 @@ function defaultState(overrides: Partial<RalphDashboardState> = {}): RalphDashbo
     snapshotStatus: { phase: 'idle', errorMessage: null },
     taskSeeding: { phase: 'idle', requestText: '', createdTaskCount: null, message: null, artifactPath: null },
     viewIntent: null,
-    prdExists: false,
+    prdExists: true,
     ...overrides
   };
 }
@@ -137,7 +137,7 @@ test('buildDashboardHtml keeps compact sidebar buttons enabled during running st
   assert.equal(disabledButtons, 0, `Expected 0 disabled buttons, got ${disabledButtons}`);
 });
 
-test('buildDashboardHtml keeps sidebar focused on compact run and dashboard navigation', () => {
+test('buildDashboardHtml keeps sidebar focused on compact run and dashboard navigation when ready', () => {
   const html = buildDashboardHtml(defaultState(), 'sidebar-actions');
 
   assert.ok(html.includes('data-command="ralphCodex.runRalphLoop"'));
@@ -151,10 +151,31 @@ test('buildDashboardHtml keeps sidebar focused on compact run and dashboard navi
   assert.ok(!html.includes('ralphCodex.runWatchdogAgent'));
   assert.ok(!html.includes('ralphCodex.runScmAgent'));
   assert.ok(!html.includes('ralphCodex.generatePrompt'));
-  assert.ok(!html.includes('ralphCodex.openPrdWizard'));
   assert.ok(!html.includes('ralphCodex.showTasks'));
   assert.ok(!html.includes('ralphCodex.openLatestPipelineRun'));
   assert.ok(!html.includes('ralphCodex.openSettings'));
+});
+
+test('buildDashboardHtml routes no-PRD sidebar start to the PRD wizard instead of loop execution', () => {
+  const html = buildDashboardHtml(defaultState({ prdExists: false }), 'no-prd-sidebar');
+
+  assert.ok(html.includes('PRD required before running'));
+  assert.ok(html.includes('Setup Required'));
+  assert.ok(html.includes('Create a PRD before running RalphDex.'));
+  assert.ok(html.includes('data-command="ralphCodex.openPrdWizard"'));
+  assert.ok(html.includes('Open PRD Wizard'));
+  assert.ok(!html.includes('data-command="ralphCodex.runRalphLoop"'));
+});
+
+test('buildDashboardHtml shows preflight readiness block without replacing PRD-ready run command', () => {
+  const html = buildDashboardHtml(defaultState({
+    prdExists: true,
+    preflightReady: false,
+    preflightSummary: 'Provider command not found.'
+  }), 'preflight-sidebar');
+
+  assert.ok(html.includes('Readiness blocked — Provider command not found.'));
+  assert.ok(html.includes('data-command="ralphCodex.runRalphLoop"'));
 });
 
 test('buildDashboardHtml renders stop control when loop is running', () => {
@@ -176,6 +197,7 @@ test('buildDashboardHtml includes command-ack message handler', () => {
   const html = buildDashboardHtml(defaultState(), 'n9');
   assert.ok(html.includes('command-ack'));
   assert.ok(html.includes('resetButton'));
+  assert.ok(html.includes('ackTimeouts.set(el, t)'));
 });
 
 test('buildDashboardHtml omits sidebar task-seeding hooks because seeding belongs in dashboard/tasks flow', () => {
