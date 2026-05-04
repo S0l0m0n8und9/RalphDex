@@ -5570,11 +5570,11 @@
     {
       "id": "T199",
       "title": "Audit RalphDex command surfaces for stale or redundant operator actions",
-      "status": "in_progress",
+      "status": "done",
       "dependsOn": [
         "T198"
       ],
-      "notes": "Audit-only. Intended to prepare UX simplification without premature removal.",
+      "notes": "Created .ralph/artifacts/audits/T199-command-surface-audit.md covering all 40 contributed commands, activation events, dashboard/sidebar surfaces, and docs references; flagged 7 actionable items (F1–F7) with keep/remove/merge/rename recommendations; no behaviour changes made.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5602,7 +5602,8 @@
         "src/ralph/statusReport.ts",
         "README.md",
         "docs/workflows.md"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T200",
@@ -5780,11 +5781,11 @@
     {
       "id": "T205",
       "title": "Map first-run UX and identify onboarding friction",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T199"
       ],
-      "notes": "Audit-first task before changing first-run UX.",
+      "notes": "Created .ralph/artifacts/audits/T205-first-run-ux.md: first-run journey map, friction inventory (sidebar/dashboard/palette/README), target 5-step flow, 8 risk-classified recommendations; npm run validate passes (1273 tests).",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "default",
@@ -5810,7 +5811,8 @@
         "src/commands/statusSnapshot.ts",
         "src/ralph/statusReport.ts",
         "media"
-      ]
+      ],
+      "lastVerifierResult": "failed"
     },
     {
       "id": "T206",
@@ -6221,5 +6223,5 @@
       ]
     }
   ],
-  "mutationCount": 245
+  "mutationCount": 247
 }

@@ -380,3 +380,5 @@
 - Completed T196.5 (documented planning/diagnostic reasoning policy with comments and docs, added 2 integration tests) and T196.8 (added 3 integration tests proving per-tier reasoning survives config→selection→execution→evidence with fallback). All 8 subtasks T196.1–T196.8 are now implemented and verified.
 - Hardened provider fallback: ENOENT now resets model to workspace default; conformance and integration tests added; docs updated.
 - Per-tier provider fallback now uses full workspace-default execution profile including reasoning effort
+- Created .ralph/artifacts/audits/T199-command-surface-audit.md covering all 40 contributed commands, activation events, dashboard/sidebar surfaces, and docs references; flagged 7 actionable items (F1–F7) with keep/remove/merge/rename recommendations; no behaviour changes made.
+- Created .ralph/artifacts/audits/T205-first-run-ux.md: first-run journey map, friction inventory (sidebar/dashboard/palette/README), target 5-step flow, 8 risk-classified recommendations; npm run validate passes (1273 tests).

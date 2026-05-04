@@ -15,16 +15,16 @@
     "ralphCodex.modelTiering": {
         "enabled": false,
         "simple": {
-            "model": "gpt-5.3-codex",
-            "provider": "copilot"
+            "model": "claude-haiku-4-5",
+            "provider": "claude"
         },
         "medium": {
-            "model": "gpt-5.4",
-            "provider": "copilot"
+            "model": "claude-sonnet-4-6",
+            "provider": "claude"
         },
         "complex": {
-            "model": "claude-opus-4.7",
-            "provider": "copilot"
+            "model": "claude-opus-4-7",
+            "provider": "claude"
         }
     },
     "sarif-viewer.connectToGithubCodeScanning": "off",
