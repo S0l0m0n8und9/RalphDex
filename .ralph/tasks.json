@@ -6062,12 +6062,12 @@
     {
       "id": "T213",
       "title": "Add security and data-handling documentation for harness use",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T201",
         "T209"
       ],
-      "notes": "Important for marketplace credibility and safe harness adoption.",
+      "notes": "Added canonical harness security/data-handling documentation in docs/security.md; cross-linked from README, boundaries, provenance, workflows, and AGENTS; clarified secret handling, artifact sensitivity/redaction expectations, untrusted workspace limits, and third-party provider trust risks.",
       "validation": "npm run validate",
       "priority": "high",
       "mode": "documentation",
@@ -6094,7 +6094,8 @@
         "package.json",
         "src/codex",
         "src/services"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T214",
@@ -6229,5 +6230,5 @@
       ]
     }
   ],
-  "mutationCount": 253
+  "mutationCount": 254
 }

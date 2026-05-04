@@ -8,6 +8,11 @@ Related docs:
 - [Provenance](provenance.md)
 - [Verifier](verifier.md)
 - [Boundaries](boundaries.md)
+- [Security And Data Handling](security.md)
+
+## Security Posture For Harness Runs
+
+Before running provider-facing commands, review [docs/security.md](security.md). It is the canonical boundary for what RalphDex reads, writes, executes, and sends, plus secret-handling rules, artifact sensitivity, untrusted-workspace limits, and third-party provider risk assumptions.
 
 ## Develop The Extension
 

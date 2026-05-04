@@ -23,6 +23,7 @@ Ralphdex is a VS Code extension that:
 - [docs/testing.md](docs/testing.md): validation gate and test coverage
 - [docs/invariants.md](docs/invariants.md): control-plane, task-schema, and artifact-model invariants
 - [docs/provenance.md](docs/provenance.md): prompt/plan/invocation/run trust chain
+- [docs/security.md](docs/security.md): harness security/data-handling boundary and secret-handling expectations
 - [docs/verifier.md](docs/verifier.md): verifier modes, outcome classes, and stop implications
 - [docs/boundaries.md](docs/boundaries.md): explicit non-goals, trust limits, and orchestration boundaries
 - [docs/multi-agent-readiness.md](docs/multi-agent-readiness.md): historical acceptance record for the multi-agent readiness milestone

@@ -7,6 +7,7 @@ Related docs:
 - [Invariants](invariants.md) for artifact-model rules
 - [Verifier](verifier.md) for post-execution evaluation
 - [Boundaries](boundaries.md) for trust limits
+- [Security And Data Handling](security.md) for artifact sensitivity and redaction expectations
 
 ## Provenance Unit
 
@@ -111,6 +112,8 @@ When one of those checks fails before meaningful execution:
 Each provenance bundle should remain inspectable as a coherent folder under `.ralph/artifacts/runs/<provenance-id>/`.
 
 The bundle summary is the primary human-readable surface. Machine-readable siblings make the proof chain inspectable without reconstructing state from logs.
+
+Provenance artifacts should be treated as sensitive operational evidence. Even with transcript sanitization, operators should review and redact before external sharing.
 
 `Open Latest Provenance Bundle` should prefer the summary first. `Reveal Latest Provenance Bundle Directory` should reveal the folder that contains the copied evidence set.
 `Open Latest Prompt Evidence` should open the stable latest prompt-evidence manifest directly. `Open Latest CLI Transcript` should open the transcript referenced by the stable latest CLI-invocation manifest, or the corresponding last-message artifact when that transcript path is unavailable.

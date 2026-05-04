@@ -6,6 +6,7 @@ Related docs:
 
 - [Architecture](architecture.md) for module shape
 - [Provenance](provenance.md) for trust-chain details
+- [Security And Data Handling](security.md) for harness security/data boundaries
 - [Verifier](verifier.md) for stop and review semantics
 - [Multi-Agent Readiness](multi-agent-readiness.md) for the historical acceptance record that unlocked built-in multi-agent orchestration
 
@@ -34,6 +35,8 @@ Ralph does not prove:
 - what the model internally decided after launch
 - what a human later edited before pasting or running in the IDE
 - that a prompt implies a particular diff without verifier evidence
+
+For explicit harness security/data-handling scope (reads, writes, provider execution, secret handling, redaction expectations, and third-party risk), use [docs/security.md](security.md) as the canonical surface.
 
 ## Control-Plane Boundary
 
@@ -111,7 +114,8 @@ Supported runtime baseline:
 
 Workspace boundaries:
 
-- untrusted workspaces support status inspection only
+- trusted workspaces are required for operational harness commands that write files, launch providers, or run command handoff
+- untrusted workspaces are not supported for normal Ralph execution
 - virtual workspaces are unsupported
 - the workspace must be a real local folder because Ralph reads and writes durable files and may launch provider CLIs or direct provider calls
 

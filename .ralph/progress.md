@@ -388,3 +388,4 @@
 - Created docs/marketplace-readiness.md with comprehensive pre-publication checklist; corrected stale command reference and added 5 missing commands to README; npm run validate passes with 1277 tests
 - Added 21 tests proving missing-command diagnostic consistency across all 7 providers; fixed inspectCliSupport configKey for gemini (was codexCommandPath) and copilot-byok (was codexCommandPath); npm run validate 1300/1300 pass.
 - Rewrote docs/dogfooding-runbook.md with code-verified provider runbook, evidence contract, redaction policy, and pass/fail criteria; aligned DogfoodEvidenceRecord with promptEvidencePath; added runbook to README doc map.
+- Added canonical harness security/data-handling documentation in docs/security.md; cross-linked from README, boundaries, provenance, workflows, and AGENTS; clarified secret handling, artifact sensitivity/redaction expectations, untrusted workspace limits, and third-party provider trust risks.
