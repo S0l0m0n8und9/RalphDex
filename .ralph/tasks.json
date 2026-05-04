@@ -5642,11 +5642,11 @@
     {
       "id": "T201",
       "title": "Review documentation for shipped feature drift",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T198"
       ],
-      "notes": "Low-risk drift cleanup after rapid feature movement.",
+      "notes": "Fixed 3 command title prefixes and 5 obsolete Initialize Workspace references; clarified model-tiering threshold drift in calibration and assessment sections",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "documentation",
@@ -5673,7 +5673,8 @@
         "docs/invariants.md",
         "docs/provenance.md",
         "package.json"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T202",
@@ -6225,5 +6226,5 @@
       ]
     }
   ],
-  "mutationCount": 249
+  "mutationCount": 250
 }

@@ -37,10 +37,10 @@ For Marketplace release validation, use `npm run publish:dry-run` from the repo 
 ## Initialize A Fresh Workspace
 
 1. Open a fresh clone in VS Code.
-2. Run `Ralphdex: Initialize Workspace`.
+2. Run `Ralphdex: Open PRD Wizard` to bootstrap `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and the lightweight doctrine pack under `.ralph/doctrine/`.
 3. Replace the placeholder comment in `.ralph/prd.md` with the real repository objective before using any prompt or CLI workflow.
 
-This command is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and the lightweight doctrine pack under `.ralph/doctrine/`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
+The PRD wizard is the supported bootstrap path for a new workspace that does not already carry Ralph state. It creates `.ralph/prd.md`, `.ralph/tasks.json`, `.ralph/progress.md`, and the lightweight doctrine pack under `.ralph/doctrine/`, and it writes `.ralph/.gitignore` with the standard runtime ignores when that file is not already present.
 
 The doctrine pack is deterministic scaffold only. It creates compact Markdown skeletons for project profile, invariants, boundaries, workflows, agents, decisions, risks, and open questions, plus a valid `.ralph/doctrine/evidence-index.json`. Existing doctrine files are never overwritten; if `.ralph/doctrine/` already exists before initialization, Ralph creates only missing files. The protected doctrine files are `.ralph/doctrine/invariants.md`, `.ralph/doctrine/boundaries.md`, and `.ralph/doctrine/agents.md`.
 
@@ -66,7 +66,7 @@ Doctrine repair stays narrow on purpose:
 - missing doctrine Markdown files are scaffolded from the deterministic templates
 - `.ralph/doctrine/evidence-index.json` is created when missing and rewritten only when its JSON or minimal shape is invalid
 
-If the core Ralph files are missing, the command stops and points the operator back to `Ralphdex: Initialize Workspace` instead of guessing how much of the workspace should be initialized.
+If the core Ralph files are missing, the command stops and points the operator back to `Ralphdex: Open PRD Wizard` instead of guessing how much of the workspace should be initialized.
 
 ## Regenerate Or Author A PRD
 

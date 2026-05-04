@@ -127,7 +127,7 @@ A healthy long-running loop shows `cache_read_input_tokens` growing relative to 
 
 ## Calibration
 
-Corpus date: 2026-04-14. Scored 269 done tasks from `.ralph/tasks.json` using default thresholds (`simpleThreshold=2`, `complexThreshold=6`). Script: `node scripts/calibrate-tiering.js`.
+Corpus date: 2026-04-14. Scored 269 done tasks from `.ralph/tasks.json` using thresholds at that time (`simpleThreshold=2`, `complexThreshold=6`). Current shipped defaults are `simpleThreshold=3`, `complexThreshold=6`. Script: `node scripts/calibrate-tiering.js`.
 
 > **Methodology note:** `trailing_complex_classifications` scores 0 for all tasks because iteration history is not persisted in `tasks.json`. All scores are lower-bound estimates — tasks that failed repeatedly at runtime would have scored higher, shifting the medium/complex boundary upward.
 
@@ -183,4 +183,4 @@ The distribution is heavily medium-skewed (93.7%), with only 5.6% simple and 0.7
 1. **`has_validation_field` is near-universal.** 233 of 269 done tasks (87%) declare an explicit validation command. At +2 points this single signal pushes almost every task past the `simpleThreshold=2` boundary into medium, leaving the simple tier nearly unused in practice.
 2. **`trailing_complex_classifications` is absent.** Because iteration history is not stored in `tasks.json`, no task accumulates the +1–+4 that would push it to complex. At runtime, repeatedly-failing tasks would score higher and more tasks would reach the `complexThreshold=6` boundary.
 
-**Implication:** The current `simpleThreshold=2` is strict when nearly all tasks declare a validation field. Raising `simpleThreshold` to 3 would classify validation-only tasks (score = 2) as simple-tier routes under the configured simple-tier provider/model pair. Consider this adjustment if you want broader simple-tier usage. The `complexThreshold=6` appears well-placed: reaching it requires at minimum three coincident signals (e.g., validation + children + long title), reserving the complex tier for genuinely broad tasks. No immediate change to `complexThreshold` is warranted.
+**Implication:** The calibration used `simpleThreshold=2`, which was strict when nearly all tasks declare a validation field. The shipped default has been raised to `simpleThreshold=3`, which classifies validation-only tasks (score = 2) as simple-tier routes under the configured simple-tier provider/model pair. The `complexThreshold=6` appears well-placed: reaching it requires at minimum three coincident signals (e.g., validation + children + long title), reserving the complex tier for genuinely broad tasks.

@@ -45,9 +45,9 @@ The Marketplace listing should match what you see after install:
 1. The Ralphdex activity-bar icon appears in VS Code.
 2. `Ralphdex: Show Status` opens the dashboard webview with the current task, pipeline, failure, and artifact snapshot.
 3. The Ralphdex sidebar is a compact operator surface for durable `.ralph/` state: simple mode shows run/stop, progress, current work, PRD setup, task seeding, and dashboard access; advanced mode adds compact task triage, recent outputs, and dead-letter attention without cloning the full dashboard.
-4. `Ralphdex: Initialize Workspace` scaffolds `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` for a fresh repo.
+4. `Ralphdex: Show Status` and `Ralphdex: Open PRD Wizard` scaffold `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` for a fresh repo (the PRD wizard opens automatically when workspace state is incomplete).
 
-For a quick release-candidate demo pass, install the Marketplace build or local VSIX, run `Ralphdex: Show Status`, confirm the dashboard renders, then run `Ralphdex: Initialize Workspace` in a scratch folder and verify the `.ralph/` files are created.
+For a quick release-candidate demo pass, install the Marketplace build or local VSIX, run `Ralphdex: Show Status` to confirm the dashboard renders, then run `Ralphdex: Open PRD Wizard` in a scratch folder and verify the `.ralph/` files are created.
 
 ## Release Surface
 
@@ -84,7 +84,7 @@ For a fresh clone, start by installing dependencies and running the validation g
 5. Use `Ralphdex: Show Status` to open the dashboard and inspect the current workspace state.
 6. Use `Ralphdex: Prepare Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run CLI Iteration`, or `Ralphdex: Run CLI Loop` depending on the workflow you want.
 
-For a fresh workspace that does not have a `.ralph/` directory, start with `Ralphdex: Initialize Workspace` or open the PRD wizard. Provider-facing commands such as Prepare Prompt, Open Codex IDE, Run CLI Iteration, Run CLI Loop, Run Multi-Agent Loop, and Run Pipeline now stop and open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
+For a fresh workspace that does not have a `.ralph/` directory, open the PRD wizard using `Ralphdex: Open PRD Wizard`, or run any provider-facing command. Provider-facing commands such as Prepare Prompt, Open Codex IDE, Run CLI Iteration, Run CLI Loop, Run Multi-Agent Loop, and Run Pipeline automatically open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
 
 For an established Ralph workspace that already has `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` but is missing `.ralph/doctrine/`, use `Ralphdex: Initialize Doctrine Pack`. That command only scaffolds missing doctrine files and repairs an invalid `evidence-index.json`; it does not rerun workspace bootstrap or act like cleanup/reset.
 
@@ -164,9 +164,9 @@ Current command surface:
 - `Ralphdex: Run CLI Iteration`
 - `Ralphdex: Run CLI Loop`
 - `Ralphdex: Run Multi-Agent Loop`
-- `Ralph: Run Review Agent`
-- `Ralph: Run Watchdog Agent`
-- `Ralph: Run SCM Agent`
+- `Ralphdex: Run Review Agent`
+- `Ralphdex: Run Watchdog Agent`
+- `Ralphdex: Run SCM Agent`
 - `Ralphdex: Show Status`
 - `Ralphdex: Open Failure Diagnosis`
 - `Ralphdex: Auto-Recover Task`
