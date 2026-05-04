@@ -5679,11 +5679,11 @@
     {
       "id": "T202",
       "title": "Add non-blocking provider readiness diagnostics inventory",
-      "status": "todo",
+      "status": "done",
       "dependsOn": [
         "T198"
       ],
-      "notes": "Reframes Azure work as provider-readiness quality rather than an Azure-specific horizon.",
+      "notes": "Added 21 tests proving missing-command diagnostic consistency across all 7 providers; fixed inspectCliSupport configKey for gemini (was codexCommandPath) and copilot-byok (was codexCommandPath); npm run validate 1300/1300 pass.",
       "validation": "npm run validate",
       "priority": "normal",
       "mode": "default",
@@ -5709,7 +5709,8 @@
         "src/commands/statusSnapshot.ts",
         "src/ralph/statusReport.ts",
         "docs/model-tiering.md"
-      ]
+      ],
+      "lastVerifierResult": "passed"
     },
     {
       "id": "T203",
@@ -6227,5 +6228,5 @@
       ]
     }
   ],
-  "mutationCount": 251
+  "mutationCount": 252
 }

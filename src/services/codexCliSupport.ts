@@ -141,11 +141,13 @@ export async function inspectCliSupport(
     ? 'ralphCodex.claudeCommandPath'
     : provider === 'copilot'
       ? 'ralphCodex.copilotCommandPath'
-      : provider === 'copilot-foundry'
-        ? 'ralphCodex.copilotFoundry.commandPath'
-        : provider === 'azure-foundry'
-          ? 'ralphCodex.azureFoundry.commandPath'
-          : 'ralphCodex.codexCommandPath';
+      : provider === 'gemini'
+        ? 'ralphCodex.geminiCommandPath'
+        : provider === 'copilot-foundry' || provider === 'copilot-byok'
+          ? 'ralphCodex.copilotFoundry.commandPath'
+          : provider === 'azure-foundry'
+            ? 'ralphCodex.azureFoundry.commandPath'
+            : 'ralphCodex.codexCommandPath';
   return {
     ...base,
     provider,

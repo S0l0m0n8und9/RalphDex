@@ -3,7 +3,7 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import test from 'node:test';
-import { inspectCodexCliSupport, inspectIdeCommandSupport } from '../src/services/codexCliSupport';
+import { inspectCliSupport, inspectCodexCliSupport, inspectIdeCommandSupport } from '../src/services/codexCliSupport';
 
 async function makeTempRoot(): Promise<string> {
   return fs.mkdtemp(path.join(os.tmpdir(), 'ralph-codex-support-'));
@@ -101,3 +101,31 @@ test('inspectIdeCommandSupport reports available IDE command mode when commands 
   assert.equal(support.status, 'available');
   assert.deepEqual(support.missingCommandIds, []);
 });
+
+// ---------------------------------------------------------------------------
+// inspectCliSupport: configKey correctness across all providers
+// ---------------------------------------------------------------------------
+
+const providerConfigKeys: Array<[import('../src/config/types').CliProviderId, string, string]> = [
+  ['codex', 'codex', 'ralphCodex.codexCommandPath'],
+  ['claude', 'claude', 'ralphCodex.claudeCommandPath'],
+  ['copilot', 'copilot', 'ralphCodex.copilotCommandPath'],
+  ['gemini', 'gemini', 'ralphCodex.geminiCommandPath'],
+  ['copilot-foundry', 'copilot-foundry', 'ralphCodex.copilotFoundry.commandPath'],
+  ['copilot-byok', 'copilot-byok', 'ralphCodex.copilotFoundry.commandPath'],
+  ['azure-foundry', 'azure-foundry', 'ralphCodex.azureFoundry.commandPath']
+];
+
+for (const [provider, commandName, expectedConfigKey] of providerConfigKeys) {
+  test(`inspectCliSupport assigns correct configKey for provider "${provider}"`, async () => {
+    const originalPath = process.env.PATH;
+    process.env.PATH = '';
+    try {
+      const result = await inspectCliSupport(provider, `${commandName}-missing-in-tests`);
+      assert.equal(result.provider, provider, `provider field should be "${provider}"`);
+      assert.equal(result.configKey, expectedConfigKey, `configKey should be "${expectedConfigKey}" for "${provider}"`);
+    } finally {
+      process.env.PATH = originalPath;
+    }
+  });
+}

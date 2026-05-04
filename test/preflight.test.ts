@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DEFAULT_CONFIG } from '../src/config/defaults';
-import { buildPreflightReport, checkHandoffHealth, checkStaleState, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
+import { buildPreflightReport, checkHandoffHealth, checkStaleState, collectProviderReadinessDiagnostics, inspectPreflightArtifactReadiness, renderPreflightReport } from '../src/ralph/preflight';
 import { inspectTaskClaimGraph, inspectTaskFileText, selectNextTask } from '../src/ralph/taskFile';
 import { cleanupGeneratedArtifacts } from '../src/ralph/artifactStore';
 
@@ -1875,4 +1875,128 @@ test('buildPreflightReport does not emit workspace_has_untracked_baseline when g
   const report = buildPreflightReport(minimalPreflightInput());
 
   assert.ok(!report.diagnostics.some((d) => d.code === 'workspace_has_untracked_baseline'));
+});
+
+// ---------------------------------------------------------------------------
+// collectProviderReadinessDiagnostics: consistent missing-command diagnostics
+// ---------------------------------------------------------------------------
+
+type ProviderCliFixture = {
+  provider: string;
+  label: string;
+  commandPath: string;
+  configKey: string;
+};
+
+const missingCommandFixtures: ProviderCliFixture[] = [
+  { provider: 'codex', label: 'Codex', commandPath: 'codex', configKey: 'ralphCodex.codexCommandPath' },
+  { provider: 'claude', label: 'Claude', commandPath: 'claude', configKey: 'ralphCodex.claudeCommandPath' },
+  { provider: 'copilot', label: 'GitHub Copilot', commandPath: 'copilot', configKey: 'ralphCodex.copilotCommandPath' },
+  { provider: 'gemini', label: 'Google Gemini', commandPath: 'gemini', configKey: 'ralphCodex.geminiCommandPath' },
+  { provider: 'copilot-foundry', label: 'Copilot Foundry', commandPath: 'copilot', configKey: 'ralphCodex.copilotFoundry.commandPath' },
+  { provider: 'copilot-byok', label: 'Copilot BYOK', commandPath: 'copilot', configKey: 'ralphCodex.copilotFoundry.commandPath' },
+  { provider: 'azure-foundry', label: 'Azure AI Foundry', commandPath: 'az-codex', configKey: 'ralphCodex.azureFoundry.commandPath' }
+];
+
+for (const fixture of missingCommandFixtures) {
+  test(`collectProviderReadinessDiagnostics emits codex_cli_missing with correct label for "${fixture.provider}" pathLookup miss`, () => {
+    const diagnostics = collectProviderReadinessDiagnostics({
+      config: { ...DEFAULT_CONFIG, cliProvider: fixture.provider as any },
+      codexCliSupport: {
+        commandPath: fixture.commandPath,
+        configuredAs: 'pathLookup',
+        check: 'pathMissing',
+        confidence: 'blocked',
+        provider: fixture.provider,
+        configKey: fixture.configKey
+      } as any
+    });
+
+    const d = diagnostics.find((item) => item.code === 'codex_cli_missing');
+    assert.ok(d, `expected codex_cli_missing diagnostic for provider "${fixture.provider}"`);
+    assert.equal(d?.severity, 'error');
+    assert.ok(d?.message.includes(fixture.label), `expected "${fixture.label}" in message: ${d?.message}`);
+    assert.ok(d?.message.includes(fixture.configKey), `expected "${fixture.configKey}" in message: ${d?.message}`);
+  });
+}
+
+for (const fixture of missingCommandFixtures) {
+  test(`collectProviderReadinessDiagnostics emits codex_cli_not_executable for "${fixture.provider}"`, () => {
+    const diagnostics = collectProviderReadinessDiagnostics({
+      config: { ...DEFAULT_CONFIG, cliProvider: fixture.provider as any },
+      codexCliSupport: {
+        commandPath: '/some/explicit/path',
+        configuredAs: 'explicitPath',
+        check: 'pathNotExecutable',
+        confidence: 'blocked',
+        provider: fixture.provider,
+        configKey: fixture.configKey
+      } as any
+    });
+
+    const d = diagnostics.find((item) => item.code === 'codex_cli_not_executable');
+    assert.ok(d, `expected codex_cli_not_executable diagnostic for provider "${fixture.provider}"`);
+    assert.equal(d?.severity, 'error');
+    assert.ok(d?.message.includes(fixture.label), `expected "${fixture.label}" in message: ${d?.message}`);
+  });
+}
+
+test('collectProviderReadinessDiagnostics distinguishes missing command from missing env var from missing endpoint', () => {
+  // missing command -> codex_cli_missing
+  const missingCmd = collectProviderReadinessDiagnostics({
+    config: { ...DEFAULT_CONFIG, cliProvider: 'claude' },
+    codexCliSupport: {
+      commandPath: 'claude',
+      configuredAs: 'pathLookup',
+      check: 'pathMissing',
+      confidence: 'blocked',
+      provider: 'claude',
+      configKey: 'ralphCodex.claudeCommandPath'
+    } as any
+  });
+  assert.ok(missingCmd.some((d) => d.code === 'codex_cli_missing'), 'missing command -> codex_cli_missing');
+
+  // missing endpoint (azure-foundry) -> azure_foundry_endpoint_missing
+  const missingEndpoint = collectProviderReadinessDiagnostics({
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'azure-foundry',
+      azureFoundry: { ...DEFAULT_CONFIG.azureFoundry, endpointUrl: '' }
+    }
+  });
+  assert.ok(missingEndpoint.some((d) => d.code === 'azure_foundry_endpoint_missing'), 'missing endpoint -> azure_foundry_endpoint_missing');
+
+  // missing env var (copilot-byok) -> copilot_byok_api_key_absent
+  const missingEnvVar = collectProviderReadinessDiagnostics({
+    config: {
+      ...DEFAULT_CONFIG,
+      cliProvider: 'copilot-byok',
+      copilotFoundry: {
+        ...DEFAULT_CONFIG.copilotFoundry,
+        providerType: 'openai',
+        baseUrlOverride: 'https://api.openai.com/v1',
+        requiredApiKeyEnvVar: 'OPENAI_API_KEY_DEFINITELY_NOT_SET_IN_TEST_9x7'
+      }
+    }
+  });
+  assert.ok(missingEnvVar.some((d) => d.code === 'copilot_byok_api_key_absent'), 'missing env var -> copilot_byok_api_key_absent');
+});
+
+test('collectProviderReadinessDiagnostics emits codex_cli_missing with explicit-path wording for pathMissing explicitPath', () => {
+  const diagnostics = collectProviderReadinessDiagnostics({
+    config: { ...DEFAULT_CONFIG, cliProvider: 'claude' },
+    codexCliSupport: {
+      commandPath: '/usr/local/bin/claude',
+      configuredAs: 'explicitPath',
+      check: 'pathMissing',
+      confidence: 'blocked',
+      provider: 'claude',
+      configKey: 'ralphCodex.claudeCommandPath'
+    } as any
+  });
+
+  const d = diagnostics.find((item) => item.code === 'codex_cli_missing');
+  assert.ok(d, 'expected codex_cli_missing for explicit path miss');
+  assert.ok(d?.message.includes('does not exist'), `expected "does not exist" in message: ${d?.message}`);
+  assert.ok(d?.message.includes('ralphCodex.claudeCommandPath'), 'expected config key in message');
 });
