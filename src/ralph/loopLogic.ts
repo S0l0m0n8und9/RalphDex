@@ -28,6 +28,13 @@ export interface RalphOutcomeInput {
   taskFileChanged: boolean;
   previousIterations: RalphIterationResult[];
   taskMode?: RalphTaskMode;
+  /**
+   * True when the completion report JSON block was absent (or invalid) but an
+   * independent workspace scan detected relevant file changes.  Prevents the
+   * iteration from being misclassified as `no_progress` solely because the
+   * agent omitted the structured report while still creating new files.
+   */
+  completionReportMissingWithWorkspaceChanges?: boolean;
 }
 
 export interface RalphOutcomeDecision {
@@ -182,6 +189,13 @@ function baseClassification(input: RalphOutcomeInput): RalphCompletionClassifica
     return 'partial_progress';
   }
 
+  // Workspace scan detected relevant changes but the completion report was missing.
+  // Treat as partial_progress rather than no_progress so the retry budget is not
+  // consumed for an iteration that genuinely produced file-system output.
+  if (input.completionReportMissingWithWorkspaceChanges) {
+    return 'partial_progress';
+  }
+
   return 'no_progress';
 }
 
@@ -227,6 +241,7 @@ export function classifyIterationOutcome(input: RalphOutcomeInput): RalphOutcome
   const shouldPromoteToNoProgress = classification === 'partial_progress'
     && !isDocMode
     && !input.humanReviewNeeded
+    && !input.completionReportMissingWithWorkspaceChanges
     && strongNoProgressSignals.has('no_relevant_file_changes')
     && strongNoProgressSignals.has('task_and_progress_state_unchanged')
     && (strongNoProgressSignals.has('same_task_selected_repeatedly')

@@ -43,6 +43,8 @@ export interface ClassifyIterationInput {
   fileChangeVerification: FileChangeVerification;
   effectiveFileChangeVerification: FileChangeVerification;
   relevantFileChangesForOutcome: string[];
+  /** Relevant workspace changes detected by the independent scan (see VerificationRunner). */
+  workspaceChangeScanFiles: string[];
   completionReconciliation: CompletionReconciliationOutcome;
   taskStateVerification: TaskStateVerification;
   afterCoreState: RalphCoreStateSnapshot;
@@ -77,6 +79,8 @@ export class OutcomeClassifier {
     const afterTaskCounts = countTaskStatuses(input.afterCoreState.taskFile);
     const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
     const nextActionableTask = selectNextTask(input.afterCoreState.taskFile);
+    const completionReportStatus = input.completionReconciliation.artifact.status;
+    const completionReportMissing = completionReportStatus === 'missing' || completionReportStatus === 'invalid';
     const outcome = classifyIterationOutcome({
       selectedTaskId: input.prepared.selectedTask?.id ?? null,
       selectedTaskCompleted: input.taskStateVerification.selectedTaskCompleted,
@@ -93,7 +97,9 @@ export class OutcomeClassifier {
       progressChanged: input.taskStateVerification.progressChanged,
       taskFileChanged: input.taskStateVerification.taskFileChanged,
       previousIterations: input.prepared.state.iterationHistory,
-      taskMode: input.prepared.selectedTask?.mode
+      taskMode: input.prepared.selectedTask?.mode,
+      completionReportMissingWithWorkspaceChanges:
+        completionReportMissing && input.workspaceChangeScanFiles.length > 0
     });
 
     let completionClassification = outcome.classification;

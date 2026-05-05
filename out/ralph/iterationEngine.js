@@ -976,6 +976,7 @@ class RalphIterationEngine {
                 fileChangeVerification: preliminaryVerification.fileChangeVerification,
                 effectiveFileChangeVerification: preliminaryVerification.effectiveFileChangeVerification,
                 relevantFileChangesForOutcome: preliminaryVerification.relevantFileChangesForOutcome,
+                workspaceChangeScanFiles: preliminaryVerification.workspaceChangeScanFiles,
                 completionReconciliation,
                 taskStateVerification,
                 afterCoreState,

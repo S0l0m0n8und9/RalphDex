@@ -157,7 +157,7 @@ export async function initializeFakeGitRepository(rootPath: string): Promise<voi
   await fs.writeFile(path.join(rootPath, GIT_SIM_PULL_REQUESTS_FILE), '[]\n', 'utf8');
 }
 
-async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
+async function fakeGitStatus(rootPath: string, args: string[]): Promise<ProcessRunResult> {
   const state = await readGitState(rootPath);
   const snapshot = state.branches[state.currentBranch] ?? { files: {} };
   const current = await buildGitSnapshot(rootPath);
@@ -166,7 +166,7 @@ async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
     ...Object.keys(current.files)
   ]);
 
-  const lines = Array.from(changedPaths)
+  const entries = Array.from(changedPaths)
     .sort()
     .flatMap((relativePath) => {
       const beforeHash = snapshot.files[relativePath];
@@ -186,14 +186,20 @@ async function fakeGitStatus(rootPath: string): Promise<ProcessRunResult> {
       return [`M  ${relativePath}`];
     });
   for (const conflictPath of state.conflictPaths ?? []) {
-    if (!lines.includes(`UU ${conflictPath}`)) {
-      lines.push(`UU ${conflictPath}`);
+    if (!entries.includes(`UU ${conflictPath}`)) {
+      entries.push(`UU ${conflictPath}`);
     }
   }
 
+  const nullTerminated = args.includes('-z');
+  const stdout = entries.length > 0
+    ? nullTerminated
+      ? `${entries.join('\0')}\0`
+      : `${entries.join('\n')}\n`
+    : '';
   return {
     code: 0,
-    stdout: lines.length > 0 ? `${lines.join('\n')}\n` : '',
+    stdout,
     stderr: ''
   };
 }
@@ -642,7 +648,7 @@ async function fakeProcessRunner(command: string, args: string[], options: Proce
   }
 
   if (command === 'git' && args[0] === 'status') {
-    return fakeGitStatus(options.cwd);
+    return fakeGitStatus(options.cwd, args);
   }
 
   if (command === 'git' && args[0] === 'add') {

@@ -74,6 +74,26 @@ class VerificationRunner {
         });
         const effectiveFileChangeVerification = roleAdjustedFileChange.fileChangeVerification;
         const relevantFileChangesForOutcome = roleAdjustedFileChange.relevantFileChangesForOutcome;
+        // Workspace change scan: compute a before/after diff independently of the
+        // formal gitDiff verifier.  This runs even when gitDiff is disabled so that
+        // "missing completion report + real workspace changes" is distinguishable from
+        // "genuine no progress".  When the gitDiff verifier already ran, reuse the
+        // diff it computed instead of duplicating the work.
+        let workspaceChangeScanFiles;
+        if (shouldRunFileChangeVerifier) {
+            // gitDiff verifier already produced the authoritative diff.
+            workspaceChangeScanFiles = fileChangeVerification.diffSummary?.relevantChangedFiles ?? [];
+        }
+        else {
+            // The formal verifier was skipped.  Use the captured git snapshots if
+            // available; otherwise do a lightweight dedicated capture.
+            const scanAfterGit = shouldCaptureGit
+                ? afterGit
+                : input.prepared.selectedTask !== null
+                    ? await (0, verifier_1.captureGitStatus)(input.prepared.rootPolicy.verificationRootPath)
+                    : EMPTY_GIT_STATUS;
+            workspaceChangeScanFiles = (0, verifier_1.collectRelevantWorkspaceChanges)(input.prepared.beforeGit, scanAfterGit);
+        }
         const preliminaryVerificationStatus = (0, loopLogic_1.classifyVerificationStatus)([
             validationVerification.result.status,
             effectiveFileChangeVerification.result.status
@@ -103,6 +123,7 @@ class VerificationRunner {
             fileChangeVerification,
             effectiveFileChangeVerification,
             relevantFileChangesForOutcome,
+            workspaceChangeScanFiles,
             preliminaryVerificationStatus,
             preliminaryOutcome
         };

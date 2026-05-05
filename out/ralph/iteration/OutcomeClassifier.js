@@ -37,6 +37,8 @@ class OutcomeClassifier {
         const afterTaskCounts = (0, taskFile_1.countTaskStatuses)(input.afterCoreState.taskFile);
         const remainingTaskCount = afterTaskCounts.todo + afterTaskCounts.in_progress + afterTaskCounts.blocked;
         const nextActionableTask = (0, taskFile_1.selectNextTask)(input.afterCoreState.taskFile);
+        const completionReportStatus = input.completionReconciliation.artifact.status;
+        const completionReportMissing = completionReportStatus === 'missing' || completionReportStatus === 'invalid';
         const outcome = (0, loopLogic_1.classifyIterationOutcome)({
             selectedTaskId: input.prepared.selectedTask?.id ?? null,
             selectedTaskCompleted: input.taskStateVerification.selectedTaskCompleted,
@@ -53,7 +55,8 @@ class OutcomeClassifier {
             progressChanged: input.taskStateVerification.progressChanged,
             taskFileChanged: input.taskStateVerification.taskFileChanged,
             previousIterations: input.prepared.state.iterationHistory,
-            taskMode: input.prepared.selectedTask?.mode
+            taskMode: input.prepared.selectedTask?.mode,
+            completionReportMissingWithWorkspaceChanges: completionReportMissing && input.workspaceChangeScanFiles.length > 0
         });
         let completionClassification = outcome.classification;
         let followUpAction = outcome.followUpAction;

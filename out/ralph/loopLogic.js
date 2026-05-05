@@ -114,6 +114,12 @@ function baseClassification(input) {
         || input.taskFileChanged) {
         return 'partial_progress';
     }
+    // Workspace scan detected relevant changes but the completion report was missing.
+    // Treat as partial_progress rather than no_progress so the retry budget is not
+    // consumed for an iteration that genuinely produced file-system output.
+    if (input.completionReportMissingWithWorkspaceChanges) {
+        return 'partial_progress';
+    }
     return 'no_progress';
 }
 function detectNoProgressSignals(input, currentClassification) {
@@ -152,6 +158,7 @@ function classifyIterationOutcome(input) {
     const shouldPromoteToNoProgress = classification === 'partial_progress'
         && !isDocMode
         && !input.humanReviewNeeded
+        && !input.completionReportMissingWithWorkspaceChanges
         && strongNoProgressSignals.has('no_relevant_file_changes')
         && strongNoProgressSignals.has('task_and_progress_state_unchanged')
         && (strongNoProgressSignals.has('same_task_selected_repeatedly')

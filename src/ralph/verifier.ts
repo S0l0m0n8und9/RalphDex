@@ -87,6 +87,75 @@ function parseGitStatus(raw: string): GitStatusEntry[] {
     });
 }
 
+/**
+ * Parses `git status --porcelain=v1 -z` NUL-terminated output.
+ * Safe for paths containing spaces or special characters.
+ * For renamed/copied entries the original-path token that follows is skipped.
+ */
+export function parseGitStatusPorcelainZ(raw: string): GitStatusEntry[] {
+  if (!raw) {
+    return [];
+  }
+
+  const results: GitStatusEntry[] = [];
+  const tokens = raw.split('\0');
+
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    // Each valid porcelain v1 entry is "XY PATH" — at least 4 chars (2 status + space + 1-char path)
+    if (token.length < 4) {
+      continue;
+    }
+
+    const statusCode = token.slice(0, 2);
+    const filePath = token.slice(3);
+    const status = statusCode.trim() || '??';
+
+    results.push({ status, path: filePath });
+
+    // Renames (R) and copies (C) are followed by the original path as the next token; skip it.
+    if (statusCode[0] === 'R' || statusCode[0] === 'C'
+      || statusCode[1] === 'R' || statusCode[1] === 'C') {
+      i++;
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Compares two git status snapshots and returns the sorted list of relevant changed file paths.
+ * Filters out Ralph metadata paths (`.ralph/state.json`, prompts, runs, logs, artifacts)
+ * and noise paths (node_modules, dist, build, out, coverage).
+ */
+export function collectRelevantWorkspaceChanges(
+  before: GitStatusSnapshot,
+  after: GitStatusSnapshot
+): string[] {
+  if (!before.available && !after.available) {
+    return [];
+  }
+
+  const beforeStatuses = new Map<string, string>(before.entries.map((e) => [e.path, e.status]));
+  const afterStatuses = new Map<string, string>(after.entries.map((e) => [e.path, e.status]));
+  const changed = new Set<string>();
+
+  for (const [p, s] of afterStatuses) {
+    if (beforeStatuses.get(p) !== s) {
+      changed.add(p);
+    }
+  }
+  for (const [p] of beforeStatuses) {
+    if (!afterStatuses.has(p)) {
+      changed.add(p);
+    }
+  }
+
+  return Array.from(changed)
+    .filter(isRelevantChange)
+    .sort();
+}
+
 function isRelevantChange(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, '/');
 
@@ -97,6 +166,15 @@ function isRelevantChange(relativePath: string): boolean {
     || normalized.startsWith('.ralph/runs/')
     || normalized.startsWith('.ralph/logs/')
     || normalized.startsWith('.ralph/artifacts/')) {
+    return false;
+  }
+
+  // Exclude generated/dependency/build noise that is never implementation evidence.
+  if (normalized.startsWith('node_modules/')
+    || normalized.startsWith('dist/')
+    || normalized.startsWith('build/')
+    || normalized.startsWith('out/')
+    || normalized.startsWith('coverage/')) {
     return false;
   }
 
@@ -312,14 +390,14 @@ export async function captureGitStatus(rootPath: string): Promise<GitStatusSnaps
     };
   }
 
-  const status = await runProcess('git', ['status', '--porcelain=v1', '--untracked-files=all'], {
+  const status = await runProcess('git', ['status', '--porcelain=v1', '-z', '--untracked-files=all'], {
     cwd: rootPath
   });
 
   return {
     available: status.code === 0,
     raw: status.stdout,
-    entries: status.code === 0 ? parseGitStatus(status.stdout) : []
+    entries: status.code === 0 ? parseGitStatusPorcelainZ(status.stdout) : []
   };
 }
 

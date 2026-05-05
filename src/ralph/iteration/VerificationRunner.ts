@@ -3,6 +3,7 @@ import type { CompletionReconciliationOutcome } from '../reconciliation';
 import {
   captureCoreState,
   captureGitStatus,
+  collectRelevantWorkspaceChanges,
   runFileChangeVerifier,
   runTaskStateVerifier,
   runValidationCommandVerifier,
@@ -35,6 +36,12 @@ export interface PreliminaryVerificationResult {
   fileChangeVerification: FileChangeVerification;
   effectiveFileChangeVerification: FileChangeVerification;
   relevantFileChangesForOutcome: string[];
+  /**
+   * Relevant workspace changes detected by an independent before/after scan,
+   * populated even when the gitDiff verifier is disabled.  Used to distinguish
+   * "missing completion report with real activity" from "genuine no progress".
+   */
+  workspaceChangeScanFiles: string[];
   preliminaryVerificationStatus: RalphVerificationStatus;
   preliminaryOutcome: RalphOutcomeDecision;
 }
@@ -119,6 +126,26 @@ export class VerificationRunner {
     const effectiveFileChangeVerification = roleAdjustedFileChange.fileChangeVerification;
     const relevantFileChangesForOutcome = roleAdjustedFileChange.relevantFileChangesForOutcome;
 
+    // Workspace change scan: compute a before/after diff independently of the
+    // formal gitDiff verifier.  This runs even when gitDiff is disabled so that
+    // "missing completion report + real workspace changes" is distinguishable from
+    // "genuine no progress".  When the gitDiff verifier already ran, reuse the
+    // diff it computed instead of duplicating the work.
+    let workspaceChangeScanFiles: string[];
+    if (shouldRunFileChangeVerifier) {
+      // gitDiff verifier already produced the authoritative diff.
+      workspaceChangeScanFiles = fileChangeVerification.diffSummary?.relevantChangedFiles ?? [];
+    } else {
+      // The formal verifier was skipped.  Use the captured git snapshots if
+      // available; otherwise do a lightweight dedicated capture.
+      const scanAfterGit = shouldCaptureGit
+        ? afterGit
+        : input.prepared.selectedTask !== null
+          ? await captureGitStatus(input.prepared.rootPolicy.verificationRootPath)
+          : EMPTY_GIT_STATUS;
+      workspaceChangeScanFiles = collectRelevantWorkspaceChanges(input.prepared.beforeGit, scanAfterGit);
+    }
+
     const preliminaryVerificationStatus = classifyVerificationStatus([
       validationVerification.result.status,
       effectiveFileChangeVerification.result.status
@@ -149,6 +176,7 @@ export class VerificationRunner {
       fileChangeVerification,
       effectiveFileChangeVerification,
       relevantFileChangesForOutcome,
+      workspaceChangeScanFiles,
       preliminaryVerificationStatus,
       preliminaryOutcome
     };

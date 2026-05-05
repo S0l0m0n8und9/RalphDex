@@ -928,3 +928,80 @@ test('reportsAlreadySatisfied returns false for undefined progressNote', () => {
 test('reportsAlreadySatisfied returns false for empty string', () => {
   assert.equal(reportsAlreadySatisfied(''), false);
 });
+
+// ---------------------------------------------------------------------------
+// Missing completion report + workspace changes — must not become no_progress
+// ---------------------------------------------------------------------------
+
+test('classifyIterationOutcome: missing completion report with workspace changes is partial_progress not no_progress', () => {
+  // The agent created untracked files but did not emit a completion report JSON block.
+  // The workspace scan detected relevant changes. This must NOT become no_progress.
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed', // gitDiff verifier failed (no tracked changes)
+    validationFailureSignature: null,
+    relevantFileChanges: [],      // gitDiff found no tracked changes
+    progressChanged: false,       // reconciliation returned false (missing report)
+    taskFileChanged: false,
+    previousIterations: [],
+    completionReportMissingWithWorkspaceChanges: true  // NEW: workspace scan detected changes
+  });
+
+  assert.equal(outcome.classification, 'partial_progress',
+    'should be partial_progress when workspace changes exist even without a completion report');
+  assert.notEqual(outcome.followUpAction, 'retry_same_task',
+    'should not blindly retry when workspace changes were detected');
+});
+
+test('classifyIterationOutcome: missing completion report with workspace changes is not demoted by no-progress signals', () => {
+  // Even with same_task_selected_repeatedly + no_relevant_file_changes,
+  // if the workspace scan detected changes, we must not demote to no_progress.
+  const previous = iterationResult({ selectedTaskId: 'T1' });
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: null,
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [previous],
+    completionReportMissingWithWorkspaceChanges: true
+  });
+
+  assert.equal(outcome.classification, 'partial_progress');
+});
+
+test('classifyIterationOutcome: missing completion report WITHOUT workspace changes is still no_progress', () => {
+  // No workspace changes at all — should remain no_progress so the retry
+  // loop can eventually stop.
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: null,
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [],
+    completionReportMissingWithWorkspaceChanges: false
+  });
+
+  assert.equal(outcome.classification, 'no_progress');
+});

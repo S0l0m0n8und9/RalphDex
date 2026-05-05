@@ -60,6 +60,21 @@ Operational meaning:
 - `partial_progress`: execution or verification shows meaningful progress without completion
 - `no_progress`: no relevant file changes or durable state changes, often with repeated failure signals
 
+### Completion Report × Workspace Change Matrix
+
+| Completion report | Workspace changes | Classification |
+|---|---|---|
+| present | present | normal verification path |
+| missing/invalid | present | `partial_progress` (changed without report) |
+| missing/invalid | absent | `no_progress` |
+| present | absent | verifier-dependent |
+
+When the completion report is absent or invalid but an independent workspace scan detects relevant file changes, Ralph classifies the iteration as `partial_progress` rather than `no_progress`. This prevents the no-progress retry budget from being consumed when the agent created files but omitted the structured JSON block.
+
+The independent workspace scan (`collectRelevantWorkspaceChanges`) compares git status snapshots using `git status --porcelain=v1 -z --untracked-files=all`. It runs even when the `gitDiff` verifier mode is disabled. Untracked new files, staged additions, and tracked modifications are all detected. Paths under `node_modules/`, `dist/`, `build/`, `out/`, `coverage/`, and `.ralph/` metadata directories are excluded.
+
+Workspace changes are evidence of activity, not evidence of correctness or completion. Ralph does not mark a task done or promote a classification solely because files changed.
+
 ## No-Progress Detection
 
 No-progress detection remains deterministic. Current signals include:
@@ -70,7 +85,7 @@ No-progress detection remains deterministic. Current signals include:
 - task and progress state unchanged
 - same failure classification across consecutive iterations
 
-`partial_progress` may be promoted to `no_progress` when the strong no-progress signals line up.
+`partial_progress` may be promoted to `no_progress` when the strong no-progress signals line up, **except** when the workspace scan detected changes alongside a missing completion report — that combination is protected from demotion.
 
 Do not replace this with an open-ended "AI decides progress" rule.
 
