@@ -68,7 +68,7 @@ class TaskGroupItem extends TaskTreeNode {
                 state = vscode.TreeItemCollapsibleState.Collapsed;
                 break;
             case 'dead-letter':
-                label = 'Dead-Letter Queue';
+                label = 'Recovery Queue';
                 break;
         }
         super(label, state);
@@ -114,7 +114,7 @@ async function readWorkspaceState(stateFilePath) {
 function describeTask(input) {
     const parts = [];
     if (input.groupKind === 'dead-letter') {
-        parts.push('dead-letter');
+        parts.push('recovery queue');
     }
     if (input.task) {
         parts.push(input.task.status);
@@ -219,7 +219,7 @@ class RalphTaskTreeDataProvider {
     }
     buildDeadLetterRows(snapshot) {
         if (snapshot.deadLetterOrder.length === 0) {
-            return [new MessageItem('No tasks are parked in dead-letter.')];
+            return [new MessageItem('No tasks are parked in the recovery queue.')];
         }
         return snapshot.deadLetterOrder.map((taskId) => {
             const task = snapshot.taskFile?.tasks.find((candidate) => candidate.id === taskId) ?? null;
@@ -297,10 +297,10 @@ class RalphTaskTreeDataProvider {
         }
         if (deadLetterEntry) {
             const lastDiagnostic = deadLetterEntry.diagnosticHistory[deadLetterEntry.diagnosticHistory.length - 1];
-            details.push(new DetailItem('Dead-letter summary', `${deadLetterEntry.deadLetteredAt} | attempts: ${deadLetterEntry.recoveryAttemptCount}${lastDiagnostic ? ` | last: ${lastDiagnostic.rootCauseCategory}` : ''}`));
-            details.push(new DetailItem('Requeue dead-letter task', 'Run the supported requeue command.', {
+            details.push(new DetailItem('Recovery summary', `${deadLetterEntry.deadLetteredAt} | attempts: ${deadLetterEntry.recoveryAttemptCount}${lastDiagnostic ? ` | last: ${lastDiagnostic.rootCauseCategory}` : ''}`));
+            details.push(new DetailItem('Requeue recovery task', 'Run the supported requeue command.', {
                 command: 'ralphCodex.requeueDeadLetterTask',
-                title: 'Requeue Dead-Letter Task'
+                title: 'Requeue Recovery Task'
             }));
         }
         return details.length > 0 ? details : [new MessageItem('No durable task details recorded yet.')];

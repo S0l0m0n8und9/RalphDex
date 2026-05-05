@@ -9,8 +9,10 @@ import {
   inspectValidationCommandReadiness,
   normalizeValidationCommand,
   parseGitStatusPorcelainZ,
+  runFileChangeVerifier,
   runValidationCommandVerifier,
-  type GitStatusSnapshot
+  type GitStatusSnapshot,
+  type RalphCoreStateSnapshot
 } from '../src/ralph/verifier';
 
 // ---------------------------------------------------------------------------
@@ -134,6 +136,108 @@ test('collectRelevantWorkspaceChanges handles path with spaces (porcelain -z saf
   const after = makeSnapshot([{ status: '??', path: 'src/components/New Widget.tsx' }]);
   const changes = collectRelevantWorkspaceChanges(before, after);
   assert.deepEqual(changes, ['src/components/New Widget.tsx']);
+});
+
+// ---------------------------------------------------------------------------
+// runFileChangeVerifier — untracked (??) file handling
+// ---------------------------------------------------------------------------
+
+const EMPTY_CORE_SNAPSHOT: RalphCoreStateSnapshot = {
+  objectiveText: '',
+  progressText: '',
+  tasksText: '',
+  taskFile: { version: 2, tasks: [] },
+  taskFileError: null,
+  hashes: { objective: '', progress: '', tasks: '' }
+};
+
+test('runFileChangeVerifier: newly created untracked file is a relevant change', async () => {
+  const tmpDir = await makeTempRoot();
+  const before: GitStatusSnapshot = { available: true, raw: '', entries: [] };
+  const after: GitStatusSnapshot = {
+    available: true,
+    raw: '',
+    entries: [{ status: '??', path: 'src/new-component.ts' }]
+  };
+
+  const { result, diffSummary } = await runFileChangeVerifier({
+    rootPath: tmpDir,
+    artifactDir: tmpDir,
+    beforeGit: before,
+    afterGit: after,
+    before: EMPTY_CORE_SNAPSHOT,
+    after: EMPTY_CORE_SNAPSHOT
+  });
+
+  assert.ok(diffSummary.relevantChangedFiles.includes('src/new-component.ts'), 'newly created ?? file should be in relevantChangedFiles');
+  assert.equal(result.status, 'passed');
+});
+
+test('runFileChangeVerifier: existing untracked file unchanged is not a change', async () => {
+  const tmpDir = await makeTempRoot();
+  const entry = { status: '??', path: 'src/already-there.ts' };
+  const snap: GitStatusSnapshot = { available: true, raw: '', entries: [entry] };
+
+  const { diffSummary } = await runFileChangeVerifier({
+    rootPath: tmpDir,
+    artifactDir: tmpDir,
+    beforeGit: snap,
+    afterGit: snap,
+    before: EMPTY_CORE_SNAPSHOT,
+    after: EMPTY_CORE_SNAPSHOT
+  });
+
+  assert.equal(diffSummary.relevantChangedFiles.length, 0, 'unchanged ?? file should not count as a change');
+});
+
+test('runFileChangeVerifier: new untracked file alongside tracked modification both detected', async () => {
+  const tmpDir = await makeTempRoot();
+  // Before: both files are clean (not in git status output)
+  const before: GitStatusSnapshot = { available: true, raw: '', entries: [] };
+  // After: agent modified src/existing.ts and created src/new-file.ts
+  const after: GitStatusSnapshot = {
+    available: true,
+    raw: '',
+    entries: [
+      { status: 'M', path: 'src/existing.ts' },
+      { status: '??', path: 'src/new-file.ts' }
+    ]
+  };
+
+  const { result, diffSummary } = await runFileChangeVerifier({
+    rootPath: tmpDir,
+    artifactDir: tmpDir,
+    beforeGit: before,
+    afterGit: after,
+    before: EMPTY_CORE_SNAPSHOT,
+    after: EMPTY_CORE_SNAPSHOT
+  });
+
+  assert.ok(diffSummary.relevantChangedFiles.includes('src/existing.ts'), 'tracked modification should be detected');
+  assert.ok(diffSummary.relevantChangedFiles.includes('src/new-file.ts'), 'new ?? file should be detected alongside tracked change');
+  assert.equal(result.status, 'passed');
+});
+
+test('runFileChangeVerifier: deep untracked path (nested directory) is detected', async () => {
+  const tmpDir = await makeTempRoot();
+  const before: GitStatusSnapshot = { available: true, raw: '', entries: [] };
+  const after: GitStatusSnapshot = {
+    available: true,
+    raw: '',
+    entries: [{ status: '??', path: 'frontend/src/screens/project-list.tsx' }]
+  };
+
+  const { result, diffSummary } = await runFileChangeVerifier({
+    rootPath: tmpDir,
+    artifactDir: tmpDir,
+    beforeGit: before,
+    afterGit: after,
+    before: EMPTY_CORE_SNAPSHOT,
+    after: EMPTY_CORE_SNAPSHOT
+  });
+
+  assert.ok(diffSummary.relevantChangedFiles.includes('frontend/src/screens/project-list.tsx'), 'deeply nested new ?? file should be in relevantChangedFiles');
+  assert.equal(result.status, 'passed');
 });
 
 async function makeTempRoot(): Promise<string> {

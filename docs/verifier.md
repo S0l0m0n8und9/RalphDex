@@ -73,6 +73,8 @@ When the completion report is absent or invalid but an independent workspace sca
 
 The independent workspace scan (`collectRelevantWorkspaceChanges`) compares git status snapshots using `git status --porcelain=v1 -z --untracked-files=all`. It runs even when the `gitDiff` verifier mode is disabled. Untracked new files, staged additions, and tracked modifications are all detected. Paths under `node_modules/`, `dist/`, `build/`, `out/`, `coverage/`, and `.ralph/` metadata directories are excluded.
 
+The `gitDiff` verifier (`runFileChangeVerifier`) uses the same before/after snapshot comparison and also includes untracked (`??`) entries. When an agent creates a new file during an iteration, the file transitions from absent to `??` in the after snapshot, which registers as a relevant change. The `-z` flag and `--untracked-files=all` option on the git status command ensure that files inside newly created subdirectories are captured individually rather than rolled up to a directory-level `??` entry.
+
 Workspace changes are evidence of activity, not evidence of correctness or completion. Ralph does not mark a task done or promote a classification solely because files changed.
 
 ## No-Progress Detection
