@@ -77,6 +77,8 @@ The `gitDiff` verifier (`runFileChangeVerifier`) uses the same before/after snap
 
 Workspace changes are evidence of activity, not evidence of correctness or completion. Ralph does not mark a task done or promote a classification solely because files changed.
 
+When `validationCommand` passes but `gitDiff` reports `failed` (no new relevant transitions in this iteration), Ralph treats that combination as `partial_progress` for outcome classification. This prevents no-progress retries from consuming budget when correctness is already confirmed and the required workspace state already existed at iteration start.
+
 ## No-Progress Detection
 
 No-progress detection remains deterministic. Current signals include:
@@ -174,6 +176,7 @@ The human-readable iteration summary and status report surface the remediation s
 These rules are strict:
 
 - `needs_human_review` must not be masked by verifier-driven completion
+- `validationCommand: passed` must not be masked into `no_progress` solely by `gitDiff: failed`
 - verifier-driven completion only applies to genuine `partial_progress` with no remaining subtasks
 - repeated no-progress and repeated identical failure detection stay deterministic
 - repeated-stop remediation guidance must stay deterministic, bounded, and grounded in recorded evidence

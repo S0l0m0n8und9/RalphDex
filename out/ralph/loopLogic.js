@@ -109,6 +109,7 @@ function baseClassification(input) {
         return 'complete';
     }
     if (input.verificationStatus === 'passed'
+        || input.validationVerifierPassed
         || input.relevantFileChanges.length > 0
         || input.progressChanged
         || input.taskFileChanged) {

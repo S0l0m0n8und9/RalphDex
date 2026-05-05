@@ -1005,3 +1005,69 @@ test('classifyIterationOutcome: missing completion report WITHOUT workspace chan
 
   assert.equal(outcome.classification, 'no_progress');
 });
+
+test('classifyIterationOutcome: validation passed + gitDiff failed + missing report is partial_progress', () => {
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: null,
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [],
+    completionReportMissingWithWorkspaceChanges: false,
+    validationVerifierPassed: true
+  } as any);
+
+  assert.equal(outcome.classification, 'partial_progress');
+});
+
+test('classifyIterationOutcome: validation failed + gitDiff failed remains no_progress', () => {
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'failed',
+    validationFailureSignature: 'npm test::exit:1::failure',
+    relevantFileChanges: [],
+    progressChanged: false,
+    taskFileChanged: false,
+    previousIterations: [],
+    completionReportMissingWithWorkspaceChanges: false,
+    validationVerifierPassed: false
+  } as any);
+
+  assert.equal(outcome.classification, 'no_progress');
+});
+
+test('classifyIterationOutcome: validation passed + gitDiff passed remains partial_progress', () => {
+  const outcome = classifyIterationOutcome({
+    selectedTaskId: 'T1',
+    selectedTaskCompleted: false,
+    selectedTaskBlocked: false,
+    humanReviewNeeded: false,
+    remainingSubtaskCount: 0,
+    remainingTaskCount: 1,
+    executionStatus: 'succeeded',
+    verificationStatus: 'passed',
+    validationFailureSignature: null,
+    relevantFileChanges: ['src/foo.ts'],
+    progressChanged: true,
+    taskFileChanged: false,
+    previousIterations: [],
+    completionReportMissingWithWorkspaceChanges: false,
+    validationVerifierPassed: true
+  } as any);
+
+  assert.equal(outcome.classification, 'partial_progress');
+});

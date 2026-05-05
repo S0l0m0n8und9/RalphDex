@@ -56,6 +56,7 @@ class OutcomeClassifier {
             taskFileChanged: input.taskStateVerification.taskFileChanged,
             previousIterations: input.prepared.state.iterationHistory,
             taskMode: input.prepared.selectedTask?.mode,
+            validationVerifierPassed: input.validationVerification.result.status === 'passed',
             completionReportMissingWithWorkspaceChanges: completionReportMissing && input.workspaceChangeScanFiles.length > 0
         });
         let completionClassification = outcome.classification;

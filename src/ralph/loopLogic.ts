@@ -35,6 +35,12 @@ export interface RalphOutcomeInput {
    * agent omitted the structured report while still creating new files.
    */
   completionReportMissingWithWorkspaceChanges?: boolean;
+  /**
+   * True when the validationCommand verifier passed for this iteration.
+   * This can indicate real progress/correctness even if gitDiff reports no
+   * new changes relative to the iteration start snapshot.
+   */
+  validationVerifierPassed?: boolean;
 }
 
 export interface RalphOutcomeDecision {
@@ -183,6 +189,7 @@ function baseClassification(input: RalphOutcomeInput): RalphCompletionClassifica
   }
 
   if (input.verificationStatus === 'passed'
+    || input.validationVerifierPassed
     || input.relevantFileChanges.length > 0
     || input.progressChanged
     || input.taskFileChanged) {
