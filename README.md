@@ -66,7 +66,7 @@ Use `node out/shim/main.js <workspace-path>` to run one Ralph CLI iteration outs
 
 For a fresh clone, start by installing dependencies and running the validation gate:
 
-1. Install Node.js 20 or newer and VS Code 1.95 or newer.
+1. Install Node.js 22 or newer and VS Code 1.95 or newer.
 2. Install dependencies:
 
    ```bash
@@ -84,7 +84,7 @@ For a fresh clone, start by installing dependencies and running the validation g
 5. Use `Ralphdex: Show Status` to open the dashboard and inspect the current workspace state.
 6. Use `Ralphdex: Prepare IDE Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run Single Iteration`, or `Ralphdex: Run Loop` depending on the workflow you want.
 
-For a fresh workspace that does not have a `.ralph/` directory, open the PRD wizard using `Ralphdex: Open PRD Wizard`, or run any provider-facing command. Provider-facing commands such as Prepare IDE Prompt, Open Codex IDE, Run Single Iteration, Run Loop, Run Multi-Agent Loop, and Run Pipeline automatically open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
+For a fresh workspace that does not have a `.ralph/` directory, open the PRD wizard using `Ralphdex: Open PRD Wizard`, or run any provider-facing command. Provider-facing commands such as Prepare IDE Prompt, Open Codex IDE, Run Single Iteration, Run Loop, Run Multi-Agent Loop, and Run Full Workflow automatically open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
 
 For an established Ralph workspace that already has `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` but is missing `.ralph/doctrine/`, use `Ralphdex: Initialize Doctrine Pack`. That command only scaffolds missing doctrine files and repairs an invalid `evidence-index.json`; it does not rerun workspace bootstrap or act like cleanup/reset.
 
@@ -332,6 +332,8 @@ Permissive provider modes (`dangerously-skip-permissions`, `allow-all`) are avai
 - [docs/release-workflow.md](docs/release-workflow.md): version bump, packaging, and VS Code Marketplace publish procedure
 - [docs/dogfooding-runbook.md](docs/dogfooding-runbook.md): manual live-provider runbook, evidence contract, redaction rules, and pass/fail criteria
 - [docs/failure-recovery.md](docs/failure-recovery.md): failure category taxonomy, recovery playbooks, and diagnostic cost
+- [docs/ui-state-fixtures.md](docs/ui-state-fixtures.md): deterministic dashboard/sidebar fixture catalogue for UI review and regression checks
+- [docs/ui-evidence-checklist.md](docs/ui-evidence-checklist.md): required UI evidence checklist for user-facing UI changes
 
 ## Product Notes
 
