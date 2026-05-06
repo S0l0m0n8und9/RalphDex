@@ -1005,6 +1005,24 @@ function stringArrayCheckboxes(key, value, options) {
     }).join('');
 }
 function renderSettingControl(entry) {
+    if (entry.key === 'customPromptBudget') {
+        const map = (entry.value && typeof entry.value === 'object' && !Array.isArray(entry.value))
+            ? entry.value
+            : {};
+        const rows = Object.entries(map).map(([k, v]) => {
+            const numeric = Number(v);
+            const value = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+            return `<div class="kv-row" data-setting-kv="${(0, htmlHelpers_1.esc)(entry.key)}">
+        <input type="text" class="kv-key" value="${(0, htmlHelpers_1.esc)(k)}" placeholder="key">
+        <input type="number" class="kv-value" value="${value}" min="0">
+        <button class="kv-remove" title="Remove">✕</button>
+      </div>`;
+        }).join('');
+        return `<div data-setting-kv-group="${(0, htmlHelpers_1.esc)(entry.key)}">
+      ${rows}
+      <button class="btn" data-setting-kv-add="${(0, htmlHelpers_1.esc)(entry.key)}"><span class="btn-label">Add Entry</span><span class="btn-spinner"></span></button>
+    </div>`;
+    }
     if (entry.control === 'boolean') {
         return checkbox(entry.key, Boolean(entry.value));
     }
