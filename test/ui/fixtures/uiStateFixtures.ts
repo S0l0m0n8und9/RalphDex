@@ -118,13 +118,92 @@ export const UI_STATE_FIXTURES: UiStateFixture[] = [
     }
   },
   {
+    id: 'blocked-with-recovery-queue',
+    description: 'Blocked readiness with recovery queue attention from durable snapshot.',
+    state: {
+      ...baseState(),
+      prdExists: true,
+      preflightReady: false,
+      preflightSummary: 'Blocked preflight.',
+      taskCounts: { todo: 1, in_progress: 0, blocked: 1, done: 0 },
+      tasks: [
+        { id: 'T21', title: 'Unblock provider setup', status: 'blocked', isCurrent: true, priority: 'normal', childIds: [], dependsOn: [] }
+      ],
+      dashboardSnapshot: {
+        workspaceName: 'fixture-workspace',
+        taskBoard: {
+          counts: { todo: 1, in_progress: 0, blocked: 1, done: 0 },
+          deadLetterCount: 1,
+          selectedTaskId: 'T21',
+          selectedTaskTitle: 'Unblock provider setup',
+          nextIteration: 3
+        },
+        agentGrid: { rows: [] },
+        failureFeed: { entries: [] },
+        diagnosis: null,
+        deadLetter: {
+          entries: [{
+            schemaVersion: 1,
+            kind: 'deadLetterEntry',
+            taskId: 'T18',
+            taskTitle: 'Retry provider auth bootstrap',
+            deadLetteredAt: '2026-05-01T00:00:00.000Z',
+            diagnosticHistory: [],
+            recoveryAttemptCount: 2
+          }]
+        },
+        quickActions: { hasDeadLetterEntries: true, hasBlockedTasks: true, canAttemptLoop: false },
+        cost: { executionCostUsd: null, diagnosticCostUsd: null, promptCacheStats: null, hasAnyCostData: false }
+      }
+    }
+  },
+  {
     id: 'needs-human-review',
     description: 'Latest iteration requires human review.',
     state: {
       ...baseState(),
+      prdExists: true,
       recentIterations: [
         { iteration: 4, taskId: 'T3', taskTitle: 'Refactor workflow', classification: 'needs_human_review', stopReason: 'human_review_needed', artifactDir: '/tmp/i4' }
-      ]
+      ],
+      dashboardSnapshot: {
+        workspaceName: 'fixture-workspace',
+        taskBoard: {
+          counts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+          deadLetterCount: 1,
+          selectedTaskId: 'T3',
+          selectedTaskTitle: 'Refactor workflow',
+          nextIteration: 4
+        },
+        agentGrid: { rows: [] },
+        failureFeed: {
+          entries: [{
+            taskId: 'T3',
+            taskTitle: 'Refactor workflow',
+            category: 'validation_mismatch',
+            confidence: 'high',
+            summary: 'Requires operator review before continuing.',
+            suggestedAction: 'Review and requeue after confirmation.',
+            recoveryAttemptCount: 1,
+            remediationSummary: null,
+            humanReviewRecommended: true
+          }]
+        },
+        diagnosis: null,
+        deadLetter: {
+          entries: [{
+            schemaVersion: 1,
+            kind: 'deadLetterEntry',
+            taskId: 'T3',
+            taskTitle: 'Refactor workflow',
+            deadLetteredAt: '2026-05-01T00:00:00.000Z',
+            diagnosticHistory: [],
+            recoveryAttemptCount: 1
+          }]
+        },
+        quickActions: { hasDeadLetterEntries: true, hasBlockedTasks: false, canAttemptLoop: true },
+        cost: { executionCostUsd: null, diagnosticCostUsd: null, promptCacheStats: null, hasAnyCostData: false }
+      }
     }
   },
   {

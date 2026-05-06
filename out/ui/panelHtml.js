@@ -20,6 +20,17 @@ const DASHBOARD_COPY = {
     noTasksWithoutPrd: 'Start here — define your project scope.',
     requeueRecoveryTask: 'Requeue Recovery Task',
 };
+const LATEST_ARTIFACT_ACTIONS = [
+    { command: 'ralphCodex.openLatestPipelineRun', label: 'Latest Run Report' },
+    { command: 'ralphCodex.openLatestProvenanceBundle', label: 'Latest Provenance Bundle' },
+    { command: 'ralphCodex.openLatestPromptEvidence', label: 'Latest Prompt Evidence' },
+    { command: 'ralphCodex.openLatestCliTranscript', label: 'Latest CLI Transcript' }
+];
+function renderLatestArtifactActions(buttonClass = 'btn') {
+    return LATEST_ARTIFACT_ACTIONS
+        .map((action) => `<button class="${buttonClass}" data-command="${action.command}"><span class="btn-label">${action.label}</span><span class="btn-spinner"></span></button>`)
+        .join('\n');
+}
 // ---------------------------------------------------------------------------
 // Panel-specific CSS (extends base)
 // ---------------------------------------------------------------------------
@@ -1448,10 +1459,7 @@ function buildQuickActionsSection(state) {
     return `<div class="dashboard-summary-card">
     <div class="card-title">Quick Actions</div>
     <div class="btn-grid">
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance Bundle</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest CLI Transcript</span><span class="btn-spinner"></span></button>
+      ${renderLatestArtifactActions()}
       <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Recovery Task</span><span class="btn-spinner"></span></button>` : ''}
@@ -1675,7 +1683,7 @@ function buildDashboardSidebar(state) {
         <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare IDE Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
-        <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
+        ${renderLatestArtifactActions('btn rail-command')}
         <button class="btn rail-command" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       </div>
     </div>
@@ -1898,10 +1906,7 @@ function buildSettingsTab(state) {
     <div class="card">
       <div class="card-title">Artifacts & Admin</div>
       <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance Bundle</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest CLI Transcript</span><span class="btn-spinner"></span></button>
+        ${renderLatestArtifactActions()}
       </div>
     </div>
 

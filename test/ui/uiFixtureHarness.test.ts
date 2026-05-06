@@ -28,6 +28,7 @@ test('UI fixture catalogue includes required UX states for baseline visual cover
     'running-single-agent',
     'running-multi-agent',
     'blocked-preflight',
+    'blocked-with-recovery-queue',
     'needs-human-review',
     'repeated-no-progress',
     'failed-iteration',
@@ -75,5 +76,13 @@ test('UI fixture catalogue enforces state-copy contract for readiness and workfl
 
   const needsHumanReview = byId.get('needs-human-review');
   assert.ok(needsHumanReview, 'missing needs-human-review fixture');
+  const needsHumanReviewHtml = buildPanelDashboardHtml(needsHumanReview.state, 'fixture-nonce');
+  assert.ok(needsHumanReviewHtml.includes('Requeue Recovery Task'));
+
+  const blockedWithRecovery = byId.get('blocked-with-recovery-queue');
+  assert.ok(blockedWithRecovery, 'missing blocked-with-recovery-queue fixture');
+  const blockedWithRecoveryHtml = buildPanelDashboardHtml(blockedWithRecovery.state, 'fixture-nonce');
+  assert.ok(blockedWithRecoveryHtml.includes('Recovery Queue contains parked work that may need requeue.'));
+  assert.ok(!blockedWithRecoveryHtml.includes('Dead-letter contains parked work that may need requeue.'));
 });
 

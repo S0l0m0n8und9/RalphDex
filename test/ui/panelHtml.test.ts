@@ -470,6 +470,24 @@ test('buildPanelDashboardHtml quick actions expose latest artifact and settings 
   assert.ok(html.includes('ralphCodex.openSettings'));
 });
 
+test('latest artifact actions keep a consistent label order across dashboard sections', () => {
+  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-artifact-order');
+
+  const runReportIdx = html.indexOf('Latest Run Report');
+  const provenanceIdx = html.indexOf('Latest Provenance Bundle');
+  const promptEvidenceIdx = html.indexOf('Latest Prompt Evidence');
+  const cliTranscriptIdx = html.indexOf('Latest CLI Transcript');
+
+  assert.ok(runReportIdx !== -1, 'run report label present');
+  assert.ok(provenanceIdx !== -1, 'provenance label present');
+  assert.ok(promptEvidenceIdx !== -1, 'prompt evidence label present');
+  assert.ok(cliTranscriptIdx !== -1, 'cli transcript label present');
+
+  assert.ok(runReportIdx < provenanceIdx, 'run report appears before provenance');
+  assert.ok(provenanceIdx < promptEvidenceIdx, 'provenance appears before prompt evidence');
+  assert.ok(promptEvidenceIdx < cliTranscriptIdx, 'prompt evidence appears before cli transcript');
+});
+
 test('buildPanelDashboardHtml rail preserves live operator shortcuts', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-rail');
 
