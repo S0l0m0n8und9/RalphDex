@@ -594,6 +594,8 @@ test('customPromptBudget renders as key/value map controls instead of plain text
   assert.ok(html.includes('data-setting-kv="customPromptBudget"'));
   assert.ok(html.includes('data-setting-kv-add="customPromptBudget"'));
   assert.ok(html.includes('freshWorkspace:bootstrap:cliExec'));
+  assert.ok(html.includes('class="kv-value" value="1300" min="1"'));
+  assert.ok(html.includes('<input type="number" class="kv-value" value="1" min="1">'));
 });
 
 test('buildPanelDashboardHtml uses the dashboard view intent to open the settings tab and focus a setting', () => {
