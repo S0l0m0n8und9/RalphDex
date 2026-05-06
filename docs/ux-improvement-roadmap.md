@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This roadmap defines the next body of UX work after the recent sidebar/dashboard/readiness/settings consolidation. It is evidence-based from the current repository state as of 2026-05-06 and is scoped to operator clarity, safety, and recovery usability.
+This roadmap defines the UX hardening body of work after the recent sidebar/dashboard/readiness/settings consolidation. It is evidence-based from the repository state reviewed on 2026-05-06 and extended through follow-on implementation slices completed on 2026-05-07.
 
 ## Evidence Baseline
 
@@ -66,12 +66,10 @@ RalphDex already has the intended structural split:
 
 ## Remaining UX Gaps
 
-- User-facing terminology is not fully consistent in dashboard copy:
-  - `dead-letter` wording still appears in some visible panel strings.
-  - `Run Pipeline` and `Latest Pipeline Run` still appear in panel copy in places where the command surface already moved to `Run Full Workflow` / `Run Report`.
-- Latest-run/report affordances are present but not uniformly labeled across dashboard sections.
-- Some operator copy is still implementation-centric (`pipeline` wording in seeding guidance).
-- Visual/a11y evidence remains mostly contract/test based; screenshot-level evidence is still manual unless added per change.
+- Dashboard copy still carries some implementation-centric wording in niche contexts (for example, older status/history phrases that are technically accurate but less operator-oriented).
+- Fixture coverage is strong for readiness/recovery states, but some combinations are still implicit rather than explicitly named (for example specific stuck-agent plus recovery combinations).
+- Deterministic HTML evidence is now exported and hash-tracked, but screenshot-based visual regression remains manual by design.
+- Operator documentation now points to the evidence path, but the review ritual is still people-driven rather than enforced by a CI policy.
 
 ## Surface Ownership Model
 
@@ -94,13 +92,12 @@ RalphDex already has the intended structural split:
 - Artifact/evidence documents:
   - Authoritative run evidence remains file-backed under `.ralph/artifacts/` with latest-pointer commands.
 
-## Recommended Sequencing
+## Recommended Sequencing (Updated 2026-05-07)
 
-1. Terminology completion and copy consistency in dashboard panel and tests.
-2. Latest-run/report affordance consistency across all dashboard sections.
-3. State-copy consistency sweep for empty/blocked/running/recovery strings.
-4. Additional fixture-backed coverage for any newly introduced state variants.
-5. Optional visual/a11y harness hardening (only if bounded and deterministic).
+1. Expand named fixture catalogue for remaining nuanced state combinations (stuck agents, mixed blocked/recovery, partial readiness).
+2. Add lightweight copy-governance checks for newly introduced sidebar/dashboard labels to prevent terminology drift.
+3. Keep deterministic fixture HTML evidence export in the normal UX review flow (`npm run evidence:ui-fixtures`) and require manifest review for UI-affecting changes.
+4. Keep screenshot-based checks manual unless a bounded, deterministic screenshot harness is introduced without adding flaky host dependencies.
 
 ## Completed Follow-On Slices (2026-05-06)
 
@@ -113,6 +110,15 @@ RalphDex already has the intended structural split:
 - Deterministic UI evidence hook:
   - Added `npm run evidence:ui-fixtures` to export panel/sidebar fixture HTML and a hash manifest under `.ralph/artifacts/ui-fixtures/`.
   - Added `renderUiFixtureEvidence(...)` and test coverage to keep exported evidence deterministic and reviewable.
+
+## Completed Follow-On Slices (2026-05-07)
+
+- Sidebar compactness contract hardening:
+  - Added fixture-wide assertions that sidebar remains run-focused and does not reintroduce dashboard-only controls.
+  - Guardrails now verify compact sidebar behavior across every fixture state rather than only selected sidebar unit-test setups.
+- UX evidence process hardening:
+  - Added deterministic fixture HTML + hash export command and validated output path under `.ralph/artifacts/ui-fixtures/`.
+  - Extended testing guidance to include evidence export as the expected review artifact for dashboard/sidebar UI changes.
 
 ## Explicit Non-Goals
 

@@ -450,6 +450,17 @@ Operator-facing outputs for this path are deterministic:
 
 The seeding artifact is the inspection surface for this workflow. It records the source request, provider launch metadata, seeded task drafts after ID remapping, and any warnings so operators can review what was generated without diffing the whole workspace.
 
+## UI Change Evidence Workflow
+
+For dashboard/sidebar UX changes, use a deterministic review path:
+
+1. Run `npm run test:ui-harness` to validate fixture and accessibility-oriented contracts.
+2. Run `npm run evidence:ui-fixtures` to export deterministic fixture HTML and hash evidence under `.ralph/artifacts/ui-fixtures/`.
+3. Review `manifest.json` and spot-check representative `panel-*.html` plus `sidebar-*.html` files for the changed UX surfaces.
+4. Run `npm run validate` before closeout.
+
+This preserves the compact-sidebar and rich-dashboard split in a reviewable, file-backed way without introducing non-deterministic screenshot automation into the default validation gate.
+
 ## Multi-Agent Team
 
 Use concurrent Ralph operators only when each running loop instance has its own durable agent identity.

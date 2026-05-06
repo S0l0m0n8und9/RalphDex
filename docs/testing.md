@@ -21,6 +21,7 @@ Related docs:
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
 - `npm run test:offline-evals` (or `npm run test:evals`): run the offline evaluation harness fixtures from `test/evals/fixtures/` and emit a compact Markdown plus JSON summary; it fails only when fixture expectations drift, not when a fixture intentionally models a failing verifier outcome.
 - `npm run test:ui-harness`: run deterministic UI fixture rendering + accessibility-oriented checks for dashboard/sidebar webviews (`uiFixtureHarness`, panel/sidebar HTML regression checks, and shared theme contrast checks).
+- `npm run evidence:ui-fixtures`: compile and export deterministic sidebar/dashboard fixture HTML plus a hash manifest to `.ralph/artifacts/ui-fixtures/` for UX review evidence.
 - `npm run dogfood`: run one repeatable local dogfood pass through the real CLI smoke harness and persist a structured report under `.ralph/artifacts/dogfood/` (provider, model, task count, stop reason, duration, failure category) without recording secrets.
 - `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `check:prompt-budget`, `lint`, and `test`.
 - `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
@@ -51,6 +52,7 @@ Related docs:
 - `test/verifier.test.ts`: cheap validation-command readiness probing for explicit executables, unresolved PATH commands, and portable execution of leading `KEY=value` env-prefix validation commands.
 - `test/docsValidator.test.ts`: deterministic coverage for required doc presence, heading rules, AGENTS.md ownership guardrails, local doc links, verifier-doc alignment checks, and the operator-facing task-seeding command or artifact contract across README, workflows, invariants, and testing docs.
 - `test/ui/` and `test/webview/`: shipped dashboard/sidebar rendering, host, and bridge regression coverage for the production `src/ui/` plus `src/webview/` ownership boundary. The historical `UXrefresh/` prototype bundle is reference-only and is not part of the validation gate.
+- `src/ui/fixtureEvidence.ts`, `scripts/export-ui-fixture-catalog.js`, and `test/ui/uiFixtureEvidenceCatalog.test.ts`: deterministic fixture-catalog evidence export coverage for sidebar/dashboard HTML, including stable sort order, stable hashing, and baseline accessibility/webview hooks.
 - `test/loopLogic.test.ts`: outcome classification, no-progress detection, failure signatures, and stop-decision logic.
 - `test/workspaceInspection.test.ts`: package-manager, lifecycle, and validation-command inference.
 - `test/workspaceScanner.test.ts`: end-to-end workspace inspection heuristics from real temp dirs.
@@ -100,6 +102,7 @@ Recommended operator flow:
 1. Run `npm run validate`.
 2. Run `npm run test:activation` or `RALPH_VSCODE_EXECUTABLE_PATH=/absolute/path/to/code npm run test:activation` when the bundled VS Code download is unreliable on the current machine.
 3. In the Extension Development Host, switch through `Default Light Modern`, `Default Dark Modern`, and `High Contrast`, open the Dashboard settings tab plus the PRD wizard, and visually inspect each expanded select/optionset popup.
+4. For sidebar/dashboard UX changes, run `npm run evidence:ui-fixtures` and review `.ralph/artifacts/ui-fixtures/manifest.json` plus selected `panel-*.html`/`sidebar-*.html` outputs alongside test results.
 
 ## Packaging Runtime
 
