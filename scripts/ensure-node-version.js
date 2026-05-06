@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const minimumMajor = 20;
+const minimumMajor = 22;
 const current = process.versions.node;
 const major = Number.parseInt(current.split('.')[0] ?? '0', 10);
 

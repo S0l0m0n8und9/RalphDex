@@ -110,7 +110,7 @@ This distinction keeps the durable project brief, task graph, progress log, doct
 
 Supported runtime baseline:
 
-- Node 20+ for packaging and supported runtime expectations
+- Node 22+ for packaging and supported runtime expectations
 
 Workspace boundaries:
 

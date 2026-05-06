@@ -34,7 +34,7 @@
   "license": "MIT",
   "engines": {
     "vscode": "^1.95.0",
-    "node": ">=20"
+    "node": ">=22"
   },
   "categories": [
     "AI",
@@ -286,7 +286,7 @@
       },
       {
         "command": "ralphCodex.requeueDeadLetterTask",
-        "title": "Ralphdex: Requeue Dead-Letter Task"
+        "title": "Ralphdex: Requeue Recovery Task"
       },
         {
           "command": "ralphCodex.showSidebar",
@@ -1200,6 +1200,8 @@
     "test:e2e-orchestration": "node ./scripts/run-e2e-orchestration-smoke.js",
     "test:real-cli-smoke": "node ./scripts/run-real-cli-smoke.js",
     "test:offline-evals": "node ./scripts/run-offline-evals.js",
+    "test:evals": "npm run test:offline-evals",
+    "dogfood": "npm run test:real-cli-smoke",
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
     "vscode:prepublish": "npm run compile",

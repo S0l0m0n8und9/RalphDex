@@ -46,7 +46,7 @@ Recovery state is persisted in `.ralph/artifacts/<taskId>/recovery-state.json`. 
 
 ## Dead-Letter Queue
 
-Tasks that exhaust recovery attempts land in `.ralph/dead-letter.json`. Use `Ralphdex: Requeue Dead-Letter Task` to reset a task to `todo` and clear its dead-letter entry. The queue is surfaced in `Ralphdex: Show Status` under **Dead-Letter Queue**.
+Tasks that exhaust recovery attempts land in `.ralph/dead-letter.json`. Use `Ralphdex: Requeue Recovery Task` to reset a task to `todo` and clear its dead-letter entry. The queue is surfaced in `Ralphdex: Show Status` under **Dead-Letter Queue**.
 
 ## Failure Chain And Systemic Alert Detection
 

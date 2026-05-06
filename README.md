@@ -189,7 +189,7 @@ Current command surface:
 - `Ralphdex: Reject Latest Doctrine Proposal`
 - `Ralphdex: Open PRD Wizard`
 - `Ralphdex: Regenerate PRD`
-- `Ralphdex: Requeue Dead-Letter Task`
+- `Ralphdex: Requeue Recovery Task`
 - `Ralphdex: Show Sidebar`
 - `Ralphdex: Show Tasks`
 - `Ralphdex: Set Provider Secret`

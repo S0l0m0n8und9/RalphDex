@@ -78,44 +78,69 @@ class CopilotCliProvider {
         if (!trimmed) {
             return '';
         }
-        // Scan JSONL output (--output-format=json) for the last assistant message,
-        // scanning from the end so the final message is found first.
-        //
-        // The Copilot CLI emits JSONL with several event types:
-        //   - assistant.message       → { data: { content: "..." } }
-        //   - session.task_complete   → { data: { summary: "..." } }
-        //   - result                  → { exitCode, usage, ... } (no response text)
-        //
-        // The completion report JSON block lives inside the last assistant.message
-        // content. The result event only carries metadata (exitCode, usage) and
-        // does NOT contain the agent's response text.
-        const lines = trimmed.split('\n');
-        for (let i = lines.length - 1; i >= 0; i--) {
-            const line = lines[i].trim();
-            if (!line)
+        const events = [];
+        let parseBreak = false;
+        for (const rawLine of trimmed.split('\n')) {
+            const line = rawLine.trim();
+            if (!line) {
                 continue;
+            }
             try {
-                const parsed = JSON.parse(line);
-                // Primary: extract the last assistant.message with content — this is
-                // where the agent's final response (including the completion report
-                // JSON block) lives.
-                if (parsed.type === 'assistant.message'
-                    && typeof parsed.data?.content === 'string'
-                    && parsed.data.content.trim()) {
-                    const content = parsed.data.content;
+                events.push(JSON.parse(line));
+            }
+            catch {
+                parseBreak = true;
+                break;
+            }
+        }
+        // Priority 1 & 2: prefer session.task_complete content (detailedContent > summary).
+        if (!parseBreak) {
+            for (let i = events.length - 1; i >= 0; i--) {
+                const ev = events[i];
+                if (ev.type !== 'session.task_complete') {
+                    continue;
+                }
+                const detailed = typeof ev.data?.detailedContent === 'string' ? ev.data.detailedContent.trim() : '';
+                if (detailed) {
+                    await fs.writeFile(lastMessagePath, detailed, 'utf8').catch(() => { });
+                    return detailed;
+                }
+                const summary = typeof ev.data?.summary === 'string' ? ev.data.summary.trim() : '';
+                if (summary) {
+                    await fs.writeFile(lastMessagePath, summary, 'utf8').catch(() => { });
+                    return summary;
+                }
+            }
+            // Priority 3: prefer assistant.message with fenced JSON completion block.
+            for (let i = events.length - 1; i >= 0; i--) {
+                const ev = events[i];
+                if (ev.type === 'assistant.message'
+                    && typeof ev.data?.content === 'string'
+                    && ev.data.content.trim()
+                    && ev.data.content.includes('```json')) {
+                    const content = ev.data.content;
                     await fs.writeFile(lastMessagePath, content, 'utf8').catch(() => { });
                     return content;
                 }
-                // Legacy fallback: some older Copilot CLI builds may emit a result
-                // event with an inline result string.
-                if (parsed.type === 'result' && typeof parsed.result === 'string') {
-                    await fs.writeFile(lastMessagePath, parsed.result, 'utf8').catch(() => { });
-                    return parsed.result;
-                }
             }
-            catch {
-                // Not JSON — fall through to raw text.
-                break;
+        }
+        // Priority 4: last assistant.message with content.
+        for (let i = events.length - 1; i >= 0; i--) {
+            const ev = events[i];
+            if (ev.type === 'assistant.message'
+                && typeof ev.data?.content === 'string'
+                && ev.data.content.trim()) {
+                const content = ev.data.content;
+                await fs.writeFile(lastMessagePath, content, 'utf8').catch(() => { });
+                return content;
+            }
+        }
+        // Priority 5: legacy inline result event.
+        for (let i = events.length - 1; i >= 0; i--) {
+            const ev = events[i];
+            if (ev.type === 'result' && typeof ev.result === 'string') {
+                await fs.writeFile(lastMessagePath, ev.result, 'utf8').catch(() => { });
+                return ev.result;
             }
         }
         // Fallback: return the stdout text as-is (e.g. older CLI builds without

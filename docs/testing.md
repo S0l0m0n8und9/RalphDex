@@ -19,7 +19,8 @@ Related docs:
 - `RALPH_E2E=1 npm run test:e2e-pipeline`: create a fresh temp workspace, execute `ralphCodex.runPipeline` through the VS Code test harness with a deterministic fake Codex executable, and run the shipped scaffold, multi-agent loop, review-agent, and SCM-agent command chain end-to-end. The smoke asserts the delegated phase-command sequence, final pipeline artifact PR URL, and inspectable latest loop evidence surfaces (`latest-prompt.md`, `latest-cli-invocation.json`, `latest-result.json`, `latest-provenance-bundle.json`) plus run-bundle artifacts. Ralph's verifier treats the leading `RALPH_E2E=1` assignment as a portable env override instead of shell-specific syntax, but when running the command manually in a terminal you still need to use a shell form your OS understands. Without `RALPH_E2E=1`, the command exits quickly with a skip message.
 - `RALPH_E2E_ORCHESTRATION=1 npm run test:e2e-orchestration`: create a fresh temp workspace and exercise the orchestration control plane end-to-end without touching the VS Code host. The smoke walks an `OrchestrationGraph` through a fan-out/fan-in traversal (writing `state.json` and per-node span artifacts), validates plan-graph fan-in blocking against incomplete children and then passing once they complete, drives a handoff through propose→accept and a second handoff through propose→reject, asserts that the `reviewer` role policy disallows the `in_progress→done` mutation (the same check that produces a `policy_violation` stop reason in `reconciliation.ts`), and triggers the `scope_expansion` human choke point via `executeReplanNode` so the gate artifact is written. Without `RALPH_E2E_ORCHESTRATION=1`, the command exits quickly with a skip message. Set `RALPH_E2E_ORCHESTRATION_KEEP_WORKSPACE=1` to preserve the temp workspace for inspection.
 - `npm run test:real-cli-smoke`: run one temp-workspace Ralph iteration through the real `codex exec` path and print the preserved artifact paths. This command is optional and requires a working Codex CLI environment.
-- `npm run test:offline-evals`: run the offline evaluation harness fixtures from `test/evals/fixtures/` and emit a compact Markdown plus JSON summary; it fails only when fixture expectations drift, not when a fixture intentionally models a failing verifier outcome.
+- `npm run test:offline-evals` (or `npm run test:evals`): run the offline evaluation harness fixtures from `test/evals/fixtures/` and emit a compact Markdown plus JSON summary; it fails only when fixture expectations drift, not when a fixture intentionally models a failing verifier outcome.
+- `npm run dogfood`: run one repeatable local dogfood pass through the real CLI smoke harness and print structured evidence pointers for operator review.
 - `npm run validate`: run `compile`, `check:docs`, `check:ledger`, `check:prompt-budget`, `lint`, and `test`.
 - `npm run package`: verify the Node runtime and then build a `.vsix` package with `vsce`.
 - `npm run publish:dry-run`: currently an alias to `npm run package` (runtime check + `vsce package`). It validates packaging readiness without publishing.
@@ -101,7 +102,7 @@ Recommended operator flow:
 
 ## Packaging Runtime
 
-- Packaging is supported on Node 20+.
+- Packaging is supported on Node 22+.
 - `scripts/ensure-node-version.js` fails fast when `npm run package` is invoked on an older runtime.
 - The same runtime gate also protects `npm run publish:dry-run` because that script currently delegates to `npm run package`.
 - Node 18 is intentionally treated as unsupported for packaging because the modern `@vscode/vsce` toolchain requires a newer runtime.

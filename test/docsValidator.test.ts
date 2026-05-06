@@ -275,7 +275,7 @@ Stable runtime notes live here.
 
 ## Packaging Runtime
 
-\`npm run package\` is supported on Node 20+.
+\`npm run package\` is supported on Node 22+.
 
 check:ledger is the ledger consistency check.
 `);

@@ -124,6 +124,10 @@ const DOC_RULES = {
             'UXrefresh/',
             'reference-only prototype',
             'src/webview/'
+        ],
+        forbiddenFragments: [
+            'Dead-Letter Queue',
+            'Ralphdex: Requeue Dead-Letter Task'
         ]
     },
     'docs/architecture.md': {
@@ -247,7 +251,9 @@ const DOC_RULES = {
             'Azure AD auth is not yet supported',
             'Azure auth path is experimental',
             'Azure support is reserved for future',
-            'placeholder for Azure'
+            'placeholder for Azure',
+            'Dead-Letter Queue',
+            'Ralphdex: Requeue Dead-Letter Task'
         ]
     },
     'docs/testing.md': {
@@ -262,7 +268,7 @@ const DOC_RULES = {
         requiredFragments: [
             '`npm run package`',
             'manual `.vsix` install',
-            'Node 20+',
+            'Node 22+',
             'check:ledger',
             '.ralph/artifacts/task-seeding/',
             'test/taskSeeder.test.ts',
