@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { persistTaskGenerationPlanArtifact } from '../ralph/prdReadiness';
 import type { RalphTask } from '../ralph/types';
 import {
   normalizeTaskInputsForPersistence,
@@ -14,6 +15,7 @@ import type {
 export interface PrdWizardWritePaths {
   prdPath: string;
   tasksPath: string;
+  artifactDir?: string;
 }
 
 export function normalizeWizardTasksForPersistence(newTasks: PrdWizardTaskDraft[]): RalphTask[] {
@@ -34,6 +36,13 @@ export async function writePrdWizardDraft(
   await fs.mkdir(path.dirname(paths.prdPath), { recursive: true });
   await fs.writeFile(paths.prdPath, draft.prdText, 'utf8');
   await replaceTasksFile(paths.tasksPath, draft.tasks);
+
+  if (draft.taskGenerationPlan && paths.artifactDir) {
+    await persistTaskGenerationPlanArtifact(paths.artifactDir, {
+      ...draft.taskGenerationPlan,
+      status: 'approved'
+    });
+  }
 
   return {
     filesWritten: [paths.prdPath, paths.tasksPath]

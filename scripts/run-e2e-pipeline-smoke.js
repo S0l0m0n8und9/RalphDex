@@ -240,15 +240,22 @@ async function main() {
       `prdPath must reference .ralph/prd.md, got: ${artifact.prdPath}`
     );
 
-    // Scaffold phase: task graph was written correctly
+    // Task graph source of truth: approved plans are default; legacy scaffold remains explicit fallback.
     const taskFileRaw = JSON.parse(await fsp.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'));
     const tasks = taskFileRaw.tasks || [];
+    assert.ok(
+      artifact.taskGraphSource === 'approved-plan' || artifact.taskGraphSource === 'legacy-heading-scaffold',
+      `taskGraphSource must be approved-plan or legacy-heading-scaffold. Received: ${artifact.taskGraphSource}`
+    );
+
     const rootTask = tasks.find((t) => t.id === artifact.rootTaskId);
     assert.ok(rootTask, `Root task ${artifact.rootTaskId} must exist in tasks.json.`);
-    for (const childId of artifact.decomposedTaskIds) {
-      const child = tasks.find((t) => t.id === childId);
-      assert.ok(child, `Child task ${childId} must exist in tasks.json.`);
-      assert.equal(child.parentId, artifact.rootTaskId, `Child ${childId} must have parentId pointing to root.`);
+    for (const taskId of artifact.decomposedTaskIds) {
+      const task = tasks.find((entry) => entry.id === taskId);
+      assert.ok(task, `Task ${taskId} from decomposedTaskIds must exist in tasks.json.`);
+      if (artifact.taskGraphSource === 'legacy-heading-scaffold') {
+        assert.equal(task.parentId, artifact.rootTaskId, `Child ${taskId} must have parentId pointing to root.`);
+      }
     }
 
     // Loop phase: implementation agent made the expected file change

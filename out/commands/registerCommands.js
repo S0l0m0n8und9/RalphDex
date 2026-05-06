@@ -325,7 +325,8 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
         writeDraft: async (draft) => {
             return (0, prdWizardPersistence_1.writePrdWizardDraft)(draft, {
                 prdPath: paths.prdPath,
-                tasksPath: paths.taskFilePath
+                tasksPath: paths.taskFilePath,
+                artifactDir: paths.artifactDir
             });
         },
         onWriteComplete: async (result) => {
@@ -1210,16 +1211,39 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 if (choice !== 'Use Legacy Heading Scaffold') {
                     return;
                 }
+                progress.report({ message: 'Scaffolding pipeline: decomposing PRD into tasks (legacy fallback)' });
+                const { artifact, artifactPath, rootTaskId, childTaskIds } = await (0, pipeline_1.scaffoldPipelineRun)({
+                    prdPath: paths.prdPath,
+                    taskFilePath: paths.taskFilePath,
+                    artifactDir: paths.artifactDir,
+                    ralphDir: paths.ralphDir,
+                    maxChildTasks: config.maxGeneratedChildren
+                });
+                logger.info('Pipeline scaffold created via legacy heading fallback.', {
+                    runId: artifact.runId,
+                    rootTaskId,
+                    childTaskIds,
+                    artifactPath
+                });
+                void vscode.window.showWarningMessage(`Run Full Workflow: using legacy heading scaffold fallback for pipeline ${artifact.runId}.`);
+                await runPipelineFromPhase('loop', artifact, workspaceFolder, config, paths, progress);
+                return;
             }
-            progress.report({ message: 'Scaffolding pipeline: decomposing PRD into tasks' });
-            const { artifact, artifactPath, rootTaskId, childTaskIds } = await (0, pipeline_1.scaffoldPipelineRun)({
+            const approvedTaskIds = latestPlan.generatedTaskIds;
+            progress.report({ message: `Running pipeline on approved task graph (${approvedTaskIds.length} task(s))` });
+            const { artifact, artifactPath } = await (0, pipeline_1.createPipelineRunFromApprovedTaskGraph)({
+                prdHash,
                 prdPath: paths.prdPath,
-                taskFilePath: paths.taskFilePath,
                 artifactDir: paths.artifactDir,
                 ralphDir: paths.ralphDir,
-                maxChildTasks: config.maxGeneratedChildren
+                taskIds: approvedTaskIds,
+                rootTaskId: approvedTaskIds[0]
             });
-            logger.info('Pipeline scaffold created.', { runId: artifact.runId, rootTaskId, childTaskIds, artifactPath });
+            logger.info('Pipeline run started from approved task graph.', {
+                runId: artifact.runId,
+                taskIds: approvedTaskIds,
+                artifactPath
+            });
             await runPipelineFromPhase('loop', artifact, workspaceFolder, config, paths, progress);
         }
     });

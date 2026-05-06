@@ -38,6 +38,7 @@ exports.replaceTasksFile = replaceTasksFile;
 exports.writePrdWizardDraft = writePrdWizardDraft;
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
+const prdReadiness_1 = require("../ralph/prdReadiness");
 const taskCreation_1 = require("../ralph/taskCreation");
 function normalizeWizardTasksForPersistence(newTasks) {
     return (0, taskCreation_1.normalizeTaskInputsForPersistence)(newTasks);
@@ -49,6 +50,12 @@ async function writePrdWizardDraft(draft, paths) {
     await fs.mkdir(path.dirname(paths.prdPath), { recursive: true });
     await fs.writeFile(paths.prdPath, draft.prdText, 'utf8');
     await replaceTasksFile(paths.tasksPath, draft.tasks);
+    if (draft.taskGenerationPlan && paths.artifactDir) {
+        await (0, prdReadiness_1.persistTaskGenerationPlanArtifact)(paths.artifactDir, {
+            ...draft.taskGenerationPlan,
+            status: 'approved'
+        });
+    }
     return {
         filesWritten: [paths.prdPath, paths.tasksPath]
     };

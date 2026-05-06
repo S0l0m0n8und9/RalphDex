@@ -1000,18 +1000,7 @@ class PrdCreationWizardHost {
         };
         this.emitState();
         try {
-            const persistedDraft = {
-                ...draft,
-                ...(draft.taskGenerationPlan
-                    ? {
-                        taskGenerationPlan: {
-                            ...draft.taskGenerationPlan,
-                            status: 'approved'
-                        }
-                    }
-                    : {})
-            };
-            const result = await this.options.writeDraft(persistedDraft);
+            const result = await this.options.writeDraft(draft);
             this.state = {
                 ...this.state,
                 step: 6,

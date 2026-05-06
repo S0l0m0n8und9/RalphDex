@@ -40,6 +40,8 @@ export interface PipelineRunArtifact {
   prUrl?: string;
   /** Path to the orchestration graph.json for this run. */
   orchestrationGraphPath?: string;
+  /** How this pipeline run sourced executable tasks. */
+  taskGraphSource?: 'approved-plan' | 'legacy-heading-scaffold';
 }
 
 const PR_URL_PATTERN = /https:\/\/[^\s"']+\/pull\/\d+/;
@@ -175,6 +177,38 @@ export async function writePipelineArtifact(
 }
 
 /**
+ * Create and persist a pipeline artifact for an already-approved task graph.
+ * This path does not mutate tasks.json and does not derive heading-based child tasks.
+ */
+export async function createPipelineRunFromApprovedTaskGraph(input: {
+  prdHash: string;
+  prdPath: string;
+  artifactDir: string;
+  ralphDir: string;
+  taskIds: string[];
+  rootTaskId?: string;
+}): Promise<{ artifact: PipelineRunArtifact; artifactPath: string }> {
+  const runId = buildPipelineRunId();
+  const orchestrationPaths = resolveOrchestrationPaths(input.ralphDir, runId);
+  const rootTaskId = input.rootTaskId ?? input.taskIds[0] ?? `Tpipe-${runId.replace(/^pipeline-/, '')}`;
+  const artifact: PipelineRunArtifact = {
+    schemaVersion: 1,
+    kind: 'pipelineRun',
+    runId,
+    prdHash: input.prdHash,
+    prdPath: input.prdPath,
+    rootTaskId,
+    decomposedTaskIds: [...input.taskIds],
+    loopStartTime: new Date().toISOString(),
+    status: 'running',
+    orchestrationGraphPath: orchestrationPaths.graphPath,
+    taskGraphSource: 'approved-plan'
+  };
+  const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
+  return { artifact, artifactPath };
+}
+
+/**
  * Orchestrate the full pipeline scaffold:
  * 1. Hash the PRD.
  * 2. Parse sections to derive child task titles.
@@ -217,7 +251,8 @@ export async function scaffoldPipelineRun(input: {
     loopStartTime,
     status: 'running',
     phase: 'scaffold',
-    orchestrationGraphPath: orchestrationPaths.graphPath
+    orchestrationGraphPath: orchestrationPaths.graphPath,
+    taskGraphSource: 'legacy-heading-scaffold'
   };
 
   const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);

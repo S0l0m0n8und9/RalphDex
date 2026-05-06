@@ -40,6 +40,7 @@ exports.buildPipelineRootTask = buildPipelineRootTask;
 exports.buildPipelineChildTasks = buildPipelineChildTasks;
 exports.addPipelineRootTask = addPipelineRootTask;
 exports.writePipelineArtifact = writePipelineArtifact;
+exports.createPipelineRunFromApprovedTaskGraph = createPipelineRunFromApprovedTaskGraph;
 exports.scaffoldPipelineRun = scaffoldPipelineRun;
 exports.readLatestPipelineArtifact = readLatestPipelineArtifact;
 const crypto = __importStar(require("node:crypto"));
@@ -159,6 +160,30 @@ async function writePipelineArtifact(artifactDir, artifact) {
     return artifactPath;
 }
 /**
+ * Create and persist a pipeline artifact for an already-approved task graph.
+ * This path does not mutate tasks.json and does not derive heading-based child tasks.
+ */
+async function createPipelineRunFromApprovedTaskGraph(input) {
+    const runId = buildPipelineRunId();
+    const orchestrationPaths = (0, orchestrationSupervisor_1.resolveOrchestrationPaths)(input.ralphDir, runId);
+    const rootTaskId = input.rootTaskId ?? input.taskIds[0] ?? `Tpipe-${runId.replace(/^pipeline-/, '')}`;
+    const artifact = {
+        schemaVersion: 1,
+        kind: 'pipelineRun',
+        runId,
+        prdHash: input.prdHash,
+        prdPath: input.prdPath,
+        rootTaskId,
+        decomposedTaskIds: [...input.taskIds],
+        loopStartTime: new Date().toISOString(),
+        status: 'running',
+        orchestrationGraphPath: orchestrationPaths.graphPath,
+        taskGraphSource: 'approved-plan'
+    };
+    const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
+    return { artifact, artifactPath };
+}
+/**
  * Orchestrate the full pipeline scaffold:
  * 1. Hash the PRD.
  * 2. Parse sections to derive child task titles.
@@ -191,7 +216,8 @@ async function scaffoldPipelineRun(input) {
         loopStartTime,
         status: 'running',
         phase: 'scaffold',
-        orchestrationGraphPath: orchestrationPaths.graphPath
+        orchestrationGraphPath: orchestrationPaths.graphPath,
+        taskGraphSource: 'legacy-heading-scaffold'
     };
     const artifactPath = await writePipelineArtifact(input.artifactDir, artifact);
     return { artifact, artifactPath, rootTaskId, childTaskIds };

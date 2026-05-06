@@ -301,7 +301,7 @@ async function generateTasksFromPrd(input, config, cwd, artifactDir) {
         schemaVersion: 1,
         kind: 'taskGenerationPlan',
         generatedAt: new Date().toISOString(),
-        status: 'approved',
+        status: 'draft',
         prdHash: input.prdHash,
         prdTitle: readiness.title,
         readinessScore: readiness.score,

@@ -2446,8 +2446,24 @@ test('Run Pipeline runs review agent and SCM agent after the multi-agent loop su
   const pipelineFiles = await fs.readdir(pipelinesDir);
   assert.equal(pipelineFiles.length, 1, 'Expected exactly one pipeline artifact');
   const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
-  const artifact = JSON.parse(artifactRaw) as { status: string; reviewTranscriptPath?: string };
+  const artifact = JSON.parse(artifactRaw) as {
+    status: string;
+    reviewTranscriptPath?: string;
+    taskGraphSource?: string;
+    rootTaskId?: string;
+  };
   assert.equal(artifact.status, 'complete', 'Pipeline artifact status must be complete');
+  assert.equal(artifact.taskGraphSource, 'approved-plan', 'approved task graph should be the default pipeline source');
+  assert.equal(artifact.rootTaskId, 'T1', 'approved task graph root should be the first approved generated task');
+
+  const persistedTasks = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string }>;
+  };
+  assert.equal(
+    persistedTasks.tasks.some((task) => task.id.startsWith('Tpipe-')),
+    false,
+    'runPipeline default path must not scaffold PRD-heading pipeline tasks when an approved graph exists'
+  );
   assert.match(
     harness.state.infoMessages.at(-1)?.message ?? '',
     /Ralph pipeline .+ finished with status: complete/
@@ -2530,6 +2546,109 @@ test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artif
   const lastMessage = harness.state.infoMessages.at(-1)?.message ?? '';
   assert.match(lastMessage, /Ralph pipeline .+ finished with status: complete/);
   assert.ok(lastMessage.includes(fakePrUrl), 'Info message must include the PR URL');
+});
+
+test('Run Pipeline uses legacy heading scaffold only when explicitly selected', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const latestPlanPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-task-generation-plan.json');
+  const latestPlan = JSON.parse(await fs.readFile(latestPlanPath, 'utf8')) as { status: string };
+  await fs.writeFile(
+    latestPlanPath,
+    JSON.stringify({ ...latestPlan, status: 'draft' }, null, 2),
+    'utf8'
+  );
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setConfiguration({
+    agentId: 'default',
+    agentCount: 1
+  });
+  harness.setMessageChoice('Use Legacy Heading Scaffold');
+
+  let runCalls = 0;
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      runCalls += 1;
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  assert.ok(runCalls > 0, 'legacy fallback should proceed into pipeline execution when explicitly selected');
+
+  const tasks = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string }>;
+  };
+  assert.equal(
+    tasks.tasks.some((task) => task.id.startsWith('Tpipe-')),
+    true,
+    'legacy heading scaffold should append pipeline-derived tasks'
+  );
+
+  const pipelinesDir = path.join(rootPath, '.ralph', 'artifacts', 'pipelines');
+  const pipelineFiles = await fs.readdir(pipelinesDir);
+  const artifactRaw = await fs.readFile(path.join(pipelinesDir, pipelineFiles[0]!), 'utf8');
+  const artifact = JSON.parse(artifactRaw) as { taskGraphSource?: string };
+  assert.equal(artifact.taskGraphSource, 'legacy-heading-scaffold');
+  assert.equal(
+    harness.state.warningMessages.some((entry) => /legacy heading scaffold fallback/i.test(entry.message)),
+    true,
+    'operator should be notified when legacy scaffold fallback is used'
+  );
+});
+
+test('Run Pipeline routes to task generation when the latest task-generation plan is not approved', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+
+  const latestPlanPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-task-generation-plan.json');
+  const latestPlan = JSON.parse(await fs.readFile(latestPlanPath, 'utf8')) as { status: string };
+  await fs.writeFile(
+    latestPlanPath,
+    JSON.stringify({ ...latestPlan, status: 'draft' }, null, 2),
+    'utf8'
+  );
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+  harness.setMessageChoice('Generate Tasks');
+
+  let runCalls = 0;
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      runCalls += 1;
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  assert.equal(runCalls, 0, 'runPipeline should not execute loop when the latest plan is not approved');
+  assert.ok(
+    harness.state.createdWebviewPanels.length >= 1,
+    'runPipeline should route the operator to the PRD wizard task-generation step'
+  );
+
+  const tasks = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8')) as {
+    tasks: Array<{ id: string }>;
+  };
+  assert.equal(
+    tasks.tasks.some((task) => task.id.startsWith('Tpipe-')),
+    false,
+    'runPipeline should not scaffold heading-derived tasks when redirecting to task generation'
+  );
 });
 
 test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', async () => {

@@ -129,3 +129,43 @@ test('writePrdWizardDraft preserves rich reviewed task fields when rewriting tas
   ]);
 });
 
+test('writePrdWizardDraft persists task-generation plan as approved only after files are written', async () => {
+  const harness = vscodeTestHarness();
+  harness.reset();
+  const rootPath = await makeTempRoot();
+  const ralphDir = path.join(rootPath, '.ralph');
+  const artifactDir = path.join(ralphDir, 'artifacts');
+  const prdText = '# Product / project brief\n\nShip the wizard.\n';
+  const draft: PrdWizardDraftBundle = {
+    prdText,
+    tasks: [
+      { id: 'T1', title: 'Implement the wizard write flow', status: 'todo', validation: 'npm run validate' }
+    ],
+    taskGenerationPlan: {
+      schemaVersion: 1,
+      kind: 'taskGenerationPlan',
+      generatedAt: '2026-05-07T00:00:00.000Z',
+      status: 'draft',
+      prdHash: 'sha256:test',
+      prdTitle: 'Product / project brief',
+      readinessScore: 90,
+      workAreas: ['Work Area'],
+      generatedTaskIds: ['T1'],
+      warnings: [],
+      blockedWorkAreas: []
+    }
+  };
+
+  await writePrdWizardDraft(draft, {
+    prdPath: path.join(ralphDir, 'prd.md'),
+    tasksPath: path.join(ralphDir, 'tasks.json'),
+    artifactDir
+  });
+
+  const latestPlan = JSON.parse(
+    await fs.readFile(path.join(artifactDir, 'latest-task-generation-plan.json'), 'utf8')
+  ) as { status: string; generatedTaskIds: string[] };
+  assert.equal(latestPlan.status, 'approved');
+  assert.deepEqual(latestPlan.generatedTaskIds, ['T1']);
+});
+

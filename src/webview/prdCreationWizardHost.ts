@@ -1191,18 +1191,7 @@ export class PrdCreationWizardHost implements vscode.Disposable {
     };
     this.emitState();
     try {
-      const persistedDraft: PrdWizardDraftBundle = {
-        ...draft,
-        ...(draft.taskGenerationPlan
-          ? {
-            taskGenerationPlan: {
-              ...draft.taskGenerationPlan,
-              status: 'approved'
-            }
-          }
-          : {})
-      };
-      const result = await this.options.writeDraft(persistedDraft);
+      const result = await this.options.writeDraft(draft);
       this.state = {
         ...this.state,
         step: 6,

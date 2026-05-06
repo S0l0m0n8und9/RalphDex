@@ -189,6 +189,7 @@ test('generateTasksFromPrd generates tasks from approved PRD and persists task-g
     );
 
     assert.equal(generated.tasks.length, 2);
+    assert.equal(generated.planArtifact.status, 'draft');
     assert.equal(generated.planArtifact.prdHash, hashText(prdText));
     assert.deepEqual(generated.planArtifact.generatedTaskIds, ['T1', 'T2']);
     assert.match(capturedStdin, /Do not map one task per PRD section/i);
@@ -197,10 +198,12 @@ test('generateTasksFromPrd generates tasks from approved PRD and persists task-g
     const latestPlanPath = path.join(tmpDir, 'latest-task-generation-plan.json');
     const rawPlan = JSON.parse(await fs.readFile(latestPlanPath, 'utf8')) as {
       kind: string;
+      status: string;
       prdHash: string;
       generatedTaskIds: string[];
     };
     assert.equal(rawPlan.kind, 'taskGenerationPlan');
+    assert.equal(rawPlan.status, 'draft');
     assert.equal(rawPlan.prdHash, hashText(prdText));
     assert.deepEqual(rawPlan.generatedTaskIds, ['T1', 'T2']);
   } finally {
@@ -208,4 +211,3 @@ test('generateTasksFromPrd generates tasks from approved PRD and persists task-g
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
 });
-

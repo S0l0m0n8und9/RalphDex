@@ -97,7 +97,7 @@ function makePlan(prdText: string, taskIds: string[]): TaskGenerationPlanArtifac
     schemaVersion: 1,
     kind: 'taskGenerationPlan',
     generatedAt: '2026-05-07T00:00:00.000Z',
-    status: 'approved',
+    status: 'draft',
     prdHash: hashText(prdText),
     prdTitle: 'RalphDex PRD',
     readinessScore: 92,
@@ -115,7 +115,7 @@ function makeTaskGenerationResult(prdText: string, overrides: Partial<PrdWizardT
         id: 'T1',
         title: 'Persist PRD readiness artifacts',
         status: 'todo',
-        acceptance: ['latest-prd-readiness.json is updated'],
+        acceptance: ['latest-prd-readiness.json is written after readiness analysis'],
         validation: 'npm run validate'
       },
       {
@@ -241,6 +241,7 @@ test('task generation is blocked when PRD readiness has blockers', async () => {
 test('wizard marks generated tasks stale when PRD text changes after task generation', async () => {
   const webview = makeMockWebview();
   const prdDraft = makePrdDraft();
+  let writeCount = 0;
 
   const host = new PrdCreationWizardHost({
     webview: webview as unknown as import('vscode').Webview,
@@ -251,7 +252,10 @@ test('wizard marks generated tasks stale when PRD text changes after task genera
     },
     generatePrdDraft: async () => prdDraft,
     generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
-    writeDraft: async () => ({ filesWritten: [] })
+    writeDraft: async () => {
+      writeCount += 1;
+      return { filesWritten: [] };
+    }
   });
 
   webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate and edit.' });
@@ -261,12 +265,17 @@ test('wizard marks generated tasks stale when PRD text changes after task genera
   await new Promise((resolve) => setImmediate(resolve));
   webviewSends(webview, { type: 'update-draft-prd-text', value: `${prdDraft.prdText}\n\n## Extra\nNew section` });
   await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
 
   const state = lastStateMessage(webview).state as {
     tasksStale: boolean;
+    warning?: string;
     taskGenerationMessage?: string;
   };
   assert.equal(state.tasksStale, true);
+  assert.equal(writeCount, 0);
+  assert.match(state.warning ?? '', /stale/i);
   assert.match(state.taskGenerationMessage ?? '', /regenerate tasks/i);
   host.dispose();
 });
@@ -313,6 +322,38 @@ test('epic-level starter tasks block confirm-write', async () => {
   const state = lastStateMessage(webview).state as { warning?: string };
   assert.equal(writeCount, 0);
   assert.match(state.warning ?? '', /task readiness blockers/i);
+  host.dispose();
+});
+
+test('confirm-write forwards a draft task-generation plan to persistence without pre-approving it', async () => {
+  const webview = makeMockWebview();
+  const prdDraft = makePrdDraft();
+  let capturedPlanStatus: string | undefined;
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
+    writeDraft: async (draft) => {
+      capturedPlanStatus = draft.taskGenerationPlan?.status;
+      return { filesWritten: [] };
+    }
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Confirm write draft status.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'generate-tasks' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(capturedPlanStatus, 'draft');
   host.dispose();
 });
 

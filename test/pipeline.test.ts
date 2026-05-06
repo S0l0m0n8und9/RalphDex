@@ -7,6 +7,7 @@ import {
   buildPipelineChildTasks,
   buildPipelineRootTask,
   buildPipelineRunId,
+  createPipelineRunFromApprovedTaskGraph,
   extractPrUrl,
   parsePrdSections,
   readLatestPipelineArtifact,
@@ -318,6 +319,56 @@ test('scaffoldPipelineRun sets phase scaffold on the written artifact', async ()
     const raw = await fs.readFile(result.artifactPath, 'utf8');
     const parsed = JSON.parse(raw);
     assert.equal(parsed.phase, 'scaffold');
+    assert.equal(parsed.taskGraphSource, 'legacy-heading-scaffold');
+  } finally {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('createPipelineRunFromApprovedTaskGraph writes pipeline artifact without mutating tasks.json', async () => {
+  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-approved-graph-test-'));
+  try {
+    const prdPath = path.join(tmpDir, '.ralph', 'prd.md');
+    const artifactDir = path.join(tmpDir, '.ralph', 'artifacts');
+    const ralphDir = path.join(tmpDir, '.ralph');
+    const taskFilePath = path.join(ralphDir, 'tasks.json');
+
+    await fs.mkdir(path.dirname(prdPath), { recursive: true });
+    await fs.writeFile(prdPath, '# PRD\n\n## Work Area\nFocus scope.\n', 'utf8');
+    await fs.writeFile(taskFilePath, JSON.stringify({
+      version: 2,
+      tasks: [
+        { id: 'T1', title: 'Atomic approved task', status: 'todo' }
+      ]
+    }, null, 2), 'utf8');
+
+    const { artifact, artifactPath } = await createPipelineRunFromApprovedTaskGraph({
+      prdHash: 'sha256:test',
+      prdPath,
+      artifactDir,
+      ralphDir,
+      taskIds: ['T1']
+    });
+
+    assert.equal(artifact.rootTaskId, 'T1');
+    assert.equal(artifact.taskGraphSource, 'approved-plan');
+    assert.deepEqual(artifact.decomposedTaskIds, ['T1']);
+
+    const persistedTasks = JSON.parse(await fs.readFile(taskFilePath, 'utf8')) as {
+      tasks: Array<{ id: string }>;
+    };
+    assert.deepEqual(
+      persistedTasks.tasks.map((task) => task.id),
+      ['T1'],
+      'approved-graph artifact creation should not scaffold or mutate tasks.json'
+    );
+
+    const persistedArtifact = JSON.parse(await fs.readFile(artifactPath, 'utf8')) as {
+      taskGraphSource?: string;
+      rootTaskId?: string;
+    };
+    assert.equal(persistedArtifact.taskGraphSource, 'approved-plan');
+    assert.equal(persistedArtifact.rootTaskId, 'T1');
   } finally {
     await fs.rm(tmpDir, { recursive: true, force: true });
   }
