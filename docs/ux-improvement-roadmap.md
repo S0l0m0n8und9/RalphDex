@@ -102,6 +102,18 @@ RalphDex already has the intended structural split:
 4. Additional fixture-backed coverage for any newly introduced state variants.
 5. Optional visual/a11y harness hardening (only if bounded and deterministic).
 
+## Completed Follow-On Slices (2026-05-06)
+
+- Dashboard terminology completion:
+  - User-facing dashboard copy now consistently uses `Recovery Queue`, `Run Full Workflow`, and `Latest Run Report`.
+- Latest artifact affordance consistency:
+  - Dashboard now renders latest artifact actions from one shared renderer to prevent copy/order drift.
+- Fixture coverage expansion:
+  - Added nuanced snapshot-backed fixtures for blocked+recovery-queue and human-review+requeue states.
+- Deterministic UI evidence hook:
+  - Added `npm run evidence:ui-fixtures` to export panel/sidebar fixture HTML and a hash manifest under `.ralph/artifacts/ui-fixtures/`.
+  - Added `renderUiFixtureEvidence(...)` and test coverage to keep exported evidence deterministic and reviewable.
+
 ## Explicit Non-Goals
 
 - No command ID migrations.

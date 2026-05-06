@@ -1206,6 +1206,7 @@
     "test:offline-evals": "node ./scripts/run-offline-evals.js",
     "test:evals": "npm run test:offline-evals",
     "test:ui-harness": "npm run compile:tests && node --require ./test/register-vscode-stub.cjs --test ./out-test/test/ui/uiFixtureHarness.test.js ./out-test/test/ui/panelHtml.test.js ./out-test/test/ui/sidebarHtml.test.js ./out-test/test/webview/sharedStyles.test.js",
+    "evidence:ui-fixtures": "npm run compile && npm run compile:tests && node ./scripts/export-ui-fixture-catalog.js",
     "dogfood": "node ./scripts/run-dogfood.js",
     "validate": "npm run compile && npm run check:docs && npm run check:ledger && npm run check:prompt-budget && npm run lint && npm run test",
     "check:runtime": "node ./scripts/ensure-node-version.js",
