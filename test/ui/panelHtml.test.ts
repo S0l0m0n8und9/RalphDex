@@ -409,6 +409,8 @@ test('buildPanelDashboardHtml renders populated agent, task, dead-letter, and fa
   assert.match(html, /Done<\/span><span class="metric-value ok">4<\/span>/);
   assert.ok(html.includes('Recovery Queue'));
   assert.ok(html.includes('Recover failed task'));
+  assert.ok(html.includes('Requeue Recovery Task'));
+  assert.ok(!html.includes('>Dead-letter<'));
   assert.ok(html.includes('validation_mismatch'));
   assert.ok(html.includes('Confidence</strong> high'));
   assert.ok(html.includes('Focused Diagnosis'));
@@ -457,8 +459,13 @@ test('buildPanelDashboardHtml quick actions expose latest artifact and settings 
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
   assert.ok(html.includes('Latest Run Report'));
   assert.ok(html.includes('ralphCodex.openLatestProvenanceBundle'));
+  assert.ok(html.includes('Latest Provenance Bundle'));
   assert.ok(html.includes('ralphCodex.openLatestPromptEvidence'));
+  assert.ok(html.includes('Latest Prompt Evidence'));
   assert.ok(html.includes('ralphCodex.openLatestCliTranscript'));
+  assert.ok(html.includes('Latest CLI Transcript'));
+  assert.ok(!html.includes('>Provenance<'));
+  assert.ok(!html.includes('>Transcript<'));
   assert.ok(html.includes('ralphCodex.openPrdWizard'));
   assert.ok(html.includes('ralphCodex.openSettings'));
 });
@@ -499,6 +506,8 @@ test('buildPanelDashboardHtml renders a live hero summary from durable state', (
   assert.ok(html.includes('Progress'));
   assert.ok(html.includes('Iteration'));
   assert.ok(html.includes('Attention'));
+  assert.ok(html.includes('Recovery Queue contains parked work that may need requeue.'));
+  assert.ok(!html.includes('Dead-letter contains parked work that may need requeue.'));
   assert.ok(html.includes('Cost'));
 });
 
@@ -690,6 +699,7 @@ test('empty task state renders actionable CTAs with addTask and seedTasks comman
   assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA present');
   assert.ok(html.includes('ralphCodex.seedTasksFromFeatureRequest'), 'seedTasksFromFeatureRequest CTA present');
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'openPrdWizard CTA present');
+  assert.ok(html.includes('Start here — define your project scope.'), 'no-PRD empty-state copy');
   assert.ok(html.includes('Add Task'), 'Add Task button label');
   assert.ok(html.includes('Seed Tasks'), 'Seed Tasks button label');
 });
@@ -697,6 +707,8 @@ test('empty task state renders actionable CTAs with addTask and seedTasks comman
 test('empty task state with prdExists=true shows Generate from PRD plus addTask', () => {
   const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'empty-prd');
 
+  assert.ok(html.includes('PRD exists but no tasks yet.'), 'PRD-empty empty-state copy');
+  assert.ok(!html.includes('No tasks — start by defining your project scope.'), 'legacy empty-state copy removed');
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'generate from PRD');
   assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA');
   assert.ok(html.includes('Generate tasks from PRD'), 'PRD generate label');

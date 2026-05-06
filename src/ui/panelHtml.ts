@@ -23,6 +23,19 @@ const DASHBOARD_TABS: Array<{ id: DashboardTabId; label: string }> = [
   { id: 'settings', label: 'Settings' }
 ];
 
+const DASHBOARD_COPY = {
+  setupRequired: 'Setup Required',
+  readinessBlocked: 'Readiness Blocked',
+  readyToRun: 'Ready to run',
+  noAgents: 'No durable agent identity records found yet.',
+  noRecoveryQueue: 'No tasks are parked in the Recovery Queue.',
+  recoveryQueueAttention: 'Recovery Queue contains parked work that may need requeue.',
+  noIterations: 'No iterations recorded yet.',
+  noTasksWithPrd: 'PRD exists but no tasks yet.',
+  noTasksWithoutPrd: 'Start here — define your project scope.',
+  requeueRecoveryTask: 'Requeue Recovery Task',
+} as const;
+
 // ---------------------------------------------------------------------------
 // Panel-specific CSS (extends base)
 // ---------------------------------------------------------------------------
@@ -1332,7 +1345,7 @@ function buildRichFailureCard(state: RalphDashboardState): string {
       <button class="btn" data-command="ralphCodex.openFailureDiagnosis"><span class="btn-label">Open diagnosis</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.skipTask"><span class="btn-label">Skip task</span><span class="btn-spinner"></span></button>
       ${entry.humanReviewRecommended
-        ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Dead-letter</span><span class="btn-spinner"></span></button>`
+        ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">${DASHBOARD_COPY.requeueRecoveryTask}</span><span class="btn-spinner"></span></button>`
         : ''}
     </div>
   </div>`;
@@ -1373,7 +1386,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
   if (rows.length === 0) {
     return `<div class="dashboard-summary-card">
       <div class="card-title">Agent Grid</div>
-      <div class="empty" style="font-style:normal;">No durable agent identity records found yet.</div>
+      <div class="empty" style="font-style:normal;">${DASHBOARD_COPY.noAgents}</div>
       <div class="inline-actions" style="justify-content:center;">
         <button class="btn" data-command="ralphCodex.runMultiAgentLoop"><span class="btn-label">Run Multi-Agent Loop</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
@@ -1406,7 +1419,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
     if (entries.length === 0) {
       return `<div class="dashboard-summary-card">
         <div class="card-title">Recovery Queue</div>
-      <div class="empty" style="font-style:normal;">No tasks are parked in the Recovery Queue.</div>
+      <div class="empty" style="font-style:normal;">${DASHBOARD_COPY.noRecoveryQueue}</div>
       <div class="inline-actions" style="justify-content:center;">
         <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       </div>
@@ -1507,9 +1520,9 @@ function buildQuickActionsSection(state: RalphDashboardState): string {
     <div class="card-title">Quick Actions</div>
     <div class="btn-grid">
       <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
-      <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance Bundle</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest CLI Transcript</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Recovery Task</span><span class="btn-spinner"></span></button>` : ''}
@@ -1682,12 +1695,12 @@ function buildHeroCard(state: RalphDashboardState): string {
   const readinessMode = getDashboardReadinessMode(state);
 
   const heroTitle = readinessMode === 'noPrd'
-    ? 'Setup Required'
+    ? DASHBOARD_COPY.setupRequired
     : readinessMode === 'emptyBacklog'
       ? 'Backlog Required'
       : readinessMode === 'preflightBlocked'
-        ? 'Readiness Blocked'
-        : 'Ready to run';
+        ? DASHBOARD_COPY.readinessBlocked
+        : DASHBOARD_COPY.readyToRun;
   const heroSummary = readinessMode === 'noPrd'
     ? 'Create a PRD before running RalphDex.'
     : readinessMode === 'emptyBacklog'
@@ -1812,7 +1825,7 @@ function buildOverviewTab(state: RalphDashboardState): string {
           <div class="attention-list">
             ${failure ? `<div>Latest failure: ${esc(failure.taskId)} · ${esc(failure.category)}</div>` : ''}
             ${quick?.hasBlockedTasks ? '<div>Blocked tasks need review before the next clean run.</div>' : ''}
-            ${quick?.hasDeadLetterEntries ? '<div>Dead-letter contains parked work that may need requeue.</div>' : ''}
+            ${quick?.hasDeadLetterEntries ? `<div>${DASHBOARD_COPY.recoveryQueueAttention}</div>` : ''}
             ${!state.preflightReady ? `<div>${esc(state.preflightSummary)}</div>` : ''}
             ${!failure && !quick?.hasBlockedTasks && !quick?.hasDeadLetterEntries && state.preflightReady ? '<div>No immediate interruptions.</div>' : ''}
           </div>
@@ -1825,7 +1838,7 @@ function buildOverviewTab(state: RalphDashboardState): string {
           <div class="history-list">
             ${state.recentIterations.length > 0
               ? state.recentIterations.slice(0, 5).map(buildIterationRow).join('\n')
-              : `<div class="empty" style="font-style:normal;">No iterations recorded yet.</div>
+              : `<div class="empty" style="font-style:normal;">${DASHBOARD_COPY.noIterations}</div>
                  <div class="inline-actions" style="justify-content:center;">
                    <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run First Iteration</span><span class="btn-spinner"></span></button>
                  </div>`}
@@ -1849,12 +1862,12 @@ function buildOverviewTab(state: RalphDashboardState): string {
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
                 : state.prdExists
-                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">PRD exists but no tasks yet.</div>
+                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
                        <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
                      </div>`
-                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">Start here — define your project scope.</div>
+                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithoutPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
                        <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
@@ -1912,13 +1925,13 @@ function buildWorkTab(state: RalphDashboardState): string {
             : (state.snapshotStatus?.phase === 'loading' || state.snapshotStatus?.phase === 'refreshing'
                 ? '<div class="empty">Loading workspace data...</div>'
                 : state.prdExists
-                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">PRD exists but no tasks yet.</div>
+                  ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
                        <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
                        <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
                      </div>`
-                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">No tasks — start by defining your project scope.</div>
+                  : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithoutPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
                        <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
@@ -1937,7 +1950,7 @@ function buildWorkTab(state: RalphDashboardState): string {
         <div class="history-list">
           ${state.recentIterations.length > 0
             ? state.recentIterations.map(buildIterationRow).join('\n')
-            : `<div class="empty" style="font-style:normal;">No iterations recorded yet.</div>
+            : `<div class="empty" style="font-style:normal;">${DASHBOARD_COPY.noIterations}</div>
                <div class="inline-actions" style="justify-content:center;">
                  <button class="btn" data-command="ralphCodex.runRalphIteration"><span class="btn-label">Run First Iteration</span><span class="btn-spinner"></span></button>
                </div>`}
@@ -1992,9 +2005,9 @@ function buildSettingsTab(state: RalphDashboardState): string {
       <div class="card-title">Artifacts & Admin</div>
       <div class="btn-grid">
         <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance Bundle</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest Transcript</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest CLI Transcript</span><span class="btn-spinner"></span></button>
       </div>
     </div>
 

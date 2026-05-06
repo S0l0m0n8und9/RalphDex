@@ -67,7 +67,13 @@ test('UI fixture catalogue enforces state-copy contract for readiness and workfl
   const idleWithTasksHtml = buildPanelDashboardHtml(idleWithTasks!.state, 'fixture-nonce');
   assert.ok(idleWithTasksHtml.includes('Run Full Workflow'));
   assert.ok(idleWithTasksHtml.includes('Latest Run Report'));
+  assert.ok(idleWithTasksHtml.includes('Latest Provenance Bundle'));
+  assert.ok(idleWithTasksHtml.includes('Latest Prompt Evidence'));
+  assert.ok(idleWithTasksHtml.includes('Latest CLI Transcript'));
   assert.ok(!idleWithTasksHtml.includes('Latest Pipeline Run'));
   assert.ok(!idleWithTasksHtml.includes('Run Pipeline'));
+
+  const needsHumanReview = byId.get('needs-human-review');
+  assert.ok(needsHumanReview, 'missing needs-human-review fixture');
 });
 
