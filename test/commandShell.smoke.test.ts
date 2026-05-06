@@ -1668,7 +1668,7 @@ test('Open Latest CLI Transcript explains when no CLI run artifacts exist yet', 
   assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /No Ralph CLI transcript exists yet/);
 });
 
-test('Prepare Prompt copies the generated prompt when clipboard auto-copy is enabled', async () => {
+test('Prepare IDE Prompt copies the generated prompt when clipboard auto-copy is enabled', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1683,7 +1683,7 @@ test('Prepare Prompt copies the generated prompt when clipboard auto-copy is ena
   assert.equal(harness.state.warningMessages.length, 0);
 });
 
-test('Prepare Prompt does not create a durable active claim for the selected task', async () => {
+test('Prepare IDE Prompt does not create a durable active claim for the selected task', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1812,7 +1812,7 @@ test('Open Codex IDE warns when preferredHandoffMode is cliExec and stays on cli
   assert.equal(harness.state.executedCommands.some((entry) => entry.command === 'chatgpt.newChat'), false);
   assert.equal(
     harness.state.warningMessages[0]?.message ?? '',
-    'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run CLI Iteration for codex exec.'
+    'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run Single Iteration for codex exec.'
   );
   assert.equal(
     harness.state.infoMessages.at(-1)?.message ?? '',
@@ -1892,7 +1892,7 @@ test('Iteration, loop, multi-agent, and pipeline commands open the PRD wizard an
   }
 });
 
-test('Run CLI Loop stops cleanly without auto-reload when no actionable task remains', async () => {
+test('Run Loop stops cleanly without auto-reload when no actionable task remains', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1924,7 +1924,7 @@ test('Run CLI Loop stops cleanly without auto-reload when no actionable task rem
   );
 });
 
-test('Run CLI Iteration does not auto-reload when no actionable task remains', async () => {
+test('Run Single Iteration does not auto-reload when no actionable task remains', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -1956,7 +1956,7 @@ test('Run CLI Iteration does not auto-reload when no actionable task remains', a
   );
 });
 
-test('Run CLI Iteration does not surface stale failure diagnosis after a successful run', async () => {
+test('Run Single Iteration does not surface stale failure diagnosis after a successful run', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
   await writeFailureDiagnosisArtifacts(rootPath, 'T1');
@@ -1982,7 +1982,7 @@ test('Run CLI Iteration does not surface stale failure diagnosis after a success
   );
 });
 
-test('Run CLI Loop surfaces a fresh failure diagnosis notification and View Diagnosis routes to the dashboard diagnostics tab', async () => {
+test('Run Loop surfaces a fresh failure diagnosis notification and View Diagnosis routes to the dashboard diagnostics tab', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -2075,7 +2075,7 @@ test('Skip Task marks the selected task blocked using the diagnosis summary', as
   );
 });
 
-test('Run CLI Loop still stops for human review in autonomous mode', async () => {
+test('Run Loop still stops for human review in autonomous mode', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 
@@ -2102,7 +2102,7 @@ test('Run CLI Loop still stops for human review in autonomous mode', async () =>
   );
 });
 
-test('Run CLI Loop still stops on blocked preflight in autonomous mode', async () => {
+test('Run Loop still stops on blocked preflight in autonomous mode', async () => {
   const rootPath = await makeTempRoot();
   await seedWorkspace(rootPath);
 

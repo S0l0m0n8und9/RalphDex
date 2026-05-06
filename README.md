@@ -82,9 +82,9 @@ For a fresh clone, start by installing dependencies and running the validation g
 
 4. Press `F5` to launch the Extension Development Host.
 5. Use `Ralphdex: Show Status` to open the dashboard and inspect the current workspace state.
-6. Use `Ralphdex: Prepare Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run CLI Iteration`, or `Ralphdex: Run CLI Loop` depending on the workflow you want.
+6. Use `Ralphdex: Prepare IDE Prompt`, `Ralphdex: Open Codex IDE`, `Ralphdex: Run Single Iteration`, or `Ralphdex: Run Loop` depending on the workflow you want.
 
-For a fresh workspace that does not have a `.ralph/` directory, open the PRD wizard using `Ralphdex: Open PRD Wizard`, or run any provider-facing command. Provider-facing commands such as Prepare Prompt, Open Codex IDE, Run CLI Iteration, Run CLI Loop, Run Multi-Agent Loop, and Run Pipeline automatically open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
+For a fresh workspace that does not have a `.ralph/` directory, open the PRD wizard using `Ralphdex: Open PRD Wizard`, or run any provider-facing command. Provider-facing commands such as Prepare IDE Prompt, Open Codex IDE, Run Single Iteration, Run Loop, Run Multi-Agent Loop, and Run Pipeline automatically open the PRD wizard when `.ralph/prd.md` is missing or still contains the default placeholder. Finish the wizard before starting the first run.
 
 For an established Ralph workspace that already has `.ralph/prd.md`, `.ralph/tasks.json`, and `.ralph/progress.md` but is missing `.ralph/doctrine/`, use `Ralphdex: Initialize Doctrine Pack`. That command only scaffolds missing doctrine files and repairs an invalid `evidence-index.json`; it does not rerun workspace bootstrap or act like cleanup/reset.
 
@@ -133,7 +133,7 @@ Ralph separates committed durable state from operator-local runtime evidence:
 - **Generated execution evidence** (iteration artifacts): prompts, transcripts, provenance bundles, diagnostic reports under `.ralph/artifacts/`
 - **Latest stable entry points** (convenient access): `.ralph/artifacts/latest-summary.md`, `latest-prompt-evidence.json`, `latest-execution-plan.json` and related latest-pointer artifacts
 
-`Ralphdex: Cleanup Runtime Artifacts` is the safe maintenance path — it preserves committed durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralphdex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
+`Ralphdex: Clean Up Old Run Artifacts` is the safe maintenance path — it preserves committed durable Ralph state and the latest evidence surfaces while pruning older generated artifacts. `Ralphdex: Reset Runtime State` is broader: it clears generated runtime state while still preserving `.ralph/prd.md`, `.ralph/progress.md`, and `.ralph/tasks.json`.
 
 For day-to-day loop inspection:
 
@@ -159,10 +159,10 @@ Current command surface:
 - `Ralphdex: Initialize Doctrine Pack`
 - `Ralphdex: Add Task`
 - `Ralphdex: Seed Tasks from Feature Request`
-- `Ralphdex: Prepare Prompt`
+- `Ralphdex: Prepare IDE Prompt`
 - `Ralphdex: Open Codex IDE`
-- `Ralphdex: Run CLI Iteration`
-- `Ralphdex: Run CLI Loop`
+- `Ralphdex: Run Single Iteration`
+- `Ralphdex: Run Loop`
 - `Ralphdex: Run Multi-Agent Loop`
 - `Ralphdex: Run Review Agent`
 - `Ralphdex: Run Watchdog Agent`
@@ -178,12 +178,12 @@ Current command surface:
 - `Ralphdex: Apply Latest Task Decomposition Proposal`
 - `Ralphdex: Resolve Stale Task Claim`
 - `Ralphdex: Reveal Latest Provenance Bundle Directory`
-- `Ralphdex: Cleanup Runtime Artifacts`
+- `Ralphdex: Clean Up Old Run Artifacts`
 - `Ralphdex: Reset Runtime State`
-- `Ralphdex: Show Dashboard`
+- `Ralphdex: Focus Dashboard`
 - `Ralphdex: Open Dashboard`
-- `Ralphdex: Run Pipeline`
-- `Ralphdex: Open Latest Pipeline Run`
+- `Ralphdex: Run Full Workflow`
+- `Ralphdex: Open Latest Run Report`
 - `Ralphdex: Open Latest Doctrine Proposal`
 - `Ralphdex: Apply Latest Doctrine Proposal`
 - `Ralphdex: Reject Latest Doctrine Proposal`
@@ -198,7 +198,7 @@ Current command surface:
 
 `npm run check:docs` runs deterministic docs/architecture sanity checks. `npm run validate` is the authoritative compile + type-check + docs + test gate. `npm run test:activation` is the thin real Extension Development Host smoke path.
 
-For the opt-in full pipeline smoke, run `npm run test:e2e-pipeline` with `RALPH_E2E=1`. That path seeds a temp workspace, drives `Ralphdex: Run Pipeline` through the shipped scaffold, loop, review, and SCM commands with a deterministic fake Codex executable, and asserts the resulting pipeline artifact records a PR URL. Without `RALPH_E2E=1`, the script exits with a skip message so it stays out of the default validation gate.
+For the opt-in full pipeline smoke, run `npm run test:e2e-pipeline` with `RALPH_E2E=1`. That path seeds a temp workspace, drives `Ralphdex: Run Full Workflow` through the shipped scaffold, loop, review, and SCM commands with a deterministic fake Codex executable, and asserts the resulting pipeline artifact records a PR URL. Without `RALPH_E2E=1`, the script exits with a skip message so it stays out of the default validation gate.
 
 ## Configuration
 

@@ -891,7 +891,7 @@ export function registerCommands(
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.generatePrompt',
-    label: 'Ralphdex: Prepare Prompt',
+    label: 'Ralphdex: Prepare IDE Prompt',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
@@ -978,7 +978,7 @@ export function registerCommands(
 
       if (prepared.config.preferredHandoffMode === 'cliExec') {
         await vscode.window.showWarningMessage(
-          'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run CLI Iteration for codex exec.'
+          'preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run Single Iteration for codex exec.'
         );
       }
 
@@ -995,7 +995,7 @@ export function registerCommands(
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.runRalphIteration',
-    label: 'Ralphdex: Run CLI Iteration',
+    label: 'Ralphdex: Run Single Iteration',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);
@@ -1174,7 +1174,7 @@ export function registerCommands(
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.runRalphLoop',
-    label: 'Ralphdex: Run CLI Loop',
+    label: 'Ralphdex: Run Loop',
     cancellable: true,
     handler: async (progress, token) => {
       const workspaceFolder = await withWorkspaceFolder();
@@ -1538,7 +1538,7 @@ export function registerCommands(
 
   registerCommand(context, logger, {
     commandId: 'ralphCodex.runPipeline',
-    label: 'Ralphdex: Run Pipeline',
+    label: 'Ralphdex: Run Full Workflow',
     handler: async (progress) => {
       const workspaceFolder = await withWorkspaceFolder();
       const config = readConfig(workspaceFolder);

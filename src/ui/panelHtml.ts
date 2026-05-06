@@ -1214,7 +1214,7 @@ function buildTaskBoardSection(state: RalphDashboardState): string {
       <div class="metric"><span class="metric-label">In Progress</span><span class="metric-value">${taskBoard.counts?.in_progress ?? 0}</span></div>
       <div class="metric"><span class="metric-label">Done</span><span class="metric-value ok">${taskBoard.counts?.done ?? 0}</span></div>
       <div class="metric"><span class="metric-label">Blocked</span><span class="metric-value warn">${taskBoard.counts?.blocked ?? 0}</span></div>
-      <div class="metric"><span class="metric-label">Dead-Letter</span><span class="metric-value warn">${taskBoard.deadLetterCount}</span></div>
+      <div class="metric"><span class="metric-label">Recovery Queue</span><span class="metric-value warn">${taskBoard.deadLetterCount}</span></div>
     </div>
     <div class="pill-row">
       <span class="pill">Selected ${esc(taskBoard.selectedTaskId ?? 'none')}</span>
@@ -1362,7 +1362,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
     const entries = state.dashboardSnapshot?.deadLetter.entries ?? [];
     if (entries.length === 0) {
       return `<div class="dashboard-summary-card">
-        <div class="card-title">Dead-Letter</div>
+        <div class="card-title">Recovery Queue</div>
       <div class="empty" style="font-style:normal;">No tasks are parked in dead-letter.</div>
       <div class="inline-actions" style="justify-content:center;">
         <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
@@ -1371,7 +1371,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
     }
 
     return `<div class="dashboard-summary-card">
-      <div class="card-title">Dead-Letter</div>
+      <div class="card-title">Recovery Queue</div>
       <details data-section="dead-letter-diagnostics">
         <summary>Dead-letter diagnostics</summary>
       </details>
@@ -1400,7 +1400,7 @@ function buildDeadLetterRecoveryCard(state: RalphDashboardState): string {
   }
 
   return `<div class="card dead-letter-recovery-card">
-    <div class="card-title">Dead-Letter Recovery</div>
+    <div class="card-title">Recovery Actions</div>
     <div class="attention-list">
       ${entries.slice(0, 3).map((entry) => {
         const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown';
@@ -1469,7 +1469,7 @@ function buildQuickActionsSection(state: RalphDashboardState): string {
       <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
-      ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Dead-Letter</span><span class="btn-spinner"></span></button>` : ''}
+      ${quick?.hasDeadLetterEntries ? `<button class="btn" data-command="ralphCodex.requeueDeadLetterTask"><span class="btn-label">Requeue Recovery Task</span><span class="btn-spinner"></span></button>` : ''}
       ${quick?.canAttemptLoop ? `<button class="btn" data-command="ralphCodex.runRalphLoop"><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>` : ''}
     </div>
   </div>`;
@@ -1666,7 +1666,7 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
     <div class="dashboard-sidebar-panel">
       <div class="rail-section-label">Prepare &amp; Inspect</div>
       <div class="dashboard-sidebar-actions">
-        <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare Prompt</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare IDE Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>

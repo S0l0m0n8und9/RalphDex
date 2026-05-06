@@ -400,7 +400,7 @@ test('buildPanelDashboardHtml renders accessible task and history controls with 
 test('buildPanelDashboardHtml renders populated agent, task, dead-letter, and failure sections', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-full');
   assert.match(html, /Done<\/span><span class="metric-value ok">4<\/span>/);
-  assert.ok(html.includes('Dead-Letter'));
+  assert.ok(html.includes('Recovery Queue'));
   assert.ok(html.includes('Recover failed task'));
   assert.ok(html.includes('validation_mismatch'));
   assert.ok(html.includes('Confidence</strong> high'));
@@ -436,7 +436,7 @@ test('buildPanelDashboardHtml prefers durable snapshot sections over empty-state
 
   assert.ok(html.includes('Surface dashboard sections'));
   assert.ok(html.includes('Selected T110'));
-  assert.ok(html.includes('Dead-Letter'));
+  assert.ok(html.includes('Recovery Queue'));
   assert.ok(html.includes('Recover failed task'));
   assert.ok(html.includes('agent-alpha'));
   assert.ok(!html.includes('Task board unavailable until Ralph status is loaded.'));

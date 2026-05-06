@@ -675,7 +675,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.generatePrompt',
-        label: 'Ralphdex: Prepare Prompt',
+        label: 'Ralphdex: Prepare IDE Prompt',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -738,7 +738,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             });
             await stateManager.recordPrompt(prepared.rootPath, prepared.paths, prepared.state, prepared.promptKind, prepared.promptPath, prepared.objectiveText);
             if (prepared.config.preferredHandoffMode === 'cliExec') {
-                await vscode.window.showWarningMessage('preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run CLI Iteration for codex exec.');
+                await vscode.window.showWarningMessage('preferredHandoffMode is cliExec. This IDE command still falls back to clipboard handoff; use Run Single Iteration for codex exec.');
             }
             if (result) {
                 await showWarnings(result.warnings);
@@ -753,7 +753,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphIteration',
-        label: 'Ralphdex: Run CLI Iteration',
+        label: 'Ralphdex: Run Single Iteration',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
@@ -907,7 +907,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runRalphLoop',
-        label: 'Ralphdex: Run CLI Loop',
+        label: 'Ralphdex: Run Loop',
         cancellable: true,
         handler: async (progress, token) => {
             const workspaceFolder = await withWorkspaceFolder();
@@ -1218,7 +1218,7 @@ function registerCommands(context, logger, broadcaster, panelManager) {
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.runPipeline',
-        label: 'Ralphdex: Run Pipeline',
+        label: 'Ralphdex: Run Full Workflow',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const config = (0, readConfig_1.readConfig)(workspaceFolder);

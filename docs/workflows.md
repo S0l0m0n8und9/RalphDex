@@ -94,22 +94,22 @@ Regenerate mode uses the same five-step flow as new authoring. The difference is
 
 ## Prepare A Prompt For IDE Use
 
-1. Run `Ralphdex: Prepare Prompt` if you only want the next prompt file.
+1. Run `Ralphdex: Prepare IDE Prompt` if you only want the next prompt file.
 2. Run `Ralphdex: Open Codex IDE` if you also want clipboard handoff and best-effort sidebar/new-chat commands.
 3. Continue manually in the selected IDE chat surface.
 
 This path persists prepared-prompt evidence, not a full executed iteration result.
 
-Task ownership on this path is review-only, not blocking: Ralph may show the next selected task in the prepared prompt and provenance bundle, but it does not write an active durable claim to `.ralph/claims.json`. A later `Run CLI Iteration` must still be able to claim that same task if the operator abandons the handoff.
+Task ownership on this path is review-only, not blocking: Ralph may show the next selected task in the prepared prompt and provenance bundle, but it does not write an active durable claim to `.ralph/claims.json`. A later `Run Single Iteration` must still be able to claim that same task if the operator abandons the handoff.
 
-This is a hard lifecycle boundary, not a best-effort hint: `Prepare Prompt` and `Open Codex IDE` may prepare evidence for the same selected task repeatedly, but they must leave `.ralph/claims.json` unchanged so they never strand a blocking claim that only the CLI path could release safely.
+This is a hard lifecycle boundary, not a best-effort hint: `Prepare IDE Prompt` and `Open Codex IDE` may prepare evidence for the same selected task repeatedly, but they must leave `.ralph/claims.json` unchanged so they never strand a blocking claim that only the CLI path could release safely.
 
 Handoff behavior on this path is intentionally explicit:
 
-- `Prepare Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.
+- `Prepare IDE Prompt` writes the prompt to disk every time and also copies it to the clipboard when `ralphCodex.clipboardAutoCopy = true`.
 - `Open Codex IDE` is the provider-neutral AI handoff command. With `preferredHandoffMode = clipboard` it copies the prompt only and does not execute `openSidebarCommandId` or `newChatCommandId`.
 - `Open Codex IDE` with `preferredHandoffMode = ideCommand` copies the prompt and then best-effort runs the configured VS Code command IDs. If either command is missing or throws, Ralph warns and tells the operator to open the chat surface manually and paste the prepared prompt.
-- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run CLI Iteration` for real provider execution automation.
+- `Open Codex IDE` with `preferredHandoffMode = cliExec` still stays on clipboard handoff for this command and warns to use `Run Single Iteration` for real provider execution automation.
 
 Artifacts written on this path include:
 
@@ -127,7 +127,7 @@ When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph als
 
 ## Run One CLI Iteration
 
-1. Run `Ralphdex: Run CLI Iteration`.
+1. Run `Ralphdex: Run Single Iteration`.
 2. Ralph emits a short preflight summary covering task graph, workspace/runtime, provider adapter, and verifier readiness, including warning-level doctrine health diagnostics (for example missing/incomplete doctrine), stale latest-artifact warnings, and retention-readiness warnings before a loop starts.
 3. If preflight is blocked, Ralph persists blocked-start evidence and stops before provider launch.
 4. Otherwise Ralph selects the next task, renders the prompt, writes the execution plan, verifies launch integrity, runs the configured provider execution path, verifies the outcome, reconciles the structured completion report, and persists the iteration result.
@@ -161,7 +161,7 @@ When the same selected task stops with repeated no-progress, repeated blocked st
 
 If the latest remediation artifact proposes `decompose_task`, the default behavior is still propose-only. Review the artifact first, then run `Ralphdex: Apply Latest Task Decomposition Proposal` when you explicitly want Ralph to write the proposed child tasks into `.ralph/tasks.json`. That apply step uses the same shared proposal write path as loop-time auto-apply, adds the approved child tasks, and makes the parent depend on them so the bounded subtasks run before the parent is retried. The approved child tasks should keep the richest known proposal fields such as `notes`, `validation`, `acceptance`, `constraints`, `context`, `tier`, and derived dependency metadata when the remediation artifact supplied them; fields remain absent only when the proposal did not know them.
 
-Ralph may also auto-apply `decompose_task` during `Run CLI Iteration` or `Run CLI Loop`, but only when `ralphCodex.autoApplyRemediation` includes `decompose_task` or `ralphCodex.autonomyMode = autonomous` makes that setting effective at runtime. In that mode Ralph still persists the remediation artifact first, then applies the suggested child tasks through the same task-file validation and `withTaskFileLock` write path used by the explicit apply command. If validation fails, Ralph leaves `.ralph/tasks.json` unchanged and records a warning on the iteration result instead of forcing the edit.
+Ralph may also auto-apply `decompose_task` during `Run Single Iteration` or `Run Loop`, but only when `ralphCodex.autoApplyRemediation` includes `decompose_task` or `ralphCodex.autonomyMode = autonomous` makes that setting effective at runtime. In that mode Ralph still persists the remediation artifact first, then applies the suggested child tasks through the same task-file validation and `withTaskFileLock` write path used by the explicit apply command. If validation fails, Ralph leaves `.ralph/tasks.json` unchanged and records a warning on the iteration result instead of forcing the edit.
 
 The operator approval boundary is strict on purpose:
 
@@ -180,14 +180,14 @@ When `ralphCodex.scmStrategy = branch-per-task`, CLI iteration also owns branch 
 
 If `Show Status` reports a stale canonical task claim that blocks reselection, use `Ralphdex: Resolve Stale Task Claim` instead of editing `.ralph/claims.json` manually. The command inspects the current canonical claim, refuses to proceed unless the claim is still stale, checks that no provider process is currently running, and then asks for explicit operator approval before it marks that claim `stale` in `.ralph/claims.json`. Ralph records the resolved task id, provenance id, resolution timestamp, and recovery reason on the claim so later status output can explain why the claim became eligible for recovery.
 
-After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run CLI Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
+After that recovery step, the task is eligible for normal deterministic reselection again. The next `Run Single Iteration` must acquire a fresh CLI claim for that task if it is still the next actionable item, and it must release that CLI claim again when the iteration finishes.
 
 When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph prunes older generated prompt files, iteration directories, transcript or last-message pairs, and session handoff files after iteration provenance is persisted. Cleanup applies per category: it keeps the newest `N` entries by iteration first, then unions in only the protected roots from `.ralph/state.json`, the stable latest-pointer JSON artifacts, and the stable latest summary surfaces. Protected older references augment that newest-by-iteration window; they do not evict newer retained entries, and the reported retained list stays in newest-first order. Cleanup summaries also report which retained entries survived only because protection added them after the newest-by-iteration window. The protected state roots are `lastPromptPath`; `lastRun.promptPath`, `lastRun.transcriptPath`, and `lastRun.lastMessagePath`; `lastIteration.artifactDir`, `lastIteration.promptPath`, `lastIteration.execution.transcriptPath`, and `lastIteration.execution.lastMessagePath`; and the same prompt, transcript, last-message, and iteration-directory fields inside every `runHistory[]` and `iterationHistory[]` entry. Session handoff files are retained by newest iteration only; they are not protected by latest-pointer JSON artifacts. The protected latest-pointer JSON artifacts are `latest-result.json`, `latest-preflight-report.json`, `latest-prompt-evidence.json`, `latest-execution-plan.json`, `latest-cli-invocation.json`, `latest-provenance-bundle.json`, and `latest-provenance-failure.json`. `latest-result.json` can protect an older iteration directory, prompt, and transcript or last-message pair; `latest-preflight-report.json` protects only the referenced iteration directory; `latest-prompt-evidence.json` protects only the prompt file and iteration directory implied by its persisted `kind` and `iteration`; `latest-execution-plan.json` protects an older iteration directory and prompt; `latest-cli-invocation.json` protects an older iteration directory plus its transcript or last-message pair; and `latest-provenance-bundle.json` plus `latest-provenance-failure.json` protect only the referenced iteration directory through their persisted iteration-scoped artifact paths, including provenance-failure JSON and summary paths, not prompt or run files in `.ralph/prompts/` or `.ralph/runs/`. As a fallback, `latest-summary.md`, `latest-preflight-summary.md`, and `latest-provenance-summary.md` can each protect only the iteration directory implied by their persisted iteration heading or `- Iteration:` line.
 
 ## Run A Pipeline
 
 1. Ensure `.ralph/prd.md` contains the real objective with `##` section headings for each phase.
-2. Run `Ralphdex: Run Pipeline`.
+2. Run `Ralphdex: Run Full Workflow`.
 3. Ralph hashes `.ralph/prd.md`, parses up to three `##`-level section headings as phase titles, creates a pipeline-root parent task plus sequential child tasks in `.ralph/tasks.json`, and writes an initial pipeline artifact to `.ralph/artifacts/pipelines/<runId>.json`.
 4. Ralph then invokes the multi-agent loop against the full task graph. The newly created child tasks are the next actionable items and will be claimed and executed by the loop agents.
 5. When the loop finishes, Ralph writes a final pipeline artifact with `status: complete` (or `status: failed`) and the `loopEndTime`.
@@ -210,7 +210,7 @@ Pipeline scaffolding follows the same generated-task invariant as every other pr
 
 Pipeline support status (snapshot: 2026-05-04):
 
-- supported operator commands: `Ralphdex: Run Pipeline` and `Ralphdex: Open Latest Pipeline Run`
+- supported operator commands: `Ralphdex: Run Full Workflow` and `Ralphdex: Open Latest Run Report`
 - experimental execution profiles: `claude` and `custom` prompt-budget profiles are still experimental for production calibration; `codex` remains the calibrated baseline
 - legacy command surface: no deprecated pipeline-specific commands are currently contributed in `package.json`
 - command-surface audit artifact: [docs/pipeline-command-audit.md](pipeline-command-audit.md)
@@ -280,7 +280,7 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 
 ## Run The Ralph Loop
 
-1. Run `Ralphdex: Run CLI Loop`.
+1. Run `Ralphdex: Run Loop`.
 2. Each iteration uses the same preflight, prompt, execution, verification, and classification pipeline.
 3. The loop repeats until it hits `ralphCodex.ralphIterationCap` or a semantic stop reason.
 4. The built-in loop stays sequential and single-agent; Ralph does not expand into broader multi-agent orchestration here.
@@ -292,7 +292,7 @@ For CLI runs, quota control also includes reasoning effort. `ralphCodex.reasonin
 3. Ralph spawns `ralphCodex.agentCount` concurrent iteration loops, each using a distinct `agentId` derived from `ralphCodex.agentId` (e.g., `default-1`, `default-2`).
 4. Each agent loop acquires task claims independently using the existing claim mechanism in `.ralph/claims.json`, so agents pick up different tasks without coordination overhead.
 5. All agent loops run concurrently and Ralph waits for all of them to finish before reporting the combined summary.
-6. If `ralphCodex.agentCount` is 1 the command behaves like `Run CLI Loop` and surfaces a warning suggesting you increase the count.
+6. If `ralphCodex.agentCount` is 1 the command behaves like `Run Loop` and surfaces a warning suggesting you increase the count.
 
 Ensure each concurrent loop instance has `ralphCodex.agentId` set to a unique base value (or rely on the auto-suffix scheme) so claim attribution in `.ralph/claims.json` stays distinct.
 
@@ -381,7 +381,7 @@ The practical effect is that Ralph may delete older generated artifacts once the
 
 Manual maintenance has two different scopes:
 
-- `Ralphdex: Cleanup Runtime Artifacts` preserves the durable PRD, progress log, task file, `.ralph/state.json`, and stable latest evidence surfaces while pruning older generated prompts, transcript and last-message files, iteration directories, older provenance bundles, and extension logs.
+- `Ralphdex: Clean Up Old Run Artifacts` preserves the durable PRD, progress log, task file, `.ralph/state.json`, and stable latest evidence surfaces while pruning older generated prompts, transcript and last-message files, iteration directories, older provenance bundles, and extension logs.
 - `Ralphdex: Reset Runtime State` is broader and removes generated runtime state, prompts, runs, iteration artifacts, and logs. It still preserves the durable PRD, progress log, and task file, but it is not the right command when you want to keep loop continuity.
 
 Recovery is intentionally narrow and deterministic:
@@ -425,7 +425,7 @@ Use the inspection commands by question, not just by file name:
 - `Ralphdex: Open Latest CLI Transcript` opens the newest CLI transcript and falls back to the newest last-message artifact when a transcript path is unavailable.
 - `Ralphdex: Apply Latest Task Decomposition Proposal` requires explicit operator confirmation before it manually applies the latest approved `decompose_task` proposal into `.ralph/tasks.json`. Approved child tasks persist through the same shared normalization path as other generated-task producers, so review them as full tasks rather than assuming a title/status-only scaffold.
 - `Ralphdex: Reveal Latest Provenance Bundle Directory` reveals the newest run-bundle directory for folder-level inspection.
-- `Ralphdex: Cleanup Runtime Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
+- `Ralphdex: Clean Up Old Run Artifacts` preserves `.ralph/state.json`, the durable PRD/progress/tasks, and latest Ralph evidence while pruning older generated prompts, run artifacts, iteration directories, older provenance bundles, and extension logs.
 
 For routine long-loop inspection, use these commands in order:
 
@@ -646,7 +646,7 @@ The API key or bearer token is not injected — it must already be present in th
 
 ## Reset State
 
-`Ralphdex: Cleanup Runtime Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.
+`Ralphdex: Clean Up Old Run Artifacts` is the narrower maintenance path. It keeps the current Ralph state and latest evidence surfaces intact, but trims older generated runtime clutter so operators can recover disk space or reduce stale artifacts without wiping loop continuity.
 
 `Ralphdex: Reset Runtime State` removes generated runtime state, prompts, run artifacts, iteration artifacts, and logs while preserving the durable PRD, progress log, and task file.
 

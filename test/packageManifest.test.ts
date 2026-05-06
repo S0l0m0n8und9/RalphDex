@@ -227,7 +227,7 @@ test('package manifest contributes and activates the runPipeline command', async
     'package.json must activate on ralphCodex.runPipeline'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralphdex: Run Pipeline'),
+    commands.some((entry) => entry.command === 'ralphCodex.runPipeline' && entry.title === 'Ralphdex: Run Full Workflow'),
     'package.json must contribute the Run Pipeline command'
   );
 });
@@ -242,7 +242,7 @@ test('package manifest contributes and activates the openLatestPipelineRun comma
     'package.json must activate on ralphCodex.openLatestPipelineRun'
   );
   assert.ok(
-    commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralphdex: Open Latest Pipeline Run'),
+    commands.some((entry) => entry.command === 'ralphCodex.openLatestPipelineRun' && entry.title === 'Ralphdex: Open Latest Run Report'),
     'package.json must contribute the Open Latest Pipeline Run command'
   );
 });

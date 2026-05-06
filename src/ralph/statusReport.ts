@@ -548,7 +548,7 @@ function buildFirstRunGuidance(snapshot: RalphStatusSnapshot): string | null {
   }
 
   if (snapshot.preflightReport.ready && snapshot.selectedTask !== null) {
-    return 'Ralphdex: Run CLI Iteration';
+    return 'Ralphdex: Run Single Iteration';
   }
 
   return null;
@@ -648,7 +648,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Validation normalized from: ${latestPlan?.normalizedValidationCommandFrom ?? 'none'}`,
     `- Current provenance ID: ${snapshot.currentProvenanceId ?? 'none'}`,
     `- Claim holder for current task: ${currentClaimHolderSummary(snapshot)}`,
-    '- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare Prompt and Open Codex IDE do not create blocking claims.',
+    '- Claim lifecycle: CLI iterations acquire and release durable active claims for the selected task; Prepare IDE Prompt and Open Codex IDE do not create blocking claims.',
     '- Claim recovery: Use Ralphdex: Resolve Stale Task Claim when Show Status reports a stale canonical holder and no codex exec process is active.',
     `- Latest claim resolution: ${latestClaimResolutionSummary(snapshot)}`,
     `- Task counts: ${snapshot.taskCounts
@@ -752,7 +752,7 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     `- Child tasks: ${snapshot.latestPipelineRun ? snapshot.latestPipelineRun.decomposedTaskIds.length : 'none'}`,
     `- PR URL: ${snapshot.latestPipelineRun?.prUrl ?? 'none'}`,
     `- Artifact: ${relativeFromRoot(snapshot.rootPath, snapshot.latestPipelineRunPath)}`,
-    '- Direct command: Ralphdex: Open Latest Pipeline Run',
+    '- Direct command: Ralphdex: Open Latest Run Report',
     ...(snapshot.orchestration
       ? [
         '',
@@ -887,12 +887,12 @@ export function buildStatusReport(snapshot: RalphStatusSnapshot): string {
     ...(snapshot.deadLetterEntries && snapshot.deadLetterEntries.length > 0
       ? [
         '',
-        '## Dead-Letter Queue',
+        '## Recovery Queue',
         `- Count: ${snapshot.deadLetterEntries.length}`,
         ...snapshot.deadLetterEntries.map((entry) =>
           `- ${entry.taskId}: ${entry.taskTitle} | dead-lettered: ${entry.deadLetteredAt} | recovery attempts: ${entry.recoveryAttemptCount} | last category: ${entry.diagnosticHistory[entry.diagnosticHistory.length - 1]?.rootCauseCategory ?? 'unknown'}`
         ),
-        '- Command: Ralphdex: Requeue Dead-Letter Task (to reset a task to todo and remove from dead-letter queue)'
+        '- Command: Ralphdex: Requeue Recovery Task (to reset a task to todo and remove from the recovery queue)'
       ]
       : []),
     '',

@@ -158,7 +158,7 @@
       },
       {
         "command": "ralphCodex.generatePrompt",
-        "title": "Ralphdex: Prepare Prompt"
+        "title": "Ralphdex: Prepare IDE Prompt"
       },
       {
         "command": "ralphCodex.initializeDoctrinePack",
@@ -170,7 +170,7 @@
       },
       {
         "command": "ralphCodex.runRalphIteration",
-        "title": "Ralphdex: Run CLI Iteration"
+        "title": "Ralphdex: Run Single Iteration"
       },
       {
         "command": "ralphCodex.runReviewAgent",
@@ -186,7 +186,7 @@
       },
       {
         "command": "ralphCodex.runRalphLoop",
-        "title": "Ralphdex: Run CLI Loop"
+        "title": "Ralphdex: Run Loop"
       },
       {
         "command": "ralphCodex.stopLoop",
@@ -242,7 +242,7 @@
       },
       {
         "command": "ralphCodex.cleanupRalphRuntimeArtifacts",
-        "title": "Ralphdex: Cleanup Runtime Artifacts"
+        "title": "Ralphdex: Clean Up Old Run Artifacts"
       },
       {
         "command": "ralphCodex.resetRalphWorkspaceState",
@@ -250,7 +250,7 @@
       },
       {
         "command": "ralphCodex.showDashboard",
-        "title": "Ralphdex: Show Dashboard"
+        "title": "Ralphdex: Focus Dashboard"
       },
       {
         "command": "ralphCodex.openDashboard",
@@ -258,11 +258,11 @@
       },
       {
         "command": "ralphCodex.runPipeline",
-        "title": "Ralphdex: Run Pipeline"
+        "title": "Ralphdex: Run Full Workflow"
       },
       {
         "command": "ralphCodex.openLatestPipelineRun",
-        "title": "Ralphdex: Open Latest Pipeline Run"
+        "title": "Ralphdex: Open Latest Run Report"
       },
       {
         "command": "ralphCodex.openLatestDoctrineProposal",
@@ -812,7 +812,7 @@
         "ralphCodex.clipboardAutoCopy": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically copy generated prompts to the clipboard when using Prepare Prompt."
+          "description": "Automatically copy generated prompts to the clipboard when using Prepare IDE Prompt."
         },
         "ralphCodex.model": {
           "type": "string",

@@ -83,7 +83,7 @@ async function openLatestRalphSummary(workspaceFolder, stateManager, logger) {
     const reason = inspection.state.lastIteration
         ? 'The latest Ralph summary artifact is missing or stale and could not be repaired from persisted Ralph metadata.'
         : 'No Ralph summary exists yet because no CLI iteration has completed and no preflight has been persisted.';
-    void vscode.window.showInformationMessage(`${reason} Run Ralphdex: Run CLI Iteration or Ralphdex: Run CLI Loop, then try again.`);
+    void vscode.window.showInformationMessage(`${reason} Run Ralphdex: Run Single Iteration or Ralphdex: Run Loop, then try again.`);
     return false;
 }
 async function openLatestProvenanceBundle(workspaceFolder, stateManager, logger) {
@@ -144,7 +144,7 @@ async function openLatestCliTranscriptOrLastMessage(workspaceFolder, stateManage
     }
     void vscode.window.showInformationMessage(latestArtifacts.latestCliInvocationPath || inspection.state.lastRun || inspection.state.lastIteration
         ? 'The latest Ralph CLI transcript and last-message artifacts are missing. Run a CLI iteration to generate fresh execution output, then try again.'
-        : 'No Ralph CLI transcript exists yet because no CLI iteration has completed. Run Ralphdex: Run CLI Iteration or Ralphdex: Run CLI Loop, then try again.');
+        : 'No Ralph CLI transcript exists yet because no CLI iteration has completed. Run Ralphdex: Run Single Iteration or Ralphdex: Run Loop, then try again.');
     return false;
 }
 async function revealLatestProvenanceBundleDirectory(workspaceFolder, stateManager, logger) {
@@ -192,7 +192,7 @@ async function openLatestPipelineRun(workspaceFolder, stateManager, logger) {
         await openTextFile(latest.artifactPath);
         return true;
     }
-    void vscode.window.showInformationMessage('No pipeline run artifact found. Run "Ralphdex: Run Pipeline" first, then try again.');
+    void vscode.window.showInformationMessage('No pipeline run artifact found. Run "Ralphdex: Run Full Workflow" first, then try again.');
     return false;
 }
 async function applyLatestTaskDecompositionProposal(workspaceFolder, stateManager, logger) {
@@ -536,7 +536,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.openLatestPipelineRun',
-        label: 'Ralphdex: Open Latest Pipeline Run',
+        label: 'Ralphdex: Open Latest Run Report',
         requiresTrustedWorkspace: false,
         handler: async (progress) => {
             progress.report({ message: 'Resolving latest Ralph pipeline run artifact' });
@@ -602,7 +602,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.cleanupRalphRuntimeArtifacts',
-        label: 'Ralphdex: Cleanup Runtime Artifacts',
+        label: 'Ralphdex: Clean Up Old Run Artifacts',
         handler: async (progress) => {
             const workspaceFolder = await withWorkspaceFolder();
             const confirmed = await vscode.window.showWarningMessage('Cleanup Ralph runtime artifacts? This preserves .ralph/state.json, the PRD, progress log, task file, and latest Ralph evidence while pruning older generated prompts, runs, iteration artifacts, provenance bundles, and extension logs.', { modal: true }, 'Cleanup');
@@ -653,7 +653,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
     });
     registerCommand(context, logger, {
         commandId: 'ralphCodex.requeueDeadLetterTask',
-        label: 'Ralphdex: Requeue Dead-Letter Task',
+        label: 'Ralphdex: Requeue Recovery Task',
         handler: async (progress) => {
             progress.report({ message: 'Loading dead-letter queue' });
             const workspaceFolder = await withWorkspaceFolder();
@@ -672,7 +672,7 @@ function registerArtifactAndMaintenanceCommands(context, logger, stateManager, r
             }));
             const picked = await vscode.window.showQuickPick(items, {
                 placeHolder: 'Select a dead-letter task to requeue',
-                title: 'Ralphdex: Requeue Dead-Letter Task'
+                title: 'Ralphdex: Requeue Recovery Task'
             });
             if (!picked) {
                 return;

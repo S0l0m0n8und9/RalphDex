@@ -136,7 +136,7 @@ export async function showStatusBarQuickPick(): Promise<void> {
     { label: '$(play) Run Loop', description: 'Start the Ralph iteration loop', commandId: 'ralphCodex.runRalphLoop' },
     { label: '$(debug-step-into) Run Iteration', description: 'Run a single CLI iteration', commandId: 'ralphCodex.runRalphIteration' },
     { label: '$(info) Show Status', description: 'Full status report', commandId: 'ralphCodex.showRalphStatus' },
-    { label: '$(edit) Prepare Prompt', description: 'Generate the next prompt', commandId: 'ralphCodex.generatePrompt' },
+    { label: '$(edit) Prepare IDE Prompt', description: 'Generate the next prompt', commandId: 'ralphCodex.generatePrompt' },
     { label: '$(terminal) Open Codex IDE', description: 'Hand off to Codex IDE', commandId: 'ralphCodex.openCodexAndCopyPrompt' },
     { label: '$(layout-sidebar-left) Dashboard', description: 'Open the Ralph dashboard', commandId: 'ralphCodex.openDashboard' }
   ];
