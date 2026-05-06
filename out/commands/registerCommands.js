@@ -35,7 +35,6 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerCommands = registerCommands;
 const fs = __importStar(require("fs/promises"));
-const os = __importStar(require("os"));
 const path = __importStar(require("path"));
 const vscode = __importStar(require("vscode"));
 const readConfig_1 = require("../config/readConfig");
@@ -55,10 +54,11 @@ const artifactCommands_1 = require("./artifactCommands");
 const pipeline_1 = require("../ralph/pipeline");
 const pathResolver_1 = require("../ralph/pathResolver");
 const projectGenerator_1 = require("../ralph/projectGenerator");
+const prdReadiness_1 = require("../ralph/prdReadiness");
+const integrity_1 = require("../ralph/integrity");
 const crewRoster_1 = require("../ralph/crewRoster");
 const taskSeeding_1 = require("./taskSeeding");
 const prdWizardPersistence_1 = require("./prdWizardPersistence");
-const taskCreation_1 = require("../ralph/taskCreation");
 const preflight_1 = require("../ralph/preflight");
 const prdCreationWizardHost_1 = require("../webview/prdCreationWizardHost");
 const statusSnapshot_2 = require("./statusSnapshot");
@@ -253,43 +253,6 @@ async function findMissingRalphWorkspaceFiles(paths) {
     return missingPaths;
 }
 /**
- * Return two self-bootstrapping seed tasks that guide Ralph through expanding
- * a stub PRD into a full document and then generating a real backlog from it.
- * Used as the fallback when AI generation is unavailable or the user skips
- * the objective prompt.
- */
-function buildBootstrapSeedTasks() {
-    return [
-        {
-            id: 'T1',
-            title: 'Expand PRD into a full product requirements document',
-            status: 'todo',
-            notes: 'Read the current content of .ralph/prd.md and expand it into a complete PRD. ' +
-                'Include structured sections: # Title, ## Overview, ## Goals, ## Scope, ## Non-Goals, ' +
-                'and 3–7 ## Work Area sections. Preserve the original user objective. ' +
-                'Write the expanded PRD back to .ralph/prd.md.',
-            acceptance: [
-                'PRD contains a # title heading',
-                'PRD contains ## Overview, ## Goals, and at least 3 ## work-area sections'
-            ]
-        },
-        {
-            id: 'T2',
-            title: 'Create 10 new tasks in tasks.json based on the expanded PRD',
-            status: 'todo',
-            dependsOn: ['T1'],
-            notes: 'Read the expanded PRD in .ralph/prd.md and create 10 actionable tasks in ' +
-                '.ralph/tasks.json. Ensure at least 2 tasks have no dependencies (entry points) ' +
-                'so Ralph can begin claiming work immediately. Use the v2 task schema: each task ' +
-                'needs id, title, status, and optionally acceptance, dependsOn, context, and validation fields.',
-            acceptance: [
-                'tasks.json contains at least 10 new tasks beyond T1 and T2',
-                'At least 2 of the new tasks have no dependsOn (entry points for Ralph)'
-            ]
-        }
-    ];
-}
-/**
  * Append tasks to an existing tasks.json file under lock.
  */
 function buildWizardGenerationPrompt(input) {
@@ -331,18 +294,32 @@ async function openPrdCreationWizard(panelManager, workspaceFolder, config, path
             prdPath: paths.prdPath,
             tasksPath: paths.taskFilePath
         },
-        generateDraft: async (input) => {
-            const generated = await (0, projectGenerator_1.generateProjectDraft)({
+        generatePrdDraft: async (input) => {
+            const generated = await (0, projectGenerator_1.generatePrdDraft)({
                 objective: buildWizardGenerationPrompt(input),
                 projectType: input.projectType
             }, config, workspaceFolder.uri.fsPath);
+            const readiness = (0, prdReadiness_1.analyzePrdReadiness)(generated.prdText);
+            await (0, prdReadiness_1.persistLatestPrdReadinessArtifacts)(paths.artifactDir, readiness);
             return {
                 prdText: generated.prdText,
+                generationWarnings: generated.generationWarnings
+            };
+        },
+        generateTasks: async (input) => {
+            const generated = await (0, projectGenerator_1.generateTasksFromPrd)({
+                prdText: input.prdText,
+                prdHash: input.prdHash,
+                projectType: input.projectType,
+                constraints: input.constraints
+            }, config, workspaceFolder.uri.fsPath, paths.artifactDir);
+            return {
                 tasks: generated.tasks.map((task) => ({
                     ...task,
                     status: task.status ?? 'todo'
                 })),
-                taskCountWarning: generated.taskCountWarning
+                taskCountWarning: generated.taskCountWarning,
+                planArtifact: generated.planArtifact
             };
         },
         writeDraft: async (draft) => {
@@ -548,45 +525,22 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             });
             // Read config to know which CLI provider to use for generation
             const config = (0, readConfig_1.readConfig)(workspaceFolder);
-            // Step 1: Prompt for objective
+            // Optional objective seed for the wizard flow
             const objective = await vscode.window.showInputBox({
-                prompt: 'Enter a short project objective (press Escape to fill in prd.md manually)',
+                prompt: 'Enter a short project objective (optional, used to seed the PRD wizard)',
                 placeHolder: 'Example: Build a reliable v2 iteration engine for the VS Code extension',
                 ignoreFocusOut: true
             });
-            let prdText;
-            let drafts;
-            if (objective?.trim()) {
-                progress.report({ message: 'Generating PRD and tasks — this may take a moment…' });
-                try {
-                    const generated = await (0, projectGenerator_1.generateProjectDraft)(objective.trim(), config, workspaceFolder.uri.fsPath);
-                    prdText = generated.prdText;
-                    drafts = generated.tasks;
-                    logger.info('Generated PRD and tasks via AI.', { taskCount: drafts.length });
-                }
-                catch (err) {
-                    const reason = err instanceof projectGenerator_1.ProjectGenerationError || err instanceof Error
-                        ? err.message
-                        : String(err);
-                    logger.info(`AI generation failed, falling back to bootstrap seed tasks. Reason: ${reason}`);
-                    void vscode.window.showWarningMessage(`AI generation failed — files seeded with bootstrap tasks. Refine before running. (${reason})`);
-                    prdText = `# Product / project brief\n\n${objective.trim()}\n`;
-                    drafts = buildBootstrapSeedTasks();
-                }
+            const initialObjective = objective?.trim() ?? '';
+            if (initialObjective.length > 0) {
+                await fs.writeFile(result.prdPath, `${initialObjective}\n`, 'utf8');
             }
-            else {
-                prdText = RALPH_PRD_PLACEHOLDER;
-                drafts = buildBootstrapSeedTasks();
-            }
-            await fs.writeFile(result.prdPath, prdText, 'utf8');
-            logger.info('Wrote prd.md.');
-            // Step 2: Write starter tasks
-            await (0, taskCreation_1.appendNormalizedTasksToFile)(result.tasksPath, drafts);
-            logger.info(`Wrote ${drafts.length} starter task(s) to tasks.json.`);
-            // Open both files side-by-side so the user can review and refine
-            await openTextFile(result.prdPath);
-            await openTextFile(result.tasksPath);
-            void vscode.window.showInformationMessage(`Ralph workspace ready. Review prd.md and tasks.json — refine them with your AI assistant before running your first loop.`, 'Got it');
+            await openPrdCreationWizard(panelManager, workspaceFolder, config, (0, pathResolver_1.resolveRalphPaths)(workspaceFolder.uri.fsPath, config), logger, {
+                mode: 'new',
+                initialObjective,
+                initialStep: initialObjective ? 2 : 1
+            });
+            void vscode.window.showInformationMessage('Ralph workspace ready. Use the PRD wizard readiness flow to generate and review PRD/tasks before running your first loop.', 'Got it');
         }
     });
     registerCommand(context, logger, {
@@ -1226,6 +1180,37 @@ function registerCommands(context, logger, broadcaster, panelManager) {
             if (!(await ensureRealPrdOrOpenWizard(workspaceFolder, config, progress))) {
                 return;
             }
+            const prdText = await fs.readFile(paths.prdPath, 'utf8');
+            const prdHash = (0, integrity_1.hashText)(prdText);
+            const readiness = (0, prdReadiness_1.analyzePrdReadiness)(prdText);
+            const readinessArtifacts = await (0, prdReadiness_1.persistLatestPrdReadinessArtifacts)(paths.artifactDir, readiness);
+            if (readiness.blockers.length > 0) {
+                await openTextFile(readinessArtifacts.summaryPath);
+                void vscode.window.showWarningMessage('Run Full Workflow stopped: PRD readiness blockers detected. Resolve blockers in the readiness report before running pipeline.');
+                return;
+            }
+            const latestPlan = await (0, prdReadiness_1.readLatestTaskGenerationPlan)(paths.artifactDir);
+            const taskFile = (0, taskFile_1.parseTaskFile)(await fs.readFile(paths.taskFilePath, 'utf8'));
+            const taskIds = new Set(taskFile.tasks.map((task) => task.id));
+            const hasApprovedTaskGraph = Boolean(latestPlan
+                && latestPlan.status === 'approved'
+                && latestPlan.prdHash === prdHash
+                && latestPlan.generatedTaskIds.length > 0
+                && latestPlan.generatedTaskIds.every((taskId) => taskIds.has(taskId)));
+            if (!hasApprovedTaskGraph) {
+                const choice = await vscode.window.showWarningMessage('Run Full Workflow requires a task graph generated from the current approved PRD hash. Generate tasks now, or explicitly use the legacy heading scaffold.', 'Generate Tasks', 'Use Legacy Heading Scaffold', 'Cancel');
+                if (choice === 'Generate Tasks') {
+                    await openPrdCreationWizard(panelManager, workspaceFolder, config, paths, logger, {
+                        mode: 'regenerate',
+                        initialObjective: prdText,
+                        initialPrdPreview: prdText,
+                        initialStep: 4
+                    });
+                }
+                if (choice !== 'Use Legacy Heading Scaffold') {
+                    return;
+                }
+            }
             progress.report({ message: 'Scaffolding pipeline: decomposing PRD into tasks' });
             const { artifact, artifactPath, rootTaskId, childTaskIds } = await (0, pipeline_1.scaffoldPipelineRun)({
                 prdPath: paths.prdPath,
@@ -1292,37 +1277,6 @@ function registerCommands(context, logger, broadcaster, panelManager) {
                 initialPrdPreview: currentPrdText,
                 initialStep: 3
             });
-            return;
-            progress.report({ message: 'Generating refined PRD — this may take a moment…' });
-            let generated;
-            try {
-                generated = await (0, projectGenerator_1.generateProjectDraft)(currentPrdText, config, workspaceFolder.uri.fsPath);
-            }
-            catch (err) {
-                const reason = err instanceof Error
-                    ? err.message
-                    : String(err);
-                void vscode.window.showErrorMessage(`PRD regeneration failed: ${reason}`);
-                return;
-            }
-            const tempPath = path.join(os.tmpdir(), `ralph-prd-proposed-${Date.now()}.md`);
-            await fs.writeFile(tempPath, generated.prdText, 'utf8');
-            await vscode.commands.executeCommand('vscode.diff', vscode.Uri.file(paths.prdPath), vscode.Uri.file(tempPath), 'Regenerate PRD: Current ↔ Proposed');
-            const choice = await vscode.window.showInformationMessage('Apply the refined PRD to prd.md?', 'Apply', 'Discard');
-            if (choice === 'Apply') {
-                await fs.writeFile(paths.prdPath, generated.prdText, 'utf8');
-                logger.info('Regenerated PRD applied.', { prdPath: paths.prdPath });
-                void vscode.window.showInformationMessage('Refined PRD saved to prd.md.');
-            }
-            else {
-                logger.info('Regenerated PRD discarded by operator.');
-            }
-            try {
-                await fs.unlink(tempPath);
-            }
-            catch {
-                // best-effort temp file cleanup
-            }
         }
     });
     // Delegate artifact-inspection and maintenance commands to the extracted module.

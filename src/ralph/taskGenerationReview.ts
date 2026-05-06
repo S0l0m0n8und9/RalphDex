@@ -14,6 +14,14 @@ export interface GeneratedTaskReviewInput {
   effectiveValidationCommand?: string | null;
 }
 
+export interface GeneratedTaskReviewFinding {
+  taskId: string;
+  taskTitle: string;
+  severity: 'info' | 'warning' | 'blocking';
+  code: string;
+  message: string;
+}
+
 function toDiagnosticTask(task: RalphNewTaskInput): RalphTask {
   return {
     ...task,
@@ -24,6 +32,15 @@ function toDiagnosticTask(task: RalphNewTaskInput): RalphTask {
 export function reviewGeneratedTaskShape(input: GeneratedTaskReviewInput): string[] {
   const warnings: string[] = [];
 
+  for (const finding of reviewGeneratedTaskShapeDetailed(input)) {
+    warnings.push(`Task ${finding.taskId} "${finding.taskTitle.trim()}": ${finding.message}`);
+  }
+
+  return warnings;
+}
+
+export function reviewGeneratedTaskShapeDetailed(input: GeneratedTaskReviewInput): GeneratedTaskReviewFinding[] {
+  const findings: GeneratedTaskReviewFinding[] = [];
   for (const task of input.tasks) {
     const result = analyzeTaskShape({
       task: toDiagnosticTask(task),
@@ -32,9 +49,15 @@ export function reviewGeneratedTaskShape(input: GeneratedTaskReviewInput): strin
     });
 
     for (const finding of result.findings) {
-      warnings.push(`Task ${task.id} "${task.title.trim()}": ${finding.message}`);
+      findings.push({
+        taskId: task.id,
+        taskTitle: task.title,
+        severity: finding.severity,
+        code: finding.code,
+        message: finding.message
+      });
     }
   }
 
-  return warnings;
+  return findings;
 }

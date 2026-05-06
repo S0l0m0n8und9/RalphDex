@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fsp = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const { spawnSync } = require('node:child_process');
 
 const projectRoot = path.join(__dirname, '..');
@@ -98,21 +99,57 @@ async function seedWorkspace(rootPath) {
   }, null, 2)}\n`, 'utf8');
   await fsp.writeFile(path.join(rootPath, 'README.md'), '# Ralph E2E Pipeline Fixture\n', 'utf8');
   await fsp.writeFile(path.join(rootPath, 'src', 'fixture.ts'), 'export const fixture = true;\n', 'utf8');
-  await fsp.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
+  const prdText = [
     '# Product / project brief',
     '',
+    '## Overview',
     'Run the smallest possible Ralph pipeline smoke in a fresh workspace.',
     '',
-    '## Add pipeline smoke export',
+    '## Goals',
+    'Verify full-workflow scaffold, loop, review, and SCM phases.',
     '',
-    'Update only `src/fixture.ts` to add `export const pipelineSmoke = true;`.',
-    'Do not touch `package.json` or add dependencies.',
-    ''
-  ].join('\n'), 'utf8');
+    '## Scope',
+    'Update only src/fixture.ts and persist normal pipeline evidence.',
+    '',
+    '## Non-Goals',
+    'Do not touch package.json or add dependencies.',
+    '',
+    '## Success Criteria',
+    'Pipeline reaches status complete and records review + SCM artifacts.',
+    '',
+    '## Work Area',
+    'Add export const pipelineSmoke = true to src/fixture.ts.',
+    '',
+    '## Validation',
+    'Run npm run validate.'
+  ].join('\n');
+  await fsp.writeFile(path.join(rootPath, '.ralph', 'prd.md'), prdText, 'utf8');
   await fsp.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n\n- Pipeline E2E smoke workspace created.\n', 'utf8');
+  const prdHash = `sha256:${createHash('sha256').update(prdText, 'utf8').digest('hex')}`;
   await fsp.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), `${JSON.stringify({
     version: 2,
-    tasks: []
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Inspect pipeline smoke guardrails',
+        status: 'todo',
+        acceptance: ['Pipeline smoke fixture is ready for loop execution'],
+        validation: 'npm run validate'
+      }
+    ]
+  }, null, 2)}\n`, 'utf8');
+  await fsp.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-task-generation-plan.json'), `${JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskGenerationPlan',
+    generatedAt: '2026-05-07T00:00:00.000Z',
+    status: 'approved',
+    prdHash,
+    prdTitle: 'Product / project brief',
+    readinessScore: 94,
+    workAreas: ['Work Area'],
+    generatedTaskIds: ['T1'],
+    warnings: [],
+    blockedWorkAreas: []
   }, null, 2)}\n`, 'utf8');
 }
 

@@ -41,6 +41,8 @@ const MessageBridge_1 = require("./MessageBridge");
 const styles_1 = require("./styles");
 const projectGenerator_1 = require("../ralph/projectGenerator");
 const taskGenerationReview_1 = require("../ralph/taskGenerationReview");
+const prdReadiness_1 = require("../ralph/prdReadiness");
+const integrity_1 = require("../ralph/integrity");
 const htmlHelpers_1 = require("../ui/htmlHelpers");
 function escapeHtml(value) {
     return value
@@ -241,7 +243,7 @@ function createFallbackDraft(projectType, objective, techStack, outOfScope, exis
         ];
         return {
             prdText: `${lines.join('\n')}\n`,
-            tasks: bootstrapDocumentationSeedTasks()
+            tasks: []
         };
     }
     const constraintSummary = buildConstraintSummary(techStack, existingConventions);
@@ -266,7 +268,7 @@ function createFallbackDraft(projectType, objective, techStack, outOfScope, exis
     ];
     return {
         prdText: `${lines.join('\n')}\n`,
-        tasks: bootstrapSeedTasks()
+        tasks: []
     };
 }
 function mapLegacyInputs(initialConstraints, initialNonGoals) {
@@ -289,15 +291,16 @@ function normalizeStep(step, mode) {
         case 3:
         case 4:
         case 5:
-            return step;
         case 6:
+            return step;
         case 7:
-            return 5;
+            return 6;
     }
 }
 function createComparisonDraft(prdPreview) {
     return {
         prdText: prdPreview,
+        prdHash: (0, integrity_1.hashText)(prdPreview),
         tasks: []
     };
 }
@@ -338,109 +341,32 @@ function validateReviewedTasks(tasks) {
     }
     return null;
 }
-const PRD_REQUIRED_SECTIONS = ['Overview', 'Requirements', 'Success Criteria'];
 const PLACEHOLDER_PATTERN = /\b(?:tbd|todo|placeholder|lorem ipsum|coming soon|fill in)\b/i;
 const VAGUE_WORD_PATTERN = /\b(?:stuff|things|various|misc(?:ellaneous)?|somehow|maybe|soon|improve|better|handle)\b/i;
 const TASK_TITLE_STOP_WORDS = new Set(['a', 'an', 'and', 'for', 'in', 'of', 'the', 'to', 'now']);
 const TASK_ID_LIKE_PATTERN = /^[A-Za-z][A-Za-z0-9_.-]*$/;
 const VALIDATION_COMMAND_PATTERN = /^(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?[A-Za-z0-9:_-]+|^(?:pytest|go\s+test|cargo\s+test|dotnet\s+test|npx|node|python|uv\s+run)\b/i;
 const GENERIC_VALIDATION_PATTERN = /^(?:test|check|verify)(?:\s+(?:it|this|works?|behavior))?$/i;
-function normalizeSectionTitle(title) {
-    return title
-        .trim()
-        .replace(/^[0-9]+[.)]\s*/, '')
-        .replace(/[:\-\s]+$/, '')
-        .toLowerCase();
-}
-function splitIntoSections(prdText) {
-    const lines = prdText.split(/\r?\n/);
-    const sections = [];
-    let currentTitle = null;
-    let currentBody = [];
-    const flush = () => {
-        if (currentTitle === null) {
-            return;
-        }
-        sections.push({
-            title: currentTitle,
-            body: currentBody.join('\n').trim()
-        });
-    };
-    for (const line of lines) {
-        const headingMatch = /^##\s+(.+?)\s*$/.exec(line.trim());
-        if (headingMatch) {
-            flush();
-            currentTitle = headingMatch[1];
-            currentBody = [];
-            continue;
-        }
-        if (currentTitle !== null) {
-            currentBody.push(line);
-        }
-    }
-    flush();
-    return sections;
-}
+const EPIC_TITLE_PATTERNS = [
+    /\bimplement\s+dashboard\b/i,
+    /\bimprove\s+ui\s*\/?\s*ux\b/i,
+    /\bbuild\s+(?:the\s+)?(?:platform|foundation)\b/i,
+    /\bset\s+up\s+infrastructure\b/i,
+    /\bimplement\s+authentication\s+and\s+authorization\b/i,
+    /\bcreate\s+full\s+workflow\b/i
+];
 function analyzePrdReviewFindings(prdText) {
     if (!prdText?.trim()) {
         return [{
-                kind: 'warning',
+                kind: 'blocker',
                 message: 'PRD review needs draft content before it can assess title, sections, and wording.'
             }];
     }
-    const findings = [];
-    const lines = prdText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const titleLine = lines.find((line) => line.startsWith('# ')) ?? null;
-    const titleText = titleLine?.replace(/^#\s+/, '').trim() ?? '';
-    const sections = splitIntoSections(prdText);
-    if (!titleText) {
-        findings.push({
-            kind: 'warning',
-            message: 'PRD title is missing. Add a specific top-level heading before writing.'
-        });
-    }
-    else if (PLACEHOLDER_PATTERN.test(titleText) || titleText.split(/\s+/).length < 3) {
-        findings.push({
-            kind: 'warning',
-            message: `PRD title "${titleText}" looks placeholder-heavy or too thin.`
-        });
-    }
-    if (VAGUE_WORD_PATTERN.test(titleText)) {
-        findings.push({
-            kind: 'warning',
-            message: `PRD title "${titleText}" uses vague wording that may weaken the durable brief.`
-        });
-    }
-    const presentSections = new Set(sections.map((section) => normalizeSectionTitle(section.title)));
-    const missingSections = PRD_REQUIRED_SECTIONS.filter((title) => !presentSections.has(normalizeSectionTitle(title)));
-    if (missingSections.length > 0) {
-        findings.push({
-            kind: 'warning',
-            message: `PRD is missing required sections: ${missingSections.join(', ')}.`
-        });
-    }
-    if (PLACEHOLDER_PATTERN.test(prdText)) {
-        findings.push({
-            kind: 'warning',
-            message: 'PRD still contains placeholder patterns such as TODO/TBD markers.'
-        });
-    }
-    for (const section of sections) {
-        const wordCount = section.body.split(/\s+/).filter(Boolean).length;
-        if (wordCount > 0 && wordCount < 8) {
-            findings.push({
-                kind: 'warning',
-                message: `Section "${section.title}" looks thin and may need more operational detail.`
-            });
-        }
-    }
-    if (VAGUE_WORD_PATTERN.test(prdText)) {
-        findings.push({
-            kind: 'warning',
-            message: 'PRD includes vague wording that may leave implementation scope underspecified.'
-        });
-    }
-    return findings;
+    const readiness = (0, prdReadiness_1.analyzePrdReadiness)(prdText);
+    return [
+        ...readiness.blockers.map((message) => ({ kind: 'blocker', message })),
+        ...readiness.warnings.map((message) => ({ kind: 'warning', message }))
+    ];
 }
 function normalizeTaskTitle(title) {
     return title
@@ -499,10 +425,10 @@ function analyzeTaskReviewFindings(tasks) {
         });
         return findings;
     }
-    for (const warning of (0, taskGenerationReview_1.reviewGeneratedTaskShape)({ tasks })) {
+    for (const finding of (0, taskGenerationReview_1.reviewGeneratedTaskShapeDetailed)({ tasks })) {
         findings.push({
-            kind: 'warning',
-            message: warning
+            kind: finding.severity === 'blocking' ? 'blocker' : 'warning',
+            message: `Task ${finding.taskId} "${finding.taskTitle.trim()}": ${finding.message}`
         });
     }
     const duplicatePairs = new Set();
@@ -522,10 +448,29 @@ function analyzeTaskReviewFindings(tasks) {
             });
             continue;
         }
+        if (EPIC_TITLE_PATTERNS.some((pattern) => pattern.test(leftTitle))) {
+            findings.push({
+                kind: 'blocker',
+                message: `Task ${left.id} uses a broad starter title ("${leftTitle}") and must be decomposed.`
+            });
+        }
         if (leftTitle.split(/\s+/).length < 3 || VAGUE_WORD_PATTERN.test(leftTitle)) {
             findings.push({
                 kind: 'warning',
                 message: `Task ${left.id} has a vague title: "${leftTitle}".`
+            });
+        }
+        const acceptance = (left.acceptance ?? []).map((entry) => entry.trim()).filter(Boolean);
+        if (acceptance.length === 0) {
+            findings.push({
+                kind: 'blocker',
+                message: `Task ${left.id} lacks concrete acceptance criteria.`
+            });
+        }
+        else if (acceptance.every((entry) => entry.split(/\s+/).length < 4 || /(improve|handle|support|works?)/i.test(entry))) {
+            findings.push({
+                kind: 'blocker',
+                message: `Task ${left.id} acceptance criteria are too vague for one-iteration execution.`
             });
         }
         if (hasWeakValidationDetail(left.validation)) {
@@ -603,7 +548,8 @@ class PrdCreationWizardHost {
             initialNonGoals: options.initialNonGoals,
             initialStep: options.initialStep,
             initialPrdPreview: options.initialPrdPreview,
-            generateDraft: options.generateDraft,
+            generatePrdDraft: options.generatePrdDraft,
+            generateTasks: options.generateTasks,
             writeDraft: options.writeDraft,
             onWriteComplete: options.onWriteComplete
         };
@@ -640,6 +586,10 @@ class PrdCreationWizardHost {
             paths: context.initialPaths ?? this.state.paths,
             generationState: context.initialPrdPreview !== undefined ? 'idle' : this.state.generationState,
             generationMessage: context.initialPrdPreview !== undefined ? null : this.state.generationMessage,
+            prdReadiness: context.initialPrdPreview !== undefined ? null : this.state.prdReadiness,
+            taskGenerationStatus: context.initialPrdPreview !== undefined ? 'idle' : this.state.taskGenerationStatus,
+            taskGenerationMessage: context.initialPrdPreview !== undefined ? null : this.state.taskGenerationMessage,
+            tasksStale: context.initialPrdPreview !== undefined ? true : this.state.tasksStale,
             operationStatus: context.initialPrdPreview !== undefined ? 'idle' : this.state.operationStatus,
             operationMessage: context.initialPrdPreview !== undefined ? null : this.state.operationMessage,
             warning: null,
@@ -667,6 +617,10 @@ class PrdCreationWizardHost {
             draft: this.options.initialPrdPreview
                 ? createComparisonDraft(this.options.initialPrdPreview)
                 : null,
+            prdReadiness: null,
+            taskGenerationStatus: 'idle',
+            taskGenerationMessage: null,
+            tasksStale: true,
             generationState: 'idle',
             generationMessage: null,
             operationStatus: 'idle',
@@ -679,12 +633,16 @@ class PrdCreationWizardHost {
         };
     }
     emitState() {
+        const prdReadiness = this.state.draft?.prdText?.trim()
+            ? (0, prdReadiness_1.analyzePrdReadiness)(this.state.draft.prdText)
+            : null;
         const prdReviewFindings = analyzePrdReviewFindings(this.state.draft?.prdText ?? null);
         const taskReviewFindings = analyzeTaskReviewFindings(this.state.draft?.tasks ?? []);
         this.bridge.send({
             type: 'state',
             state: {
                 ...this.state,
+                prdReadiness,
                 prdReviewFindings,
                 taskReviewFindings,
                 comparisonSummary: buildComparisonSummary(this.state.mode, this.state.currentPrdPreview, this.state.draft?.prdText ?? null)
@@ -707,26 +665,50 @@ class PrdCreationWizardHost {
                 this.emitState();
                 return;
             case 'update-draft-prd-text':
-                this.state = {
-                    ...this.state,
-                    draft: this.state.draft
-                        ? {
-                            ...this.state.draft,
-                            prdText: message.value
-                        }
-                        : {
-                            prdText: message.value,
-                            tasks: []
-                        },
-                    warning: null,
-                    error: null
-                };
-                this.emitState();
-                return;
+                {
+                    const nextPrdText = message.value;
+                    const nextPrdHash = nextPrdText.trim() ? (0, integrity_1.hashText)(nextPrdText) : undefined;
+                    const existingPrdHash = this.state.draft?.prdHash;
+                    const shouldMarkTasksStale = Boolean(this.state.draft?.tasks.length
+                        && existingPrdHash
+                        && nextPrdHash
+                        && existingPrdHash !== nextPrdHash);
+                    this.state = {
+                        ...this.state,
+                        draft: this.state.draft
+                            ? {
+                                ...this.state.draft,
+                                prdText: nextPrdText,
+                                ...(nextPrdHash ? { prdHash: nextPrdHash } : {}),
+                                ...(shouldMarkTasksStale
+                                    ? {
+                                        taskGenerationPlan: undefined
+                                    }
+                                    : {})
+                            }
+                            : {
+                                prdText: nextPrdText,
+                                ...(nextPrdHash ? { prdHash: nextPrdHash } : {}),
+                                tasks: []
+                            },
+                        ...(shouldMarkTasksStale
+                            ? {
+                                tasksStale: true,
+                                taskGenerationStatus: 'idle',
+                                taskGenerationMessage: 'PRD changed after task generation. Regenerate tasks before writing.'
+                            }
+                            : {}),
+                        warning: null,
+                        error: null
+                    };
+                    this.emitState();
+                    return;
+                }
             case 'update-task-title':
                 this.state = {
                     ...this.state,
                     draft: updateDraftTask(this.state.draft, message.taskId, (task) => ({ ...task, title: message.title })),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -739,6 +721,7 @@ class PrdCreationWizardHost {
                         ...task,
                         dependsOn: parseMultilineList(message.value)
                     })),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -751,6 +734,7 @@ class PrdCreationWizardHost {
                         ...task,
                         notes: message.value
                     })),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -763,6 +747,7 @@ class PrdCreationWizardHost {
                         ...task,
                         acceptance: parseMultilineList(message.value)
                     })),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -774,6 +759,7 @@ class PrdCreationWizardHost {
                     draft: updateDraftTasks(this.state.draft, (tasks) => tasks.map((task) => (task.id === message.taskId
                         ? { ...task, ...(message.tier ? { tier: message.tier } : { tier: undefined }) }
                         : task))),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -783,6 +769,7 @@ class PrdCreationWizardHost {
                 this.state = {
                     ...this.state,
                     draft: updateDraftTasks(this.state.draft, (tasks) => moveTask(tasks, message.taskId, message.direction)),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
@@ -792,20 +779,24 @@ class PrdCreationWizardHost {
                 this.state = {
                     ...this.state,
                     draft: updateDraftTasks(this.state.draft, (tasks) => tasks.filter((task) => task.id !== message.taskId)),
+                    taskGenerationStatus: this.state.taskGenerationStatus === 'generated' ? 'weak' : this.state.taskGenerationStatus,
                     warning: null,
                     error: null
                 };
                 this.emitState();
                 return;
-            case 'generate-draft':
-                await this.generateDraft();
+            case 'generate-prd-draft':
+                await this.generatePrdDraft();
+                return;
+            case 'generate-tasks':
+                await this.generateTasks();
                 return;
             case 'confirm-write':
                 await this.confirmWrite();
                 return;
         }
     }
-    async generateDraft() {
+    async generatePrdDraft() {
         const objective = this.state.objective.trim();
         if (!objective) {
             this.state = { ...this.state, error: 'Add an objective or existing PRD text before generating a draft.' };
@@ -823,22 +814,28 @@ class PrdCreationWizardHost {
         };
         this.emitState();
         try {
-            const generated = await this.options.generateDraft({
+            const generated = await this.options.generatePrdDraft({
                 mode: this.state.mode,
                 projectType: this.state.projectType,
                 objective: this.state.objective,
                 constraints: buildConstraintSummary(this.state.techStack, this.state.existingConventions),
                 nonGoals: this.state.outOfScope
             });
+            const prdHash = (0, integrity_1.hashText)(generated.prdText);
             this.state = {
                 ...this.state,
                 step: 3,
                 draft: {
                     prdText: generated.prdText,
-                    tasks: generated.tasks
+                    prdHash,
+                    tasks: [],
+                    taskGenerationPlan: undefined
                 },
-                generationState: generated.taskCountWarning ? 'weak' : 'generated',
-                generationMessage: generated.taskCountWarning ?? 'Provider-backed draft generated successfully.',
+                tasksStale: true,
+                taskGenerationStatus: 'idle',
+                taskGenerationMessage: null,
+                generationState: generated.generationWarnings?.length ? 'weak' : 'generated',
+                generationMessage: generated.generationWarnings?.join(' ') ?? 'Provider-backed PRD draft generated successfully.',
                 operationStatus: 'succeeded',
                 operationMessage: 'Draft generation completed.',
                 warning: null,
@@ -854,6 +851,9 @@ class PrdCreationWizardHost {
                 ...this.state,
                 step: 3,
                 draft: createFallbackDraft(this.state.projectType, this.state.objective, this.state.techStack, this.state.outOfScope, this.state.existingConventions),
+                tasksStale: true,
+                taskGenerationStatus: 'idle',
+                taskGenerationMessage: 'Fallback PRD generated. Review and generate tasks after readiness passes.',
                 generationState: 'fallback',
                 generationMessage: `Generation fell back to a bootstrap draft. ${reason}`,
                 operationStatus: 'failed',
@@ -868,6 +868,82 @@ class PrdCreationWizardHost {
             this.emitState();
         }
     }
+    async generateTasks() {
+        const prdText = this.state.draft?.prdText?.trim() ?? '';
+        if (!prdText) {
+            this.state = { ...this.state, error: 'Generate and review a PRD draft before generating tasks.' };
+            this.emitState();
+            return;
+        }
+        const readiness = (0, prdReadiness_1.analyzePrdReadiness)(prdText);
+        if (readiness.blockers.length > 0) {
+            this.state = {
+                ...this.state,
+                warning: 'PRD readiness has blockers. Resolve blockers before generating tasks.',
+                error: null
+            };
+            this.emitState();
+            return;
+        }
+        this.bridge.send({ type: 'busy', value: true });
+        this.state = {
+            ...this.state,
+            operationStatus: 'running',
+            operationMessage: 'Task generation started from approved PRD.',
+            warning: null,
+            error: null
+        };
+        this.emitState();
+        try {
+            const prdHash = this.state.draft?.prdHash ?? (0, integrity_1.hashText)(prdText);
+            const generated = await this.options.generateTasks({
+                prdText,
+                prdHash,
+                projectType: this.state.projectType,
+                constraints: buildConstraintSummary(this.state.techStack, this.state.existingConventions)
+            });
+            this.state = {
+                ...this.state,
+                step: 5,
+                draft: this.state.draft
+                    ? {
+                        ...this.state.draft,
+                        prdHash,
+                        tasks: generated.tasks,
+                        taskGenerationPlan: generated.planArtifact
+                    }
+                    : {
+                        prdText,
+                        prdHash,
+                        tasks: generated.tasks,
+                        taskGenerationPlan: generated.planArtifact
+                    },
+                tasksStale: false,
+                taskGenerationStatus: generated.taskCountWarning ? 'weak' : 'generated',
+                taskGenerationMessage: generated.taskCountWarning ?? 'Tasks generated from approved PRD.',
+                operationStatus: 'succeeded',
+                operationMessage: 'Task generation completed.',
+                warning: null,
+                error: null
+            };
+        }
+        catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            this.state = {
+                ...this.state,
+                taskGenerationStatus: 'idle',
+                taskGenerationMessage: `Task generation failed. ${reason}`,
+                operationStatus: 'failed',
+                operationMessage: `Task generation failed. ${reason}`,
+                warning: null,
+                error: null
+            };
+        }
+        finally {
+            this.bridge.send({ type: 'busy', value: false });
+            this.emitState();
+        }
+    }
     async confirmWrite() {
         if (!this.state.draft) {
             this.state = { ...this.state, error: 'Generate a draft before writing files.' };
@@ -875,11 +951,40 @@ class PrdCreationWizardHost {
             return;
         }
         const draft = this.state.draft;
+        const readiness = (0, prdReadiness_1.analyzePrdReadiness)(draft.prdText);
+        if (readiness.blockers.length > 0) {
+            this.state = {
+                ...this.state,
+                warning: 'PRD readiness blockers remain. Resolve blockers before writing files.',
+                error: null
+            };
+            this.emitState();
+            return;
+        }
+        if (this.state.tasksStale) {
+            this.state = {
+                ...this.state,
+                warning: 'Generated tasks are stale because PRD text changed. Regenerate tasks before writing.',
+                error: null
+            };
+            this.emitState();
+            return;
+        }
         const taskValidationError = validateReviewedTasks(draft.tasks);
         if (taskValidationError) {
             this.state = {
                 ...this.state,
                 warning: taskValidationError,
+                error: null
+            };
+            this.emitState();
+            return;
+        }
+        const taskBlockers = analyzeTaskReviewFindings(draft.tasks).filter((finding) => finding.kind === 'blocker');
+        if (taskBlockers.length > 0) {
+            this.state = {
+                ...this.state,
+                warning: `Task readiness blockers remain. ${taskBlockers[0].message}`,
                 error: null
             };
             this.emitState();
@@ -895,10 +1000,21 @@ class PrdCreationWizardHost {
         };
         this.emitState();
         try {
-            const result = await this.options.writeDraft(draft);
+            const persistedDraft = {
+                ...draft,
+                ...(draft.taskGenerationPlan
+                    ? {
+                        taskGenerationPlan: {
+                            ...draft.taskGenerationPlan,
+                            status: 'approved'
+                        }
+                    }
+                    : {})
+            };
+            const result = await this.options.writeDraft(persistedDraft);
             this.state = {
                 ...this.state,
-                step: 5,
+                step: 6,
                 warning: null,
                 error: null,
                 writeSummary: result,
@@ -1420,8 +1536,9 @@ code {
         1: 'Project Shape',
         2: 'Draft Generation',
         3: 'PRD Review',
-        4: 'Task Review',
-        5: 'Confirm Write'
+        4: 'Task Generation',
+        5: 'Task Review',
+        6: 'Confirm Write'
       };
 
       function escapeHtml(value) {
@@ -1489,7 +1606,7 @@ code {
 
       function taskList() {
         if (!state.draft || state.draft.tasks.length === 0) {
-          return '<p class="empty">Generate a draft to review task cards.</p>';
+          return '<p class="empty">Generate tasks from the approved PRD to review task cards.</p>';
         }
         return '<div class="task-list">' + state.draft.tasks.map((task) =>
           '<article class="task-card card">' +
@@ -1638,6 +1755,7 @@ code {
           : '';
         const generation = generationStatus();
         const operation = operationStatus();
+        const prdBlockers = (state.prdReviewFindings || []).filter((finding) => finding.kind === 'blocker').length;
         const regenerateComparison = state.mode === 'regenerate' && currentPreview
           ? '<div class="preview-pane">' +
               '<strong>Current PRD</strong>' +
@@ -1671,7 +1789,7 @@ code {
             generation +
             operation +
             '<div class="actions">' +
-              '<button class="btn primary" data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+              '<button class="btn primary" data-action="generate-prd-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
               '<button class="btn secondary" data-action="set-step" data-step="3">Review PRD</button>' +
             '</div>' +
           '</section>';
@@ -1687,20 +1805,33 @@ code {
               ? '<div class="note">No draft generated yet. Use generate to seed the editable PRD before writing files.</div>'
               : '') +
             '<div class="actions">' +
-              '<button class="btn primary" data-action="generate-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
-              '<button class="btn secondary" data-action="set-step" data-step="4">Review Tasks</button>' +
+              '<button class="btn primary" data-action="generate-prd-draft"' + (busy ? ' disabled' : '') + '>' + (state.mode === 'regenerate' ? 'Regenerate Draft' : 'Generate Draft') + '</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="4">Generate Tasks</button>' +
             '</div>' +
           '</section>';
         const stepFourPanel = '' +
           '<section class="wizard-step-panel card">' +
-            '<h2>4. Task Review</h2>' +
+            '<h2>4. Generate Tasks</h2>' +
+            findingsPanel('PRD Findings', state.prdReviewFindings, 'No PRD findings yet.') +
+            '<div class="note">Tasks can be generated only when PRD readiness has no blockers.</div>' +
+            '<div class="note"><strong>Task Generation Status</strong><div>' + escapeHtml(state.taskGenerationMessage || 'No tasks generated yet.') + '</div></div>' +
+            operation +
+            '<div class="actions">' +
+              '<button class="btn primary" data-action="generate-tasks"' + ((busy || prdBlockers > 0 || !editableDraft) ? ' disabled' : '') + '>Generate Tasks</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="5"' + ((state.draft && state.draft.tasks && state.draft.tasks.length > 0) ? '' : ' disabled') + '>Review Tasks</button>' +
+            '</div>' +
+          '</section>';
+        const stepFivePanel = '' +
+          '<section class="wizard-step-panel card">' +
+            '<h2>5. Task Review</h2>' +
             findingsPanel('Task Findings', state.taskReviewFindings, 'No task findings yet.') +
+            (state.tasksStale ? '<div class="warning">Tasks are stale because PRD text changed after generation. Regenerate tasks before writing.</div>' : '') +
             taskList() +
-            '<div class="actions"><button class="btn secondary" data-action="set-step" data-step="5">Go To Confirm</button></div>' +
+            '<div class="actions"><button class="btn secondary" data-action="set-step" data-step="6">Go To Confirm</button></div>' +
           '</section>';
         const confirmPanel = '' +
           '<section class="wizard-step-panel card">' +
-            '<h2>5. Confirm Write</h2>' +
+            '<h2>6. Confirm Write</h2>' +
             '<div class="wizard-summary card"><strong>Targets</strong><ul>' +
               '<li><code>' + escapeHtml(state.paths.prdPath) + '</code></li>' +
               '<li><code>' + escapeHtml(state.paths.tasksPath) + '</code></li>' +
@@ -1708,8 +1839,8 @@ code {
             operation +
             writeSummary() +
             '<div class="actions">' +
-              '<button class="btn primary" data-action="confirm-write"' + ((!state.draft || busy) ? ' disabled' : '') + '>Write Files</button>' +
-              '<button class="btn secondary" data-action="set-step" data-step="3">Back To PRD Review</button>' +
+              '<button class="btn primary" data-action="confirm-write"' + ((!state.draft || busy || state.tasksStale) ? ' disabled' : '') + '>Write Files</button>' +
+              '<button class="btn secondary" data-action="set-step" data-step="5">Back To Task Review</button>' +
             '</div>' +
           '</section>';
         const mainPanelByStep = {
@@ -1717,7 +1848,8 @@ code {
           2: stepTwoPanel,
           3: stepThreePanel,
           4: stepFourPanel,
-          5: confirmPanel
+          5: stepFivePanel,
+          6: confirmPanel
         };
         const taskCount = state.draft?.tasks?.length || 0;
         document.getElementById('app').innerHTML = '' +
@@ -1731,7 +1863,7 @@ code {
             '</section>' +
             '<div class="wizard-frame">' +
               '<aside class="wizard-step-nav card">' +
-                '<div class="wizard-steps">' + stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) + '</div>' +
+                '<div class="wizard-steps">' + stepButton(1) + stepButton(2) + stepButton(3) + stepButton(4) + stepButton(5) + stepButton(6) + '</div>' +
               '</aside>' +
               '<main class="wizard-main">' +
                 mainPanelByStep[state.step] +
@@ -1740,8 +1872,9 @@ code {
                 stepSummaryCard(1, 'Project Shape', state.objective.trim() || 'Objective not captured yet.', { clickable: true, meta: projectType.title }) +
                 stepSummaryCard(2, 'Draft Generation', state.generationMessage || 'Generate a provider-backed draft or use the fallback bootstrap.', { clickable: true, meta: state.generationState || 'idle' }) +
                 stepSummaryCard(3, 'PRD Review', editableDraft ? 'Draft text is available for editing.' : 'Waiting for draft text.', { clickable: !!editableDraft, meta: state.comparisonSummary || 'No comparison yet' }) +
-                stepSummaryCard(4, 'Task Review', taskCount > 0 ? 'Review ' + taskCount + ' task card(s).' : 'Waiting for generated tasks.', { clickable: taskCount > 0, meta: taskCount > 0 ? 'Dependencies, notes, and acceptance stay visible here.' : 'No task cards yet' }) +
-                (state.step === 5 || state.writeSummary ? confirmPanel : stepSummaryCard(5, 'Confirm Write', state.draft ? 'Ready to persist prd.md and tasks.json.' : 'Generate a draft before writing files.', { clickable: !!state.draft, meta: state.writeSummary ? 'Files written.' : 'No write yet' })) +
+                stepSummaryCard(4, 'Task Generation', prdBlockers > 0 ? 'PRD blockers must be resolved before task generation.' : (state.taskGenerationMessage || 'Generate tasks from approved PRD.'), { clickable: !!editableDraft, meta: state.taskGenerationStatus || 'idle' }) +
+                stepSummaryCard(5, 'Task Review', taskCount > 0 ? 'Review ' + taskCount + ' task card(s).' : 'Waiting for generated tasks.', { clickable: taskCount > 0, meta: state.tasksStale ? 'Tasks are stale until regenerated.' : (taskCount > 0 ? 'Dependencies, notes, and acceptance stay visible here.' : 'No task cards yet') }) +
+                (state.step === 6 || state.writeSummary ? confirmPanel : stepSummaryCard(6, 'Confirm Write', state.draft ? 'Ready to persist prd.md and tasks.json.' : 'Generate a draft before writing files.', { clickable: !!state.draft && taskCount > 0, meta: state.writeSummary ? 'Files written.' : 'No write yet' })) +
               '</aside>' +
             '</div>' +
           '</div>';
@@ -1840,9 +1973,14 @@ code {
           });
         }
 
-        const generate = document.querySelector('[data-action="generate-draft"]');
-        if (generate) {
-          generate.addEventListener('click', () => vscode.postMessage({ type: 'generate-draft' }));
+        const generatePrd = document.querySelector('[data-action="generate-prd-draft"]');
+        if (generatePrd) {
+          generatePrd.addEventListener('click', () => vscode.postMessage({ type: 'generate-prd-draft' }));
+        }
+
+        const generateTasks = document.querySelector('[data-action="generate-tasks"]');
+        if (generateTasks) {
+          generateTasks.addEventListener('click', () => vscode.postMessage({ type: 'generate-tasks' }));
         }
 
         const confirm = document.querySelector('[data-action="confirm-write"]');

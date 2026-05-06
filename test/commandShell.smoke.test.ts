@@ -9,6 +9,7 @@ import { setAzureCredentialFactoryOverride } from '../src/codex/azureAuthResolve
 import { RalphIterationEngine } from '../src/ralph/iterationEngine';
 import { setProcessRunnerOverride } from '../src/services/processRunner';
 import { vscodeTestHarness } from './support/vscodeTestHarness';
+import { hashText } from '../src/ralph/integrity';
 
 class MemoryMemento implements vscode.Memento {
   private readonly values = new Map<string, unknown>();
@@ -76,13 +77,50 @@ async function makeTempRoot(): Promise<string> {
 
 async function seedWorkspace(rootPath: string): Promise<void> {
   await fs.mkdir(path.join(rootPath, '.ralph', 'artifacts'), { recursive: true });
-  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Product / project brief\n\nKeep the extension safe.\n', 'utf8');
+  const prdText = [
+    '# Product / project brief',
+    '',
+    '## Overview',
+    'Keep the extension safe.',
+    '',
+    '## Goals',
+    'Preserve deterministic command behavior.',
+    '',
+    '## Scope',
+    'Workflow and artifact stability.',
+    '',
+    '## Non-Goals',
+    'No broad redesign.',
+    '',
+    '## Success Criteria',
+    'Validation and workflow checks stay green.',
+    '',
+    '## Work Area',
+    'Apply focused command and workflow updates.',
+    '',
+    '## Validation',
+    'Run npm run validate.'
+  ].join('\n');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), prdText, 'utf8');
   await fs.writeFile(path.join(rootPath, '.ralph', 'progress.md'), '# Progress\n\n- Ready.\n', 'utf8');
   await fs.writeFile(path.join(rootPath, '.ralph', 'tasks.json'), JSON.stringify({
     version: 2,
     tasks: [
       { id: 'T1', title: 'Inspect guardrails', status: 'todo' }
     ]
+  }, null, 2), 'utf8');
+  await fs.writeFile(path.join(rootPath, '.ralph', 'artifacts', 'latest-task-generation-plan.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'taskGenerationPlan',
+    generatedAt: '2026-05-07T00:00:00.000Z',
+    status: 'approved',
+    prdHash: hashText(prdText),
+    prdTitle: 'Product / project brief',
+    readinessScore: 90,
+    workAreas: ['Work Area'],
+    generatedTaskIds: ['T1'],
+    warnings: [],
+    blockedWorkAreas: []
   }, null, 2), 'utf8');
 }
 
@@ -466,7 +504,7 @@ test('Run SCM Agent executes a single SCM pass with the scm agent command overri
   );
 });
 
-test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missing-only .gitignore contract', async () => {
+test('Initialize Workspace creates a fresh .ralph scaffold and routes to the PRD wizard readiness flow', async () => {
   const rootPath = await makeTempRoot();
 
   const harness = vscodeTestHarness();
@@ -479,16 +517,7 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', 'progress.md'), 'utf8'), '');
   const tasksJson = JSON.parse(await fs.readFile(path.join(rootPath, '.ralph', 'tasks.json'), 'utf8'));
   assert.equal(tasksJson.version, 2);
-  assert.equal(tasksJson.tasks.length, 2);
-  assert.equal(tasksJson.tasks[0].id, 'T1');
-  assert.equal(tasksJson.tasks[0].status, 'todo');
-  assert.match(tasksJson.tasks[0].notes, /Read the current content of \.ralph\/prd\.md/);
-  assert.ok(Array.isArray(tasksJson.tasks[0].acceptance), 'T1 should have acceptance criteria');
-  assert.equal(tasksJson.tasks[1].id, 'T2');
-  assert.equal(tasksJson.tasks[1].status, 'todo');
-  assert.deepEqual(tasksJson.tasks[1].dependsOn, ['T1']);
-  assert.match(tasksJson.tasks[1].notes, /create 10 actionable tasks/i);
-  assert.ok(Array.isArray(tasksJson.tasks[1].acceptance), 'T2 should keep acceptance criteria');
+  assert.equal(tasksJson.tasks.length, 0);
   assert.equal(await fs.readFile(path.join(rootPath, '.ralph', '.gitignore'), 'utf8'), '/artifacts\n/done-task-audit*.md\n/logs\n/prompts\n/runs\n/state.json\n');
   for (const fileName of [
     'project-profile.md',
@@ -507,11 +536,9 @@ test('Initialize Workspace creates a fresh .ralph scaffold and preserves a missi
   assert.equal(evidenceIndex.schemaVersion, 1);
   assert.equal(evidenceIndex.doctrineRoot, '.ralph/doctrine');
   assert.deepEqual(evidenceIndex.evidence, []);
-  assert.deepEqual(harness.state.shownDocuments, [
-    path.join(rootPath, '.ralph', 'prd.md'),
-    path.join(rootPath, '.ralph', 'tasks.json')
-  ]);
-  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /Ralph workspace ready/);
+  assert.equal(harness.state.shownDocuments.length, 0);
+  assert.ok(harness.state.createdWebviewPanels.some((panel) => panel.title === 'PRD Creation Wizard'));
+  assert.match(harness.state.infoMessages.at(-1)?.message ?? '', /PRD wizard readiness flow/i);
 });
 
 test('Initialize Workspace completes a partial doctrine pack without overwriting existing doctrine files', async () => {
@@ -2503,6 +2530,35 @@ test('Run Pipeline captures reviewTranscriptPath and prUrl in the pipeline artif
   const lastMessage = harness.state.infoMessages.at(-1)?.message ?? '';
   assert.match(lastMessage, /Ralph pipeline .+ finished with status: complete/);
   assert.ok(lastMessage.includes(fakePrUrl), 'Info message must include the PR URL');
+});
+
+test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', async () => {
+  const rootPath = await makeTempRoot();
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), '# Placeholder\n\n## Overview\nTODO\n', 'utf8');
+
+  const harness = vscodeTestHarness();
+  harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+  let runCalls = 0;
+  await withMockedRunCliIteration(
+    async (workspaceFolderArg, mode) => {
+      runCalls += 1;
+      return createMockRun(workspaceFolderArg.uri.fsPath, mode, null, {
+        followUpAction: 'continue_next_task'
+      });
+    },
+    async () => {
+      activate(createExtensionContext());
+      await vscode.commands.executeCommand('ralphCodex.runPipeline');
+    }
+  );
+
+  assert.equal(runCalls, 0, 'runPipeline must stop before execution when readiness blockers exist');
+  const readinessSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-prd-readiness-summary.md');
+  const readinessSummary = await fs.readFile(readinessSummaryPath, 'utf8');
+  assert.match(readinessSummary, /Blockers/i);
+  assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /readiness blockers/i);
 });
 
 test('Add Task seeds provider-generated backlog tasks and persists a seeding artifact without stripping existing rich task structure', async () => {

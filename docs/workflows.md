@@ -186,11 +186,13 @@ When `ralphCodex.generatedArtifactRetentionCount` is greater than `0`, Ralph pru
 
 ## Run A Pipeline
 
-1. Ensure `.ralph/prd.md` contains the real objective with `##` section headings for each phase.
+1. Ensure `.ralph/prd.md` is current and has passed PRD readiness review (no blockers in `.ralph/artifacts/latest-prd-readiness-summary.md`).
 2. Run `Ralphdex: Run Full Workflow`.
-3. Ralph hashes `.ralph/prd.md`, parses up to three `##`-level section headings as phase titles, creates a pipeline-root parent task plus sequential child tasks in `.ralph/tasks.json`, and writes an initial pipeline artifact to `.ralph/artifacts/pipelines/<runId>.json`.
-4. Ralph then invokes the multi-agent loop against the full task graph. The newly created child tasks are the next actionable items and will be claimed and executed by the loop agents.
-5. When the loop finishes, Ralph writes a final pipeline artifact with `status: complete` (or `status: failed`) and the `loopEndTime`.
+3. Ralph computes the PRD hash, persists `latest-prd-readiness.json` and `latest-prd-readiness-summary.md`, and stops immediately when readiness blockers exist.
+4. Ralph verifies that `.ralph/tasks.json` is backed by an approved task-generation plan for the current PRD hash (`.ralph/artifacts/latest-task-generation-plan.json`). If not, it routes the operator to PRD wizard task generation. Heading-derived scaffold is available only via explicit legacy fallback confirmation.
+5. Once readiness and task-graph prerequisites are satisfied, Ralph scaffolds the pipeline-root task plus sequential child tasks and writes an initial pipeline artifact to `.ralph/artifacts/pipelines/<runId>.json`.
+6. Ralph then invokes the multi-agent loop against the full task graph.
+7. When the loop finishes, Ralph writes a final pipeline artifact with `status: complete` (or `status: failed`) and the `loopEndTime`.
 
 The pipeline artifact at `.ralph/artifacts/pipelines/<runId>.json` records:
 

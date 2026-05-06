@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
-import vm from 'node:vm';
-import test from 'node:test';
 import * as path from 'node:path';
+import test from 'node:test';
 import { ProjectGenerationError } from '../../src/ralph/projectGenerator';
+import { hashText } from '../../src/ralph/integrity';
+import type { TaskGenerationPlanArtifact } from '../../src/ralph/prdReadiness';
 import {
   PrdCreationWizardHost,
   type PrdWizardDraftBundle,
-  type PrdWizardGenerateResult,
-  type PrdWizardWriteResult
+  type PrdWizardPrdGenerateResult,
+  type PrdWizardTaskGenerateResult
 } from '../../src/webview/prdCreationWizardHost';
 
 type MessageHandler = (msg: unknown) => void;
@@ -50,63 +51,88 @@ function webviewSends(webview: MockWebview, message: unknown): void {
   }
 }
 
-function makeGeneratedDraft(overrides: Partial<PrdWizardGenerateResult> = {}): PrdWizardGenerateResult {
-  return {
-    prdText: '# Title\n\n## Overview\n\nGenerated preview.\n',
-    tasks: [
-      { id: 'T1', title: 'Draft first task', status: 'todo' }
-    ],
-    ...overrides
-  };
-}
-
-function createDeferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
-
 function lastStateMessage(webview: MockWebview): {
   type: string;
-  state: {
-    step?: number;
-    warning?: string;
-    generationState?: string;
-    generationMessage?: string | null;
-    prdReviewFindings?: Array<{ kind: string; message: string }>;
-    taskReviewFindings?: Array<{ kind: string; message: string }>;
-    writeSummary?: { filesWritten: string[] };
-  };
+  state: Record<string, unknown>;
 } {
-  const states = webview.posted.filter((msg): msg is {
-    type: string;
-    state: {
-      step?: number;
-      warning?: string;
-      generationState?: string;
-      generationMessage?: string | null;
-      prdReviewFindings?: Array<{ kind: string; message: string }>;
-      taskReviewFindings?: Array<{ kind: string; message: string }>;
-      writeSummary?: { filesWritten: string[] };
-    };
-  } =>
+  const states = webview.posted.filter((msg): msg is { type: string; state: Record<string, unknown> } =>
     typeof msg === 'object' && msg !== null && (msg as { type?: string }).type === 'state'
   );
   assert.ok(states.length > 0, 'Expected at least one state message');
   return states.at(-1)!;
 }
 
-function extractWebviewScript(html: string): string {
-  const match = html.match(/<script nonce="[^"]*">([\s\S]*)<\/script>/);
-  assert.ok(match, 'Expected a nonce-scoped webview script block');
-  return match[1]!;
+function makePrdDraft(overrides: Partial<PrdWizardPrdGenerateResult> = {}): PrdWizardPrdGenerateResult {
+  return {
+    prdText: [
+      '# RalphDex PRD',
+      '',
+      '## Overview',
+      'Improve PRD-first generation flow.',
+      '',
+      '## Goals',
+      'Generate atomic starter tasks after readiness.',
+      '',
+      '## Scope',
+      'Wizard and full workflow gating.',
+      '',
+      '## Non-Goals',
+      'No doctrine auto-mutation.',
+      '',
+      '## Success Criteria',
+      'No task generation before readiness.',
+      '',
+      '## Work Area A',
+      'Implement readiness analysis and artifact persistence.',
+      '',
+      '## Validation',
+      'Run npm run validate and focused tests.'
+    ].join('\n'),
+    ...overrides
+  };
 }
 
-test('PrdCreationWizardHost: renders the 5-step wizard without config controls', () => {
+function makePlan(prdText: string, taskIds: string[]): TaskGenerationPlanArtifact {
+  return {
+    schemaVersion: 1,
+    kind: 'taskGenerationPlan',
+    generatedAt: '2026-05-07T00:00:00.000Z',
+    status: 'approved',
+    prdHash: hashText(prdText),
+    prdTitle: 'RalphDex PRD',
+    readinessScore: 92,
+    workAreas: ['Work Area A'],
+    generatedTaskIds: taskIds,
+    warnings: [],
+    blockedWorkAreas: []
+  };
+}
+
+function makeTaskGenerationResult(prdText: string, overrides: Partial<PrdWizardTaskGenerateResult> = {}): PrdWizardTaskGenerateResult {
+  return {
+    tasks: [
+      {
+        id: 'T1',
+        title: 'Persist PRD readiness artifacts',
+        status: 'todo',
+        acceptance: ['latest-prd-readiness.json is updated'],
+        validation: 'npm run validate'
+      },
+      {
+        id: 'T2',
+        title: 'Gate task generation on readiness blockers',
+        status: 'todo',
+        dependsOn: ['T1'],
+        acceptance: ['task generation refuses blocker PRDs'],
+        validation: 'npm run test -- prd'
+      }
+    ],
+    planArtifact: makePlan(prdText, ['T1', 'T2']),
+    ...overrides
+  };
+}
+
+test('PrdCreationWizardHost renders the six-step PRD-first flow', () => {
   const webview = makeMockWebview();
 
   const host = new PrdCreationWizardHost({
@@ -116,32 +142,24 @@ test('PrdCreationWizardHost: renders the 5-step wizard without config controls',
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
-    generateDraft: async () => makeGeneratedDraft(),
+    generatePrdDraft: async () => makePrdDraft(),
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
     writeDraft: async () => ({ filesWritten: [] })
   });
 
   assert.match(webview.html, /Project Shape/);
   assert.match(webview.html, /Draft Generation/);
   assert.match(webview.html, /PRD Review/);
+  assert.match(webview.html, /Task Generation/);
   assert.match(webview.html, /Task Review/);
   assert.match(webview.html, /Confirm Write/);
-  assert.match(webview.html, /wizard-step-nav/);
-  assert.match(webview.html, /wizard-step-panel/);
-  assert.match(webview.html, /step-summary-card/);
-  assert.doesNotMatch(webview.html, /Config & Skills/);
-  assert.doesNotMatch(webview.html, /No configuration recommendations are available/i);
-  assert.doesNotMatch(webview.html, /toggle-config-selection/);
-  assert.doesNotMatch(webview.html, /configSelections/);
-  assert.doesNotThrow(() => new vm.Script(extractWebviewScript(webview.html)));
-
-  const state = lastStateMessage(webview).state;
-  assert.equal(state.step, 1);
-
   host.dispose();
 });
 
-test('PrdCreationWizardHost: reuses shared Ralphdex visual primitives for the wizard shell', () => {
+test('PRD generation is PRD-only and does not populate tasks until task generation runs', async () => {
   const webview = makeMockWebview();
+  const prdDraft = makePrdDraft();
+  let taskGenerationCalls = 0;
 
   const host = new PrdCreationWizardHost({
     webview: webview as unknown as import('vscode').Webview,
@@ -150,707 +168,46 @@ test('PrdCreationWizardHost: reuses shared Ralphdex visual primitives for the wi
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  assert.match(webview.html, /--accent:\s*#f5b041;/);
-  assert.match(webview.html, /wizard-header header/);
-  assert.match(webview.html, /wizard-step-button btn/);
-  assert.match(webview.html, /wizard-step-panel card/);
-  assert.match(webview.html, /step-summary-card/);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: selected project shape renders an explicit active marker', () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    initialProjectType: 'service',
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  const script = extractWebviewScript(webview.html);
-  assert.match(script, /picker-selection/);
-  assert.match(script, /Selected/);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: wizard select controls keep open-state colors tied to VS Code dropdown tokens', () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  assert.match(webview.html, /\.wizard-main select\s*option/);
-  assert.match(webview.html, /\.wizard-main select\s*option:checked/);
-  assert.match(webview.html, /var\(--vscode-dropdown-background, var\(--vscode-input-background\)\)/);
-  assert.match(webview.html, /var\(--vscode-dropdown-foreground, var\(--vscode-input-foreground\)\)/);
-  assert.match(webview.html, /var\(--vscode-list-activeSelectionBackground, var\(--vscode-dropdown-background\)\)/);
-  assert.match(webview.html, /var\(--vscode-list-activeSelectionForeground, var\(--vscode-dropdown-foreground\)\)/);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: generate composes structured intake fields into the existing draft contract', async () => {
-  const webview = makeMockWebview();
-  let generateInput: {
-    mode: 'new' | 'regenerate';
-    projectType: string;
-    objective: string;
-    constraints: string;
-    nonGoals: string;
-  } | null = null;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async (input) => {
-      generateInput = input;
-      return makeGeneratedDraft();
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (input) => {
+      taskGenerationCalls += 1;
+      return makeTaskGenerationResult(input.prdText);
     },
     writeDraft: async () => ({ filesWritten: [] })
   });
 
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'projectType', value: 'service' });
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Ship a deterministic API gateway.' });
-  webviewSends(webview, { type: 'update-field', field: 'techStack', value: 'TypeScript, VS Code extension host' });
-  webviewSends(webview, { type: 'update-field', field: 'outOfScope', value: 'Do not add telemetry or hosted services.' });
-  webviewSends(webview, { type: 'update-field', field: 'existingConventions', value: 'Keep file-backed artifacts and deterministic validation.' });
-  webviewSends(webview, { type: 'generate-draft' });
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Ship readiness-first generation.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.deepEqual(generateInput, {
-    mode: 'new',
-    projectType: 'service',
-    objective: 'Ship a deterministic API gateway.',
-    constraints: [
-      'Tech stack:',
-      'TypeScript, VS Code extension host',
-      '',
-      'Existing conventions:',
-      'Keep file-backed artifacts and deterministic validation.'
-    ].join('\n'),
-    nonGoals: 'Do not add telemetry or hosted services.'
-  });
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: replaceContext exposes structured intake state for regenerate flows', () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webview.posted.length = 0;
-  host.replaceContext({
-    initialMode: 'regenerate',
-    initialProjectType: 'library',
-    initialObjective: 'Refresh the published SDK guide.',
-    initialConstraints: 'Use TypeScript only.',
-    initialNonGoals: 'No API redesign.'
-  });
-
-  const state = lastStateMessage(webview).state as {
-    mode: 'new' | 'regenerate';
-    projectType: string;
-    objective: string;
-    techStack: string;
-    outOfScope: string;
-    existingConventions: string;
-  };
-  assert.equal(state.mode, 'regenerate');
-  assert.equal(state.projectType, 'library');
-  assert.equal(state.objective, 'Refresh the published SDK guide.');
-  assert.equal(state.techStack, 'Use TypeScript only.');
-  assert.equal(state.outOfScope, 'No API redesign.');
-  assert.equal(state.existingConventions, '');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: regenerate context keeps the current PRD as comparison state', () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webview.posted.length = 0;
-  host.replaceContext({
-    initialMode: 'regenerate',
-    initialObjective: 'Use the current PRD as source material.',
-    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n'
-  });
-
-  const state = lastStateMessage(webview).state as {
-    mode: 'new' | 'regenerate';
-    objective: string;
-    currentPrdPreview: string | null;
-    draft: PrdWizardDraftBundle | null;
-  };
-  assert.equal(state.mode, 'regenerate');
-  assert.equal(state.objective, 'Use the current PRD as source material.');
-  assert.equal(state.currentPrdPreview, '# Existing PRD\n\nCurrent repo-owned content.\n');
-  assert.equal(state.draft?.prdText, '# Existing PRD\n\nCurrent repo-owned content.\n');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: regenerate state includes a current-vs-draft comparison summary', async () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'regenerate',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    initialObjective: 'Refine the existing PRD.',
-    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n',
-    generateDraft: async () => makeGeneratedDraft({
-      prdText: '# Generated PRD\n\nFresh generated content.\n'
-    }),
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  let state = lastStateMessage(webview).state as {
-    comparisonSummary?: string | null;
-  };
-  assert.equal(state.comparisonSummary, 'Draft matches the current PRD.');
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  state = lastStateMessage(webview).state as {
-    comparisonSummary?: string | null;
-  };
-  assert.match(state.comparisonSummary ?? '', /changed lines vs current PRD/i);
-
-  webviewSends(webview, { type: 'update-draft-prd-text', value: '# Existing PRD\n\nCurrent repo-owned content.\n' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  state = lastStateMessage(webview).state as {
-    comparisonSummary?: string | null;
-  };
-  assert.equal(state.comparisonSummary, 'Draft matches the current PRD.');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: generate falls back to bootstrap draft on generation failure', async () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => {
-      throw new ProjectGenerationError('CLI unavailable');
-    },
-    writeDraft: async () => {
-      throw new Error('write should not run in this test');
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, {
-    type: 'update-field',
-    field: 'objective',
-    value: 'Build a deterministic wizard'
-  });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const state = lastStateMessage(webview).state as {
-    generationState?: string;
-    generationMessage?: string | null;
+  const stateAfterPrd = lastStateMessage(webview).state as {
     draft: PrdWizardDraftBundle;
-  };
-  assert.equal(state.generationState, 'fallback');
-  assert.match(state.generationMessage ?? '', /CLI unavailable/);
-  assert.match(state.draft.prdText, /Build a deterministic wizard/);
-  assert.equal(state.draft.tasks.length, 4, 'fallback should use readiness-shaped bootstrap seed tasks');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: confirm-write posts a per-file write summary', async () => {
-  const webview = makeMockWebview();
-  let writeInput: PrdWizardDraftBundle | null = null;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async (draft): Promise<PrdWizardWriteResult> => {
-      writeInput = draft;
-      return {
-        filesWritten: [
-          path.join('workspace', '.ralph', 'prd.md'),
-          path.join('workspace', '.ralph', 'tasks.json')
-        ]
-      };
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, {
-    type: 'update-field',
-    field: 'objective',
-    value: 'Build a deterministic wizard'
-  });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.ok(writeInput, 'confirm-write should pass the current draft bundle to writeDraft');
-  const writtenDraft = writeInput as PrdWizardDraftBundle;
-  assert.equal(writtenDraft.tasks[0]?.title, 'Draft first task');
-  assert.deepEqual(lastStateMessage(webview).state.writeSummary?.filesWritten, [
-    path.join('workspace', '.ralph', 'prd.md'),
-    path.join('workspace', '.ralph', 'tasks.json')
-  ]);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: generate-draft immediately reports honest in-progress status before completion', async () => {
-  const webview = makeMockWebview();
-  const deferred = createDeferred<PrdWizardGenerateResult>();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => deferred.promise,
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate a PRD with visible progress.' });
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  let state = lastStateMessage(webview).state as {
-    operationStatus?: string;
-    operationMessage?: string | null;
-  };
-  assert.equal(state.operationStatus, 'running');
-  assert.match(state.operationMessage ?? '', /draft generation started/i);
-  assert.match(state.operationMessage ?? '', /waiting for provider response/i);
-
-  deferred.resolve(makeGeneratedDraft());
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const completedState = lastStateMessage(webview).state as {
-    operationStatus?: string;
-    operationMessage?: string | null;
-    generationState?: string;
-  };
-  assert.equal(completedState.operationStatus, 'succeeded');
-  assert.match(completedState.operationMessage ?? '', /draft generation completed/i);
-  assert.equal(completedState.generationState, 'generated');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: confirm-write immediately reports honest in-progress status before files are written', async () => {
-  const webview = makeMockWebview();
-  const deferred = createDeferred<PrdWizardWriteResult>();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft(),
-    writeDraft: async () => deferred.promise
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Write files with visible progress.' });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  let state = lastStateMessage(webview).state as {
-    operationStatus?: string;
-    operationMessage?: string | null;
-  };
-  assert.equal(state.operationStatus, 'running');
-  assert.match(state.operationMessage ?? '', /file write started/i);
-  assert.match(state.operationMessage ?? '', /writing prd\.md and tasks\.json/i);
-
-  deferred.resolve({
-    filesWritten: [
-      path.join('workspace', '.ralph', 'prd.md'),
-      path.join('workspace', '.ralph', 'tasks.json')
-    ]
-  });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const completedState = lastStateMessage(webview).state as {
-    operationStatus?: string;
-    operationMessage?: string | null;
-    writeSummary?: { filesWritten: string[] };
-  };
-  assert.equal(completedState.operationStatus, 'succeeded');
-  assert.match(completedState.operationMessage ?? '', /file write completed/i);
-  assert.deepEqual(completedState.writeSummary?.filesWritten, [
-    path.join('workspace', '.ralph', 'prd.md'),
-    path.join('workspace', '.ralph', 'tasks.json')
-  ]);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: documentation fallback draft stays documentation-only and marks tasks with documentation mode', async () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => {
-      throw new ProjectGenerationError('CLI unavailable');
-    },
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'projectType', value: 'documentation' });
-  webviewSends(webview, {
-    type: 'update-field',
-    field: 'objective',
-    value: 'Document the repository layout and operator workflows.'
-  });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const state = lastStateMessage(webview).state as {
-    draft: PrdWizardDraftBundle;
-  };
-  assert.match(state.draft.prdText, /Documentation Scope/i);
-  assert.match(state.draft.prdText, /Do not change repo code or behavior/i);
-  assert.equal(state.draft.tasks.length, 2);
-  assert.equal(state.draft.tasks[0]?.mode, 'documentation');
-  assert.equal(state.draft.tasks[1]?.mode, 'documentation');
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: fallback starter tasks are readiness-shaped bootstrap steps', async () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => {
-      throw new ProjectGenerationError('CLI unavailable');
-    },
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, {
-    type: 'update-field',
-    field: 'objective',
-    value: 'Build a deterministic service for PRD task generation.'
-  });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const state = lastStateMessage(webview).state as {
-    draft: PrdWizardDraftBundle;
-    taskReviewFindings?: Array<{ kind: string; message: string }>;
-  };
-
-  assert.equal(state.draft.tasks.length, 4, 'fallback should use the smallest useful bootstrap ladder, not a single build-the-app task');
-  assert.ok(!state.draft.tasks.some((task) => /build the app/i.test(task.title)));
-  for (const task of state.draft.tasks) {
-    assert.ok((task.acceptance ?? []).length > 0, `${task.id} should include acceptance criteria`);
-    assert.ok(task.validation, `${task.id} should include validation guidance`);
-    assert.ok((task.constraints ?? []).length > 0, `${task.id} should include constraints`);
-    assert.ok(task.tier, `${task.id} should include a tier`);
-  }
-
-  const taskMessages = (state.taskReviewFindings ?? []).map((finding) => finding.message);
-  assert.ok(!taskMessages.some((message) => /broad|greenfield|acceptance|validation/i.test(message)));
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: generation state distinguishes generated, weak, and fallback drafts', async () => {
-  const webview = makeMockWebview();
-  let nextResult: PrdWizardGenerateResult | Error = makeGeneratedDraft();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => {
-      if (nextResult instanceof Error) {
-        throw nextResult;
-      }
-      return nextResult;
-    },
-    writeDraft: async () => ({ filesWritten: [] })
-  });
-
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Clarify generation state.' });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  let state = lastStateMessage(webview).state;
-  assert.equal(state.generationState, 'generated');
-  assert.match(state.generationMessage ?? '', /provider-backed draft generated successfully/i);
-
-  nextResult = makeGeneratedDraft({ taskCountWarning: 'Generated 9 tasks; review and trim the backlog before writing.' });
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  state = lastStateMessage(webview).state;
-  assert.equal(state.generationState, 'weak');
-  assert.match(state.generationMessage ?? '', /Generated 9 tasks/i);
-
-  nextResult = new ProjectGenerationError('Provider timed out');
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  state = lastStateMessage(webview).state;
-  assert.equal(state.generationState, 'fallback');
-  assert.match(state.generationMessage ?? '', /fell back to a bootstrap draft/i);
-  assert.match(state.generationMessage ?? '', /Provider timed out/i);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: manual draft edits persist through later steps and confirm-write', async () => {
-  const webview = makeMockWebview();
-  let writeInput: PrdWizardDraftBundle | null = null;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'regenerate',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    initialPrdPreview: '# Existing PRD\n\nCurrent repo-owned content.\n',
-    generateDraft: async () => makeGeneratedDraft({
-      prdText: '# Generated PRD\n\nFresh generated content.\n',
-      tasks: [
-        { id: 'T1', title: 'Draft first task', status: 'todo' }
-      ]
-    }),
-    writeDraft: async (draft) => {
-      writeInput = draft;
-      return { filesWritten: [path.join('workspace', '.ralph', 'prd.md')] };
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Refresh the PRD from the existing draft.' });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  webviewSends(webview, { type: 'update-draft-prd-text', value: '# Edited PRD\n\nOperator-owned changes.\n' });
-  webviewSends(webview, { type: 'set-step', step: 4 });
-  webviewSends(webview, { type: 'update-task-tier', taskId: 'T1', tier: 'complex' });
-  webviewSends(webview, { type: 'set-step', step: 5 });
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.ok(writeInput, 'confirm-write should pass the current draft bundle to writeDraft');
-  const writtenDraft = writeInput as PrdWizardDraftBundle;
-  assert.equal(writtenDraft.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
-  assert.equal(writtenDraft.tasks[0]?.tier, 'complex');
-
-  const state = lastStateMessage(webview).state as {
     step: number;
-    currentPrdPreview: string | null;
-    draft: PrdWizardDraftBundle | null;
+    tasksStale: boolean;
   };
-  assert.equal(state.step, 5);
-  assert.equal(state.currentPrdPreview, '# Existing PRD\n\nCurrent repo-owned content.\n');
-  assert.equal(state.draft?.prdText, '# Edited PRD\n\nOperator-owned changes.\n');
+  assert.equal(stateAfterPrd.step, 3);
+  assert.equal(stateAfterPrd.draft.tasks.length, 0);
+  assert.equal(stateAfterPrd.tasksStale, true);
+  assert.equal(taskGenerationCalls, 0);
 
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: task review supports title edits, reordering, and deletion before confirm-write', async () => {
-  const webview = makeMockWebview();
-  let writeInput: PrdWizardDraftBundle | null = null;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft({
-      tasks: [
-        { id: 'T1', title: 'First generated task', status: 'todo' },
-        { id: 'T2', title: 'Second generated task', status: 'todo' },
-        { id: 'T3', title: 'Third generated task', status: 'todo' }
-      ]
-    }),
-    writeDraft: async (draft) => {
-      writeInput = draft;
-      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable tasks.' });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  webviewSends(webview, { type: 'update-task-title', taskId: 'T2', title: 'Operator revised second task' });
-  webviewSends(webview, { type: 'move-task', taskId: 'T3', direction: 'up' });
-  webviewSends(webview, { type: 'delete-task', taskId: 'T1' });
-  webviewSends(webview, { type: 'confirm-write' });
+  webviewSends(webview, { type: 'generate-tasks' });
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.ok(writeInput, 'confirm-write should pass the reviewed tasks to writeDraft');
-  const writtenDraft = writeInput as PrdWizardDraftBundle;
-  assert.deepEqual(
-    writtenDraft.tasks.map((task) => ({ id: task.id, title: task.title })),
-    [
-      { id: 'T3', title: 'Third generated task' },
-      { id: 'T2', title: 'Operator revised second task' }
-    ]
-  );
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: confirm-write blocks empty or invalid reviewed task lists', async () => {
-  const webview = makeMockWebview();
-  let writeCount = 0;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft({
-      tasks: [
-        { id: 'T1', title: 'First generated task', status: 'todo' },
-        { id: 'T2', title: 'Second generated task', status: 'todo' }
-      ]
-    }),
-    writeDraft: async () => {
-      writeCount += 1;
-      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable tasks.' });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-  webviewSends(webview, { type: 'update-task-title', taskId: 'T1', title: '   ' });
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  let state = lastStateMessage(webview).state as {
-    warning?: string;
+  const stateAfterTasks = lastStateMessage(webview).state as {
     draft: PrdWizardDraftBundle;
+    step: number;
+    tasksStale: boolean;
   };
-  assert.equal(writeCount, 0, 'blank task titles must block confirm-write');
-  assert.match(state.warning ?? '', /must have a non-empty title/i);
-
-  webviewSends(webview, { type: 'update-task-title', taskId: 'T1', title: 'Recovered title' });
-  webviewSends(webview, { type: 'delete-task', taskId: 'T1' });
-  webviewSends(webview, { type: 'delete-task', taskId: 'T2' });
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  state = lastStateMessage(webview).state as {
-    warning?: string;
-    draft: PrdWizardDraftBundle;
-  };
-  assert.equal(writeCount, 0, 'empty task lists must block confirm-write');
-  assert.equal(state.draft.tasks.length, 0);
-  assert.match(state.warning ?? '', /at least one task/i);
-
+  assert.equal(stateAfterTasks.step, 5);
+  assert.equal(stateAfterTasks.draft.tasks.length, 2);
+  assert.equal(stateAfterTasks.tasksStale, false);
+  assert.equal(taskGenerationCalls, 1);
   host.dispose();
 });
 
-test('PrdCreationWizardHost: task review persists dependencies, notes, and acceptance details', async () => {
+test('task generation is blocked when PRD readiness has blockers', async () => {
   const webview = makeMockWebview();
-  let writeInput: PrdWizardDraftBundle | null = null;
+  let taskGenerationCalls = 0;
 
   const host = new PrdCreationWizardHost({
     webview: webview as unknown as import('vscode').Webview,
@@ -859,51 +216,31 @@ test('PrdCreationWizardHost: task review persists dependencies, notes, and accep
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
-    generateDraft: async () => makeGeneratedDraft({
-      tasks: [
-        {
-          id: 'T1',
-          title: 'Review generated task contract',
-          status: 'todo',
-          dependsOn: ['T0'],
-          notes: 'Initial notes.',
-          acceptance: ['Initial acceptance']
-        }
-      ]
+    generatePrdDraft: async () => ({
+      prdText: '# Placeholder\n\n## Overview\nTODO\n'
     }),
-    writeDraft: async (draft) => {
-      writeInput = draft;
-      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
-    }
+    generateTasks: async (_input) => {
+      taskGenerationCalls += 1;
+      return makeTaskGenerationResult('# Placeholder\n\n## Overview\nTODO\n');
+    },
+    writeDraft: async () => ({ filesWritten: [] })
   });
 
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate editable rich tasks.' });
-  webviewSends(webview, { type: 'generate-draft' });
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate draft.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
   await new Promise((resolve) => setImmediate(resolve));
-  webviewSends(webview, { type: 'update-task-dependencies', taskId: 'T1', value: 'T0\nTbase' });
-  webviewSends(webview, { type: 'update-task-notes', taskId: 'T1', value: 'Expanded operator notes.' });
-  webviewSends(webview, { type: 'update-task-acceptance', taskId: 'T1', value: 'Acceptance one\nAcceptance two' });
-  webviewSends(webview, { type: 'confirm-write' });
+  webviewSends(webview, { type: 'generate-tasks' });
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.ok(writeInput, 'confirm-write should pass the reviewed task details to writeDraft');
-  const writtenDraft = writeInput as PrdWizardDraftBundle;
-  assert.deepEqual(writtenDraft.tasks[0], {
-    id: 'T1',
-    title: 'Review generated task contract',
-    status: 'todo',
-    dependsOn: ['T0', 'Tbase'],
-    notes: 'Expanded operator notes.',
-    acceptance: ['Acceptance one', 'Acceptance two']
-  });
-
+  const state = lastStateMessage(webview).state as { warning?: string };
+  assert.equal(taskGenerationCalls, 0);
+  assert.match(state.warning ?? '', /readiness has blockers/i);
   host.dispose();
 });
 
-test('PrdCreationWizardHost: generated starter tasks preserve readiness fields in review and write', async () => {
+test('wizard marks generated tasks stale when PRD text changes after task generation', async () => {
   const webview = makeMockWebview();
-  let writeInput: PrdWizardDraftBundle | null = null;
+  const prdDraft = makePrdDraft();
 
   const host = new PrdCreationWizardHost({
     webview: webview as unknown as import('vscode').Webview,
@@ -912,206 +249,99 @@ test('PrdCreationWizardHost: generated starter tasks preserve readiness fields i
       prdPath: path.join('workspace', '.ralph', 'prd.md'),
       tasksPath: path.join('workspace', '.ralph', 'tasks.json')
     },
-    generateDraft: async () => makeGeneratedDraft({
-      tasks: [
-        {
-          id: 'T1',
-          title: 'Create minimal runnable scaffold',
-          status: 'todo',
-          validation: 'npm test -- scaffold',
-          acceptance: ['Scaffold starts with one command'],
-          constraints: ['Do not add feature routes yet'],
-          context: ['package.json'],
-          tier: 'medium'
-        },
-        {
-          id: 'T2',
-          title: 'Add first smoke test',
-          status: 'todo',
-          dependsOn: ['T1'],
-          validation: 'npm test -- smoke',
-          acceptance: ['Smoke test fails on startup regression'],
-          constraints: ['Keep assertions limited to startup'],
-          tier: 'simple'
-        }
-      ]
-    }),
-    writeDraft: async (draft) => {
-      writeInput = draft;
-      return { filesWritten: [path.join('workspace', '.ralph', 'tasks.json')] };
-    }
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
+    writeDraft: async () => ({ filesWritten: [] })
   });
 
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate readiness-shaped starter tasks.' });
-  webviewSends(webview, { type: 'generate-draft' });
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate and edit.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
   await new Promise((resolve) => setImmediate(resolve));
-
-  const generatedState = lastStateMessage(webview).state as {
-    draft: PrdWizardDraftBundle;
-    taskReviewFindings?: Array<{ kind: string; message: string }>;
-  };
-  assert.deepEqual(generatedState.draft.tasks[0], {
-    id: 'T1',
-    title: 'Create minimal runnable scaffold',
-    status: 'todo',
-    validation: 'npm test -- scaffold',
-    acceptance: ['Scaffold starts with one command'],
-    constraints: ['Do not add feature routes yet'],
-    context: ['package.json'],
-    tier: 'medium'
-  });
-  assert.ok(!(generatedState.taskReviewFindings ?? []).some((finding) => /acceptance|validation/i.test(finding.message)));
-
-  webviewSends(webview, { type: 'confirm-write' });
+  webviewSends(webview, { type: 'generate-tasks' });
   await new Promise((resolve) => setImmediate(resolve));
-
-  assert.ok(writeInput, 'confirm-write should pass generated readiness fields through');
-  const writtenDraft = writeInput as PrdWizardDraftBundle;
-  assert.deepEqual(writtenDraft.tasks[0], generatedState.draft.tasks[0]);
-  assert.deepEqual(writtenDraft.tasks[1]?.dependsOn, ['T1']);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: emits PRD and task review findings without blocking non-durable warnings', async () => {
-  const webview = makeMockWebview();
-  let writeCount = 0;
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft({
-      prdText: [
-        'TODO placeholder title',
-        '',
-        '## Overview',
-        '',
-        'TBD',
-        '',
-        '## Requirements',
-        '',
-        'Improve stuff soon.'
-      ].join('\n'),
-      tasks: [
-        {
-          id: 'T1',
-          title: 'Improve thing',
-          status: 'todo',
-          validation: 'Test it'
-        },
-        {
-          id: 'T2',
-          title: 'Improve thing now',
-          status: 'todo',
-          validation: 'Check it works',
-          dependencies: ['Depends on backend']
-        }
-      ]
-    }),
-    writeDraft: async () => {
-      writeCount += 1;
-      return { filesWritten: [path.join('workspace', '.ralph', 'prd.md')] };
-    }
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate findings-rich output.' });
-  webviewSends(webview, { type: 'generate-draft' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  const generatedState = lastStateMessage(webview).state as {
-    prdReviewFindings?: Array<{ kind: string; message: string }>;
-    taskReviewFindings?: Array<{ kind: string; message: string }>;
-  };
-  const prdMessages = (generatedState.prdReviewFindings ?? []).map((finding) => finding.message);
-  const taskMessages = (generatedState.taskReviewFindings ?? []).map((finding) => finding.message);
-
-  assert.ok(prdMessages.some((message) => /title/i.test(message)), 'expected a title finding');
-  assert.ok(prdMessages.some((message) => /missing.*success criteria/i.test(message)), 'expected a required section finding');
-  assert.ok(prdMessages.some((message) => /placeholder/i.test(message)), 'expected a placeholder finding');
-  assert.ok(prdMessages.some((message) => /thin/i.test(message)), 'expected a thin section finding');
-  assert.ok(prdMessages.some((message) => /vague/i.test(message)), 'expected a vague wording finding');
-  assert.ok(taskMessages.some((message) => /duplicate/i.test(message)), 'expected a duplicate-title finding');
-  assert.ok(taskMessages.some((message) => /vague/i.test(message)), 'expected a vague-title finding');
-  assert.ok(taskMessages.some((message) => /validation/i.test(message)), 'expected a validation finding');
-  assert.ok(taskMessages.some((message) => /dependenc/i.test(message)), 'expected a dependency finding');
-
-  webviewSends(webview, { type: 'confirm-write' });
-  await new Promise((resolve) => setImmediate(resolve));
-
-  assert.equal(writeCount, 1, 'non-blocking review findings should not prevent writing');
-  assert.equal(lastStateMessage(webview).state.warning, null);
-  assert.match(webview.html, /PRD Findings/);
-  assert.match(webview.html, /Task Findings/);
-
-  host.dispose();
-});
-
-test('PrdCreationWizardHost: findings avoid false positives for valid commands, task ids, and punctuated headings', async () => {
-  const webview = makeMockWebview();
-
-  const host = new PrdCreationWizardHost({
-    webview: webview as unknown as import('vscode').Webview,
-    initialMode: 'new',
-    initialPaths: {
-      prdPath: path.join('workspace', '.ralph', 'prd.md'),
-      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
-    },
-    generateDraft: async () => makeGeneratedDraft({
-      prdText: [
-        '# Customer Portal Rewrite',
-        '',
-        '## 1. Overview:',
-        '',
-        'Operators can review workflow state and approve blocked work from one panel.',
-        '',
-        '## Requirements:',
-        '',
-        'The extension keeps durable files authoritative and exposes review-first generation.',
-        '',
-        '## Success Criteria:',
-        '',
-        'Operators can review and write the PRD and starter backlog without leaving the wizard.'
-      ].join('\n'),
-      tasks: [
-        {
-          id: 'T1',
-          title: 'Implement durable PRD review checks',
-          status: 'todo',
-          validation: 'npm test'
-        },
-        {
-          id: 'T2',
-          title: 'Render task review findings inline',
-          status: 'todo',
-          validation: 'npm run validate',
-          dependsOn: ['T1']
-        }
-      ]
-    }),
-    writeDraft: async () => ({ filesWritten: [path.join('workspace', '.ralph', 'prd.md')] })
-  });
-
-  webview.posted.length = 0;
-  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate realistic review findings.' });
-  webviewSends(webview, { type: 'generate-draft' });
+  webviewSends(webview, { type: 'update-draft-prd-text', value: `${prdDraft.prdText}\n\n## Extra\nNew section` });
   await new Promise((resolve) => setImmediate(resolve));
 
   const state = lastStateMessage(webview).state as {
-    prdReviewFindings?: Array<{ kind: string; message: string }>;
-    taskReviewFindings?: Array<{ kind: string; message: string }>;
+    tasksStale: boolean;
+    taskGenerationMessage?: string;
   };
-  const prdMessages = (state.prdReviewFindings ?? []).map((finding) => finding.message);
-  const taskMessages = (state.taskReviewFindings ?? []).map((finding) => finding.message);
+  assert.equal(state.tasksStale, true);
+  assert.match(state.taskGenerationMessage ?? '', /regenerate tasks/i);
+  host.dispose();
+});
 
-  assert.ok(!prdMessages.some((message) => /missing.*success criteria/i.test(message)));
-  assert.ok(!taskMessages.some((message) => /validation/i.test(message)));
-  assert.ok(!taskMessages.some((message) => /dependenc/i.test(message)));
+test('epic-level starter tasks block confirm-write', async () => {
+  const webview = makeMockWebview();
+  let writeCount = 0;
+  const prdDraft = makePrdDraft();
 
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => prdDraft,
+    generateTasks: async (_input) => ({
+      tasks: [
+        {
+          id: 'T1',
+          title: 'Implement dashboard',
+          status: 'todo',
+          acceptance: ['Improve UI'],
+          validation: 'npm run validate'
+        }
+      ],
+      planArtifact: makePlan(prdDraft.prdText, ['T1'])
+    }),
+    writeDraft: async () => {
+      writeCount += 1;
+      return { filesWritten: [] };
+    }
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Generate epic task.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'generate-tasks' });
+  await new Promise((resolve) => setImmediate(resolve));
+  webviewSends(webview, { type: 'confirm-write' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as { warning?: string };
+  assert.equal(writeCount, 0);
+  assert.match(state.warning ?? '', /task readiness blockers/i);
+  host.dispose();
+});
+
+test('generatePrdDraft failure falls back to PRD-only fallback draft', async () => {
+  const webview = makeMockWebview();
+
+  const host = new PrdCreationWizardHost({
+    webview: webview as unknown as import('vscode').Webview,
+    initialMode: 'new',
+    initialPaths: {
+      prdPath: path.join('workspace', '.ralph', 'prd.md'),
+      tasksPath: path.join('workspace', '.ralph', 'tasks.json')
+    },
+    generatePrdDraft: async () => {
+      throw new ProjectGenerationError('Provider unavailable');
+    },
+    generateTasks: async (input) => makeTaskGenerationResult(input.prdText),
+    writeDraft: async () => ({ filesWritten: [] })
+  });
+
+  webviewSends(webview, { type: 'update-field', field: 'objective', value: 'Fallback test.' });
+  webviewSends(webview, { type: 'generate-prd-draft' });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  const state = lastStateMessage(webview).state as {
+    generationState?: string;
+    draft: PrdWizardDraftBundle;
+  };
+  assert.equal(state.generationState, 'fallback');
+  assert.equal(state.draft.tasks.length, 0);
   host.dispose();
 });
