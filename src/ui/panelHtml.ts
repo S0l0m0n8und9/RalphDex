@@ -1571,6 +1571,30 @@ function buildHeroHealthCell(
   </div>`;
 }
 
+type DashboardReadinessMode = 'noPrd' | 'emptyBacklog' | 'preflightBlocked' | 'ready';
+
+function hasActionableWork(state: RalphDashboardState): boolean {
+  const counts = state.dashboardSnapshot?.taskBoard?.counts ?? state.taskCounts;
+  if (counts) {
+    return (counts.todo + counts.in_progress + counts.blocked) > 0;
+  }
+  return state.tasks.some((task) => task.status === 'todo' || task.status === 'in_progress' || task.status === 'blocked');
+}
+
+function getDashboardReadinessMode(state: RalphDashboardState): DashboardReadinessMode {
+  if (!state.prdExists) {
+    return 'noPrd';
+  }
+  const actionable = hasActionableWork(state) || state.loopState === 'running';
+  if (!actionable) {
+    return 'emptyBacklog';
+  }
+  if (!state.preflightReady) {
+    return 'preflightBlocked';
+  }
+  return 'ready';
+}
+
 function buildHeroCard(state: RalphDashboardState): string {
   const snapshot = state.dashboardSnapshot;
   const taskBoard = snapshot?.taskBoard ?? null;
@@ -1612,6 +1636,32 @@ function buildHeroCard(state: RalphDashboardState): string {
       : `${esc(state.workspaceName)} is ready for the next loop. Resume when you want Ralph to continue ${esc(currentTask.id)}.`
     : 'No task is selected yet. Seed or regenerate work to populate the dashboard.';
   const loopDisabled = state.loopState === 'running' ? ' disabled title="Loop already running"' : '';
+  const readinessMode = getDashboardReadinessMode(state);
+
+  const heroTitle = readinessMode === 'noPrd'
+    ? 'Setup Required'
+    : readinessMode === 'emptyBacklog'
+      ? 'Backlog Required'
+      : readinessMode === 'preflightBlocked'
+        ? 'Readiness Blocked'
+        : 'Ready to run';
+  const heroSummary = readinessMode === 'noPrd'
+    ? 'Create a PRD before running RalphDex.'
+    : readinessMode === 'emptyBacklog'
+      ? 'PRD found, but no actionable tasks are available.'
+      : readinessMode === 'preflightBlocked'
+        ? state.preflightSummary
+        : summary;
+  const heroActions = readinessMode === 'noPrd'
+    ? `<button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>`
+    : readinessMode === 'emptyBacklog'
+      ? `<button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
+         <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Backlog from Feature</span><span class="btn-spinner"></span></button>`
+      : readinessMode === 'preflightBlocked'
+        ? `<button class="btn primary" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>`
+        : `<button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
+           <button class="btn" data-command="ralphCodex.runPipeline"${loopDisabled}><span class="btn-label">Run Pipeline</span><span class="btn-spinner"></span></button>
+           <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>`;
 
   return `<section class="hero-card">
     <div class="hero-topline">
@@ -1623,13 +1673,11 @@ function buildHeroCard(state: RalphDashboardState): string {
           <span class="hero-inline-pill">${esc(state.agentRole)}</span>
           ${taskBoard?.selectedTaskId ? `<span class="hero-inline-pill">Selected ${esc(taskBoard.selectedTaskId)}</span>` : ''}
         </div>
-        <div class="hero-title">${esc(title)}</div>
-        <div class="hero-summary">${summary}</div>
+        <div class="hero-title">${esc(heroTitle)}</div>
+        <div class="hero-summary">${esc(heroSummary)}</div>
       </div>
       <div class="hero-actions">
-        <button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runMultiAgentLoop"${loopDisabled}><span class="btn-label">Run Multi</span><span class="btn-spinner"></span></button>
-        <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>
+        ${heroActions}
       </div>
     </div>
     <div class="hero-phase">
