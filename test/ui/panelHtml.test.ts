@@ -165,7 +165,11 @@ test('buildPanelDashboardHtml shows all-done summary when every task is complete
 });
 
 test('buildPanelDashboardHtml disables loop and iteration buttons when running', () => {
-  const html = buildPanelDashboardHtml(defaultState({ loopState: 'running' }), 'n4');
+  const html = buildPanelDashboardHtml(defaultState({
+    loopState: 'running',
+    prdExists: true,
+    taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 }
+  }), 'n4');
   // Actions section: Run Loop and Run Iter should be disabled
   const disabledButtons = (html.match(/<button[^>]*disabled[^>]*>/g) ?? []).length;
   assert.ok(disabledButtons >= 2, `Expected at least 2 disabled buttons, got ${disabledButtons}`);
@@ -398,7 +402,10 @@ test('buildPanelDashboardHtml renders accessible task and history controls with 
 });
 
 test('buildPanelDashboardHtml renders populated agent, task, dead-letter, and failure sections', () => {
-  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-full');
+  const html = buildPanelDashboardHtml(defaultState({
+    prdExists: true,
+    dashboardSnapshot: populatedDashboardSnapshot()
+  }), 'dash-full');
   assert.match(html, /Done<\/span><span class="metric-value ok">4<\/span>/);
   assert.ok(html.includes('Recovery Queue'));
   assert.ok(html.includes('Recover failed task'));
@@ -700,7 +707,11 @@ test('reduced-motion CSS exists in base styles', () => {
 
 test('command buttons use existing command IDs and MessageBridge path', () => {
   const settingsSurface = buildSettingsSurfaceSnapshot(DEFAULT_CONFIG);
-  const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot(), settingsSurface }), 'msg-bridge');
+  const html = buildPanelDashboardHtml(defaultState({
+    prdExists: true,
+    dashboardSnapshot: populatedDashboardSnapshot(),
+    settingsSurface
+  }), 'msg-bridge');
 
   assert.ok(html.includes('ralphCodex.runRalphLoop'), 'runRalphLoop');
   assert.ok(html.includes('ralphCodex.runRalphIteration'), 'runRalphIteration');
