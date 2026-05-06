@@ -339,3 +339,13 @@ test('readConfig ignores invalid per-tier reasoningEffort values and preserves l
   assert.equal(config.modelTiering.medium.reasoningEffort, undefined);
   assert.equal(config.modelTiering.complex.reasoningEffort, 'high');
 });
+
+test('readConfig accepts empty global reasoningEffort to disable explicit reasoning flags', () => {
+  const harness = vscodeTestHarness();
+  harness.setConfiguration({
+    reasoningEffort: ''
+  });
+
+  const config = readConfig(workspaceFolder('C:\\repo'));
+  assert.equal(config.reasoningEffort, '');
+});

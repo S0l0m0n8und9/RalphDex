@@ -122,6 +122,21 @@ test('buildArgs allows deliberate high reasoning escalation', () => {
   ]);
 });
 
+test('buildArgs omits model_reasoning_effort when reasoningEffort is empty', () => {
+  assert.deepEqual(codexProvider.buildLaunchSpec({
+    ...request(),
+    reasoningEffort: ''
+  }, false).args, [
+    'exec',
+    '--model', 'gpt-5.4',
+    '--sandbox', 'workspace-write',
+    '--config', 'approval_policy="on-request"',
+    '--cd', '/workspace/repo',
+    '--output-last-message', '/workspace/.ralph/runs/bootstrap-001.last-message.md',
+    '-'
+  ]);
+});
+
 test('buildLaunchSpec enables shell only for Windows command-wrapper lookups', () => {
   const launchSpec = codexProvider.buildLaunchSpec(request(), false);
   assert.equal(launchSpec.shell, process.platform === 'win32' ? true : false);

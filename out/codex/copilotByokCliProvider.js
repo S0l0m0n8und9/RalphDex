@@ -259,7 +259,9 @@ class CopilotByokCliProvider {
         if (request.model.trim()) {
             args.push('--model', request.model);
         }
-        args.push('--reasoning-effort', request.reasoningEffort);
+        if (request.reasoningEffort) {
+            args.push('--reasoning-effort', request.reasoningEffort);
+        }
         args.push('--output-format=json');
         if (this.options.approvalMode === 'allow-all') {
             args.push('--allow-all');

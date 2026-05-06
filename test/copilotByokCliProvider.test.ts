@@ -154,6 +154,12 @@ test('buildLaunchSpec does not set COPILOT_OFFLINE when offline is false', () =>
   assert.equal(launch.env?.COPILOT_OFFLINE, undefined);
 });
 
+test('buildLaunchSpec omits reasoning flag when reasoningEffort is empty', () => {
+  const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');
+  const launch = provider.buildLaunchSpec({ ...request(), reasoningEffort: '' }, false);
+  assert.ok(!launch.args.includes('--reasoning-effort'));
+});
+
 // 8. Provider ID by mode
 test('provider id is copilot-byok for byok mode', () => {
   const provider = new CopilotByokCliProvider(makeByokOptions(), 'byok');

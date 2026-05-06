@@ -8,7 +8,7 @@ export type CodexApprovalMode = 'never' | 'on-request' | 'untrusted';
 
 export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
 
-export type CodexReasoningEffort = 'medium' | 'high';
+export type CodexReasoningEffort = '' | 'medium' | 'high';
 
 export type ClaudePermissionMode = 'dangerously-skip-permissions' | 'default';
 export type GeminiPermissionMode = 'yolo' | 'default';
@@ -52,7 +52,7 @@ export interface RalphModelTierConfig {
   provider?: CliProviderId;
   /** Model identifier passed to the CLI via --model. */
   model: string;
-  /** Optional per-tier reasoning effort override. Omit to fall back to global `ralphCodex.reasoningEffort`. */
+  /** Optional per-tier reasoning effort override. Omit (or set empty) to fall back to global `ralphCodex.reasoningEffort`. */
   reasoningEffort?: CodexReasoningEffort;
 }
 
@@ -177,6 +177,7 @@ export interface RalphCodexConfig {
   customPromptBudget: CustomPromptBudget;
   clipboardAutoCopy: boolean;
   model: string;
+  /** Empty string disables explicit reasoning-effort flags for providers that support them. */
   reasoningEffort: CodexReasoningEffort;
   approvalMode: CodexApprovalMode;
   sandboxMode: CodexSandboxMode;

@@ -222,6 +222,23 @@ test('codex and copilot providers include reasoningEffort in launch args', () =>
   assert.ok(copilotByokArgs.includes('high'), 'copilot-byok should include reasoningEffort in launch args');
 });
 
+test('codex and copilot providers omit reasoningEffort flags when configured as empty', () => {
+  const config = makeConfig();
+  const request = makeRequest({ reasoningEffort: '' });
+
+  const codex = createCliProviderForId('codex', config);
+  const codexArgs = codex.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(!codexArgs.includes('model_reasoning_effort='), 'codex should omit model_reasoning_effort when reasoningEffort is empty');
+
+  const copilot = createCliProviderForId('copilot', config);
+  const copilotArgs = copilot.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(!copilotArgs.includes('--reasoning-effort'), 'copilot should omit --reasoning-effort when reasoningEffort is empty');
+
+  const copilotByok = createCliProviderForId('copilot-byok', config);
+  const copilotByokArgs = copilotByok.buildLaunchSpec(request, false).args.join(' ');
+  assert.ok(!copilotByokArgs.includes('--reasoning-effort'), 'copilot-byok should omit --reasoning-effort when reasoningEffort is empty');
+});
+
 test('claude and gemini providers safely ignore reasoningEffort (no args error)', () => {
   const config = makeConfig();
   const request = makeRequest({ reasoningEffort: 'high' });

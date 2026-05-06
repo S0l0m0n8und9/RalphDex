@@ -183,7 +183,7 @@ function readAzureFoundryConfig(raw, fallback) {
     };
 }
 const CLI_PROVIDER_IDS = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
-const CODEX_REASONING_EFFORTS = ['medium', 'high'];
+const CODEX_REASONING_EFFORTS = ['', 'medium', 'high'];
 function readTierConfig(raw, fallback) {
     // Accept a plain string (backward-compat: old flat `simpleModel` format).
     if (typeof raw === 'string' && raw.trim()) {
@@ -330,7 +330,7 @@ function readConfig(workspaceFolder) {
         customPromptBudget: readPromptBudgetOverrideMap(config, 'customPromptBudget'),
         clipboardAutoCopy: readBoolean(config, 'clipboardAutoCopy', defaults_1.DEFAULT_CONFIG.clipboardAutoCopy),
         model: readString(config, 'model', defaults_1.DEFAULT_CONFIG.model),
-        reasoningEffort: readEnum(config, 'reasoningEffort', ['medium', 'high'], defaults_1.DEFAULT_CONFIG.reasoningEffort),
+        reasoningEffort: readEnum(config, 'reasoningEffort', ['', 'medium', 'high'], defaults_1.DEFAULT_CONFIG.reasoningEffort),
         approvalMode: readEnum(config, 'approvalMode', ['never', 'on-request', 'untrusted'], defaults_1.DEFAULT_CONFIG.approvalMode),
         sandboxMode: readEnum(config, 'sandboxMode', ['read-only', 'workspace-write', 'danger-full-access'], defaults_1.DEFAULT_CONFIG.sandboxMode),
         openSidebarCommandId: readString(config, 'openSidebarCommandId', openSidebarFallback),

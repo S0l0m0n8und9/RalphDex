@@ -822,11 +822,12 @@
         "ralphCodex.reasoningEffort": {
           "type": "string",
           "enum": [
+            "",
             "medium",
             "high"
           ],
           "default": "medium",
-          "description": "Reasoning effort to pass to Codex CLI scripted runs. This setting is Codex-specific."
+          "description": "Reasoning effort to pass to Codex/Copilot scripted runs. Set to an empty string to omit explicit reasoning-effort flags (useful for non-reasoning models such as gpt-4.1)."
         },
         "ralphCodex.approvalMode": {
           "type": "string",
@@ -1035,6 +1036,7 @@
                     "reasoningEffort": {
                       "type": "string",
                       "enum": [
+                        "",
                         "medium",
                         "high"
                       ],
@@ -1072,6 +1074,7 @@
                     "reasoningEffort": {
                       "type": "string",
                       "enum": [
+                        "",
                         "medium",
                         "high"
                       ],
@@ -1109,6 +1112,7 @@
                     "reasoningEffort": {
                       "type": "string",
                       "enum": [
+                        "",
                         "medium",
                         "high"
                       ],

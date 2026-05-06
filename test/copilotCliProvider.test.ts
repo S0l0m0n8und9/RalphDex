@@ -63,6 +63,11 @@ test('buildLaunchSpec supports allow-tools-only and interactive modes', () => {
   assert.equal(interactiveLaunch.stdinText, 'Ship it.');
 });
 
+test('buildLaunchSpec omits reasoning flag when reasoningEffort is empty', () => {
+  const launch = provider().buildLaunchSpec({ ...request(), reasoningEffort: '' }, false);
+  assert.ok(!launch.args.includes('--reasoning-effort'));
+});
+
 test('extractResponseText returns stdout text and persists it', async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'ralph-copilot-'));
   const lastMessagePath = path.join(root, 'last-message.md');

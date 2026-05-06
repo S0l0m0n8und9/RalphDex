@@ -254,7 +254,7 @@ function readAzureFoundryConfig(raw: unknown, fallback: AzureFoundryConfig): Azu
 }
 
 const CLI_PROVIDER_IDS: readonly CliProviderId[] = ['codex', 'claude', 'copilot', 'copilot-byok', 'copilot-foundry', 'azure-foundry', 'gemini'];
-const CODEX_REASONING_EFFORTS: readonly CodexReasoningEffort[] = ['medium', 'high'];
+const CODEX_REASONING_EFFORTS: readonly CodexReasoningEffort[] = ['', 'medium', 'high'];
 
 
 function readTierConfig(raw: unknown, fallback: RalphModelTierConfig): RalphModelTierConfig {
@@ -551,7 +551,7 @@ export function readConfig(workspaceFolder: vscode.WorkspaceFolder): RalphCodexC
     reasoningEffort: readEnum<CodexReasoningEffort>(
       config,
       'reasoningEffort',
-      ['medium', 'high'],
+      ['', 'medium', 'high'],
       DEFAULT_CONFIG.reasoningEffort
     ),
     approvalMode: readEnum<CodexApprovalMode>(

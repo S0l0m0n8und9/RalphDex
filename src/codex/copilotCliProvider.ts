@@ -26,7 +26,9 @@ export class CopilotCliProvider implements CliProvider {
       args.push('--model', request.model);
     }
 
-    args.push('--reasoning-effort', request.reasoningEffort);
+    if (request.reasoningEffort) {
+      args.push('--reasoning-effort', request.reasoningEffort);
+    }
 
     args.push('--output-format=json');
 

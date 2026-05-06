@@ -22,12 +22,14 @@ export class CodexCliProvider implements CliProvider {
     const args = [
       'exec',
       '--model', request.model,
-      '--config', `model_reasoning_effort="${request.reasoningEffort}"`,
       '--sandbox', request.sandboxMode,
       '--config', `approval_policy="${request.approvalMode}"`,
       '--cd', request.executionRoot,
       '--output-last-message', request.lastMessagePath
     ];
+    if (request.reasoningEffort) {
+      args.splice(3, 0, '--config', `model_reasoning_effort="${request.reasoningEffort}"`);
+    }
 
     if (skipGitCheck) {
       args.push('--skip-git-repo-check');
@@ -91,7 +93,7 @@ export class CodexCliProvider implements CliProvider {
       `- Prompt path: ${request.promptPath}`,
       `- Prompt hash: ${request.promptHash}`,
       `- Prompt bytes: ${request.promptByteLength}`,
-      `- Reasoning effort: ${request.reasoningEffort}`,
+      `- Reasoning effort: ${request.reasoningEffort || '(none)'}`,
       `- Stdin hash: ${result.stdinHash}`,
       `- Payload matched prompt artifact: ${payloadMatched}`,
       `- Last message path: ${request.lastMessagePath}`,
