@@ -32,6 +32,13 @@ test('getSettingsSurfaceMetadata exposes the planned settings-panel sections wit
   assert.ok(azureEndpoint, 'azureFoundry.endpointUrl entry should exist');
   assert.equal(azureEndpoint?.defaultValue, DEFAULT_CONFIG.azureFoundry.endpointUrl);
 
+  const agentRole = metadata.entries.find((entry) => entry.key === 'agentRole');
+  assert.ok(agentRole, 'agentRole entry should exist');
+  assert.deepEqual(
+    agentRole?.options,
+    ['build', 'review', 'watchdog', 'scm', 'planner', 'implementer', 'reviewer']
+  );
+
   assert.equal(metadata.entries.some((entry) => entry.key === 'azureFoundryApiKey'), false);
 });
 

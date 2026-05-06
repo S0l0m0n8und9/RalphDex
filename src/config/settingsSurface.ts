@@ -194,7 +194,7 @@ const SETTINGS_SURFACE_REGISTRY: Array<{
   { key: 'promptBudgetProfile', manifestKey: 'ralphCodex.promptBudgetProfile', sectionId: 'memory', title: 'Prompt Budget Profile', control: 'enum', description: 'Prompt-budget calibration profile used when shaping prompts.' },
   { key: 'promptPriorContextBudget', manifestKey: 'ralphCodex.promptPriorContextBudget', sectionId: 'memory', title: 'Prompt Prior Context Budget', control: 'number', description: 'Maximum prior-context entries injected into prompt context.' },
   { key: 'promptTemplateDirectory', manifestKey: 'ralphCodex.promptTemplateDirectory', sectionId: 'memory', title: 'Prompt Template Directory', control: 'string', description: 'Optional prompt template directory override.' },
-  { key: 'customPromptBudget', manifestKey: 'ralphCodex.customPromptBudget', sectionId: 'memory', title: 'Custom Prompt Budget', control: 'string', description: 'Advanced per-prompt budget overrides (JSON object in settings).' },
+  { key: 'customPromptBudget', manifestKey: 'ralphCodex.customPromptBudget', sectionId: 'memory', title: 'Custom Prompt Budget', control: 'string', description: 'Advanced per-prompt budget overrides (key/value map).' },
 
   { key: 'ralphTaskFilePath', manifestKey: 'ralphCodex.ralphTaskFilePath', sectionId: 'operator-mode', title: 'Task File Path', control: 'string', description: 'Workspace-relative task graph path.' },
   { key: 'prdPath', manifestKey: 'ralphCodex.prdPath', sectionId: 'operator-mode', title: 'PRD Path', control: 'string', description: 'Workspace-relative PRD path.' },
@@ -211,7 +211,7 @@ const SETTINGS_SURFACE_REGISTRY: Array<{
   { key: 'newChatCommandId', manifestKey: 'ralphCodex.newChatCommandId', sectionId: 'advanced', title: 'New Chat Command ID', control: 'string', description: 'Command ID used to open a new provider chat.' },
   { key: 'clipboardAutoCopy', manifestKey: 'ralphCodex.clipboardAutoCopy', sectionId: 'advanced', title: 'Clipboard Auto Copy', control: 'boolean', description: 'Automatically copy generated prompts to clipboard.' },
   { key: 'agentCount', manifestKey: 'ralphCodex.agentCount', sectionId: 'advanced', title: 'Agent Count', control: 'number', description: 'Number of concurrent Ralph agents configured for the workspace.' },
-  { key: 'agentRole', manifestKey: 'ralphCodex.agentRole', sectionId: 'advanced', title: 'Agent Role', control: 'enum', description: 'Default agent role for single-agent execution.', options: ['planner', 'implementer', 'reviewer'] },
+  { key: 'agentRole', manifestKey: 'ralphCodex.agentRole', sectionId: 'advanced', title: 'Agent Role', control: 'enum', description: 'Default agent role for single-agent execution.', options: ['build', 'review', 'watchdog', 'scm', 'planner', 'implementer', 'reviewer'] },
   { key: 'cliExecutionTimeoutMs', manifestKey: 'ralphCodex.cliExecutionTimeoutMs', sectionId: 'advanced', title: 'CLI Execution Timeout (ms)', control: 'number', description: 'Execution timeout for provider invocations (0 disables timeout).' },
   { key: 'claimTtlHours', manifestKey: 'ralphCodex.claimTtlHours', sectionId: 'advanced', title: 'Claim TTL Hours', control: 'number', description: 'Task-claim time-to-live before stale detection.' },
   { key: 'staleLockThresholdMinutes', manifestKey: 'ralphCodex.staleLockThresholdMinutes', sectionId: 'advanced', title: 'Stale Lock Threshold Minutes', control: 'number', description: 'Lock-file stale threshold for auto-recovery logic.' },

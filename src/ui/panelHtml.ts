@@ -1031,6 +1031,25 @@ function stringArrayCheckboxes(key: string, value: unknown, options: readonly st
 }
 
 function renderSettingControl(entry: NonNullable<RalphDashboardState['settingsSurface']>['sections'][number]['entries'][number]): string {
+  if (entry.key === 'customPromptBudget') {
+    const map = (entry.value && typeof entry.value === 'object' && !Array.isArray(entry.value))
+      ? entry.value as Record<string, unknown>
+      : {};
+    const rows = Object.entries(map).map(([k, v]) => {
+      const numeric = Number(v);
+      const value = Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+      return `<div class="kv-row" data-setting-kv="${esc(entry.key)}">
+        <input type="text" class="kv-key" value="${esc(k)}" placeholder="key">
+        <input type="number" class="kv-value" value="${value}" min="0">
+        <button class="kv-remove" title="Remove">✕</button>
+      </div>`;
+    }).join('');
+    return `<div data-setting-kv-group="${esc(entry.key)}">
+      ${rows}
+      <button class="btn" data-setting-kv-add="${esc(entry.key)}"><span class="btn-label">Add Entry</span><span class="btn-spinner"></span></button>
+    </div>`;
+  }
+
   if (entry.control === 'boolean') {
     return checkbox(entry.key, Boolean(entry.value));
   }
