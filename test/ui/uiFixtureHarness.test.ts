@@ -86,3 +86,30 @@ test('UI fixture catalogue enforces state-copy contract for readiness and workfl
   assert.ok(!blockedWithRecoveryHtml.includes('Dead-letter contains parked work that may need requeue.'));
 });
 
+test('UI fixture catalogue keeps the sidebar compact and run-focused across states', () => {
+  const dashboardOnlyCommands = [
+    'ralphCodex.runMultiAgentLoop',
+    'ralphCodex.runRalphIteration',
+    'ralphCodex.runReviewAgent',
+    'ralphCodex.runWatchdogAgent',
+    'ralphCodex.runScmAgent',
+    'ralphCodex.generatePrompt',
+    'ralphCodex.showTasks',
+    'ralphCodex.openLatestPipelineRun',
+    'ralphCodex.openSettings'
+  ];
+
+  for (const fixture of UI_STATE_FIXTURES) {
+    const sidebarHtml = buildDashboardHtml(fixture.state, 'fixture-nonce');
+
+    assert.ok(sidebarHtml.includes('data-command="ralphCodex.openDashboard"'), `open dashboard missing for ${fixture.id}`);
+    assert.ok(!sidebarHtml.includes('Seed Tasks'), `sidebar must not expose task seeding for ${fixture.id}`);
+    assert.ok(!sidebarHtml.includes('Prepare &amp; Inspect'), `sidebar must not expose panel inspect rail for ${fixture.id}`);
+    assert.ok(!sidebarHtml.includes('data-sidebar-tab='), `sidebar must not expose tab shell for ${fixture.id}`);
+
+    for (const commandId of dashboardOnlyCommands) {
+      assert.ok(!sidebarHtml.includes(commandId), `sidebar should not expose ${commandId} for ${fixture.id}`);
+    }
+  }
+});
+
