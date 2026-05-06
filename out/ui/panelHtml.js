@@ -1027,7 +1027,7 @@ function getCurrentCliProvider(settingsSurface) {
         .flatMap((section) => section.entries)
         .find((entry) => entry.key === 'cliProvider');
     const providerValue = providerEntry?.value;
-    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
+    return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-byok' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
         ? providerValue
         : 'codex';
 }
@@ -1062,11 +1062,35 @@ function buildSettingsSection(state) {
     const azureAuthMode = String(getValue('azureFoundry.auth.mode') ?? '');
     const azureEndpoint = String(getValue('azureFoundry.endpointUrl') ?? '');
     const isAzureProvider = currentProvider === 'azure-foundry';
+    const isCopilotByokProvider = currentProvider === 'copilot-byok' || currentProvider === 'copilot-foundry';
     const azureEndpointMissing = isAzureProvider && azureEndpoint.trim() === '';
     const azureSecretKeyMissing = isAzureProvider && azureAuthMode === 'vscode-secret' && String(getValue('azureFoundry.auth.secretStorageKey') ?? '').trim() === '';
     const azureEnvKeyMissing = isAzureProvider && azureAuthMode === 'env-api-key' && String(getValue('azureFoundry.auth.apiKeyEnvVar') ?? '').trim() === '';
-    const coreSections = settingsSurface.sections.filter(s => s.id === 'operator-mode' || s.id === 'provider');
-    const advancedSections = settingsSurface.sections.filter(s => s.id !== 'operator-mode' && s.id !== 'provider');
+    const visibleSections = settingsSurface.sections.filter((s) => {
+        if (s.id === 'copilot-foundry') {
+            return isCopilotByokProvider;
+        }
+        if (s.id === 'azure-foundry') {
+            return isAzureProvider;
+        }
+        return true;
+    });
+    const coreSections = visibleSections.filter((s) => s.id !== 'advanced');
+    const advancedSections = visibleSections.filter((s) => s.id === 'advanced');
+    const executionProfileHtml = (() => {
+        const provider = String(getValue('cliProvider') ?? 'codex');
+        const model = String(getValue('model') ?? '');
+        const reasoningEffort = String(getValue('reasoningEffort') ?? '');
+        const tieringEnabled = Boolean(getValue('modelTiering.enabled'));
+        const tieringLabel = tieringEnabled
+            ? `${String(getValue('modelTiering.simple.model') ?? '')} / ${String(getValue('modelTiering.medium.model') ?? '')} / ${String(getValue('modelTiering.complex.model') ?? '')}`
+            : 'disabled';
+        return `<div class="settings-section-desc" style="margin-bottom:8px;">
+      <strong>Active Execution Profile</strong><br>
+      Provider: ${(0, htmlHelpers_1.esc)(provider)} · Model: ${(0, htmlHelpers_1.esc)(model || 'unset')} · Reasoning: ${(0, htmlHelpers_1.esc)(reasoningEffort || 'unset')}<br>
+      Tiering: ${(0, htmlHelpers_1.esc)(tieringLabel)}
+    </div>`;
+    })();
     const renderSection = (section, isOpen = false) => `
     <details class="settings-section" data-section="settings-${(0, htmlHelpers_1.esc)(section.id)}"${isOpen ? ' open' : ''}>
       <summary class="settings-section-toggle">
@@ -1135,7 +1159,7 @@ function buildSettingsSection(state) {
       </div>
     </details>
   ` : '';
-    return coreHtml + '\n' + advancedHtml;
+    return executionProfileHtml + coreHtml + '\n' + advancedHtml;
 }
 function formatUtc(value) {
     if (!value) {

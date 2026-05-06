@@ -565,17 +565,18 @@ test('buildPanelDashboardHtml renders metadata-driven settings sections when set
   });
   const html = buildPanelDashboardHtml(defaultState({ settingsSurface }), 'n12');
 
-  assert.ok(html.includes('Operator Mode'));
-  assert.ok(html.includes('Provider'));
-  assert.ok(html.includes('Memory'));
-  assert.ok(html.includes('Planning'));
-  assert.ok(html.includes('Azure Foundry'));
+  assert.ok(html.includes('Provider Setup'));
+  assert.ok(html.includes('Model &amp; Reasoning'));
+  assert.ok(html.includes('Prompt &amp; Memory'));
+  assert.ok(html.includes('Planning &amp; Gates'));
+  assert.ok(!html.includes('Azure Foundry'));
   assert.ok(!html.includes('data-setting="operatorMode"'));
   assert.ok(html.includes('data-setting="planningPass.enabled"'));
-  assert.ok(html.includes('data-setting="azureFoundry.endpointUrl"'));
-  assert.ok(html.includes('https://foundry.example'));
   assert.ok(html.includes('Default: false'));
   assert.ok(html.includes('settings-badge'));
+  assert.ok(html.includes('Active Execution Profile'));
+  assert.ok(html.includes('Provider: copilot'));
+  assert.ok(html.includes('Reasoning: medium'));
   assert.ok(html.includes('ralphCodex.testCurrentProviderConnection'));
   assert.ok(html.includes('Test GitHub Copilot Connection'));
 });
@@ -763,6 +764,24 @@ test('provider section includes set/clear secret CTAs', () => {
   assert.ok(html.includes('ralphCodex.clearProviderSecret'), 'clear secret CTA');
   assert.ok(html.includes('Set Secret'), 'set secret label');
   assert.ok(html.includes('Clear Secret'), 'clear secret label');
+});
+
+test('settings surface applies provider-conditional sections', () => {
+  const byokSettings = buildSettingsSurfaceSnapshot({
+    ...DEFAULT_CONFIG,
+    cliProvider: 'copilot-byok'
+  });
+  const byokHtml = buildPanelDashboardHtml(defaultState({ settingsSurface: byokSettings }), 'provider-conditional-byok');
+  assert.ok(byokHtml.includes('Copilot BYOK'));
+  assert.ok(!byokHtml.includes('Azure Foundry'));
+
+  const azureSettings = buildSettingsSurfaceSnapshot({
+    ...DEFAULT_CONFIG,
+    cliProvider: 'azure-foundry'
+  });
+  const azureHtml = buildPanelDashboardHtml(defaultState({ settingsSurface: azureSettings }), 'provider-conditional-azure');
+  assert.ok(azureHtml.includes('Azure Foundry'));
+  assert.ok(!azureHtml.includes('Copilot BYOK'));
 });
 
 test('azure-foundry provider with missing endpoint renders inline validation', () => {

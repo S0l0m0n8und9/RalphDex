@@ -14,7 +14,7 @@ test('getSettingsSurfaceMetadata exposes the planned settings-panel sections wit
 
   assert.deepEqual(
     Array.from(sectionIds),
-    ['operator-mode', 'provider', 'memory', 'planning', 'copilot-foundry', 'azure-foundry']
+    ['provider', 'model-reasoning', 'loop-dynamics', 'planning', 'validation-scm', 'memory', 'operator-mode', 'advanced', 'copilot-foundry', 'azure-foundry']
   );
 
   assert.equal(metadata.entries.some((entry) => entry.key === 'operatorMode'), false);
@@ -63,7 +63,7 @@ test('buildSettingsSurfaceSnapshot projects config values into grouped sections 
     }
   );
 
-  assert.equal(snapshot.sections.length, 6);
+  assert.equal(snapshot.sections.length, 10);
   const copilotSection = snapshot.sections.find((section) => section.id === 'copilot-foundry');
   assert.ok(copilotSection, 'copilot section should exist');
   assert.equal(
@@ -91,16 +91,16 @@ test('buildSettingsSurfaceSnapshot projects config values into grouped sections 
 test('collectNewSettingsNotice reports only unseen settings and returns the first deep-link target', () => {
   const metadata = getSettingsSurfaceMetadata();
 
-  const previousState = buildSettingsDiscoveryState([
-    'autonomyMode',
-    'agentCount',
-    'preferredHandoffMode'
-  ]);
+  const seenKeys = ['autonomyMode', 'agentCount', 'preferredHandoffMode'];
+  const previousState = buildSettingsDiscoveryState(seenKeys);
   const result = collectNewSettingsNotice(metadata, previousState);
+  const expectedNewKeys = metadata.entries
+    .map((entry) => entry.key)
+    .filter((key) => !new Set(seenKeys).has(key));
 
   assert.ok(result, 'new settings should be reported when seen keys are incomplete');
-  assert.deepEqual(result?.newSettingKeys, metadata.entries.slice(3).map((entry) => entry.key));
-  assert.equal(result?.focusSettingKey, metadata.entries[3]?.key);
+  assert.deepEqual(result?.newSettingKeys, expectedNewKeys);
+  assert.equal(result?.focusSettingKey, expectedNewKeys[0]);
   assert.match(result?.message ?? '', /^Ralphdex: \d+ new settings available$/);
 });
 

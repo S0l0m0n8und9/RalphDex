@@ -1059,7 +1059,7 @@ function getCurrentCliProvider(settingsSurface: NonNullable<RalphDashboardState[
     .flatMap((section) => section.entries)
     .find((entry) => entry.key === 'cliProvider');
   const providerValue = providerEntry?.value;
-  return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
+  return providerValue === 'claude' || providerValue === 'copilot' || providerValue === 'copilot-byok' || providerValue === 'copilot-foundry' || providerValue === 'azure-foundry' || providerValue === 'gemini'
       ? providerValue
       : 'codex';
 }
@@ -1100,12 +1100,36 @@ function buildSettingsSection(state: RalphDashboardState): string {
   const azureAuthMode = String(getValue('azureFoundry.auth.mode') ?? '');
   const azureEndpoint = String(getValue('azureFoundry.endpointUrl') ?? '');
   const isAzureProvider = currentProvider === 'azure-foundry';
+  const isCopilotByokProvider = currentProvider === 'copilot-byok' || currentProvider === 'copilot-foundry';
   const azureEndpointMissing = isAzureProvider && azureEndpoint.trim() === '';
   const azureSecretKeyMissing = isAzureProvider && azureAuthMode === 'vscode-secret' && String(getValue('azureFoundry.auth.secretStorageKey') ?? '').trim() === '';
   const azureEnvKeyMissing = isAzureProvider && azureAuthMode === 'env-api-key' && String(getValue('azureFoundry.auth.apiKeyEnvVar') ?? '').trim() === '';
+  const visibleSections = settingsSurface.sections.filter((s) => {
+    if (s.id === 'copilot-foundry') {
+      return isCopilotByokProvider;
+    }
+    if (s.id === 'azure-foundry') {
+      return isAzureProvider;
+    }
+    return true;
+  });
+  const coreSections = visibleSections.filter((s) => s.id !== 'advanced');
+  const advancedSections = visibleSections.filter((s) => s.id === 'advanced');
 
-  const coreSections = settingsSurface.sections.filter(s => s.id === 'operator-mode' || s.id === 'provider');
-  const advancedSections = settingsSurface.sections.filter(s => s.id !== 'operator-mode' && s.id !== 'provider');
+  const executionProfileHtml = (() => {
+    const provider = String(getValue('cliProvider') ?? 'codex');
+    const model = String(getValue('model') ?? '');
+    const reasoningEffort = String(getValue('reasoningEffort') ?? '');
+    const tieringEnabled = Boolean(getValue('modelTiering.enabled'));
+    const tieringLabel = tieringEnabled
+      ? `${String(getValue('modelTiering.simple.model') ?? '')} / ${String(getValue('modelTiering.medium.model') ?? '')} / ${String(getValue('modelTiering.complex.model') ?? '')}`
+      : 'disabled';
+    return `<div class="settings-section-desc" style="margin-bottom:8px;">
+      <strong>Active Execution Profile</strong><br>
+      Provider: ${esc(provider)} · Model: ${esc(model || 'unset')} · Reasoning: ${esc(reasoningEffort || 'unset')}<br>
+      Tiering: ${esc(tieringLabel)}
+    </div>`;
+  })();
 
   const renderSection = (section: typeof settingsSurface.sections[number], isOpen = false) => `
     <details class="settings-section" data-section="settings-${esc(section.id)}"${isOpen ? ' open' : ''}>
@@ -1179,7 +1203,7 @@ function buildSettingsSection(state: RalphDashboardState): string {
     </details>
   ` : '';
 
-  return coreHtml + '\n' + advancedHtml;
+  return executionProfileHtml + coreHtml + '\n' + advancedHtml;
 }
 
 function formatUtc(value: string | null): string {
