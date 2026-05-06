@@ -92,7 +92,7 @@ test('activate shows a one-time new-settings notification and opens the dashboar
   assert.ok(showDashboardCall, 'expected activation notification action to open the dashboard');
   assert.deepEqual(showDashboardCall?.args[0], {
     activeTab: 'settings',
-    focusSettingKey: 'agentCount'
+    focusSettingKey: 'cliProvider'
   });
 
   harness.reset();
