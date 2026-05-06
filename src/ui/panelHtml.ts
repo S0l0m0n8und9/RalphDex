@@ -1406,7 +1406,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
     if (entries.length === 0) {
       return `<div class="dashboard-summary-card">
         <div class="card-title">Recovery Queue</div>
-      <div class="empty" style="font-style:normal;">No tasks are parked in dead-letter.</div>
+      <div class="empty" style="font-style:normal;">No tasks are parked in the Recovery Queue.</div>
       <div class="inline-actions" style="justify-content:center;">
         <button class="btn" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
       </div>
@@ -1416,7 +1416,7 @@ function buildAgentGridSection(state: RalphDashboardState): string {
     return `<div class="dashboard-summary-card">
       <div class="card-title">Recovery Queue</div>
       <details data-section="dead-letter-diagnostics">
-        <summary>Dead-letter diagnostics</summary>
+        <summary>Recovery diagnostics</summary>
       </details>
       <div class="dead-letter-list">
         ${entries.map((entry) => {
@@ -1424,7 +1424,7 @@ const latestCategory = entry.diagnosticHistory[entry.diagnosticHistory.length - 
           return `<div class="dead-letter-item">
             <div><strong>${esc(entry.taskId)}</strong> · ${esc(entry.taskTitle)}</div>
           <div class="dead-letter-meta">
-            <div><strong>Dead-lettered</strong> ${formatUtc(entry.deadLetteredAt)}</div>
+            <div><strong>Queued for recovery</strong> ${formatUtc(entry.deadLetteredAt)}</div>
             <div><strong>Attempts</strong> ${entry.recoveryAttemptCount} · <strong>Last category</strong> ${esc(latestCategory)}</div>
           </div>
         </div>`;
@@ -1451,7 +1451,7 @@ function buildDeadLetterRecoveryCard(state: RalphDashboardState): string {
           <div><strong>${esc(entry.taskId)}</strong> · ${esc(entry.taskTitle)}</div>
           <div class="dead-letter-meta">
             <div><strong>Attempts</strong> ${entry.recoveryAttemptCount} · <strong>Last category</strong> ${esc(latestCategory)}</div>
-            <div><strong>Dead-lettered</strong> ${formatUtc(entry.deadLetteredAt)}</div>
+            <div><strong>Queued for recovery</strong> ${formatUtc(entry.deadLetteredAt)}</div>
           </div>
         </div>`;
       }).join('\n')}
@@ -1506,7 +1506,7 @@ function buildQuickActionsSection(state: RalphDashboardState): string {
   return `<div class="dashboard-summary-card">
     <div class="card-title">Quick Actions</div>
     <div class="btn-grid">
-      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
+      <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Provenance</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Prompt Evidence</span><span class="btn-spinner"></span></button>
       <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Transcript</span><span class="btn-spinner"></span></button>
@@ -1567,7 +1567,7 @@ function buildTaskSeedingResult(state: RalphDashboardState): string {
 function buildTaskSeedingCard(state: RalphDashboardState): string {
   return `<div class="card seed-card">
     <div class="card-title">Seed Tasks From Epic</div>
-    <div class="card-subtitle">Enter a high-level feature request and append generated backlog tasks through the shared seeding pipeline.</div>
+    <div class="card-subtitle">Enter a high-level feature request and append generated backlog tasks through the shared seeding flow.</div>
     <textarea data-seed-request="panel" placeholder="Describe the epic, goal, and constraints...">${esc(state.taskSeeding.requestText)}</textarea>
     <div class="seed-card-actions">
       <button class="btn" data-seed-submit="panel"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
@@ -1703,7 +1703,7 @@ function buildHeroCard(state: RalphDashboardState): string {
       : readinessMode === 'preflightBlocked'
         ? `<button class="btn primary" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>`
         : `<button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
-           <button class="btn" data-command="ralphCodex.runPipeline"${loopDisabled}><span class="btn-label">Run Pipeline</span><span class="btn-spinner"></span></button>
+           <button class="btn" data-command="ralphCodex.runPipeline"${loopDisabled}><span class="btn-label">Run Full Workflow</span><span class="btn-spinner"></span></button>
            <button class="btn" data-command="ralphCodex.runRalphIteration"${loopDisabled}><span class="btn-label">Run Iteration</span><span class="btn-spinner"></span></button>`;
 
   return `<section class="hero-card">
@@ -1729,7 +1729,7 @@ function buildHeroCard(state: RalphDashboardState): string {
     <div class="hero-health-grid">
       ${buildHeroHealthCell('Progress', counts ? `${doneCount}/${totalCount}` : 'No tasks', counts ? `${progressPercent}% done` : 'No task data', progressPercent, 'var(--ok)')}
       ${buildHeroHealthCell('Iteration', iterationValue, `cap ${state.iterationCap}`, iterationPercent, 'var(--accent)')}
-      ${buildHeroHealthCell('Attention', `${attentionCount}`, `${blockedCount} blocked · ${deadLetterCount} dead-letter`)}
+      ${buildHeroHealthCell('Attention', `${attentionCount}`, `${blockedCount} blocked · ${deadLetterCount} in Recovery Queue`)}
       ${buildHeroHealthCell('Cost', formatCostLabel(snapshot?.cost.executionCostUsd ?? null), `diag ${formatCostLabel(snapshot?.cost.diagnosticCostUsd ?? null)}`)}
     </div>
   </section>`;
@@ -1760,7 +1760,7 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
         <button class="btn rail-command" data-command="ralphCodex.generatePrompt"><span class="btn-label">Prepare IDE Prompt</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showRalphStatus"><span class="btn-label">Show Status</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.showTasks"><span class="btn-label">Open Tasks</span><span class="btn-spinner"></span></button>
-        <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run</span><span class="btn-spinner"></span></button>
+        <button class="btn rail-command" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
         <button class="btn rail-command" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>
       </div>
     </div>
@@ -1991,7 +1991,7 @@ function buildSettingsTab(state: RalphDashboardState): string {
     <div class="card">
       <div class="card-title">Artifacts & Admin</div>
       <div class="btn-grid">
-        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Pipeline Run</span><span class="btn-spinner"></span></button>
+        <button class="btn" data-command="ralphCodex.openLatestPipelineRun"><span class="btn-label">Latest Run Report</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestProvenanceBundle"><span class="btn-label">Latest Provenance</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestPromptEvidence"><span class="btn-label">Latest Prompt Evidence</span><span class="btn-spinner"></span></button>
         <button class="btn" data-command="ralphCodex.openLatestCliTranscript"><span class="btn-label">Latest Transcript</span><span class="btn-spinner"></span></button>

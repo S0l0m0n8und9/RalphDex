@@ -291,7 +291,7 @@ test('buildPanelDashboardHtml renders empty dashboard summary sections when no d
   assert.ok(html.includes('No focused diagnosis is available for the selected task.'));
   assert.ok(html.includes('No failure-analysis artifact for the selected task.'));
   assert.ok(html.includes('No durable agent identity records found yet.'));
-  assert.ok(html.includes('No tasks are parked in dead-letter.'));
+  assert.ok(html.includes('No tasks are parked in the Recovery Queue.'));
   assert.ok(!html.includes('Common Actions'));
   assert.ok(html.includes('Prepare &amp; Inspect'));
 });
@@ -449,12 +449,13 @@ test('buildPanelDashboardHtml prefers durable snapshot sections over empty-state
   assert.ok(!html.includes('Task board unavailable until Ralph status is loaded.'));
   assert.ok(!html.includes('No focused diagnosis is available for the selected task.'));
   assert.ok(!html.includes('No durable agent identity records found yet.'));
-  assert.ok(!html.includes('No tasks are parked in dead-letter.'));
+  assert.ok(!html.includes('No tasks are parked in the Recovery Queue.'));
 });
 
 test('buildPanelDashboardHtml quick actions expose latest artifact and settings commands', () => {
   const html = buildPanelDashboardHtml(defaultState({ dashboardSnapshot: populatedDashboardSnapshot() }), 'dash-actions');
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
+  assert.ok(html.includes('Latest Run Report'));
   assert.ok(html.includes('ralphCodex.openLatestProvenanceBundle'));
   assert.ok(html.includes('ralphCodex.openLatestPromptEvidence'));
   assert.ok(html.includes('ralphCodex.openLatestCliTranscript'));
@@ -469,6 +470,7 @@ test('buildPanelDashboardHtml rail preserves live operator shortcuts', () => {
   assert.ok(!html.includes('ralphCodex.showMultiAgentStatus'));
   assert.ok(html.includes('ralphCodex.showTasks'));
   assert.ok(html.includes('ralphCodex.openLatestPipelineRun'));
+  assert.ok(html.includes('Latest Run Report'));
 });
 
 test('buildPanelDashboardHtml renders a live hero summary from durable state', () => {
@@ -769,7 +771,7 @@ test('empty agent grid shows actionable CTAs', () => {
 test('empty dead-letter shows actionable CTA', () => {
   const html = buildPanelDashboardHtml(defaultState(), 'empty-dl');
 
-  assert.ok(html.includes('No tasks are parked in dead-letter'), 'dead-letter empty text');
+  assert.ok(html.includes('No tasks are parked in the Recovery Queue'), 'recovery queue empty text');
   assert.ok(html.includes('Show Status'), 'show status CTA in dead-letter empty state');
 });
 

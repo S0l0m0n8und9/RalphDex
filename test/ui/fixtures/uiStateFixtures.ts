@@ -107,6 +107,11 @@ export const UI_STATE_FIXTURES: UiStateFixture[] = [
     description: 'Preflight blocked with actionable diagnostics.',
     state: {
       ...baseState(),
+      prdExists: true,
+      taskCounts: { todo: 1, in_progress: 0, blocked: 0, done: 0 },
+      tasks: [
+        { id: 'T1', title: 'Fix provider readiness', status: 'todo', isCurrent: true, priority: 'normal', childIds: [], dependsOn: [] }
+      ],
       preflightReady: false,
       preflightSummary: 'Blocked preflight.',
       diagnostics: [{ severity: 'warning', message: 'Provider command path missing.' }]
