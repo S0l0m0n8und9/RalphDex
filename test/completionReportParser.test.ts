@@ -113,6 +113,24 @@ test('parseCompletionReport rejects comments inside the JSON object', () => {
   assert.equal(parsed.status, 'invalid');
 });
 
+test('parseCompletionReport rejects fenced JSON with multiple report objects', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T1",',
+    '  "requestedStatus": "done"',
+    '}',
+    '{',
+    '  "selectedTaskId": "T2",',
+    '  "requestedStatus": "blocked"',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+  assert.match(parsed.parseError ?? '', /multiple JSON objects/);
+});
+
 test('parseCompletionReport accepts suggested child tasks when provided', () => {
   const parsed = parseCompletionReport([
     '```json',
