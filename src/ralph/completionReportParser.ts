@@ -251,6 +251,7 @@ function parseWatchdogActions(candidate: unknown): RalphWatchdogAction[] | undef
 interface ExtractedJsonObject {
   objectText: string;
   ignoredTrailingContent: boolean;
+  ambiguousTrailingJsonObject: boolean;
 }
 
 function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject | null {
@@ -293,9 +294,11 @@ function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject 
       if (depth === 0) {
         const objectText = block.slice(start, i + 1).trim();
         const trailing = block.slice(i + 1);
+        const trimmedTrailing = trailing.trimStart();
         return {
           objectText,
-          ignoredTrailingContent: trailing.trim().length > 0
+          ignoredTrailingContent: trailing.trim().length > 0,
+          ambiguousTrailingJsonObject: trimmedTrailing.startsWith('{')
         };
       }
       if (depth < 0) {
@@ -393,10 +396,18 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
   if (fencedMatch?.[1] !== undefined) {
     // Fenced reports are the preferred contract. Deterministically accept the
     // first balanced object in the fence only when it starts the JSON block;
-    // anything after that object is ignored with a warning rather than used to
-    // guess between multiple candidate objects. JSON.parse below remains the
-    // authority for whether the extracted object is strict JSON.
+    // trailing prose is tolerated, but a second object is ambiguous and invalid.
+    // JSON.parse below remains the authority for whether the extracted object is strict JSON.
     const extracted = extractBalancedJsonObjectFromBlock(fencedMatch[1]);
+    if (extracted?.ambiguousTrailingJsonObject) {
+      return {
+        status: 'invalid',
+        report: null,
+        rawBlock: fencedMatch[1].trim(),
+        parseError: 'Completion report contains multiple JSON objects in the fenced block.',
+        warnings: []
+      };
+    }
     rawBlock = extracted?.objectText ?? fencedMatch[1].trim();
     if (extracted?.ignoredTrailingContent) {
       warnings.push('Ignored trailing content after completion report JSON object.');
