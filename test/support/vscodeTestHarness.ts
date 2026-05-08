@@ -23,6 +23,7 @@ export interface VscodeStubState {
     createListeners: unknown[];
     deleteListeners: unknown[];
   }>;
+  inputBoxCalls: unknown[];
   inputBoxValue?: string;
   messageChoice?: string;
   quickPickSelections: unknown[];

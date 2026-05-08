@@ -656,12 +656,12 @@ test('buildPanelDashboardHtml empty state shows Open PRD Wizard when prdExists i
   assert.ok(html.includes('Open PRD Wizard'), 'should show Open PRD Wizard label');
 });
 
-test('buildPanelDashboardHtml empty state shows Generate tasks when prdExists is true', () => {
+test('buildPanelDashboardHtml empty state routes PRD work through readiness when prdExists is true', () => {
   const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'n15');
 
   assert.ok(!html.includes('ralphCodex.regeneratePrd'), 'should not show old Initialize Workspace command');
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'should show openPrdWizard command');
-  assert.ok(html.includes('Generate tasks from PRD'), 'should show generate tasks label');
+  assert.ok(html.includes('Review PRD Readiness'), 'should show readiness review label');
 });
 
 // ---------------------------------------------------------------------------
@@ -711,25 +711,24 @@ test('invalid tier thresholds render inline validation', () => {
   assert.ok(html.includes('error-text'), 'error text class present');
 });
 
-test('empty task state renders actionable CTAs with addTask and seedTasks commands', () => {
+test('empty task state without PRD routes task creation through the PRD wizard', () => {
   const html = buildPanelDashboardHtml(defaultState({ prdExists: false }), 'empty-cta');
 
-  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA present');
-  assert.ok(html.includes('ralphCodex.seedTasksFromFeatureRequest'), 'seedTasksFromFeatureRequest CTA present');
+  assert.ok(!html.includes('ralphCodex.addTask'), 'addTask CTA hidden before PRD readiness');
+  assert.ok(!html.includes('ralphCodex.seedTasksFromFeatureRequest'), 'seedTasksFromFeatureRequest CTA hidden before PRD readiness');
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'openPrdWizard CTA present');
   assert.ok(html.includes('Start here — define your project scope.'), 'no-PRD empty-state copy');
-  assert.ok(html.includes('Add Task'), 'Add Task button label');
-  assert.ok(html.includes('Seed Tasks'), 'Seed Tasks button label');
+  assert.ok(html.includes('Open PRD Wizard'), 'Open PRD Wizard button label');
 });
 
-test('empty task state with prdExists=true shows Generate from PRD plus addTask', () => {
+test('empty task state with prdExists=true shows readiness review before task generation', () => {
   const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'empty-prd');
 
-  assert.ok(html.includes('PRD exists but no tasks yet.'), 'PRD-empty empty-state copy');
+  assert.ok(html.includes('Review PRD readiness before generating tasks.'), 'PRD-empty empty-state copy');
   assert.ok(!html.includes('No tasks — start by defining your project scope.'), 'legacy empty-state copy removed');
   assert.ok(html.includes('ralphCodex.openPrdWizard'), 'generate from PRD');
-  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA');
-  assert.ok(html.includes('Generate tasks from PRD'), 'PRD generate label');
+  assert.ok(!html.includes('ralphCodex.addTask'), 'addTask CTA hidden until readiness is complete');
+  assert.ok(html.includes('Review PRD Readiness'), 'PRD readiness label');
 });
 
 test('iteration rows expose clickable affordance with chevron and artifact message path', () => {
@@ -849,9 +848,11 @@ test('azure-foundry provider with missing endpoint renders inline validation', (
   assert.ok(html.includes('SecretStorage key is required when auth mode is vscode-secret'), 'secret key validation');
 });
 
-test('sidebar rail shows Add Task CTA when no current task', () => {
-  const html = buildPanelDashboardHtml(defaultState(), 'rail-empty');
+test('sidebar rail routes empty current-task state through PRD readiness', () => {
+  const html = buildPanelDashboardHtml(defaultState({ prdExists: true }), 'rail-empty');
 
   assert.ok(html.includes('No task selected'), 'no task selected message');
-  assert.ok(html.includes('ralphCodex.addTask'), 'addTask CTA in rail');
+  assert.ok(!html.includes('ralphCodex.addTask'), 'addTask CTA hidden in rail');
+  assert.ok(html.includes('ralphCodex.openPrdWizard'), 'openPrdWizard CTA in rail');
+  assert.ok(html.includes('Review PRD Readiness'), 'readiness CTA label in rail');
 });

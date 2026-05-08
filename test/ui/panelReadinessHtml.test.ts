@@ -62,7 +62,7 @@ test('panel dashboard renders no-PRD readiness state instead of run controls', (
   assert.ok(!html.includes('data-command="ralphCodex.runPipeline"'));
 });
 
-test('panel dashboard renders PRD-ready but empty-backlog state with task seeding guidance', () => {
+test('panel dashboard renders PRD-present but empty-backlog state with readiness guidance', () => {
   const html = buildPanelDashboardHtml(defaultState({
     prdExists: true,
     taskCounts: { todo: 0, in_progress: 0, blocked: 0, done: 0 },
@@ -72,8 +72,9 @@ test('panel dashboard renders PRD-ready but empty-backlog state with task seedin
   }), 'panel-empty-backlog');
 
   assert.ok(html.includes('Backlog Required'));
-  assert.ok(html.includes('PRD found, but no actionable tasks are available.'));
-  assert.ok(html.includes('Seed Backlog from Feature') || html.includes('Generate tasks from PRD'));
+  assert.ok(html.includes('Open the PRD wizard to complete readiness and generate tasks.'));
+  assert.ok(html.includes('Review PRD Readiness'));
+  assert.ok(!html.includes('Seed Backlog from Feature'));
   assert.ok(!html.includes('data-command="ralphCodex.runRalphLoop"'));
   assert.ok(!html.includes('data-command="ralphCodex.runPipeline"'));
 });

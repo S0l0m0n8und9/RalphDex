@@ -19,6 +19,7 @@ import { WebviewPanelManager } from './webview/WebviewPanelManager';
 import { createDashboardSnapshotLoader } from './webview/dashboardDataLoader';
 import { RalphStateManager } from './ralph/stateManager';
 import { seedTasksFromFeatureRequest } from './commands/taskSeeding';
+import { evaluatePrdReadinessGate } from './commands/prdReadinessGate';
 
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new Logger(vscode.window.createOutputChannel('Ralphdex'));
@@ -41,6 +42,22 @@ export function activate(context: vscode.ExtensionContext): void {
       const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
       if (!workspaceFolder) {
         throw new Error('Open a workspace folder before seeding tasks.');
+      }
+
+      const config = readConfig(workspaceFolder);
+      const prdGate = await evaluatePrdReadinessGate({
+        workspaceFolder,
+        config,
+        stateManager: dashboardStateManager,
+        logger
+      });
+      if (prdGate.status !== 'ready') {
+        await vscode.commands.executeCommand('ralphCodex.openPrdWizard');
+        const message = prdGate.status === 'missing_or_default'
+          ? 'PRD readiness must be completed first. The PRD wizard is open; finish a real PRD before seeding tasks.'
+          : `PRD readiness must be completed first. Resolve blockers before seeding tasks. Report: ${prdGate.readinessArtifactPaths.summaryPath}.`;
+        void vscode.window.showWarningMessage(message);
+        throw new Error(message);
       }
 
       return seedTasksFromFeatureRequest(workspaceFolder, logger, {

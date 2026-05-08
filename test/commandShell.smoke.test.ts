@@ -137,6 +137,19 @@ async function seedDefaultPrdWorkspace(rootPath: string): Promise<void> {
   ].join('\n'), 'utf8');
 }
 
+async function seedReadinessBlockedPrdWorkspace(rootPath: string): Promise<void> {
+  await seedWorkspace(rootPath);
+  await fs.writeFile(path.join(rootPath, '.ralph', 'prd.md'), [
+    '# Real but incomplete PRD',
+    '',
+    '## Overview',
+    'This PRD describes real work, but it is intentionally incomplete for readiness gating.',
+    '',
+    '## Goals',
+    'Keep command paths from proceeding before acceptance-ready product detail exists.'
+  ].join('\n'), 'utf8');
+}
+
 async function writeFailureDiagnosisArtifacts(
   rootPath: string,
   taskId: string,
@@ -1877,8 +1890,54 @@ test('Prompt-start commands open the PRD wizard and skip prompt preparation when
     assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
     assert.match(
       harness.state.warningMessages.at(-1)?.message ?? '',
-      /RalphDex needs a real PRD before running/i
+      /PRD readiness must be completed first/i
     );
+  }
+});
+
+test('Prompt and run commands persist readiness artifacts and skip provider work when PRD has blockers', async () => {
+  const commands = [
+    'ralphCodex.generatePrompt',
+    'ralphCodex.runRalphIteration'
+  ];
+
+  for (const command of commands) {
+    const rootPath = await makeTempRoot();
+    await seedReadinessBlockedPrdWorkspace(rootPath);
+
+    const harness = vscodeTestHarness();
+    harness.reset();
+    harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+
+    let prepareCalls = 0;
+    let runCalls = 0;
+    await withMockedPreparePrompt(
+      async () => {
+        prepareCalls += 1;
+        throw new Error('preparePrompt should not run while PRD readiness has blockers');
+      },
+      async () => {
+        await withMockedRunCliIteration(
+          async (workspaceFolderArg, mode) => {
+            runCalls += 1;
+            return createMockRun(workspaceFolderArg.uri.fsPath, mode, null);
+          },
+          async () => {
+            activate(createExtensionContext());
+            await vscode.commands.executeCommand(command);
+          }
+        );
+      }
+    );
+
+    assert.equal(prepareCalls, 0, `${command} should not prepare a provider-facing prompt`);
+    assert.equal(runCalls, 0, `${command} should not execute provider work`);
+    assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
+    assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /PRD readiness.*complete/i);
+
+    const readinessSummaryPath = path.join(rootPath, '.ralph', 'artifacts', 'latest-prd-readiness-summary.md');
+    const readinessSummary = await fs.readFile(readinessSummaryPath, 'utf8');
+    assert.match(readinessSummary, /Blockers/i);
   }
 });
 
@@ -1913,7 +1972,7 @@ test('Iteration, loop, multi-agent, and pipeline commands open the PRD wizard an
     assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
     assert.match(
       harness.state.warningMessages.at(-1)?.message ?? '',
-      /RalphDex needs a real PRD before running/i
+      /PRD readiness must be completed first/i
     );
     await fs.access(path.join(rootPath, '.ralph', 'prd.md'));
   }
@@ -2678,6 +2737,33 @@ test('Run Pipeline blocks on weak PRD readiness before scaffold or execution', a
   const readinessSummary = await fs.readFile(readinessSummaryPath, 'utf8');
   assert.match(readinessSummary, /Blockers/i);
   assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /readiness blockers/i);
+});
+
+test('Task seeding commands open the PRD wizard and skip provider task generation when PRD is default', async () => {
+  const commands = [
+    'ralphCodex.addTask',
+    'ralphCodex.seedTasksFromFeatureRequest'
+  ];
+
+  for (const command of commands) {
+    const rootPath = await makeTempRoot();
+    await seedDefaultPrdWorkspace(rootPath);
+    const tasksPath = path.join(rootPath, '.ralph', 'tasks.json');
+    const initialTasksText = await fs.readFile(tasksPath, 'utf8');
+
+    const harness = vscodeTestHarness();
+    harness.reset();
+    harness.setWorkspaceFolders([workspaceFolder(rootPath)]);
+    harness.setInputBoxValue('Seed tasks that must be blocked by PRD readiness.');
+
+    activate(createExtensionContext());
+    await vscode.commands.executeCommand(command);
+
+    assert.equal(harness.state.inputBoxCalls.length, 0, `${command} should not prompt for task input before PRD readiness`);
+    assert.equal(await fs.readFile(tasksPath, 'utf8'), initialTasksText);
+    assert.equal(harness.state.createdWebviewPanels.at(-1)?.viewType, 'ralphCodex.prdCreationWizard');
+    assert.match(harness.state.warningMessages.at(-1)?.message ?? '', /PRD readiness.*complete/i);
+  }
 });
 
 test('Add Task seeds provider-generated backlog tasks and persists a seeding artifact without stripping existing rich task structure', async () => {

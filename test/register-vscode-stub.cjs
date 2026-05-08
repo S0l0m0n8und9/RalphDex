@@ -25,6 +25,7 @@ const state = {
   createdWebviewPanels: [],
   registeredTreeDataProviders: [],
   createdFileSystemWatchers: [],
+  inputBoxCalls: [],
   inputBoxValue: undefined,
   messageChoice: undefined,
   quickPickSelections: []
@@ -44,6 +45,7 @@ function reset() {
   state.createdWebviewPanels = [];
   state.registeredTreeDataProviders = [];
   state.createdFileSystemWatchers = [];
+  state.inputBoxCalls = [];
   state.inputBoxValue = undefined;
   state.messageChoice = undefined;
   state.updatedSettings = {};
@@ -254,7 +256,8 @@ const vscodeStub = {
     async withProgress(_options, task) {
       return task({ report() {} }, { isCancellationRequested: false, onCancellationRequested() { return { dispose() {} }; } });
     },
-    async showInputBox() {
+    async showInputBox(options) {
+      state.inputBoxCalls.push(options ?? null);
       return state.inputBoxValue;
     },
     async showInformationMessage(message, ...items) {

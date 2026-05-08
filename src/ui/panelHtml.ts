@@ -31,7 +31,7 @@ const DASHBOARD_COPY = {
   noRecoveryQueue: 'No tasks are parked in the Recovery Queue.',
   recoveryQueueAttention: 'Recovery Queue contains parked work that may need requeue.',
   noIterations: 'No iterations recorded yet.',
-  noTasksWithPrd: 'PRD exists but no tasks yet.',
+  noTasksWithPrd: 'Review PRD readiness before generating tasks.',
   noTasksWithoutPrd: 'Start here — define your project scope.',
   requeueRecoveryTask: 'Requeue Recovery Task',
 } as const;
@@ -1714,15 +1714,14 @@ function buildHeroCard(state: RalphDashboardState): string {
   const heroSummary = readinessMode === 'noPrd'
     ? 'Create a PRD before running RalphDex.'
     : readinessMode === 'emptyBacklog'
-      ? 'PRD found, but no actionable tasks are available.'
+      ? 'Open the PRD wizard to complete readiness and generate tasks.'
       : readinessMode === 'preflightBlocked'
         ? state.preflightSummary
         : summary;
   const heroActions = readinessMode === 'noPrd'
     ? `<button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>`
     : readinessMode === 'emptyBacklog'
-      ? `<button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
-         <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Backlog from Feature</span><span class="btn-spinner"></span></button>`
+      ? `<button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Review PRD Readiness</span><span class="btn-spinner"></span></button>`
       : readinessMode === 'preflightBlocked'
         ? `<button class="btn primary" data-command="ralphCodex.openSettings"><span class="btn-label">Open Settings</span><span class="btn-spinner"></span></button>`
         : `<button class="btn" data-command="ralphCodex.runRalphLoop"${loopDisabled}><span class="btn-label">Run Loop</span><span class="btn-spinner"></span></button>
@@ -1796,7 +1795,7 @@ function buildDashboardSidebar(state: RalphDashboardState): string {
              <div class="dashboard-brand-meta">${esc(currentTask.status.replace(/_/g, ' '))}${currentTask.validation ? ` · ${esc(currentTask.validation)}` : ''}</div>`
           : `<div class="dashboard-brand-meta">No task selected.</div>
              <div class="inline-actions" style="margin-top:6px;">
-               <button class="btn rail-command" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+               <button class="btn rail-command" data-command="ralphCodex.openPrdWizard"><span class="btn-label">${state.prdExists ? 'Review PRD Readiness' : 'Open PRD Wizard'}</span><span class="btn-spinner"></span></button>
              </div>`}
       </div>
     </div>
@@ -1874,13 +1873,11 @@ function buildOverviewTab(state: RalphDashboardState): string {
                 : state.prdExists
                   ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
-                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Review PRD Readiness</span><span class="btn-spinner"></span></button>
                      </div>`
                   : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithoutPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
                      </div>`)}
         </div>
 
@@ -1937,15 +1934,11 @@ function buildWorkTab(state: RalphDashboardState): string {
                 : state.prdExists
                   ? `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
-                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Generate tasks from PRD</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
+                       <button class="btn" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Review PRD Readiness</span><span class="btn-spinner"></span></button>
                      </div>`
                   : `<div class="empty" style="font-style:normal; margin-bottom: 6px;">${DASHBOARD_COPY.noTasksWithoutPrd}</div>
                      <div class="inline-actions" style="justify-content:center;">
                        <button class="btn primary" data-command="ralphCodex.openPrdWizard"><span class="btn-label">Open PRD Wizard</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.addTask"><span class="btn-label">Add Task</span><span class="btn-spinner"></span></button>
-                       <button class="btn" data-command="ralphCodex.seedTasksFromFeatureRequest"><span class="btn-label">Seed Tasks</span><span class="btn-spinner"></span></button>
                      </div>`)}
         ${!allDone && doneTasks.length > 0
           ? `<details data-section="completed-tasks">
