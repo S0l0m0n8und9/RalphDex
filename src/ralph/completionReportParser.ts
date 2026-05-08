@@ -248,6 +248,65 @@ function parseWatchdogActions(candidate: unknown): RalphWatchdogAction[] | undef
     .filter((action): action is RalphWatchdogAction => action !== null);
 }
 
+interface ExtractedJsonObject {
+  objectText: string;
+  ignoredTrailingContent: boolean;
+}
+
+function extractBalancedJsonObjectFromBlock(block: string): ExtractedJsonObject | null {
+  const leadingWhitespaceLength = block.length - block.trimStart().length;
+  const start = leadingWhitespaceLength;
+  if (block[start] !== '{') {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < block.length; i += 1) {
+    const char = block[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        const objectText = block.slice(start, i + 1).trim();
+        const trailing = block.slice(i + 1);
+        return {
+          objectText,
+          ignoredTrailingContent: trailing.trim().length > 0
+        };
+      }
+      if (depth < 0) {
+        return null;
+      }
+    }
+  }
+
+  return null;
+}
+
 export function extractTrailingJsonObject(text: string): string | null {
   const trimmed = text.trimEnd();
   if (!trimmed.endsWith('}')) {
@@ -328,7 +387,24 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
   }
 
   const fencedMatch = /```json\s*([\s\S]*?)\s*```\s*$/i.exec(trimmed);
-  const rawBlock = fencedMatch?.[1]?.trim() ?? extractTrailingJsonObject(trimmed);
+  const warnings: string[] = [];
+  let rawBlock: string | null = null;
+
+  if (fencedMatch?.[1] !== undefined) {
+    // Fenced reports are the preferred contract. Deterministically accept the
+    // first balanced object in the fence only when it starts the JSON block;
+    // anything after that object is ignored with a warning rather than used to
+    // guess between multiple candidate objects. JSON.parse below remains the
+    // authority for whether the extracted object is strict JSON.
+    const extracted = extractBalancedJsonObjectFromBlock(fencedMatch[1]);
+    rawBlock = extracted?.objectText ?? fencedMatch[1].trim();
+    if (extracted?.ignoredTrailingContent) {
+      warnings.push('Ignored trailing content after completion report JSON object.');
+    }
+  } else {
+    rawBlock = extractTrailingJsonObject(trimmed);
+  }
+
   if (!rawBlock) {
     return {
       status: 'missing',
@@ -352,7 +428,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       report: null,
       rawBlock,
       parseError: error instanceof Error ? error.message : String(error),
-      warnings: []
+      warnings
     };
   }
 
@@ -362,7 +438,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       report: null,
       rawBlock,
       parseError: 'Completion report requires a non-empty selectedTaskId string.',
-      warnings: []
+      warnings
     };
   }
   if (typeof candidate.requestedStatus !== 'string' || !isAllowedCompletionStatus(candidate.requestedStatus)) {
@@ -371,7 +447,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       report: null,
       rawBlock,
       parseError: 'Completion report requestedStatus must be one of done, blocked, or in_progress.',
-      warnings: []
+      warnings
     };
   }
   if (candidate.needsHumanReview !== undefined && typeof candidate.needsHumanReview !== 'boolean') {
@@ -380,7 +456,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       report: null,
       rawBlock,
       parseError: 'Completion report needsHumanReview must be a boolean when provided.',
-      warnings: []
+      warnings
     };
   }
   const suggestedChildTasks = parseSuggestedChildTasks(candidate.suggestedChildTasks);
@@ -390,7 +466,7 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
       report: null,
       rawBlock,
       parseError: 'Completion report suggestedChildTasks must be an array of valid suggested child tasks when provided.',
-      warnings: []
+      warnings
     };
   }
   const doctrineUpdates = parseDoctrineUpdatesFromCompletionReport(candidate.doctrineUpdates);
@@ -416,6 +492,6 @@ export function parseCompletionReport(lastMessage: string): ParsedCompletionRepo
     report,
     rawBlock,
     parseError: null,
-    warnings: doctrineUpdates.warnings
+    warnings: [...warnings, ...doctrineUpdates.warnings]
   };
 }

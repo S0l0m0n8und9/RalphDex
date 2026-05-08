@@ -208,6 +208,8 @@ The CLI provenance chain proves prompt integrity up to the `codex exec` boundary
 
 The completion report is a model's self-report. It is labelled as unverified in the run bundle. The field name `completionReportStatus` and the bundle's explicit `epistemicGap.modelClaims*` fields make that epistemic status machine-readable so downstream tooling can distinguish verified evidence from model assertion.
 
+Completion report extraction remains strict JSON, not JSONC: fenced `json` reports are preferred, `JSON.parse` is the authority for the extracted object, and comments or prose inside the object are invalid. If a fenced report contains one balanced JSON object followed by extra prose after the closing brace, Ralph ignores only that trailing text and records a parser warning.
+
 `reconciliationWarnings` records cases where the model's claimed status diverged from what preflight and verifier evidence found. A warning entry means an inconsistency was detected and surfaced; the absence of warnings means the model's claimed status was consistent with the observable verifier signals. Absence of reconciliation warnings does not prove the model's reasoning was correct — it proves only that the model's claimed status was consistent with those observable signals.
 
 Operators requiring stronger guarantees should treat the verifier artifacts — `validationCommand`, `gitDiff`, and `taskState`, surfaced through `execution-summary.json`, `verifier-summary.json`, and `iteration-result.json` — as the authoritative evidence and treat the completion report as supplementary context. Those artifacts are produced from observable outcomes, not from the model's self-description.
