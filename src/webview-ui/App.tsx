@@ -4,6 +4,7 @@ import { DashboardShell } from './components/DashboardShell';
 import { SidebarShell } from './components/SidebarShell';
 import { vscodeApi } from './bridge/vscode';
 import { getWebviewUiModel } from './viewModel';
+import type { DashboardMode } from './viewModel';
 
 export type WebviewUiMode = 'dashboard' | 'sidebar';
 
@@ -15,6 +16,17 @@ interface AppProps {
 export function App({ mode, initialState }: AppProps) {
   const [state, setState] = useState(initialState);
   const model = useMemo(() => getWebviewUiModel(state), [state]);
+
+  const [dashboardMode, setDashboardMode] = useState<DashboardMode>(() => {
+    const saved = vscodeApi().getState() as { dashboardMode?: DashboardMode } | undefined;
+    return saved?.dashboardMode ?? 'standard';
+  });
+
+  const handleModeChange = (m: DashboardMode) => {
+    setDashboardMode(m);
+    const existing = vscodeApi().getState() as Record<string, unknown> | undefined ?? {};
+    vscodeApi().setState({ ...existing, dashboardMode: m });
+  };
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<RalphWebviewMessage>) => {
@@ -33,10 +45,27 @@ export function App({ mode, initialState }: AppProps) {
   const sendSettingUpdate = (key: string, value: unknown) => {
     vscodeApi().postMessage({ type: 'update-setting', key, value });
   };
+  const sendOpenArtifact = (artifactDir: string) => {
+    vscodeApi().postMessage({ type: 'open-iteration-artifact', artifactDir });
+  };
 
   if (mode === 'sidebar') {
-    return <SidebarShell state={state} model={model} onCommand={sendCommand} />;
+    return (
+      <SidebarShell
+        state={state} model={model}
+        mode={dashboardMode} onModeChange={handleModeChange}
+        onCommand={sendCommand} onSettingUpdate={sendSettingUpdate}
+        onOpenArtifact={sendOpenArtifact}
+      />
+    );
   }
 
-  return <DashboardShell state={state} model={model} onCommand={sendCommand} onSettingUpdate={sendSettingUpdate} />;
+  return (
+    <DashboardShell
+      state={state} model={model}
+      mode={dashboardMode} onModeChange={handleModeChange}
+      onCommand={sendCommand} onSettingUpdate={sendSettingUpdate}
+      onOpenArtifact={sendOpenArtifact}
+    />
+  );
 }
