@@ -9,49 +9,62 @@ interface AgentLanesProps {
 
 function roleColor(agentId: string): string {
   const id = agentId.toLowerCase();
-  if (id.includes('reviewer')) return 'var(--rdx-ok)';
-  if (id.includes('watchdog')) return 'var(--rdx-warn)';
-  if (id.includes('scm'))      return 'var(--rdx-cyan)';
-  return 'var(--rdx-accent)';
+  if (id.includes('reviewer')) return 'var(--ok)';
+  if (id.includes('watchdog')) return 'var(--warn)';
+  if (id.includes('scm'))      return 'var(--cyan)';
+  return 'var(--accent)';
+}
+
+function roleLabel(agentId: string): string {
+  const id = agentId.toLowerCase();
+  if (id.includes('reviewer')) return 'reviewer';
+  if (id.includes('watchdog')) return 'watchdog';
+  if (id.includes('scm'))      return 'scm';
+  if (id.includes('planner'))  return 'planner';
+  return 'implementer';
 }
 
 export function AgentLanes({ lanes }: AgentLanesProps) {
   if (lanes.length === 0) return null;
   return (
-    <Card title="Agent Lanes" subtitle={`${lanes.length} active agent${lanes.length === 1 ? '' : 's'}`}>
-      <div style={{ display: 'grid', gap: 7 }}>
-        {lanes.map(lane => (
-          <div key={lane.agentId} style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '9px 11px',
-            border: '1px solid var(--rdx-border)',
-            borderLeft: `3px solid ${roleColor(lane.agentId)}`,
-            borderRadius: 6,
-            background: 'var(--rdx-surface-2)',
-          }}>
-            <div style={{ minWidth: 100, flexShrink: 0 }}>
-              <div style={{ fontFamily: 'var(--rdx-mono)', fontSize: 12, fontWeight: 600, color: 'var(--rdx-fg)' }}>
-                {lane.agentId}
-              </div>
-              {lane.iteration != null && (
-                <div style={{ fontSize: 10, color: 'var(--rdx-dim)', marginTop: 1 }}>
-                  iter <span style={{ color: 'var(--rdx-fg)', fontFamily: 'var(--rdx-mono)' }}>{lane.iteration}</span>
+    <Card title="Agent Lanes" subtitle={`${lanes.length} concurrent agent${lanes.length === 1 ? '' : 's'}`}>
+      <div style={{ display: 'grid', gap: 8 }}>
+        {lanes.map(lane => {
+          const rc = roleColor(lane.agentId);
+          const rl = roleLabel(lane.agentId);
+          return (
+            <div key={lane.agentId} style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '10px 12px',
+              border: '1px solid var(--border)',
+              borderLeft: `3px solid ${rc}`,
+              borderRadius: 8,
+              background: 'var(--surface-2)',
+            }}>
+              <div style={{ minWidth: 120, flexShrink: 0 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--fg)' }}>
+                  {lane.agentId}
                 </div>
-              )}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <PhaseTracker phase={lane.phase} compact />
-            </div>
-            {lane.message && (
-              <div style={{
-                fontSize: 11, color: 'var(--rdx-dim)', maxWidth: 200,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {lane.message}
+                <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: rc, fontWeight: 600, marginTop: 1 }}>
+                  {rl}
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PhaseTracker phase={lane.phase} compact />
+              </div>
+              <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--dim)', whiteSpace: 'nowrap' }}>
+                {lane.iteration != null && (
+                  <span>iter <b style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>{lane.iteration}</b></span>
+                )}
+                {lane.message && (
+                  <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {lane.message}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );

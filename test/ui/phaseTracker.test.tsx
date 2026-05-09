@@ -12,7 +12,7 @@ test('PhaseTracker renders all 7 phases', () => {
 
 test('PhaseTracker marks active phase with accent color', () => {
   const html = renderToStaticMarkup(<PhaseTracker phase="execute" />);
-  assert.ok(html.includes('var(--rdx-accent)'), 'active phase should use accent color');
+  assert.ok(html.includes('var(--accent)'), 'active phase should use accent color');
 });
 
 test('PhaseTracker renders nothing when phase is null', () => {

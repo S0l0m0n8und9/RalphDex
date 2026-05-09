@@ -15,66 +15,73 @@ interface HeroNowProps {
 }
 
 export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIteration }: HeroNowProps) {
-  const running = state.loopState === 'running';
-  const total   = model.taskTotal;
-  const done    = model.doneCount;
-  const donePct = total > 0 ? Math.round((done / total) * 100) : 0;
-  const iterPct = state.iterationCap > 0 ? Math.round((state.nextIteration / state.iterationCap) * 100) : 0;
+  const running  = state.loopState === 'running';
+  const total    = model.taskTotal;
+  const done     = model.doneCount;
+  const donePct  = total > 0 ? Math.round((done / total) * 100) : 0;
+  const iterPct  = state.iterationCap > 0 ? Math.round((state.nextIteration / state.iterationCap) * 100) : 0;
   const attention = state.taskCounts?.blocked ?? 0;
   const snapshot  = state.dashboardSnapshot;
   const cacheStats = snapshot?.cost.promptCacheStats ?? null;
 
   const loopPillKind = running ? 'running' : state.loopState === 'stopped' ? 'stopped' : 'idle';
 
+  const primaryExplain = running
+    ? `Ralph is working on iteration ${state.nextIteration} of ${state.iterationCap}.`
+    : `Ralph is idle. ${done} of ${total} tasks done.`;
+
   return (
-    <Card accent padding="18px 20px" style={{ gap: 14 }}>
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        {/* Left: status + task info */}
-        <div style={{ flex: '1 1 320px', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+    <Card accent padding="20px 22px" style={{ gap: 16 }}>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 380px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
             <HealthPulse state={state.loopState} />
-            <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--rdx-dim)' }}>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1.4, textTransform: 'uppercase', color: 'var(--dim)' }}>
               Now
             </span>
             <StatusPill kind={loopPillKind} small>
               {running ? 'Loop running' : state.loopState === 'stopped' ? 'Loop stopped' : 'Loop idle'}
             </StatusPill>
             {running && (
-              <span style={{ fontSize: 11, color: 'var(--rdx-dim)' }}>
-                iteration <b style={{ color: 'var(--rdx-fg)', fontFamily: 'var(--rdx-mono)' }}>{state.nextIteration}</b> / {state.iterationCap}
+              <span style={{ fontSize: 11, color: 'var(--dim)' }}>
+                iteration <b style={{ color: 'var(--fg)', fontFamily: 'var(--font-mono)' }}>{state.nextIteration}</b> / {state.iterationCap}
               </span>
             )}
           </div>
 
           {mode === 'simple' ? (
-            <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: 'var(--rdx-fg)' }}>
-              {model.readiness.detail}
-            </p>
+            <>
+              <h2 style={{ fontSize: 22, fontWeight: 500, lineHeight: 1.25, margin: '0 0 4px 0', letterSpacing: -0.3 }}>
+                {primaryExplain}
+              </h2>
+              <p style={{ fontSize: 13, color: 'var(--dim)', margin: 0 }}>
+                {model.readiness.detail}
+              </p>
+            </>
           ) : (
             <>
               {model.currentTask ? (
                 <>
-                  <div style={{ fontSize: 11, color: 'var(--rdx-dim)', marginBottom: 4 }}>Current task</div>
-                  <div style={{
-                    display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap',
-                    fontSize: 15, fontWeight: 500, lineHeight: 1.3, marginBottom: 10,
+                  <div style={{ fontSize: 13, color: 'var(--dim)', marginBottom: 4 }}>Current task</div>
+                  <h2 style={{
+                    fontSize: 19, fontWeight: 500, lineHeight: 1.3, margin: '0 0 10px 0',
+                    letterSpacing: -0.2, display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap',
                   }}>
                     <span style={{
-                      fontFamily: 'var(--rdx-mono)', fontSize: 11,
-                      padding: '2px 7px', background: 'var(--rdx-surface-2)',
-                      border: '1px solid var(--rdx-border)', borderRadius: 4,
-                      color: 'var(--rdx-accent)',
+                      fontFamily: 'var(--font-mono)', fontSize: 12, padding: '3px 8px',
+                      background: 'var(--surface-2)', border: '1px solid var(--border)',
+                      borderRadius: 4, color: 'var(--accent)',
                     }}>
                       {model.currentTask.id}
                     </span>
                     <span>{model.currentTask.title}</span>
-                  </div>
+                  </h2>
                   {state.agentLanes[0]?.phase != null && (
                     <PhaseTracker phase={state.agentLanes[0].phase} />
                   )}
                 </>
               ) : (
-                <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: 'var(--rdx-dim)' }}>
+                <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0, color: 'var(--dim)' }}>
                   {model.readiness.detail}
                 </p>
               )}
@@ -82,8 +89,7 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
           )}
         </div>
 
-        {/* Right: action buttons */}
-        <div style={{ display: 'flex', gap: 7, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           {running ? (
             <Btn variant="danger" size="md" onClick={onStopLoop}>{Icon.stop} Stop loop</Btn>
           ) : (
@@ -97,19 +103,18 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
         </div>
       </div>
 
-      {/* Health strip */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${cacheStats ? 4 : 3}, minmax(120px, 1fr))`,
-        border: '1px solid var(--rdx-border)', borderRadius: 6,
-        overflow: 'hidden', background: 'var(--rdx-surface-2)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        border: '1px solid var(--border)', borderRadius: 8,
+        overflow: 'hidden', background: 'var(--surface-2)',
       }}>
         <HealthCell
           label="Progress"
           value={`${done}/${total}`}
           sub={`${donePct}% done`}
           bar={donePct}
-          barColor="var(--rdx-ok)"
+          barColor="var(--ok)"
         />
         <HealthCell
           label="Iteration"
@@ -128,7 +133,7 @@ export function HeroNow({ state, model, mode, onStartLoop, onStopLoop, onRunIter
             label="Cache"
             value={formatBytes(cacheStats.staticPrefixBytes)}
             sub={
-              cacheStats.cacheHit === null ? 'no cache data' :
+              cacheStats.cacheHit === null ? 'no data' :
               cacheStats.cacheHit ? 'cache hit' : 'cache miss'
             }
             tone={cacheStats.cacheHit === true ? 'ok' : 'neutral'}

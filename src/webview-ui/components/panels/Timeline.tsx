@@ -9,57 +9,62 @@ interface TimelineProps {
 }
 
 const CLASS_COLOR: Record<RalphCompletionClassification, string> = {
-  complete:             'var(--rdx-ok)',
-  already_satisfied:    'var(--rdx-ok)',
-  partial_progress:     'var(--rdx-accent)',
-  no_progress:          'var(--rdx-dim)',
-  blocked:              'var(--rdx-warn)',
-  failed:               'var(--rdx-bad)',
-  needs_human_review:   'var(--rdx-cyan)',
+  complete:             'var(--ok)',
+  already_satisfied:    'var(--ok)',
+  partial_progress:     'var(--accent)',
+  no_progress:          'var(--dim)',
+  blocked:              'var(--warn)',
+  failed:               'var(--bad)',
+  needs_human_review:   'var(--cyan)',
 };
 
 export function Timeline({ iterations, onOpenArtifact }: TimelineProps) {
   if (iterations.length === 0) return null;
   return (
-    <Card title="Iteration Timeline" subtitle="Most recent first · click row to inspect artifact">
-      <div style={{ display: 'grid', gap: 3 }}>
+    <Card title="Iteration Timeline" subtitle="Most recent first · click to inspect artifact">
+      <div style={{ display: 'grid', gap: 4 }}>
         {iterations.map(it => {
-          const color = CLASS_COLOR[it.classification] ?? 'var(--rdx-dim)';
+          const color = CLASS_COLOR[it.classification] ?? 'var(--dim)';
           return (
             <button
               key={it.iteration}
               onClick={() => onOpenArtifact(it.artifactDir)}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '32px 60px minmax(0,1fr) 120px 70px',
+                gridTemplateColumns: '28px 60px 70px 1fr 70px 60px',
                 gap: 8, alignItems: 'center',
-                padding: '7px 10px',
-                background: 'var(--rdx-surface-2)',
-                border: '1px solid var(--rdx-border)',
-                borderRadius: 5,
-                fontFamily: 'inherit', color: 'var(--rdx-fg)',
+                padding: '8px 10px',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                fontFamily: 'inherit', color: 'var(--fg)',
                 cursor: 'pointer', textAlign: 'left', fontSize: 12,
               }}
             >
-              <span style={{ fontFamily: 'var(--rdx-mono)', color: 'var(--rdx-dim)', fontSize: 11 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--dim)', fontSize: 11 }}>
                 #{it.iteration}
               </span>
-              <span style={{ fontFamily: 'var(--rdx-mono)', fontSize: 11, color: 'var(--rdx-accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)' }}>
+                {it.agentId ?? '—'}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {it.taskId ?? '—'}
               </span>
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5,
+                display: 'inline-flex', alignItems: 'center', gap: 6,
                 color, fontSize: 12, fontWeight: 500,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
                 {it.classification.replace(/_/g, ' ')}
               </span>
-              <span style={{ fontFamily: 'var(--rdx-mono)', fontSize: 11, color: 'var(--rdx-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {it.stopReason ? it.stopReason.replace(/_/g, ' ') : ''}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)' }}>
+                {it.effectiveTier ?? ''}
               </span>
-              <span style={{ fontFamily: 'var(--rdx-mono)', fontSize: 11, color: 'var(--rdx-dim)', textAlign: 'right' }}>
-                {it.agentId ?? ''}
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--dim)', textAlign: 'right' }}>
+                {it.stopReason ? it.stopReason.replace(/_/g, ' ') : ''}
               </span>
             </button>
           );

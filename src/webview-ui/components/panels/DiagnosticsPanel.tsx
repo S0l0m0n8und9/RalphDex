@@ -11,22 +11,22 @@ interface DiagnosticsPanelProps {
 }
 
 function severityStyle(sev: string): { icon: React.ReactNode; color: string } {
-  if (sev === 'ok')   return { icon: Icon.check, color: 'var(--rdx-ok)' };
-  if (sev === 'warn') return { icon: Icon.warn,  color: 'var(--rdx-warn)' };
-  if (sev === 'bad')  return { icon: Icon.x,     color: 'var(--rdx-bad)' };
-  return { icon: Icon.dot, color: 'var(--rdx-dim)' };
+  if (sev === 'ok')   return { icon: Icon.check, color: 'var(--ok)' };
+  if (sev === 'warn') return { icon: Icon.warn,  color: 'var(--warn)' };
+  if (sev === 'bad')  return { icon: Icon.x,     color: 'var(--bad)' };
+  return { icon: Icon.dot, color: 'var(--dim)' };
 }
 
 export function DiagnosticsPanel({ diagnostics }: DiagnosticsPanelProps) {
   return (
-    <Card title={'Preflight & Diagnostics'}>
-      <div style={{ display: 'grid', gap: 5 }}>
-        {diagnostics.map((d, i) => {
+    <Card title="Preflight & Diagnostics">
+      <div style={{ display: 'grid', gap: 6 }}>
+        {diagnostics.map(d => {
           const { icon, color } = severityStyle(d.severity);
           return (
-            <div key={`${d.severity}:${d.message}`} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, padding: '3px 0' }}>
+            <div key={`${d.severity}:${d.message}`} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, padding: '4px 0' }}>
               <span style={{ color, display: 'flex', flexShrink: 0 }}>{icon}</span>
-              <span>{d.message}</span>
+              <span style={{ color: 'var(--fg)' }}>{d.message}</span>
             </div>
           );
         })}

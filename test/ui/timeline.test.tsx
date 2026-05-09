@@ -26,14 +26,14 @@ test('Timeline applies ok color for complete classification', () => {
   const html = renderToStaticMarkup(
     <Timeline iterations={[iter(1, 'complete')]} onOpenArtifact={() => {}} />
   );
-  assert.ok(html.includes('var(--rdx-ok)'));
+  assert.ok(html.includes('var(--ok)'));
 });
 
 test('Timeline applies bad color for failed classification', () => {
   const html = renderToStaticMarkup(
     <Timeline iterations={[iter(1, 'failed')]} onOpenArtifact={() => {}} />
   );
-  assert.ok(html.includes('var(--rdx-bad)'));
+  assert.ok(html.includes('var(--bad)'));
 });
 
 test('Timeline shows task ID and classification text', () => {

@@ -21,6 +21,19 @@
   --rdx-bad:        var(--vscode-errorForeground);
   --rdx-mono:       var(--vscode-editor-font-family, ui-monospace, 'Courier New', monospace);
   --rdx-cyan:       var(--vscode-terminal-ansiBrightCyan, #6fc3df);
+  /* Short-name aliases matching UXrefresh design source */
+  --surface:   var(--rdx-surface);
+  --surface-2: var(--rdx-surface-2);
+  --sidebar:   var(--rdx-surface-2);
+  --border:    var(--rdx-border);
+  --fg:        var(--rdx-fg);
+  --dim:       var(--rdx-dim);
+  --accent:    var(--rdx-accent);
+  --ok:        var(--rdx-ok);
+  --warn:      var(--rdx-warn);
+  --bad:       var(--rdx-bad);
+  --cyan:      var(--rdx-cyan);
+  --font-mono: var(--rdx-mono);
 }
 
 * {

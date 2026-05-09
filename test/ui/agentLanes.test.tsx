@@ -22,10 +22,10 @@ test('AgentLanes renders a row for each lane', () => {
 
 test('AgentLanes applies reviewer color for agentId containing "reviewer"', () => {
   const html = renderToStaticMarkup(<AgentLanes lanes={[lane('reviewer-01', 'verify')]} />);
-  assert.ok(html.includes('var(--rdx-ok)'));
+  assert.ok(html.includes('var(--ok)'));
 });
 
 test('AgentLanes applies watchdog color for agentId containing "watchdog"', () => {
   const html = renderToStaticMarkup(<AgentLanes lanes={[lane('watchdog', 'inspect')]} />);
-  assert.ok(html.includes('var(--rdx-warn)'));
+  assert.ok(html.includes('var(--warn)'));
 });

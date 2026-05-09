@@ -13,29 +13,29 @@ test('Card renders children and title', () => {
 
 test('Card renders accent top border when accent=true', () => {
   const html = renderToStaticMarkup(<Card accent>body</Card>);
-  assert.ok(html.includes('var(--rdx-accent)'), 'accent border should reference accent token');
+  assert.ok(html.includes('var(--accent)'), 'accent border should reference accent token');
 });
 
 test('StatusPill applies running kind styles', () => {
   const html = renderToStaticMarkup(<StatusPill kind="running">Loop running</StatusPill>);
   assert.ok(html.includes('Loop running'));
-  assert.ok(html.includes('var(--rdx-ok)'));
+  assert.ok(html.includes('var(--ok)'));
 });
 
 test('StatusPill applies bad kind styles', () => {
   const html = renderToStaticMarkup(<StatusPill kind="bad">error</StatusPill>);
-  assert.ok(html.includes('var(--rdx-bad)'));
+  assert.ok(html.includes('var(--bad)'));
 });
 
 test('Btn renders label and applies primary variant', () => {
   const html = renderToStaticMarkup(<Btn variant="primary">Start loop</Btn>);
   assert.ok(html.includes('Start loop'));
-  assert.ok(html.includes('var(--rdx-accent)'));
+  assert.ok(html.includes('var(--accent)'));
 });
 
 test('Btn renders danger variant', () => {
   const html = renderToStaticMarkup(<Btn variant="danger">Stop</Btn>);
-  assert.ok(html.includes('var(--rdx-bad)'));
+  assert.ok(html.includes('var(--bad)'));
 });
 
 test('formatBytes formats bytes correctly', () => {

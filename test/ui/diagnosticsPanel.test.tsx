@@ -20,12 +20,12 @@ test('DiagnosticsPanel applies ok color for ok severity', () => {
   const html = renderToStaticMarkup(
     <DiagnosticsPanel diagnostics={[{ severity: 'ok', message: 'All good' }]} />
   );
-  assert.ok(html.includes('var(--rdx-ok)'));
+  assert.ok(html.includes('var(--ok)'));
 });
 
 test('DiagnosticsPanel applies bad color for bad severity', () => {
   const html = renderToStaticMarkup(
     <DiagnosticsPanel diagnostics={[{ severity: 'bad', message: 'Error' }]} />
   );
-  assert.ok(html.includes('var(--rdx-bad)'));
+  assert.ok(html.includes('var(--bad)'));
 });

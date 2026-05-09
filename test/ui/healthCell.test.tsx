@@ -24,5 +24,5 @@ test('HealthCell applies warn tone color', () => {
   const html = renderToStaticMarkup(
     <HealthCell label="Attention" value="3" sub="3 blocked" tone="warn" />
   );
-  assert.ok(html.includes('var(--rdx-warn)'));
+  assert.ok(html.includes('var(--warn)'));
 });
