@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import type { RalphDashboardState } from '../../ui/uiTypes';
 import type { WebviewUiModel, DashboardMode } from '../viewModel';
 import type { DiagnosisSection } from '../../webview/dashboardSnapshot';
-import { HealthPulse, Icon } from './primitives/Card';
-import { HeroNow } from './hero/HeroNow';
+import { HealthPulse, Icon, Btn } from './primitives/Card';
 import { AgentLanes } from './panels/AgentLanes';
 import { Timeline } from './panels/Timeline';
 import { FailurePanel } from './panels/FailurePanel';
@@ -53,26 +52,16 @@ export function SidebarShell({ state, model, mode, onModeChange, onCommand, onSe
   const snapshot = state.dashboardSnapshot;
   const diagnosis: DiagnosisSection | null = snapshot?.diagnosis ?? null;
 
-  const onStartLoop    = () => onCommand('ralphCodex.runRalphLoop');
-  const onStopLoop     = () => onCommand('ralphCodex.stopLoop');
-  const onRunIteration = () => onCommand('ralphCodex.runIteration');
   const onOpenFailure  = (path: string) => onOpenArtifact(path);
+  const onOpenDashboard = () => onCommand('ralphCodex.showDashboard');
 
   const content = (() => {
     if (activeTab === 'overview') {
       return (
         <>
-          <HeroNow state={state} model={model} mode={mode}
-            onStartLoop={onStartLoop} onStopLoop={onStopLoop} onRunIteration={onRunIteration} />
           {diagnosis && <FailurePanel diagnosis={diagnosis} onOpenArtifact={onOpenFailure} />}
-          {mode === 'simple' ? (
-            <Timeline iterations={state.recentIterations} onOpenArtifact={onOpenArtifact} />
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
-              <AgentLanes lanes={state.agentLanes} />
-              <Timeline iterations={state.recentIterations} onOpenArtifact={onOpenArtifact} />
-            </div>
-          )}
+          <AgentLanes lanes={state.agentLanes} />
+          <Timeline iterations={state.recentIterations} onOpenArtifact={onOpenArtifact} />
         </>
       );
     }
@@ -114,6 +103,13 @@ export function SidebarShell({ state, model, mode, onModeChange, onCommand, onSe
           <div style={{ fontSize: 11, color: 'var(--rdx-dim)', marginTop: 1, fontFamily: 'var(--rdx-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {state.agentRole}
           </div>
+        </div>
+
+        {/* Open Dashboard */}
+        <div style={{ padding: '6px 10px' }}>
+          <Btn variant="secondary" size="sm" style={{ width: '100%' }} onClick={onOpenDashboard}>
+            {Icon.bolt} Open Dashboard
+          </Btn>
         </div>
 
         {/* Mode toggle */}
