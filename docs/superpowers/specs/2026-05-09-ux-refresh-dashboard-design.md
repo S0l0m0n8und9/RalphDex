@@ -271,7 +271,7 @@ These features are **not implemented** in this pass. Each should become a backlo
 | Agent lane model labels | `RalphAgentLaneState` has no `model` field | `AgentLanes.tsx` |
 | Timeline duration column | `RalphDashboardIteration` has no duration field | `Timeline.tsx` |
 | Timeline per-iteration token counts | `RalphDashboardIteration` has no token fields; requires provider to surface input/output/cache token counts in iteration artifacts and propagate to state | `Timeline.tsx`, `RalphDashboardIteration` type, `dashboardDataLoader` |
-| Cache cell: per-iteration token breakdown | `PromptCacheStats` only has `staticPrefixBytes` + `cacheHit`; full counts (input, output, cache-read tokens) require provider-level token reporting | `HealthCell.tsx`, `PromptCacheStats` type |
+| Token usage display | **Requirement:** the Cache/Token health cell and Timeline should display input tokens + output tokens per iteration when a provider returns them (e.g. Claude Code surfaces these in its output). Any provider that reports token usage should propagate `inputTokens: number` and `outputTokens: number` into `RalphDashboardIteration` and `DashboardCostSection`. The UI should render them wherever token data is available and silently omit them when not. Currently no provider surfaces these fields in state. | `HealthCell.tsx`, `Timeline.tsx`, `PromptCacheStats`/`RalphDashboardIteration` types, `dashboardDataLoader` |
 | Failure panel "Auto-recover" | No command registered | `FailurePanel.tsx` |
 | Failure panel "Apply & retry" | No command registered | `FailurePanel.tsx` |
 | Failure panel "Skip task" | Command existence unverified — audit before enabling | `FailurePanel.tsx` |
