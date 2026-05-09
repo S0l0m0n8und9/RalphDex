@@ -6,6 +6,7 @@ export interface WebviewUiCommand {
   command: string;
   label: string;
   variant?: 'primary' | 'danger';
+  disabled?: boolean;
 }
 
 export interface WebviewReadinessModel {
@@ -34,6 +35,8 @@ function taskTotal(state: RalphDashboardState): number {
 function currentTask(state: RalphDashboardState): RalphDashboardTask | null {
   return state.tasks.find((task) => task.isCurrent) ?? state.tasks.find((task) => task.status !== 'done') ?? state.tasks[0] ?? null;
 }
+
+export type DashboardMode = 'simple' | 'standard' | 'advanced';
 
 export function getWebviewUiModel(state: RalphDashboardState): WebviewUiModel {
   const total = taskTotal(state);
