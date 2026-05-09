@@ -1,51 +1,56 @@
 :root {
-  --rdx-bg: var(--vscode-editor-background);
-  --rdx-sidebar-bg: var(--vscode-sideBar-background, var(--vscode-editor-background));
-  --rdx-fg: var(--vscode-foreground);
-  --rdx-muted: var(--vscode-descriptionForeground);
-  --rdx-border: var(--vscode-panel-border, rgba(127, 127, 127, 0.35));
-  --rdx-button-bg: var(--vscode-button-secondaryBackground);
-  --rdx-button-fg: var(--vscode-button-secondaryForeground);
-  --rdx-primary-bg: var(--vscode-button-background);
-  --rdx-primary-fg: var(--vscode-button-foreground);
-  --rdx-danger: var(--vscode-errorForeground);
-  --rdx-warn: var(--vscode-editorWarning-foreground);
-  --rdx-focus: var(--vscode-focusBorder);
-  --rdx-font: var(--vscode-font-family);
-  /* UX refresh tokens — new components use these semantic names */
-  --rdx-surface:    var(--vscode-editor-background);
-  --rdx-surface-2:  var(--vscode-sideBar-background, var(--vscode-editor-background));
-  --rdx-ok:         var(--vscode-testing-iconPassed, #4ec994);
-  --rdx-dim:        var(--vscode-descriptionForeground);
-  --rdx-accent:     var(--vscode-button-background);
-  --rdx-bad:        var(--vscode-errorForeground);
-  --rdx-mono:       var(--vscode-editor-font-family, ui-monospace, 'Courier New', monospace);
-  --rdx-cyan:       var(--vscode-terminal-ansiBrightCyan, #6fc3df);
-  /* Short-name aliases matching UXrefresh design source */
-  --surface:   var(--rdx-surface);
-  --surface-2: var(--rdx-surface-2);
-  --sidebar:   var(--rdx-surface-2);
-  --border:    var(--rdx-border);
-  --fg:        var(--rdx-fg);
-  --dim:       var(--rdx-dim);
-  --accent:    var(--rdx-accent);
-  --ok:        var(--rdx-ok);
-  --warn:      var(--rdx-warn);
-  --bad:       var(--rdx-bad);
-  --cyan:      var(--rdx-cyan);
-  --font-mono: var(--rdx-mono);
+  /* Design palette — own identity, pops against a dull VS Code theme */
+  --surface:   #1f1f26;
+  --surface-2: #15151a;
+  --sidebar:   #17171c;
+  --border:    #2a2a32;
+  --fg:        #e4e4e8;
+  --fg-dim:    #c5c5cc;
+  --dim:       #8a8a93;
+  --accent:    #f5b041;
+  --ok:        #5bd69c;
+  --warn:      #f5a14d;
+  --bad:       #eb5e5e;
+  --cyan:      #6fc3df;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+  /* rdx- aliases kept for backward compat with old CSS classes */
+  --rdx-bg:         var(--surface);
+  --rdx-sidebar-bg: var(--sidebar);
+  --rdx-fg:         var(--fg);
+  --rdx-muted:      var(--dim);
+  --rdx-border:     var(--border);
+  --rdx-button-bg:  var(--surface-2);
+  --rdx-button-fg:  var(--fg);
+  --rdx-primary-bg: var(--accent);
+  --rdx-primary-fg: #15131a;
+  --rdx-danger:     var(--bad);
+  --rdx-warn:       var(--warn);
+  --rdx-focus:      var(--accent);
+  --rdx-font:       -apple-system, system-ui, sans-serif;
+  --rdx-surface:    var(--surface);
+  --rdx-surface-2:  var(--surface-2);
+  --rdx-ok:         var(--ok);
+  --rdx-dim:        var(--dim);
+  --rdx-accent:     var(--accent);
+  --rdx-bad:        var(--bad);
+  --rdx-mono:       var(--font-mono);
+  --rdx-cyan:       var(--cyan);
 }
 
-* {
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-body {
+html, body {
   margin: 0;
-  background: var(--rdx-bg);
-  color: var(--rdx-fg);
-  font-family: var(--rdx-font);
-  font-size: var(--vscode-font-size);
+  padding: 0;
+}
+
+body {
+  background: var(--surface);
+  color: var(--fg);
+  font-family: -apple-system, system-ui, sans-serif;
+  font-size: 13px;
   line-height: 1.45;
 }
 

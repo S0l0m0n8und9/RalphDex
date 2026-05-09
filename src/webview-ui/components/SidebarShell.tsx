@@ -16,25 +16,25 @@ export function SidebarShell({ state, model, onCommand }: SidebarShellProps) {
 
   return (
     <div style={{
-      display: 'flex', flexDirection: 'column', gap: 12,
-      padding: 12, background: 'var(--sidebar)', minHeight: '100vh',
-      fontFamily: 'var(--rdx-font)', color: 'var(--fg)',
+      display: 'flex', flexDirection: 'column',
+      background: 'var(--sidebar)', minHeight: '100vh',
+      color: 'var(--fg)',
     }}>
       {/* Workspace identity */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-        <HealthPulse state={state.loopState} />
-        <div style={{ minWidth: 0 }}>
+      <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--border)', marginBottom: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+          <HealthPulse state={state.loopState} />
           <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {state.workspaceName}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {state.agentRole}
-          </div>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {state.agentRole}
         </div>
       </div>
 
       {/* Loop status */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <StatusPill kind={loopKind} small>{loopLabel}</StatusPill>
         {running && state.nextIteration > 0 && (
           <div style={{ fontSize: 11, color: 'var(--dim)', fontFamily: 'var(--font-mono)' }}>
@@ -50,13 +50,15 @@ export function SidebarShell({ state, model, onCommand }: SidebarShellProps) {
       </div>
 
       {/* Open dashboard */}
-      <Btn variant="primary" size="sm" style={{ width: '100%', justifyContent: 'center' }}
-        onClick={() => onCommand('ralphCodex.showDashboard')}>
-        {Icon.bolt} Open Dashboard
-      </Btn>
+      <div style={{ padding: '0 14px 10px' }}>
+        <Btn variant="primary" size="sm" style={{ width: '100%', justifyContent: 'center' }}
+          onClick={() => onCommand('ralphCodex.showDashboard')}>
+          {Icon.bolt} Open Dashboard
+        </Btn>
+      </div>
 
       {/* Quick loop controls */}
-      <div style={{ display: 'grid', gap: 4 }}>
+      <div style={{ padding: '0 14px', display: 'grid', gap: 4 }}>
         {running ? (
           <Btn variant="secondary" size="sm" style={{ width: '100%', justifyContent: 'center' }}
             onClick={() => onCommand('ralphCodex.stopLoop')}>
