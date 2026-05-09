@@ -65,6 +65,72 @@ test('parseCompletionReport accepts a trailing JSON object without a fence', () 
   assert.equal(parsed.report?.progressNote, 'Updated parser tests.');
 });
 
+test('parseCompletionReport accepts fenced JSON with trailing comment after object', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T1",',
+    '  "requestedStatus": "done"',
+    '}',
+    '// completed successfully',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.selectedTaskId, 'T1');
+  assert.equal(parsed.report?.requestedStatus, 'done');
+  assert.match(parsed.warnings.join('\n'), /Ignored trailing content/);
+});
+
+test('parseCompletionReport accepts fenced JSON with trailing prose after object', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T2",',
+    '  "requestedStatus": "in_progress"',
+    '}',
+    'Completed successfully after validation.',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'parsed');
+  assert.equal(parsed.report?.selectedTaskId, 'T2');
+  assert.equal(parsed.report?.requestedStatus, 'in_progress');
+  assert.match(parsed.warnings.join('\n'), /Ignored trailing content/);
+});
+
+test('parseCompletionReport rejects comments inside the JSON object', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T1",',
+    '  // invalid JSONC comment',
+    '  "requestedStatus": "done"',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+});
+
+test('parseCompletionReport rejects fenced JSON with multiple report objects', () => {
+  const parsed = parseCompletionReport([
+    '```json',
+    '{',
+    '  "selectedTaskId": "T1",',
+    '  "requestedStatus": "done"',
+    '}',
+    '{',
+    '  "selectedTaskId": "T2",',
+    '  "requestedStatus": "blocked"',
+    '}',
+    '```'
+  ].join('\n'));
+
+  assert.equal(parsed.status, 'invalid');
+  assert.match(parsed.parseError ?? '', /multiple JSON objects/);
+});
+
 test('parseCompletionReport accepts suggested child tasks when provided', () => {
   const parsed = parseCompletionReport([
     '```json',
